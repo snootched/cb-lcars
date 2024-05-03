@@ -1894,7 +1894,7 @@ button_card_templates:
     variables:
       card_width: 500px
       card_height: 45px
-      entity: light.desk
+      entity: ''
       slider:
         color: var(--picard-cyan)
         color_alpha: 0.95
@@ -1902,6 +1902,7 @@ button_card_templates:
         border_alpha: 0.5
         border_width: 2px
         height: 10px
+        width: '[[[ return variables.card_width ]]]'
         top_padding: 10px
       gauge:
         ticks: 8
@@ -1972,7 +1973,7 @@ button_card_templates:
         slider:
           - position: absolute
           - top: '[[[ return variables.slider.top_padding ]]]'
-          - left: '[[[ return "calc(" + variables.slider.border_width + " * -2)" ]]]'
+          - left: '[[[ return "calc(" + variables.slider.border_width + " * -1)" ]]]'
         sub_meter:
           - position: absolute
           - top: 0px
@@ -1986,7 +1987,7 @@ button_card_templates:
           styles:
             card:
               - height: '[[[ return variables.slider.height ]]]'
-              - width: 500px
+              - width: '[[[ return variables.slider.width ]]]'
             progress:
               - background-color: >-
                   [[[ return
@@ -17072,7 +17073,7 @@ views:
             variables:
               card_width: 500px
               card_height: 45px
-              entity: light.desk
+              entity: ''
               slider:
                 color: var(--picard-cyan)
                 color_alpha: 0.95
@@ -17080,6 +17081,7 @@ views:
                 border_alpha: 0.5
                 border_width: 2px
                 height: 10px
+                width: '[[[ return variables.card_width ]]]'
                 top_padding: 10px
               gauge:
                 ticks: 8
@@ -17152,7 +17154,7 @@ views:
                   - top: '[[[ return variables.slider.top_padding ]]]'
                   - left: >-
                       [[[ return "calc(" + variables.slider.border_width + " *
-                      -2)" ]]]
+                      -1)" ]]]
                 sub_meter:
                   - position: absolute
                   - top: 0px
@@ -17166,7 +17168,7 @@ views:
                   styles:
                     card:
                       - height: '[[[ return variables.slider.height ]]]'
-                      - width: 500px
+                      - width: '[[[ return variables.slider.width ]]]'
                     progress:
                       - background-color: >-
                           [[[ return
