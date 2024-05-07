@@ -2084,7 +2084,7 @@ button_card_templates:
           }
 
           // Calculate the number of grid cells that would fit
-          let grid_X = Math.floor(card_width / (button_card_width + grid_gap));
+          let grid_X = Math.floor((card_width + grid_gap) / (button_card_width + grid_gap));
           return grid_X;
         ]]]
       grid_gap: '[[[ return variables.grid_AUTO_GAP ]]]'
@@ -2391,7 +2391,7 @@ button_card_templates:
     variables:
       card_width: 500px
       card_height: 45px
-      entity: light.desk
+      entity: ''
       slider:
         variables:
           color: var(--picard-cyan)
@@ -2636,7 +2636,7 @@ button_card_templates:
       panel_height: 50px
       panel_padding: 5px
       panel_mode: gauge
-      entity: light.desk
+      entity: ''
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_gauge: false
       entity_match_header: false
@@ -8347,6 +8347,8 @@ views:
               panel_mode: icons
         title: Multimeter (gauge/slider/icons)
       - type: grid
+        cards: []
+      - type: grid
         cards:
           - type: custom:button-card
             template: cb-lcars-multimeter
@@ -8473,6 +8475,7 @@ views:
                       icon: mdi:cellphone
                     - entity: automation.notifications_patio_gate
                       icon: mdi:gate-alert
+        title: Multimater - icon panels
     max_columns: 3
     cards: []
   - title: Screensaver
@@ -12692,6 +12695,8 @@ views:
           - type: custom:button-card
             template: cb-lcars-footer-callout-right
             label: cb-lcars-header-callout-right
+      - type: grid
+        cards: []
   - title: scratch2
     path: scratch2
     cards:
