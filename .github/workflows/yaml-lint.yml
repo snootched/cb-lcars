@@ -43,13 +43,13 @@ jobs:
           # File(s) or Directory, separate by space if multiple files or folder are specified
           file_or_dir: backup/v2/lcars-v2-dev.yaml
           # Path to custom configuration
-          config_file: # optional
+          #config_file: # optional
           # Custom configuration (as YAML source)
-          config_data: # optional
+          #config_data: # optional
           # Format for parsing output [parsable,standard,colored,github,auto]
-          format: # optional, default is parsable
+          format: parsable
           # Return non-zero exit code on warnings as well as errors
-          strict: # optional, default is false
+          #strict: # optional, default is false
           # Output only error level problems
-          no_warnings: # optional, default is false
+          #no_warnings: # optional, default is false
           
