@@ -4,7 +4,9 @@ animated_background:
     - taba9
     - taba7
     - jweyermars
-button_card_templates:
+
+
+button_card_templates
   cb-lcars-debug:
     variables:
       debug: true
