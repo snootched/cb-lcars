@@ -48,6 +48,7 @@ jobs:
           #config_data: # optional
           # Format for parsing output [parsable,standard,colored,github,auto]
           format: parsable
+          config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
           # Return non-zero exit code on warnings as well as errors
           #strict: # optional, default is false
           # Output only error level problems
