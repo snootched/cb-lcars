@@ -1,0 +1,55 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v4
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, world!
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
+        run: |
+          echo Add other actions to build,
+          echo test, and deploy your project.
+      
+      - name: YAML Lint
+        # You may pin to the exact commit or the version.
+        # uses: ibiqlik/action-yamllint@2576378a8e339169678f9939646ee3ee325e845c
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          # File(s) or Directory, separate by space if multiple files or folder are specified
+          file_or_dir: backup/v2/lcars-v2-dev.yaml
+          # Path to custom configuration
+          config_file: # optional
+          # Custom configuration (as YAML source)
+          config_data: # optional
+          # Format for parsing output [parsable,standard,colored,github,auto]
+          format: # optional, default is parsable
+          # Return non-zero exit code on warnings as well as errors
+          strict: # optional, default is false
+          # Output only error level problems
+          no_warnings: # optional, default is false
+          
