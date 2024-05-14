@@ -4,9 +4,7 @@ animated_background:
     - taba9
     - taba7
     - jweyermars
-
-
-button_card_templates
+button_card_templates:
   cb-lcars-debug:
     variables:
       debug: true
@@ -2228,7 +2226,7 @@ button_card_templates
               active: var(--lcars-ui-secondary)
               inactive: var(--lcars-ui-primary)
               background:
-                active: var(--picard-cyan)
+                active: var(--lcars-ui-secondary)
                 inactive: var(--lcars-ui-primary)
               default: null
           icon:
@@ -6129,7 +6127,7 @@ views:
     path: theme-showcase
     icon: mdi:theme-light-dark
     type: sections
-    max_columns: 3
+    max_columns: 1
     sections:
       - type: grid
         cards:
@@ -6375,6 +6373,9 @@ views:
                         color:
                           background:
                             inactive: black
+        title: '[Theme] LCARS Picard II'
+      - type: grid
+        cards:
           - type: custom:button-card
             template:
               - cb-lcars-button-grid
@@ -6460,6 +6461,8 @@ views:
                         color:
                           background:
                             inactive: black
+        title: '[ha-lcars vars] LCARS Picard II'
+    cards: []
   - title: Theme Showcase Red Aert
     path: theme-showcase-red-aert
     theme: LCARS Picard II RED ALERT
@@ -6709,6 +6712,9 @@ views:
                         color:
                           background:
                             inactive: black
+        title: '[Theme] LCARS Picard II RED ALERT'
+      - type: grid
+        cards:
           - type: custom:button-card
             template:
               - cb-lcars-button-grid
@@ -6794,7 +6800,8 @@ views:
                         color:
                           background:
                             inactive: black
-    max_columns: 3
+        title: '[ha-lcars vars] LCARS Picard II RED ALERT'
+    max_columns: 1
     icon: mdi:compare
     cards: []
   - title: lcars-base
@@ -13257,3 +13264,2724 @@ views:
                 auto_calc_Y: false
                 X: 3
                 'Y': 4
+  - title: home
+    path: home
+    type: custom:grid-layout
+    layout:
+      margin: '-4px -4px 0px -4px'
+      card_margin: 0
+      padding: 0
+      grid-template-columns: 220px 923px 300px
+      grid-template-rows: 70px 110px 502px 90px 130px
+      grid-template-areas: |
+        "header-left header header-right"
+        "header-left content-panel content-panel"
+        "left-sidebar content-panel content-panel"
+        "footer-left content-panel content-panel"
+        "footer-left footer footer-right"
+      grid-gap: 0px
+      width: 1443px
+      height: 902px
+    cards:
+      - type: custom:button-card
+        styles:
+          card:
+            - background: transparent
+            - height: 220px
+            - width: 300px
+            - border-radius: 0 !important
+          custom_fields:
+            outer_elbow:
+              - position: absolute
+              - left: 0px
+              - bottom: 0px
+        custom_fields:
+          outer_elbow:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-footer-picard
+              variables:
+                card_height: 210px
+                card_width: 300px
+                card_inner_border_factor: 1.4
+                card_inner_border_width: 50px
+                picard_lcars_outer_color: var(--lcars-ui-primary)
+                picard_lcars_inner_color: var(--lcars-card-bottom-color)
+                picard_border_ratio_factor: 1.27
+                card_border_bottom_left_radius: 160px
+                picard_border_gap: 5px
+                picard_lcars_outer_border_bottom: 45px
+                picard_lcars_inner_border_bottom: 80px
+                picard_lcars_outer_border_left: 45px
+                picard_lcars_inner_border_left: 165px
+                picard_lcars_inner_border_factor: 2
+              show_label: false
+              label: ''
+        view_layout:
+          grid-area: footer-left
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        cards:
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+            entity: climate.living_room
+            show_state: false
+            show_name: false
+            show_label: true
+            label: |
+              [[[
+                  const state = states['sensor.home_average_temperature_template'].state;
+                  const roundedValue = Math.round(parseFloat(state));
+                  const formattedValue = roundedValue.toString().padStart(2, '0');
+                  return formattedValue;
+              ]]]
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+              card_active_background_color: var(--picard-light-blue)
+              card_inactive_background_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: HOME
+              - id: state_off
+                operator: '!='
+                value: HOME
+            entity: input_select.lcars_ui_page_selector
+            label: home
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: HOME
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+              text_color_zero: var(--picard-dark-blue)
+              text_color_non_zero: var(--picard-blue)
+            entity: sensor.lights_on
+            show_state: true
+            show_label: false
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: LIGHTS
+              - id: state_off
+                operator: '!='
+                value: LIGHTS
+            entity: input_select.lcars_ui_page_selector
+            label: lights
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: LIGHTS
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+            entity: climate.living_room
+            show_state: false
+            show_name: false
+            show_label: true
+            label: |
+              [[[
+                  const state = states['climate.living_room'].attributes.temperature;
+                  const roundedValue = Math.round(parseFloat(state));
+
+                  // Check if the roundedValue is NaN
+                  if (isNaN(roundedValue)) {
+                    return 'FF';
+                  }
+                  
+                  const formattedValue = roundedValue.toString().padStart(2, '0');
+                  return formattedValue;
+              ]]]
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: ENVIRONMENTAL
+              - id: state_off
+                operator: '!='
+                value: ENVIRONMENTAL
+            entity: input_select.lcars_ui_page_selector
+            label: environmental
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: ENVIRONMENTAL
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled
+            label: esc
+            tap_action:
+              action: navigate
+              navigation_path: /dashboard-lcars/scratch2
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled
+            variables:
+              card_inactive_background_color: var(--picard-dark-gray)
+            entity: input_boolean.lcars_ui_debug
+            show_state: true
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+              text_color_zero: var(--success-color)
+              text_color_non_zero: var(--error-color)
+            entity: sensor.contact_sensors_open
+            show_state: false
+            show_name: false
+            show_label: true
+            label: |
+              [[[
+                  const state = states['sensor.contact_sensors_open'].state;
+                  const roundedValue = Math.round(parseFloat(state));
+                  const formattedValue = roundedValue.toString().padStart(2, '0');
+                  return formattedValue;
+              ]]]
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: SECURITY
+              - id: state_off
+                operator: '!='
+                value: SECURITY
+            entity: input_select.lcars_ui_page_selector
+            label: security
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: SECURITY
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: COMMS
+              - id: state_off
+                operator: '!='
+                value: COMSS
+            entity: input_select.lcars_ui_page_selector
+            label: comms
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: COMMS
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+              text_color_zero: var(--error-color)
+              text_color_non_zero: var(--picard-starlight)
+            entity: sensor.cats_home
+            show_state: false
+            show_name: false
+            show_label: true
+            label: |
+              [[[
+                  const state = states['sensor.cats_home'].state;
+                  const roundedValue = Math.round(parseFloat(state));
+                  const formattedValue = roundedValue.toString().padStart(2, '0');
+                  return formattedValue;
+              ]]]
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: CATS
+              - id: state_off
+                operator: '!='
+                value: CATS
+            entity: input_select.lcars_ui_page_selector
+            label: felines
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: CATS
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:gap-card
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-dark-orange)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: ENGINEERING
+              - id: state_off
+                operator: '!='
+                value: ENGINEERING
+            entity: input_select.lcars_ui_page_selector
+            label: engineering
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: ENGINEERING
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled-dense
+            variables:
+              text_justify: center
+              font_size: 28px
+              font_weight: normal
+              text_padding_bottom: 5px
+              text_color_zero: var(--picard-dark-blue)
+              text_color_non_zero: var(--picard-blue)
+            entity: sensor.lights_on
+            show_state: true
+            show_label: false
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-dense
+              - cb-lcars-animate-press
+            variables:
+              card_active_color: var(--picard-light-blue)
+              card_inactive_color: var(--picard-dark-gray)
+            state:
+              - id: state_on
+                value: LIGHTS II
+              - id: state_off
+                operator: '!='
+                value: LIGHTS II
+            entity: input_select.lcars_ui_page_selector
+            label: lights ii
+            tap_action:
+              action: call-service
+              service: input_select.select_option
+              data:
+                entity_id: input_select.lcars_ui_page_selector
+                option: LIGHTS II
+            hold_action:
+              action: none
+            double_tap_action:
+              action: none
+        layout:
+          grid-template-columns: 52px 1fr
+          grid-template-rows: auto
+          grid-auto-rows: auto
+          card_margin: 0
+          padding: 0
+          grid-area: left-sidebar
+          margin: '-4px -4px 0px -4px'
+          grid-column-gap: 0px
+      - type: custom:button-card
+        view_layout:
+          grid-area: header-left
+        styles:
+          card:
+            - background: transparent
+            - height: 170px
+            - width: 212px
+            - border-radius: 0 !important
+          custom_fields:
+            left_bar:
+              - position: absolute
+              - left: 0
+              - top: 0
+            right_bar:
+              - position: absolute
+              - right: 0
+              - top: 0
+        custom_fields:
+          left_bar:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-button-picard-filled
+              variables:
+                card:
+                  height: 175px
+                  width: 45px
+                  color:
+                    background:
+                      inactive: var(--lcars-ui-secondary)
+          right_bar:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-button-picard-filled
+              variables:
+                card:
+                  height: 175px
+                  width: 163px
+                  color:
+                    background:
+                      inactive: var(--lcars-card-bottom-color)
+      - type: custom:button-card
+        view_layout:
+          grid-area: footer-right
+        styles:
+          card:
+            - background-color: |
+                [[[
+                  if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+                    return 'rgba(150,0,0,0.3)';
+                  } else {
+                    return 'transparent';
+                  }
+                ]]]
+            - width: 300px
+            - height: 130px
+            - border-radius: 0 !important
+          custom_fields:
+            elbow:
+              - position: absolute
+              - bottom: 0
+              - right: 0
+            inner_elbow:
+              - position: absolute
+              - left: 0px
+              - bottom: 0px
+        custom_fields:
+          inner_elbow:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-footer-picard-right
+              variables:
+                card_height: 115px
+                card_width: 200px
+                card_inner_border_factor: 1
+                card_inner_border_width: 50px
+                picard_lcars_outer_color: var(--lcars-ui-secondary)
+                picard_lcars_inner_color: transparent
+                picard_border_ratio_factor: 1
+                card_border_bottom_right_radius: 60px
+                picard_border_gap: 4px
+                picard_lcars_outer_border_bottom: 5px
+                picard_lcars_inner_border_bottom: 5px
+                picard_lcars_outer_border_right: 125px
+                picard_lcars_inner_border_right: 5px
+                picard_lcars_inner_border_factor: 1
+                picard_lcars_inner_border_bottom_right_radius: 60px
+          elbow:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-footer-picard-right
+              variables:
+                card_height: 175px
+                card_width: 500px
+                card_border_bottom_right_radius: 80px
+                picard_border_gap: 4px
+                card_inner_border_factor: 1.15
+                card_inner_border_width: 0px
+                picard_lcars_inner_color: var(--lcars-card-bottom-color)
+                picard_lcars_outer_color: var(--lcars-ui-secondary)
+                picard_lcars_outer_border_bottom: 6px
+                picard_lcars_inner_border_bottom: 47px
+                picard_lcars_outer_border_right: 6px
+                picard_lcars_inner_border_right: 85px
+                picard_lcars_inner_border_factor: 1.1
+      - type: custom:button-card
+        view_layout:
+          grid-area: footer
+        styles:
+          card:
+            - background: transparent
+            - height: 130px
+            - width: 923px
+            - border-radius: 0 !important
+          custom_fields:
+            button_grid:
+              - position: absolute
+              - left: 85px
+              - bottom: 0px
+        custom_fields:
+          button_grid:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-button-grid
+              variables:
+                grid_X: 4
+                grid_Y: 2
+                grid_template_columns: 180px 180px 180px 275px
+                grid_auto_rows: 80px 50px
+                card_width: 923px
+                card_height: 130px
+                grid_buttons:
+                  - entity: person.dexter
+                    show_state: true
+                    show_label: false
+                    template:
+                      - cb-lcars-button-picard-filled
+                      - cb-lcars-button-picard-label-se
+                      - cb-lcars-animate-press
+                      - cb-lcars-actions-more-info
+                    variables:
+                      card_height: 80px
+                  - variables:
+                      card_height: 80px
+                  - variables:
+                      card_height: 80px
+                  - variables:
+                      card_width: 275px
+                      card_height: 80px
+                  - entity: person.dexter
+                    label: the dex
+                    template:
+                      - cb-lcars-button-picard-filled
+                      - cb-lcars-button-picard-label-se
+                      - cb-lcars-animate-press
+                      - cb-lcars-actions-more-info
+                    state:
+                      - id: state_on
+                        value: home
+                      - id: state_off
+                        value: not_home
+                    variables:
+                      card_inactive_background_color: var(--warning-color)
+                      card_active_background_color: var(--picard-blue)
+                  - entity: person.luna
+                    label: luna
+                    template:
+                      - cb-lcars-button-picard-filled
+                      - cb-lcars-button-picard-label-se
+                      - cb-lcars-animate-press
+                      - cb-lcars-actions-more-info
+                    state:
+                      - id: state_on
+                        value: home
+                      - id: state_off
+                        value: not_home
+                    variables:
+                      card_inactive_background_color: var(--lcars-ui-secondary)
+                      card_active_background_color: var(--warning-color)
+                  - show_icon: true
+                    icon: none
+                    size: 24px
+                    variables:
+                      icon_active_color: transparent
+                      icon_inactive_color: transparent
+                      icon_active_background_color: var(--picard-blue)
+                      icon_inactive_background_color: transparent
+                      card_active_color: var(--picard-green)
+                      card_inactive_color: var(--error-color)
+                      card_inactive_background_color: var(--lcars-ui-secondary)
+                      card_active_background_color: var(--picard-starlight)
+                      lcars_color: var(--error-color)
+                      card_width: 180px
+                      card_min_height: 45px
+                      card_height: null
+                    entity: input_boolean.enable_verbal_notifications
+                    label: tts alerts
+                  - entity: switch.adguard_home_protection
+                    label: ad-guard
+                    variables:
+                      card_width: 275px
+                      card_active_background_color: var(--lcars-ui-secondary)
+                      card_inactive_background_color: var(--error-color)
+      - type: custom:button-card
+        view_layout:
+          grid-area: header-right
+        styles:
+          card:
+            - background: transparent
+            - width: 300px
+            - height: 130px
+            - border-radius: 0 !important
+          custom_fields:
+            clock:
+              - position: absolute
+              - top: 10px
+              - right: 0px
+              - width: 315px
+              - height: 115px
+        custom_fields:
+          clock:
+            card:
+              type: custom:clock-weather-card
+              entity: weather.home
+              sun_entity: true
+              weather_icon_type: line
+              forecast_rows: 0
+              time_format: 24
+              hourly_forecast: false
+              hide_today_section: false
+              hide_forecast_section: true
+              time_pattern: HH:mm:ss
+              date_pattern: yyyy-MM-dd [cccc]
+              temperature_sensor: sensor.patio_sensor_temperature
+              humidity_sensor: sensor.patio_sensor_humidity
+              show_humidity: false
+              card_mod:
+                style: |
+                  ha-card {
+                    background: none !important;
+                    color: var(--picard-pale-orange);
+                    
+                    
+                  }
+                  .card-content {
+                    padding-top: 0;
+                    padding-bottom: 0;
+                    padding-right: 0;
+                    font-weight: 200;
+                  }
+      - square: false
+        type: grid
+        columns: 1
+        cards:
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: unavailable
+            card:
+              type: custom:button-card
+              styles:
+                card:
+                  - background-color: |
+                      [[[
+                        if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+                          return 'rgba(0,0,175,0.3)';
+                        } else {
+                          return 'transparent';
+                        }
+                      ]]]
+                  - height: 702px
+                  - width: 1223px
+                  - border-radius: 0 !important
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: HOME
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-functions
+              variables:
+                entities:
+                  - light.living_room_ambient
+                  - light.corner_lamp
+                  - light.kitchen
+                  - light.bathroom_lights
+                  - light.bedroom
+                  - light.office_lights
+              styles:
+                card:
+                  - background-color: |
+                      [[[
+                        if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+                          return 'rgba(0,0,175,0.3)';
+                        } else {
+                          return 'transparent';
+                        }
+                      ]]]
+                  - height: 702px
+                  - width: 1223px
+                  - border-radius: 0 !important
+                custom_fields:
+                  header_elbow:
+                    - position: absolute
+                    - left: 0px
+                    - top: 86px
+                  slider_grid:
+                    - position: absolute
+                    - bottom: 145px
+                    - left: 50px
+                  slider_buttons:
+                    - position: absolute
+                    - bottom: 100px
+                    - left: 40px
+                  header_label:
+                    - position: absolute
+                    - top: 20px
+                    - right: 20px
+              custom_fields:
+                header_label:
+                  card:
+                    type: custom:button-card
+                    template: cb-lcars-label
+                    label: HOME
+                    show_label: true
+                    variables:
+                      font_size: 42px
+                      font_weight: lighter
+                      text_color_off: var(--picard-pale-orange)
+                      card_height: 60px
+                      card_width: 200px
+                header_elbow:
+                  card:
+                    type: custom:button-card
+                    template:
+                      - cb-lcars-header-callout
+                    variables:
+                      card_height: 50px
+                      card_min_height: 50px
+                      card_width: 900px
+                      border_left: 20px
+                      border_top: 3px
+                      lcars_color: var(--picard-light-blue)
+                slider_grid:
+                  card:
+                    type: custom:layout-card
+                    layout_type: custom:grid-layout
+                    layout:
+                      grid-template-columns: repeat(6,100px)
+                      grid-auto-rows: auto
+                      grid-gap: 50px
+                      card_margin: 0
+                      padding: 0
+                      margin: '-4px -4px 0px -4px'
+                    cards:
+                      - type: custom:button-card
+                        template:
+                          - cb-lcars-functions
+                          - cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[0] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                      - type: custom:button-card
+                        template: cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[1] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                      - type: custom:button-card
+                        template: cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[2] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                      - type: custom:button-card
+                        template: cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[3] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                      - type: custom:button-card
+                        template: cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[4] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                      - type: custom:button-card
+                        template: cb-lcars-slider
+                        variables:
+                          entity: '[[[ return variables.entities[5] ]]]'
+                          card_height: 300px
+                          card_width: 100px
+                          meter:
+                            variables:
+                              gradient_end_color: >-
+                                [[[ return
+                                variables.__get_light_css_color(variables.entities[0]);
+                                ]]]
+                              gradient_start_color: var(--picard-blue)
+                              button:
+                                variables:
+                                  card_width: 100px
+                                  card_height: 20px
+                              grid_gap: 5px
+                              grid_Y: 12
+                          slider:
+                            variables:
+                              mask_color: rgba(0,0,0,0.85)
+                slider_buttons:
+                  card:
+                    type: custom:button-card
+                    template:
+                      - cb-lcars-functions
+                      - cb-lcars-button-grid
+                    variables:
+                      grid_X: 6
+                      grid_Y: 1
+                      grid_gap: 30px
+                      card_height: 50px
+                      button:
+                        template:
+                          - cb-lcars-lozenge
+                        variables:
+                          card_width: 120px
+                      grid_buttons:
+                        - entity: '[[[ return variables.entities[0] ]]]'
+                          label: LR-AMB
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[0]);
+                              ]]]
+                        - entity: '[[[ return variables.entities[1] ]]]'
+                          label: corner
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[1]);
+                              ]]]
+                        - entity: '[[[ return variables.entities[2] ]]]'
+                          label: kitchen
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[2]);
+                              ]]]
+                        - entity: '[[[ return variables.entities[3] ]]]'
+                          label: bathroom
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[3]);
+                              ]]]
+                        - entity: '[[[ return variables.entities[4] ]]]'
+                          label: bedroom
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[4]);
+                              ]]]
+                        - entity: '[[[ return variables.entities[5] ]]]'
+                          label: office
+                          variables:
+                            card_active_background_color: >-
+                              [[[ return
+                              variables.__get_light_css_color(variables.entities[5]);
+                              ]]]
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: SECURITY
+            card:
+              type: custom:button-card
+              styles:
+                card:
+                  - background-color: |
+                      [[[
+                        if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+                          return 'rgba(150,0,0,0.3)';
+                        } else {
+                          return 'transparent';
+                        }
+                      ]]]
+                  - height: 702px
+                  - width: 1155px
+                  - border-radius: 0 !important
+                custom_fields:
+                  frigate:
+                    - width: 700px
+                    - position: absolute
+                    - left: 40px
+                    - top: 50px
+                    - z-index: -1
+                  notification_panel:
+                    - position: absolute
+                    - left: 790px
+                    - top: 95px
+                  front_door_panel:
+                    - position: absolute
+                    - left: 790px
+                    - top: 170px
+                  living_room_panel:
+                    - position: absolute
+                    - left: 790px
+                    - top: 250px
+                  office_panel:
+                    - position: absolute
+                    - left: 790px
+                    - top: 330px
+              custom_fields:
+                notification_panel:
+                  card:
+                    type: custom:button-card
+                    template: cb-lcars-multimeter
+                    variables:
+                      panel_mode: icons
+                      card_width: 360px
+                      card_height: 55px
+                      panel_width: 200px
+                      panel_height: 45px
+                      entity: automation.notifications_android_tv_patio_all_motion
+                      label: alerts
+                      icon_grid:
+                        variables:
+                          grid_X: 3
+                          button:
+                            card_height: 40px
+                            card_min_height: 40px
+                            variables:
+                              icon_inactive_background_color: var(--warning-color)
+                              icon_active_background_color: var(--picard-blue)
+                              card_inactive_background_color: var(--warning-color)
+                              card_active_background_color: var(--picard-blue)
+                          grid_buttons:
+                            - entity: >-
+                                automation.notifications_android_tv_patio_all_motion
+                              icon: mdi:television
+                            - entity: automation.test_frigate_notification
+                              icon: mdi:cellphone
+                            - entity: automation.notifications_patio_gate
+                              icon: mdi:gate-alert
+                front_door_panel:
+                  card:
+                    type: custom:button-card
+                    template: cb-lcars-multimeter
+                    variables:
+                      panel_mode: icons
+                      card_width: 360px
+                      card_height: 55px
+                      panel_width: 200px
+                      panel_height: 45px
+                      entity: switch.front_door_recordings
+                      label: front door
+                      header_button:
+                        variables:
+                          card_active_background_color: var(--picard-starlight)
+                          card_inactive_background_color: var(--error-color)
+                      icon_grid:
+                        variables:
+                          grid_X: 4
+                          button:
+                            card_height: 40px
+                            card_min_height: 40px
+                            variables:
+                              icon_inactive_background_color: var(--warning-color)
+                              icon_active_background_color: var(--picard-cyan)
+                              card_inactive_background_color: var(--warning-color)
+                              card_active_background_color: var(--picard-cyan)
+                          grid_buttons:
+                            - entity: switch.front_door_recordings
+                            - entity: switch.front_door_detect
+                            - entity: switch.front_door_snapshots
+                            - entity: switch.front_door_push_notifications
+                              variables:
+                                icon_inactive_background_color: var(--picard-dark-blue)
+                                icon_active_background_color: var(--picard-blue)
+                                card_inactive_background_color: var(--picard-dark-blue)
+                                card_active_background_color: var(--picard-blue)
+                office_panel:
+                  card:
+                    type: custom:button-card
+                    template: cb-lcars-multimeter
+                    variables:
+                      panel_mode: icons
+                      card_width: 360px
+                      card_height: 55px
+                      panel_width: 200px
+                      panel_height: 45px
+                      entity: switch.office_recordings
+                      label: office
+                      icon_grid:
+                        variables:
+                          grid_X: 4
+                          button:
+                            card_height: 40px
+                            card_min_height: 40px
+                            variables:
+                              icon_inactive_background_color: var(--warning-color)
+                              icon_active_background_color: var(--picard-blue)
+                              card_inactive_background_color: var(--warning-color)
+                              card_active_background_color: var(--picard-blue)
+                          grid_buttons:
+                            - entity: switch.office_recordings
+                            - entity: switch.office_detect
+                            - entity: switch.office_snapshots
+                            - entity: switch.office_push_notifications
+                              variables:
+                                icon_inactive_background_color: var(--picard-dark-blue)
+                                icon_active_background_color: var(--picard-blue)
+                                card_inactive_background_color: var(--picard-dark-blue)
+                                card_active_background_color: var(--picard-blue)
+                living_room_panel:
+                  card:
+                    type: custom:button-card
+                    template: cb-lcars-multimeter
+                    variables:
+                      panel_mode: icons
+                      card_width: 360px
+                      card_height: 55px
+                      panel_width: 200px
+                      panel_height: 45px
+                      entity: switch.living_room_recordings
+                      label: living room
+                      icon_grid:
+                        variables:
+                          grid_X: 4
+                          button:
+                            card_height: 40px
+                            card_min_height: 40px
+                            variables:
+                              icon_inactive_background_color: var(--warning-color)
+                              icon_active_background_color: var(--picard-blue)
+                              card_inactive_background_color: var(--warning-color)
+                              card_active_background_color: var(--picard-blue)
+                          grid_buttons:
+                            - entity: switch.living_room_recordings
+                            - entity: switch.living_room_detect
+                            - entity: switch.living_room_snapshots
+                            - entity: switch.living_room_push_notifications
+                              variables:
+                                icon_inactive_background_color: var(--picard-dark-blue)
+                                icon_active_background_color: var(--picard-blue)
+                                card_inactive_background_color: var(--picard-dark-blue)
+                                card_active_background_color: var(--picard-blue)
+                frigate:
+                  card:
+                    type: custom:frigate-card
+                    cameras:
+                      - go2rtc:
+                          modes:
+                            - webrtc
+                          stream: front_door_sub
+                        camera_entity: camera.front_door
+                        title: Front Door
+                        live_provider: go2rtc
+                        dependencies:
+                          cameras:
+                            - front_door_hd
+                      - hide: true
+                        camera_entity: camera.front_door
+                        id: front_door_hd
+                        title: Front Door HD
+                        go2rtc:
+                          stream: front_door
+                          modes:
+                            - webrtc
+                        live_provider: go2rtc
+                      - go2rtc:
+                          modes:
+                            - webrtc
+                          stream: living_room_sub
+                        camera_entity: camera.living_room
+                        title: Living Room
+                        live_provider: go2rtc
+                        dependencies:
+                          cameras:
+                            - living_room_hd
+                      - hide: true
+                        camera_entity: camera.living_room
+                        id: living_room_hd
+                        title: Living Room HD
+                        go2rtc:
+                          stream: living_room
+                          modes:
+                            - webrtc
+                        live_provider: go2rtc
+                      - go2rtc:
+                          modes:
+                            - webrtc
+                          stream: office_sub
+                        camera_entity: camera.office
+                        title: Office
+                        live_provider: go2rtc
+                        dependencies:
+                          cameras:
+                            - office_hd
+                      - hide: true
+                        camera_entity: camera.office
+                        id: office_hd
+                        title: Office HD
+                        go2rtc:
+                          stream: office
+                          modes:
+                            - webrtc
+                        live_provider: go2rtc
+                    view:
+                      scan:
+                        enabled: false
+                      default: live
+                      dark_mode: 'on'
+                    live:
+                      preload: false
+                      controls:
+                        thumbnails:
+                          mode: below
+                          show_details: false
+                        timeline:
+                          mode: none
+                          style: stack
+                        title:
+                          duration_seconds: 5
+                          mode: popup-bottom-right
+                    timeline:
+                      controls:
+                        thumbnails:
+                          mode: below
+                      show_recordings: false
+                    menu:
+                      style: hidden
+                      position: top
+                      alignment: top
+                      buttons:
+                        mute:
+                          enabled: true
+                        substreams:
+                          icon: mdi:high-definition-box
+                        recordings:
+                          enabled: true
+                        microphone:
+                          enabled: true
+                    elements:
+                      - type: custom:frigate-card-conditional
+                        conditions:
+                          camera:
+                            - camera.front_door
+                        elements:
+                          - type: custom:frigate-card-menu-submenu
+                            priority: 100
+                            icon: mdi:cog
+                            items:
+                              - title: Detect
+                                entity: switch.front_door_detect
+                                tap_action:
+                                  action: toggle
+                              - title: Recordings
+                                entity: switch.front_door_recordings
+                                tap_action:
+                                  action: toggle
+                              - title: Snapshots
+                                entity: switch.front_door_snapshots
+                                tap_action:
+                                  action: toggle
+                      - type: custom:frigate-card-conditional
+                        conditions:
+                          camera:
+                            - camera.living_room
+                        elements:
+                          - type: custom:frigate-card-menu-submenu
+                            priority: 100
+                            icon: mdi:cog
+                            items:
+                              - title: Detect
+                                entity: switch.living_room_detect
+                                tap_action:
+                                  action: toggle
+                              - title: Recordings
+                                entity: switch.living_room_recordings
+                                tap_action:
+                                  action: toggle
+                              - title: Snapshots
+                                entity: switch.living_room_snapshots
+                                tap_action:
+                                  action: toggle
+                    media_gallery:
+                      controls:
+                        thumbnails:
+                          show_details: false
+                          size: 75
+                          show_timeline_control: false
+                          show_download_control: false
+                          show_favorite_control: false
+                        filter:
+                          mode: none
+                    media_viewer:
+                      controls:
+                        thumbnails:
+                          mode: below
+                        timeline:
+                          mode: below
+                          style: stack
+                    dimensions:
+                      aspect_ratio_mode: dynamic
+                    view_layout:
+                      position: main
+                    card_mod:
+                      style: |
+                        ha-card {
+                          background: none !important;
+                        }
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: LIGHTS
+            card:
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              cards:
+                - type: horizontal-stack
+                  cards:
+                    - square: false
+                      type: grid
+                      columns: 1
+                      cards:
+                        - type: custom:layout-card
+                          layout_type: custom:grid-layout
+                          cards:
+                            - type: custom:gap-card
+                            - type: custom:button-card
+                              template: cb-lcars-slider
+                              variables:
+                                entity: light.desk
+                                card_height: 155px
+                                card_width: 60px
+                                button_width: 60px
+                                button_height: 10px
+                                button_gap: 5px
+                            - type: custom:my-slider-v2
+                              entity: light.corner_lamp
+                              mode: brightness
+                              flipped: false
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - height: 155px
+                                  - width: 1fr
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.kitchen
+                              mode: brightness
+                              flipped: false
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - height: 155px
+                                  - width: 1fr
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.dining
+                              mode: brightness
+                              flipped: false
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - height: 155px
+                                  - width: 1fr
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.hallway
+                              mode: brightness
+                              flipped: false
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - height: 155px
+                                  - width: 1fr
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                          layout:
+                            grid-template-columns: 30px repeat(5, 1fr) 30px
+                            grid-template-rows: 1fr
+                            grid-auto-rows: 1fr
+                            margin: '-4px -4px 0px -4px'
+                            card_margin: 0
+                            padding: 0
+                  view_layout:
+                    grid-area: child-main-top
+                    margin: 0px
+                    padding: 0px
+                    card_margin: 0px
+                - type: horizontal-stack
+                  cards:
+                    - type: custom:layout-card
+                      layout_type: custom:grid-layout
+                      layout:
+                        grid-template-columns: 30px repeat(5, 2fr) 30px
+                        grid-template-rows: auto
+                        grid-auto-rows: auto
+                        margin: '-4px -4px 0px -4px'
+                        card_margin: 0
+                        padding: 0
+                      margin: '-4px -4px 0px -4px'
+                      card_margin: 0
+                      padding: 0
+                      cards:
+                        - type: custom:gap-card
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-button-picard-filled
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.living_room_ambient'];
+                                let cssColor = 'var(--lcars-ui-secondary)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.living_room_ambient
+                          label: Living Room
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-button-square
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.corner_lamp'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.corner_lamp
+                          label: corner lamp
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.kitchen'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.kitchen
+                          label: kitchen
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet-right
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.dining'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.dining
+                          label: dining
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.hallway'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.hallway
+                          label: hallway
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet-right
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.media_lights'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.media_lights
+                          label: media lights
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.fan'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.fan
+                          label: LR Fan
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.mirror'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.mirror
+                          label: mirror
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.canvas'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.canvas
+                          label: canvas
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:gap-card
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet-right
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                          entity: light.front_door
+                          label: front door
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.patio_twinkles'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.patio_twinkles
+                          label: twinkles
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:gap-card
+                        - type: custom:gap-card
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.bathroom'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.bathroom
+                          label: bathroom
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.office'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.office
+                          label: Office
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-lozenge
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.bedroom'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.bedroom
+                          label: Bedroom
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet-right
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.entryway'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.entryway
+                          label: entryway
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                        - type: custom:button-card
+                          template:
+                            - cb-lcars-bullet
+                            - cb-lcars-animate-press
+                          variables:
+                            card_inactive_background_color: var(--card-background-color)
+                            card_active_background_color: |
+                              [[[
+                                const lightEntity = states['light.patio'];
+                                let cssColor = 'var(--card-background-color)'; // default color
+                                if (lightEntity && lightEntity.attributes.rgb_color) {
+                                  const lightColor = lightEntity.attributes.rgb_color;
+                                  cssColor = `rgb(${lightColor.join(', ')})`;
+                                }
+                                return cssColor;
+                              ]]]
+                          entity: light.patio
+                          label: patio
+                          tap_action:
+                            action: toggle
+                          hold_action:
+                            action: more-info
+                          double_tap_action:
+                            action: toggle
+                  view_layout:
+                    grid-area: child-main-middle
+                    margin: 0px
+                    padding: 0px
+                    card_margin: 0px
+                - type: horizontal-stack
+                  cards:
+                    - square: false
+                      type: grid
+                      columns: 1
+                      cards:
+                        - type: custom:layout-card
+                          layout_type: custom:grid-layout
+                          cards:
+                            - type: custom:gap-card
+                            - type: custom:my-slider-v2
+                              entity: light.bathroom
+                              mode: brightness
+                              flipped: true
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - width: 1fr
+                                  - height: 155px
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.office
+                              mode: brightness
+                              flipped: true
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - width: 1fr
+                                  - height: 155px
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.bedroom
+                              mode: brightness
+                              flipped: true
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - width: 1fr
+                                  - height: 155px
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.entryway
+                              mode: brightness
+                              flipped: true
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - width: 1fr
+                                  - height: 155px
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                            - type: custom:my-slider-v2
+                              entity: light.patio
+                              mode: brightness
+                              flipped: true
+                              vertical: true
+                              step: 1
+                              allowTapping: false
+                              allowSliding: true
+                              styles:
+                                card:
+                                  - width: 1fr
+                                  - height: 155px
+                                  - background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                          layout:
+                            grid-template-columns: 30px repeat(5, 1fr) 30px
+                            grid-template-rows: 1fr
+                            grid-auto-rows: 1fr
+                            margin: '-4px -4px 0px -4px'
+                            card_margin: 0
+                            padding: 0
+                  view_layout:
+                    grid-area: child-main-bottom
+                    margin: 0px
+                    padding: 0px
+                    card_margin: 0px
+              layout:
+                grid-template-columns: 1fr
+                grid-template-rows: 170px 1fr 170px
+                grid-template-areas: |
+                  "child-main-top"
+                  "child-main-middle"
+                  "child-main-bottom"
+                margin: '-4px -4px 0px -4px'
+                card_margin: 0
+                padding: 0
+            view_layout:
+              grid-area: content-panel
+              margin: 0px
+              padding: 0px
+              card_margin: 0px
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: ENGINEERING
+            card:
+              type: custom:button-card
+              styles:
+                card:
+                  - background-color: |
+                      [[[
+                        if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+                          return 'rgba(0,0,175,0.3)';
+                        } else {
+                          return 'transparent';
+                        }
+                      ]]]
+                  - height: 702px
+                  - width: 1155px
+                  - border-radius: 0 !important
+                custom_fields:
+                  cast_button:
+                    - position: absolute
+                    - top: 10px
+                    - left: 10px
+              custom_fields:
+                cast_button:
+                  card:
+                    type: button
+                    entity: input_button.lcars_cast_panel
+          - type: conditional
+            conditions:
+              - condition: state
+                entity: input_select.lcars_ui_page_selector
+                state: ENVIRONMENTAL
+            card:
+              type: custom:layout-card
+              layout_type: custom:grid-layout
+              cards:
+                - type: vertical-stack
+                  cards:
+                    - type: custom:button-card
+                      template:
+                        - custom-button-lcars-header
+                      variables:
+                        border_top: 10px
+                        border_left: 35px
+                        card_height: 40px
+                        card_min_height: 40px
+                        lcars_color: var(--lcars-blue)
+                        font_weight: bold
+                        font_size: 20px
+                        text_padding_top: 10px
+                      label: ENVIRONMENTAL CONTROL
+                    - type: thermostat
+                      entity: climate.living_room
+                      name: HVAC
+                      show_current_as_primary: false
+                      features:
+                        - type: climate-hvac-modes
+                          hvac_modes:
+                            - heat
+                            - cool
+                            - heat_cool
+                            - 'off'
+                      card_mod:
+                        class: middle
+                        style: |
+                          ha-card.middle {
+                            background: none !important;
+                          }
+                    - type: custom:config-template-card
+                      entities:
+                        - sensor.living_room_sensor_temperature
+                        - sensor.living_room_sensor_humidity
+                        - climate.living_room
+                      variables:
+                        - states['climate.living_room'].state
+                      card:
+                        type: custom:mini-graph-card
+                        entities:
+                          - entity: sensor.living_room_sensor_temperature
+                            name: Temperature
+                            color: ${vars[0]==='heat' ? 'orange':'blue'}
+                          - entity: sensor.living_room_sensor_humidity
+                            name: Humidity
+                            color: var(--green-color)
+                            y_axis: secondary
+                        hours_to_show: 24
+                        line_width: 3
+                        font_size: 50
+                        animate: true
+                        show:
+                          name: false
+                          icon: false
+                          state: false
+                          legend: false
+                          fill: fade
+                        card_mod:
+                          class: middle
+                          style: |
+                            ha-card.middle {
+                              background: none !important;
+                            }
+                    - type: custom:button-card
+                      template:
+                        - custom-button-lcars-footer
+                      variables:
+                        border_bottom: 10px
+                        border_left: 35px
+                        card_height: 70px
+                        font_weight: bold
+                  view_layout:
+                    grid-area: child-main-left
+                    margin: 0px
+                    padding: 0px
+                    card_margin: 0px
+                - type: vertical-stack
+                  cards:
+                    - type: custom:button-card
+                      template:
+                        - custom-button-lcars-header-open
+                      variables:
+                        border_top: 10px
+                        card_height: 40px
+                        card_min_height: 40px
+                        lcars_color: var(--lcars-blue)
+                        font_weight: bold
+                        font_size: 20px
+                        text_padding_top: 10px
+                      label: SENSORS
+                    - square: false
+                      type: grid
+                      columns: 1
+                      cards:
+                        - type: custom:layout-card
+                          layout_type: custom:grid-layout
+                          cards:
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              label: |
+                                patio
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-orange)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.patio_sensor_temperature
+                              label: |
+                                [[[
+                                  const state = states['sensor.patio_sensor_temperature'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-green)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.patio_sensor_humidity
+                              label: |
+                                [[[
+                                  const state = states['sensor.patio_sensor_humidity'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:gap-card
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              label: |
+                                living room
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-orange)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.living_room_sensor_temperature
+                              label: |
+                                [[[
+                                  const state = states['sensor.living_room_sensor_temperature'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-green)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.living_room_sensor_humidity
+                              label: |
+                                [[[
+                                  const state = states['sensor.living_room_sensor_humidity'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:gap-card
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              label: |
+                                office
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-orange)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.office_sensor_temperature
+                              label: |
+                                [[[
+                                  const state = states['sensor.office_sensor_temperature'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-green)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.office_sensor_humidity
+                              label: |
+                                [[[
+                                  const state = states['sensor.office_sensor_humidity'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:gap-card
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              label: |
+                                bedroom
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-orange)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.bedroom_sensor_temperature
+                              label: |
+                                [[[
+                                  const state = states['sensor.bedroom_sensor_temperature'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-green)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.bedroom_sensor_humidity
+                              label: |
+                                [[[
+                                  const state = states['sensor.bedroom_sensor_humidity'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:gap-card
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              label: |
+                                bathroom
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-orange)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.bathroom_sensor_temperature
+                              label: |
+                                [[[
+                                  const state = states['sensor.bathroom_sensor_temperature'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: var(--lcars-green)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 28px
+                              entity: sensor.bathroom_sensor_humidity
+                              label: |
+                                [[[
+                                  const state = states['sensor.bathroom_sensor_humidity'].state;
+                                  const roundedState = Math.round(state * 10) / 10;
+                                  let formattedValue = roundedState.toFixed(1);
+                                  if (roundedState < 10) {
+                                      formattedValue = formattedValue.padStart(4, '0');
+                                  }
+                                  return formattedValue;
+                                ]]]
+                            - type: custom:gap-card
+                            - type: custom:gap-card
+                          layout:
+                            grid-template-columns: 2fr 1fr 1fr 35px
+                            grid-template-rows: 45px
+                            grid-auto-rows: 45px
+                            grid-template-areas: |
+                              "count button"
+                            margin: '-4px -4px 0px -4px'
+                            card_margin: 0
+                            padding: 0
+                            grid-area: left
+                      view_layout:
+                        grid-area: left
+                        card_margin: 0px 0px 0px 0px
+                        margin: 0px 0px 0px 0px
+                    - square: false
+                      type: grid
+                      columns: 1
+                      cards:
+                        - type: custom:layout-card
+                          layout_type: custom:grid-layout
+                          cards:
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-bullet-right
+                                - custom-button-animate-press
+                              variables:
+                                card_active_background_color: var(--lcars-ui-secondary)
+                              entity: fan.400s
+                              label: Air scrub
+                              tap_action:
+                                action: more-info
+                              hold_action:
+                                action: toggle
+                              double_tap_action:
+                                action: toggle
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_zero: var(--lcars-blue)
+                                text_color_non_zero: white
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 40px
+                              entity: sensor.400s_pm2_5
+                              label: |
+                                [[[
+                                    const state = states['sensor.400s_pm2_5'].state;
+                                    const roundedValue = Math.round(parseFloat(state));
+                                    const formattedValue = roundedValue.toString().padStart(2, '0');
+                                    return formattedValue;
+                                ]]]
+                            - type: custom:my-slider-v2
+                              entity: fan.400s
+                              flipped: false
+                              step: 25
+                              styles:
+                                card:
+                                  height: 60px
+                                  background: none
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                              card_mod:
+                                class: middle-right
+                                style: |
+                                  ha-card.middle-right {
+                                    background: none !important;
+                                  }
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-bullet-right
+                                - custom-button-animate-press
+                              variables:
+                                card_active_background_color: var(--lcars-ui-secondary)
+                              entity: input_boolean.bathroom_humidity_sensor_bypass
+                              label: exhaust [auto]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color_non_zero: var(--success-color)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 40px
+                              entity: sensor.bathroom_sensor_humidity
+                              label: |
+                                [[[
+                                    const state = states['sensor.bathroom_sensor_humidity'].state;
+                                    const roundedValue = Math.round(parseFloat(state));
+                                    const formattedValue = roundedValue.toString().padStart(2, '0');
+                                    return formattedValue;
+                                ]]]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-button-square
+                                - custom-button-animate-press
+                              variables:
+                                card_active_background_color: var(--lcars-ui-secondary)
+                              entity: switch.bathroom_fan
+                              label: bath exhaust
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-bullet-right
+                                - custom-button-animate-press
+                              variables:
+                                card_active_background_color: var(--lcars-ui-secondary)
+                              entity: >-
+                                automation.fan_auto_fan_temperature_control_living_room
+                              label: LR fan [auto]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 40px
+                              entity: input_number.target_temp_living_room
+                              label: |
+                                [[[
+                                    const state = states['input_number.target_temp_living_room'].state;
+                                    const roundedValue = Math.round(parseFloat(state));
+                                    const formattedValue = roundedValue.toString().padStart(2, '0');
+                                    return formattedValue;
+                                ]]]
+                            - type: custom:my-slider-v2
+                              entity: fan.living_room_fan
+                              flipped: false
+                              step: 33
+                              styles:
+                                card:
+                                  height: 60px
+                                  background: none
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                              card_mod:
+                                class: middle-right
+                                style: |
+                                  ha-card.middle-right {
+                                    background: none !important;
+                                  }
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-bullet-right
+                                - custom-button-animate-press
+                              variables:
+                                card_active_background_color: var(--lcars-ui-secondary)
+                              entity: automation.fan_auto_bedroom
+                              label: bed fan [auto]
+                            - type: custom:button-card
+                              template:
+                                - custom-button-lcars-label
+                              variables:
+                                card_inactive_background_color: transparent
+                                text_color: var(--lcars-blue)
+                                card_active_background_color: var(--lcars-blue)
+                                font_size: 40px
+                              entity: input_number.target_temp_bedroom
+                              label: |
+                                [[[
+                                    const state = states['input_number.target_temp_bedroom'].state;
+                                    const roundedValue = Math.round(parseFloat(state));
+                                    const formattedValue = roundedValue.toString().padStart(2, '0');
+                                    return formattedValue;
+                                ]]]
+                            - type: custom:my-slider-v2
+                              entity: fan.bedroom_fan
+                              flipped: false
+                              step: 33
+                              styles:
+                                card:
+                                  height: 60px
+                                  background: none
+                                container:
+                                  border-radius: 0
+                                track:
+                                  background: none
+                                progress:
+                                  background: var(--lcars-blue)
+                                thumb:
+                                  background: var(--lcars-card-bottom-color)
+                              card_mod:
+                                class: middle-right
+                                style: |
+                                  ha-card.middle-right {
+                                    background: none !important;
+                                  }
+                          layout:
+                            grid-template-columns: 1fr 65px 1fr
+                            grid-template-rows: 70px 70px 70px 30px
+                            grid-auto-rows: 20px
+                            grid-template-areas: |
+                              "count button"
+                            margin: '-4px -4px 0px -4px'
+                            card_margin: 0
+                            padding: 0
+                            grid-area: left
+                      view_layout:
+                        grid-area: left
+                        card_margin: 0px 0px 0px 0px
+                        margin: 0px 0px 0px 0px
+                    - type: custom:button-card
+                      template:
+                        - custom-button-lcars-footer-open
+                      variables:
+                        border_bottom: 10px
+                        card_height: 50px
+                        min_card_height: 50px
+                  view_layout:
+                    grid-area: child-main-right
+                    margin: 0px
+                    padding: 0px
+                    card_margin: 0px
+              layout:
+                grid-template-columns: 1fr 1fr
+                grid-template-rows: 1fr
+                grid-template-areas: |
+                  "child-main-left child-main-right"
+                margin: '-4px -4px 0px -4px'
+                card_margin: 0
+                padding: 0
+              view_layout:
+                grid-area: content-panel
+                margin: 0px
+                padding: 0px
+                card_margin: 0px
+        view_layout:
+          grid-area: content-panel
+      - type: custom:button-card
+        view_layout:
+          grid-area: header
+        template:
+          - cb-lcars-card-base
+        styles:
+          card:
+            - height: 65px
+            - width: 923px
+            - border-radius: 0 !important
+          custom_fields:
+            trim_top:
+              - position: absolute
+              - left: 0px
+              - top: 0px
+            trim_bottom:
+              - position: absolute
+              - left: 0px
+              - bottom: 0px
+            button_grid:
+              - position: absolute
+              - left: 10px
+              - top: 10px
+        custom_fields:
+          trim_top:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-button-picard-filled
+              variables:
+                card:
+                  width: 923px
+                  height: 5px
+                  min_height: 5px
+                  color:
+                    background:
+                      inactive: var(--lcars-ui-secondary)
+          trim_bottom:
+            card:
+              type: custom:button-card
+              template:
+                - cb-lcars-button-picard-filled
+              variables:
+                card:
+                  width: 923px
+                  height: 5px
+                  min_height: 5px
+                  color:
+                    background:
+                      inactive: var(--lcars-ui-secondary)
+          button_grid:
+            card:
+              type: custom:button-card
+              template: cb-lcars-button-grid
+              variables:
+                grid:
+                  buttons:
+                    - entity: binary_sensor.patio_gate_home_security_intrusion
+                      label: patio gate
+                      variables:
+                        card:
+                          color:
+                            background:
+                              inactive: var(--picard-medium-light-blue)
+                              active: var(--error-color)
+                        icon:
+                          color:
+                            background:
+                              inactive: var(--picard-medium-light-blue)
+                              active: var(--error-collor)
+                      show_icon: true
+                      icon: none
+                    - entity: binary_sensor.front_door_home_security_intrusion
+                      label: front door
+                    - entity: binary_sensor.front_window_home_security_intrusion
+                      label: front window
+                    - entity: binary_sensor.office_window_home_security_intrusion
+                      label: office window
+                  X: 6
+                  'Y': 1
+                  gap: 25px
+                button:
+                  variables:
+                    card:
+                      width: 160px
+                      height: 45px
+                      color:
+                        active: var(--error-color)
+                        inactive: var(--lcars-card-button)
+                        background:
+                          'active:': var(--warning-color)
+                          inactive: var(--lcars-card-button)
+                    icon:
+                      color:
+                        active: null
+                        inactive: null
+                      background:
+                        active: null
+                        inactive: null
+                  template:
+                    - cb-lcars-button-lozenge
+      - type: custom:horizon-card
+        moon: true
+        elevation: 77
+        fields:
+          azimuth: true
+          elevation: true
+          moonrise: true
+          moonset: true
+          moon_phase: true
+        card_mod:
+          style: |
+            ha-card {
+              background: none
+            }
+        view_layout:
+          grid-area: footer-right
