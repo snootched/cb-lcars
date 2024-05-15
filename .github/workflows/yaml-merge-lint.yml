@@ -34,6 +34,10 @@ jobs:
       #  run: |
       #    echo Add other actions to build,
       #    echo test, and deploy your project.
+
+      - name: Create full yaml
+        run: |
+          ./create_full_yaml.sh --output cb-lcars-full.yaml --path cb-lcars
       
       - name: YAML Lint
         # You may pin to the exact commit or the version.
@@ -41,7 +45,7 @@ jobs:
         uses: ibiqlik/action-yamllint@v3.1.1
         with:
           # File(s) or Directory, separate by space if multiple files or folder are specified
-          file_or_dir: backup/v2/lcars-v2-dev.yaml
+          file_or_dir: cb-lcars-full.yaml
           # Path to custom configuration
           #config_file: # optional
           # Custom configuration (as YAML source)
