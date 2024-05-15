@@ -8,6 +8,7 @@
     <em>Personalize. Engage. Customize. Elevate Your Dashboard Experience!</em>
 </p>
 <p align="center">
+	<img src="https://img.shields.io/github/v/release/snootched/ha-lcards?display_name=release&logo=startrek" alt="release">
 	<img src="https://img.shields.io/github/license/snootched/ha-lcards?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 	<img src="https://img.shields.io/github/last-commit/snootched/ha-lcards?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 	<img src="https://img.shields.io/github/languages/top/snootched/ha-lcards?style=default&color=0080ff" alt="repo-top-language">
