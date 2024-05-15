@@ -1,0 +1,240 @@
+cb-lcars-button-picard-filled:
+  template: cb-lcars-button-base
+  variables:
+    text:
+      label:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: var(--picard-green)
+          non_zero: var(--picard-blue)
+          hvac_heat: var(--picard-pale-orange)
+          hvac_cool: var(--picard-blue)
+          hvac_other: var(--picard-black-cherry)
+      state:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: var(--picard-green)
+          non_zero: var(--picard-blue)
+          hvac_heat: var(--picard-pale-orange)
+          hvac_cool: var(--picard-blue)
+          hvac_other: var(--picard-black-cherry)
+      name:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: var(--picard-green)
+          non_zero: var(--picard-blue)
+          hvac_heat: var(--picard-pale-orange)
+          hvac_cool: var(--picard-blue)
+          hvac_other: var(--picard-black-cherry)
+  state:
+    - value: open
+      id: state_open
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.active ]]]'
+          - color: '[[[ return variables.card.color.active ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - value: closed
+      id: state_closed
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - color: '[[[ return variables.card.color.inactive ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.off ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.off ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.off ]]]'
+    - value: heat
+      id: state_heat
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - value: cool
+      id: state_cool
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - operator: template
+      value: |
+        [[[
+          return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
+        ]]]
+      id: state_zero
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.zero ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.off ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.off ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.off ]]]'
+    - operator: template
+      value: |
+        [[[
+          return entity !== undefined && states[entity.entity_id].state !== '0';
+        ]]]
+      id: state_nonzero
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.non_zero ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - value: 'on'
+      id: state_on
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.active ]]]'
+          - border-top: >-
+              [[[ return variables.card.border.top.size + " solid " +
+              variables.card.color.active ]]]
+          - border-left: >-
+              [[[ return variables.card.border.left.size + " solid " +
+              variables.card.color.active ]]]
+          - border-right: >-
+              [[[ return variables.card.border.right.size + " solid " +
+              variables.card.color.active ]]]
+          - border-bottom: >-
+              [[[ return variables.card.border.bottom.size + " solid " +
+              variables.card.color.active ]]]
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+        icon:
+          - color: >-
+              [[[ return variables.icon.color.active ||
+              variables.icon.color.default ]]]
+          - background: >-
+              [[[ return variables.icon.color.background.active ||
+              variables.card.color.background.active ]]]
+    - value: 'off'
+      id: state_off
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - border-top: >-
+              [[[ return variables.card.border.top.size + " solid " +
+              variables.card.color.inactive ]]]
+          - border-left: >-
+              [[[ return variables.card.border.left.size + " solid " +
+              variables.card.color.inactive ]]]
+          - border-right: >-
+              [[[ return variables.card.border.right.size + " solid " +
+              variables.card.color.inactive ]]]
+          - border-bottom: >-
+              [[[ return variables.card.border.bottom.size + " solid " +
+              variables.card.color.inactive ]]]          
+        state:
+          - color: '[[[ return variables.text.state.color.off ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.off ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.off ]]]'
+        icon:
+          - color: >-
+              [[[ return variables.icon.color.inactive ||
+              variables.icon.color.default ]]]
+          - background: >-
+              [[[ return variables.icon.color.background.inactive ||
+              variables.card.color.background.inactive ]]]
+    - operator: default
+      id: state_default
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.default ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.default ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.default ]]]'
+        icon:
+          - color: >-
+              [[[ return variables.icon.color.inactive ||
+              variables.icon.color.default ]]]
+          - background: >-
+              [[[ return variables.icon.color.background.inactive ||
+              variables.card.color.background.inactive ]]]  
+cb-lcars-button-picard-filled-dense:
+  template: cb-lcars-button-picard-filled
+  variables:
+    card:
+      height: 50px
+cb-lcars-button-picard-filled-right:
+  template: cb-lcars-button-picard-filled
+  variables:
+    text:
+      label:
+        justify: left
+      state:
+        justify: left
+      name:
+        justify: left
+    icon:
+      justify: right
+      border:
+        left:
+          color: black
+        right:
+          color: transparent
+cb-lcars-button-picard-filled-dense-right:
+  template: cb-lcars-button-picard-filled-right
+  variables:
+    card:
+      height: 50px
