@@ -1,0 +1,18 @@
+cb-lcars-button-capped:
+  template: cb-lcars-button-lozenge
+  variables:
+    card:
+      border:
+        top:
+          right_radius: 0px
+        bottom:
+          right_radius: 0px
+cb-lcars-button-capped-right:
+  template: cb-lcars-button-lozenge-right
+  variables:
+    card:
+      border:
+        top:
+          left_radius: 0px
+        bottom:
+          left_radius: 0px

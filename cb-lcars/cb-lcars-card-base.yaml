@@ -1,0 +1,16 @@
+cb-lcars-card-base:
+  template: cb-lcars-functions
+  show_icon: false
+  show_label: false
+  show_name: false
+  show_state: false
+  styles:
+    card:
+      - background-color: |
+          [[[
+            if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+              return variables.__get_random_css_color();
+            } else {
+              return 'transparent';
+            }
+          ]]]

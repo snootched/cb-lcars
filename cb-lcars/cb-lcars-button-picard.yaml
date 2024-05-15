@@ -1,0 +1,99 @@
+cb-lcars-button-square:
+  template: cb-lcars-button-base
+  show_icon: false
+cb-lcars-button-picard:
+  template: cb-lcars-button-base
+  variables:
+    text:
+      label:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        color:
+          default: '[[[ return variables.lcars_color ]]]'
+          'on': '[[[ return variables.card.color.active ]]]'
+          'off': '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.active ]]]'
+          non_zero: '[[[ return variables.card.color.inactive ]]]'
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+      state:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        color:
+          default: '[[[ return variables.lcars_color ]]]'
+          'on': '[[[ return variables.card.color.active ]]]'
+          'off': '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.active ]]]'
+          non_zero: '[[[ return variables.card.color.inactive ]]]'
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+      name:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        color:
+          default: '[[[ return variables.lcars_color ]]]'
+          'on': '[[[ return variables.card.color.active ]]]'
+          'off': '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.active ]]]'
+          non_zero: '[[[ return variables.card.color.inactive ]]]'
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+    icon:
+      color:
+        default: null
+        active: '[[[ return variables.card.color.active ]]]'
+        inactive: '[[[ return variables.card.color.inactive ]]]'
+    card:
+      border:
+        top:
+          size: 4px
+        left:
+          size: 4px
+        right:
+          size: 4px
+        bottom:
+          size: 4px
+      color:
+        background:
+          default: transparent
+          active: transparent
+          inactive: transparent
+cb-lcars-button-picard-dense:
+  template: cb-lcars-button-picard
+  variables:
+    card:
+      height: 50px
+cb-lcars-button-picard-right:
+  template: cb-lcars-button-picard
+  variables:
+    text:
+      label:
+        justify: left
+      state:
+        justify: left
+      name:
+        justify: left
+    icon:
+      justify: right
+      border:
+        left:
+          color: black
+        right:
+          color: transparent
+cb-lcars-button-picard-dense-right:
+  template: cb-lcars-button-picard-right
+  variables:
+    card:
+      height: 50px

@@ -1,0 +1,122 @@
+cb-lcars-header:
+  template: cb-lcars-base
+  show_label: true
+  variables:
+    card:
+      height: 60px
+      border:
+        top:
+          size: 20px
+          left_radius: var(--ha-card-border-radius)
+        left:
+          size: 90px
+    text:
+      label:
+        padding:
+          top: 10px
+          left: 20px
+          right: 0px
+          bottom: 10px
+        align: left
+        justify: left
+      state:
+        padding:
+          top: 10px
+          left: 20px
+          right: 0px
+          bottom: 10px
+        align: left
+        justify: left
+      name:
+        padding:
+          top: 10px
+          left: 20px
+          right: 0px
+          bottom: 10px
+        align: left
+        justify: left
+  styles:
+    label:
+      - border-top-right-radius: 0px
+      - border-top-left-radius: >-
+          [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
+          variables.card.border.inner.factor +" )";]]]
+cb-lcars-header-open:
+  template: cb-lcars-base
+  show_label: true
+  variables:
+    card:
+      border:
+        top:
+          size: 20px
+cb-lcars-header-contained:
+  template: cb-lcars-header-open
+  variables:
+    card:
+      min_height: 40px
+      border:
+        left:
+          size: 50px
+        right:
+          size: 50px
+        top:
+          size: 10px
+          left_radius: var(--ha-card-border-radius)
+          right_radius: var(--ha-card-border-radius)
+        bottom:
+          left_radius: 0px
+          right_radius: 0px
+  styles:
+    label:
+      - border-top-left-radius: >-
+          [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
+          variables.card.border.inner.factor +" )";]]]
+      - border-top-right-radius: >-
+          [[[ return "calc(" + variables.card.border.top.right_radius + " / "
+          + variables.card.border.inner.factor +" )";]]]
+cb-lcars-header-right:
+  template: cb-lcars-base
+  show_label: true
+  variables:
+    card:
+      height: 60px
+      border:
+        top:
+          size: 20px
+          left_radius: 0px
+          right_radius: var(--ha-card-border-radius)
+        right:
+          size: 90px
+        bottom:
+          right_radius: 0px
+    text:
+      label:
+        padding:
+          top: 10px
+          left: 0px
+          right: 20px
+          bottom: 10px
+        align: left
+        justify: right
+      state:
+        padding:
+          top: 10px
+          left: 0px
+          right: 20px
+          bottom: 10px
+        align: left
+        justify: right
+      name:
+        padding:
+          top: 10px
+          left: 0px
+          right: 20px
+          bottom: 10px
+        align: left
+        justify: right
+  styles:
+    label:
+      - border-top-left-radius: 0px
+      - border-top-right-radius: >-
+          [[[ return "calc(" + variables.card.border.top.right_radius + " / "
+          + variables.card.border.inner.factor +" )";]]]

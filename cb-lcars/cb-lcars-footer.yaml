@@ -1,0 +1,116 @@
+  cb-lcars-footer:
+    template: cb-lcars-footer-base
+    show_label: true
+    variables:
+      card:
+        height: 60px
+        border:
+          left:
+            size: 90px
+          bottom:
+            size: 20px
+            left_radius: var(--ha-card-border-radius)
+      text:
+        label:
+          padding:
+            top: 10px
+            left: 20px
+            right: 0px
+            bottom: 10px
+          align: left
+          justify: left
+        state:
+          padding:
+            top: 10px
+            left: 20px
+            right: 0px
+            bottom: 10px
+          align: left
+          justify: left
+        name:
+          padding:
+            top: 10px
+            left: 20px
+            right: 0px
+            bottom: 10px
+          align: left
+          justify: left
+    styles:
+      label:
+        - border-bottom-left-radius: >-
+            [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
+        - border-bottom-right-radius: 0px
+  cb-lcars-footer-open:
+    template: cb-lcars-footer-base
+    show_label: true
+    variables:
+      card:
+        border:
+          bottom:
+            size: 20px
+  cb-lcars-footer-contained:
+    template: cb-lcars-footer-open
+    show_label: true
+    variables:
+      card:
+        min_height: 40px
+        border:
+          left:
+            size: 50px
+          right:
+            size: 50px
+          bottom:
+            size: 10px
+            left_radius: var(--ha-card-border-radius)
+            right_radius: var(--ha-card-border-radius)
+          top:
+            left_radius: 0px
+            right_radius: 0px
+    styles:
+      label:
+        - border-bottom-left-radius: >-
+            [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
+        - border-bottom-right-radius: >-
+            [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
+  cb-lcars-footer-right:
+    template: cb-lcars-footer-base
+    show_label: true
+    variables:
+      card:
+        height: 60px
+        border:
+          right:
+            size: 90px
+          bottom:
+            size: 20px
+            right_radius: var(--ha-card-border-radius)
+      text:
+        label:
+          padding:
+            top: 10px
+            left: 0px
+            right: 20px
+            bottom: 10px
+          align: left
+          justify: right
+        state:
+          padding:
+            top: 10px
+            left: 0px
+            right: 20px
+            bottom: 10px
+          align: left
+          justify: right
+        name:
+          padding:
+            top: 10px
+            left: 0px
+            right: 20px
+            bottom: 10px
+          align: left
+          justify: right
+    styles:
+      label:
+        - border-bottom-left-radius: 0px
+        - border-bottom-right-radius: >-
+            [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]

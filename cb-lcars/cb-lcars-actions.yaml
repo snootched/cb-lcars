@@ -1,0 +1,30 @@
+cb-lcars-actions-toggle:
+  tap_action:
+    action: toggle
+    haptic: success
+  double_tap_action:
+    action: more-info
+    haptic: success
+  hold_action:
+    action: more-info
+    haptic: success
+cb-lcars-actions-more-info:
+  tap_action:
+    action: more-info
+    haptic: success
+  double_tap_action:
+    action: more-info
+    haptic: success
+  hold_action:
+    action: more-info
+    haptic: success
+cb-lcars-actions-disable:
+  tap_action:
+    action: none
+    haptic: failure
+  double_tap_action:
+    action: none
+    haptic: failure
+  hold_action:
+    action: none
+    haptic: failure

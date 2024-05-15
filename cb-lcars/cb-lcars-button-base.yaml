@@ -1,0 +1,111 @@
+cb-lcars-button-base:
+  template:
+    - cb-lcars-base
+    - cb-lcars-actions-toggle
+  show_icon: false
+  show_name: false
+  show_label: true
+  variables:
+    label: ' '
+    card:
+      height: 60px
+      min_height: 45px
+      color:
+        active: var(--lcars-ui-secondary)
+        inactive: var(--lcars-ui-tertiary)
+        background:
+          default: null
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
+    text:
+      label:
+        padding:
+          top: 5px
+          bottom: 5px
+          right: 24px
+          left: 24px
+        transform: uppercase
+        font_size: null
+        justify: right
+        align_items: end
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: black
+          non_zero: black
+      state:
+        padding:
+          top: 5px
+          bottom: 5px
+          right: 24px
+          left: 24px
+        transform: uppercase
+        font_size: null
+        justify: right
+        align_items: end
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: black
+          non_zero: black
+      name:
+        padding:
+          top: 5px
+          bottom: 5px
+          right: 24px
+          left: 24px
+        transform: uppercase
+        font_size: null
+        justify: right
+        align_items: end
+        color:
+          default: black
+          'on': black
+          'off': black
+          zero: black
+          non_zero: black
+    icon:
+      size: 24px
+      color:
+        default: black
+      justify: left
+      border:
+        top:
+          size: 0px
+          color: transparent
+        bottom:
+          size: 0px
+          color: transparent
+        left:
+          size: 6px
+          color: transparent
+          padding: 0.5%
+          margin: 0
+        right:
+          size: 6px
+          color: black
+          padding: 0.5%
+          margin: null
+  size: 35px
+  styles:
+    grid:
+      - grid-template-areas: '"i n" "i s" "i l"'
+    icon:
+      - color: '[[[ return variables.icon.color.default ]]]'
+      - display: flex
+      - align-items: center
+      - justify-content: left
+      - height: '[[[ return variables.card.height || variables.card.min_height; ]]]'
+      - border-left: >-
+          [[[ return variables.icon.border.left.color + " solid " +
+          variables.icon.border.left.size ]]]
+      - border-right: >-
+          [[[ return variables.icon.border.right.color + " solid " +
+          variables.icon.border.right.size ]]]
+      - '--mdc-icon-size': '[[[ return variables.icon.size; ]]]'
+      - margin-left: '[[[ return variables.icon.border.left.margin ]]]'
+      - margin-right: '[[[ return variables.icon.border.right.margin ]]]'
+      - padding-left: '[[[ return variables.icon.border.left.padding ]]]'
+      - padding-right: '[[[ return variables.icon.border.right.padding ]]]'

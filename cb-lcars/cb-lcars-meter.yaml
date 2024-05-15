@@ -1,0 +1,81 @@
+cb-lcars-meter:
+  template:
+    - cb-lcars-functions
+    - cb-lcars-card-base
+    - cb-lcars-button-grid
+  variables:
+    card:
+      height: null
+      width: null
+    button:
+      variables:
+        card:
+          height: 20px
+          min_height: 5px
+          width: 100px
+      show_label: false
+      template:
+        - cb-lcars-button-lozenge
+    gradient_start_color: var(--error-color)
+    gradient_start_rgb: |
+      [[[ 
+        return variables.__hex_to_rgba(variables.gradient_start_color)
+        ]]]
+    gradient_end_color: var(--lcars-blue)
+    gradient_end_rgb: |
+      [[[ 
+        return variables.__hex_to_rgba(variables.gradient_end_color) 
+      ]]]
+    _gradient:
+      X: 1
+      'Y': 10
+      gap: 5px
+    gradient_X: >-
+      [[[ return variables.__calculate_grid_cells(variables.card.width,
+      variables.button.variables.card.width, variables._gradient.gap,
+      variables._gradient.X) ]]]
+    gradient_Y: >-
+      [[[ return variables.__calculate_grid_cells(variables.card.height,
+      variables.button.variables.card.height, variables._gradient.gap,
+      variables._gradient.Y) ]]]
+    grid:
+      X: '[[[ return variables.gradient_X ]]]'
+      'Y': '[[[ return variables.gradient_Y ]]]'
+      gap: '[[[ return variables._gradient.gap ]]]'
+      buttons: |
+        [[[ 
+          let buttons = [];
+          let total_steps = (variables.gradient_X > variables.gradient_Y) ? variables.gradient_X : variables.gradient_Y;
+          //console.debug("grid_X: " + variables.grid_X);
+          //console.debug("total_steps: " + total_steps);
+          for(let i = 0; i < total_steps ; i++) {
+            buttons.push({
+              variables: {
+                card: {
+                  color: {
+                    background: {
+                      inactive: variables.__interpolated_rgb(variables.gradient_start_rgb,variables.gradient_end_rgb, i, total_steps)
+                    },
+                  },
+                },
+              },
+            });
+          }
+          
+          return buttons;
+        ]]]
+cb-lcars-meter-horizontal:
+  template:
+    - cb-lcars-meter
+  variables:
+    button:
+      variables:
+        card:
+          width: 10px
+          height: 20px
+      template:
+        - cb-lcars-button-picard-filled
+    _gradient:
+      gap: 5px
+      'Y': 1
+      X: 25

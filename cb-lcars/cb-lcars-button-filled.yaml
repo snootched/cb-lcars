@@ -1,0 +1,58 @@
+cb-lcars-button-picard-filled:
+  template: cb-lcars-button-base
+  variables:
+    text:
+      label:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+      state:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+      name:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-filled-dense:
+  template: cb-lcars-button-picard-filled
+  variables:
+    card:
+      height: 50px
+cb-lcars-button-picard-filled-right:
+  template: cb-lcars-button-picard-filled
+  variables:
+    text:
+      label:
+        justify: left
+      state:
+        justify: left
+      name:
+        justify: left
+    icon:
+      justify: right
+      border:
+        left:
+          color: black
+        right:
+          color: transparent
+cb-lcars-button-picard-filled-dense-right:
+  template: cb-lcars-button-picard-filled-right
+  variables:
+    card:
+      height: 50px

@@ -1,0 +1,307 @@
+cb-lcars-slider-gauge:
+  template:
+    - cb-lcars-card-base
+    - cb-lcars-functions
+  entity: ''
+  triggers_update: '[[[ return variables.entity ]]]'
+  variables:
+    card:
+      width: 80px
+      height: 400px
+    entity: '[[[ return entity.entity_id ]]]'
+    entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
+    entity_match_slider: false
+    meter:
+      template:
+        - cb-lcars-button-grid
+      variables:
+        card:
+          height: '[[[ return variables.card.height ]]]'
+        grid:
+          X: 1
+          'Y': 10
+          gap: 0px
+          buttons:
+            - label: '100'
+            - label: '90'
+            - label: '80'
+            - label: '70'
+            - label: '60'
+            - label: '50'
+            - label: '40'
+            - label: '30'
+            - label: '20'
+            - label: '10'
+        button:
+          show_label: true
+          template:
+            - cb-lcars-button-picard
+            - cb-lcars-button-picard-label-ne
+          variables:
+            card:
+              height: |
+                [[[
+                    return variables.__calculcate_grid_cell_dimension(variables.card.height, 10, 0, "20px")
+                ]]]
+              width: '[[[ return variables.card.width ]]]'
+              border:
+                right:
+                  size: 0
+                left:
+                  size: 0
+                top:
+                  size: 2px
+                bottom:
+                  size: 0
+              color:
+                background:
+                  inactive: transparent
+                  default: transparent
+            text:
+              label:
+                font_size: 14px
+                padding:
+                  right: 0px
+                  top: 2px
+                color:
+                  'off': var(--lcars-ui-primary)
+    slider:
+      variables:
+        color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-cyan)" ]]]
+        color_alpha: 0.95
+        border_color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-blue)" ]]]  
+        border_alpha: 0.5
+        border_width: 2px
+        height: '[[[ return variables.card.height ]]]'
+        width: 15px
+        left_padding: 5px
+        step: 1
+  styles:
+    card:
+      - width: '[[[ return variables.card.width ]]]'
+      - height: '[[[ return variables.card.height ]]]'
+      - border-radius: 0 !important
+      - background: none
+    custom_fields:
+      meter:
+        - position: absolute
+        - left: 0px
+        - top: 0px
+      slider:
+        - position: absolute
+        - left: 0px
+        - top: 0px
+        - z-index: 1
+        - width: '[[[ return variables.card.width ]]]'
+        - height: '[[[ return variables.card.height ]]]'
+  custom_fields:
+    meter:
+      card:
+        type: custom:button-card
+        template: '[[[ return variables.meter.template ]]]'
+        variables: '[[[ return variables.meter.variables ]]]'
+    slider:
+      card:
+        type: custom:my-slider-v2
+        entity: '[[[ return variables.entity ]]]'
+        mode: brightness
+        flipped: false
+        inverse: false
+        vertical: true
+        step: '[[[ return variables.slider.variables.step; ]]]'
+        styles:
+          card:
+            - width: '[[[ return variables.card.width ]]]'
+            - height: '[[[ return variables.card.height ]]]'
+            - background: none
+            - border-radius: 0
+          progress:
+            - background-color: >-
+                [[[ return
+                variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                ]]]
+            - border: >-
+                [[[ return variables.slider.variables.border_width + " solid "
+                +
+                variables.__hex_to_rgba(variables.slider.variables.border_color,
+                variables.slider.variables.border_alpha)  ]]]
+            - width: '[[[ return variables.slider.variables.width ]]]'
+            - height: '[[[ return variables.slider.variables.height ]]]'
+            - left: '[[[ return variables.slider.variables.left_padding ]]]'
+          container:
+            - border-radius: 0
+          track:
+            - background: none
+          thumb:
+            - background: none
+cb-lcars-slider-horizontal-gauge:
+  entity: ''
+  template:
+    - cb-lcars-functions
+    - cb-lcars-slider-horizontal
+  triggers_update: '[[[ return variables.entity ]]]'
+  variables:
+    card:
+      width: 500px
+      height: 45px
+    entity: '[[[ return entity.entity_id ]]]'
+    entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
+    entity_match_slider: false
+    slider:
+      variables:
+        color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-cyan)" ]]]
+        color_alpha: 0.95
+        border_color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-blue)" ]]]
+        border_alpha: 0.5
+        border_width: 2px
+        height: 10px
+        width: '[[[ return variables.card_width ]]]'
+        top_padding: 10px
+        step: 5
+    gauge:
+      show_sub_meter: true
+      meter:
+        template:
+          - cb-lcars-button-grid
+        variables:
+          card:
+            height: '[[[ return variables.card.height ]]]'
+          grid:
+            X: 10
+            'Y': 1
+            gap: 0px
+            buttons:
+              - label: '10'
+              - label: '20'
+              - label: '30'
+              - label: '40'
+              - label: '50'
+              - label: '60'
+              - label: '70'
+              - label: '80'
+              - label: '90'
+              - label: '100'
+          button:
+            show_label: true
+            template:
+              - cb-lcars-button-picard
+              - cb-lcars-button-picard-label-se
+            variables:
+              card:
+                width: |
+                  [[[
+                      return variables.__calculcate_grid_cell_dimension(variables.card.width, 10, 0, "5px")
+                  ]]]
+                height: '[[[ return variables.card.height ]]]'
+                border:
+                  right:
+                    size: 2px
+                  left:
+                    size: 0
+                  top:
+                    size: 0
+                  bottom:
+                    size: 0
+                color:
+                  background:
+                    inactive: transparent
+                    default: transparent
+              text:
+                label:
+                  font_size: 14px
+                  padding:
+                    right: 3px
+                    top: 2px
+                    bottom: 0px
+                  color:
+                    'off': var(--lcars-ui-primary)
+      sub_meter:
+        variables:
+          card:
+            height: 10px
+          grid:
+            X: 50
+            'Y': 1
+            gap: 0px
+          gradient_start_color: none
+          gradient_end_color: none
+          button:
+            template:
+              - cb-lcars-button-picard
+              - cb-lcars-button-picard-label-se
+            variables:
+              card:
+                height: 10px
+                min_height: 10px
+                width: |
+                  [[[
+                      return variables.__calculcate_grid_cell_dimension(variables.card.width, 50, 0, "20px")
+                  ]]]
+                border:
+                  right:
+                    size: 2px
+                  left:
+                    size: 0
+                  top:
+                    size: 2px
+                  bottom:
+                    size: 0
+                color:
+                  background:
+                    inactive: transparent
+                    default: transparent
+            show_label: false
+    meter: '[[[ return variables.gauge.meter ]]]'
+  styles:
+    custom_fields:
+      slider:
+        - position: absolute
+        - top: 0
+        - left: >-
+            [[[ return "calc(" + variables.slider.variables.border_width + " *
+            -1)" ]]]
+      sub_meter:
+        - position: absolute
+        - top: 0px
+        - left: 0px
+        - visibility: >-
+            [[[ return variables.gauge.show_sub_meter ? "visible" : "hidden"
+            ]]]
+  custom_fields:
+    slider:
+      card:
+        flipped: false
+        vertical: false
+        inverse: false
+        styles:
+          card:
+            - height: '[[[ return variables.card.height ]]]'
+            - width: '[[[ return variables.card.width ]]]'
+            - background: none
+          progress:
+            - background-color: >-
+                [[[ return
+                variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                ]]]
+            - border: >-
+                [[[ return variables.slider.variables.border_width + " solid "
+                +
+                variables.__hex_to_rgba(variables.slider.variables.border_color,
+                variables.slider.variables.border_alpha)  ]]]
+            - border-radius: 2px
+            - height: '[[[ return variables.slider.variables.height ]]]'
+            - width: '[[[ return variables.slider.variables.width ]]]'
+            - top: '[[[ return variables.slider.variables.top_padding ]]]'
+    sub_meter:
+      card:
+        type: custom:button-card
+        template: cb-lcars-meter-horizontal
+        variables: '[[[ return variables.gauge.sub_meter.variables ]]]'

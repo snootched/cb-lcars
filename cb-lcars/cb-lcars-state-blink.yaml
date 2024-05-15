@@ -1,0 +1,17 @@
+cb-lcars-state-blink:
+  variables:
+    blink_card_background_color: var(--error-color)
+    blink_seconds: 2s
+    color: var(--error-color)
+    blink_state_mode: 'on'
+  state:
+    - value: '[[[ return variables.blink_state_mode; ]]]'
+      color: '[[[ return variables.color; ]]]'
+      styles:
+        card:
+          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-timing-function: ease-out
+          - animation-name: blink
+          - animation-iteration-count: infinite
+          - animation-delay: 1s
+          - background-color: '[[[ return variables.blink_card_background_color; ]]]'

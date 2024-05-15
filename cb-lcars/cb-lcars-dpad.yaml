@@ -1,0 +1,507 @@
+cb-lcars-dpad:
+  variables:
+    card_size: 300px
+    dpad_button_scale: 6.5
+    dpad_button_min_height: 10px
+    button_ripple_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_background_color: '#1111ee'
+    svg_dpad_up_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_dpad_up_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-active-color")
+      ]]]
+    svg_dpad_down_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_dpad_down_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-active-color")
+      ]]]
+    svg_dpad_left_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_dpad_left_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-active-color")
+      ]]]
+    svg_dpad_right_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_dpad_right_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-active-color")
+      ]]]
+    svg_dpad_center_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+    svg_dpad_center_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--state-active-color")
+      ]]]
+    svg_dpad_up_left_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
+      ]]]
+    svg_dpad_up_left_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
+      ]]]
+    svg_dpad_up_right_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
+      ]]]
+    svg_dpad_up_right_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
+      ]]]
+    svg_dpad_down_left_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
+      ]]]
+    svg_dpad_down_left_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
+      ]]]
+    svg_dpad_down_right_color: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
+      ]]]
+    svg_dpad_down_right_color_active: >-
+      [[[ return
+      getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
+      ]]]
+    dpad_center_entity: null
+    dpad_center_entity_active_state: 'on'
+    dpad_up_entity: input_boolean.lcars_ui_fullscreen
+    dpad_up_entity_active_state: 'on'
+    dpad_up_left_entity: null
+    dpad_up_left_entity_active_state: 'on'
+    dpad_up_left_show_label: true
+    dpad_up_left_label: null
+    dpad_up_left_show_name: false
+    dpad_up_left_show_state: false
+    dpad_up_right_entity: null
+    dpad_up_right_entity_active_state: 'on'
+    dpad_up_right_show_label: true
+    dpad_up_right_label: null
+    dpad_up_right_show_name: false
+    dpad_up_right_show_state: false
+    dpad_down_entity: null
+    dpad_down_entity_active_state: 'on'
+    dpad_down_left_entity: null
+    dpad_down_left_entity_active_state: 'on'
+    dpad_down_left_show_label: true
+    dpad_down_left_label: null
+    dpad_down_left_show_name: false
+    dpad_down_left_show_state: false
+    dpad_down_right_entity: null
+    dpad_down_right_entity_active_state: 'on'
+    dpad_down_right_show_label: true
+    dpad_down_right_label: null
+    dpad_down_right_show_name: false
+    dpad_down_right_show_state: false
+    dpad_left_entity: null
+    dpad_left_entity_active_state: 'on'
+    dpad_right_entity: null
+    dpad_right_entity_active_state: 'on'
+    dpad_center_card_background: transparent
+    dpad_center_card_inactive_background_color: transparent
+    dpad_center_card_active_background_color: transparent
+    dpad_up_card_background: transparent
+    dpad_up_card_inactive_background_color: transparent
+    dpad_up_card_active_background_color: transparent
+    dpad_up_left_card_background: transparent
+    dpad_up_left_card_inactive_background_color: transparent
+    dpad_up_left_card_active_background_color: transparent
+    dpad_up_right_card_background: transparent
+    dpad_up_right_card_inactive_background_color: transparent
+    dpad_up_right_card_active_background_color: transparent
+    dpad_down_card_background: transparent
+    dpad_down_card_inactive_background_color: transparent
+    dpad_down_card_active_background_color: transparent
+    dpad_down_left_card_background: transparent
+    dpad_down_left_card_inactive_background_color: transparent
+    dpad_down_left_card_active_background_color: transparent
+    dpad_down_right_card_background: transparent
+    dpad_down_right_card_inactive_background_color: transparent
+    dpad_down_right_card_active_background_color: transparent
+    dpad_left_card_background: transparent
+    dpad_left_card_inactive_background_color: transparent
+    dpad_left_card_active_background_color: transparent
+    dpad_right_card_background: transparent
+    dpad_right_card_inactive_background_color: transparent
+    dpad_right_card_active_background_color: transparent
+  triggers_update:
+    - '[[[ return variables.dpad_up_entity; ]]]'
+    - '[[[ return variables.dpad_down_entity; ]]]'
+    - '[[[ return variables.dpad_left_entity; ]]]'
+    - '[[[ return variables.dpad_right_entity; ]]]'
+    - '[[[ return variables.dpad_center_entity; ]]]'
+    - '[[[ return variables.dpad_up_left_entity; ]]]'
+    - '[[[ return variables.dpad_up_right_entity; ]]]'
+    - '[[[ return variables.dpad_down_left_entity; ]]]'
+    - '[[[ return variables.dpad_down_right_entity; ]]]'
+  styles:
+    card:
+      - height: '[[[ return variables.card_size ]]]'
+      - width: '[[[ return variables.card_size ]]]'
+      - background: |
+          [[[
+            let button_ripple_color = variables.button_ripple_color;
+            let svg_dpad_up_bg = (variables.dpad_up_entity && states[variables.dpad_up_entity] && states[variables.dpad_up_entity].state === variables.dpad_up_entity_active_state) ? variables.svg_dpad_up_color_active : variables.svg_dpad_up_color;
+            let svg_dpad_down_bg = (variables.dpad_down_entity && states[variables.dpad_down_entity] && states[variables.dpad_down_entity].state === variables.dpad_down_entity_active_state) ? variables.svg_dpad_down_color_active : variables.svg_dpad_down_color;
+            let svg_dpad_left_bg = (variables.dpad_left_entity && states[variables.dpad_left_entity] && states[variables.dpad_left_entity].state === variables.dpad_left_entity_active_state) ? variables.svg_dpad_left_color_active : variables.svg_dpad_left_color;
+            let svg_dpad_right_bg = (variables.dpad_right_entity && states[variables.dpad_right_entity] && states[variables.dpad_right_entity].state === variables.dpad_right_entity_active_state) ? variables.svg_dpad_right_color_active : variables.svg_dpad_right_color;
+            let svg_dpad_center_bg = (variables.dpad_center_entity && states[variables.dpad_center_entity] && states[variables.dpad_center_entity].state === variables.dpad_center_entity_active_state) ? variables.svg_dpad_center_color_active : variables.svg_dpad_center_color;
+
+            let svg_dpad_up_left_bg = (variables.dpad_up_left_entity && states[variables.dpad_up_left_entity] && states[variables.dpad_up_left_entity].state === variables.dpad_up_left_entity_active_state) ? variables.svg_dpad_up_left_color_active : variables.svg_dpad_up_left_color;
+            let svg_dpad_up_right_bg = (variables.dpad_up_right_entity && states[variables.dpad_up_right_entity] && states[variables.dpad_up_right_entity].state === variables.dpad_up_right_entity_active_state) ? variables.svg_dpad_up_right_color_active : variables.svg_dpad_up_right_color;
+            let svg_dpad_down_left_bg = (variables.dpad_down_left_entity && states[variables.dpad_down_left_entity] && states[variables.dpad_down_left_entity].state === variables.dpad_down_left_entity_active_state) ? variables.svg_dpad_down_left_color_active : variables.svg_dpad_down_left_color;
+            let svg_dpad_down_right_bg = (variables.dpad_down_right_entity && states[variables.dpad_down_right_entity] && states[variables.dpad_down_right_entity].state === variables.dpad_down_right_entity_active_state) ? variables.svg_dpad_down_right_color_active : variables.svg_dpad_down_right_color;
+            
+            
+            
+            let svg_background_color = variables.svg_background_color;
+            let svgString = `<?xml version="1.0" encoding="UTF-8"?>
+            <svg width="80mm" height="80mm" version="1.1" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink">
+              <metadata>
+              <rdf:RDF>
+                <cc:Work rdf:about="">
+                <dc:format>image/svg+xml</dc:format>
+                <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+                <dc:title/>
+                </cc:Work>
+              </rdf:RDF>
+              </metadata>
+              <defs>
+                <style type="text/css"><![CDATA[
+                .lcars-svg-bg {
+                fill: ${svg_background_color};
+                }
+                .lcars-d-pad-bg {
+                fill: ${button_ripple_color};
+                }
+                .lcars-dpad-left-bg {
+                fill: ${svg_dpad_left_bg};
+                }
+                .lcars-dpad-right-bg {
+                fill: ${svg_dpad_right_bg};
+                }
+                .lcars-dpad-up-bg {
+                fill: ${svg_dpad_up_bg};
+                }
+                .lcars-dpad-down-bg {
+                fill: ${svg_dpad_down_bg};
+                }
+                .lcars-dpad-center-bg {
+                fill: ${svg_dpad_center_bg};
+                }
+                .lcars-dpad-up-left-bg {
+                fill: ${svg_dpad_up_left_bg};
+                }
+                .lcars-dpad-up-right-bg {
+                fill: ${svg_dpad_up_right_bg};
+                }
+                .lcars-dpad-down-left-bg {
+                fill: ${svg_dpad_down_left_bg};
+                }
+                .lcars-dpad-down-right-bg {
+                fill: ${svg_dpad_down_right_bg};
+                }
+                ]]></style>
+              </defs>
+              <g transform="translate(0,-217)">
+              
+              <path id="path892" d="m33 250v-32.35c-15.992 2.4474-29.977 16.417-32.424 32.35z" class="lcars-dpad-up-left-bg"></path>
+              <path d="m33 250v-32.35c-15.992 2.4474-29.977 16.417-32.424 32.35z" class="lcars-dpad-up-right-bg" transform="matrix(-1, 0, 0, 1, 80, 0.0000019179001355951186)"></path>
+              <path d="m33 250v-32.35c-15.992 2.4474-29.977 16.417-32.424 32.35z" class="lcars-dpad-down-left-bg" transform="matrix(1, 0, 0, -1, -8.208900226236437e-8, 514)"></path>
+              <path d="m33 250v-32.35c-15.992 2.4474-29.977 16.417-32.424 32.35z" class="lcars-dpad-down-right-bg" transform="matrix(-1, 0, 0, -1, 80, 514)"></path>
+
+              <path d="m34 227h12v-9.5c-3.8785-0.47437-8.044-0.4824-12 0z" class="lcars-dpad-up-bg"/>
+              <path d="m44.2 219.2v5.0271" style="fill:none;stroke-width:1.2;stroke:#000"/>
+              <path d="m10 263v-12h-9.5c-0.47437 3.8785-0.4824 8.044 0 12z" class="lcars-dpad-left-bg"/>
+              <path d="m2.199 252.8h5.0271" style="fill:none;opacity:.889;stroke-width:1.2;stroke:#000"/>
+              <path d="m70 251v12h9.5c0.47437-3.8785 0.4824-8.044 0-12z" class="lcars-dpad-right-bg"/>
+              <path d="m77.801 261.2h-5.0271" style="fill:none;stroke-width:1.2;stroke:#000"/>
+              <path d="m46 287h-12v9.5c3.8785 0.47437 8.044 0.4824 12 0z" class="lcars-dpad-down-bg"/>
+              <path d="m35.8 294.8v-5.0271" style="fill:none;stroke-width:1.2;stroke:#000"/>
+              <path d="m11 251v12h23v23h12v-23h23v-12h-23v-23h-12v23z" class="lcars-dpad-center-bg"/>
+              <path d="m34 230.49h12" style="fill:none;stroke-width:.75;stroke:#000"/>
+              <path d="m34 233.2h12" style="fill:none;stroke-width:.75;stroke:#000"/>
+              <path d="m34 236.48h12" style="fill:none;stroke-width:.75;stroke:#000"/>
+              <path d="m34 244.9h12" style="fill:none;stroke-width:.75;stroke:#000"/>
+              <path d="m34 276h12" style="fill:none;stroke-width:.75;stroke:#000"/>
+              </g>
+            </svg>`;
+            let encodedSvgString = encodeURIComponent(svgString);
+            let backgroundImage = `url('data:image/svg+xml,${encodedSvgString}')`;
+            return backgroundImage;
+          ]]]
+      - background-position: center
+      - background-size: '[[[ return variables.card_size ]]]'
+      - background-color: none
+    custom_fields:
+      dpad_up_button:
+        - position: absolute
+        - top: 0px
+        - left: >
+            [[[ return "calc((" + variables.card_size + "/2) - (" +
+            variables.card_size + " / " + variables.dpad_button_scale +
+            "/2))"; ]]]
+        - z-index: 100
+      dpad_down_button:
+        - position: absolute
+        - bottom: 0px
+        - left: >
+            [[[ return "calc((" + variables.card_size + "/2) - (" +
+            variables.card_size + " / " + variables.dpad_button_scale +
+            "/2))"; ]]]
+        - z-index: 100
+      dpad_left_button:
+        - position: absolute
+        - left: 0px
+        - top: >
+            [[[ return "calc((" + variables.card_size + "/2) - (" +
+            variables.card_size + " / " + variables.dpad_button_scale +
+            "/2))"; ]]]
+        - z-index: 100
+      dpad_right_button:
+        - position: absolute
+        - right: 0px
+        - top: >
+            [[[ return "calc((" + variables.card_size + "/2) - (" +
+            variables.card_size + " / " + variables.dpad_button_scale +
+            "/2))"; ]]]
+        - z-index: 100
+      dpad_center_button:
+        - position: absolute
+        - right: |
+            [[[ return "calc(" + variables.card_size + " /4 )";]]]
+        - top: >
+            [[[ return "calc((" + variables.card_size + "/2) - (" +
+            variables.card_size + " / " + variables.dpad_button_scale +
+            "/2))"; ]]]
+        - z-index: 100
+      dpad_up_left_button:
+        - position: absolute
+        - top: 0px
+        - left: 0px
+        - z-index: 99
+      dpad_up_right_button:
+        - position: absolute
+        - top: 0px
+        - right: 0px
+        - z-index: 99
+      dpad_down_left_button:
+        - position: absolute
+        - bottom: 0px
+        - left: 0px
+        - z-index: 99
+      dpad_down_right_button:
+        - position: absolute
+        - bottom: 0px
+        - right: 0px
+        - z-index: 99
+  custom_fields:
+    dpad_center_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_center_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-button-square
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
+          card_width: |
+            [[[ return "calc(" + variables.card_size + " /2 )";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + " )";]]]
+          card_background: '[[[ return variables.dpad_center_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_center_card_active_background_color ]]]'
+          card_inactive_background_color: >-
+            [[[ return variables.dpad_center_card_inactive_background_color
+            ]]]
+    dpad_up_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_up_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-button-square
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
+          card_width: >
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_background: '[[[ return variables.dpad_up_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_up_card_active_background_color ]]]'
+          card_inactive_background_color: '[[[ return variables.dpad_up_card_inactive_background_color ]]]'
+    dpad_down_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_down_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-button-square
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
+          card_width: >
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_background: '[[[ return variables.dpad_down_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_down_card_active_background_color ]]]'
+          card_inactive_background_color: '[[[ return variables.dpad_down_card_inactive_background_color ]]]'
+    dpad_left_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_left_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-button-square
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
+          card_width: >
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_background: '[[[ return variables.dpad_left_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_left_card_active_background_color ]]]'
+          card_inactive_background_color: '[[[ return variables.dpad_left_card_inactive_background_color ]]]'
+    dpad_right_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_right_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-button-square
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
+          card_width: >
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / " +
+            variables.dpad_button_scale + ")";]]]
+          card_background: '[[[ return variables.dpad_right_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_right_card_active_background_color ]]]'
+          card_inactive_background_color: '[[[ return variables.dpad_right_card_inactive_background_color ]]]'
+    dpad_up_left_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_up_left_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-base
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_width: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_background: '[[[ return variables.dpad_up_left_card_background ]]]'
+          card_active_background_color: '[[[ return variables.dpad_up_left_card_active_background_color ]]]'
+          card_inactive_background_color: >-
+            [[[ return variables.dpad_up_left_card_inactive_background_color
+            ]]]
+          card_border_top_left_radius: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+        label: '[[[ return variables.dpad_up_left_label ]]]'
+        show_name: '[[[ return variables.dpad_up_left_show_name ]]]'
+        show_label: '[[[ return variables.dpad_up_left_show_label]]]'
+        show_state: '[[[ return variables.dpad_up_left_show_state ]]]'
+    dpad_up_right_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_up_right_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-base
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_width: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_background: '[[[ return variables.dpad_up_right_card_background ]]]'
+          card_active_background_color: >-
+            [[[ return variables.dpad_up_right_card_active_background_color
+            ]]]
+          card_inactive_background_color: >-
+            [[[ return variables.dpad_up_right_card_inactive_background_color
+            ]]]
+          card_border_top_right_radius: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+        label: '[[[ return variables.dpad_up_right_label ]]]'
+        show_name: '[[[ return variables.dpad_up_right_show_name ]]]'
+        show_label: '[[[ return variables.dpad_up_right_show_label]]]'
+        show_state: '[[[ return variables.dpad_up_right_show_state ]]]'
+    dpad_down_left_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_down_left_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-base
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_width: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_background: '[[[ return variables.dpad_down_left_card_background ]]]'
+          card_active_background_color: >-
+            [[[ return variables.dpad_down_left_card_active_background_color
+            ]]]
+          card_inactive_background_color: >-
+            [[[ return variables.dpad_down_left_card_inactive_background_color
+            ]]]
+          card_border_bottom_left_radius: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+        label: '[[[ return variables.dpad_down_left_label ]]]'
+        show_name: '[[[ return variables.dpad_down_left_show_name ]]]'
+        show_label: '[[[ return variables.dpad_down_left_show_label]]]'
+        show_state: '[[[ return variables.dpad_down_left_show_state ]]]'
+    dpad_down_right_button:
+      card:
+        type: custom:button-card
+        entity: '[[[ return variables.dpad_down_right_entity; ]]]'
+        template:
+          - cb-lcars-animate-press
+          - cb-lcars-base
+        variables:
+          ripple_color: '[[[ return variables.button_ripple_color; ]]]'
+          card_width: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_height: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+          card_background: '[[[ return variables.dpad_down_right_card_background ]]]'
+          card_active_background_color: >-
+            [[[ return variables.dpad_down_right_card_active_background_color
+            ]]]
+          card_inactive_background_color: >-
+            [[[ return
+            variables.dpad_down_right_card_inactive_background_color ]]]
+          card_border_bottom_right_radius: |
+            [[[ return "calc(" + variables.card_size + " / 2)";]]]
+        label: '[[[ return variables.dpad_down_right_label ]]]'
+        show_name: '[[[ return variables.dpad_down_right_show_name ]]]'
+        show_label: '[[[ return variables.dpad_down_right_show_label]]]'
+        show_state: '[[[ return variables.dpad_down_right_show_state ]]]'

@@ -1,0 +1,60 @@
+cb-lcars-callout-base:
+  variables:
+    card:
+      border:
+        top:
+          left_radius: 0
+          right_radius: 0
+        bottom:
+          left_radius: 0
+          right_radius: 0
+  styles:
+    label:
+      - border-top-right-radius: 0px
+      - border-top-left-radius: 0px
+      - border-bottom-right-radius: 0px
+      - border-bottom-left-radius: 0px
+cb-lcars-header-callout:
+  template:
+    - cb-lcars-header
+    - cb-lcars-callout-base
+  variables:
+    card:
+      border:
+        top:
+          size: 10px
+        left:
+          size: 10px
+cb-lcars-header-callout-right:
+  template:
+    - cb-lcars-header-right
+    - cb-lcars-callout-base
+  variables:
+    card:
+      border:
+        top:
+          size: 10px
+        right:
+          size: 10px
+cb-lcars-footer-callout:
+  template:
+    - cb-lcars-footer
+    - cb-lcars-callout-base
+  variables:
+    card:
+      border:
+        bottom:
+          size: 10px
+        left:
+          size: 10px
+cb-lcars-footer-callout-right:
+  template:
+    - cb-lcars-footer-right
+    - cb-lcars-callout-base
+  variables:
+    card:
+      border:
+        bottom:
+          size: 10px
+        right:
+          size: 10px

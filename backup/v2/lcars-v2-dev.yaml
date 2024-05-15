@@ -322,7 +322,7 @@ button_card_templates:
               } else {
                 return 'transparent';
               }
-            ]]]    
+            ]]]
   cb-lcars-base:
     label: ' '
     variables:

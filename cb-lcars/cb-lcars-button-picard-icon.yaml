@@ -1,0 +1,28 @@
+cb-lcars-button-picard-icon:
+  template:
+    - cb-lcars-button-picard-filled-dense
+    - cb-lcars-actions-toggle
+  variables:
+    card:
+      width: 40px
+      height: 40px
+      min_height: 40px
+      border:
+        top:
+          left_radius: 10px
+          right_radius: 10px
+        bottom:
+          left_radius: 10px
+          right_radius: 10px
+    icon:
+      border:
+        left: 0px
+        right: 0px
+      align-items: center
+      justify: center
+  styles:
+    grid:
+      - grid-template-areas: '"i"'
+  size: 30px
+  show_icon: true
+  show_label: false

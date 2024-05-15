@@ -1,0 +1,110 @@
+cb-lcars-slider:
+  template:
+    - cb-lcars-card-base
+    - cb-lcars-functions
+  entity: ''
+  triggers_update: '[[[ return variables.entity ]]]'
+  variables:
+    card:
+      width: 80px
+      height: 300px
+    entity: '[[[ return entity.entity_id ]]]'
+    entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
+    entity_match_slider_start: false
+    entity_match_slider_end: false
+    meter:
+      template:
+        - cb-lcars-meter
+      variables:
+        gradient_start_color: >
+          [[[ return  variables.entity_match_slider_start ?
+          variables.entity_color :
+
+          "var(--error-color)" ]]]
+        gradient_end_color: >
+          [[[ return  variables.entity_match_slider_end ?
+          variables.entity_color :
+
+          "var(--success-color)" ]]]
+        card:
+          height: '[[[ return variables.card.height ]]]'
+          width: '[[[ return variables.card.width ]]]'
+        button:
+          variables:
+            card:
+              height: 15px
+              width: '[[[ return variables.card.width ]]]'
+    slider:
+      variables:
+        mask_color: rgb(0,0,0,0.8)
+        step: 1
+  styles:
+    card:
+      - width: '[[[ return variables.card.width ]]]'
+      - height: '[[[ return variables.card.height ]]]'
+      - border-radius: 0 !important
+      - background: none
+    custom_fields:
+      meter:
+        - position: absolute
+        - left: 0px
+        - top: 0px
+      slider:
+        - position: absolute
+        - left: 0px
+        - top: 0px
+        - z-index: 1
+        - width: '[[[ return variables.card.width ]]]'
+        - height: '[[[ return variables.card.height ]]]'
+  custom_fields:
+    meter:
+      card:
+        type: custom:button-card
+        template: '[[[ return variables.meter.template ]]]'
+        variables: '[[[ return variables.meter.variables ]]]'
+    slider:
+      card:
+        type: custom:my-slider-v2
+        entity: '[[[ return variables.entity ]]]'
+        mode: brightness
+        flipped: true
+        inverse: true
+        vertical: true
+        step: '[[[ return variables.slider.variables.step; ]]]'
+        styles:
+          card:
+            - width: '[[[ return variables.card.width ]]]'
+            - height: '[[[ return variables.card.height ]]]'
+            - background: none
+            - border-radius: 0
+          progress:
+            - background-color: '[[[ return variables.slider.variables.mask_color; ]]]'
+          container:
+            - border-radius: 0
+          track:
+            - background: none
+          thumb:
+            - background: none
+cb-lcars-slider-horizontal:
+  template: cb-lcars-slider
+  entity: ''
+  variables:
+    meter:
+      template: cb-lcars-meter-horizontal
+      variables:
+        _gradient:
+          gap: 5px
+        button:
+          template: cb-lcars-button-picard-filled
+          variables:
+            card:
+              height: '[[[ return variables.card.height ]]]'
+              width: 10px
+    card:
+      width: 375px
+      height: 45px
+  triggers_update: '[[[ return variables.entity  ]]]'
+  custom_fields:
+    slider:
+      card:
+        vertical: false

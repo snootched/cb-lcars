@@ -1,0 +1,28 @@
+cb-lcars-button-lozenge:
+  template: cb-lcars-button-base
+  variables:
+    card:
+      border:
+        top:
+          left_radius: null
+          right_radius: null
+        bottom:
+          left_radius: null
+          right_radius: null
+cb-lcars-button-lozenge-right:
+  template: cb-lcars-button-lozenge
+  variables:
+    text:
+      label:
+        justify: left
+      state:
+        justify: left
+      name:
+        justify: left
+    icon:
+      justify: right
+      border:
+        left:
+          color: black
+        right:
+          color: transparent

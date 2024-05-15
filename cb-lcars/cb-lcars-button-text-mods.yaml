@@ -1,0 +1,234 @@
+cb-lcars-button-picard-label-east:
+  variables:
+    text:
+      label:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-label-west:
+  variables:
+    text:
+      label:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        justify: left
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-label-ne:
+  variables:
+    text:
+      label:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-label-se:
+  variables:
+    text:
+      label:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-end
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-label-nw:
+  variables:
+    text:
+      label:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-label-sw:
+  variables:
+    text:
+      label:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-end
+        padding:
+          padding:
+            top: 5px
+            left: 10px
+            right: 10px
+            bottom: 5px
+cb-lcars-button-picard-state-east:
+  variables:
+    text:
+      state:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-state-west:
+  variables:
+    text:
+      state:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        justify: left
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-state-ne:
+  variables:
+    text:
+      state:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-state-se:
+  variables:
+    text:
+      state:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-end
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-state-nw:
+  variables:
+    text:
+      state:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-state-sw:
+  variables:
+    text:
+      state:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-end
+        padding:
+          padding:
+            top: 5px
+            left: 10px
+            right: 10px
+            bottom: 5px
+cb-lcars-button-picard-name-east:
+  variables:
+    text:
+      name:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-name-west:
+  variables:
+    text:
+      name:
+        font_weight: normal
+        font_size: 22px
+        align_items: center
+        justify: left
+        padding:
+          top: 0px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-name-ne:
+  variables:
+    text:
+      name:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-name-se:
+  variables:
+    text:
+      name:
+        font_size: 18px
+        font_weight: normal
+        justify: right
+        align_items: flex-end
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-name-nw:
+  variables:
+    text:
+      name:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-start
+        padding:
+          top: 5px
+          left: 10px
+          right: 10px
+          bottom: 5px
+cb-lcars-button-picard-name-sw:
+  variables:
+    text:
+      name:
+        font_size: 18px
+        font_weight: normal
+        justify: left
+        align_items: flex-end
+        padding:
+          padding:
+            top: 5px
+            left: 10px
+            right: 10px
+            bottom: 5px
