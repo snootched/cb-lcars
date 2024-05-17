@@ -43,6 +43,27 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ---
 
+| Template Name | Inherits | Description |
+| --- | --- | --- |
+
+| `cb-lcars-base` |   | Base template for foundational variables, styles, etc.
+| `cb-lcars-card-base` |   | Base template to use for a button card that you use as a base with other LCARS cards on top.
+| `cb-lcars-functions` |   | Javascript functions used by the LCARS cards
+
+
+| `type` | string | **Required** | `custom:button-card` | Type of the card |
+| `template` | string | optional | any valid template from `button_card_templates` | See [configuration template](#Configuration-Templates) |
+| `entity` | string | optional | `switch.ac` | entity_id |
+| `triggers_update` | string or array | optional | `switch.ac` | entity_id list that would trigger a card update, see [triggers_update](#triggers_update) |
+| `group_expand` | boolean | false | `true` \| `false` | When `true`, if any of the entities triggering a card update is a group, it will auto-expand the group and the card will update on any child entity state change. This works with nested groups too. See [triggers_update](#triggers_update) |
+| `icon` | string | optional | `mdi:air-conditioner` | Icon to display. Will be overridden by the icon defined in a state (if present). Defaults to the entity icon. Hide with `show_icon: false`. Supports templates, see [templates](#javascript-templates) |
+| `color_type` | string | `icon` | `icon` \| `card` \| `blank-card` \| `label-card` | Color either the background of the card or the icon inside the card. Setting this to `card` enable automatic `font` and `icon` color. This allows the text/icon to be readable even if the background color is bright/dark. Additional color-type options `blank-card` and `label-card` can be used for organisation (see examples). |
+| `color` | string | optional | `auto` \| `auto-no-temperature` \| `rgb(28, 128, 199)` | Color of the icon/card. `auto` sets the color based on the color of a light including the temperature of the light. Setting this to `auto-no-temperature` will behave like home-assistant's default, ignoring the temperature of the light. By default, if the entity state is `off`, the color will be `var(--paper-item-icon-color)`, for `on` it will be `var(--paper-item-icon-active-color)` and for any other state it will be `var(--primary-text-color)`. You can redefine each colors using `state` |
+| `size` | string | `40%` | `20px` | Size of the icon. Can be percentage or pixel |
+
+
+---
+
 ##  Features
 
 |    |   Feature         | Description |
