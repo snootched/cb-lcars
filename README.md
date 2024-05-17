@@ -44,11 +44,36 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ---
 
 | Template Name | Inherits | Description |
-| --- | --- | --- |
-
+| ------- | --- | --- |
 | `cb-lcars-base` |   | Base template for foundational variables, styles, etc.
 | `cb-lcars-card-base` |   | Base template to use for a button card that you use as a base with other LCARS cards on top.
 | `cb-lcars-functions` |   | Javascript functions used by the LCARS cards
+| `cb-lcars-actions` |
+| `cb-lcars-animate-press` |
+| `cb-lcars-button-base` |
+| `cb-lcars-button-bullet` |
+| `cb-lcars-button-capped` |
+| `cb-lcars-button-grid-icon` |
+| `cb-lcars-button-lozenge` |
+| `cb-lcars-button-picard-filled` |
+| `cb-lcars-button-picard-icon` |
+| `cb-lcars-button-picard` |
+| `cb-lcars-....text shit` |
+| `cb-lcars-callout` |
+| `cb-lcars-dpad` |
+| `cb-lcars-footer-picard` |
+| `cb-lcars-grid` |
+| `cb-lcars-header-picard` |
+| `cb-lcars-header` |
+| `cb-lcars-label` |
+| `cb-lcars-meter` |
+| `cb-lcars-multimeter` |
+| `cb-lcars-slider-gauge` |
+| `cb-lcars-slider` |
+| `cb-lcars-state-blink` |
+
+
+
 
 
 | `type` | string | **Required** | `custom:button-card` | Type of the card |
