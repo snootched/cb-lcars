@@ -253,6 +253,17 @@ button_card_templates:
 
           }
         ]]]
+  cb-lcars-actions-hue:
+    tap_action:
+      action: navigate
+      navigation_path: |
+        [[[
+          return "\#hue_card:" + variables.action.hue_api + "_openHueScreen"
+        ]]]
+    double_tap_action:
+      action: more-info
+    hold_action:
+      action: none
   cb-lcars-actions-toggle:
     tap_action:
       action: toggle
@@ -322,7 +333,7 @@ button_card_templates:
               } else {
                 return 'transparent';
               }
-            ]]]
+            ]]]    
   cb-lcars-base:
     label: ' '
     variables:
@@ -2125,6 +2136,15 @@ button_card_templates:
             left: 10px
             right: 10px
             bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
         state:
           font_weight: normal
           font_size: 22px
@@ -2134,6 +2154,15 @@ button_card_templates:
             left: 10px
             right: 10px
             bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
         name:
           font_weight: normal
           font_size: 22px
@@ -2143,6 +2172,170 @@ button_card_templates:
             left: 10px
             right: 10px
             bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
+    state:
+      - value: open
+        id: state_open
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.active ]]]'
+            - color: '[[[ return variables.card.color.active ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.on ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.on ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.on ]]]'
+      - value: closed
+        id: state_closed
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - color: '[[[ return variables.card.color.inactive ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.off ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.off ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.off ]]]'
+      - value: heat
+        id: state_heat
+        styles:
+          card:
+            - background-color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.on ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.on ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.on ]]]'
+      - value: cool
+        id: state_cool
+        styles:
+          card:
+            - background-color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.on ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.on]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.on ]]]'
+      - operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
+          ]]]
+        id: state_zero
+        styles:
+          card:
+            - background-color: '[[[ return variables.text.state.color.zero ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.off ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.off ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.off ]]]'
+      - operator: template
+        value: |
+          [[[
+            return entity !== undefined && states[entity.entity_id].state !== '0';
+          ]]]
+        id: state_nonzero
+        styles:
+          card:
+            - background-color: '[[[ return variables.text.state.color.non_zero ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.on ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.on ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.on ]]]'
+      - value: 'on'
+        id: state_on
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.active ]]]'
+            - border-top: >-
+                [[[ return variables.card.border.top.size + " solid " +
+                variables.card.color.active ]]]
+            - border-left: >-
+                [[[ return variables.card.border.left.size + " solid " +
+                variables.card.color.active ]]]
+            - border-right: >-
+                [[[ return variables.card.border.right.size + " solid " +
+                variables.card.color.active ]]]
+            - border-bottom: >-
+                [[[ return variables.card.border.bottom.size + " solid " +
+                variables.card.color.active ]]]
+          state:
+            - color: '[[[ return variables.text.state.color.on ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.on ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.on ]]]'
+          icon:
+            - color: >-
+                [[[ return variables.icon.color.active ||
+                variables.icon.color.default ]]]
+            - background: >-
+                [[[ return variables.icon.color.background.active ||
+                variables.card.color.background.active ]]]
+      - value: 'off'
+        id: state_off
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - border-top: >-
+                [[[ return variables.card.border.top.size + " solid " +
+                variables.card.color.inactive ]]]
+            - border-left: >-
+                [[[ return variables.card.border.left.size + " solid " +
+                variables.card.color.inactive ]]]
+            - border-right: >-
+                [[[ return variables.card.border.right.size + " solid " +
+                variables.card.color.inactive ]]]
+            - border-bottom: >-
+                [[[ return variables.card.border.bottom.size + " solid " +
+                variables.card.color.inactive ]]]          
+          state:
+            - color: '[[[ return variables.text.state.color.off ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.off ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.off ]]]'
+          icon:
+            - color: >-
+                [[[ return variables.icon.color.inactive ||
+                variables.icon.color.default ]]]
+            - background: >-
+                [[[ return variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]
+      - operator: default
+        id: state_default
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          state:
+            - color: '[[[ return variables.text.state.color.default ]]]'
+          label:
+            - color: '[[[ return variables.text.label.color.default ]]]'
+          name:
+            - color: '[[[ return variables.text.name.color.default ]]]'
+          icon:
+            - color: >-
+                [[[ return variables.icon.color.inactive ||
+                variables.icon.color.default ]]]
+            - background: >-
+                [[[ return variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]   
   cb-lcars-button-picard-filled-dense:
     template: cb-lcars-button-picard-filled
     variables:
@@ -6913,6 +7106,7 @@ views:
                   background:
                     inactive: blue
                     active: green
+            size: 1.5em
         title: cb-lcars-lozenge-right
       - type: grid
         cards:
@@ -13242,6 +13436,53 @@ views:
                 meter:
                   variables:
                     gradient_start_color: var(--picard-blue)
+      - type: custom:button-card
+        view_layout:
+          grid-area: header-right
+        styles:
+          card:
+            - background: transparent
+            - width: 300px
+            - height: 130px
+            - border-radius: 0 !important
+          custom_fields:
+            clock:
+              - position: absolute
+              - top: 10px
+              - right: 0px
+              - width: 315px
+              - height: 115px
+        custom_fields:
+          clock:
+            card:
+              type: custom:clock-weather-card
+              entity: weather.home
+              sun_entity: true
+              weather_icon_type: line
+              forecast_rows: 0
+              time_format: 24
+              hourly_forecast: false
+              hide_today_section: false
+              hide_forecast_section: true
+              time_pattern: HH:mm:ss
+              date_pattern: yyyy-MM-dd [cccc]
+              temperature_sensor: sensor.patio_sensor_temperature
+              humidity_sensor: sensor.patio_sensor_humidity
+              show_humidity: false
+              card_mod:
+                style: |
+                  ha-card {
+                    background: none !important;
+                    color: var(--picard-pale-orange);
+                    
+                    
+                  }
+                  .card-content {
+                    padding-top: 0;
+                    padding-bottom: 0;
+                    padding-right: 0;
+                    font-weight: 200;
+                  }
     type: custom:vertical-layout
   - title: grid-test
     path: grid-test
@@ -13264,6 +13505,62 @@ views:
                 auto_calc_Y: false
                 X: 3
                 'Y': 4
+          - type: custom:button-card
+            template: cb-lcars-label
+            show_state: true
+            show_label: true
+            entity: sensor.time
+            variables:
+              text:
+                state:
+                  font_size: 60px
+                  font_weight: lighter
+                  color:
+                    non_zero: var(--picard-pale-orange)
+                    'on': null
+                  align: center
+                  padding:
+                    left: 40px
+                    bottom: 10px
+              card:
+                height: 60px
+                width: 490px
+                border:
+                  left:
+                    size: 80px
+                  right:
+                    size: 40px
+                  color: var(--lcars-card-bottom-color)
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-base
+            entity: light.tv
+            variables:
+              entity_match_button: false
+              card:
+                color:
+                  background:
+                    active: >
+                      [[[ return  variables.entity_match_button ?
+                      variables.entity_color : "var(--error-color)" ]]]
+      - type: grid
+        cards: []
+      - type: grid
+        cards:
+          - type: custom:button-card
+            template:
+              - cb-lcars-button-picard-filled
+              - cb-lcars-actions-hue
+            entity: light.living_room_ambient
+            show_name: 'yes'
+            variables:
+              action:
+                hue_api: lcars-hue-living_room
+          - type: custom:hue-like-light-card
+            entity: light.living_room
+            scenes: null
+            apiId: lcars-hue-living_room
+            isVisible: false
   - title: home
     path: home
     type: custom:grid-layout
@@ -13284,6 +13581,8 @@ views:
       height: 902px
     cards:
       - type: custom:button-card
+        template:
+          - cb-lcars-base
         styles:
           card:
             - background: transparent
@@ -13302,20 +13601,35 @@ views:
               template:
                 - cb-lcars-footer-picard
               variables:
-                card_height: 210px
-                card_width: 300px
-                card_inner_border_factor: 1.4
-                card_inner_border_width: 50px
-                picard_lcars_outer_color: var(--lcars-ui-primary)
-                picard_lcars_inner_color: var(--lcars-card-bottom-color)
-                picard_border_ratio_factor: 1.27
-                card_border_bottom_left_radius: 160px
-                picard_border_gap: 5px
-                picard_lcars_outer_border_bottom: 45px
-                picard_lcars_inner_border_bottom: 80px
-                picard_lcars_outer_border_left: 45px
-                picard_lcars_inner_border_left: 165px
-                picard_lcars_inner_border_factor: 2
+                card:
+                  height: 220px
+                  width: 300px
+                  border:
+                    bottom:
+                      left_radius: 160px
+                    inner:
+                      factor: 1.42
+                lcars:
+                  border:
+                    gap: 5px
+                lcars_outer:
+                  card:
+                    color: var(--lcars-ui-primary)
+                    border:
+                      bottom:
+                        size: 45px
+                      left:
+                        size: 45px
+                lcars_inner:
+                  card:
+                    color: var(--lcars-card-bottom-color)
+                    border:
+                      inner:
+                        factor: 2
+                      bottom:
+                        size: 80px
+                      left:
+                        size: 165px
               show_label: false
               label: ''
         view_layout:
@@ -13327,10 +13641,13 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
+              text:
+                label:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
             entity: climate.living_room
             show_state: false
             show_name: false
@@ -13347,10 +13664,13 @@ views:
               - cb-lcars-button-picard-filled-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
-              card_active_background_color: var(--picard-light-blue)
-              card_inactive_background_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
+                  background:
+                    active: var(--picard-light-blue)
+                    inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: HOME
@@ -13373,12 +13693,16 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
-              text_color_zero: var(--picard-dark-blue)
-              text_color_non_zero: var(--picard-blue)
+              text:
+                state:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
+                  color:
+                    zero: var(--picard-dark-blue)
+                    non_zero: var(--picard-blue)
             entity: sensor.lights_on
             show_state: true
             show_label: false
@@ -13387,8 +13711,10 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: LIGHTS
@@ -13411,10 +13737,13 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
+              text:
+                label:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
             entity: climate.living_room
             show_state: false
             show_name: false
@@ -13437,8 +13766,10 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: ENVIRONMENTAL
@@ -13475,12 +13806,17 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
-              text_color_zero: var(--success-color)
-              text_color_non_zero: var(--error-color)
+              text:
+                label:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
+                state:
+                  color:
+                    zero: var(--success-color)
+                    non_zero: var(--error-color)
             entity: sensor.contact_sensors_open
             show_state: false
             show_name: false
@@ -13497,8 +13833,10 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: SECURITY
@@ -13525,14 +13863,16 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: COMMS
               - id: state_off
                 operator: '!='
-                value: COMSS
+                value: COMMS
             entity: input_select.lcars_ui_page_selector
             label: comms
             tap_action:
@@ -13549,12 +13889,17 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
-              text_color_zero: var(--error-color)
-              text_color_non_zero: var(--picard-starlight)
+              text:
+                label:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
+                state:
+                  color:
+                    zero: var(--error-color)
+                    non_zero: var(--picard-starlight)
             entity: sensor.cats_home
             show_state: false
             show_name: false
@@ -13571,8 +13916,10 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-light-blue)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-light-blue)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: CATS
@@ -13597,8 +13944,10 @@ views:
               - cb-lcars-button-picard-dense
               - cb-lcars-animate-press
             variables:
-              card_active_color: var(--picard-dark-orange)
-              card_inactive_color: var(--picard-dark-gray)
+              card:
+                color:
+                  active: var(--picard-dark-orange)
+                  inactive: var(--picard-dark-gray)
             state:
               - id: state_on
                 value: ENGINEERING
@@ -13621,12 +13970,16 @@ views:
             template:
               - cb-lcars-button-picard-filled-dense
             variables:
-              text_justify: center
-              font_size: 28px
-              font_weight: normal
-              text_padding_bottom: 5px
-              text_color_zero: var(--picard-dark-blue)
-              text_color_non_zero: var(--picard-blue)
+              text:
+                state:
+                  justify: center
+                  font_size: 28px
+                  font_weight: normal
+                  padding:
+                    bottom: 5px
+                  color:
+                    zero: var(--picard-dark-blue)
+                    non_zero: var(--picard-blue)
             entity: sensor.lights_on
             show_state: true
             show_label: false
@@ -13794,131 +14147,116 @@ views:
               template:
                 - cb-lcars-button-grid
               variables:
-                grid_X: 4
-                grid_Y: 2
-                grid_template_columns: 180px 180px 180px 275px
-                grid_auto_rows: 80px 50px
-                card_width: 923px
-                card_height: 130px
-                grid_buttons:
-                  - entity: person.dexter
-                    show_state: true
-                    show_label: false
-                    template:
-                      - cb-lcars-button-picard-filled
-                      - cb-lcars-button-picard-label-se
-                      - cb-lcars-animate-press
-                      - cb-lcars-actions-more-info
-                    variables:
-                      card_height: 80px
-                  - variables:
-                      card_height: 80px
-                  - variables:
-                      card_height: 80px
-                  - variables:
-                      card_width: 275px
-                      card_height: 80px
-                  - entity: person.dexter
-                    label: the dex
-                    template:
-                      - cb-lcars-button-picard-filled
-                      - cb-lcars-button-picard-label-se
-                      - cb-lcars-animate-press
-                      - cb-lcars-actions-more-info
-                    state:
-                      - id: state_on
-                        value: home
-                      - id: state_off
-                        value: not_home
-                    variables:
-                      card_inactive_background_color: var(--warning-color)
-                      card_active_background_color: var(--picard-blue)
-                  - entity: person.luna
-                    label: luna
-                    template:
-                      - cb-lcars-button-picard-filled
-                      - cb-lcars-button-picard-label-se
-                      - cb-lcars-animate-press
-                      - cb-lcars-actions-more-info
-                    state:
-                      - id: state_on
-                        value: home
-                      - id: state_off
-                        value: not_home
-                    variables:
-                      card_inactive_background_color: var(--lcars-ui-secondary)
-                      card_active_background_color: var(--warning-color)
-                  - show_icon: true
-                    icon: none
-                    size: 24px
-                    variables:
-                      icon_active_color: transparent
-                      icon_inactive_color: transparent
-                      icon_active_background_color: var(--picard-blue)
-                      icon_inactive_background_color: transparent
-                      card_active_color: var(--picard-green)
-                      card_inactive_color: var(--error-color)
-                      card_inactive_background_color: var(--lcars-ui-secondary)
-                      card_active_background_color: var(--picard-starlight)
-                      lcars_color: var(--error-color)
-                      card_width: 180px
-                      card_min_height: 45px
-                      card_height: null
-                    entity: input_boolean.enable_verbal_notifications
-                    label: tts alerts
-                  - entity: switch.adguard_home_protection
-                    label: ad-guard
-                    variables:
-                      card_width: 275px
-                      card_active_background_color: var(--lcars-ui-secondary)
-                      card_inactive_background_color: var(--error-color)
-      - type: custom:button-card
-        view_layout:
-          grid-area: header-right
-        styles:
-          card:
-            - background: transparent
-            - width: 300px
-            - height: 130px
-            - border-radius: 0 !important
-          custom_fields:
-            clock:
-              - position: absolute
-              - top: 10px
-              - right: 0px
-              - width: 315px
-              - height: 115px
-        custom_fields:
-          clock:
-            card:
-              type: custom:clock-weather-card
-              entity: weather.home
-              sun_entity: true
-              weather_icon_type: line
-              forecast_rows: 0
-              time_format: 24
-              hourly_forecast: false
-              hide_today_section: false
-              hide_forecast_section: true
-              time_pattern: HH:mm:ss
-              date_pattern: yyyy-MM-dd [cccc]
-              temperature_sensor: sensor.patio_sensor_temperature
-              humidity_sensor: sensor.patio_sensor_humidity
-              show_humidity: false
-              card_mod:
-                style: |
-                  ha-card {
-                    background: none !important;
-                    color: var(--picard-pale-orange);
-                    
-                    
-                  }
-                  .card-content {
-                    padding-top: 0;
-                    padding-bottom: 0;
-                    padding-right: 0;
-                    font-weight: 200;
-                  }
+                card:
+                  width: 923px
+                  height: 130px
+                grid:
+                  auto_calc_X: false
+                  X: 4
+                  auto_calc_Y: false
+                  'Y': 2
+                  template_columns: 180px 180px 180px 275px
+                  auto_rows: 80px 50px
+                  buttons:
+                    - entity: person.dexter
+                      show_state: true
+                      show_label: false
+                      template:
+                        - cb-lcars-button-picard-filled
+                        - cb-lcars-button-picard-state-se
+                        - cb-lcars-animate-press
+                        - cb-lcars-actions-more-info
+                      state:
+                        - id: state_on
+                          value: home
+                        - id: state_off
+                          value: not_home
+                      variables:
+                        card:
+                          height: 80px
+                          color:
+                            background:
+                              active: var(--warning-color)
+                              inactive: var(--lcars-red)
+                    - variables:
+                        card:
+                          height: 80px
+                    - variables:
+                        card:
+                          height: 80px
+                    - variables:
+                        card:
+                          width: 275px
+                          height: 80px
+                    - entity: person.dexter
+                      label: the dex
+                      template:
+                        - cb-lcars-button-picard-filled
+                        - cb-lcars-button-picard-label-se
+                        - cb-lcars-animate-press
+                        - cb-lcars-actions-more-info
+                      state:
+                        - id: state_on
+                          value: home
+                        - id: state_off
+                          value: not_home
+                      variables:
+                        card:
+                          color:
+                            background:
+                              active: var(--warning-color)
+                              inactive: var(--lcars-red)
+                    - entity: person.luna
+                      label: luna
+                      template:
+                        - cb-lcars-button-picard-filled
+                        - cb-lcars-button-picard-label-se
+                        - cb-lcars-animate-press
+                        - cb-lcars-actions-more-info
+                      state:
+                        - id: state_on
+                          value: home
+                        - id: state_off
+                          value: not_home
+                      variables:
+                        card:
+                          color:
+                            background:
+                              inactive: var(--lcars-ui-secondary)
+                              active: var(--warning-color)
+                    - show_icon: true
+                      icon: none
+                      size: 24px
+                      variables:
+                        icon:
+                          color:
+                            active: transparent
+                            inactive: transparent
+                            background:
+                              active: var(--picard-blue)
+                              inactive: transparent
+                        card:
+                          color:
+                            active: var(--picard-green)
+                            inactive: var(--error-color)
+                            background:
+                              inactive: var(--lcars-ui-secondary)
+                              active: var(--picard-starlight)
+                            default: var(--error-color)
+                          width: 180px
+                          min_height: 45px
+                          height: null
+                      entity: input_boolean.enable_verbal_notifications
+                      label: tts alerts
+                    - entity: switch.adguard_home_protection
+                      label: ad-guard
+                      variables:
+                        card:
+                          width: 275px
+                          color:
+                            background:
+                              active: var(--lcars-ui-secondary)
+                              inactive: var(--error-color)
       - square: false
         type: grid
         columns: 1
@@ -13952,6 +14290,7 @@ views:
               type: custom:button-card
               template:
                 - cb-lcars-functions
+                - cb-lcars-card-base
               variables:
                 entities:
                   - light.living_room_ambient
@@ -13962,14 +14301,6 @@ views:
                   - light.office_lights
               styles:
                 card:
-                  - background-color: |
-                      [[[
-                        if (states['input_boolean.lcars_ui_debug'].state === 'on') {
-                          return 'rgba(0,0,175,0.3)';
-                        } else {
-                          return 'transparent';
-                        }
-                      ]]]
                   - height: 702px
                   - width: 1223px
                   - border-radius: 0 !important
@@ -13977,7 +14308,7 @@ views:
                   header_elbow:
                     - position: absolute
                     - left: 0px
-                    - top: 86px
+                    - top: 106px
                   slider_grid:
                     - position: absolute
                     - bottom: 145px
@@ -13998,23 +14329,31 @@ views:
                     label: HOME
                     show_label: true
                     variables:
-                      font_size: 42px
-                      font_weight: lighter
-                      text_color_off: var(--picard-pale-orange)
-                      card_height: 60px
-                      card_width: 200px
+                      text:
+                        label:
+                          font_size: 42px
+                          font_weight: lighter
+                          color:
+                            default: var(--picard-pale-orange)
+                      card:
+                        height: 60px
+                        width: 200px
                 header_elbow:
                   card:
                     type: custom:button-card
                     template:
                       - cb-lcars-header-callout
                     variables:
-                      card_height: 50px
-                      card_min_height: 50px
-                      card_width: 900px
-                      border_left: 20px
-                      border_top: 3px
-                      lcars_color: var(--picard-light-blue)
+                      card:
+                        height: 50px
+                        min_height: 50px
+                        width: 900px
+                        border:
+                          left:
+                            size: 20px
+                          top:
+                            size: 3px
+                          color: var(--picard-light-blue)
                 slider_grid:
                   card:
                     type: custom:layout-card
@@ -14033,21 +14372,20 @@ views:
                           - cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[0] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14055,21 +14393,20 @@ views:
                         template: cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[1] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14077,21 +14414,20 @@ views:
                         template: cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[2] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14099,21 +14435,20 @@ views:
                         template: cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[3] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14121,21 +14456,20 @@ views:
                         template: cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[4] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14143,21 +14477,20 @@ views:
                         template: cb-lcars-slider
                         variables:
                           entity: '[[[ return variables.entities[5] ]]]'
-                          card_height: 300px
-                          card_width: 100px
+                          card:
+                            height: 300px
+                            width: 100px
+                          entity_match_slider_end: true
                           meter:
                             variables:
-                              gradient_end_color: >-
-                                [[[ return
-                                variables.__get_light_css_color(variables.entities[0]);
-                                ]]]
                               gradient_start_color: var(--picard-blue)
                               button:
                                 variables:
-                                  card_width: 100px
-                                  card_height: 20px
-                              grid_gap: 5px
-                              grid_Y: 12
+                                  card:
+                                    width: 100px
+                                    height: 20px
+                              grid:
+                                gap: 5px
                           slider:
                             variables:
                               mask_color: rgba(0,0,0,0.85)
@@ -14168,58 +14501,34 @@ views:
                       - cb-lcars-functions
                       - cb-lcars-button-grid
                     variables:
-                      grid_X: 6
-                      grid_Y: 1
-                      grid_gap: 30px
-                      card_height: 50px
+                      card:
+                        height: 50px
                       button:
                         template:
-                          - cb-lcars-lozenge
+                          - cb-lcars-button-lozenge
                         variables:
-                          card_width: 120px
-                      grid_buttons:
-                        - entity: '[[[ return variables.entities[0] ]]]'
-                          label: LR-AMB
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[0]);
-                              ]]]
-                        - entity: '[[[ return variables.entities[1] ]]]'
-                          label: corner
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[1]);
-                              ]]]
-                        - entity: '[[[ return variables.entities[2] ]]]'
-                          label: kitchen
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[2]);
-                              ]]]
-                        - entity: '[[[ return variables.entities[3] ]]]'
-                          label: bathroom
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[3]);
-                              ]]]
-                        - entity: '[[[ return variables.entities[4] ]]]'
-                          label: bedroom
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[4]);
-                              ]]]
-                        - entity: '[[[ return variables.entities[5] ]]]'
-                          label: office
-                          variables:
-                            card_active_background_color: >-
-                              [[[ return
-                              variables.__get_light_css_color(variables.entities[5]);
-                              ]]]
+                          card:
+                            width: 120px
+                            color:
+                              background:
+                                active: var(--button-card-light-color)
+                      grid:
+                        X: 6
+                        'Y': 1
+                        gap: 30px
+                        buttons:
+                          - entity: '[[[ return variables.entities[0] ]]]'
+                            label: LR-AMB
+                          - entity: '[[[ return variables.entities[1] ]]]'
+                            label: corner
+                          - entity: '[[[ return variables.entities[2] ]]]'
+                            label: kitchen
+                          - entity: '[[[ return variables.entities[3] ]]]'
+                            label: bathroom
+                          - entity: '[[[ return variables.entities[4] ]]]'
+                            label: bedroom
+                          - entity: '[[[ return variables.entities[5] ]]]'
+                            label: office
           - type: conditional
             conditions:
               - condition: state
@@ -15946,6 +16255,8 @@ views:
                       label: front window
                     - entity: binary_sensor.office_window_home_security_intrusion
                       label: office window
+                    - entity: binary_sensor.bedroom_window_home_security_intrusion
+                      label: bedroom window
                   X: 6
                   'Y': 1
                   gap: 25px
@@ -15956,10 +16267,8 @@ views:
                       height: 45px
                       color:
                         active: var(--error-color)
-                        inactive: var(--lcars-card-button)
                         background:
-                          'active:': var(--warning-color)
-                          inactive: var(--lcars-card-button)
+                          active: var(--warning-color)
                     icon:
                       color:
                         active: null
@@ -15969,15 +16278,16 @@ views:
                         inactive: null
                   template:
                     - cb-lcars-button-lozenge
+                    - cb-lcars-actions-more-info
       - type: custom:horizon-card
         moon: true
         elevation: 77
         fields:
-          azimuth: true
-          elevation: true
-          moonrise: true
-          moonset: true
-          moon_phase: true
+          azimuth: false
+          elevation: false
+          moonrise: false
+          moonset: false
+          moon_phase: false
         card_mod:
           style: |
             ha-card {
@@ -15985,3 +16295,29 @@ views:
             }
         view_layout:
           grid-area: footer-right
+      - type: custom:button-card
+        template: cb-lcars-label
+        entity: sensor.time
+        view_layout:
+          grid-area: header-right
+        show_state: true
+        variables:
+          text:
+            state:
+              font_size: 60px
+              font_weight: lighter
+              color:
+                non_zero: var(--picard-pale-orange)
+              align: center
+              padding:
+                left: 40px
+                bottom: 10px
+          card:
+            height: 70px
+            width: 300px
+            border:
+              left:
+                size: 80px
+              right:
+                size: 40px
+              color: var(--lcars-card-bottom-color)

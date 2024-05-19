@@ -78,17 +78,17 @@ cb-lcars-button-base:
         bottom:
           size: 0px
           color: transparent
-        left:
-          size: 6px
-          color: transparent
-          padding: 0.5%
-          margin: 0
         right:
           size: 6px
           color: black
-          padding: 0.5%
+          padding: 1.0%
+          margin: 0
+        left:
+          size: 6px
+          color: transparent
+          padding: 1.0%
           margin: null
-  size: 35px
+  size: 1.75em
   styles:
     grid:
       - grid-template-areas: '"i n" "i s" "i l"'

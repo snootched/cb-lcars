@@ -23,6 +23,12 @@ cb-lcars-button-lozenge-right:
       justify: right
       border:
         left:
+          size: 6px
           color: black
+          padding: 1.0%
+          margin: 0
         right:
+          size: 6px
           color: transparent
+          padding: 1.0%
+          margin: null

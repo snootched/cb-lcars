@@ -56,6 +56,27 @@ cb-lcars-button-picard-filled:
           hvac_heat: var(--picard-pale-orange)
           hvac_cool: var(--picard-blue)
           hvac_other: var(--picard-black-cherry)
+    icon:
+      color:
+        default: black
+      justify: left
+      border:
+        top:
+          size: 0px
+          color: transparent
+        bottom:
+          size: 0px
+          color: transparent
+        right:
+          size: 6px
+          color: black
+          padding: 1.5%
+          margin: 0
+        left:
+          size: 6px
+          color: transparent
+          padding: 0.5%
+          margin: null
   state:
     - value: open
       id: state_open
@@ -226,13 +247,28 @@ cb-lcars-button-picard-filled-right:
         justify: left
       name:
         justify: left
+
     icon:
+      color:
+        default: black
       justify: right
       border:
-        left:
-          color: black
-        right:
+        top:
+          size: 0px
           color: transparent
+        bottom:
+          size: 0px
+          color: transparent
+        left:
+          size: 6px
+          color: black
+          padding: 1.5%
+          margin: 0
+        right:
+          size: 6px
+          color: transparent
+          padding: 0.5%
+          margin: null
 cb-lcars-button-picard-filled-dense-right:
   template: cb-lcars-button-picard-filled-right
   variables:
