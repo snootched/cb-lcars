@@ -1,9 +1,9 @@
 cb-lcars-footer-base:
-template: cb-lcars-base
-variables:
-  card:
-    border:
-      color: var(--lcars-card-bottom-color)
+  template: cb-lcars-base
+  variables:
+    card:
+      border:
+        color: var(--lcars-card-bottom-color)
 
 cb-lcars-footer:
   template: cb-lcars-footer-base
