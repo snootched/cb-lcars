@@ -74,7 +74,11 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | ---------------- | ----------- |
 | `cb-lcars-label` |             |
 </details>
+
 ### LCARS Basic Shapes
+
+
+<details closed><summary>Headers</summary>
 
 #### LCARS Headers
 
@@ -86,6 +90,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-header-open`         | ![](images/button_samples/cb-lcars-header-open.png)         |
 | `cb-lcars-header-picard`       | ![](images/button_samples/cb-lcars-header-picard.png)       |
 | `cb-lcars-header-picard-right` | ![](images/button_samples/cb-lcars-header-picard-right.png) |
+</details>
+
+<details closed><summary>Footers</summary>
 
 #### LCARS Footers
 
@@ -98,6 +105,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-footer-open`         | ![](images/button_samples/cb-lcars-footer-open.png)         |
 | `cb-lcars-footer-picard`       | ![](images/button_samples/cb-lcars-footer-picard.png)       |
 | `cb-lcars-footer-picard-right` | ![](images/button_samples/cb-lcars-footer-picard-right.png) |
+</details>
+
+<details closed><summary>Callouts</summary>
 
 #### LCARS Callouts
 
@@ -108,12 +118,16 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-header-callout-right` | ![](images/button_samples/cb-lcars-header-callout-right.png) |
 | `cb-lcars-footer-callout`       | ![](images/button_samples/cb-lcars-footer-callout.png)       |
 | `cb-lcars-footer-callout-right` | ![](images/button_samples/cb-lcars-footer-callout-right.png) |
+</details>
 
+<details closed><summary>Text/Labels</summary>
 
 #### LCARS Text Labels
 ![](images/button_samples/cb-lcars-label.png)
+</details>
 
 ---
+
 ### LCARS Buttons
 #### Base Templates
 | Template                                           | Example                                             |
