@@ -102,10 +102,10 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-header-right`        |             |
 
 ### LCARS Buttons - Base Templates
-| Template                 | Example                       |
-| ------------------------ | ----------------------------- |
-| `cb-lcars-button-base`   | ![](cb-lcars-button-base.png) |
-| `cb-lcars-button-square` |                               |
+| Template                 | Example                                             |
+| ------------------------ | --------------------------------------------------- |
+| `cb-lcars-button-base`   | ![](images/button_samples/cb-lcars-button-base.png) |
+| `cb-lcars-button-square` |                                                     |
 ### LCARS Buttons
 | Template                      | Description |
 | ----------------------------- | ----------- |
@@ -118,23 +118,19 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 
 ### LCARS Buttons - Picard Style
-| Template                                                                             | Description                                  |
-| ------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![](cb-lcars-button-picard.png)<br>          |
-| `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![](cb-lcars-button-picard-dense.png)        |
-| `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![](cb-lcars-button-picard-filled.png)       |
-| `cb-lcars-button-picard-filled-dense`<br>`cb-lcars-button-picard-filled-dense-right` | ![](cb-lcars-button-picard-filled-dense.png) |
-| `cb-lcars-button-picard-icon`                                                        | ![](cb-lcars-button-picard-icon.png)         |
+| Template                                                                             | Description                                                        |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![](images/button_samples/cb-lcars-button-picard.png)              |
+| `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![](images/button_samples/cb-lcars-button-picard-dense.png)        |
+| `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![](images/button_samples/cb-lcars-button-picard-filled.png)       |
+| `cb-lcars-button-picard-filled-dense`<br>`cb-lcars-button-picard-filled-dense-right` | ![](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
+| `cb-lcars-button-picard-icon`                                                        | ![](images/button_samples/cb-lcars-button-picard-icon.png)         |
 
 
 ### LCARS Buttons - Picard Button Modifiers
-| Template                                                                   | Description                              |
-| -------------------------------------------------------------------------- | ---------------------------------------- |
-| `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![](cb-lcars-button-picard-label-nw.png) |
-
-
-|  |
-
+| Template                                                                   | Description                                                    |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 
 ### LCARS Constructors
 | Template                   | Description |
