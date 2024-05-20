@@ -142,24 +142,24 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 
 ### LCARS Constructors
-Template,Description
-cb-lcars-card-base
-cb-lcars-button-grid
-cb-lcars-button-grid-icons
-
-
+| Template                   | Description |
+| -------------------------- | ----------- |
+| cb-lcars-card-base         |             |
+| cb-lcars-button-grid       |             |
+| cb-lcars-button-grid-icons |             |
 
 
 ### LCARS Complex Cards ('widgets??')
-Template,Description
-cb-lcars-meter
-cb-lcars-meter-horizontal
-cb-lcars-slider
-cb-lcars-slider-gauge
-cb-lcars-slider-horizontal
-cb-lcars-slider-horizontal-gauge
-cb-lcars-multimeter
-cb-lcars-dpad
+| Template                         | Description |
+| -------------------------------- | ----------- |
+| cb-lcars-meter                   |             |
+| cb-lcars-meter-horizontal        |             |
+| cb-lcars-slider                  |             |
+| cb-lcars-slider-gauge            |             |
+| cb-lcars-slider-horizontal       |             |
+| cb-lcars-slider-horizontal-gauge |             |
+| cb-lcars-multimeter              |             |
+| cb-lcars-dpad                    |             |
 
 
 
