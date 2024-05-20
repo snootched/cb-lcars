@@ -43,34 +43,136 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ---
 
-| Template Name | Inherits | Description |
-| ------- | --- | --- |
-| `cb-lcars-base` |   | Base template for foundational variables, styles, etc.
-| `cb-lcars-card-base` |   | Base template to use for a button card that you use as a base with other LCARS cards on top.
-| `cb-lcars-functions` |   | Javascript functions used by the LCARS cards
-| `cb-lcars-actions` |
+
+### Base Templates
+
+| Template             | Description    |
+| -------------------- | -------------- |
+| `cb-lcars-functions` | base functions |
+| `cb-lcars-debug`     | debug shit     |
+| `cb-lcars-base`          |
+| `cb-lcars-label`         |
 | `cb-lcars-animate-press` |
-| `cb-lcars-button-base` |
-| `cb-lcars-button-bullet` |
-| `cb-lcars-button-capped` |
-| `cb-lcars-button-grid-icon` |
-| `cb-lcars-button-lozenge` |
-| `cb-lcars-button-picard-filled` |
-| `cb-lcars-button-picard-icon` |
-| `cb-lcars-button-picard` |
-| `cb-lcars-....text shit` |
-| `cb-lcars-callout` |
-| `cb-lcars-dpad` |
-| `cb-lcars-footer-picard` |
-| `cb-lcars-grid` |
-| `cb-lcars-header-picard` |
-| `cb-lcars-header` |
-| `cb-lcars-label` |
-| `cb-lcars-meter` |
-| `cb-lcars-multimeter` |
-| `cb-lcars-slider-gauge` |
-| `cb-lcars-slider` |
-| `cb-lcars-state-blink` |
+| `cb-lcars-state-blink`   |
+
+
+### Actions
+
+| Template                     | Description |
+| ---------------------------- | ----------- |
+| `cb-lcars-actions-disable`   |             |
+| `cb-lcars-actions-toggle`    |             |
+| `cb-lcars-actions-more-info` |             |
+| `cb-lcars-actions-hue`       |             |
+
+
+### LCARS Callouts
+
+| Template                        | Description |
+| ------------------------------- | ----------- |
+| `cb-lcars-callout-base`         |             |
+| `cb-lcars-footer-callout`       |             |
+| `cb-lcars-footer-callout-right` |             |
+| `cb-lcars-header-callout`       |             |
+| `cb-lcars-header-callout-right` |             |
+
+
+### LCARS Footers
+
+| Template                       | Description |
+| ------------------------------ | ----------- |
+| `cb-lcars-footer`              |             |
+| `cb-lcars-footer-base`         |             |
+| `cb-lcars-footer-contained`    |             |
+| `cb-lcars-footer-open`         |             |
+| `cb-lcars-footer-picard`       |             |
+| `cb-lcars-footer-picard-right` |             |
+| `cb-lcars-footer-right`        |             |
+
+### LCARS Headers
+
+| Template                       | Description |
+| ------------------------------ | ----------- |
+| `cb-lcars-header`              |             |
+| `cb-lcars-header-contained`    |             |
+| `cb-lcars-header-open`         |             |
+| `cb-lcars-header-picard`       |             |
+| `cb-lcars-header-picard-right` |             |
+| `cb-lcars-header-right`        |             |
+
+### LCARS Buttons - Base Templates
+| Template                 | Description |
+| ------------------------ | ----------- |
+| `cb-lcars-button-base`   |             |
+| `cb-lcars-button-square` |             |
+|                          |             |
+### LCARS Buttons
+| Template                      | Description |
+| ----------------------------- | ----------- |
+| cb-lcars-button-bullet        |             |
+| cb-lcars-button-bullet-right  |             |
+| cb-lcars-button-capped        |             |
+| cb-lcars-button-capped-right  |             |
+| cb-lcars-button-lozenge       |             |
+| cb-lcars-button-lozenge-right |             |
+
+
+### LCARS Buttons - Picard Style
+Template,Description
+cb-lcars-button-picard
+cb-lcars-button-picard-right
+cb-lcars-button-picard-dense
+cb-lcars-button-picard-dense-right
+cb-lcars-button-picard-filled
+cb-lcars-button-picard-filled-right
+cb-lcars-button-picard-filled-dense
+cb-lcars-button-picard-filled-dense-right
+
+cb-lcars-button-picard-icon
+
+### LCARS Buttons - Picard Button Modifiers
+Template,Description
+cb-lcars-button-picard-label-east
+cb-lcars-button-picard-label-ne
+cb-lcars-button-picard-label-nw
+cb-lcars-button-picard-label-se
+cb-lcars-button-picard-label-sw
+cb-lcars-button-picard-label-west
+cb-lcars-button-picard-name-east
+cb-lcars-button-picard-name-ne
+cb-lcars-button-picard-name-nw
+cb-lcars-button-picard-name-se
+cb-lcars-button-picard-name-sw
+cb-lcars-button-picard-name-west
+cb-lcars-button-picard-state-east
+cb-lcars-button-picard-state-ne
+cb-lcars-button-picard-state-nw
+cb-lcars-button-picard-state-se
+cb-lcars-button-picard-state-sw
+cb-lcars-button-picard-state-west
+
+
+### LCARS Constructors
+Template,Description
+cb-lcars-card-base
+cb-lcars-button-grid
+cb-lcars-button-grid-icons
+
+
+
+
+### LCARS Complex Cards ('widgets??')
+Template,Description
+cb-lcars-meter
+cb-lcars-meter-horizontal
+cb-lcars-slider
+cb-lcars-slider-gauge
+cb-lcars-slider-horizontal
+cb-lcars-slider-horizontal-gauge
+cb-lcars-multimeter
+cb-lcars-dpad
+
+
 
 
 
