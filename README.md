@@ -45,6 +45,8 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 
 ## CB Templates
+<details closed><summary>Base Templates</summary>
+
 ### Base Templates
 
 | Template             | Description    |
@@ -71,7 +73,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | Template         | Description |
 | ---------------- | ----------- |
 | `cb-lcars-label` |             |
-
+</details>
 ### LCARS Basic Shapes
 
 #### LCARS Headers
