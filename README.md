@@ -102,11 +102,11 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-header-right`        |             |
 
 ### LCARS Buttons - Base Templates
-| Template                 | Description |
-| ------------------------ | ----------- |
-| `cb-lcars-button-base`   |             |
-| `cb-lcars-button-square` |             |
-|                          |             |
+| Template                 | Description                                                                   |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `cb-lcars-button-base`   | ![cb-lcars-button-base.png](./images/button_samples/cb-lcars-button-base.png) |
+| `cb-lcars-button-square` |                                                                               |
+|                          |                                                                               |
 ### LCARS Buttons
 | Template                      | Description |
 | ----------------------------- | ----------- |
