@@ -118,38 +118,27 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 
 ### LCARS Buttons - Picard Style
-Template,Description
-cb-lcars-button-picard
-cb-lcars-button-picard-right
-cb-lcars-button-picard-dense
-cb-lcars-button-picard-dense-right
-cb-lcars-button-picard-filled
-cb-lcars-button-picard-filled-right
-cb-lcars-button-picard-filled-dense
-cb-lcars-button-picard-filled-dense-right
+| Template                                    | Description |
+| ------------------------------------------- | ----------- |
+| `cb-lcars-button-picard`                    |             |
+| `cb-lcars-button-picard-right`              |             |
+| `cb-lcars-button-picard-dense`              |             |
+| `cb-lcars-button-picard-dense-right`        |             |
+| `cb-lcars-button-picard-filled`             |             |
+| `cb-lcars-button-picard-filled-right`       |             |
+| `cb-lcars-button-picard-filled-dense`       |             |
+| `cb-lcars-button-picard-filled-dense-right` |             |
+|                                             |             |
+| `cb-lcars-button-picard-icon`               |             |
+|                                             |             |
 
-cb-lcars-button-picard-icon
 
 ### LCARS Buttons - Picard Button Modifiers
-Template,Description
-cb-lcars-button-picard-label-east
-cb-lcars-button-picard-label-ne
-cb-lcars-button-picard-label-nw
-cb-lcars-button-picard-label-se
-cb-lcars-button-picard-label-sw
-cb-lcars-button-picard-label-west
-cb-lcars-button-picard-name-east
-cb-lcars-button-picard-name-ne
-cb-lcars-button-picard-name-nw
-cb-lcars-button-picard-name-se
-cb-lcars-button-picard-name-sw
-cb-lcars-button-picard-name-west
-cb-lcars-button-picard-state-east
-cb-lcars-button-picard-state-ne
-cb-lcars-button-picard-state-nw
-cb-lcars-button-picard-state-se
-cb-lcars-button-picard-state-sw
-cb-lcars-button-picard-state-west
+| Template | Description |
+|---------------|
+
+
+| `cb-lcars-button-picard-[label||state||name]-[east||west||ne||nw||se||sw]` |
 
 
 ### LCARS Constructors
