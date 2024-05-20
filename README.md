@@ -47,16 +47,17 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ## CB Templates
 ### Base Templates
 
-| Template                 | Description    |
-| ------------------------ | -------------- |
-| `cb-lcars-functions`     | base functions |
-| `cb-lcars-debug`         | debug shit     |
-| `cb-lcars-base`          |                |
-| `cb-lcars-label`         |                |
-| `cb-lcars-animate-press` |                |
-| `cb-lcars-state-blink`   |                |
+| Template             | Description    |
+| -------------------- | -------------- |
+| `cb-lcars-functions` | base functions |
+| `cb-lcars-base`      |                |
+| `cb-lcars-card-base` |                |
+| `cb-lcars-debug`     | debug shit     |
 
-
+| Template                 | Description |
+| ------------------------ | ----------- |
+| `cb-lcars-animate-press` |             |
+| `cb-lcars-state-blink`   |             |
 ### Actions
 
 | Template                     | Description |
@@ -67,57 +68,65 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-actions-hue`       |             |
 
 
-### LCARS Callouts
+| Template         | Description |
+| ---------------- | ----------- |
+| `cb-lcars-label` |             |
 
-| Template                        | Description |
-| ------------------------------- | ----------- |
-| `cb-lcars-callout-base`         |             |
-| `cb-lcars-footer-callout`       |             |
-| `cb-lcars-footer-callout-right` |             |
-| `cb-lcars-header-callout`       |             |
-| `cb-lcars-header-callout-right` |             |
+### LCARS Basic Shapes
+
+#### LCARS Headers
+
+| Template                       | Description                                                 |
+| ------------------------------ | ----------------------------------------------------------- |
+| `cb-lcars-header`              | ![](images/button_samples/cb-lcars-header.png)              |
+| `cb-lcars-header-right`        | ![](images/button_samples/cb-lcars-header-right.png)        |
+| `cb-lcars-header-contained`    | ![](images/button_samples/cb-lcars-header-contained.png)    |
+| `cb-lcars-header-open`         | ![](images/button_samples/cb-lcars-header-open.png)         |
+| `cb-lcars-header-picard`       | ![](images/button_samples/cb-lcars-header-picard.png)       |
+| `cb-lcars-header-picard-right` | ![](images/button_samples/cb-lcars-header-picard-right.png) |
+
+#### LCARS Footers
+
+| Template                       | Description                                                 |
+| ------------------------------ | ----------------------------------------------------------- |
+| `cb-lcars-footer-base`         |                                                             |
+| `cb-lcars-footer`              | ![](images/button_samples/cb-lcars-footer.png)              |
+| `cb-lcars-footer-right`        | ![](images/button_samples/cb-lcars-footer-right.png)        |
+| `cb-lcars-footer-contained`    | ![](images/button_samples/cb-lcars-footer-contained.png)    |
+| `cb-lcars-footer-open`         | ![](images/button_samples/cb-lcars-footer-open.png)         |
+| `cb-lcars-footer-picard`       | ![](images/button_samples/cb-lcars-footer-picard.png)       |
+| `cb-lcars-footer-picard-right` | ![](images/button_samples/cb-lcars-footer-picard-right.png) |
+
+#### LCARS Callouts
+
+| Template                        | Description                                                  |
+| ------------------------------- | ------------------------------------------------------------ |
+| `cb-lcars-callout-base`         |                                                              |
+| `cb-lcars-header-callout`       | ![](images/button_samples/cb-lcars-header-callout.png)       |
+| `cb-lcars-header-callout-right` | ![](images/button_samples/cb-lcars-header-callout-right.png) |
+| `cb-lcars-footer-callout`       | ![](images/button_samples/cb-lcars-footer-callout.png)       |
+| `cb-lcars-footer-callout-right` | ![](images/button_samples/cb-lcars-footer-callout-right.png) |
 
 
-### LCARS Footers
+#### LCARS Text Labels
+![](images/button_samples/cb-lcars-label.png)
 
-| Template                       | Description |
-| ------------------------------ | ----------- |
-| `cb-lcars-footer`              |             |
-| `cb-lcars-footer-base`         |             |
-| `cb-lcars-footer-contained`    |             |
-| `cb-lcars-footer-open`         |             |
-| `cb-lcars-footer-picard`       |             |
-| `cb-lcars-footer-picard-right` |             |
-| `cb-lcars-footer-right`        |             |
-
-### LCARS Headers
-
-| Template                       | Description |
-| ------------------------------ | ----------- |
-| `cb-lcars-header`              |             |
-| `cb-lcars-header-contained`    |             |
-| `cb-lcars-header-open`         |             |
-| `cb-lcars-header-picard`       |             |
-| `cb-lcars-header-picard-right` |             |
-| `cb-lcars-header-right`        |             |
-
-### LCARS Buttons - Base Templates
-| Template                 | Example                                             |
-| ------------------------ | --------------------------------------------------- |
-| `cb-lcars-button-base`   | ![](images/button_samples/cb-lcars-button-base.png) |
-| `cb-lcars-button-square` |                                                     |
+---
 ### LCARS Buttons
-| Template                      | Description |
-| ----------------------------- | ----------- |
-| `cb-lcars-button-bullet`        |             |
-| `cb-lcars-button-bullet-right`  |             |
-| `cb-lcars-button-capped`        |             |
-| `cb-lcars-button-capped-right`  |             |
-| `cb-lcars-button-lozenge`       |             |
-| `cb-lcars-button-lozenge-right` |             |
+#### Base Templates
+| Template                                           | Example                                             |
+| -------------------------------------------------- | --------------------------------------------------- |
+| `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![](images/button_samples/cb-lcars-button-base.png) |
+#### Rounded Buttons
+| Template                                                     | Description                                            |
+| ------------------------------------------------------------ | ------------------------------------------------------ |
+| `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![](images/button_samples/cb-lcars-button-lozenge.png) |
+| `cb-lcars-button-bullet`<br>`cb-lcars-button-bullet-right`   | ![](images/button_samples/cb-lcars-button-bullet.png)  |
+| `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![](images/button_samples/cb-lcars-button-capped.png)  |
 
 
-### LCARS Buttons - Picard Style
+#### Picard-Style Buttons
+
 | Template                                                                             | Description                                                        |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![](images/button_samples/cb-lcars-button-picard.png)              |
@@ -127,48 +136,37 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-button-picard-icon`                                                        | ![](images/button_samples/cb-lcars-button-picard-icon.png)         |
 
 
-### LCARS Buttons - Picard Button Modifiers
+#### Picard-Style Text Modifiers
 | Template                                                                   | Description                                                    |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 
+---
 ### LCARS Constructors
-| Template                   | Description |
-| -------------------------- | ----------- |
-| `cb-lcars-card-base`         |             |
-| `cb-lcars-button-grid`       |             |
-| `cb-lcars-button-grid-icons` |             |
+| Template                     | Description                                               |
+| ---------------------------- | --------------------------------------------------------- |
+| `cb-lcars-button-grid`       | ![](images/button_samples/cb-lcars-button-grid.png)       |
+| `cb-lcars-button-grid-icons` | ![](images/button_samples/cb-lcars-button-grid-icons.png) |
 
 
-### LCARS Complex Cards ('widgets??')
-| Template                         | Description |
-| -------------------------------- | ----------- |
-| `cb-lcars-meter`                   |             |
-| `cb-lcars-meter-horizontal`        |             |
-| `cb-lcars-slider`                  |             |
-| `cb-lcars-slider-gauge`            |             |
-| `cb-lcars-slider-horizontal`       |             |
-| `cb-lcars-slider-horizontal-gauge` |             |
-| `cb-lcars-multimeter`              |             |
-| `cb-lcars-dpad`                    |             |
+---
+### LCARS Controls
+
+| Template                           | Description                                                     |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `cb-lcars-meter`                   | ![](images/button_samples/cb-lcars-meter.png)                   |
+| `cb-lcars-meter-horizontal`        | ![](images/button_samples/cb-lcars-meter-horizontal.png)        |
+| `cb-lcars-slider`                  | ![](images/button_samples/cb-lcars-slider.png)                  |
+| `cb-lcars-slider-gauge`            | ![](images/button_samples/cb-lcars-slider-gauge.png)            |
+| `cb-lcars-slider-horizontal`       | ![](images/button_samples/cb-lcars-slider-horizontal.png)       |
+| `cb-lcars-slider-horizontal-gauge` | ![](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
+| `cb-lcars-multimeter`              | ![](images/button_samples/cb-lcars-multimeter.png)              |
+| `cb-lcars-dpad`                    | ![](images/button_samples/cb-lcars-dpad.png)                    |
 
 
-
-
-
-
-
-| `type` | string | **Required** | `custom:button-card` | Type of the card |
-| `template` | string | optional | any valid template from `button_card_templates` | See [configuration template](#Configuration-Templates) |
-| `entity` | string | optional | `switch.ac` | entity_id |
-| `triggers_update` | string or array | optional | `switch.ac` | entity_id list that would trigger a card update, see [triggers_update](#triggers_update) |
-| `group_expand` | boolean | false | `true` \| `false` | When `true`, if any of the entities triggering a card update is a group, it will auto-expand the group and the card will update on any child entity state change. This works with nested groups too. See [triggers_update](#triggers_update) |
-| `icon` | string | optional | `mdi:air-conditioner` | Icon to display. Will be overridden by the icon defined in a state (if present). Defaults to the entity icon. Hide with `show_icon: false`. Supports templates, see [templates](#javascript-templates) |
-| `color_type` | string | `icon` | `icon` \| `card` \| `blank-card` \| `label-card` | Color either the background of the card or the icon inside the card. Setting this to `card` enable automatic `font` and `icon` color. This allows the text/icon to be readable even if the background color is bright/dark. Additional color-type options `blank-card` and `label-card` can be used for organisation (see examples). |
-| `color` | string | optional | `auto` \| `auto-no-temperature` \| `rgb(28, 128, 199)` | Color of the icon/card. `auto` sets the color based on the color of a light including the temperature of the light. Setting this to `auto-no-temperature` will behave like home-assistant's default, ignoring the temperature of the light. By default, if the entity state is `off`, the color will be `var(--paper-item-icon-color)`, for `on` it will be `var(--paper-item-icon-active-color)` and for any other state it will be `var(--primary-text-color)`. You can redefine each colors using `state` |
-| `size` | string | `40%` | `20px` | Size of the icon. Can be percentage or pixel |
-
-
+---
+---
+---
 ---
 
 ##  Features
