@@ -44,16 +44,17 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ---
 
 
+## CB Templates
 ### Base Templates
 
-| Template             | Description    |
-| -------------------- | -------------- |
-| `cb-lcars-functions` | base functions |
-| `cb-lcars-debug`     | debug shit     |
-| `cb-lcars-base`          |
-| `cb-lcars-label`         |
-| `cb-lcars-animate-press` |
-| `cb-lcars-state-blink`   |
+| Template                 | Description    |
+| ------------------------ | -------------- |
+| `cb-lcars-functions`     | base functions |
+| `cb-lcars-debug`         | debug shit     |
+| `cb-lcars-base`          |                |
+| `cb-lcars-label`         |                |
+| `cb-lcars-animate-press` |                |
+| `cb-lcars-state-blink`   |                |
 
 
 ### Actions
@@ -109,12 +110,12 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ### LCARS Buttons
 | Template                      | Description |
 | ----------------------------- | ----------- |
-| cb-lcars-button-bullet        |             |
-| cb-lcars-button-bullet-right  |             |
-| cb-lcars-button-capped        |             |
-| cb-lcars-button-capped-right  |             |
-| cb-lcars-button-lozenge       |             |
-| cb-lcars-button-lozenge-right |             |
+| `cb-lcars-button-bullet`        |             |
+| `cb-lcars-button-bullet-right`  |             |
+| `cb-lcars-button-capped`        |             |
+| `cb-lcars-button-capped-right`  |             |
+| `cb-lcars-button-lozenge`       |             |
+| `cb-lcars-button-lozenge-right` |             |
 
 
 ### LCARS Buttons - Picard Style
@@ -128,9 +129,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-button-picard-filled-right`       |             |
 | `cb-lcars-button-picard-filled-dense`       |             |
 | `cb-lcars-button-picard-filled-dense-right` |             |
-|                                             |             |
 | `cb-lcars-button-picard-icon`               |             |
-|                                             |             |
 
 
 ### LCARS Buttons - Picard Button Modifiers
@@ -144,22 +143,22 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ### LCARS Constructors
 | Template                   | Description |
 | -------------------------- | ----------- |
-| cb-lcars-card-base         |             |
-| cb-lcars-button-grid       |             |
-| cb-lcars-button-grid-icons |             |
+| `cb-lcars-card-base`         |             |
+| `cb-lcars-button-grid`       |             |
+| `cb-lcars-button-grid-icons` |             |
 
 
 ### LCARS Complex Cards ('widgets??')
 | Template                         | Description |
 | -------------------------------- | ----------- |
-| cb-lcars-meter                   |             |
-| cb-lcars-meter-horizontal        |             |
-| cb-lcars-slider                  |             |
-| cb-lcars-slider-gauge            |             |
-| cb-lcars-slider-horizontal       |             |
-| cb-lcars-slider-horizontal-gauge |             |
-| cb-lcars-multimeter              |             |
-| cb-lcars-dpad                    |             |
+| `cb-lcars-meter`                   |             |
+| `cb-lcars-meter-horizontal`        |             |
+| `cb-lcars-slider`                  |             |
+| `cb-lcars-slider-gauge`            |             |
+| `cb-lcars-slider-horizontal`       |             |
+| `cb-lcars-slider-horizontal-gauge` |             |
+| `cb-lcars-multimeter`              |             |
+| `cb-lcars-dpad`                    |             |
 
 
 
