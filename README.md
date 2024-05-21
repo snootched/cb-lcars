@@ -1,11 +1,13 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/ec559a9f6bfd399b82bb44393651661b08aaf7ba/icons/folder-markdown-open.svg" width="100" alt="project-logo">
+  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/folder-moon.svg" width="100" alt="project-logo">
 </p>
+
+
 <p align="center">
     <h1 align="center">HA-LCARDS</h1>
 </p>
 <p align="center">
-    <em>Personalize. Engage. Customize. Elevate Your Dashboard Experience!</em>
+    <em>A collection of custom button-card templates for building LCARS styled dashboards for Home Assistant</em>
 </p>
 <p align="center">
 	<img src="https://img.shields.io/github/v/release/snootched/ha-lcards?display_name=release&logo=startrek" alt="release">
@@ -39,44 +41,54 @@
 
 ##  Overview
 
+Write something here that isn't this AI-generated bs :D
+
 Ha-lcards is a home automation project that offers personalized dashboards for users, enhancing their interactive experience. Through user-specific settings like animated backgrounds and customized profiles, ha-lcards tailors the dashboard interface to individual preferences, improving usability and engagement. Configuration files within the codebase manage visual aspects and user interactions, ensuring a seamless and personalized home automation system.
 
 ---
 
 
-## CB Templates
+## The Templates
+
+### Foundational Templates
+
 <details closed><summary>Base Templates</summary>
 
-### Base Templates
+#### Base Templates
 
 | Template             | Description    |
 | -------------------- | -------------- |
-| `cb-lcars-functions` | base functions |
-| `cb-lcars-base`      |                |
-| `cb-lcars-card-base` |                |
-| `cb-lcars-debug`     | debug shit     |
+| `cb-lcars-functions` | A libary of custom reuasable javascript functions that can be leveraged when building complex/dynamic cards. |
+| `cb-lcars-base`      | This is the base template for cb-lcars.  This defines most variables and styles that are used by the rest of the library of tempalates.  This template is not meant to be used on its own, but rather can be included when building out new types of controls etc.  |
+| `cb-lcars-card-base` | This is a foundational card that can be used when building complex controls.  It can be used when using a custom-button card as a 'canvas' with custom elements to build complex controls (eg. cb-lcars-multimeter)  Has some features such as changing the background color of the card when debug mode is enabled. |
+| `cb-lcars-debug`     | Adapted from a very nice template by <insert name/link>  This template can be added to enable console debugging of any custom button card. |
+</details>
 
-| Template                 | Description |
-| ------------------------ | ----------- |
-| `cb-lcars-animate-press` |             |
-| `cb-lcars-state-blink`   |             |
-### Actions
+<details closed><summary>Actions</summary>
+
+#### Actions
 
 | Template                     | Description |
 | ---------------------------- | ----------- |
-| `cb-lcars-actions-disable`   |             |
-| `cb-lcars-actions-toggle`    |             |
-| `cb-lcars-actions-more-info` |             |
-| `cb-lcars-actions-hue`       |             |
-
-
-| Template         | Description |
-| ---------------- | ----------- |
-| `cb-lcars-label` |             |
+| `cb-lcars-actions-disable`   | Disables all actions for the button.  |
+| `cb-lcars-actions-toggle`    | Sets tap action to `toggle`, hold action to `more-info`, and double-tap to `more-info` |
+| `cb-lcars-actions-more-info` | Sets all actions to `more-info`           |
+| `cb-lcars-actions-hue`       | Uses <insert hue cared name..> API to pop up the Hue screen on tap, `more-info` on hold, and ??? on double-tap.            |
 </details>
 
-### LCARS Basic Shapes
+<details closed><summary>Flare</summary>
 
+#### Flare
+
+| Template                 | Description |
+| ------------------------ | ----------- |
+| `cb-lcars-animate-press` | Adds an animation to the button when pressed. |
+| `cb-lcars-state-blink`   | Causes the button to blink when active. |
+</details>
+
+---
+
+### LCARS Basic Shapes
 
 <details closed><summary>Headers</summary>
 
@@ -84,13 +96,14 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
-| `cb-lcars-header`              | ![](images/button_samples/cb-lcars-header.png)              |
-| `cb-lcars-header-right`        | ![](images/button_samples/cb-lcars-header-right.png)        |
-| `cb-lcars-header-contained`    | ![](images/button_samples/cb-lcars-header-contained.png)    |
-| `cb-lcars-header-open`         | ![](images/button_samples/cb-lcars-header-open.png)         |
-| `cb-lcars-header-picard`       | ![](images/button_samples/cb-lcars-header-picard.png)       |
-| `cb-lcars-header-picard-right` | ![](images/button_samples/cb-lcars-header-picard-right.png) |
+| `cb-lcars-header`              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
+| `cb-lcars-header-right`        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
+| `cb-lcars-header-contained`    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
+| `cb-lcars-header-open`         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
+| `cb-lcars-header-picard`       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
+| `cb-lcars-header-picard-right` | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
 </details>
+
 
 <details closed><summary>Footers</summary>
 
@@ -99,12 +112,12 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
 | `cb-lcars-footer-base`         |                                                             |
-| `cb-lcars-footer`              | ![](images/button_samples/cb-lcars-footer.png)              |
-| `cb-lcars-footer-right`        | ![](images/button_samples/cb-lcars-footer-right.png)        |
-| `cb-lcars-footer-contained`    | ![](images/button_samples/cb-lcars-footer-contained.png)    |
-| `cb-lcars-footer-open`         | ![](images/button_samples/cb-lcars-footer-open.png)         |
-| `cb-lcars-footer-picard`       | ![](images/button_samples/cb-lcars-footer-picard.png)       |
-| `cb-lcars-footer-picard-right` | ![](images/button_samples/cb-lcars-footer-picard-right.png) |
+| `cb-lcars-footer`              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
+| `cb-lcars-footer-right`        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)        |
+| `cb-lcars-footer-contained`    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
+| `cb-lcars-footer-open`         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
+| `cb-lcars-footer-picard`       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
+| `cb-lcars-footer-picard-right` | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
 </details>
 
 <details closed><summary>Callouts</summary>
@@ -114,55 +127,67 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | Template                        | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
 | `cb-lcars-callout-base`         |                                                              |
-| `cb-lcars-header-callout`       | ![](images/button_samples/cb-lcars-header-callout.png)       |
-| `cb-lcars-header-callout-right` | ![](images/button_samples/cb-lcars-header-callout-right.png) |
-| `cb-lcars-footer-callout`       | ![](images/button_samples/cb-lcars-footer-callout.png)       |
-| `cb-lcars-footer-callout-right` | ![](images/button_samples/cb-lcars-footer-callout-right.png) |
+| `cb-lcars-header-callout`       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
+| `cb-lcars-header-callout-right` | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
+| `cb-lcars-footer-callout`       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
+| `cb-lcars-footer-callout-right` | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 </details>
 
 <details closed><summary>Text/Labels</summary>
 
 #### LCARS Text Labels
-![](images/button_samples/cb-lcars-label.png)
+
+| Template         | Description |
+| ---------------- | ----------- |
+| `cb-lcars-label` | ![cb-lcars-label](images/button_samples/cb-lcars-label.png) |
+
+
 </details>
 
 ---
 
 ### LCARS Buttons
+
+<details closed><summary>Base Templates</summary>
+
 #### Base Templates
 | Template                                           | Example                                             |
 | -------------------------------------------------- | --------------------------------------------------- |
-| `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![](images/button_samples/cb-lcars-button-base.png) |
+| `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
 #### Rounded Buttons
 | Template                                                     | Description                                            |
 | ------------------------------------------------------------ | ------------------------------------------------------ |
-| `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![](images/button_samples/cb-lcars-button-lozenge.png) |
-| `cb-lcars-button-bullet`<br>`cb-lcars-button-bullet-right`   | ![](images/button_samples/cb-lcars-button-bullet.png)  |
-| `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![](images/button_samples/cb-lcars-button-capped.png)  |
+| `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
+| `cb-lcars-button-bullet`<br>`cb-lcars-button-bullet-right`   | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
+| `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
+</details>
 
-
+<details closed><summary>Picard-Style Buttons</summary>
 #### Picard-Style Buttons
 
 | Template                                                                             | Description                                                        |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![](images/button_samples/cb-lcars-button-picard.png)              |
-| `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![](images/button_samples/cb-lcars-button-picard-dense.png)        |
-| `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![](images/button_samples/cb-lcars-button-picard-filled.png)       |
-| `cb-lcars-button-picard-filled-dense`<br>`cb-lcars-button-picard-filled-dense-right` | ![](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
-| `cb-lcars-button-picard-icon`                                                        | ![](images/button_samples/cb-lcars-button-picard-icon.png)         |
+| `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
+| `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
+| `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
+| `cb-lcars-button-picard-filled-dense`<br>`cb-lcars-button-picard-filled-dense-right` | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
+| `cb-lcars-button-picard-icon`                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
+</details>
 
-
+<details closed><summary>Picard-Style Text Modifiers</summary>
 #### Picard-Style Text Modifiers
 | Template                                                                   | Description                                                    |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![](images/button_samples/cb-lcars-button-picard-label-nw.png) |
+| `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
+</details>
 
 ---
+
 ### LCARS Constructors
 | Template                     | Description                                               |
 | ---------------------------- | --------------------------------------------------------- |
-| `cb-lcars-button-grid`       | ![](images/button_samples/cb-lcars-button-grid.png)       |
-| `cb-lcars-button-grid-icons` | ![](images/button_samples/cb-lcars-button-grid-icons.png) |
+| `cb-lcars-button-grid`       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
+| `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
 
 
 ---
@@ -170,35 +195,21 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 | Template                           | Description                                                     |
 | ---------------------------------- | --------------------------------------------------------------- |
-| `cb-lcars-meter`                   | ![](images/button_samples/cb-lcars-meter.png)                   |
-| `cb-lcars-meter-horizontal`        | ![](images/button_samples/cb-lcars-meter-horizontal.png)        |
-| `cb-lcars-slider`                  | ![](images/button_samples/cb-lcars-slider.png)                  |
-| `cb-lcars-slider-gauge`            | ![](images/button_samples/cb-lcars-slider-gauge.png)            |
-| `cb-lcars-slider-horizontal`       | ![](images/button_samples/cb-lcars-slider-horizontal.png)       |
-| `cb-lcars-slider-horizontal-gauge` | ![](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
-| `cb-lcars-multimeter`              | ![](images/button_samples/cb-lcars-multimeter.png)              |
-| `cb-lcars-dpad`                    | ![](images/button_samples/cb-lcars-dpad.png)                    |
+| `cb-lcars-meter`                   | ![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)                   |
+| `cb-lcars-meter-horizontal`        | ![cb-lcars-meter-horizontal](images/button_samples/cb-lcars-meter-horizontal.png)        |
+| `cb-lcars-slider`                  | ![cb-lcars-slider](images/button_samples/cb-lcars-slider.png)                  |
+| `cb-lcars-slider-gauge`            | ![cb-lcars-slider-gauge](images/button_samples/cb-lcars-slider-gauge.png)            |
+| `cb-lcars-slider-horizontal`       | ![cb-lcars-slider-horizontal](images/button_samples/cb-lcars-slider-horizontal.png)       |
+| `cb-lcars-slider-horizontal-gauge` | ![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
+| `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
+| `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
 
 
 ---
 ---
 ---
 ---
-
-##  Features
-
-|    |   Feature         | Description |
-|----|-------------------|---------------------------------------------------------------|
-| ⚙️  | **Architecture**  | This project likely follows a modular architecture with customizable dashboard settings. It focuses on enhancing user interaction and personalization within the home automation system. |
-| 🔩 | **Code Quality**  | The codebase appears to maintain good quality and style, considering its purpose in configuring user-specific settings for a customizable dashboard interface. |
-| 📄 | **Documentation** | The project seems to have detailed documentation explaining the configuration files for different user interfaces, enhancing usability and customization. |
-| 🔌 | **Integrations**  | The project integrates with the 'yaml' library for handling configuration files, which aids in managing user-specific settings effectively. |
-| 🧩 | **Modularity**    | The codebase seems modular, allowing for easy customization and reusability of dashboard settings for different users within the home automation system. |
-| 🧪 | **Testing**       | Information about testing frameworks and tools used is not apparent from the provided details. More insight is needed on this aspect. |
-| ⚡️  | **Performance**   | It's essential to evaluate the efficiency and resource usage of the project to ensure smooth operation of the customizable dashboard settings. |
-| 🛡️ | **Security**      | Measures for data protection and access control are not explicitly mentioned. Security considerations should be a priority, especially when dealing with user-specific settings. |
-| 📦 | **Dependencies**  | Key external libraries and dependencies include the 'yaml' library for managing configuration files effectively. |
-| 🚀 | **Scalability**   | Assessing the project's ability to handle increased traffic and load, especially concerning user-specific dashboard settings, is crucial for its scalability. |
+EXAMPLE SHIT FROM AI SCRIPT BELOW
 
 ---
 
@@ -225,47 +236,6 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ---
 
-##  Modules
-
-<details closed><summary>backup</summary>
-
-| File                                                                                                                 | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| ---                                                                                                                  | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| [dashboard-2024-05-03.1.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/dashboard-2024-05-03.1.yaml) | This code file `dashboard-2024-05-03.1.yaml` in the `backup` directory of the `ha-lcards` repository configures user-specific settings and visual aspects for a customizable dashboard interface. It defines preferences such as background animations, user profiles, and image display properties. By tailoring the dashboard experience based on individual user roles and preferences, this file enhances user interaction and personalization within the larger home automation system. |
-| [dashboard-2024-05-04.1.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/dashboard-2024-05-04.1.yaml) | This code file in the `backup` directory (`dashboard-2024-05-04.1.yaml`) of the `ha-lcards` repository configures the dashboard settings for specific users in an IoT project. It defines animated background settings, wall panel configurations, and user-specific profiles with idle times and enabled tabs. The file allows for customization of the dashboard interface and user experience, tailoring functionality based on individual preferences and usage patterns.                |
-| [dev-dash.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/dev-dash.yaml)                             | This code file `dev-dash.yaml` within the `backup` directory of the `ha-lcards` repository configures settings related to animated backgrounds and wall panel display for specific users on a home automation dashboard. It defines default background URLs, user-specific idle times, and preferences for toolbar and sidebar display. Additionally, it enables the customization of image animations, order, and update intervals.                                                         |
-| [prod-dash.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/prod-dash.yaml)                           | This code file `prod-dash.yaml` in the `backup` directory of the `ha-lcards` repository configures the production dashboard settings for specific users, controlling features like animated backgrounds, profiles, and image animations. It defines individual settings for different users and customizes aspects such as idle time and enabled tabs, enhancing the user experience by tailoring the dashboard to their preferences.                                                        |
-
-</details>
-
-<details closed><summary>scratch</summary>
-
-| File                                                                                                                                        | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| ---                                                                                                                                         | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| [split-main-dash-2024-05-03.1.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-main-dash-2024-05-03.1.yaml)           | This file configures the user interface settings for a specific split-screen dashboard layout, specifying animation behavior, user profiles, and image display preferences. It defines the default background video, user-specific idle times, and customization options for images and navigation elements. The file contributes to enhancing user experience and personalization within the larger context of the repositorys home automation dashboard system.                                                                                                         |
-| [split-scratch-dash-2024-05-01.2.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-scratch-dash-2024-05-01.2.yaml)     | This code file `split-scratch-dash-2024-05-01.2.yaml` configures the user interface and behavior of a split-screen dashboard for specific users within the `ha-lcards` repository. It controls features like displaying an animated background, customizing the WallPanel app settings, and configuring user-specific profile settings such as idle times and enabled tabs. The file ensures a tailored and engaging dashboard experience for individual users within the larger home automation project.                                                                 |
-| [split-scratch-dash-2024-05-03.1.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-scratch-dash-2024-05-03.1.yaml)     | The code file split-scratch-dash-2024-05-03.1.yaml in the ha-lcards repository defines personalized configurations for user interfaces. It specifies settings for animated backgrounds, user profiles, and interface elements like the wall panel. By tailoring the experience for individual users, this file allows for customization of UI elements based on user preferences and behavior. This contributes to a more engaging and user-centric interface design within the parent repository's architecture.                                                         |
-| [split-scratch-dash-2024-05-04.1.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-scratch-dash-2024-05-04.1.yaml)     | This code file (`split-scratch-dash-2024-05-04.1.yaml`) in the `ha-lcards` repository configures the user interface preferences for a split-screen dashboard. It allows customization of animated background, wall panel settings, and idle times for different user profiles. By defining these settings, the code helps tailor the dashboard experience based on user preferences and enhances the visual presentation of the dashboard.                                                                                                                                |
-| [split-scratch-dash-2024-05-04.2.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-scratch-dash-2024-05-04.2.yaml)     | This code file in the ha-lcards repository under scratch directory configures specific settings for the split-scratch-dash-2024-05-04.2 dashboard. It defines animated backgrounds, user-specific profiles, wall panel settings, and image animation parameters. The file customizes the dashboard layout and behavior for a tailored user experience, including idle times, enabling features, and animations based on user roles. It plays a critical role in personalizing and optimizing the dashboard interface within the larger home automation project structure. |
-| [split-scratch-home2-before-import.yaml](https://github.com/snootched/ha-lcards/blob/master/scratch/split-scratch-home2-before-import.yaml) | This code file split-scratch-home2-before-import.yaml in the ha-lcards repository configures personalized settings for a wall panel application. It defines animated backgrounds, user-specific profiles with idle times, and display preferences like fullscreen and toolbar visibility. By tailoring the user experience and enhancing visual elements, this file enhances the customization and usability of the wall panel interface within the parent repository's architecture.                                                                                     |
-
-</details>
-
-<details closed><summary>backup.v2</summary>
-
-| File                                                                                                | Summary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---                                                                                                 | ---                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| [lcars-v2-dev.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/v2/lcars-v2-dev.yaml) | The code file `lcars-v2-dev.yaml` in the `ha-lcards` repository defines configurations for an LCARS-themed user interface. It specifies an animated background with specific URLs and included users. Additionally, it provides a debug button card template with various debugging options for enhanced development. This file plays a crucial role in defining the visual and interactive elements within the LCARS version 2 theme for the home automation system.This configuration file is vital for shaping the user experience and facilitating developer debugging activities within the LCARS-themed interface. |
-
-</details>
-
-<details closed><summary>backup.themes.lcars</summary>
-
-| File                                                                                            | Summary                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ---                                                                                             | ---                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| [lcars.yaml](https://github.com/snootched/ha-lcards/blob/master/backup/themes/lcars/lcars.yaml) | This code file in the repository `ha-lcards` serves a critical purpose in managing backup themes for the LCARS system. It plays a key role in ensuring the preservation and availability of themes for the system in various scenarios. The file `lca` within the `backup/themes/lcars` directory specifically focuses on theme backup operations, enabling the repository to maintain a collection of themes for the LCARS system. |
-
-</details>
 
 ---
 
