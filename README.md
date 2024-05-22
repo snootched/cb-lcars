@@ -119,7 +119,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
-| `cb-lcars-header`              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
+| [`cb-lcars-header`](cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
 | `cb-lcars-header-right`        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
 | `cb-lcars-header-contained`    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
 | `cb-lcars-header-open`         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
