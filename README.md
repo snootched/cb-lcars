@@ -20,24 +20,38 @@
 	<!-- default option, no dependency badges. -->
 </p>
 
-<br><!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary><br>
 
-- [ Overview](#-overview)
-- [ Features](#-features)
-- [ Repository Structure](#-repository-structure)
-- [ Modules](#-modules)
-- [ Getting Started](#-getting-started)
-  - [ Installation](#-installation)
-  - [ Usage](#-usage)
-  - [ Tests](#-tests)
-- [ Project Roadmap](#-project-roadmap)
-- [ Contributing](#-contributing)
-- [ License](#-license)
-- [ Acknowledgments](#-acknowledgments)
-</details>
-<hr>
+- [Overview](#overview)
+- [Dependencies](#dependencies)
+- [The Templates](#the-templates)
+  - [Foundational Templates](#foundational-templates)
+    - [Base Templates](#base-templates)
+    - [Actions](#actions)
+    - [Flare](#flare)
+  - [LCARS Basic Shapes](#lcars-basic-shapes)
+    - [LCARS Headers](#lcars-headers)
+    - [LCARS Footers](#lcars-footers)
+    - [LCARS Callouts](#lcars-callouts)
+    - [LCARS Text Labels](#lcars-text-labels)
+  - [LCARS Buttons](#lcars-buttons)
+    - [Base Templates](#base-templates-1)
+    - [Rounded Buttons](#rounded-buttons)
+    - [Picard-Style Buttons](#picard-style-buttons)
+    - [Picard-Style Text Modifiers](#picard-style-text-modifiers)
+  - [LCARS Constructors](#lcars-constructors)
+  - [LCARS Controls](#lcars-controls)
+- [Repository Structure](#repository-structure)
+- [Getting Started](#getting-started)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Tests](#tests)
+- [Project Roadmap](#project-roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+
+<br>
 
 ##  Overview
 
@@ -46,6 +60,12 @@ Write something here that isn't this AI-generated bs :D
 Ha-lcards is a home automation project that offers personalized dashboards for users, enhancing their interactive experience. Through user-specific settings like animated backgrounds and customized profiles, ha-lcards tailors the dashboard interface to individual preferences, improving usability and engagement. Configuration files within the codebase manage visual aspects and user interactions, ensuring a seamless and personalized home automation system.
 
 ---
+## Dependencies
+
+-custom-button-card
+-ha-lcars theme
+-mysliderv2
+-hue
 
 
 ## The Templates
