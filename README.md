@@ -40,6 +40,8 @@
     - [Picard-Style Text Modifiers](#picard-style-text-modifiers)
   - [LCARS Constructors](#lcars-constructors)
   - [LCARS Controls](#lcars-controls)
+    - [Sliders](#sliders)
+    - [Fully Built Controls](#fully-built-controls)
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
   - [Installation](#installation)
@@ -213,6 +215,10 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ---
 ### LCARS Controls
 
+<details closed><summary>Sliders (meters & gauges)</summary>
+
+#### Sliders
+
 | Template                           | Description                                                     |
 | ---------------------------------- | --------------------------------------------------------------- |
 | `cb-lcars-meter`                   | ![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)                   |
@@ -221,9 +227,18 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-slider-gauge`            | ![cb-lcars-slider-gauge](images/button_samples/cb-lcars-slider-gauge.png)            |
 | `cb-lcars-slider-horizontal`       | ![cb-lcars-slider-horizontal](images/button_samples/cb-lcars-slider-horizontal.png)       |
 | `cb-lcars-slider-horizontal-gauge` | ![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
+</details>
+
+
+<details closed><summary>Fully Built Controls</summary>
+
+#### Fully Built Controls
+
+| Template                           | Description                                                     |
+| ---------------------------------- | --------------------------------------------------------------- |
 | `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
 | `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
-
+</deatils>
 
 ---
 ---
