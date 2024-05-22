@@ -34,7 +34,7 @@
     - [LCARS Callouts](#lcars-callouts)
     - [LCARS Text Labels](#lcars-text-labels)
   - [LCARS Buttons](#lcars-buttons)
-    - [Base Templates](#base-templates-1)
+    - [Standard Buttons](#standard-buttons)
     - [Rounded Buttons](#rounded-buttons)
     - [Picard-Style Buttons](#picard-style-buttons)
     - [Picard-Style Text Modifiers](#picard-style-text-modifiers)
@@ -113,9 +113,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ### LCARS Basic Shapes
 
-<details closed><summary>Headers</summary>
-
 #### LCARS Headers
+
+<details closed><summary>Header Templates</summary>
 
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
@@ -126,11 +126,12 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-header-picard`       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
 | `cb-lcars-header-picard-right` | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
 </details>
-
-
-<details closed><summary>Footers</summary>
+<details closed><summary>Examples</summary>
+Yay!
+</details>
 
 #### LCARS Footers
+<details closed><summary>Footer Templates</summary>
 
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
@@ -143,9 +144,13 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-footer-picard-right` | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
 </details>
 
-<details closed><summary>Callouts</summary>
+<details closed><summary>Examples</summary>
+Yay!
+</details>
+
 
 #### LCARS Callouts
+<details closed><summary>Callout Templates</summary>
 
 | Template                        | Description                                                  |
 | ------------------------------- | ------------------------------------------------------------ |
@@ -155,10 +160,15 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-footer-callout`       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
 | `cb-lcars-footer-callout-right` | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 </details>
+<details closed><summary>Examples</summary>
+Yay!
+</details>
 
-<details closed><summary>Text/Labels</summary>
+
 
 #### LCARS Text Labels
+
+<details closed><summary>Text/Label Templates</summary>
 
 | Template         | Description |
 | ---------------- | ----------- |
@@ -166,17 +176,22 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 
 </details>
+<details closed><summary>Examples</summary>
+Yay!
+</details>
 
 ---
 
 ### LCARS Buttons
 
-<details closed><summary>Base Templates</summary>
+#### Standard Buttons
 
-#### Base Templates
+<details closed><summary>Button Templates</summary>
+
 | Template                                           | Example                                             |
 | -------------------------------------------------- | --------------------------------------------------- |
 | `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
+
 #### Rounded Buttons
 | Template                                                     | Description                                            |
 | ------------------------------------------------------------ | ------------------------------------------------------ |
@@ -185,8 +200,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
 </details>
 
-<details closed><summary>Picard-Style Buttons</summary>
 #### Picard-Style Buttons
+
+<details closed><summary>Picard Button Templates</summary>
 
 | Template                                                                             | Description                                                        |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -197,8 +213,10 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-button-picard-icon`                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
 </details>
 
-<details closed><summary>Picard-Style Text Modifiers</summary>
 #### Picard-Style Text Modifiers
+
+<details closed><summary>Picard Text Modifier Templates</summary>
+
 | Template                                                                   | Description                                                    |
 | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
@@ -208,9 +226,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ### LCARS Constructors
 
-<details closed><summary>Grids</summary>
-
 #### Grids
+
+<details closed><summary>Grid Templates</summary>
 
 | Template                     | Description                                               |
 | ---------------------------- | --------------------------------------------------------- |
@@ -222,9 +240,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ---
 ### LCARS Controls
 
-<details closed><summary>Sliders (meters & gauges)</summary>
-
 #### Sliders
+
+<details closed><summary>Slider/Meter/Gauge Templates)</summary>
 
 | Template                           | Description                                                     |
 | ---------------------------------- | --------------------------------------------------------------- |
@@ -237,9 +255,9 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 </details>
 
 
-<details closed><summary>Fully Built Controls</summary>
-
 #### Fully Built Controls
+
+<details closed><summary>Control Templates</summary>
 
 | Template                           | Description                                                     |
 | ---------------------------------- | --------------------------------------------------------------- |
