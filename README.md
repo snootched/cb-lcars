@@ -39,6 +39,7 @@
     - [Picard-Style Buttons](#picard-style-buttons)
     - [Picard-Style Text Modifiers](#picard-style-text-modifiers)
   - [LCARS Constructors](#lcars-constructors)
+    - [Grids](#grids)
   - [LCARS Controls](#lcars-controls)
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
@@ -206,11 +207,17 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 ---
 
 ### LCARS Constructors
+
+<details closed><summary>Grids</summary>
+
+#### Grids
+
 | Template                     | Description                                               |
 | ---------------------------- | --------------------------------------------------------- |
 | `cb-lcars-button-grid`       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
 | `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
 
+</details>
 
 ---
 ### LCARS Controls
