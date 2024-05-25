@@ -90,6 +90,8 @@ cb-lcars-multimeter:
           height: '[[[ return variables.card.height ]]]'
         button: '[[[ return variables.header_button ]]]'
         grid:
+          auto_calc_X: false
+          auto_calc_Y: false
           X: 2
           'Y': 1
           buttons:
