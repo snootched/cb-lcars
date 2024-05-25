@@ -2,7 +2,7 @@ cb-lcars-multimeter:
   template:
     - cb-lcars-functions
     - cb-lcars-card-base
-  entity: light.tv
+  entity: ''
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
     card:
