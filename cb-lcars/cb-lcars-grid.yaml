@@ -1,4 +1,158 @@
+cb-lcars-grid:
+  template:
+    - cb-lcars-card-base
+    - cb-lcars-functions
+  variables:
+    card:
+      width: null
+      height: null
+    grid:
+      auto_calc_X: true
+      auto_calc_Y: true
+      buttons: []
+      X: 3
+      'Y': 2
+      template_columns: null
+      auto_rows: null
+      gap: 5px
+    button:
+      type: custom:button-card
+      variables:
+        card:
+          width: 180px
+          height: 45px
+          min_height: 10px
+      show_name: false
+      show_state: false
+      show_label: false
+      show_icon: false
+    y_grid_X: >
+      [[[ return variables.grid.auto_calc_X ?
+      variables.__calculate_grid_cells(variables.card.width,
+      variables.button.variables.card.width, variables.grid.gap,
+      variables.grid.X) : variables.grid.X ]]]
+    y_grid_Y: >
+      [[[ return variables.grid.auto_calc_Y ?
+      variables.__calculate_grid_cells(variables.card.height,
+      variables.button.variables.card.height, variables.grid.gap,
+      variables.grid.Y) : variables.grid.Y ]]]
+    y_total_cards: '[[[ return variables.y_grid_X * variables.y_grid_Y; ]]]'
+    z_card_width: >
+      [[[ return variables.card.width || "calc( ((" +
+      variables.button.variables.card.width + " + " + variables.grid.gap + " )
+      *" + variables.y_grid_X + ") - " + variables.grid.gap + ")";
+
+      ]]]
+    z_card_height: >
+      [[[ return variables.card.height || "calc( ((" +
+      variables.button.variables.card.height + " + " + variables.grid.gap + "
+      ) *" + variables.y_grid_Y + ") - " + variables.grid.gap + ")";
+
+      ]]]
+  styles:
+    card:
+      - height: '[[[ return variables.z_card_height ]]]'
+      - width: '[[[ return variables.z_card_width ]]]'
+      - border-radius: 0 !important
+    custom_fields:
+      button_grid:
+        - position: absolute
+        - top: 0px
+        - left: 0px
+  custom_fields:
+    button_grid:
+      card:
+        type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: >-
+            [[[ return variables.grid.template_columns || "repeat(" +
+            variables.y_grid_X + ", " + variables.button.variables.card.width
+            + ")"; ]]]
+          grid-auto-rows: >-
+            [[[ return variables.grid.auto_rows ||
+            variables.button.variables.card.height; ]]]
+          grid-gap: '[[[ return variables.grid.gap; ]]]'
+          card_margin: 0
+          padding: 0
+          margin: '-4px -4px 0px -4px'
+        cards: |
+          [[[
+            let resultArray = [];
+
+            for (let x = 1; x <= variables.y_total_cards; x++) {
+              let cardObject = variables.grid.buttons && variables.grid.buttons[x-1] ? variables.grid.buttons[x-1] : {};
+
+              let defaultVariables = variables.button;
+              //cardObject.variables = {...defaultVariables, ...cardObject.variables};
+              cardObject = variables.__deepMerge(defaultVariables, cardObject);
+              
+              let additionalObject = {
+                view_layout: {
+                  show: '[[[ return variables.y_total_cards >= x ? "always" : "never"; ]]]'
+                },
+                show_label: variables.button.show_label,
+                label: variables.button.label || (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0')))),
+              };
+              //resultArray.push({...additionalObject, ...cardObject});
+              resultArray.push(variables.__deepMerge({...additionalObject}, cardObject));
+            }
+            return resultArray;
+          ]]]
+
 cb-lcars-button-grid:
+  template:
+    - cb-lcars-grid
+  variables:
+    card:
+      width: null
+      height: null
+    grid:
+      auto_calc_X: true
+      auto_calc_Y: true
+      buttons: []
+      X: 3
+      'Y': 2
+      template_columns: null
+      auto_rows: null
+      gap: 5px
+    button:
+      type: custom:button-card
+      variables:
+        card:
+          width: 180px
+          height: 45px
+          min_height: 10px
+          color:
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-primary)
+            background:
+              active: var(--lcars-ui-secondary)
+              inactive: var(--lcars-ui-primary)
+            default: null
+        icon:
+          border:
+            right:
+              padding: 2%
+          color:
+            active: null
+            inactive: null
+          background:
+            active: null
+            inactive: null
+      template:
+        - cb-lcars-button-picard-filled
+        - cb-lcars-button-picard-label-se
+        - cb-lcars-button-picard-name-nw
+        - cb-lcars-button-picard-state-sw
+        - cb-lcars-actions-disable
+      size: 22px
+      show_name: false
+      show_state: false
+      show_label: true
+      show_icon: false
+
+cb-lcars-button-grid-orig:
   template:
     - cb-lcars-card-base
     - cb-lcars-functions
