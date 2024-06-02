@@ -34,6 +34,8 @@ cb-lcars-slider-gauge:
             - label: '10'
         button:
           show_label: true
+          entity: '[[[ return variables.entity ]]]'
+          triggers_update: '[[[ return variables.entity ]]]'
           template:
             - cb-lcars-button-picard
             - cb-lcars-button-picard-label-ne
@@ -56,6 +58,7 @@ cb-lcars-slider-gauge:
               color:
                 background:
                   inactive: transparent
+                  active: transparent
                   default: transparent
             text:
               label:
@@ -65,6 +68,7 @@ cb-lcars-slider-gauge:
                   top: 2px
                 color:
                   'off': var(--lcars-ui-primary)
+                  'on': var(--lcars-ui-secondary)
     slider:
       variables:
         color: |
@@ -191,6 +195,8 @@ cb-lcars-slider-horizontal-gauge:
               - label: '100'
           button:
             show_label: true
+            entity: '[[[ return variables.entity ]]]'
+            triggers_update: '[[[ return variables.entity ]]]'
             template:
               - cb-lcars-button-picard
               - cb-lcars-button-picard-label-se
@@ -213,6 +219,7 @@ cb-lcars-slider-horizontal-gauge:
                 color:
                   background:
                     inactive: transparent
+                    active: transparent
                     default: transparent
               text:
                 label:
@@ -223,6 +230,8 @@ cb-lcars-slider-horizontal-gauge:
                     bottom: 0px
                   color:
                     'off': var(--lcars-ui-primary)
+                    'on': var(--lcars-ui-secondary)
+
       sub_meter:
         variables:
           card:
@@ -234,6 +243,8 @@ cb-lcars-slider-horizontal-gauge:
           gradient_start_color: none
           gradient_end_color: none
           button:
+            entity: '[[[ return variables.entity ]]]'
+            triggers_update: '[[[ return variables.entity ]]]'
             template:
               - cb-lcars-button-picard
               - cb-lcars-button-picard-label-se
@@ -257,6 +268,7 @@ cb-lcars-slider-horizontal-gauge:
                 color:
                   background:
                     inactive: transparent
+                    active: transparent
                     default: transparent
             show_label: false
     meter: '[[[ return variables.gauge.meter ]]]'
