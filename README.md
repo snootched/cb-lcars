@@ -4,7 +4,7 @@
 
 
 <p align="center">
-    <h1 align="center">HA-LCARDS</h1>
+    <h1 align="center">HA-LCARDS<br>(aka cb-lcars)</h1>
 </p>
 <p align="center">
     <em>A collection of custom button-card templates for building LCARS styled dashboards for Home Assistant</em>
@@ -21,6 +21,10 @@
 </p>
 
 
+- [Theme/Colors](#themecolors)
+  - [HA-LCARS Theme](#ha-lcars-theme)
+    - [Font](#font)
+  - [Custom `Picard` Colors](#custom-picard-colors)
 - [The Templates](#the-templates)
   - [Foundational Templates](#foundational-templates)
     - [Base Templates](#base-templates)
@@ -41,13 +45,6 @@
   - [LCARS Controls](#lcars-controls)
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
-  - [Repository Structure](#repository-structure)
-  - [Getting Started](#getting-started)
-    - [Installation](#installation)
-    - [Usage](#usage)
-    - [Tests](#tests)
-  - [Project Roadmap](#project-roadmap)
-  - [Contributing](#contributing)
   - [License](#license)
   - [Acknowledgments](#acknowledgments)
 
@@ -60,14 +57,61 @@ Write something here that isn't this AI-generated bs :D
 
 Ha-lcards is a home automation project that offers personalized dashboards for users, enhancing their interactive experience. Through user-specific settings like animated backgrounds and customized profiles, ha-lcards tailors the dashboard interface to individual preferences, improving usability and engagement. Configuration files within the codebase manage visual aspects and user interactions, ensuring a seamless and personalized home automation system.
 
+![dashboard_1](images/screenshots/dashboard_sample_1.png)
+![dashboard_2](images/screenshots/dashboard_sample_2.png)
+
+Debug: `cb-lcars-card-base` template background changes to random color allowing for easier visuals to debug sizes and placements.
+![debug_1](images/screenshots/dashboard_debug.png)
+
 ---
 ## Dependencies
 
--custom-button-card
--ha-lcars theme
--mysliderv2
--hue
+[custom-button-card](https://github.com/custom-cards/button-card)
+<br>
 
+[ha-lcars theme](https://github.com/th3jesta/ha-lcars)
+
+
+[my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)
+
+
+[lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card)
+
+
+[lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card)
+
+card-mod
+
+acks:
+
+https://github.com/wfurphy/creative-button-card-templates
+
+
+# Theme/Colors
+
+## HA-LCARS Theme
+
+These components are built on top of, and are intended to extend the great ha-lcars theme.  These palettes have been created from multiple sources - and filled out with additional shades to create full palettes to select your colors from.
+
+### Font
+Using a slightly updated Antonio font resouce string.<br>
+This adds weights 100-700 allowing for more fine-grained control of the text seen in Picard.
+
+`https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
+## Custom `Picard` Colors
+
+<details closed><summary>Picard II</summary>
+
+![Picard II theme](images/themes/lcars_picard_ii_colors.png)
+
+![Picard II ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
+</details>
+
+<details closed><summary>Picard II RED ALERT</summary>
+![Picard II Red Alert theme](images/themes/lcars_picard_ii_red_alert_colors.png)
+
+![Picard II Red Alert ha-lcars](images/themes/lcars_picard_ii_red_alert_ha-lcars_settings.png)
+</details>
 
 # The Templates
 
@@ -94,7 +138,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 | `cb-lcars-actions-disable`   | Disables all actions for the button.  |
 | `cb-lcars-actions-toggle`    | Sets tap action to `toggle`, hold action to `more-info`, and double-tap to `more-info` |
 | `cb-lcars-actions-more-info` | Sets all actions to `more-info`           |
-| `cb-lcars-actions-hue`       | Uses <insert hue cared name..> API to pop up the Hue screen on tap, `more-info` on hold, and ??? on double-tap.            |
+| `cb-lcars-actions-hue-[tap\|hold]`       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card 
 </details>
 
 <details closed><summary>Flare</summary>
@@ -170,7 +214,7 @@ Yay!
 
 | Template         | Description |
 | ---------------- | ----------- |
-| `cb-lcars-label` | ![cb-lcars-label](images/button_samples/cb-lcars-label.png) |
+| `cb-lcars-label` | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
 
 
 </details>
@@ -230,6 +274,7 @@ Yay!
 
 | Template                     | Description                                               |
 | ---------------------------- | --------------------------------------------------------- |
+| `cb-lcars-grid`       | Versatile base grid control.<br>Other elements can be added into a grid such as buttons, sliders, icons, etc.       |
 | `cb-lcars-button-grid`       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
 | `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
 
@@ -261,135 +306,6 @@ Yay!
 | ---------------------------------- | --------------------------------------------------------------- |
 | `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
 | `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
-</deatils>
-
----
----
----
----
-EXAMPLE SHIT FROM AI SCRIPT BELOW
-
----
-
-##  Repository Structure
-
-```sh
-└── ha-lcards/
-    ├── README.md
-    ├── backup
-    │   ├── dashboard-2024-05-03.1.yaml
-    │   ├── dashboard-2024-05-04.1.yaml
-    │   ├── dev-dash.yaml
-    │   ├── prod-dash.yaml
-    │   ├── themes
-    │   └── v2
-    └── scratch
-        ├── split-main-dash-2024-05-03.1.yaml
-        ├── split-scratch-dash-2024-05-01.2.yaml
-        ├── split-scratch-dash-2024-05-03.1.yaml
-        ├── split-scratch-dash-2024-05-04.1.yaml
-        ├── split-scratch-dash-2024-05-04.2.yaml
-        └── split-scratch-home2-before-import.yaml
-```
-
----
-
-
----
-
-##  Getting Started
-
-**System Requirements:**
-
-* **YAML**: `version x.y.z`
-
-###  Installation
-
-<h4>From <code>source</code></h4>
-
-> 1. Clone the ha-lcards repository:
->
-> ```console
-> $ git clone https://github.com/snootched/ha-lcards
-> ```
->
-> 2. Change to the project directory:
-> ```console
-> $ cd ha-lcards
-> ```
->
-> 3. Install the dependencies:
-> ```console
-> $ > INSERT-INSTALL-COMMANDS
-> ```
-
-###  Usage
-
-<h4>From <code>source</code></h4>
-
-> Run ha-lcards using the command below:
-> ```console
-> $ > INSERT-RUN-COMMANDS
-> ```
-
-###  Tests
-
-> Run the test suite using the command below:
-> ```console
-> $ > INSERT-TEST-COMMANDS
-> ```
-
----
-
-##  Project Roadmap
-
-- [X] `► INSERT-TASK-1`
-- [ ] `► INSERT-TASK-2`
-- [ ] `► ...`
-
----
-
-##  Contributing
-
-Contributions are welcome! Here are several ways you can contribute:
-
-- **[Report Issues](https://github.com/snootched/ha-lcards/issues)**: Submit bugs found or log feature requests for the `ha-lcards` project.
-- **[Submit Pull Requests](https://github.com/snootched/ha-lcards/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
-- **[Join the Discussions](https://github.com/snootched/ha-lcards/discussions)**: Share your insights, provide feedback, or ask questions.
-
-<details closed>
-<summary>Contributing Guidelines</summary>
-
-1. **Fork the Repository**: Start by forking the project repository to your github account.
-2. **Clone Locally**: Clone the forked repository to your local machine using a git client.
-   ```sh
-   git clone https://github.com/snootched/ha-lcards
-   ```
-3. **Create a New Branch**: Always work on a new branch, giving it a descriptive name.
-   ```sh
-   git checkout -b new-feature-x
-   ```
-4. **Make Your Changes**: Develop and test your changes locally.
-5. **Commit Your Changes**: Commit with a clear message describing your updates.
-   ```sh
-   git commit -m 'Implemented new feature x.'
-   ```
-6. **Push to github**: Push the changes to your forked repository.
-   ```sh
-   git push origin new-feature-x
-   ```
-7. **Submit a Pull Request**: Create a PR against the original project repository. Clearly describe the changes and their motivations.
-8. **Review**: Once your PR is reviewed and approved, it will be merged into the main branch. Congratulations on your contribution!
-</details>
-
-<details closed>
-<summary>Contributor Graph</summary>
-<br>
-<p align="center">
-   <a href="https://github.com{/snootched/ha-lcards/}graphs/contributors">
-      <img src="https://contrib.rocks/image?repo=snootched/ha-lcards">
-   </a>
-</p>
 </details>
 
 ---
