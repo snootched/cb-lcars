@@ -21,8 +21,6 @@
 </p>
 
 
-- [Overview](#overview)
-- [Dependencies](#dependencies)
 - [The Templates](#the-templates)
   - [Foundational Templates](#foundational-templates)
     - [Base Templates](#base-templates)
@@ -43,15 +41,15 @@
   - [LCARS Controls](#lcars-controls)
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
-- [Repository Structure](#repository-structure)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Usage](#usage)
-  - [Tests](#tests)
-- [Project Roadmap](#project-roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
+  - [Repository Structure](#repository-structure)
+  - [Getting Started](#getting-started)
+    - [Installation](#installation)
+    - [Usage](#usage)
+    - [Tests](#tests)
+  - [Project Roadmap](#project-roadmap)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
 
 
 <br>
@@ -71,13 +69,13 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 -hue
 
 
-## The Templates
+# The Templates
 
-### Foundational Templates
+## Foundational Templates
 
 <details closed><summary>Base Templates</summary>
 
-#### Base Templates
+### Base Templates
 
 | Template             | Description    |
 | -------------------- | -------------- |
@@ -89,7 +87,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 <details closed><summary>Actions</summary>
 
-#### Actions
+### Actions
 
 | Template                     | Description |
 | ---------------------------- | ----------- |
@@ -101,7 +99,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 <details closed><summary>Flare</summary>
 
-#### Flare
+### Flare
 
 | Template                 | Description |
 | ------------------------ | ----------- |
@@ -111,17 +109,17 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 
 ---
 
-### LCARS Basic Shapes
+## LCARS Basic Shapes
 
-#### LCARS Headers
+### LCARS Headers
 
 <details closed><summary>Header Templates</summary>
 
 | Template                       | Description                                                 |
 | ------------------------------ | ----------------------------------------------------------- |
 | [`cb-lcars-header`](cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
-| `cb-lcars-header-right`        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
-| `cb-lcars-header-contained`    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
+| [`cb-lcars-header-right`](cb-lcars/cb-lcars-header.yaml)        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
+| [`cb-lcars-header-contained`](cb-lcars/cb-lcars-header.yaml)    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
 | `cb-lcars-header-open`         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
 | `cb-lcars-header-picard`       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
 | `cb-lcars-header-picard-right` | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
@@ -130,7 +128,7 @@ Ha-lcards is a home automation project that offers personalized dashboards for u
 Yay!
 </details>
 
-#### LCARS Footers
+### LCARS Footers
 <details closed><summary>Footer Templates</summary>
 
 | Template                       | Description                                                 |
@@ -149,7 +147,7 @@ Yay!
 </details>
 
 
-#### LCARS Callouts
+### LCARS Callouts
 <details closed><summary>Callout Templates</summary>
 
 | Template                        | Description                                                  |
@@ -166,7 +164,7 @@ Yay!
 
 
 
-#### LCARS Text Labels
+### LCARS Text Labels
 
 <details closed><summary>Text/Label Templates</summary>
 
@@ -182,9 +180,9 @@ Yay!
 
 ---
 
-### LCARS Buttons
+## LCARS Buttons
 
-#### Standard Buttons
+### Standard Buttons
 
 <details closed><summary>Button Templates</summary>
 
@@ -192,7 +190,7 @@ Yay!
 | -------------------------------------------------- | --------------------------------------------------- |
 | `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
 
-#### Rounded Buttons
+### Rounded Buttons
 | Template                                                     | Description                                            |
 | ------------------------------------------------------------ | ------------------------------------------------------ |
 | `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
@@ -200,7 +198,7 @@ Yay!
 | `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
 </details>
 
-#### Picard-Style Buttons
+### Picard-Style Buttons
 
 <details closed><summary>Picard Button Templates</summary>
 
@@ -213,7 +211,7 @@ Yay!
 | `cb-lcars-button-picard-icon`                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
 </details>
 
-#### Picard-Style Text Modifiers
+### Picard-Style Text Modifiers
 
 <details closed><summary>Picard Text Modifier Templates</summary>
 
@@ -224,9 +222,9 @@ Yay!
 
 ---
 
-### LCARS Constructors
+## LCARS Constructors
 
-#### Grids
+### Grids
 
 <details closed><summary>Grid Templates</summary>
 
@@ -238,9 +236,9 @@ Yay!
 </details>
 
 ---
-### LCARS Controls
+## LCARS Controls
 
-#### Sliders
+### Sliders
 
 <details closed><summary>Slider/Meter/Gauge Templates)</summary>
 
@@ -255,7 +253,7 @@ Yay!
 </details>
 
 
-#### Fully Built Controls
+### Fully Built Controls
 
 <details closed><summary>Control Templates</summary>
 

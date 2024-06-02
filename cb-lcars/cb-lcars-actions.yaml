@@ -1,4 +1,4 @@
-cb-lcars-actions-hue:
+cb-lcars-actions-hue-tap:
   tap_action:
     action: navigate
     navigation_path: |
@@ -8,7 +8,18 @@ cb-lcars-actions-hue:
   double_tap_action:
     action: more-info
   hold_action:
-    action: none
+    action: toggle
+cb-lcars-actions-hue-hold:
+  tap_action:
+    action: toggle
+  double_tap_action:
+    action: more-info
+  hold_action:
+    action: navigate
+    navigation_path: |
+      [[[
+        return "\#hue_card:" + variables.action.hue_api + "_openHueScreen"
+      ]]]
 cb-lcars-actions-toggle:
   tap_action:
     action: toggle

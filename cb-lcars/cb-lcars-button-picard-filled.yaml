@@ -17,7 +17,7 @@ cb-lcars-button-picard-filled:
           'off': black
           zero: var(--picard-green)
           non_zero: var(--picard-blue)
-          hvac_heat: var(--picard-pale-orange)
+          hvac_heat: var(--picard-light-orange)
           hvac_cool: var(--picard-blue)
           hvac_other: var(--picard-black-cherry)
       state:
@@ -35,7 +35,7 @@ cb-lcars-button-picard-filled:
           'off': black
           zero: var(--picard-green)
           non_zero: var(--picard-blue)
-          hvac_heat: var(--picard-pale-orange)
+          hvac_heat: var(--picard-light-orange)
           hvac_cool: var(--picard-blue)
           hvac_other: var(--picard-black-cherry)
       name:
@@ -53,7 +53,7 @@ cb-lcars-button-picard-filled:
           'off': black
           zero: var(--picard-green)
           non_zero: var(--picard-blue)
-          hvac_heat: var(--picard-pale-orange)
+          hvac_heat: var(--picard-light-orange)
           hvac_cool: var(--picard-blue)
           hvac_other: var(--picard-black-cherry)
     icon:

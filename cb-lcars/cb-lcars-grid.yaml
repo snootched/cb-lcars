@@ -1,4 +1,4 @@
-cb-lcars-button-grid:
+cb-lcars-grid:
   template:
     - cb-lcars-card-base
     - cb-lcars-functions
@@ -22,33 +22,9 @@ cb-lcars-button-grid:
           width: 180px
           height: 45px
           min_height: 10px
-          color:
-            active: var(--lcars-ui-secondary)
-            inactive: var(--lcars-ui-primary)
-            background:
-              active: var(--lcars-ui-secondary)
-              inactive: var(--lcars-ui-primary)
-            default: null
-        icon:
-          border:
-            right:
-              padding: 2%
-          color:
-            active: null
-            inactive: null
-          background:
-            active: null
-            inactive: null
-      template:
-        - cb-lcars-button-picard-filled
-        - cb-lcars-button-picard-label-se
-        - cb-lcars-button-picard-name-nw
-        - cb-lcars-button-picard-state-sw
-        - cb-lcars-actions-disable
-      size: 22px
       show_name: false
       show_state: false
-      show_label: true
+      show_label: false
       show_icon: false
     y_grid_X: >
       [[[ return variables.grid.auto_calc_X ?
@@ -64,15 +40,11 @@ cb-lcars-button-grid:
     z_card_width: >
       [[[ return variables.card.width || "calc( ((" +
       variables.button.variables.card.width + " + " + variables.grid.gap + " )
-      *" + variables.y_grid_X + ") - " + variables.grid.gap + ")";
-
-      ]]]
+      *" + variables.y_grid_X + ") - " + variables.grid.gap + ")"; ]]]
     z_card_height: >
       [[[ return variables.card.height || "calc( ((" +
       variables.button.variables.card.height + " + " + variables.grid.gap + "
-      ) *" + variables.y_grid_Y + ") - " + variables.grid.gap + ")";
-
-      ]]]
+      ) *" + variables.y_grid_Y + ") - " + variables.grid.gap + ")"; ]]]
   styles:
     card:
       - height: '[[[ return variables.z_card_height ]]]'
@@ -103,14 +75,11 @@ cb-lcars-button-grid:
         cards: |
           [[[
             let resultArray = [];
-
             for (let x = 1; x <= variables.y_total_cards; x++) {
               let cardObject = variables.grid.buttons && variables.grid.buttons[x-1] ? variables.grid.buttons[x-1] : {};
-
               let defaultVariables = variables.button;
               //cardObject.variables = {...defaultVariables, ...cardObject.variables};
               cardObject = variables.__deepMerge(defaultVariables, cardObject);
-              
               let additionalObject = {
                 view_layout: {
                   show: '[[[ return variables.y_total_cards >= x ? "always" : "never"; ]]]'

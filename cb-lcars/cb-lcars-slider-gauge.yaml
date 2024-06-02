@@ -69,7 +69,7 @@ cb-lcars-slider-gauge:
       variables:
         color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
-          "var(--picard-cyan)" ]]]
+          "var(--picard-lightest-blue)" ]]]
         color_alpha: 0.95
         border_color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
@@ -155,7 +155,7 @@ cb-lcars-slider-horizontal-gauge:
       variables:
         color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
-          "var(--picard-cyan)" ]]]
+          "var(--picard-lightest-blue)" ]]]
         color_alpha: 0.95
         border_color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :

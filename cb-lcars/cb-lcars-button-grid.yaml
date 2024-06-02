@@ -1,0 +1,51 @@
+cb-lcars-button-grid:
+  template:
+    - cb-lcars-grid
+  variables:
+    card:
+      width: null
+      height: null
+    grid:
+      auto_calc_X: true
+      auto_calc_Y: true
+      buttons: []
+      X: 3
+      'Y': 2
+      template_columns: null
+      auto_rows: null
+      gap: 5px
+    button:
+      type: custom:button-card
+      variables:
+        card:
+          width: 180px
+          height: 45px
+          min_height: 10px
+          color:
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-primary)
+            background:
+              active: var(--lcars-ui-secondary)
+              inactive: var(--lcars-ui-primary)
+            default: null
+        icon:
+          border:
+            right:
+              padding: 2%
+          color:
+            active: null
+            inactive: null
+          background:
+            active: null
+            inactive: null
+      template:
+        - cb-lcars-button-picard-filled
+        - cb-lcars-button-picard-label-se
+        - cb-lcars-button-picard-name-nw
+        - cb-lcars-button-picard-state-sw
+        - cb-lcars-actions-disable
+      size: 22px
+      show_name: false
+      show_state: false
+      show_label: true
+      show_icon: false
