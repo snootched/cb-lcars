@@ -21,10 +21,16 @@
 </p>
 
 
+- [Overview](#overview)
+    - [What is this?](#what-is-this)
+    - [What it isn't...](#what-it-isnt)
+    - [What it looks like...](#what-it-looks-like)
+    - [What can it do...](#what-can-it-do)
+  - [Dependencies](#dependencies)
 - [Theme/Colors](#themecolors)
   - [HA-LCARS Theme](#ha-lcars-theme)
     - [Font](#font)
-  - [Custom `Picard` Colors](#custom-picard-colors)
+    - [Custom `Picard` Colors](#custom-picard-colors)
 - [The Templates](#the-templates)
   - [Foundational Templates](#foundational-templates)
     - [Base Templates](#base-templates)
@@ -51,17 +57,69 @@
 
 <br>
 
-##  Overview
+#  Overview
 
-Write something here that isn't this AI-generated bs :D
+### What is this?
 
-Ha-lcards is a home automation project that offers personalized dashboards for users, enhancing their interactive experience. Through user-specific settings like animated backgrounds and customized profiles, ha-lcards tailors the dashboard interface to individual preferences, improving usability and engagement. Configuration files within the codebase manage visual aspects and user interactions, ensuring a seamless and personalized home automation system.
+Being a huge trekkie, and avid home assistant user, when I came across the amazing [ha-lcars theme](https://github.com/th3jesta/ha-lcars) I was intrigued.  After spending some time playing with this theme and working on some dashboards - I was hooked.  I wanted to make a full LCARS tablet interface for my home.
 
+Re-watching Picard at the time - and drooling over the new LCARS interfaces in season 3 - I decided that I really wanted that look for my dashboards.
+
+Using the ha-lcars theme as the foundation - work began to expand on it and to try and build a library of highly configurable controls - in the style of the new LCARS.
+
+As I don't have much (any?) experience with web/css stuff - it was decided to build this using existing custom cards - using [custom-button-card](https://github.com/custom-cards/button-card) as the foundation.
+
+There are probably way better ways of doing things - open to any and all suggestions.  This is a learning project for me - so as I learn new techniques or ways of doing stuff, I'm going back and revamping.
+
+### What it isn't...
+
+This is not a standalone theme.  It is made with the intention of ha-lcars providing the theme components, styles, color variables, and existing classes etc.
+It's also not an attempt to re-invent the wheel.  Where there are great components/cards out there that I felt would work in building this - those were used.  Therefore, this isn't a standalone set of components either.  For some things you need to install other cards from HACS (all listed below of course.)
+
+### What it looks like...
+
+These are a couple examples of my WIP dashboards.
+
+'Home' screen with weather forecasts, radar, quick access light controls (3 sliders on the right)
 ![dashboard_1](images/screenshots/dashboard_sample_1.png)
+
+<br>
+
+'Lights' screen with selectable rooms.  Each room has an array of sliders for the lights in that room.  In this screenshot, sliders were set to match the light color (configurable)
 ![dashboard_2](images/screenshots/dashboard_sample_2.png)
 
-Debug: `cb-lcars-card-base` template background changes to random color allowing for easier visuals to debug sizes and placements.
+<br>
+
+A 'RED ALERT' color scheme is provided.  You can turn the complete interface into RED ALERT mode with a service call.
+![dashboard_red_alert_1](images/screenshots/dashboard_sample_red_alert_1.png)
+
+<br>
+
+Debug Mode: when building out multiple controls on top of  `cb-lcars-card-base` template as the canvas - enable debug to have the background change to a random color.  Allowing for easier visuals to debug sizes and placements.  It's hard when everything is black or transparent!
+
 ![debug_1](images/screenshots/dashboard_debug.png)
+
+
+### What can it do...
+
+Being based on custom button-card templates, the sky isn't even the limit.  With tweaks on this variable, or that variable you can have completely different looks on these controls.  The idea is to have a base template and offer simple templates layered on top to change it up.
+
+In no particular order:
+
+- Highly customizable settings for:
+   - default colors / per-instance colors
+   - colors based on state
+   - font sizes/weights
+   - text positions
+   - full icon control
+   - automatic gradient calculations
+   - really too much to list - you can customize just about anything you like
+- Matching control colors to the light entity (buttons, sliders, gradients, etc.)
+- Additional 'flare' such as animating button presses, blinking buttons
+- Versatile 'grid' control: auto-calculate card/grid sizes, cells, gauges etc.
+- Automatic 'random' button labels in LCARS style (hex numbers)
+- Optional: invocation of [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) for light and scene controls
+ 
 
 ---
 ## Dependencies
@@ -95,10 +153,14 @@ These components are built on top of, and are intended to extend the great ha-lc
 
 ### Font
 Using a slightly updated Antonio font resouce string.<br>
-This adds weights 100-700 allowing for more fine-grained control of the text seen in Picard.
+This adds weights 100-700 allowing for more fine-grained control of the text seen in Picard (some displays use really thin font)
 
+Simply substitute the following resource string when setting up ha-lcars:
 `https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
-## Custom `Picard` Colors
+
+### Custom `Picard` Colors
+
+Simply add the custom `Picard II` and `Picard II RED ALERT` definitions from [lcars.yaml](ha-lcars/lcars.yaml) to your ha-lcars `lcars.yaml` file.
 
 <details closed><summary>Picard II</summary>
 
@@ -108,6 +170,7 @@ This adds weights 100-700 allowing for more fine-grained control of the text see
 </details>
 
 <details closed><summary>Picard II RED ALERT</summary>
+
 ![Picard II Red Alert theme](images/themes/lcars_picard_ii_red_alert_colors.png)
 
 ![Picard II Red Alert ha-lcars](images/themes/lcars_picard_ii_red_alert_ha-lcars_settings.png)
