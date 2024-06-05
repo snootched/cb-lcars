@@ -26,11 +26,12 @@
     - [What it isn't...](#what-it-isnt)
     - [What it looks like...](#what-it-looks-like)
     - [What can it do...](#what-can-it-do)
-  - [Dependencies](#dependencies)
-- [Theme/Colors](#themecolors)
-  - [HA-LCARS Theme](#ha-lcars-theme)
+  - [Acknowledgements \& Gratitude](#acknowledgements--gratitude)
+- [Before You Begin](#before-you-begin)
+  - [Dependencies and Extras](#dependencies-and-extras)
+  - [HA-LCARS Theme Setup](#ha-lcars-theme-setup)
     - [Font](#font)
-    - [Custom `Picard` Colors](#custom-picard-colors)
+    - [Custom *Picard* Colors](#custom-picard-colors)
 - [The Templates](#the-templates)
   - [Foundational Templates](#foundational-templates)
     - [Base Templates](#base-templates)
@@ -122,43 +123,58 @@ In no particular order:
  
 
 ---
-## Dependencies
 
-[custom-button-card](https://github.com/custom-cards/button-card)
-<br>
+## Acknowledgements & Gratitude
 
-[ha-lcars theme](https://github.com/th3jesta/ha-lcars)
+A very sincere thanks to the above projects and their authors and contributoers for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
 
-
-[my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)
+As well, some shout-outs and attributions to these great projects:
 
 
-[lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card)
+[LCARSlad London](https://twitter.com/lcarslad) for excellent LCARS images and diagrams for reference.
 
+[meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and color reference.
 
-[lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card)
+[TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference.
 
-card-mod
+[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
 
-acks:
+[lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
 
-https://github.com/wfurphy/creative-button-card-templates
+---
 
+# Before You Begin
 
-# Theme/Colors
+The following dependencies should be installed and working in your Home Assistant instance.  These are available in HACS - Please follow the instructions in the respective projects for details.  
 
-## HA-LCARS Theme
+## Dependencies and Extras
+
+| Custom Card    |  Required?   | Function    |
+|----------------|--------------|-------------|
+| [custom-button-card](https://github.com/custom-cards/button-card) | Required | Base Framework |
+| [ha-lcars theme](https://github.com/th3jesta/ha-lcars) | Required | Provides base theme elements, styes, color variables, etc. |
+| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards) | Required | Provided slider function used on the slider/gauge controls. |
+| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required | Provides the CSS grid-layout features used in the `cb-lcars-grid*` templates.  Also handy for the dashboard layout itself. |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Required | Required for HA-LCARS.  Useful for modifying other card elements/styles to fit the theme (changing fonts, colors, remove backgrounds etc.) |
+|  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides a Hue-style light and scene control popup card. |
+
+<br>Extras for your dashboard creation:
+
+  - [lovelace-animated-background](https://github.com/rbogdanov/lovelace-animated-background) - Allows for animated/video backgrounds on the dashboard (stars look great.)  Additionally, Home Assistant natively supports background images configured in UI from 2024.6+
+  - [lovelace-wallpanel](https://github.com/j-a-n/lovelace-wallpanel) - Great panel-mode features - including hiding side/top bars, screensaver function (with cards support) |
+
+## HA-LCARS Theme Setup
 
 These components are built on top of, and are intended to extend the great ha-lcars theme.  These palettes have been created from multiple sources - and filled out with additional shades to create full palettes to select your colors from.
 
 ### Font
-Using a slightly updated Antonio font resouce string.<br>
+When setting up the font ressource, use a slightly updated Antonio font resouce string.<br>
 This adds weights 100-700 allowing for more fine-grained control of the text seen in Picard (some displays use really thin font)
 
 Simply substitute the following resource string when setting up ha-lcars:
 `https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
 
-### Custom `Picard` Colors
+### Custom *Picard* Colors
 
 Simply add the custom `Picard II` and `Picard II RED ALERT` definitions from [lcars.yaml](ha-lcars/lcars.yaml) to your ha-lcars `lcars.yaml` file.
 
@@ -175,6 +191,8 @@ Simply add the custom `Picard II` and `Picard II RED ALERT` definitions from [lc
 
 ![Picard II Red Alert ha-lcars](images/themes/lcars_picard_ii_red_alert_ha-lcars_settings.png)
 </details>
+
+---
 
 # The Templates
 
