@@ -1,0 +1,226 @@
+cb-lcars-_user_prefs:
+
+# base
+  variables:
+    __user_prefs:
+      text:
+        label:
+          font_size: 20px
+          font_weight: normal
+          color:
+            default: var(--primary-text-color)
+            'on': var(--primary-text-color)
+            'off': var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+        name:
+          font_size: 20px
+          font_weight: normal
+          color:
+            default: var(--primary-text-color)
+            'on': var(--primary-text-color)
+            'off': var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+        state:
+          font_size: 20px
+          font_weight: normal
+          color:
+            default: var(--primary-text-color)
+            'on': var(--primary-text-color)
+            'off': var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+      card:
+        color:
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
+          background:
+            default: none
+            active: transparent
+            inactive: transparent
+        border:
+          color: var(--lcars-card-top
+
+
+  #button
+
+    variables:
+      card:
+        height: 60px
+        min_height: 45px
+        color:
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
+          background:
+            default: null
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-tertiary)
+      text:
+        label:
+    
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: black
+            non_zero: black
+        state:
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: black
+            non_zero: black
+        name:
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: black
+            non_zero: black
+      icon:
+        color:
+          default: black
+
+
+
+
+
+cb-lcars-button-picard-filled:
+  template: cb-lcars-button-base
+    variables:
+      text:
+        label:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          padding:
+            top: 0px
+            left: 10px
+            right: 10px
+            bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
+        state:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          padding:
+            top: 0px
+            left: 10px
+            right: 10px
+            bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
+        name:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          padding:
+            top: 0px
+            left: 10px
+            right: 10px
+            bottom: 5px
+          color:
+            default: black
+            'on': black
+            'off': black
+            zero: var(--picard-green)
+            non_zero: var(--picard-blue)
+            hvac_heat: var(--picard-pale-orange)
+            hvac_cool: var(--picard-blue)
+            hvac_other: var(--picard-black-cherry)
+      icon:
+        color:
+          default: black
+        justify: left
+        border:
+          top:
+            size: 0px
+            color: transparent
+          bottom:
+            size: 0px
+            color: transparent
+          right:
+            size: 6px
+            color: black
+            padding: 1.5%
+            margin: 0
+          left:
+            size: 6px
+            color: transparent
+            padding: 0.5%
+            margin: null
+
+
+
+
+
+  cb-lcars-button-picard:
+    template: cb-lcars-button-base
+    variables:
+      text:
+        label:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          color:
+            default: '[[[ return variables.lcars_color ]]]'
+            'on': '[[[ return variables.card.color.active ]]]'
+            'off': '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.active ]]]'
+            non_zero: '[[[ return variables.card.color.inactive ]]]'
+          padding:
+            top: 0px
+            left: 10px
+            right: 10px
+            bottom: 5px
+        state:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          color:
+            default: '[[[ return variables.lcars_color ]]]'
+            'on': '[[[ return variables.card.color.active ]]]'
+            'off': '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.active ]]]'
+            non_zero: '[[[ return variables.card.color.inactive ]]]'
+          padding:
+            top: 0px
+            left: 10px
+            right: 10px
+            bottom: 5px
+        name:
+          font_weight: normal
+          font_size: 22px
+          align_items: center
+          color:
+            default: '[[[ return variables.lcars_color ]]]'
+            'on': '[[[ return variables.card.color.active ]]]'
+            'off': '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.active ]]]'
+            non_zero: '[[[ return variables.card.color.inactive ]]]'
