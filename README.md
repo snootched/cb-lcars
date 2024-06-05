@@ -1,13 +1,7 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/icons/folder-moon.svg" width="100" alt="project-logo">
-</p>
-
+![cb-lcars](images/screenshots/cb-lcars-banner.png)
 
 <p align="center">
-    <h1 align="center">HA-LCARDS<br>(aka cb-lcars)</h1>
-</p>
-<p align="center">
-    <em>A collection of custom button-card templates for building LCARS styled dashboards for Home Assistant</em>
+    <em>A collection of custom button-card templates for building LCARS styled dashboards in Home Assistant</em>
 </p>
 <p align="center">
 	<img src="https://img.shields.io/github/v/release/snootched/ha-lcards?display_name=release&logo=startrek" alt="release">
@@ -27,6 +21,7 @@
     - [What it looks like...](#what-it-looks-like)
     - [What can it do...](#what-can-it-do)
 - [Before You Begin](#before-you-begin)
+  - [Get to know `custom-button-card`](#get-to-know-custom-button-card)
   - [Dependencies and Extras](#dependencies-and-extras)
   - [HA-LCARS Theme Setup](#ha-lcars-theme-setup)
     - [Font](#font)
@@ -51,8 +46,8 @@
   - [LCARS Controls](#lcars-controls)
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
+  - [Acknowledgements \& Thanks](#acknowledgements--thanks)
   - [License](#license)
-  - [Acknowledgements \& Gratitude](#acknowledgements--gratitude)
 
 
 <br>
@@ -126,9 +121,17 @@ In no particular order:
 
 # Before You Begin
 
-The following dependencies should be installed and working in your Home Assistant instance.  These are available in HACS - Please follow the instructions in the respective projects for details.  
+## Get to know `custom-button-card`
+
+This collection of controls are implementations of `custom-button-card` [configuration templates](https://github.com/custom-cards/button-card?tab=readme-ov-file#configuration-templates).  It's important to familiarize yourself with how templates work.
+
+tl;dr:
+- Templates are 'additive' - last definition of a variable wins.
+- Variables are processed in *alphanumeric* order.  It is what it is.
 
 ## Dependencies and Extras
+
+The following dependencies should be installed and working in your Home Assistant instance.  These are available in HACS - Please follow the instructions in the respective projects for details.  
 
 | Custom Card    |  Required?   | Function    |
 |----------------|--------------|-------------|
@@ -372,13 +375,7 @@ Yay!
 
 ---
 
-##  License
-
-This project is protected under the [SELECT-A-LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
-
----
-
-## Acknowledgements & Gratitude
+## Acknowledgements & Thanks
 
 A very sincere thanks to the above projects and their authors and contributoers for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
 
@@ -394,6 +391,10 @@ As well, some shout-outs and attributions to these great projects:
 [wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
 
 [lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
-[**Return**](#-overview)
+
+---
+##  License
+
+This project uses the MIT License. For more details, refer to the [LICENSE](LICENSE) file.
 
 ---
