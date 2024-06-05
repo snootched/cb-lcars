@@ -3,8 +3,8 @@ LCARS Base Template [`cb-lcars-base`]
 
 
 
-| YAML section | Property/Key | Type | Default | Description |
-|------|--|----|---------|-------------|
+| YAML section | Property/Key | Type | Default     | Description |
+|--------------|--------------|------|-------------|-------------|
 | `text:`<br>&nbsp;&nbsp;`label:` | | |  | `label:`,`name:`,`state:` have the same set of properties.
 | | `font_size` | String | normal  | .. |
 | | `font_weight` | String | left  | .. |
