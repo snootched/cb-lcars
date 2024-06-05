@@ -64,18 +64,18 @@ shiiiet
     text:
       label:
         font_size: 20px
-        font_weight: normal
-        align: left
-        align_items: center
+        font_weight: normal                          #inline
+        align: left                                  #fdsa
+        align_items: center                          #fdsa
         justify: center
         transform: none
         padding:
           top: 10px
-          left: 0px
+          left: 0px                                  #fads
           right: 0px
           bottom: 10px
         color:
-          default: var(--primary-text-color)
+          default: var(--primary-text-color)         #inline comment
           'on': var(--primary-text-color)
           'off': var(--primary-text-color)
           zero: var(--lcars-green)
