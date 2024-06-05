@@ -26,7 +26,6 @@
     - [What it isn't...](#what-it-isnt)
     - [What it looks like...](#what-it-looks-like)
     - [What can it do...](#what-can-it-do)
-  - [Acknowledgements \& Gratitude](#acknowledgements--gratitude)
 - [Before You Begin](#before-you-begin)
   - [Dependencies and Extras](#dependencies-and-extras)
   - [HA-LCARS Theme Setup](#ha-lcars-theme-setup)
@@ -53,7 +52,7 @@
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
   - [License](#license)
-  - [Acknowledgments](#acknowledgments)
+  - [Acknowledgements \& Gratitude](#acknowledgements--gratitude)
 
 
 <br>
@@ -124,24 +123,6 @@ In no particular order:
 
 ---
 
-## Acknowledgements & Gratitude
-
-A very sincere thanks to the above projects and their authors and contributoers for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
-
-As well, some shout-outs and attributions to these great projects:
-
-
-[LCARSlad London](https://twitter.com/lcarslad) for excellent LCARS images and diagrams for reference.
-
-[meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and color reference.
-
-[TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference.
-
-[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
-
-[lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
-
----
 
 # Before You Begin
 
@@ -397,10 +378,22 @@ This project is protected under the [SELECT-A-LICENSE](https://choosealicense.co
 
 ---
 
-##  Acknowledgments
+## Acknowledgements & Gratitude
 
-- List any resources, contributors, inspiration, etc. here.
+A very sincere thanks to the above projects and their authors and contributoers for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
 
+As well, some shout-outs and attributions to these great projects:
+
+
+[LCARSlad London](https://twitter.com/lcarslad) for excellent LCARS images and diagrams for reference.
+
+[meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and color reference.
+
+[TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference.
+
+[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
+
+[lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
 [**Return**](#-overview)
 
 ---

@@ -3,11 +3,20 @@ LCARS Base Template [`cb-lcars-base`]
 
 
 
-| YAML | Type | Default | Description |
-|------|------|---------|-------------|
-| `text:` | | | 
-|<pre>&nbsp;test:</pre> | type | def | desc |
-|<pre>&nbsp;&nbsp;&nbsp;test:</pre> | type | def | desc |
+| YAML section | Property/Key | Type | Default | Description |
+|------|--|----|---------|-------------|
+| `text:`<br>&nbsp;&nbsp;`label:` | | |  | `label:`,`name:`,`state:` have the same set of properties.
+| | `font_size` | String | normal  | .. |
+| | `font_weight` | String | left  | .. |
+| | `align` | String | center  | .. |
+| | `align_items` | String | center  | .. |
+| | `justify` | String | 20px  | .. |
+| | `transform` | String | none  | Apply a text transform such as `uppercase` |
+| | `padding:`<br>&nbsp;&nbsp;`top:`<br>&nbsp;&nbsp;`left:`<br>&nbsp;&nbsp;`right:`<br>&nbsp;&nbsp;`bottom:` | String | 10px<br>0px<br>0px<br>10px  | Padding around text for positioning. |
+| | `color:`<br>&nbsp;&nbsp;`default:`<br>&nbsp;&nbsp;`'on':`<br>&nbsp;&nbsp;`'off':`<br>&nbsp;&nbsp;`zero:`<br>&nbsp;&nbsp;`non_zero:`<br>&nbsp;&nbsp;`hvac_heat:`<br>&nbsp;&nbsp;`hvac_cool:`<br>&nbsp;&nbsp;`hvac_other:` | String/CSS variable | var(--primary-text-color)<br>var(--primary-text-color)<br>var(--primary-text-color)<br>var(--lcars-green)<br>var(--lcars-blue)<br>var(--lcars-orange)<br>var(--lcars-blue)<br>var(--lcars-purple)<br>  | Default colors based on the current state of the `entity:` when defined. |
+
+
+
 
 
 
