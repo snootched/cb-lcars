@@ -179,14 +179,14 @@ Simply add the custom `Picard II` and `Picard II RED ALERT` definitions from [lc
 
 ## Foundational Templates
 
-<details closed><summary>Base Templates</summary>
+<details open><summary>Base Templates</summary>
 
 ### Base Templates
 
 | Template             | Description    |
 | -------------------- | -------------- |
-| `cb-lcars-functions` | A libary of custom reuasable javascript functions that can be leveraged when building complex/dynamic cards. |
-| `cb-lcars-base`      | This is the base template for cb-lcars.  This defines most variables and styles that are used by the rest of the library of tempalates.  This template is not meant to be used on its own, but rather can be included when building out new types of controls etc.  |
+| `cb-lcars-functions`| A libary of custom reuasable javascript functions that can be leveraged when building complex/dynamic cards. |
+| [`cb-lcars-base`](doc/cb-lcars-base.md)      | This is the base template for cb-lcars.  This defines most variables and styles that are used by the rest of the library of tempalates.  This template is not meant to be used on its own, but rather can be included when building out new types of controls etc.  |
 | `cb-lcars-card-base` | This is a foundational card that can be used when building complex controls.  It can be used when using a custom-button card as a 'canvas' with custom elements to build complex controls (eg. cb-lcars-multimeter)  Has some features such as changing the background color of the card when debug mode is enabled. |
 | `cb-lcars-debug`     | Adapted from a very nice template by <insert name/link>  This template can be added to enable console debugging of any custom button card. |
 </details>
