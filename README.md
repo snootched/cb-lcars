@@ -233,6 +233,8 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 
 ## LCARS Basic Shapes
 
+These are the basic shapes found in LCARS.  These are highly configurable - default styles are shown with some examples of how to configur them to look like other versions seen in Picard.
+
 ### LCARS Headers
 
 <details closed><summary>Header Templates</summary>
@@ -248,6 +250,128 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 </details>
 <details closed><summary>Examples</summary>
 
+<table>
+<tr>
+<td>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-header-picard-right
+variables:
+  card:
+    width: 600px
+    height: 170px
+    border:
+      top:
+        right_radius: 120px
+      inner:
+        width: 70px
+        factor: 0
+  lcars:
+    border:
+      gap: 5px
+  lcars_outer:
+    card:
+      border:
+        top:
+          size: 10px
+        right:
+          size: 155px
+  lcars_inner:
+    card:
+      border:
+        top:
+          size: 10px
+          right_radius: 160px
+        right:
+          size: 50px
+        inner:
+          factor: 1.3
+```
+</td>
+<td>
+
+![picard-elbow-4](images/screenshots/picard-elbow-7.png
+)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-header-picard-right
+variables:
+  card:
+    height: 160px
+    width: 400px
+    border:
+      top:
+        right_radius: 90px
+      inner:
+        factor: 2
+  lcars:
+    border:
+      gap: 4px
+      factor: 4
+      top:
+        size: 20px
+      right:
+        size: 180px
+  lcars_outer:
+    card:
+      border:
+        right:
+          size: 60px
+        top:
+          size: 60px
+      color: var(--lcars-blue)
+  lcars_inner:
+    card:
+      border:
+        right:
+          size: 0px
+        top:
+          size: 45px
+        inner:
+          factor: 0.7
+      color: var(--lcars-card-top-color)
+```
+</td>
+<td>
+
+![picard-elbow-4](images/screenshots/picard-elbow-4.png
+)
+</td>
+</tr>
+
+</table>
+
+
+</details>
+
+### LCARS Footers
+<details closed><summary>Footer Templates</summary>
+
+| Template       | Default Style          |
+| -------------- | ---------------------- |
+| `cb-lcars-footer-base`         |                                                             |
+| `cb-lcars-footer`              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
+| `cb-lcars-footer-right`        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)        |
+| `cb-lcars-footer-contained`    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
+| `cb-lcars-footer-open`         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
+| `cb-lcars-footer-picard`       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
+| `cb-lcars-footer-picard-right` | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
+</details>
+
+<details closed><summary>Examples</summary>
 
 <table>
 <tr>
@@ -409,59 +533,6 @@ variables:
 </td>
 </tr>
 
-
-<tr>
-<td>
-
-```yaml
-type: custom:button-card
-template:
-  - cb-lcars-header-picard-right
-variables:
-  card:
-    height: 160px
-    width: 400px
-    border:
-      top:
-        right_radius: 90px
-      inner:
-        factor: 2
-  lcars:
-    border:
-      gap: 4px
-      factor: 4
-      top:
-        size: 20px
-      right:
-        size: 180px
-  lcars_outer:
-    card:
-      border:
-        right:
-          size: 60px
-        top:
-          size: 60px
-      color: var(--lcars-blue)
-  lcars_inner:
-    card:
-      border:
-        right:
-          size: 0px
-        top:
-          size: 45px
-        inner:
-          factor: 0.7
-      color: var(--lcars-card-top-color)
-```
-</td>
-<td>
-
-![picard-elbow-4](images/screenshots/picard-elbow-4.png
-)
-</td>
-</tr>
-
-
 <tr>
 <td>
 Fun example of combining two of the cards together to create the bordered look.
@@ -475,11 +546,12 @@ styles:
     - width: 300px
     - height: 175px
     - border-radius: 0 !important
-  custom_fields:
+    - transform: skew(-20deg)        # CSS tranform the whole card if desired
+ custom_fields:
     elbow:
       - position: absolute
-      - bottom: 0
-      - right: 0
+      - bottom: 0px
+      - right: 0px
     inner_elbow:
       - position: absolute
       - left: 0px
@@ -563,42 +635,24 @@ custom_fields:
 </td>
 <td>
 
-![picard-elbow-5](images/screenshots/picard-elbow-5.png
-)
+![picard-elbow-5](images/screenshots/picard-elbow-5.png)
+<br>
+
+![picard-elbow-6](images/screenshots/picard-elbow-6.png)
+
 </td>
 </tr>
 
-
 </table>
 
-
-
-</details>
-
-### LCARS Footers
-<details closed><summary>Footer Templates</summary>
-
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| `cb-lcars-footer-base`         |                                                             |
-| `cb-lcars-footer`              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
-| `cb-lcars-footer-right`        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)        |
-| `cb-lcars-footer-contained`    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
-| `cb-lcars-footer-open`         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
-| `cb-lcars-footer-picard`       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
-| `cb-lcars-footer-picard-right` | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
-</details>
-
-<details closed><summary>Examples</summary>
-Yay!
 </details>
 
 
 ### LCARS Callouts
 <details closed><summary>Callout Templates</summary>
 
-| Template                        | Description                                                  |
-| ------------------------------- | ------------------------------------------------------------ |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-callout-base`         |                                                              |
 | `cb-lcars-header-callout`       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
 | `cb-lcars-header-callout-right` | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
@@ -606,7 +660,69 @@ Yay!
 | `cb-lcars-footer-callout-right` | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 </details>
 <details closed><summary>Examples</summary>
-Yay!
+
+
+
+<table>
+<tr>
+<td>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-header-callout
+variables:
+  card:
+    height: 55px
+    min_height: 45px
+    width: 420px
+    border:
+      left:
+        size: 25px
+      top:
+        size: 3px
+      color: var(--picard-lightest-blue)
+```
+</td>
+<td>
+
+![picard-callout-1](images/screenshots/picard-callout-1.png)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-header-callout-right
+variables:
+  card:
+    height: 80px
+    width: 420px
+    border:
+      right:
+        size: 5px
+      top:
+        size: 20px
+      color: var(--picard-lightest-orange)
+```
+</td>
+<td>
+
+![picard-callout-2](images/screenshots/picard-callout-2.png)
+</td>
+</tr>
+</table>
+
+
+
+
 </details>
 
 
@@ -615,8 +731,8 @@ Yay!
 
 <details closed><summary>Text/Label Templates</summary>
 
-| Template         | Description |
-| ---------------- | ----------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-label` | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
 
 
@@ -633,13 +749,14 @@ Yay!
 
 <details closed><summary>Button Templates</summary>
 
-| Template                                           | Example                                             |
-| -------------------------------------------------- | --------------------------------------------------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
 
 ### Rounded Buttons
-| Template                                                     | Description                                            |
-| ------------------------------------------------------------ | ------------------------------------------------------ |
+
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
 | `cb-lcars-button-bullet`<br>`cb-lcars-button-bullet-right`   | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
 | `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
@@ -649,8 +766,8 @@ Yay!
 
 <details closed><summary>Picard Button Templates</summary>
 
-| Template                                                                             | Description                                                        |
-| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
 | `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
 | `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
@@ -662,8 +779,9 @@ Yay!
 
 <details closed><summary>Picard Text Modifier Templates</summary>
 
-| Template                                                                   | Description                                                    |
-| -------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
+-------------------------------------------------------------- |
 | `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 </details>
 
@@ -675,8 +793,8 @@ Yay!
 
 <details closed><summary>Grid Templates</summary>
 
-| Template                     | Description                                               |
-| ---------------------------- | --------------------------------------------------------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-grid`       | Versatile base grid control.<br>Other elements can be added into a grid such as buttons, sliders, icons, etc.       |
 | `cb-lcars-button-grid`       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
 | `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
@@ -690,8 +808,8 @@ Yay!
 
 <details closed><summary>Slider/Meter/Gauge Templates)</summary>
 
-| Template                           | Description                                                     |
-| ---------------------------------- | --------------------------------------------------------------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-meter`                   | ![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)                   |
 | `cb-lcars-meter-horizontal`        | ![cb-lcars-meter-horizontal](images/button_samples/cb-lcars-meter-horizontal.png)        |
 | `cb-lcars-slider`                  | ![cb-lcars-slider](images/button_samples/cb-lcars-slider.png)                  |
@@ -705,8 +823,8 @@ Yay!
 
 <details closed><summary>Control Templates</summary>
 
-| Template                           | Description                                                     |
-| ---------------------------------- | --------------------------------------------------------------- |
+| Template       | Default Style          |
+| -------------- | ---------------------- |
 | `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
 | `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
 </details>
