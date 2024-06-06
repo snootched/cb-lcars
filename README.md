@@ -1,9 +1,11 @@
-![cb-lcars](images/screenshots/cb-lcars-banner.png)
+<p align="center">
 
+![cb-lcars](images/screenshots/cb-lcars-banner.png)
+</p>
 <p align="center">
     <em>A collection of custom button-card templates for building LCARS styled dashboards in Home Assistant</em>
 </p>
-<p align="center">
+<p align="left">
 	<img src="https://img.shields.io/github/v/release/snootched/ha-lcards?display_name=release&logo=startrek" alt="release">
 	<img src="https://img.shields.io/github/license/snootched/ha-lcards?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 	<img src="https://img.shields.io/github/last-commit/snootched/ha-lcards?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
