@@ -62,6 +62,10 @@ jobs:
           #strict: # optional, default is false
           # Output only error level problems
           #no_warnings: # optional, default is false
+
+      - name: Create full yaml
+        run: |
+          ./create_full_yaml.sh --output cb-lcars-full.yaml --path cb-lcars
           
       - name: Git Auto Commit
         # You may pin to the exact commit or the version.
