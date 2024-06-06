@@ -58,3 +58,14 @@ jobs:
           # Output only error level problems
           #no_warnings: # optional, default is false
           
+      - name: Commit and push if it changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add generated file"
+            git push
+          fi
