@@ -58,14 +58,46 @@ jobs:
           # Output only error level problems
           #no_warnings: # optional, default is false
           
-      - name: Commit and push if it changed
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -A
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Add generated file"
-            git push
-          fi
+      - name: Git Auto Commit
+        # You may pin to the exact commit or the version.
+        # uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842
+        uses: stefanzweifel/git-auto-commit-action@v5.0.1
+        with:
+          # Commit message
+          commit_message: Add cb-lcars-full.yaml
+          # optional, default is Apply automatic changes
+          # Git branch name, where changes should be pushed too. Required if Action is used on the `pull_request` event
+          #branch: # optional, default is ${{ github.head_ref }}
+          # Commit options (eg. --no-verify)
+          #commit_options: # optional, default is 
+          # Add options (eg. -u)
+          #add_options: # optional, default is 
+          # Status options (eg. --untracked-files=no)
+          #status_options: # optional, default is 
+          # File pattern used for `git add`. For example `src/*.js`
+          #file_pattern: # optional, default is .
+          # Local file path to the git repository. Defaults to the current directory (`.`)
+          #repository: # optional, default is .
+          # Name used for the commit user
+          #commit_user_name: # optional, default is github-actions[bot]
+          # Email address used for the commit user
+          #commit_user_email: # optional, default is 41898282+github-actions[bot]@users.noreply.github.com
+          # Value used for the commit author. Defaults to the username of whoever triggered this workflow run.
+          #commit_author: # optional, default is ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          # Message used to create a new git tag with the commit. Keep this empty, if no tag should be created.
+          #tagging_message: # optional, default is 
+          # Push options (eg. --force)
+          #push_options: # optional, default is 
+          # Skip the check if the git repository is dirty and always try to create a commit.
+          #skip_dirty_check: # optional
+          # Skip the call to git-fetch.
+          #skip_fetch: # optional
+          # Skip the call to git-checkout.
+          #skip_checkout: # optional
+          # Stop the shell from expanding filenames (https://www.gnu.org/software/bash/manual/html_node/Filename-Expansion.html)
+          #disable_globbing: # optional
+          # Create new branch with the name of `branch`-input in local and remote repository, if it doesn't exist yet.
+          #create_branch: # optional
+          # Internal use only! Path to git binary used to check if git is available. (Don't change this!)
+          #internal_git_binary: # optional, default is git
+                
