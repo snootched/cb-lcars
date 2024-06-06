@@ -55,7 +55,8 @@
 #  Overview
 
 ### What is this?
-
+\<ramble\>
+<br>
 Being a huge [trekkie|trekker] and avid home assistant user, when I came across the amazing [ha-lcars theme](https://github.com/th3jesta/ha-lcars) I was intrigued.  After spending some time playing with this theme and working on some dashboards - I was hooked.  I wanted to make a full LCARS tablet interface for my home.
 
 Re-watching Picard at the time - and drooling over the new LCARS interfaces in season 3 - I decided that I really wanted that look for my dashboards.
@@ -65,22 +66,32 @@ Using the ha-lcars theme as the foundation - work began to try and build a libra
 As I don't have much (any?) experience with web/css stuff - it was decided to build this using existing cards if possible - and using [custom-button-card](https://github.com/custom-cards/button-card) as the foundation.
 
 There are probably way better ways of doing things - open to any and all suggestions.  This is a learning project for me - so as I learn new techniques, ways of doing stuff, or just plain change my mind about something - I'm going back and revamping it.
-
+<br>Expect breakage :)
+<br>\</ramble\>
 ### What it isn't...
 
-This is not a standalone theme.  It is made with the intention of ha-lcars providing the theme components, styles, color variables, and existing classes etc.
-It's also not an attempt to re-invent the wheel.  Where there are great components/cards out there that I felt would work in building this - those were used.  Therefore, this isn't a standalone set of components either.  For some things you need to install other cards from HACS (all listed below of course.)
+This is not a standalone theme.<br>
+It is made with the intention of ha-lcars providing the theme styles, color variables, existing card-mod classes etc.<br>
+It's also not an attempt to re-invent the wheel.  Where there are great components/cards out there that I felt would work in building this - those were used.<br>
+As such, this isn't a fully standalone set of components.  For some controls you need to install other cards from HACS (all listed below of course.)
 
 ### What it looks like...
 
 These are a couple examples of WIP dashboards.
 
-'Home' screen with weather forecasts, radar, quick access light controls (3 sliders on the right)  Page selection menu on the left, and security status on the top.
+'Home' screen is a good example of multiple templates in use.
+ - `cb-lcars-label`  (clock)
+ - `cb-lcars-button-grid`
+ - `cb-lcars-button-picard` 
+ - `cb-lcars-footer`
+ - `cb-lcars-callout-right`
+ - `cb-lcars-slider`  
+  
 ![dashboard_1](images/screenshots/dashboard_sample_1.png)
 
 <br>
 
-'Lights' screen with selectable rooms.  Each room has an array of sliders for the lights in that room.(`cb-lcars-grid` with default button set to `cb-lcars-multimeter` with panel in `gauge` mode)  In this screenshot, the guage slider colors were set to match the color of the light entity (fully configurable)
+**Lights** screen with selectable rooms.  Each room has a grid (`cb-lcars-grid`) of sliders (`cb-lcars-multimeter`) for the lights in that room.  `cb-lcars-multimeter` has panem mode set to `gauge` and the slider colors are set to match the color of the light entity (fully configurable)
 ![dashboard_2](images/screenshots/dashboard_sample_2.png)
 
 <br>
@@ -351,13 +362,11 @@ variables:
 )
 </td>
 </tr>
-
-</table>
-
-
+</table>\
 </details>
 
 ### LCARS Footers
+
 <details closed><summary>Footer Templates</summary>
 
 | Template       | Default Style          |
@@ -642,13 +651,12 @@ custom_fields:
 
 </td>
 </tr>
-
 </table>
-
 </details>
 
 
 ### LCARS Callouts
+
 <details closed><summary>Callout Templates</summary>
 
 | Template       | Default Style          |
@@ -660,8 +668,6 @@ custom_fields:
 | `cb-lcars-footer-callout-right` | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 </details>
 <details closed><summary>Examples</summary>
-
-
 
 <table>
 <tr>
@@ -719,13 +725,7 @@ variables:
 </td>
 </tr>
 </table>
-
-
-
-
 </details>
-
-
 
 ### LCARS Text Labels
 
@@ -738,7 +738,93 @@ variables:
 
 </details>
 <details closed><summary>Examples</summary>
-Yay!
+
+<table>
+<tr>
+<td>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-label
+label: engineering ii
+variables:
+  text:
+    label:
+      font_size: 42px
+      font_weight: lighter
+      color:
+        default: var(--picard-light-orange)
+
+```
+</td>
+<td>
+
+![picard-callout-1](images/screenshots/label-1.png)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-label
+entity: sensor.patio_sensor_temperature
+show_state: true
+show_label: false
+variables:
+  card:
+    height: 60px
+  text:
+    state:
+      font_size: 60px
+```
+</td>
+<td>
+
+![picard-callout-2](images/screenshots/label-2.png)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-label
+label: cb-lcars
+show_label: true
+variables:
+  text:
+    label:
+      font_size: 60px
+      font_weight: lighter
+      color:
+        default: var(--picard-light-orange)
+      padding:
+        left: 40px
+  card:
+    height: 60px
+    width: 490px
+    border:
+      left:
+        size: 110px
+      right:
+        size: 40px
+      color: var(--lcars-card-bottom-color)
+
+```
+</td>
+<td>
+
+![picard-callout-2](images/screenshots/label-3.png)
+</td>
+</tr>
+</table>
 </details>
 
 ---
@@ -781,7 +867,6 @@ Yay!
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
--------------------------------------------------------------- |
 | `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 </details>
 
