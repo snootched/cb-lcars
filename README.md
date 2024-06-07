@@ -45,6 +45,7 @@
     - [Rounded Buttons](#rounded-buttons)
     - [Picard-Style Buttons](#picard-style-buttons)
     - [Picard-Style Text Modifiers](#picard-style-text-modifiers)
+    - [Button Examples](#button-examples)
   - [LCARS Constructors](#lcars-constructors)
     - [Grids](#grids)
   - [LCARS Controls](#lcars-controls)
@@ -868,6 +869,8 @@ variables:
 | `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
 </details>
 
+
+
 ### Picard-Style Buttons
 
 <details open><summary>Picard Button Templates</summary>
@@ -890,6 +893,122 @@ variables:
 | `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 </details>
 
+### Button Examples
+<details closed><summary>Button Examples</summary>
+
+<table>
+<tr>
+<td>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-button-picard-filled
+  - cb-lcars-button-picard-label-se
+  - cb-lcars-button-picard-state-west
+  - cb-lcars-button-picard-name-ne
+entity: input_boolean.enable_verbal_notifications
+label: lcars-button-picard-filled
+show_icon: true
+show_state: true
+show_name: true
+variables:
+  text:
+    label:
+      font_size: 22px
+      font_weight: bold
+  icon:
+    color:
+      active: transparent
+      inactive: transparent
+      background:
+        active: var(--picard-blue)
+        inactive: transparent
+
+```
+</td>
+<td>
+Entity is 'on'
+
+![picard-button-1](images/screenshots/picard-button-1.png)
+
+Entity is 'off'
+
+![picard-button-1-off](images/screenshots/picard-button-1-off.png)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-button-picard
+entity: input_boolean.enable_verbal_notifications
+label: lcars-button-picard
+variables:
+  text:
+    color:
+      'on': var(--picard-blue)
+  card:
+    color:
+      active: var(--picard-blue)
+```
+</td>
+<td>
+
+Entity is 'on'
+
+![picard-button-2](images/screenshots/picard-button-2.png)
+
+Entity is 'off'
+
+![picard-button-2-off](images/screenshots/picard-button-2-off.png)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+entity: input_boolean.enable_verbal_notifications
+template: cb-lcars-button-lozenge-right
+label: lcars-button-lozenge-right
+show_icon: true
+icon: si:startrek
+variables:
+  card:
+    color:
+      background:
+        inactive: var(--picard-orange)
+        active: var(--picard-blue)
+  icon:
+    color:
+      inactive: var(--picard-lightest-orange)
+      active: var(--picard-lightest-blue)
+```
+</td>
+<td>
+
+Entity is 'on'
+
+![lozenge-button-1](images/screenshots/lozenge-button-1.png)
+
+Entity is 'off'
+
+![lozenge-button-1-off](images/screenshots/lozenge-button-1-off.png)
+</td>
+</tr>
+</table>
+</details>
+
+
 ---
 
 ## LCARS Constructors
@@ -905,6 +1024,175 @@ variables:
 | `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
 
 </details>
+
+<details closed><summary>Grid Examples</summary>
+
+<table>
+<tr>
+<td>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-button-grid
+variables:
+  button:
+    template:
+      - cb-lcars-button-lozenge
+    variables:
+      card:
+        color:
+          background:
+            inactive: var(--lcars-blue)
+        height: 65px
+  grid:
+    gap: 20px
+    X: 2
+    Y: 4
+    buttons:
+      -
+      - label: custom-label
+        template:
+          - cb-lcars-button-picard-filled
+          - cb-lcars-button-picard-label-ne
+      - template:
+          - cb-lcars-button-bullet-right
+      - template:
+          - cb-lcars-button-bullet
+      -
+      - entity: input_boolean.lcars_ui_debug
+        show_name: true
+        show_label: false
+        show_icon: true
+      -
+      - variables:
+          card:
+            color:
+              background:
+                inactive: var(--picard-darkest-gray)
+
+```
+</td>
+<td>
+
+![button-grid-1](images/screenshots/button-grid-1.png)
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+      type: custom:button-card
+      template: cb-lcars-button-grid
+      variables:
+        auto_calc_X: false
+        grid:
+          buttons:
+            - entity: binary_sensor.patio_gate_home_security_intrusion
+              label: patio gate
+              variables:
+                card:
+                  color:
+                    inactive: var(--picard-medium-light-blue)
+                    active: var(--error-color)
+            - entity: binary_sensor.front_door_home_security_intrusion
+              label: door
+            - entity: binary_sensor.front_window_home_security_intrusion
+              label: window
+            - entity: binary_sensor.office_window_home_security_intrusion
+              label: office
+            - entity: binary_sensor.bedroom_window_home_security_intrusion
+              label: bedroom
+          X: 5
+          'Y': 1
+          gap: 15px
+        button:
+          variables:
+            card:
+              width: 140px
+              height: 55px
+              color:
+                active: var(--error-color)
+                inactive: var(--picard-dark-gray)
+                background:
+                  active: transparent
+                  inactive: transparent
+            icon:
+              color:
+                active: null
+                inactive: null
+              background:
+                active: null
+                inactive: null
+          template:
+            - cb-lcars-button-picard
+            - cb-lcars-actions-more-info
+            - cb-lcars-state-blink
+```
+</td>
+<td>
+
+![button-grid-2](images/screenshots/button-grid-2.png)
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-button-grid-icons
+variables:
+  button:
+    variables:
+      card:
+        color:
+          background:
+            inactive: var(--warning-color)
+            active: var(--picard-blue)
+      icon:
+        color:
+          background:
+            inactive: var(--warning-color)
+            active: var(--picard-blue)
+  grid:
+    X: 4
+    buttons:
+      - entity: switch.living_room_recordings
+      - entity: switch.living_room_detect
+      - entity: switch.living_room_snapshots
+      - entity: switch.living_room_push_notifications
+        variables:
+          icon:
+            color:
+              background:
+                inactive: var(--picard-dark-blue)
+                active: var(--picard-blue)
+          card:
+            color:
+              background:
+                inactive: var(--picard-dark-blue)
+                active: var(--picard-blue)
+
+```
+</td>
+<td>
+
+
+![icon-gird-1](images/screenshots/icon-grid-1.png)
+</td>
+</tr>
+</table>
+</details>
+
+
 
 ---
 ## LCARS Controls
