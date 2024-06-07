@@ -6,11 +6,11 @@
     <em>A collection of custom button-card templates for building LCARS styled dashboards in Home Assistant</em>
 </p>
 <p align="left">
-	<img src="https://img.shields.io/github/v/release/snootched/ha-lcards?display_name=release&logo=startrek" alt="release">
-	<img src="https://img.shields.io/github/license/snootched/ha-lcards?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/snootched/ha-lcards?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/snootched/ha-lcards?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/snootched/ha-lcards?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek" alt="release">
+	<img src="https://img.shields.io/github/license/snootched/cd-lcars?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
+	<img src="https://img.shields.io/github/last-commit/snootched/cb-lcars?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
+	<img src="https://img.shields.io/github/languages/top/snootched/cb-lcars?style=default&color=0080ff" alt="repo-top-language">
+	<img src="https://img.shields.io/github/languages/count/snootched/cb-lcars?style=default&color=0080ff" alt="repo-language-count">
 <p>
 <p align="center">
 	<!-- default option, no dependency badges. -->
@@ -222,7 +222,7 @@ These were derived by AI from the original palette.
 
 ## Core Templates
 
-<details open><summary>Base Templates</summary>
+<details closed><summary>Base Templates</summary>
 
 ### Base Templates
 
@@ -267,7 +267,7 @@ These are the basic shapes found in LCARS.  These are highly configurable - defa
 
 ### LCARS Headers
 
-<details closed><summary>Header Templates</summary>
+<details open><summary>Header Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -386,7 +386,7 @@ variables:
 
 ### LCARS Footers
 
-<details closed><summary>Footer Templates</summary>
+<details open><summary>Footer Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -676,7 +676,7 @@ custom_fields:
 
 ### LCARS Callouts
 
-<details closed><summary>Callout Templates</summary>
+<details open><summary>Callout Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -748,7 +748,7 @@ variables:
 
 ### LCARS Text Labels
 
-<details closed><summary>Text/Label Templates</summary>
+<details open><summary>Text/Label Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -852,7 +852,7 @@ variables:
 
 ### Standard Buttons
 
-<details closed><summary>Button Templates</summary>
+<details open><summary>Button Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -869,7 +869,7 @@ variables:
 
 ### Picard-Style Buttons
 
-<details closed><summary>Picard Button Templates</summary>
+<details open><summary>Picard Button Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -882,7 +882,7 @@ variables:
 
 ### Picard-Style Text Modifiers
 
-<details closed><summary>Picard Text Modifier Templates</summary>
+<details open><summary>Picard Text Modifier Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -895,7 +895,7 @@ variables:
 
 ### Grids
 
-<details closed><summary>Grid Templates</summary>
+<details open><summary>Grid Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -910,7 +910,7 @@ variables:
 
 ### Sliders
 
-<details closed><summary>Slider/Meter/Gauge Templates)</summary>
+<details open><summary>Slider/Meter/Gauge Templates)</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
@@ -925,7 +925,7 @@ variables:
 
 ### Fully Built Controls
 
-<details closed><summary>Control Templates</summary>
+<details open><summary>Control Templates</summary>
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
