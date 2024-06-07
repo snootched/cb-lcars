@@ -25,6 +25,8 @@
 - [Before You Begin](#before-you-begin)
   - [Get to know `custom-button-card`](#get-to-know-custom-button-card)
   - [Dependencies and Extras](#dependencies-and-extras)
+- [Getting Started](#getting-started)
+  - [Install CB-LCARS Templates](#install-cb-lcars-templates)
   - [HA-LCARS Theme Setup](#ha-lcars-theme-setup)
     - [Font](#font)
     - [Custom *Picard* Colors](#custom-picard-colors)
@@ -164,6 +166,20 @@ The following dependencies should be installed and working in your Home Assistan
 
   - [lovelace-animated-background](https://github.com/rbogdanov/lovelace-animated-background) - Allows for animated/video backgrounds on the dashboard (stars look great.)  Additionally, Home Assistant natively supports background images (can be configured in UI from 2024.6+)
   - [lovelace-wallpanel](https://github.com/j-a-n/lovelace-wallpanel) - Great panel-mode features - including hiding side/top bars, screensaver function (with cards support)
+
+
+---
+
+# Getting Started
+
+## Install CB-LCARS Templates
+
+Per custom-button-card documentation, template definitions are added to your dashboard's YAML file.
+
+A valid YAML file of all the LCARS templates is provided as [cb-lcars-full.yaml](./cb-lcars-full.yaml)
+
+1. Copy the full contents of [cb-lcars-full.yaml](./cb-lcars-full.yaml) into the YAML of your dashboard.
+2. To use the debug option in `cb-lcars-card-base`, create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`
 
 ## HA-LCARS Theme Setup
 
