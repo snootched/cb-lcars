@@ -3,7 +3,7 @@ cb-lcars-debug:
     debug: true
     debug_hass: false
     debug_extras: null
-    __title: '::CB-LCARS::DEBUG::>'
+    __title: ':::CB-LCARS::DEBUG::>'
   custom_fields:
     debugger: |
       [[[
