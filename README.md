@@ -143,11 +143,12 @@ In no particular order:
 
 ## Get to know `custom-button-card`
 
-This collection of controls are implementations of `custom-button-card` [configuration templates](https://github.com/custom-cards/button-card?tab=readme-ov-file#configuration-templates).  It's important to familiarize yourself with how templates work - or you'll go mad.
+This collection of controls are implementations of `custom-button-card` [configuration templates](https://github.com/custom-cards/button-card?tab=readme-ov-file#configuration-templates).  It's important to familiarize yourself with how templates work - or you may go mad.
 
-tl;dr:
-- Templates are 'additive' - last definition of a duplicated variable wins.
-- Variables are processed in *alphanumeric* order.  It is what it is.
+> :fast_forward: tl;dr: 
+> 
+> - Templates are *additive* - last definition of a duplicated variable wins.
+> - Variables are processed in *alphanumeric* order.  It is what it is.
 
 ## Dependencies and Extras
 
