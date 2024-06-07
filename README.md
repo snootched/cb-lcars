@@ -6,11 +6,9 @@
     <em>A collection of custom button-card templates for building LCARS styled dashboards in Home Assistant</em>
 </p>
 <p align="left">
-	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek" alt="release">
-	<img src="https://img.shields.io/github/license/snootched/cb-lcars?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/snootched/cb-lcars?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
-	<img src="https://img.shields.io/github/languages/top/snootched/cb-lcars?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/snootched/cb-lcars?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek&color=37a6d1" alt="release">
+	<img src="https://img.shields.io/badge/license-MIT-37a6d1?logo=opensourceinitiative&logoColor=white" alt="license">
+  <img src="https://img.shields.io/github/last-commit/snootched/cb-lcars?style=default&logo=git&logoColor=white&color=37a6d1" alt="last-commit">
 <p>
 <p align="center">
 	<!-- default option, no dependency badges. -->
@@ -1028,12 +1026,12 @@ Entity is 'off'
 <details closed><summary>Grid Examples</summary>
 
 <table>
-<tr>
-<td>YAML</td> <td> Result </td>
-</tr>
 
 <tr>
-<td>
+
+![button-grid-1](images/screenshots/button-grid-1.png)
+
+<details closed><summary>YAML</summary>
 
 ```yaml
 type: custom:button-card
@@ -1076,16 +1074,16 @@ variables:
                 inactive: var(--picard-darkest-gray)
 
 ```
-</td>
-<td>
-
-![button-grid-1](images/screenshots/button-grid-1.png)
-
-</td>
+</details>
 </tr>
 
+---
+
 <tr>
-<td>
+
+![button-grid-2](images/screenshots/button-grid-2.png)
+
+<details closed><summary>YAML</summary>
 
 ```yaml
       type: custom:button-card
@@ -1135,15 +1133,16 @@ variables:
             - cb-lcars-actions-more-info
             - cb-lcars-state-blink
 ```
-</td>
-<td>
-
-![button-grid-2](images/screenshots/button-grid-2.png)
-</td>
+</details>
 </tr>
 
+---
+
 <tr>
-<td>
+
+![icon-gird-1](images/screenshots/icon-grid-1.png)
+
+<details closed><summary>YAML</summary>
 
 ```yaml
 type: custom:button-card
@@ -1182,12 +1181,7 @@ variables:
                 active: var(--picard-blue)
 
 ```
-</td>
-<td>
-
-
-![icon-gird-1](images/screenshots/icon-grid-1.png)
-</td>
+</details>
 </tr>
 </table>
 </details>
