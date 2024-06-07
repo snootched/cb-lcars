@@ -66,7 +66,7 @@ jobs:
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
         with:
-          message: Show GitHub logo
+          message: Add linted cb-lcars-full.yaml
           committer_name: GitHub Actions
           committer_email: 41898282+github-actions[bot]@users.noreply.github.com
           add: 'cb-lcars-full.yaml --force'
