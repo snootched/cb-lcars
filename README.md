@@ -7,7 +7,7 @@
 </p>
 <p align="left">
 	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek" alt="release">
-	<img src="https://img.shields.io/github/license/snootched/cd-lcars?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
+	<img src="https://img.shields.io/github/license/snootched/cb-lcars?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 	<img src="https://img.shields.io/github/last-commit/snootched/cb-lcars?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 	<img src="https://img.shields.io/github/languages/top/snootched/cb-lcars?style=default&color=0080ff" alt="repo-top-language">
 	<img src="https://img.shields.io/github/languages/count/snootched/cb-lcars?style=default&color=0080ff" alt="repo-language-count">
@@ -145,7 +145,7 @@ In no particular order:
 
 This collection of controls are implementations of `custom-button-card` [configuration templates](https://github.com/custom-cards/button-card?tab=readme-ov-file#configuration-templates).  It's important to familiarize yourself with how templates work - or you may go mad.
 
-> :fast_forward: tl;dr: 
+> :dizzy: tl;dr: 
 > 
 > - Templates are *additive* - last definition of a duplicated variable wins.
 > - Variables are processed in *alphanumeric* order.  It is what it is.
