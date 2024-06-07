@@ -88,12 +88,13 @@ These are a couple examples of WIP dashboards.
  - `cb-lcars-footer`
  - `cb-lcars-callout-right`
  - `cb-lcars-slider`  
+ - etc.
   
 ![dashboard_1](images/screenshots/dashboard_sample_1.png)
 
 <br>
 
-**Lights** screen with selectable rooms.  Each room has a grid (`cb-lcars-grid`) of sliders (`cb-lcars-multimeter`) for the lights in that room.  `cb-lcars-multimeter` has panem mode set to `gauge` and the slider colors are set to match the color of the light entity (fully configurable)
+**Lights** screen with selectable rooms.  Each room has a grid (`cb-lcars-grid`) of sliders (`cb-lcars-multimeter`) for the lights in that room.  `cb-lcars-multimeter` has panel mode set to `gauge` and the slider colors are set to match the color of the light entity (fully configurable)
 ![dashboard_2](images/screenshots/dashboard_sample_2.png)
 
 <br>
@@ -364,7 +365,7 @@ variables:
 )
 </td>
 </tr>
-</table>\
+</table>
 </details>
 
 ### LCARS Footers
