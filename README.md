@@ -1211,6 +1211,308 @@ variables:
 | `cb-lcars-slider-horizontal-gauge` | ![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
 </details>
 
+<details closed><summary>Meter/Slider/Gauge Examples</summary>
+
+
+Generally you will only use the `cb-lcars-slider` and `cb-lcars-slider-gauge` control.<br>
+These styles apply there in the respective variables section as it is built with `cb-lcars-meter` and `cb-lcars-gauge` shown here for examples.
+
+<table>
+<tr>
+<td><code>cb-lcars-slider</code> <code>cb-lcars-slider-gauge</code> <br>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-slider
+variables:
+  entity: light.desk
+  slider:
+    variables:
+      mask_color: rgba(0,0,0,1)
+```
+</td>
+
+<td>
+<code>mask_color</code> controls the shade of the slider control that overlays the meter background.<br>
+Default is semi-tranparent, but this example makes it opaque black.
+
+![slider-1](images/screenshots/slider-1.png) 
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-slider-gauge
+entity: light.tv
+variables:
+  card:
+    height: 300px
+```
+</td>
+
+<td>
+Default <code>cb-lcars-slider-gauge</code> with a height specified.<br>
+Gauge lines automatically calculate to adjust to the height specified.
+
+![slider-2](images/screenshots/slider-2.png) 
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-slider-gauge
+entity: light.tv
+variables:
+  card:
+    height: 400px
+    width: 50px
+  slider:
+    variables:
+      color: var(--error-color)
+      color_alpha: 0.7
+      border_color: none
+  meter:
+    variables:
+      button:
+        variables:
+          text:
+            label:
+              color:
+                'on': var(--warning-color)
+          card:
+            color:
+              active: var(--error-color)
+```
+</td>
+
+<td>
+<code>cb-lcars-slider-gauge</code> with a height and width specified.<br>
+The slider is set to the <code>--error-color</code> variable, and given a 70% alpha.<br>
+The gauge markers are also set to <code>--error-color</code> to match, and the labels are set to <code>--warning-color</code>.  This shows how each component can have different styles if desired.
+
+![slider-3](images/screenshots/slider-3.png) 
+
+</td>
+</tr>
+</table>
+<br>
+
+<table>
+<tr>
+<td><code>cb-lcars-slider-horizontal</code> <code>cb-lcars-slider-horizontal-gauge</code><br>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-slider-horizontal
+entity: light.tv
+variables:
+  meter:
+    variables:
+      gradient_start_color: var(--picard-dark-blue)
+      gradient_end_color: var(--picard-lightest-blue)
+      button:
+        template: cb-lcars-button-lozenge
+  slider:
+    variables:
+      mask_color: rgba(0,255,0,0.7)
+```
+</td>
+
+<td>
+Horizontal slider setting a gradient start and end color, setting the the meter to the lozenge button style, and for example - changing the slider masking color to a transparent green.
+
+![slider-horizontal-1](images/screenshots/slider-horiz-1.png) 
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-slider-horizontal
+entity: light.tv
+variables:
+  card:
+    height: 20px
+  meter:
+    variables:
+      gradient_start_color: var(--picard-dark-blue)
+      gradient_end_color: var(--picard-orange)
+      _gradient:
+        gap: 10px
+      button:
+        variables:
+          card:
+            width: 30px
+            height: 20px
+        template:
+          - cb-lcars-button-lozenge
+  slider:
+    variables:
+      mask_color: rgba(0,0,0,0.7)
+```
+</td>
+
+<td>
+Horizontal slider setting a 20px height, a custom gradient color and overriding the gradient gap to 10px.<br>
+The lozenge style is used again, but set to a custom height and width to give a pill effect.
+
+![slider-horizontal-3](images/screenshots/slider-horiz-2.png) 
+
+</td>
+</tr>
+
+
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+entity: light.tv
+template: cb-lcars-slider-horizontal-gauge
+```
+</td>
+
+<td>
+Horizontal gauge with default settings.
+
+![slider-horizontal-4](images/screenshots/slider-horiz-4.png) 
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+entity: light.tv
+template: cb-lcars-slider-horizontal-gauge
+variables:
+  entity_match_slider: true
+  gauge:
+    show_sub_meter: false
+
+```
+</td>
+
+<td>
+Horizontal gauge with the sub-meter (ticks) hidden, and the slider color matches the color of the light entity.  Slider will change color as the entity changes color.
+
+![slider-horizontal-5](images/screenshots/slider-horiz-5.png) 
+
+</td>
+</tr>
+
+</table>
+
+
+<br>
+<table>
+<tr>
+<td><code>cb-lcars-meter</code><br>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-meter
+variables:
+  gradient_start_color: var(--picard-lightest-blue)
+  gradient_end_color: var(--picard-dark-blue)
+
+type: custom:button-card
+template: cb-lcars-meter
+variables:
+  gradient_start_color: var(--picard-lightest-blue)
+  gradient_end_color: var(--picard-dark-blue)
+  button:
+    variables:
+      card:
+        height: 15px
+    template:
+      - cb-lcars-button-picard-filled
+
+type: custom:button-card
+template: cb-lcars-meter
+variables:
+  gradient_start_color: var(--warning-color)
+  gradient_end_color: var(--picard-lightest-gray)
+  button:
+    variables:
+      card:
+        height: 10px
+    template:
+      - cb-lcars-button-picard-filled
+  _gradient:
+    gap: 1px
+    'Y': 18
+
+type: custom:button-card
+template:
+  - cb-lcars-meter
+variables:
+  _gradient:
+    'Y': 20
+    gap: 1px
+  gradient_start_color: var(--lcars-blue)
+  gradient_end_color: var(--lcars-orange)
+  button:
+    variables:
+      card:
+        height: 10px
+
+type: custom:button-card
+template:
+  - cb-lcars-meter
+variables:
+  _gradient:
+    'Y': 20
+    gap: 1px
+  gradient_start_color: var(--lcars-blue)
+  gradient_end_color: var(--lcars-orange)
+  button:
+    variables:
+      card:
+        height: 10px
+        width: 10px
+
+```
+</td>
+<td>
+
+![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png)
+
+![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
+
+![meter-5](images/screenshots/meter-5.png)
+
+</td>
+</tr>
+</table>
 
 ### Fully Built Controls
 
