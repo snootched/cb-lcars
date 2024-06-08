@@ -227,9 +227,9 @@ These were derived by AI from the original palette.
 
 ## Core Templates
 
-<details closed><summary>Base Templates</summary>
-
 ### Base Templates
+
+<details closed><summary>Base Templates</summary>
 
 | Template             | Description    |
 | -------------------- | -------------- |
@@ -239,9 +239,10 @@ These were derived by AI from the original palette.
 | `cb-lcars-debug`     | Adapted from a very nice template by [wfuphy](https://github.com/wfurphy/creative-button-card-templates?tab=readme-ov-file#debug)<br>This template can be added to enable console debug printing of any custom button card's objects (`variables`,`this`,`hass` etc. ).<br><br>To use:<br>Add `cb-lcars-debug` to the card's template list.  In the browser console, you will then have access to see the varibles defined etc.<br><br>![console-debug](images/screenshots/console-debug.png) |
 </details>
 
+### Actions
+
 <details closed><summary>Actions</summary>
 
-### Actions
 Some presets for actions to be assigned.  Anything can be defined as an action that is supported by `custom-button-card` - see its documentation for more details.
 
 Of note in this list - if you like the style of Philips Hue interface, then `cb-lcars-actions-hue-*` is for you!
@@ -254,9 +255,9 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 | `cb-lcars-actions-hue-[tap\|hold]`       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this
 </details>
 
-<details closed><summary>Flare</summary>
-
 ### Flare
+
+<details closed><summary>Flare</summary>
 
 | Template                 | Description |
 | ------------------------ | ----------- |
