@@ -580,7 +580,8 @@ styles:
     - width: 300px
     - height: 175px
     - border-radius: 0 !important
-    - transform: skew(-20deg)        # CSS tranform the whole card if desired
+# CSS tranform the whole card if desired
+    - transform: skew(-20deg)
  custom_fields:
     elbow:
       - position: absolute
