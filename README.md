@@ -1515,7 +1515,7 @@ variables:
 </tr>
 </table>
 
-</table>
+</details>
 
 ### Fully Built Controls
 
