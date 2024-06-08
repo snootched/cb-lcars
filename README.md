@@ -1515,6 +1515,8 @@ variables:
 </tr>
 </table>
 
+</table>
+
 ### Fully Built Controls
 
 <details open><summary>Control Templates</summary>
@@ -1523,6 +1525,165 @@ variables:
 | -------------- | ---------------------- |
 | `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
 | `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
+</details>
+
+<details open><summary>Multimeter Examples</summary>
+
+<table>
+<tr>
+<td><code>cb-lcars-multimeter</code><br>YAML</td> <td> Result </td>
+</tr>
+
+<tr>
+<td>
+
+```yaml
+#default style
+type: custom:button-card
+template: cb-lcars-multimeter
+variables:
+  entity: light.tv
+
+#set the button/frame to orange
+type: custom:button-card
+template: cb-lcars-multimeter
+variables:
+  entity: light.tv
+  label: btn.orange
+  header_button:
+    variables:
+      card:
+        color:
+          background:
+            active: var(--picard-orange)
+
+#match the button/frame color to the light entity
+type: custom:button-card
+template:
+  - cb-lcars-multimeter
+variables:
+  entity: light.tv
+  entity_match_header: true
+  label: match ent.
+
+#match button/frame and the gradient end to entity
+type: custom:button-card
+template:
+  - cb-lcars-multimeter
+variables:
+  entity: light.tv
+  entity_match_header: true
+  entity_match_slider_end: true
+  label: match sld end
+
+#match button/fram and gradient start to entity
+type: custom:button-card
+template:
+  - cb-lcars-multimeter
+variables:
+  entity: light.tv
+  entity_match_header: true
+  entity_match_slider_start: true
+  label: match sld start
+
+#default panel mode (slider) with label
+type: custom:button-card
+template: cb-lcars-multimeter
+variables:
+  entity: light.tv
+  label: Slider
+
+#panel mode: icons
+type: custom:button-card
+template: cb-lcars-multimeter
+variables:
+  entity: ''
+  label: icons
+  panel:
+    mode: icons
+
+#panel mode: gauge
+type: custom:button-card
+template: cb-lcars-multimeter
+variables:
+  entity: light.tv
+  label: gauge
+  panel:
+    mode: gauge
+
+
+```
+</td>
+<td>
+
+![multimeter-1](images/screenshots/multimeter-1.png)
+
+</td>
+</tr>
+
+
+
+
+
+<tr>
+<td>
+
+```yaml
+type: custom:button-card
+template: cb-lcars-multimeter
+entity: switch.living_room_recordings
+variables:
+  card:
+    width: 360px
+    height: 60px
+  panel:
+    mode: icons
+    width: 215px
+    height: 50px
+  label: living room
+  icon_grid:
+    variables:
+      button:
+        variables:
+          card:
+            color:
+              background:
+                inactive: var(--warning-color)
+                active: var(--picard-blue)
+          icon:
+            color:
+              background:
+                inactive: var(--warning-color)
+                active: var(--picard-blue)
+      grid:
+        X: 4
+        buttons:
+          - entity: switch.living_room_recordings
+          - entity: switch.living_room_detect
+          - entity: switch.living_room_snapshots
+          - entity: switch.living_room_push_notifications
+            variables:
+              icon:
+                color:
+                  background:
+                    inactive: var(--picard-dark-blue)
+                    active: var(--picard-blue)
+              card:
+                color:
+                  background:
+                    inactive: var(--picard-dark-blue)
+                    active: var(--picard-blue)
+
+
+```
+</td>
+<td>
+
+![multimeter-1](images/screenshots/multimeter-2.png)
+
+</td>
+</tr>
+</table>
 </details>
 
 ---
