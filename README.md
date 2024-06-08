@@ -15,6 +15,11 @@
 </p>
 
 
+v- [Overview](#overview)
+    - [What is this?](#what-is-this)
+    - [What it isn't...](#what-it-isnt)
+    - [What it looks like...](#what-it-looks-like)
+    - [What can it do...](#what-can-it-do)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -255,8 +260,8 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 
 | Template                 | Description |
 | ------------------------ | ----------- |
-| `cb-lcars-animate-press` | Adds an animation to the button when pressed. |
-| `cb-lcars-state-blink`   | Causes the button to blink when active. |
+| `cb-lcars-animate-press` | Adds an animation to the button when pressed.  |
+| `cb-lcars-state-blink`   | Causes the button to blink when active. <br><br> ![picard-button-blink](images/screenshots/picard-button-blink.gif) |
 </details>
 
 ---
