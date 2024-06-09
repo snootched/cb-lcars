@@ -44,31 +44,22 @@ variables:
   .
   .
   .
-  
+  entity_match_gauge: false
+  entity_match_header: false
+  entity_match_slider_start: false
+  entity_match_slider_end: false 
 
 ```
 </td>
 <td>
-These 
+These options will match elements to the color of the entity.<br><br>
+Gauge (the slider bar)<br>
+Header (the button/framing around the panel)<br>
+Slider Start/End (gradient position on the slider)
 </td>
 </tr>
 
-<tr>
-<td>
 
-```yaml
-variables:
-  .
-  .
- 
- 
-
-```
-</td>
-<td>
-These 
-</td>
-</tr>
 
 </table>
 
