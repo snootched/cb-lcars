@@ -259,3 +259,4 @@ cb-lcars-header-picard-right:
                 factor: >-
                   [[[ return variables.lcars_inner.card.border.inner.factor
                   ]]]
+                  
