@@ -1,6 +1,7 @@
 LCARS Multimeter Template [`cb-lcars-multimeter`]
 
 This is an adaptable card that gives the LCARS look of sliders/gauges/icons bordered by a button/frame as seen in many Picard screens<br>
+This uses existing templates [`cb-lcars-slider-horizontal`](../cb-lcars/cb-lcars-slider.yaml) [`cb-lcars-slider-horizontal-gauge`](../cb-lcars/cb-lcars-slider-gauge.yaml) and [`cb-lcars-icon-grid`](../cb-lcars/cb-lcars-grid.yaml) for the control area.  Variables defined in these templates can also be adjusted from this wrapper template.
 
 <table>
 <tr>
@@ -35,15 +36,11 @@ variables:
 The <code>panel:</code> is the area where the contols live.  You can set the panel dimensions, and the header button/frame dimensions are automatically calculated based on the overall card dimensions minus the panel dimensions.  <code>padding:</code> controls the border/gap between the controls and the header/framing.<br>
 <br>
 Panel <code>mode:</code> can be <code> slider | gauge | icons </code> (default: slider)<br><br>
-You can control the look of the gauge and the slider with the <code>meter:</code> and <code>slider:</code> properties.  These are the equivalent variable sections as defined in the respctive <code>
+You can control the look of the gauge and the slider with the <code>meter:</code> <code>slider:</code> and <code>gauge:</code> properties.  These are the equivalent variable sections as defined in the respective 
 
-[cb-lcars-slider-horizontal](../cb-lcars/cb-lcars-slider.yaml)
-</code> and 
-
-<code>
-
-[cb-lcars-slider-horizontal-guage](../cb-lcars/cb-lcars-slider-gauge.yaml)
-</code> cards.<br><br>
+[<code>cb-lcars-slider-horizontal</code>](../cb-lcars/cb-lcars-slider.yaml) and
+ 
+[<code>cb-lcars-slider-horizontal-guage</code>](../cb-lcars/cb-lcars-slider-gauge.yaml) cards.<br><br>
 
 ![multimeter-1](../images/button_samples/cb-lcars-multimeter.png)
 </td>
