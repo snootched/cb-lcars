@@ -15,11 +15,6 @@
 </p>
 
 
-v- [Overview](#overview)
-    - [What is this?](#what-is-this)
-    - [What it isn't...](#what-it-isnt)
-    - [What it looks like...](#what-it-looks-like)
-    - [What can it do...](#what-can-it-do)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -1633,6 +1628,7 @@ type: custom:button-card
 template: cb-lcars-multimeter
 entity: switch.living_room_recordings
 variables:
+  label: living room
   card:
     width: 360px
     height: 60px
@@ -1640,39 +1636,38 @@ variables:
     mode: icons
     width: 215px
     height: 50px
-  label: living room
-  icon_grid:
-    variables:
-      button:
-        variables:
-          card:
-            color:
-              background:
-                inactive: var(--warning-color)
-                active: var(--picard-blue)
-          icon:
-            color:
-              background:
-                inactive: var(--warning-color)
-                active: var(--picard-blue)
-      grid:
-        X: 4
-        buttons:
-          - entity: switch.living_room_recordings
-          - entity: switch.living_room_detect
-          - entity: switch.living_room_snapshots
-          - entity: switch.living_room_push_notifications
-            variables:
-              icon:
-                color:
-                  background:
-                    inactive: var(--picard-dark-blue)
-                    active: var(--picard-blue)
-              card:
-                color:
-                  background:
-                    inactive: var(--picard-dark-blue)
-                    active: var(--picard-blue)
+    icon_grid:
+      variables:
+        button:
+          variables:
+            card:
+              color:
+                background:
+                  inactive: var(--warning-color)
+                  active: var(--picard-blue)
+            icon:
+              color:
+                background:
+                  inactive: var(--warning-color)
+                  active: var(--picard-blue)
+        grid:
+          X: 4
+          buttons:
+            - entity: switch.living_room_recordings
+            - entity: switch.living_room_detect
+            - entity: switch.living_room_snapshots
+            - entity: switch.living_room_push_notifications
+              variables:
+                icon:
+                  color:
+                    background:
+                      inactive: var(--picard-dark-blue)
+                      active: var(--picard-blue)
+                card:
+                  color:
+                    background:
+                      inactive: var(--picard-dark-blue)
+                      active: var(--picard-blue)
 
 
 ```

@@ -35,7 +35,15 @@ variables:
 The <code>panel:</code> is the area where the contols live.  You can set the panel dimensions, and the header button/frame dimensions are automatically calculated based on the overall card dimensions minus the panel dimensions.  <code>padding:</code> controls the border/gap between the controls and the header/framing.<br>
 <br>
 Panel <code>mode:</code> can be <code> slider | gauge | icons </code> (default: slider)<br><br>
-You can control the look of the gauge and the slider with the <code>meter:</code> and <code>slider:</code> properties.  These are the equivalent variable sections as defined in the respctive <code>cb-lcars-slider-horizontal</code> and <code>cb-lcars-slider-horizontal-guage</code> cards.<br><br>
+You can control the look of the gauge and the slider with the <code>meter:</code> and <code>slider:</code> properties.  These are the equivalent variable sections as defined in the respctive <code>
+
+[cb-lcars-slider-horizontal](../cb-lcars/cb-lcars-slider.yaml)
+</code> and 
+
+<code>
+
+[cb-lcars-slider-horizontal-guage](../cb-lcars/cb-lcars-slider-gauge.yaml)
+</code> cards.<br><br>
 
 ![multimeter-1](../images/button_samples/cb-lcars-multimeter.png)
 </td>
