@@ -63,9 +63,13 @@ variables:
 </td>
 <td>
 These options will match elements to the color of the entity.<br><br>
-Header (the button/framing around the panel)<br>
-Gauge (the slider bar itselft)<br>
-Slider Start/End (gradient position of the meter background on the slider card)
+<code>entity_match_header:</code> the button/framing around the panel<br>
+<br>
+<code>entity_match_gauge:</code> the gauge labels and tick marks<br>
+<code>entity_match_slider:</code> the slider bar when in gauge mode<br>
+<br>
+<code>entity_match_slider_start:</code><br>
+<code>entity_match_slider_start:</code>  slider gradient start/end (gradient position of the meter background in slider mode)
 </td>
 </tr>
 
