@@ -1216,14 +1216,13 @@ button_card_templates:
           left: 5px
           right: 0px
           bottom: 0px
-        meter:
-        slider:
-        gauge:
-        icon_grid:
+        meter: null
+        slider: null
+        icon_grid: null
       entity: '[[[ return entity.entity_id ]]]'
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_gauge: false
-      entity_match_slider: '[[[ return variables.entity_match_gauge ]]]'
+      entity_match_slider: false
       entity_match_header: false
       entity_match_slider_start: false
       entity_match_slider_end: false
@@ -1239,15 +1238,14 @@ button_card_templates:
               font_size: 24px
           card:
             color:
-              active: >
-                [[[ return  variables.entity_match_header ?
-                variables.entity_color :
+              active: |
+                [[[ return  variables.entity_match_header ? variables.entity_color :
                 "var(--lcars-ui-secondary)" ]]]
               inactive: var(--lcars-ui-primary)
               background:
                 active: >
-                  [[[ return  variables.entity_match_header ?
-                  variables.entity_color :
+                  [[[ return  variables.entity_match_header ? variables.entity_color
+                  :
                   "var(--lcars-ui-secondary)" ]]]
                 inactive: var(--lcars-ui-primary)
               border: null
@@ -1267,13 +1265,13 @@ button_card_templates:
         parseInt(variables.panel.padding.top) -
         parseInt(variables.panel.padding.bottom))+"px" ]]]
       y_trim_height: >-
-        [[[ return "calc(" + variables.card.height + " - " +
-        variables.panel.height + ")" ]]]
+        [[[ return "calc(" + variables.card.height + " - " + variables.panel.height
+        + ")" ]]]
       y_trim_width: '[[[ return variables.panel.width ]]]'
       y_header_height: '[[[ return variables.card.height ]]]'
       y_header_width: >-
-        [[[ return "calc(" + variables.card.width + " - " +
-        variables.panel.width + ")" ]]]
+        [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
+        ")" ]]]
       z_button_card:
         type: custom:button-card
         template:
@@ -1297,18 +1295,15 @@ button_card_templates:
                     label:
                       font_size: >-
                         [[[ return
-                        variables.header_button.variables.text.label.font_size
-                        ]]]
+                        variables.header_button.variables.text.label.font_size ]]]
                     state:
                       font_size: >-
                         [[[ return
-                        variables.header_button.variables.text.state.font_size
-                        ]]]
+                        variables.header_button.variables.text.state.font_size ]]]
                     name:
                       font_size: >-
                         [[[ return
-                        variables.header_button.variables.text.name.font_size
-                        ]]]
+                        variables.header_button.variables.text.name.font_size ]]]
                 show_label: true
                 label: '[[[ return variables.label ]]]'
                 template:
@@ -1322,8 +1317,8 @@ button_card_templates:
                 show_label: false
                 entity: '[[[ return variables.entity ]]]'
             template_columns: >-
-              [[[ return  variables.y_header_width + " " +
-              variables.y_trim_width  ]]]
+              [[[ return  variables.y_header_width + " " + variables.y_trim_width 
+              ]]]
             gap: 0px
       z_gauge_card:
         type: custom:button-card
@@ -1353,8 +1348,50 @@ button_card_templates:
             let gaugeObject = (variables.panel && variables.panel.gauge) ?
             variables.panel.gauge : {}; 
             let defaultVariables = {
-              variables: {
-                show_sub_meter: true
+              "show_sub_meter": true,
+              "meter": {
+                  "variables": {
+                    "button": {
+                        "variables": {
+                          "text": {
+                              "label": {
+                                "color": {
+                                    "off": variables.header_button.variables.card.color.background.inactive,
+                                    "on": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
+                                }
+                              }
+                          },
+                          "card": {
+                              "color": {
+                                "inactive": variables.header_button.variables.card.color.background.inactive,
+                                "active": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
+                              }
+                          }
+                        }
+                    }
+                  }
+              },
+              "sub_meter": {
+                  "variables": {
+                    "button": {
+                        "variables": {
+                          "text": {
+                              "label": {
+                                "color": {
+                                    "off": variables.header_button.variables.card.color.background.inactive,
+                                    "on": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
+                                }
+                              }
+                          },
+                          "card": {
+                              "color": {
+                                "inactive": variables.header_button.variables.card.color.background.inactive,
+                                "active": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
+                              }
+                          }
+                        }
+                    }
+                  }
               }
             };
             //meterObject = {...defaultVariables, ...meterObject};
@@ -1413,7 +1450,8 @@ button_card_templates:
         variables: >
           [[[
           let iconObject = (variables.panel.icon_grid &&
-          variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables : {};
+          variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables
+          : {};
           let defaultVariables = {
             card: {
               height: variables.y_panel_height_padded,
