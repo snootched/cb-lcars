@@ -2553,168 +2553,204 @@ button_card_templates:
             [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
   cb-lcars-dpad:
     variables:
-      card_size: 300px
-      dpad_button_scale: 6.5
-      dpad_button_min_height: 10px
-      button_ripple_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_background_color: '#1111ee'
-      svg_dpad_up_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_dpad_up_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-active-color")
-        ]]]
-      svg_dpad_down_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_dpad_down_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-active-color")
-        ]]]
-      svg_dpad_left_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_dpad_left_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-active-color")
-        ]]]
-      svg_dpad_right_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_dpad_right_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-active-color")
-        ]]]
-      svg_dpad_center_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
-      svg_dpad_center_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--state-active-color")
-        ]]]
-      svg_dpad_up_left_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
-        ]]]
-      svg_dpad_up_left_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
-        ]]]
-      svg_dpad_up_right_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
-        ]]]
-      svg_dpad_up_right_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
-        ]]]
-      svg_dpad_down_left_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
-        ]]]
-      svg_dpad_down_left_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
-        ]]]
-      svg_dpad_down_right_color: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-card-button")
-        ]]]
-      svg_dpad_down_right_color_active: >-
-        [[[ return
-        getComputedStyle(document.body).getPropertyValue("--lcars-ui-primary")
-        ]]]
-      dpad_center_entity: null
-      dpad_center_entity_active_state: 'on'
-      dpad_up_entity: input_boolean.lcars_ui_fullscreen
-      dpad_up_entity_active_state: 'on'
-      dpad_up_left_entity: null
-      dpad_up_left_entity_active_state: 'on'
-      dpad_up_left_show_label: true
-      dpad_up_left_label: null
-      dpad_up_left_show_name: false
-      dpad_up_left_show_state: false
-      dpad_up_right_entity: null
-      dpad_up_right_entity_active_state: 'on'
-      dpad_up_right_show_label: true
-      dpad_up_right_label: null
-      dpad_up_right_show_name: false
-      dpad_up_right_show_state: false
-      dpad_down_entity: null
-      dpad_down_entity_active_state: 'on'
-      dpad_down_left_entity: null
-      dpad_down_left_entity_active_state: 'on'
-      dpad_down_left_show_label: true
-      dpad_down_left_label: null
-      dpad_down_left_show_name: false
-      dpad_down_left_show_state: false
-      dpad_down_right_entity: null
-      dpad_down_right_entity_active_state: 'on'
-      dpad_down_right_show_label: true
-      dpad_down_right_label: null
-      dpad_down_right_show_name: false
-      dpad_down_right_show_state: false
-      dpad_left_entity: null
-      dpad_left_entity_active_state: 'on'
-      dpad_right_entity: null
-      dpad_right_entity_active_state: 'on'
-      dpad_center_card_background: transparent
-      dpad_center_card_inactive_background_color: transparent
-      dpad_center_card_active_background_color: transparent
-      dpad_up_card_background: transparent
-      dpad_up_card_inactive_background_color: transparent
-      dpad_up_card_active_background_color: transparent
-      dpad_up_left_card_background: transparent
-      dpad_up_left_card_inactive_background_color: transparent
-      dpad_up_left_card_active_background_color: transparent
-      dpad_up_right_card_background: transparent
-      dpad_up_right_card_inactive_background_color: transparent
-      dpad_up_right_card_active_background_color: transparent
-      dpad_down_card_background: transparent
-      dpad_down_card_inactive_background_color: transparent
-      dpad_down_card_active_background_color: transparent
-      dpad_down_left_card_background: transparent
-      dpad_down_left_card_inactive_background_color: transparent
-      dpad_down_left_card_active_background_color: transparent
-      dpad_down_right_card_background: transparent
-      dpad_down_right_card_inactive_background_color: transparent
-      dpad_down_right_card_active_background_color: transparent
-      dpad_left_card_background: transparent
-      dpad_left_card_inactive_background_color: transparent
-      dpad_left_card_active_background_color: transparent
-      dpad_right_card_background: transparent
-      dpad_right_card_inactive_background_color: transparent
-      dpad_right_card_active_background_color: transparent
+      __defs_dpad:
+        color:
+          background:
+            active: |
+              [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-tertiary") ]]]
+            inactive: |
+              [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary") ]]]
+      card:
+        size: 300px
+      dpad:
+        color:
+          background: '#1111ee'
+        button:
+          scale: 6.5
+          min_height: 10px
+          color:
+            ripple: |
+              [[[ return getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+        up:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        down:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        left:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        right:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        center:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        up_left:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        up_right:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        down_left:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
+        down_right:
+          color:
+            background:
+              inactive: |
+                [[[ return variables.__defs_dpad.color.background.active ]]]
+              active: |
+                [[[ return variables.__defs_dpad.color.background.inactive ]]]
+            overlay:
+              default: transparent
+              active: transparent
+              inactive: transparent
+          show_name: false
+          show_state: false
+          show_label: true
+          label: null
+          entity: null
+          active_state: 'on'
     triggers_update:
-      - '[[[ return variables.dpad_up_entity; ]]]'
-      - '[[[ return variables.dpad_down_entity; ]]]'
-      - '[[[ return variables.dpad_left_entity; ]]]'
-      - '[[[ return variables.dpad_right_entity; ]]]'
-      - '[[[ return variables.dpad_center_entity; ]]]'
-      - '[[[ return variables.dpad_up_left_entity; ]]]'
-      - '[[[ return variables.dpad_up_right_entity; ]]]'
-      - '[[[ return variables.dpad_down_left_entity; ]]]'
-      - '[[[ return variables.dpad_down_right_entity; ]]]'
+      - '[[[ return variables.dpad.up.entity; ]]]'
+      - '[[[ return variables.dpad.down.entity; ]]]'
+      - '[[[ return variables.dpad.left.entity; ]]]'
+      - '[[[ return variables.dpad.right.entity; ]]]'
+      - '[[[ return variables.dpad.center.entity; ]]]'
+      - '[[[ return variables.dpad.up_left.entity; ]]]'
+      - '[[[ return variables.dpad.up_right.entity; ]]]'
+      - '[[[ return variables.dpad.down_left.entity; ]]]'
+      - '[[[ return variables.dpad.down_right.entity; ]]]'
     styles:
       card:
-        - height: '[[[ return variables.card_size ]]]'
-        - width: '[[[ return variables.card_size ]]]'
+        - height: '[[[ return variables.card.size ]]]'
+        - width: '[[[ return variables.card.size ]]]'
         - background: |
             [[[
-              let button_ripple_color = variables.button_ripple_color;
-              let svg_dpad_up_bg = (variables.dpad_up_entity && states[variables.dpad_up_entity] && states[variables.dpad_up_entity].state === variables.dpad_up_entity_active_state) ? variables.svg_dpad_up_color_active : variables.svg_dpad_up_color;
-              let svg_dpad_down_bg = (variables.dpad_down_entity && states[variables.dpad_down_entity] && states[variables.dpad_down_entity].state === variables.dpad_down_entity_active_state) ? variables.svg_dpad_down_color_active : variables.svg_dpad_down_color;
-              let svg_dpad_left_bg = (variables.dpad_left_entity && states[variables.dpad_left_entity] && states[variables.dpad_left_entity].state === variables.dpad_left_entity_active_state) ? variables.svg_dpad_left_color_active : variables.svg_dpad_left_color;
-              let svg_dpad_right_bg = (variables.dpad_right_entity && states[variables.dpad_right_entity] && states[variables.dpad_right_entity].state === variables.dpad_right_entity_active_state) ? variables.svg_dpad_right_color_active : variables.svg_dpad_right_color;
-              let svg_dpad_center_bg = (variables.dpad_center_entity && states[variables.dpad_center_entity] && states[variables.dpad_center_entity].state === variables.dpad_center_entity_active_state) ? variables.svg_dpad_center_color_active : variables.svg_dpad_center_color;
-              let svg_dpad_up_left_bg = (variables.dpad_up_left_entity && states[variables.dpad_up_left_entity] && states[variables.dpad_up_left_entity].state === variables.dpad_up_left_entity_active_state) ? variables.svg_dpad_up_left_color_active : variables.svg_dpad_up_left_color;
-              let svg_dpad_up_right_bg = (variables.dpad_up_right_entity && states[variables.dpad_up_right_entity] && states[variables.dpad_up_right_entity].state === variables.dpad_up_right_entity_active_state) ? variables.svg_dpad_up_right_color_active : variables.svg_dpad_up_right_color;
-              let svg_dpad_down_left_bg = (variables.dpad_down_left_entity && states[variables.dpad_down_left_entity] && states[variables.dpad_down_left_entity].state === variables.dpad_down_left_entity_active_state) ? variables.svg_dpad_down_left_color_active : variables.svg_dpad_down_left_color;
-              let svg_dpad_down_right_bg = (variables.dpad_down_right_entity && states[variables.dpad_down_right_entity] && states[variables.dpad_down_right_entity].state === variables.dpad_down_right_entity_active_state) ? variables.svg_dpad_down_right_color_active : variables.svg_dpad_down_right_color;
-              let svg_background_color = variables.svg_background_color;
+              let button_ripple_color = variables.dpad.button.color.ripple;
+              let svg_dpad_up_bg = (variables.dpad.up.entity && states[variables.dpad.up.entity] && states[variables.dpad.up.entity].state === variables.dpad.up.active_state) ? variables.dpad.up.color.background.active : variables.dpad.up.color.background.inactive;
+              let svg_dpad_down_bg = (variables.dpad.down.entity && states[variables.dpad.down.entity] && states[variables.dpad.down.entity].state === variables.dpad.down.active_state) ? variables.dpad.down.color.background.active : variables.dpad.down.color.background.inactive;
+              let svg_dpad_left_bg = (variables.dpad.left.entity && states[variables.dpad.left.entity] && states[variables.dpad.left.entity].state === variables.dpad.left.active_state) ? variables.dpad.left.color.background.active : variables.dpad.left.color.background.inactive;
+              let svg_dpad_right_bg = (variables.dpad.right.entity && states[variables.dpad.right.entity] && states[variables.dpad.right.entity].state === variables.dpad.right.active_state) ? variables.dpad.right.color.background.active : variables.dpad.right.color.background.inactive;
+              let svg_dpad_center_bg = (variables.dpad.center.entity && states[variables.dpad.center.entity] && states[variables.dpad.center.entity].state === variables.dpad.center.active_state) ? variables.dpad.center.color.background.active : variables.dpad.center.color.background.inactive;
+              let svg_dpad_up_left_bg = (variables.dpad.up_left.entity && states[variables.dpad.up_left.entity] && states[variables.dpad.up_left.entity].state === variables.dpad.up_left.active_state) ? variables.dpad.up_left.color.background.active : variables.dpad.up_left.color.background.inactive;
+              let svg_dpad_up_right_bg = (variables.dpad.up_right.entity && states[variables.dpad.up_right.entity] && states[variables.dpad.up_right.entity].state === variables.dpad.up_right.active_state) ? variables.dpad.up_right.color.background.active : variables.dpad.up_right.color.background.inactive;
+              let svg_dpad_down_left_bg = (variables.dpad.down_left.entity && states[variables.dpad.down_left.entity] && states[variables.dpad.down_left.entity].state === variables.dpad.down_left.active_state) ? variables.dpad.down_left.color.background.active : variables.dpad.down_left.color.background.inactive;
+              let svg_dpad_down_right_bg = (variables.dpad.down_right.entity && states[variables.dpad.down_right.entity] && states[variables.dpad.down_right.entity].state === variables.dpad.down_right.active_state) ? variables.dpad.down_right.color.background.active : variables.dpad.down_right.color.background.inactive;
+              let svg_background_color = variables.dpad.color.background;
               let svgString = `<?xml version="1.0" encoding="UTF-8"?>
               <svg width="80mm" height="80mm" version="1.1" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink">
                 <metadata>
@@ -2789,48 +2825,48 @@ button_card_templates:
               return backgroundImage;
             ]]]
         - background-position: center
-        - background-size: '[[[ return variables.card_size ]]]'
+        - background-size: '[[[ return variables.card.size ]]]'
         - background-color: none
       custom_fields:
         dpad_up_button:
           - position: absolute
           - top: 0px
           - left: >
-              [[[ return "calc((" + variables.card_size + "/2) - (" +
-              variables.card_size + " / " + variables.dpad_button_scale +
+              [[[ return "calc((" + variables.card.size + "/2) - (" +
+              variables.card.size + " / " + variables.dpad.button.scale +
               "/2))"; ]]]
           - z-index: 100
         dpad_down_button:
           - position: absolute
           - bottom: 0px
           - left: >
-              [[[ return "calc((" + variables.card_size + "/2) - (" +
-              variables.card_size + " / " + variables.dpad_button_scale +
+              [[[ return "calc((" + variables.card.size + "/2) - (" +
+              variables.card.size + " / " + variables.dpad.button.scale +
               "/2))"; ]]]
           - z-index: 100
         dpad_left_button:
           - position: absolute
           - left: 0px
           - top: >
-              [[[ return "calc((" + variables.card_size + "/2) - (" +
-              variables.card_size + " / " + variables.dpad_button_scale +
+              [[[ return "calc((" + variables.card.size + "/2) - (" +
+              variables.card.size + " / " + variables.dpad.button.scale +
               "/2))"; ]]]
           - z-index: 100
         dpad_right_button:
           - position: absolute
           - right: 0px
           - top: >
-              [[[ return "calc((" + variables.card_size + "/2) - (" +
-              variables.card_size + " / " + variables.dpad_button_scale +
+              [[[ return "calc((" + variables.card.size + "/2) - (" +
+              variables.card.size + " / " + variables.dpad.button.scale +
               "/2))"; ]]]
           - z-index: 100
         dpad_center_button:
           - position: absolute
           - right: |
-              [[[ return "calc(" + variables.card_size + " /4 )";]]]
+              [[[ return "calc(" + variables.card.size + " /4 )";]]]
           - top: >
-              [[[ return "calc((" + variables.card_size + "/2) - (" +
-              variables.card_size + " / " + variables.dpad_button_scale +
+              [[[ return "calc((" + variables.card.size + "/2) - (" +
+              variables.card.size + " / " + variables.dpad.button.scale +
               "/2))"; ]]]
           - z-index: 100
         dpad_up_left_button:
@@ -2857,201 +2893,220 @@ button_card_templates:
       dpad_center_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_center_entity; ]]]'
+          entity: '[[[ return variables.dpad.center.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
-            card_width: |
-              [[[ return "calc(" + variables.card_size + " /2 )";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + " )";]]]
-            card_background: '[[[ return variables.dpad_center_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_center_card_active_background_color ]]]'
-            card_inactive_background_color: >-
-              [[[ return variables.dpad_center_card_inactive_background_color
-              ]]]
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              min_height: '[[[ return variables.dpad.button.min_height; ]]]'
+              width: |
+                [[[ return "calc(" + variables.card.size + " /2 )";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + " )";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.center.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.center.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.center.color.overlay.inactive ]]]'
       dpad_up_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_up_entity; ]]]'
+          entity: '[[[ return variables.dpad.up.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
-            card_width: >
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_background: '[[[ return variables.dpad_up_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_up_card_active_background_color ]]]'
-            card_inactive_background_color: '[[[ return variables.dpad_up_card_inactive_background_color ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              min_height: '[[[ return variables.dpad.button.min_height; ]]]'
+              width: >
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.up.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.up.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.up.color.overlay.inactive ]]]'
       dpad_down_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_down_entity; ]]]'
+          entity: '[[[ return variables.dpad.down.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
-            card_width: >
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_background: '[[[ return variables.dpad_down_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_down_card_active_background_color ]]]'
-            card_inactive_background_color: '[[[ return variables.dpad_down_card_inactive_background_color ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              min_height: '[[[ return variables.dpad.button.min_height; ]]]'
+              width: >
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.down.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.down.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.down.color.overlay.inactive ]]]'
       dpad_left_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_left_entity; ]]]'
+          entity: '[[[ return variables.dpad.left.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
-            card_width: >
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_background: '[[[ return variables.dpad_left_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_left_card_active_background_color ]]]'
-            card_inactive_background_color: '[[[ return variables.dpad_left_card_inactive_background_color ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              min_height: '[[[ return variables.dpad.button.min_height; ]]]'
+              width: >
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.left.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.left.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.left.color.overlay.inactive ]]]'
       dpad_right_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_right_entity; ]]]'
+          entity: '[[[ return variables.dpad.right.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_min_height: '[[[ return variables.dpad_button_min_height; ]]]'
-            card_width: >
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / " +
-              variables.dpad_button_scale + ")";]]]
-            card_background: '[[[ return variables.dpad_right_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_right_card_active_background_color ]]]'
-            card_inactive_background_color: '[[[ return variables.dpad_right_card_inactive_background_color ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              min_height: '[[[ return variables.dpad.button.min_height; ]]]'
+              width: >
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / " +
+                variables.dpad.button.scale + ")";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.right.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.right.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.right.color.overlay.inactive ]]]'
       dpad_up_left_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_up_left_entity; ]]]'
+          entity: '[[[ return variables.dpad.up_left.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-base
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_width: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_background: '[[[ return variables.dpad_up_left_card_background ]]]'
-            card_active_background_color: '[[[ return variables.dpad_up_left_card_active_background_color ]]]'
-            card_inactive_background_color: >-
-              [[[ return variables.dpad_up_left_card_inactive_background_color
-              ]]]
-            card_border_top_left_radius: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-          label: '[[[ return variables.dpad_up_left_label ]]]'
-          show_name: '[[[ return variables.dpad_up_left_show_name ]]]'
-          show_label: '[[[ return variables.dpad_up_left_show_label]]]'
-          show_state: '[[[ return variables.dpad_up_left_show_state ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              width: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.up_left.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.up_left.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.up_left.color.overlay.inactive ]]]'
+              border:
+                top:
+                  left_radius: |
+                    [[[ return "calc(" + variables.card.size + " / 2)";]]]
+          label: '[[[ return variables.dpad.up_left.label ]]]'
+          show_name: '[[[ return variables.dpad.up_left.show_name ]]]'
+          show_label: '[[[ return variables.dpad.up_left.show_label]]]'
+          show_state: '[[[ return variables.dpad.up_left.show_state ]]]'
       dpad_up_right_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_up_right_entity; ]]]'
+          entity: '[[[ return variables.dpad.up_right.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-base
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_width: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_background: '[[[ return variables.dpad_up_right_card_background ]]]'
-            card_active_background_color: >-
-              [[[ return variables.dpad_up_right_card_active_background_color
-              ]]]
-            card_inactive_background_color: >-
-              [[[ return variables.dpad_up_right_card_inactive_background_color
-              ]]]
-            card_border_top_right_radius: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-          label: '[[[ return variables.dpad_up_right_label ]]]'
-          show_name: '[[[ return variables.dpad_up_right_show_name ]]]'
-          show_label: '[[[ return variables.dpad_up_right_show_label]]]'
-          show_state: '[[[ return variables.dpad_up_right_show_state ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              width: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.up_right.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.up_right.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.up_right.color.overlay.inactive ]]]'
+              border:
+                top:
+                  right_radius: |
+                    [[[ return "calc(" + variables.card.size + " / 2)";]]]
+          label: '[[[ return variables.dpad.up_right.label ]]]'
+          show_name: '[[[ return variables.dpad.up_right.show_name ]]]'
+          show_label: '[[[ return variables.dpad.up_right.show_label]]]'
+          show_state: '[[[ return variables.dpad.up_right.show_state ]]]'
       dpad_down_left_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_down_left_entity; ]]]'
+          entity: '[[[ return variables.dpad.down_left.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-base
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_width: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_background: '[[[ return variables.dpad_down_left_card_background ]]]'
-            card_active_background_color: >-
-              [[[ return variables.dpad_down_left_card_active_background_color
-              ]]]
-            card_inactive_background_color: >-
-              [[[ return variables.dpad_down_left_card_inactive_background_color
-              ]]]
-            card_border_bottom_left_radius: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-          label: '[[[ return variables.dpad_down_left_label ]]]'
-          show_name: '[[[ return variables.dpad_down_left_show_name ]]]'
-          show_label: '[[[ return variables.dpad_down_left_show_label]]]'
-          show_state: '[[[ return variables.dpad_down_left_show_state ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              width: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.down_left.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.down_left.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.down_left.color.overlay.inactive ]]]'
+              border:
+                bottom:
+                  left_radius: |
+                    [[[ return "calc(" + variables.card.size + " / 2)";]]]
+          label: '[[[ return variables.dpad.down_left.label ]]]'
+          show_name: '[[[ return variables.dpad.down_left.show_name ]]]'
+          show_label: '[[[ return variables.dpad.down_left.show_label]]]'
+          show_state: '[[[ return variables.dpad.down_left.show_state ]]]'
       dpad_down_right_button:
         card:
           type: custom:button-card
-          entity: '[[[ return variables.dpad_down_right_entity; ]]]'
+          entity: '[[[ return variables.dpad.down_right.entity; ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-base
           variables:
-            ripple_color: '[[[ return variables.button_ripple_color; ]]]'
-            card_width: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_height: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-            card_background: '[[[ return variables.dpad_down_right_card_background ]]]'
-            card_active_background_color: >-
-              [[[ return variables.dpad_down_right_card_active_background_color
-              ]]]
-            card_inactive_background_color: >-
-              [[[ return
-              variables.dpad_down_right_card_inactive_background_color ]]]
-            card_border_bottom_right_radius: |
-              [[[ return "calc(" + variables.card_size + " / 2)";]]]
-          label: '[[[ return variables.dpad_down_right_label ]]]'
-          show_name: '[[[ return variables.dpad_down_right_show_name ]]]'
-          show_label: '[[[ return variables.dpad_down_right_show_label]]]'
-          show_state: '[[[ return variables.dpad_down_right_show_state ]]]'
+            ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
+            card:
+              width: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              height: |
+                [[[ return "calc(" + variables.card.size + " / 2)";]]]
+              color:
+                background:
+                  default: '[[[ return variables.dpad.down_right.color.overlay.default ]]]'
+                  active: '[[[ return variables.dpad.down_right.color.overlay.active ]]]'
+                  inactive: '[[[ return variables.dpad.down_right.color.overlay.inactive ]]]'
+              border:
+                bottom:
+                  right_radius: |
+                    [[[ return "calc(" + variables.card.size + " / 2)";]]]
+          label: '[[[ return variables.dpad.down_right.label ]]]'
+          show_name: '[[[ return variables.dpad.down_right.show_name ]]]'
+          show_label: '[[[ return variables.dpad.down_right.show_label]]]'
+          show_state: '[[[ return variables.dpad.down_right.show_state ]]]'
   cb-lcars-footer-picard:
     template:
       - cb-lcars-card-base
