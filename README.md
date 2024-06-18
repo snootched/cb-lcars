@@ -105,6 +105,11 @@ A 'RED ALERT' color scheme is provided.  You can turn the complete interface int
 
 <br>
 
+Another dashboard sample showing more Picard styles, along with `mini-graph-card` and `thermostat` cards.
+![dashboard_3](images/screenshots/dashboard_sample_3.png)
+
+<br>
+
 Debug Mode: when building out multiple controls on top of  `cb-lcars-card-base` template as the canvas - enable debug to have the background change to a random color.  Allowing for easier visuals to debug sizes and placements.  It's hard when everything is black or transparent!
 
 ![debug_1](images/screenshots/dashboard_debug.png)
@@ -116,7 +121,7 @@ Being based on custom button-card templates, the sky isn't even the limit.  With
 
 In no particular order:
 
-- Highly customizable settings for:
+- Customizable variables/settings for just about everything:
    - default colors / per-instance colors
    - colors based on entity state
    - font sizes/weights
@@ -126,7 +131,7 @@ In no particular order:
    - really too much to list - you can customize just about anything you like
 - Matching control colors to the light entity (buttons, sliders, gradients, etc.)
 - Additional 'flare' such as animating button presses, blinking buttons
-- Versatile 'grid' control that is used to create many other controls.  Used in:
+- Versatile 'grid' control (`cb-lcars-grid`) that is used to create many other controls.  Used in:
   - button panels/groups
   - gauges (the percent markers, tick marks, etc.)
   - sliders
