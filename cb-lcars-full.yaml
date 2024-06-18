@@ -766,6 +766,17 @@ button_card_templates:
               left: 10px
               right: 10px
               bottom: 5px
+  cb-lcars-button-picard-label-center:
+    variables:
+      text:
+        label:
+          font_size: 22px
+          font_weight: normal
+          justify: center
+          align_items: center
+          padding:
+            padding:
+              bottom: 10px
   cb-lcars-button-picard-state-east:
     variables:
       text:
@@ -844,6 +855,17 @@ button_card_templates:
               left: 10px
               right: 10px
               bottom: 5px
+  cb-lcars-button-picard-state-center:
+    variables:
+      text:
+        state:
+          font_size: 22px
+          font_weight: normal
+          justify: center
+          align_items: center
+          padding:
+            padding:
+              bottom: 10px
   cb-lcars-button-picard-name-east:
     variables:
       text:
@@ -922,6 +944,17 @@ button_card_templates:
               left: 10px
               right: 10px
               bottom: 5px
+  cb-lcars-button-picard-name-center:
+    variables:
+      text:
+        name:
+          font_size: 22px
+          font_weight: normal
+          justify: center
+          align_items: center
+          padding:
+            padding:
+              bottom: 10px
   cb-lcars-button-picard-filled:
     template: cb-lcars-button-base
     variables:
