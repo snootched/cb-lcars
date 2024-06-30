@@ -49,8 +49,9 @@
   - [LCARS Controls](#lcars-controls)
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
-  - [Acknowledgements \& Thanks](#acknowledgements--thanks)
-  - [License](#license)
+- [Dashboard Examples](#dashboard-examples)
+- [Acknowledgements \& Thanks](#acknowledgements--thanks)
+- [License](#license)
 
 
 <br>
@@ -252,7 +253,7 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 | [`cb-lcars-actions-disable`](cb-lcars/cb-lcars-actions.yaml)   | Disables all actions for the button.  |
 | [`cb-lcars-actions-toggle`](cb-lcars/cb-lcars-actions.yaml)    | Sets tap action to `toggle`, hold action to `more-info`, and double-tap to `more-info` |
 | [`cb-lcars-actions-more-info`](cb-lcars/cb-lcars-actions.yaml) | Sets all actions to `more-info`           |
-| [`cb-lcars-actions-hue-[tap\|hold]`](cb-lcars/cb-lcars-actions.yaml)       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this
+| [`cb-lcars-actions-hue-[tap\|hold]`](cb-lcars/cb-lcars-actions.yaml)       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this![hue_popup](images/screenshots/hue_popup.png)
 </details>
 
 ### Flare
@@ -1688,12 +1689,571 @@ variables:
 
 ---
 
-## Acknowledgements & Thanks
+# Dashboard Examples
 
-A very sincere thanks to the above projects and their authors and contributoers for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
+Here are a few examples from some WIP dashboards.
 
+<details closed><summary>Grid of Light Sliders</summary>
+
+This is an example of a room picker that has a grid of lights in each room.  This is unfinished..
+
+![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-card-base
+styles:
+  card:
+    - height: 702px
+    - width: 1223px
+    - border-radius: 0 !important
+  custom_fields:
+    group_selector:
+      - position: absolute
+      - top: 130px
+      - left: 70px
+    sliders_livingroom:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_kitchen:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_bathroom:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_office:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_bedroom:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_patio:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    sliders_others:
+      - position: absolute
+      - top: 130px
+      - left: 275px
+    inner_footer:
+      - position: absolute
+      - bottom: 35px
+      - left: 110px
+    inner_header:
+      - position: absolute
+      - top: 25px
+      - left: 110px
+custom_fields:
+  inner_header:
+    card:
+      type: custom:button-card
+      template: cb-lcars-header
+      variables:
+        card:
+          height: 95px
+          width: 850px
+          border:
+            left:
+              size: 160px
+            top:
+              left_radius: 80px
+              size: 60px
+            inner:
+              factor: 3
+            color: var(--picard-dark-gray)
+  inner_footer:
+    card:
+      type: custom:button-card
+      template: cb-lcars-footer
+      variables:
+        card:
+          height: 70px
+          width: 850px
+          border:
+            left:
+              size: 160px
+            bottom:
+              left_radius: 80px
+            inner:
+              factor: 3
+            color: var(--picard-darkest-gray)
+  group_selector:
+    card:
+      type: custom:layout-card
+      layout_type: custom:grid-layout
+      cards:
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-living_room
+          state:
+            - id: state_on
+              value: LIVING ROOM
+            - id: state_off
+              operator: '!='
+              value: LIVING ROOM
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: Living Room
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: LIVING ROOM
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.living_room
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-living_room
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-kitchen
+          state:
+            - id: state_on
+              value: KITCHEN
+            - id: state_off
+              operator: '!='
+              value: KITCHEN
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: Kitchen
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: KITCHEN
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.kitchen
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-kitchen
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-bathroom
+          state:
+            - id: state_on
+              value: BATHROOM
+            - id: state_off
+              operator: '!='
+              value: BATHROOM
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: BATHROOM
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: BATHROOM
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.bathroom
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-bathroom
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-bedroom
+          state:
+            - id: state_on
+              value: BEDROOM
+            - id: state_off
+              operator: '!='
+              value: BEDROOM
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: BEDROOM
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: BEDROOM
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.bedroom
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-bedroom
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-office
+          state:
+            - id: state_on
+              value: OFFICE
+            - id: state_off
+              operator: '!='
+              value: OFFICE
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: OFFICE
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: OFFICE
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.office
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-office
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+            action:
+              hue_api: lcars-hue-patio
+          state:
+            - id: state_on
+              value: PATIO
+            - id: state_off
+              operator: '!='
+              value: PATIO
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: PATIO
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: PATIO
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.patio
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+            action:
+              hue_api: lcars-hue-patio
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-animate-press
+            - cb-lcars-actions-hue-hold
+          variables:
+            card:
+              height: 55px
+              color:
+                active: var(--picard-medium-light-blue)
+                inactive: var(--picard-medium-dark-gray)
+                background:
+                  active: var(--picard-medium-light-blue)
+                  inactive: var(--picard-medium-dark-gray)
+          state:
+            - id: state_on
+              value: OTHERS
+            - id: state_off
+              operator: '!='
+              value: OTHERS
+          entity: input_select.lcars_ui_lightgroup_selector
+          label: OTHERS
+          tap_action:
+            action: call-service
+            service: input_select.select_option
+            data:
+              entity_id: input_select.lcars_ui_lightgroup_selector
+              option: OTHERS
+          hold_action:
+            action: none
+          double_tap_action:
+            action: none
+        - type: custom:button-card
+          template:
+            - cb-lcars-button-picard-filled-dense
+            - cb-lcars-actions-hue-tap
+          entity: light.table
+          show_state: false
+          variables:
+            card:
+              height: 55px
+              color:
+                background:
+                  active: var(--button-card-light-color)
+                  inactive: var(--picard-dark-gray)
+      layout:
+        grid-template-columns: 170px 25px
+        grid-template-rows: auto
+        grid-auto-rows: auto
+        card_margin: 0
+        padding: 0
+        margin: '-4px -4px 0px -4px'
+        grid-column-gap: 10px
+  sliders_livingroom:
+    card:
+      type: conditional
+      conditions:
+        - condition: state
+          entity: input_select.lcars_ui_lightgroup_selector
+          state: LIVING ROOM
+      card:
+        type: custom:button-card
+        template:
+          - cb-lcars-grid
+        variables:
+          grid:
+            auto_calc_X: false
+            auto_calc_Y: false
+            X: 1
+            'Y': 7
+            gap: 12px
+            buttons:
+              - entity: light.living_room
+                variables:
+                  label: All Lights
+              - entity: light.corner_lamp
+                variables:
+                  label: corner lamp
+              - entity: light.floor_lamp
+                variables:
+                  label: floor lamp
+              - entity: light.tv
+                variables:
+                  label: tv
+              - entity: light.fan
+                variables:
+                  label: fan
+              - entity: light.media_lights
+                variables:
+                  label: media lights
+              - entity: light.floor_strip
+                variables:
+                  label: floor strip
+          button:
+            type: custom:button-card
+            template:
+              - cb-lcars-multimeter
+            variables:
+              entity_match_slider: true
+              header_button:
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-gray)
+                  text:
+                    label:
+                      font_size: 22px
+              card:
+                width: 800px
+                height: 55px
+              panel:
+                height: 45px
+                width: 650px
+                mode: gauge
+  sliders_kitchen:
+    card:
+      type: conditional
+      conditions:
+        - condition: state
+          entity: input_select.lcars_ui_lightgroup_selector
+          state: KITCHEN
+      card:
+        type: custom:button-card
+        template:
+          - cb-lcars-grid
+        variables:
+          grid:
+            auto_calc_X: false
+            auto_calc_Y: false
+            X: 1
+            'Y': 4
+            gap: 12px
+            buttons:
+              - entity: light.kitchen
+                variables:
+                  label: All Lights
+              - entity: light.overhead
+                variables:
+                  label: Overhead
+              - entity: light.counter
+                variables:
+                  label: counter
+              - entity: light.table
+                variables:
+                  label: dining table
+          button:
+            type: custom:button-card
+            template:
+              - cb-lcars-multimeter
+            variables:
+              entity_match_slider: true
+              header_button:
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-gray)
+                  text:
+                    label:
+                      font_size: 22px
+              card:
+                width: 800px
+                height: 55px
+              panel:
+                height: 45px
+                width: 650px
+                mode: gauge
+.
+.
+.
+...rest of the slider groups
+```
+</details>
+
+---
+
+# Acknowledgements & Thanks
+
+A very sincere thanks to these projects and their authors, contributers and communities for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
+
+[**ha-lcars theme**](https://github.com/th3jesta/ha-lcars) (the definitive LCARS theme for HA!)
+
+[**custom-button-card**](https://github.com/custom-cards/button-card) 
+
+[**my-cards/my-slider-v2**](https://github.com/AnthonMS/my-cards)
+
+[**lovelace-layout-card**](https://github.com/thomasloven/lovelace-layout-card) 
+
+[**lovelace-card-mod**](https://github.com/thomasloven/lovelace-card-mod) 
+
+[**lovelace-hue-like-light-card**](https://github.com/Gh61/lovelace-hue-like-light-card) 
+
+<br>
 As well, some shout-outs and attributions to these great projects:
-
+<br><br>
 
 [LCARSlad London](https://twitter.com/lcarslad) for excellent LCARS images and diagrams for reference.
 
@@ -1706,7 +2266,7 @@ As well, some shout-outs and attributions to these great projects:
 [lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
 
 ---
-##  License
+#  License
 
 This project uses the MIT License. For more details, refer to the [LICENSE](LICENSE) file.
 
