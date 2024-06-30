@@ -50,6 +50,8 @@
     - [Sliders](#sliders)
     - [Fully Built Controls](#fully-built-controls)
 - [Dashboard Examples](#dashboard-examples)
+    - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
+    - [Room Lighting Controls](#room-lighting-controls)
 - [Acknowledgements \& Thanks](#acknowledgements--thanks)
 - [License](#license)
 
@@ -1692,12 +1694,120 @@ variables:
 # Dashboard Examples
 
 Here are a few examples from some WIP dashboards.
+<br>
+<br>
 
-<details closed><summary>Grid of Light Sliders</summary>
+### Row of sliders (Transporter controls? :grin:)
 
-This is an example of a room picker that has a grid of lights in each room.  This is unfinished..
+This is an extract of a group of vertical sliders reminiscent of the transporter controls (to me anyway)
+
+<details closed><summary>YAML</summary>
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-functions
+  - cb-lcars-card-base
+variables:
+  entities:
+    - light.living_room_ambient
+    - light.corner_lamp
+    - light.kitchen
+styles:
+  card:
+    - height: 702px
+    - width: 1223px
+    - border-radius: 0 !important
+  custom_fields:
+    slider_grid:
+      - position: absolute
+      - top: 140px
+      - right: 50px
+
+    .
+    .
+    .
+    
+custom_fields:
+  .
+  .
+  .
+  
+  slider_grid:
+    card:
+      type: custom:button-card
+      template:
+        - cb-lcars-grid
+      variables:
+        button:
+          type: custom:button-card
+          template:
+            - cb-lcars-functions
+            - cb-lcars-slider
+          variables:
+            entity: '[[[ return variables.entities[0] ]]]'
+            card:
+              height: 300px
+              width: 63px
+            entity_match_slider_end: true
+            meter:
+              variables:
+                gradient_start_color: var(--picard-light-blue)
+                button:
+                  template: cb-lcars-button-lozenge
+                  variables:
+                    card:
+                      width: 63px
+                      height: 15px
+                grid:
+                  gap: 5px
+            slider:
+              variables:
+                mask_color: rgba(0,0,0,0.85)
+        grid:
+          gap: 8px
+          'Y': 1
+          X: 3
+          buttons:
+            - variables:
+                entity: '[[[ return variables.entities[0] ]]]'
+                meter:
+                  variables:
+                    gradient_start_color: var(--picard-light-blue)
+                    button:
+                      template: cb-lcars-button-lozenge
+                      variables:
+                        card:
+                          width: 63px
+                          height: 15px
+                  grid:
+                    gap: 5px
+            - variables:
+                entity: '[[[ return variables.entities[1] ]]]'
+            - variables:
+                entity: '[[[ return variables.entities[2] ]]]'
+            - variables:
+                entity: '[[[ return variables.entities[3] ]]]'
+            - variables:
+                entity: '[[[ return variables.entities[4] ]]]'
+            - variables:
+                entity: '[[[ return variables.entities[5] ]]]'
+
+```
+</details>
+<br>
+
+### Room Lighting Controls
+
+This is an example of a room picker that has a grid of lights in each room.<br>
+Basically the room selector is an `input_select` that controls visibility of a card with the lights of each room in the content area between the header and footer.<br>
+<br>
+The room selector is a bit more complex as it's a grid which the small rectangle in the second column denotes the color/state of that room - so at a glance I know if lights are on in that room.
+
+
 
 ![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
+<details closed><summary>YAML</summary>
 
 ```yaml
 type: custom:button-card
@@ -1750,39 +1860,9 @@ styles:
       - top: 25px
       - left: 110px
 custom_fields:
-  inner_header:
-    card:
-      type: custom:button-card
-      template: cb-lcars-header
-      variables:
-        card:
-          height: 95px
-          width: 850px
-          border:
-            left:
-              size: 160px
-            top:
-              left_radius: 80px
-              size: 60px
-            inner:
-              factor: 3
-            color: var(--picard-dark-gray)
-  inner_footer:
-    card:
-      type: custom:button-card
-      template: cb-lcars-footer
-      variables:
-        card:
-          height: 70px
-          width: 850px
-          border:
-            left:
-              size: 160px
-            bottom:
-              left_radius: 80px
-            inner:
-              factor: 3
-            color: var(--picard-darkest-gray)
+  .
+  .
+  .
   group_selector:
     card:
       type: custom:layout-card
