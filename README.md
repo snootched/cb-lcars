@@ -233,10 +233,10 @@ These were derived by AI from the original palette.
 
 | Template             | Description    |
 | -------------------- | -------------- |
-| `cb-lcars-functions`| A libary of custom reuasable javascript functions that can be leveraged when building complex/dynamic cards.<br><br>These are functions that are stored in variables and will execute when used in other variable definitions with javascript. |
+| [`cb-lcars-functions`](cb-lcars/cb-lcars-functions.yaml)| A libary of custom reuasable javascript functions that can be leveraged when building complex/dynamic cards.<br><br>These are functions that are stored in variables and will execute when used in other variable definitions with javascript. |
 | [`cb-lcars-base`](doc/cb-lcars-base.md)      | This is the base template for cb-lcars.  This defines most variables and styles that are used by the rest of the library of tempalates.  This template is not meant to be used on its own, but rather can be included when building out new types of controls etc.<br><br>Please see [`cb-lcars-base`](doc/cb-lcars-base.md) for details.  |
-| `cb-lcars-card-base` | This is a template that you can use on a foundational custom-button-card that is being used as a canvas to build more complex controls (eg. `cb-lcars-multimeter`) or dashboard components.  It will change the background color of the card when debug mode is enabled.<br><br>To use:<br>Create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`<br>When toggled on, the card background will turn to a random color as a visual assist.<br><br>![card-debug](images/screenshots/card-base-debug.png) |
-| `cb-lcars-debug`     | Adapted from a very nice template by [wfuphy](https://github.com/wfurphy/creative-button-card-templates?tab=readme-ov-file#debug)<br>This template can be added to enable console debug printing of any custom button card's objects (`variables`,`this`,`hass` etc. ).<br><br>To use:<br>Add `cb-lcars-debug` to the card's template list.  In the browser console, you will then have access to see the varibles defined etc.<br><br>![console-debug](images/screenshots/console-debug.png) |
+| [`cb-lcars-card-base`](cb-lcars/cb-lcars-card-base.yaml) | This is a template that you can use on a foundational custom-button-card that is being used as a canvas to build more complex controls (eg. `cb-lcars-multimeter`) or dashboard components.  It will change the background color of the card when debug mode is enabled.<br><br>To use:<br>Create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`<br>When toggled on, the card background will turn to a random color as a visual assist.<br><br>![card-debug](images/screenshots/card-base-debug.png) |
+| [`cb-lcars-debug`](cb-lcars/cb-lcars-debug.yaml) | Adapted from a very nice template by [wfuphy](https://github.com/wfurphy/creative-button-card-templates?tab=readme-ov-file#debug)<br>This template can be added to enable console debug printing of any custom button card's objects (`variables`,`this`,`hass` etc. ).<br><br>To use:<br>Add `cb-lcars-debug` to the card's template list.  In the browser console, you will then have access to see the varibles defined etc.<br><br>![console-debug](images/screenshots/console-debug.png) |
 </details>
 
 ### Actions
@@ -249,10 +249,10 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 
 | Template                     | Description |
 | ---------------------------- | ----------- |
-| `cb-lcars-actions-disable`   | Disables all actions for the button.  |
-| `cb-lcars-actions-toggle`    | Sets tap action to `toggle`, hold action to `more-info`, and double-tap to `more-info` |
-| `cb-lcars-actions-more-info` | Sets all actions to `more-info`           |
-| `cb-lcars-actions-hue-[tap\|hold]`       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this
+| [`cb-lcars-actions-disable`](cb-lcars/cb-lcars-actions.yaml)   | Disables all actions for the button.  |
+| [`cb-lcars-actions-toggle`](cb-lcars/cb-lcars-actions.yaml)    | Sets tap action to `toggle`, hold action to `more-info`, and double-tap to `more-info` |
+| [`cb-lcars-actions-more-info`](cb-lcars/cb-lcars-actions.yaml) | Sets all actions to `more-info`           |
+| [`cb-lcars-actions-hue-[tap\|hold]`](cb-lcars/cb-lcars-actions.yaml)       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this
 </details>
 
 ### Flare
@@ -261,8 +261,8 @@ Of note in this list - if you like the style of Philips Hue interface, then `cb-
 
 | Template                 | Description |
 | ------------------------ | ----------- |
-| `cb-lcars-animate-press` | Adds an animation to the button when pressed.  |
-| `cb-lcars-state-blink`   | Causes the button to blink when active. <br><br> ![picard-button-blink](images/screenshots/picard-button-blink.gif) |
+| [`cb-lcars-animate-press`](cb-lcars/cb-lcars-animate-press.yaml) | Adds an animation to the button when pressed.  |
+| [`cb-lcars-state-blink`](cb-lcars/cb-lcars-state-blink.yaml)   | Causes the button to blink when active. <br><br> ![picard-button-blink](images/screenshots/picard-button-blink.gif) |
 </details>
 
 ---
@@ -280,9 +280,9 @@ These are the basic shapes found in LCARS.  These are highly configurable - defa
 | [`cb-lcars-header`](cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
 | [`cb-lcars-header-right`](cb-lcars/cb-lcars-header.yaml)        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
 | [`cb-lcars-header-contained`](cb-lcars/cb-lcars-header.yaml)    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
-| `cb-lcars-header-open`         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
-| `cb-lcars-header-picard`       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
-| `cb-lcars-header-picard-right` | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
+| [`cb-lcars-header-open`](cb-lcars/cb-lcars-header.yaml)         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
+| [`cb-lcars-header-picard`](cb-lcars/cb-lcars-header-picard.yaml)       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
+| [`cb-lcars-header-picard-right`](cb-lcars/cb-lcars-header-picard.yaml) | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
 </details>
 <details closed><summary>Examples</summary>
 
@@ -396,13 +396,13 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-footer-base`         |                                                             |
-| `cb-lcars-footer`              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
-| `cb-lcars-footer-right`        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)        |
-| `cb-lcars-footer-contained`    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
-| `cb-lcars-footer-open`         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
-| `cb-lcars-footer-picard`       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
-| `cb-lcars-footer-picard-right` | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
+| [`cb-lcars-footer-base`](cb-lcars/cb-lcars-footer.yaml)         |     n/a                                                        |
+| [`cb-lcars-footer`](cb-lcars/cb-lcars-footer.yaml)              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
+| [`cb-lcars-footer-right`](cb-lcars/cb-lcars-footer.yaml)        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)(cb-lcars/cb-lcars-footer.yaml)        |
+| [`cb-lcars-footer-contained`](cb-lcars/cb-lcars-footer.yaml)    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
+| [`cb-lcars-footer-open`](cb-lcars/cb-lcars-footer.yaml)         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
+| [`cb-lcars-footer-picard`](cb-lcars/cb-lcars-footer-picard.yaml)       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
+| [`cb-lcars-footer-picard-right`](cb-lcars/cb-lcars-footer-picard.yaml) | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
 </details>
 
 <details closed><summary>Examples</summary>
@@ -687,11 +687,11 @@ custom_fields:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-callout-base`         |                                                              |
-| `cb-lcars-header-callout`       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
-| `cb-lcars-header-callout-right` | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
-| `cb-lcars-footer-callout`       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
-| `cb-lcars-footer-callout-right` | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
+| [`cb-lcars-callout-base`](cb-lcars/cb-lcars-callout.yaml)         |    n/a                                                          |
+| [`cb-lcars-header-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
+| [`cb-lcars-header-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
+| [`cb-lcars-footer-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
+| [`cb-lcars-footer-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 </details>
 <details closed><summary>Examples</summary>
 
@@ -759,7 +759,7 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-label` | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
+| [`cb-lcars-label`](cb-lcars/cb-lcars-label.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
 
 
 </details>
@@ -863,15 +863,15 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-button-base`<br>`cb-lcars-button-square` | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
+| [`cb-lcars-button-base`](cb-lcars/cb-lcars-button-base.yaml)<br>[`cb-lcars-button-square`](cb-lcars/cb-lcars-button-base.yaml) | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
 
 ### Rounded Buttons
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-button-lozenge`<br>`cb-lcars-button-lozenge-right` | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
-| `cb-lcars-button-bullet`<br>`cb-lcars-button-bullet-right`   | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
-| `cb-lcars-button-capped`<br>`cb-lcars-button-capped-right`   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
+| [`cb-lcars-button-lozenge`](cb-lcars/cb-lcars-button-lozenge.yaml)<br>[`cb-lcars-button-lozenge-right`](cb-lcars/cb-lcars-button-lozenge.yaml) | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
+| [`cb-lcars-button-bullet`](cb-lcars/cb-lcars-button-bullet.yaml)<br>[`cb-lcars-button-bullet-right`](cb-lcars/cb-lcars-button-bullet.yaml)   | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
+| [`cb-lcars-button-capped`](cb-lcars/cb-lcars-button-capped.yaml)<br>[`cb-lcars-button-capped-right`](cb-lcars/cb-lcars-button-capped.yaml)   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
 </details>
 
 
@@ -882,11 +882,11 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-button-picard`<br>`cb-lcars-button-picard-right`<br>                       | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
-| `cb-lcars-button-picard-dense`<br>`cb-lcars-button-picard-dense-right`               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
-| `cb-lcars-button-picard-filled`<br>`cb-lcars-button-picard-filled-right`             | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
-| `cb-lcars-button-picard-filled-dense`<br>`cb-lcars-button-picard-filled-dense-right` | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
-| `cb-lcars-button-picard-icon`                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
+| [`cb-lcars-button-picard`](cb-lcars/cb-lcars-button-picard.yaml)<br>[`cb-lcars-button-picard-right`](cb-lcars/cb-lcars-button-picard.yaml)<br>                       | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
+| [`cb-lcars-button-picard-dense`](cb-lcars/cb-lcars-button-picard.yaml)<br>[`cb-lcars-button-picard-dense-right`](cb-lcars/cb-lcars-button-picard.yaml)               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
+| [`cb-lcars-button-picard-filled`](cb-lcars/cb-lcars-button-picard-filled.yaml)<br>[`cb-lcars-button-picard-filled-right`](cb-lcars/cb-lcars-button-picard-filled.yaml)             | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
+| [`cb-lcars-button-picard-filled-dense`](cb-lcars/cb-lcars-button-picard-filled.yaml)<br>[`cb-lcars-button-picard-filled-dense-right`](cb-lcars/cb-lcars-button-picard-filled.yaml) | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
+| [`cb-lcars-button-picard-icon`](cb-lcars/cb-lcars-button-picard-icon.yaml)                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
 </details>
 
 ### Picard-Style Text Modifiers
@@ -895,7 +895,7 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]` | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
+| [`cb-lcars-button-picard-[label\|state\|name]-[east\|west\|ne\|nw\|se\|sw]`](cb-lcars/cb-lcars-button-text-mods.yaml) | ![cb-lcars-button-picard-label-nw](images/button_samples/cb-lcars-button-picard-label-nw.png) |
 </details>
 
 ### Button Examples
@@ -1024,9 +1024,9 @@ Entity is 'off'
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-grid`       | Versatile base grid control.<br>Other elements can be added into a grid such as buttons, sliders, icons, etc.       |
-| `cb-lcars-button-grid`       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
-| `cb-lcars-button-grid-icons` | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
+| [`cb-lcars-grid`](cb-lcars/cb-lcars-grid.yaml)       | Versatile base grid control.<br>Other elements can be added into a grid such as buttons, sliders, icons, etc.       |
+| [`cb-lcars-button-grid`](cb-lcars/cb-lcars-button-grid.yaml)       | ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)       |
+| [`cb-lcars-button-grid-icons`](cb-lcars/cb-lcars-button-grid-icons.yaml) | ![cb-lcars-button-grid-icons](images/button_samples/cb-lcars-button-grid-icons.png) |
 
 </details>
 
@@ -1204,12 +1204,12 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-meter`                   | ![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)                   |
-| `cb-lcars-meter-horizontal`        | ![cb-lcars-meter-horizontal](images/button_samples/cb-lcars-meter-horizontal.png)        |
-| `cb-lcars-slider`                  | ![cb-lcars-slider](images/button_samples/cb-lcars-slider.png)                  |
-| `cb-lcars-slider-gauge`            | ![cb-lcars-slider-gauge](images/button_samples/cb-lcars-slider-gauge.png)            |
-| `cb-lcars-slider-horizontal`       | ![cb-lcars-slider-horizontal](images/button_samples/cb-lcars-slider-horizontal.png)       |
-| `cb-lcars-slider-horizontal-gauge` | ![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
+| [`cb-lcars-meter`](cb-lcars/cb-lcars-meter.yaml)                   | ![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)                   |
+| [`cb-lcars-meter-horizontal`](cb-lcars/cb-lcars-meter.yaml)        | ![cb-lcars-meter-horizontal](images/button_samples/cb-lcars-meter-horizontal.png)        |
+| [`cb-lcars-slider`](cb-lcars/cb-lcars-slider.yaml)                  | ![cb-lcars-slider](images/button_samples/cb-lcars-slider.png)                  |
+| [`cb-lcars-slider-gauge`](cb-lcars/cb-lcars-slider-gauge.yaml)            | ![cb-lcars-slider-gauge](images/button_samples/cb-lcars-slider-gauge.png)            |
+| [`cb-lcars-slider-horizontal`](cb-lcars/cb-lcars-slider.yaml)       | ![cb-lcars-slider-horizontal](images/button_samples/cb-lcars-slider-horizontal.png)       |
+| [`cb-lcars-slider-horizontal-gauge`](cb-lcars/cb-lcars-slider-gauge.yaml) | ![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png) |
 </details>
 
 <details closed><summary>Meter/Slider/Gauge Examples</summary>
@@ -1523,8 +1523,8 @@ variables:
 
 | Template       | Default Style          |
 | -------------- | ---------------------- |
-| `cb-lcars-multimeter`              | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
-| `cb-lcars-dpad`                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
+| [`cb-lcars-multimeter`](cb-lcars/cb-lcars-multimeter.yaml)             | ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)              |
+| [`cb-lcars-dpad`](cb-lcars/cb-lcars-dpad.yaml)                    | ![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)                    |
 </details>
 
 <details open><summary>Multimeter Examples</summary>

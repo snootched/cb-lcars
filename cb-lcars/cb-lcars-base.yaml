@@ -118,16 +118,20 @@ cb-lcars-base:
       - width: '[[[ return variables.card.width; ]]]'
       - border-top: >-
           [[[ return variables.card.border.top.size + " solid " +
-          variables.card.border.color ]]]
+              (variables.card.border.top.color || variables.card.border.color) 
+          ]]]
       - border-left: >-
           [[[ return variables.card.border.left.size + " solid " +
-          variables.card.border.color ]]]
+              (variables.card.border.left.color || variables.card.border.color) 
+          ]]]
       - border-right: >-
           [[[ return variables.card.border.right.size + " solid " +
-          variables.card.border.color ]]]
+              (variables.card.border.right.color || variables.card.border.color) 
+          ]]]
       - border-bottom: >-
           [[[ return variables.card.border.bottom.size + " solid " +
-          variables.card.border.color ]]]
+              (variables.card.border.bottom.color || variables.card.border.color)
+          ]]]
       - background: '[[[ return variables.card.color.background.default ]]]'
       - border-top-left-radius: '[[[ return variables.card.border.top.left_radius + " !important" ]]]'
       - border-top-right-radius: >-

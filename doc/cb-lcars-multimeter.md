@@ -25,10 +25,10 @@ variables:
       left: 5px
       right: 0px
       bottom: 0px
-    meter:
-    slider:
-    gauge:
-    icon_grid:
+    meter: { }
+    slider: { }
+    gauge: { }
+    icon_grid: { }
 ```
 </td>
 <td>
