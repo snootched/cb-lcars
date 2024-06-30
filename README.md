@@ -1701,6 +1701,8 @@ Here are a few examples from some WIP dashboards.
 
 This is an extract of a group of vertical sliders reminiscent of the transporter controls (to me anyway)
 
+![dashboard_light_sliders](images/screenshots/dashboard_light_sliders.png
+)
 <details closed><summary>YAML</summary>
 
 ```yaml
