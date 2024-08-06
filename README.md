@@ -25,7 +25,7 @@
   - [Dependencies and Extras](#dependencies-and-extras)
 - [Getting Started](#getting-started)
   - [Install CB-LCARS Templates](#install-cb-lcars-templates)
-  - [HA-LCARS Theme Setup](#ha-lcars-theme-setup)
+  - [HA-LCARS Theme - Setup and Customizations](#ha-lcars-theme---setup-and-customizations)
     - [Font](#font)
     - [Custom *Picard* Colors](#custom-picard-colors)
 - [The Templates](#the-templates)
@@ -189,7 +189,7 @@ A valid YAML file of all the LCARS templates is provided as [cb-lcars-full.yaml]
 1. Copy the full contents of [cb-lcars-full.yaml](./cb-lcars-full.yaml) into the YAML of your dashboard.
 2. To use the debug option in `cb-lcars-card-base`, create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`
 
-## HA-LCARS Theme Setup
+## HA-LCARS Theme - Setup and Customizations
 
 These components are built on top of, and are intended to extend the great ha-lcars theme.  These palettes have been created from multiple sources - and filled out with additional shades to create full palettes to select your colors from.
 
@@ -202,26 +202,26 @@ Simply substitute the following resource string when setting up ha-lcars:
 
 ### Custom *Picard* Colors
 
- Add the custom `Picard II` and `Picard II RED ALERT` definitions from [lcars.yaml](ha-lcars/lcars.yaml) to your ha-lcars `lcars.yaml` file.
+ Copy the custom `Picard [cb-lcars]` and `Picard RED ALERT [cb-lcars]` definitions from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your ha-lcars `lcars.yaml` file in Home Assistant (per the standard way of [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
 
-<details closed><summary>Picard II</summary>
+<details closed><summary>Picard [cb-lcars]</summary>
 Grays, Blues, and Oranges are the core colours.  Greens and Yellows added for additional options.
 
-![Picard II theme](images/themes/lcars_picard_ii_colors.png)
+![Picard theme](images/themes/lcars_picard_ii_colors.png)
 
 These are the colors used for the ha-lcars defined variables.
 
-![Picard II ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
+![Picard ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
 </details>
 
-<details closed><summary>Picard II RED ALERT</summary>
+<details closed><summary>Picard II RED ALERT [cb-lcars]</summary>
 RED ALERT theme will substitue color codes from the red spectrum in place of the original variable color codes.
 <br>
 These were derived by AI from the original palette.
 
-![Picard II Red Alert theme](images/themes/lcars_picard_ii_red_alert_colors.png)
+![Picard Red Alert theme](images/themes/lcars_picard_ii_red_alert_colors.png)
 
-![Picard II Red Alert ha-lcars](images/themes/lcars_picard_ii_red_alert_ha-lcars_settings.png)
+![Picard Red Alert ha-lcars](images/themes/lcars_picard_ii_red_alert_ha-lcars_settings.png)
 </details>
 
 ---
