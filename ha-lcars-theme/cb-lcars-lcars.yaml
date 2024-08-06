@@ -1,11 +1,11 @@
 # Paste your themes here |
 #                        V
 
-LCARS Picard II:
-  card-mod-theme: LCARS Picard II
+LCARS Picard [cb-lcars]:
+  card-mod-theme: LCARS Picard [cb-lcars]
   # Colors have been sourced and combined from HA-LCARS, thelcars.com, augmented with mewho.com/titan
   # Additional shades added to fill out a full palette with the help of some AI :D
-  
+
   #oranges
   picard-darkest-orange: "#d91604"
   picard-dark-orange: "#ef1d10"
@@ -17,7 +17,7 @@ LCARS Picard II:
 
   #grays
   picard-darkest-gray: "#1e2229"
-  picard-dark-gray: "#2f3749" 
+  picard-dark-gray: "#2f3749"
   picard-medium-dark-gray: "#52596e"
   picard-gray: "#6d748c"
   picard-medium-light-gray: "#9ea5ba"
@@ -59,26 +59,17 @@ LCARS Picard II:
   picard-font-color: "#828ba6"
   lcars-modern-light-gray: "#9996BA"
   lcars-text-gray: var(--picard-font-color)
-  # mdc-theme-primary: var(--picard-font-color)
-  # mdc-theme-primary: var(--picard-font-color)
-  #mdc-theme-on-primary: black
-  #mdc-theme-on-secondary: var(--lcars-text-gray)
+
   mdc-theme-text-primary-on-background: var(--lcars-text-gray)
   mdc-theme-text-secondary-on-background: var(--lcars-text-gray)
 
+  #<<: *lcars-variables
   <<: *lcars-colors
   <<: *base
   <<: *card-mod-css
 
-  #lovelace-background: black
-  #primary-color: black
-  #light-primary-color: var(--lcars-medium-gray)
   primary-color: var(--lcars-ui-primary)
   light-primary-color: var(--picard-medium-light-gray)
-  #primary-background-color: black
-  #secondary-background-color: var(--lcars-card-button)
-  #divider-color: transparent
-  #accent-color: var(--lcars-orange)
 
   # Sidebar Menu
   sidebar-background-color: var(--lcars-ui-tertiary)
@@ -109,11 +100,11 @@ LCARS Picard II:
   warning-color: var(--picard-orange)
   error-color: var(--picard-dark-orange)
 
-LCARS Picard II RED ALERT:
-  card-mod-theme: LCARS Picard II RED ALERT
-  # Picard RED ALERT colors created by using base Picard II colors and run through AI to calculate new palette.  
+LCARS Picard RED ALERT [cb-lcars]:
+  card-mod-theme: LCARS Picard II RED ALERT [cb-lcars]
+  # Picard RED ALERT colors created by using base Picard II colors and run through AI to calculate new palette.
   # Looks nice but could be tweaked.
-  
+
   #oranges
   picard-darkest-orange: "#8b0000"
   picard-dark-orange: "#a52a2a"
@@ -164,26 +155,17 @@ LCARS Picard II RED ALERT:
   picard-font-color: "#ff7f50"
   lcars-modern-light-gray: "#ffa07a"
   lcars-text-gray: var(--picard-font-color)
-  # mdc-theme-primary: var(--picard-font-color)
-  # mdc-theme-primary: var(--picard-font-color)
-  #mdc-theme-on-primary: black
-  #mdc-theme-on-secondary: var(--lcars-text-gray)
+
   mdc-theme-text-primary-on-background: var(--lcars-text-gray)
   mdc-theme-text-secondary-on-background: var(--lcars-text-gray)
 
+  #<<: *lcars-variables
   <<: *lcars-colors
   <<: *base
   <<: *card-mod-css
 
-  #lovelace-background: black
-  #primary-color: black
-  #light-primary-color: var(--lcars-medium-gray)
   primary-color: var(--lcars-ui-primary)
   light-primary-color: var(--picard-medium-light-gray)
-  #primary-background-color: black
-  #secondary-background-color: var(--lcars-card-button)
-  #divider-color: transparent
-  #accent-color: var(--lcars-orange)
 
   # Sidebar Menu
   sidebar-background-color: var(--lcars-ui-tertiary)
