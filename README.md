@@ -187,7 +187,7 @@ Per custom-button-card documentation, template definitions are added to your das
 A valid YAML file of all the LCARS templates is provided as [cb-lcars-full.yaml](./cb-lcars-full.yaml)
 
 1. Copy the full contents of [cb-lcars-full.yaml](./cb-lcars-full.yaml) into the YAML of your dashboard.
-2. To use the debug option in `cb-lcars-card-base`, create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`
+2. Create an input helper boolean in your Home Assistant instance named `input_boolean.lcars_ui_debug`.    This is mandatory as it is required by the template code which allows for using the visual debug option in `cb-lcars-card-base`.
 
 ## HA-LCARS Theme - Setup and Customizations
 
