@@ -62,6 +62,7 @@ LCARS Picard [cb-lcars]:
 
   mdc-theme-text-primary-on-background: var(--lcars-text-gray)
   mdc-theme-text-secondary-on-background: var(--lcars-text-gray)
+  code-editor-background-color: var(--black-color)
 
   #<<: *lcars-variables
   <<: *lcars-colors
@@ -72,7 +73,7 @@ LCARS Picard [cb-lcars]:
   light-primary-color: var(--picard-medium-light-gray)
 
   # Sidebar Menu
-  sidebar-background-color: var(--lcars-ui-tertiary)
+  sidebar-background-color: var(--lcars-ui-primary)
   sidebar-icon-color: black
   sidebar-text-color: black
   sidebar-selected-background-color: var(--picard-light-gray)
@@ -101,8 +102,8 @@ LCARS Picard [cb-lcars]:
   error-color: var(--picard-dark-orange)
 
 LCARS Picard RED ALERT [cb-lcars]:
-  card-mod-theme: LCARS Picard II RED ALERT [cb-lcars]
-  # Picard RED ALERT colors created by using base Picard II colors and run through AI to calculate new palette.
+  card-mod-theme: LCARS Picard RED ALERT [cb-lcars]
+  # Picard RED ALERT colors created by using base Picard colors and run through AI to calculate new palette.
   # Looks nice but could be tweaked.
 
   #oranges
@@ -158,7 +159,8 @@ LCARS Picard RED ALERT [cb-lcars]:
 
   mdc-theme-text-primary-on-background: var(--lcars-text-gray)
   mdc-theme-text-secondary-on-background: var(--lcars-text-gray)
-
+  code-editor-background-color: var(--black-color)
+  
   #<<: *lcars-variables
   <<: *lcars-colors
   <<: *base
@@ -168,7 +170,7 @@ LCARS Picard RED ALERT [cb-lcars]:
   light-primary-color: var(--picard-medium-light-gray)
 
   # Sidebar Menu
-  sidebar-background-color: var(--lcars-ui-tertiary)
+  sidebar-background-color: var(--lcars-ui-primary)
   sidebar-icon-color: black
   sidebar-text-color: black
   sidebar-selected-background-color: var(--picard-light-gray)
