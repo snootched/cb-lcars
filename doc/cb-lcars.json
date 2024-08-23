@@ -1,5 +1,4 @@
 {
-  "button_card_templates": {
     "cb-lcars-header-picard": {
       "template": [
         "cb-lcars-card-base"
@@ -5215,5 +5214,4 @@
         }
       }
     }
-  }
 }
