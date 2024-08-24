@@ -1,0 +1,54 @@
+**Blues**
+- `#002241`: Darkest Blue
+- `#1c3c55`: Darker Blue
+- `#2a7193`: Dark Blue
+- `#37a6d1`: Blue
+- `#67caf0`: Light Blue
+- `#93e1ff`: Lighter Blue
+
+**Grays**
+- `#1e2229`: Darkest Gray
+- `#2f3749`: Darker Gray
+- `#52596e`: Dark Gray
+- `#6d748c`: Gray
+- `#9ea5ba`: Light Gray
+- `#dfe1e8`: Lighter Gray
+
+**Greens**
+- `#0c2a15`: Darkest Green
+- `#083717`: Darker Green
+- `#095320`: Dark Green
+- `#266239`: Green
+- `#458359`: Light Green
+- `#80bb93`: Lighter Green
+
+**Oranges**
+- `#6d0503`: Darkest Orange
+- `#b80401`: Darker Orange
+- `#fd4e4e`: Dark Orange
+- `#ffaaa8`: Orange
+
+**Yellows**
+- `#70602c`: Darkest Yellow
+- `#ac943b`: Darker Yellow
+- `#d2bf50`: Dark Yellow
+- `#f9ef97`: Yellow
+- `#fffac9`: Light Yellow
+- `#e7e6de`: Lighter Yellow
+
+**Additional Colors**
+- `#783520`: Darkest Brown
+- `#a24f35`: Darker Brown
+- `#c87157`: Dark Brown
+- `#da876e`: Brown
+- `#e1a08c`: Light Brown
+- `#eec1b4`: Lighter Brown
+
+- `#922605`: Darkest Red
+- `#aa320e`: Darker Red
+- `#d04a22`: Dark Red
+- `#ea6238`: Red
+- `#fa8764`: Light Red
+- `#fba185`: Lighter Red
+
+- `#cccccc`: Medium Gray

@@ -1,5 +1,43 @@
 cb-lcars-functions:
   variables:
+    ___debug: false
+    ___debug_hass: false
+    ___debug_extras: null
+    __cblcarsLog: |
+      [[[
+        return function styledLog(level, message) {
+          let styles = [
+              'color: white',
+              'padding: 2px 4px',
+              'border-radius: 15px'
+          ];
+
+          switch (level) {
+              case 'info':
+                  styles.push('background-color: #37a6d1'); // Blue
+                  console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+                  break;
+              case 'warn':
+                  styles.push('background-color: #ff6753'); // Orange
+                  console.warn(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+                  break;
+              case 'error':
+                  styles.push('background-color: #ef1d10'); // Red
+                  console.error(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+                  break;
+              case 'debug':
+                  if(variables.___debug == true) {
+                    styles.push('background-color: #8e44ad'); // Purple
+                    console.debug(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+                  }
+                  break;
+              default:
+                  styles.push('background-color: #6d748c'); // Gray for unknown levels
+                  console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+                  break;
+            }
+        }
+      ]]]
     __calculcate_grid_cell_dimension: |
       [[[
         return function calculcate_grid_cell_dimension(cardDimension, gridCells, gridGap, defaultButtonCardDimension) {
@@ -213,3 +251,30 @@ cb-lcars-functions:
 
         }
       ]]]
+  custom_fields:
+    debugger: |
+      [[[
+        if (!variables.___debug) return
+
+        const o = {
+          variables: variables, 
+          entity: entity ? entity : {},
+          bc: this
+        }
+
+        if (variables.___debug_hass) {
+          o.hass = hass
+        }
+
+        if (variables.___debug_extras) {
+          o.extras = variables.___debug_extras
+        }
+
+        variables.__cblcarsLog("debug", o)
+      ]]]
+  styles:
+    custom_fields:
+      debugger:
+        - height: 0
+        - width: 0
+        - visibility: hidden

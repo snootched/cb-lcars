@@ -1,0 +1,349 @@
+blue_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#00008b'  # Dark Blue
+      picard-dark-orange: '#0000cd'     # Medium Blue
+      picard-medium-dark-orange: '#4169e1'  # Royal Blue
+      picard-orange: '#4682b4'          # Steel Blue
+      picard-medium-light-orange: '#5f9ea0' # Cadet Blue
+      picard-light-orange: '#87ceeb'    # Sky Blue
+      picard-lightest-orange: '#b0e0e6' # Powder Blue
+    grays:
+      picard-darkest-gray: '#1c1c3c'    # Dark Slate Blue
+      picard-dark-gray: '#2a2a5a'       # Indigo
+      picard-medium-dark-gray: '#3a3a7a' # Dark Blue
+      picard-gray: '#4a4a9a'            # Medium Blue
+      picard-medium-light-gray: '#5a5ab4' # Slate Blue
+      picard-light-gray: '#6a6ad4'      # Light Slate Blue
+      picard-lightest-gray: '#7a7af4'   # Light Steel Blue
+    blues:
+      picard-darkest-blue: '#00008b'    # Dark Blue
+      picard-dark-blue: '#0000cd'       # Medium Blue
+      picard-medium-dark-blue: '#4169e1' # Royal Blue
+      picard-blue: '#4682b4'            # Steel Blue
+      picard-medium-light-blue: '#5f9ea0' # Cadet Blue
+      picard-light-blue: '#87ceeb'      # Sky Blue
+      picard-lightest-blue: '#b0e0e6'   # Powder Blue
+    greens:
+      picard-darkest-green: '#1c1c3c'   # Dark Slate Blue
+      picard-dark-green: '#2a2a5a'      # Indigo
+      picard-medium-dark-green: '#3a3a7a' # Dark Blue
+      picard-green: '#4a4a9a'           # Medium Blue
+      picard-medium-light-green: '#5a5ab4' # Slate Blue
+      picard-light-green: '#6a6ad4'     # Light Slate Blue
+      picard-lightest-green: '#7a7af4'  # Light Steel Blue
+    yellows:
+      picard-darkest-yellow: '#1c1c3c'  # Dark Slate Blue
+      picard-dark-yellow: '#2a2a5a'     # Indigo
+      picard-medium-dark-yellow: '#3a3a7a' # Dark Blue
+      picard-yellow: '#4a4a9a'          # Medium Blue
+      picard-medium-light-yellow: '#5a5ab4' # Slate Blue
+      picard-light-yellow: '#6a6ad4'    # Light Slate Blue
+      picard-lightest-yellow: '#7a7af4' # Light Steel Blue
+
+yellow_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#8b4513'  # Saddle Brown
+      picard-dark-orange: '#d2691e'     # Chocolate
+      picard-medium-dark-orange: '#ff8c00' # Dark Orange
+      picard-orange: '#ffa500'          # Orange
+      picard-medium-light-orange: '#ffb84d' # Light Orange
+      picard-light-orange: '#ffd700'    # Gold
+      picard-lightest-orange: '#ffec8b' # Light Goldenrod
+    grays:
+      picard-darkest-gray: '#4b4b00'    # Dark Olive
+      picard-dark-gray: '#6b6b00'       # Olive
+      picard-medium-dark-gray: '#8b8b00' # Dark Khaki
+      picard-gray: '#abab00'            # Khaki
+      picard-medium-light-gray: '#cbcb00' # Pale Goldenrod
+      picard-light-gray: '#ebeb00'      # Light Yellow
+      picard-lightest-gray: '#fbfb00'   # Lemon Chiffon
+    blues:
+      picard-darkest-blue: '#4b4b00'    # Dark Olive
+      picard-dark-blue: '#6b6b00'       # Olive
+      picard-medium-dark-blue: '#8b8b00' # Dark Khaki
+      picard-blue: '#abab00'            # Khaki
+      picard-medium-light-blue: '#cbcb00' # Pale Goldenrod
+      picard-light-blue: '#ebeb00'      # Light Yellow
+      picard-lightest-blue: '#fbfb00'   # Lemon Chiffon
+    greens:
+      picard-darkest-green: '#4b4b00'   # Dark Olive
+      picard-dark-green: '#6b6b00'      # Olive
+      picard-medium-dark-green: '#8b8b00' # Dark Khaki
+      picard-green: '#abab00'           # Khaki
+      picard-medium-light-green: '#cbcb00' # Pale Goldenrod
+      picard-light-green: '#ebeb00'     # Light Yellow
+      picard-lightest-green: '#fbfb00'  # Lemon Chiffon
+    yellows:
+      picard-darkest-yellow: '#8b4513'  # Saddle Brown
+      picard-dark-yellow: '#d2691e'     # Chocolate
+      picard-medium-dark-yellow: '#ff8c00' # Dark Orange
+      picard-yellow: '#ffa500'          # Orange
+      picard-medium-light-yellow: '#ffb84d' # Light Orange
+      picard-light-yellow: '#ffd700'    # Gold
+      picard-lightest-yellow: '#ffec8b' # Light Goldenrod
+
+black_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#0d0d0d'  # Very Dark Gray
+      picard-dark-orange: '#1a1a1a'     # Dark Gray
+      picard-medium-dark-orange: '#333333' # Dim Gray
+      picard-orange: '#4d4d4d'          # Gray
+      picard-medium-light-orange: '#666666' # Light Gray
+      picard-light-orange: '#808080'    # Silver
+      picard-lightest-orange: '#999999' # Gainsboro
+    grays:
+      picard-darkest-gray: '#0d0d0d'    # Very Dark Gray
+      picard-dark-gray: '#1a1a1a'       # Dark Gray
+      picard-medium-dark-gray: '#333333' # Dim Gray
+      picard-gray: '#4d4d4d'            # Gray
+      picard-medium-light-gray: '#666666' # Light Gray
+      picard-light-gray: '#808080'      # Silver
+      picard-lightest-gray: '#999999'   # Gainsboro
+    blues:
+      picard-darkest-blue: '#0d0d0d'    # Very Dark Gray
+      picard-dark-blue: '#1a1a1a'       # Dark Gray
+      picard-medium-dark-blue: '#333333' # Dim Gray
+      picard-blue: '#4d4d4d'            # Gray
+      picard-medium-light-blue: '#666666' # Light Gray
+      picard-light-blue: '#808080'      # Silver
+      picard-lightest-blue: '#999999'   # Gainsboro
+    greens:
+      picard-darkest-green: '#0d0d0d'   # Very Dark Gray
+      picard-dark-green: '#1a1a1a'      # Dark Gray
+      picard-medium-dark-green: '#333333' # Dim Gray
+      picard-green: '#4d4d4d'           # Gray
+      picard-medium-light-green: '#666666' # Light Gray
+      picard-light-green: '#808080'     # Silver
+      picard-lightest-green: '#999999'  # Gainsboro
+    yellows:
+      picard-darkest-yellow: '#0d0d0d'  # Very Dark Gray
+      picard-dark-yellow: '#1a1a1a'     # Dark Gray
+      picard-medium-dark-yellow: '#333333' # Dim Gray
+      picard-yellow: '#4d4d4d'          # Gray
+      picard-medium-light-yellow: '#666666' # Light Gray
+      picard-light-yellow: '#808080'    # Silver
+      picard-lightest-yellow: '#999999' # Gainsboro
+
+gray_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#2b2b2b'  # Darker Slate Gray
+      picard-dark-orange: '#3b3b3b'     # Dark Gray
+      picard-medium-dark-orange: '#4b4b4b' # Gray
+      picard-orange: '#5b5b5b'          # Light Gray
+      picard-medium-light-orange: '#6b6b6b' # Silver
+      picard-light-orange: '#7b7b7b'    # Gainsboro
+      picard-lightest-orange: '#8b8b8b' # White Smoke
+    grays:
+      picard-darkest-gray: '#2b2b2b'    # Darker Slate Gray
+      picard-dark-gray: '#3b3b3b'       # Dark Gray
+      picard-medium-dark-gray: '#4b4b4b' # Gray
+      picard-gray: '#5b5b5b'            # Light Gray
+      picard-medium-light-gray: '#6b6b6b' # Silver
+      picard-light-gray: '#7b7b7b'      # Gainsboro
+      picard-lightest-gray: '#8b8b8b'   # White Smoke
+    blues:
+      picard-darkest-blue: '#2b2b2b'    # Darker Slate Gray
+      picard-dark-blue: '#3b3b3b'       # Dark Gray
+      picard-medium-dark-blue: '#4b4b4b' # Gray
+      picard-blue: '#5b5b5b'            # Light Gray
+      picard-medium-light-blue: '#6b6b6b' # Silver
+      picard-light-blue: '#7b7b7b'      # Gainsboro
+      picard-lightest-blue: '#8b8b8b'   # White Smoke
+    greens:
+      picard-darkest-green: '#2b2b2b'   # Darker Slate Gray
+      picard-dark-green: '#3b3b3b'      # Dark Gray
+      picard-medium-dark-green: '#4b4b4b' # Gray
+      picard-green: '#5b5b5b'           # Light Gray
+      picard-medium-light-green: '#6b6b6b' # Silver
+      picard-light-green: '#7b7b7b'     # Gainsboro
+      picard-lightest-green: '#8b8b8b'  # White Smoke
+    yellows:
+      picard-darkest-yellow: '#2b2b2b'  # Darker Slate Gray
+      picard-dark-yellow: '#3b3b3b'     # Dark Gray
+      picard-medium-dark-yellow: '#4b4b4b' # Gray
+      picard-yellow: '#5b5b5b'          # Light Gray
+      picard-medium-light-yellow: '#6b6b6b' # Silver
+      picard-light-yellow: '#7b7b7b'    # Gainsboro
+      picard-lightest-yellow: '#8b8b8b' # White Smoke
+
+
+
+
+
+
+yellow_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#8b4513'
+      picard-dark-orange: '#d2691e'
+      picard-medium-dark-orange: '#ff8c00'
+      picard-orange: '#ffa500'
+      picard-medium-light-orange: '#ffb84d'
+      picard-light-orange: '#ffd700'
+      picard-lightest-orange: '#ffec8b'
+    grays:
+      picard-darkest-gray: '#4b4b4b'
+      picard-dark-gray: '#6b6b6b'
+      picard-medium-dark-gray: '#8b8b8b'
+      picard-gray: '#ababab'
+      picard-medium-light-gray: '#cbcbcb'
+      picard-light-gray: '#ebebeb'
+      picard-lightest-gray: '#fbfbfb'
+    blues:
+      picard-darkest-blue: '#4b4b4b'
+      picard-dark-blue: '#6b6b6b'
+      picard-medium-dark-blue: '#8b8b8b'
+      picard-blue: '#ababab'
+      picard-medium-light-blue: '#cbcbcb'
+      picard-light-blue: '#ebebeb'
+      picard-lightest-blue: '#fbfbfb'
+    greens:
+      picard-darkest-green: '#4b4b4b'
+      picard-dark-green: '#6b6b6b'
+      picard-medium-dark-green: '#8b8b8b'
+      picard-green: '#ababab'
+      picard-medium-light-green: '#cbcbcb'
+      picard-light-green: '#ebebeb'
+      picard-lightest-green: '#fbfbfb'
+    yellows:
+      picard-darkest-yellow: '#8b4513'
+      picard-dark-yellow: '#d2691e'
+      picard-medium-dark-yellow: '#ff8c00'
+      picard-yellow: '#ffa500'
+      picard-medium-light-yellow: '#ffb84d'
+      picard-light-yellow: '#ffd700'
+      picard-lightest-yellow: '#ffec8b'
+
+blue_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#00008b'
+      picard-dark-orange: '#0000cd'
+      picard-medium-dark-orange: '#4169e1'
+      picard-orange: '#4682b4'
+      picard-medium-light-orange: '#5f9ea0'
+      picard-light-orange: '#87ceeb'
+      picard-lightest-orange: '#b0e0e6'
+    grays:
+      picard-darkest-gray: '#2f4f4f'
+      picard-dark-gray: '#4b4b4b'
+      picard-medium-dark-gray: '#6b6b6b'
+      picard-gray: '#8b8b8b'
+      picard-medium-light-gray: '#ababab'
+      picard-light-gray: '#cbcbcb'
+      picard-lightest-gray: '#ebebeb'
+    blues:
+      picard-darkest-blue: '#00008b'
+      picard-dark-blue: '#0000cd'
+      picard-medium-dark-blue: '#4169e1'
+      picard-blue: '#4682b4'
+      picard-medium-light-blue: '#5f9ea0'
+      picard-light-blue: '#87ceeb'
+      picard-lightest-blue: '#b0e0e6'
+    greens:
+      picard-darkest-green: '#2f4f4f'
+      picard-dark-green: '#4b4b4b'
+      picard-medium-dark-green: '#6b6b6b'
+      picard-green: '#8b8b8b'
+      picard-medium-light-green: '#ababab'
+      picard-light-green: '#cbcbcb'
+      picard-lightest-green: '#ebebeb'
+    yellows:
+      picard-darkest-yellow: '#2f4f4f'
+      picard-dark-yellow: '#4b4b4b'
+      picard-medium-dark-yellow: '#6b6b6b'
+      picard-yellow: '#8b8b8b'
+      picard-medium-light-yellow: '#ababab'
+      picard-light-yellow: '#cbcbcb'
+      picard-lightest-yellow: '#ebebeb'
+
+grey_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#2f4f4f'
+      picard-dark-orange: '#4b4b4b'
+      picard-medium-dark-orange: '#6b6b6b'
+      picard-orange: '#8b8b8b'
+      picard-medium-light-orange: '#ababab'
+      picard-light-orange: '#cbcbcb'
+      picard-lightest-orange: '#ebebeb'
+    grays:
+      picard-darkest-gray: '#2f4f4f'
+      picard-dark-gray: '#4b4b4b'
+      picard-medium-dark-gray: '#6b6b6b'
+      picard-gray: '#8b8b8b'
+      picard-medium-light-gray: '#ababab'
+      picard-light-gray: '#cbcbcb'
+      picard-lightest-gray: '#ebebeb'
+    blues:
+      picard-darkest-blue: '#2f4f4f'
+      picard-dark-blue: '#4b4b4b'
+      picard-medium-dark-blue: '#6b6b6b'
+      picard-blue: '#8b8b8b'
+      picard-medium-light-blue: '#ababab'
+      picard-light-blue: '#cbcbcb'
+      picard-lightest-blue: '#ebebeb'
+    greens:
+      picard-darkest-green: '#2f4f4f'
+      picard-dark-green: '#4b4b4b'
+      picard-medium-dark-green: '#6b6b6b'
+      picard-green: '#8b8b8b'
+      picard-medium-light-green: '#ababab'
+      picard-light-green: '#cbcbcb'
+      picard-lightest-green: '#ebebeb'
+    yellows:
+      picard-darkest-yellow: '#2f4f4f'
+      picard-dark-yellow: '#4b4b4b'
+      picard-medium-dark-yellow: '#6b6b6b'
+      picard-yellow: '#8b8b8b'
+      picard-medium-light-yellow: '#ababab'
+      picard-light-yellow: '#cbcbcb'
+      picard-lightest-yellow: '#ebebeb'
+
+black_alert:
+  colors:
+    oranges:
+      picard-darkest-orange: '#000000'
+      picard-dark-orange: '#2f2f2f'
+      picard-medium-dark-orange: '#4f4f4f'
+      picard-orange: '#696969'
+      picard-medium-light-orange: '#808080'
+      picard-light-orange: '#a9a9a9'
+      picard-lightest-orange: '#c0c0c0'
+    grays:
+      picard-darkest-gray: '#000000'
+      picard-dark-gray: '#2f2f2f'
+      picard-medium-dark-gray: '#4f4f4f'
+      picard-gray: '#696969'
+      picard-medium-light-gray: '#808080'
+      picard-light-gray: '#a9a9a9'
+      picard-lightest-gray: '#c0c0c0'
+    blues:
+      picard-darkest-blue: '#000000'
+      picard-dark-blue: '#2f2f2f'
+      picard-medium-dark-blue: '#4f4f4f'
+      picard-blue: '#696969'
+      picard-medium-light-blue: '#808080'
+      picard-light-blue: '#a9a9a9'
+      picard-lightest-blue: '#c0c0c0'
+    greens:
+      picard-darkest-green: '#000000'
+      picard-dark-green: '#2f2f2f'
+      picard-medium-dark-green: '#4f4f4f'
+      picard-green: '#696969'
+      picard-medium-light-green: '#808080'
+      picard-light-green: '#a9a9a9'
+      picard-lightest-green: '#c0c0c0'
+    yellows:
+      picard-darkest-yellow: '#000000'
+      picard-dark-yellow: '#2f2f2f'
+      picard-medium-dark-yellow: '#4f4f4f'
+      picard-yellow: '#696969'
+      picard-medium-light-yellow: '#808080'
+      picard-light-yellow: '#a9a9a9'
+      picard-lightest-yellow: '#c0c0c0'
+
