@@ -402,3 +402,4 @@ cb-lcars-full.yaml
 .obsidian/core-plugins-migration.json
 .obsidian/core-plugins.json
 .obsidian/workspace.json
+dist/cb-lcars-full.yaml

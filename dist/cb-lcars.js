@@ -41,7 +41,7 @@ script.onload = () => {
                                         type: 'custom:button-card',
                                         template: 'cb-lcars-defs',
                                         label: 'CB-LCARS init defaults',
-                                        show_label: 'false'
+                                        show_label: false
                                     }
                                 ]
                             }
