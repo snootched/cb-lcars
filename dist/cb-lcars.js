@@ -1,6 +1,7 @@
 // Load js-yaml from CDN.. see if this can be packaged and distributed locally
 const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+//script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+script.src = './js-yaml.min.js';
 document.head.appendChild(script);
 
 script.onload = () => {
