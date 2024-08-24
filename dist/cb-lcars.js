@@ -25,21 +25,23 @@ script.onload = () => {
             class CustomStrategy {
                 static async generate(config, hass) {
                     return {
-                        title: 'CB-LCARS Dashboard',
+                        title: 'CB-LCARS',
                         ...jsObject, // Use the parsed YAML content here
                         views: [
                             {
-                                title: 'CB-LCARS Home',
-                                path: 'cb-lcars-home',
+                                title: 'CB-LCARS Airlock',
+                                icon: 'mdi:rocket-launch',
+                                path: 'cb-lcars-airlock',
                                 cards: [
                                     {
                                         type: 'markdown',
-                                        content: `Generated at ${(new Date).toLocaleString()}`
+                                        content: `CB-LCARS Generated at ${(new Date).toLocaleString()}`
                                     },
                                     {
                                         type: 'custom:button-card',
-                                        template: 'cb-lcars-label',
-                                        label: 'dissdashit yo'
+                                        template: 'cb-lcars-defs',
+                                        label: 'CB-LCARS init defaults',
+                                        show_label: 'false'
                                     }
                                 ]
                             }

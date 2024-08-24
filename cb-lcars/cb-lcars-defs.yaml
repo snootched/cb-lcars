@@ -268,6 +268,7 @@ cb-lcars-defs:
   custom_fields:
     font: |
       [[[
+        variables.__cblcarsLog('info',`Adding link to font from: ${variables.__defs.font_url}`);
         const link = document.createElement('link'); 
         link.href = variables.__defs.font_url; 
         link.rel = 'stylesheet'; 
