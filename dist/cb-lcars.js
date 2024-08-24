@@ -2,10 +2,22 @@
 const script = document.createElement('script');
 //script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
 script.src = './js-yaml.min.js';
+script.type = 'text/javascript'
 document.head.appendChild(script);
 
 script.onload = () => {
-    console.log('js-yaml loaded');
+
+
+    let styles = [
+        'color: white',
+        'padding: 2px 4px',
+        'border-radius: 15px',
+        'background-color: #37a6d1'
+    ];
+
+    console.log(`%c    CB-LCARS | info `, styles.join(';'), 'js-yaml loaded');
+
+    //console.log('js-yaml loaded');
 
     // Function to fetch the YAML file from GitHub
     async function fetchYAML(url) {
@@ -15,8 +27,9 @@ script.onload = () => {
     }
 
     // Pull the full yaml from the GH repo
-    const url = 'https://raw.githubusercontent.com/snootched/cb-lcars/main/cb-lcars-full.yaml';
-
+    //const url = 'https://raw.githubusercontent.com/snootched/cb-lcars/main/cb-lcars-full.yaml';
+    const url = './cb-lcars-full.yaml';
+    
     fetchYAML(url)
         .then(yaml => {
             const jsObject = jsyaml.load(yaml);
