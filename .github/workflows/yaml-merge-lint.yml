@@ -43,6 +43,12 @@ jobs:
       - name: Create full yaml
         run: |
           ./create_full_yaml.sh --output cb-lcars-full.yaml --path cb-lcars
+
+      - name: Upload YAML file
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: cb-lcars-full
+          path: cb-lcars-full.yaml
       
       - name: YAML Lint
         # You may pin to the exact commit or the version.
