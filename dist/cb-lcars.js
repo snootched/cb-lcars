@@ -32,6 +32,9 @@ script.onload = () => {
         }
     }
 
+
+    const url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
+    
     fetchYAML(url)
         .then(yaml => {
             const jsObject = jsyaml.load(yaml);
