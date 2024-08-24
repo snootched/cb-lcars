@@ -1,7 +1,7 @@
 // Load js-yaml from CDN.. see if this can be packaged and distributed locally
 const script = document.createElement('script');
 //script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
-script.src = './js-yaml.min.js';
+script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
 script.type = 'text/javascript'
 document.head.appendChild(script);
 
@@ -29,7 +29,7 @@ script.onload = () => {
     // Pull the full yaml from the GH repo
     //const url = 'https://raw.githubusercontent.com/snootched/cb-lcars/main/cb-lcars-full.yaml';
     const url = './cb-lcars-full.yaml';
-    
+
     fetchYAML(url)
         .then(yaml => {
             const jsObject = jsyaml.load(yaml);
