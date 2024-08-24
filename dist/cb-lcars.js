@@ -28,7 +28,7 @@ script.onload = () => {
 
     // Pull the full yaml from the GH repo
     //const url = 'https://raw.githubusercontent.com/snootched/cb-lcars/main/cb-lcars-full.yaml';
-    const url = './cb-lcars-full.yaml';
+    const url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
 
     fetchYAML(url)
         .then(yaml => {
