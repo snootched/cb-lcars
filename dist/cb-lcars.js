@@ -15,24 +15,15 @@ script.onload = () => {
         'background-color: #37a6d1'
     ];
 
-    console.log(`%c    CB-LCARS | info `, styles.join(';'), 'js-yaml loaded');
+    console.log(`%c    CB-LCARS | info `, styles.join(';'), 'js-yaml.min loaded');
 
-    //console.log('js-yaml loaded');
-
-    // Function to fetch the YAML file from GitHub
-    async function fetchYAML(url) {
-        const response = await fetch(url);
-        const text = await response.text();
-        return text;
-    }
-
-    // Pull the full yaml from the GH repo
-    //const url = 'https://raw.githubusercontent.com/snootched/cb-lcars/main/cb-lcars-full.yaml';
-    const url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
-
-    fetchYAML(url)
-        .then(yaml => {
-            const jsObject = jsyaml.load(yaml);
+    // Read the YAML file directly from the local path
+    const yamlFilePath = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
+    try {
+        const response = await fetch(yamlFilePath);
+        if (response.ok) {
+            const yamlContent = await response.text();
+            const jsObject = jsyaml.load(yamlContent);
             console.log(jsObject);
 
             // Define the CustomStrategy class
@@ -66,6 +57,10 @@ script.onload = () => {
 
             // Define the custom element
             customElements.define('ll-strategy-dashboard-cb-lcars', CustomStrategy);
-        })
-        .catch(error => console.error('Error fetching YAML:', error));
+        } else {
+            console.error('Error fetching YAML:', response.status, response.statusText);
+        }
+    } catch (error) {
+        console.error('Error fetching YAML:', error);
+    }
 };
