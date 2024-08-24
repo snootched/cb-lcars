@@ -75,4 +75,4 @@ jobs:
           message: Add linted cb-lcars-full.yaml
           committer_name: GitHub Actions
           committer_email: 41898282+github-actions[bot]@users.noreply.github.com
-          add: 'cb-lcars-full.yaml --force'
+          add: 'cb-lcars-full.yaml dist/cb-lcars-full.yaml --force'
