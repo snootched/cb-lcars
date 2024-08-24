@@ -1,4 +1,6 @@
 cb-lcars-defs:
+  template:
+      - cb-lcars-functions
   triggers_update:
     - '[[[ return variables.___helpers.alert_condition ]]]'
 
@@ -277,17 +279,24 @@ cb-lcars-defs:
         const themes = variables.__defs.themes;
         let alertCondition = 'green'; // Default to 'green'
         if (variables.___helpers && variables.___helpers.alert_condition) {
-          alertCondition = states[variables.___helpers.alert_condition].state.toLowerCase() || 'green';
+          const entityState = states[variables.___helpers.alert_condition];
+          if (entityState) {
+            alertCondition = entityState.state.toLowerCase();
+          } else {
+            variables.__cblcarsLog('error', `Entity ${variables.___helpers.alert_condition} does not exist - defaulting to condition ${alertCondition}!`);
+          }
         }
         const selectedTheme = themes[`${alertCondition}_alert`];
-        console.debug(variables.__defs.debug_title,'Setting alert condition ${alertCondition}'); 
+        //console.debug(variables.__defs.debug_title,'Setting alert condition ${alertCondition}'); 
+        variables.__cblcarsLog('info',`Setting alert condition ${alertCondition}`);
         const colors = selectedTheme.colors;
 
         for (const [colorGroup, colorValues] of Object.entries(colors)) {
           for (const [colorName, colorValue] of Object.entries(colorValues)) {
             const cssVarName = `--${colorName}`;
             //if (getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim()) {
-              console.debug(variables.__defs.debug_title,`Setting ${cssVarName}=${colorValue}`);
+              //console.debug(variables.__defs.debug_title,`Setting ${cssVarName}=${colorValue}`);
+              variables.__cblcarsLog('debug',`Setting ${cssVarName}=${colorValue}`);
               document.documentElement.style.setProperty(cssVarName, colorValue);
             //}
           }
