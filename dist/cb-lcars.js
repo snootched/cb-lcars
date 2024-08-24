@@ -17,13 +17,24 @@ script.onload = () => {
 
     console.log(`%c    CB-LCARS | info `, styles.join(';'), 'js-yaml.min loaded');
 
-    // Read the YAML file directly from the local path
-    const yamlFilePath = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
-    try {
-        const response = await fetch(yamlFilePath);
-        if (response.ok) {
-            const yamlContent = await response.text();
-            const jsObject = jsyaml.load(yamlContent);
+
+    async function fetchYAML(url) {
+        try {
+            const response = await fetch(url);
+            if (response.ok) {
+                const yamlContent = await response.text();
+                return yamlContent;
+            } else {
+                throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
+            }
+        } catch (error) {
+            throw new Error(`Error fetching YAML: ${error.message}`);
+        }
+    }
+
+    fetchYAML(url)
+        .then(yaml => {
+            const jsObject = jsyaml.load(yaml);
             console.log(jsObject);
 
             // Define the CustomStrategy class
@@ -57,10 +68,6 @@ script.onload = () => {
 
             // Define the custom element
             customElements.define('ll-strategy-dashboard-cb-lcars', CustomStrategy);
-        } else {
-            console.error('Error fetching YAML:', response.status, response.statusText);
-        }
-    } catch (error) {
-        console.error('Error fetching YAML:', error);
-    }
+        })
+        .catch(error => console.error(error));
 };
