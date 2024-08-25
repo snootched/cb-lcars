@@ -74,9 +74,9 @@ script.onload = () => {
                     console.log(devices);
                     console.log(entities);
                     
-                    cblcarsLog('debug areas:',`${areas}`);
-                    cblcarsLog('debug devices:',`${devices}`);
-                    cblcarsLog('debug entities:',`${entities}`);
+                    cblcarsLog('debug areas:',areas);
+                    cblcarsLog('debug devices:',devices);
+                    cblcarsLog('debug entities:',entities);
 
                     return {
                         title: 'CB-LCARS',
