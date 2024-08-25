@@ -73,7 +73,11 @@ script.onload = () => {
                     console.log(areas);
                     console.log(devices);
                     console.log(entities);
-                      
+                    
+                    cblcarsLog('debug',`areas: ${areas}`);
+                    cblcarsLog('debug',`devices: ${devices}`);
+                    cblcarsLog('debug',`entities: ${entities}`);
+
                     return {
                         title: 'CB-LCARS',
                         ...jsObject, // Use the parsed YAML content here
