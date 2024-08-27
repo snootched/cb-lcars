@@ -65,7 +65,7 @@ script.onload = () => {
     fetchYAML(templates_url)
         .then(yaml => {
             const jsObject = jsyaml.load(yaml);
-            cblcarsLog('info',`fetched and parsed yaml ${url}`);
+            cblcarsLog('info',`fetched and parsed yaml ${templates_url}`);
             cblcarsLog('debug',jsObject);
 
             // Define the dashboard class
@@ -110,6 +110,9 @@ script.onload = () => {
                     try {
                         const yamlContent = await fetchYAML(airlock_url);
                         const jsObject = jsyaml.load(yamlContent);
+                        cblcarsLog('info',`fetched and parsed yaml ${airlock_url}`);
+                        cblcarsLog('debug',jsObject);
+            
                         return {
                             ...jsObject
                         };
@@ -125,6 +128,9 @@ script.onload = () => {
                     try {
                         const yamlContent = await fetchYAML(gallery_url);
                         const jsObject = jsyaml.load(yamlContent);
+                        cblcarsLog('info',`fetched and parsed yaml ${gallery_url}`);
+                        cblcarsLog('debug',jsObject);
+            
                         return {
                             ...jsObject
                         };
