@@ -934,6 +934,10 @@ button_card_templates:
     variables:
       ___helpers:
         alert_condition: input_select.lcars_ui_alert_condition
+        lcars_ui_debug: input_boolean.lcars_ui_debug
+        ha_lcars:
+          lcars_sound: input_boolean.lcars_sound
+          lcars_texture: input_boolean.lcars_texture
       __defs:
         font_url: >-
           https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap
@@ -3000,7 +3004,7 @@ button_card_templates:
       card:
         - background-color: |
             [[[
-              if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+              if (states['input_boolean.lcars_ui_debug'] && states['input_boolean.lcars_ui_debug'].state === 'on') {
                 return variables.__get_random_css_color();
               } else {
                 return 'transparent';
