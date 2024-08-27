@@ -7,6 +7,10 @@ cb-lcars-defs:
   variables:
     ___helpers:
       alert_condition: input_select.lcars_ui_alert_condition
+      lcars_ui_debug: input_boolean.lcars_ui_debug
+      ha_lcars:
+        lcars_sound: input_boolean.lcars_sound
+        lcars_texture: input_boolean.lcars_texture
     __defs:
       font_url: >-
         https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap

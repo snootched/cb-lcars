@@ -5,6 +5,13 @@ script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
 script.type = 'text/javascript'
 document.head.appendChild(script);
 
+
+const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
+const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
+const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
+
+
+
 script.onload = () => {
 
     async function cblcarsLog(level, message) {
@@ -54,25 +61,21 @@ script.onload = () => {
     }
 
 
-    const url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
     
-    fetchYAML(url)
+    fetchYAML(templates_url)
         .then(yaml => {
             const jsObject = jsyaml.load(yaml);
             cblcarsLog('info',`fetched and parsed yaml ${url}`);
             cblcarsLog('debug',jsObject);
 
-            // Define the CustomStrategy class
-            class CustomStrategy {
+            // Define the dashboard class
+            class CBLCARSDashboardStrategy {
                 static async generate(config, hass) {
                     const [areas, devices, entities] = await Promise.all([
                         hass.callWS({ type: "config/area_registry/list" }),
                         hass.callWS({ type: "config/device_registry/list" }),
                         hass.callWS({ type: "config/entity_registry/list" }),
                       ]);
-                    console.log(areas);
-                    console.log(devices);
-                    console.log(entities);
                     
                     cblcarsLog('debug areas:',areas);
                     cblcarsLog('debug devices:',devices);
@@ -81,31 +84,61 @@ script.onload = () => {
                     return {
                         title: 'CB-LCARS',
                         ...jsObject, // Use the parsed YAML content here
+
                         views: [
                             {
-                                title: 'CB-LCARS Airlock',
-                                icon: 'mdi:rocket-launch',
-                                path: 'cb-lcars-airlock',
-                                cards: [
-                                    {
-                                        type: 'markdown',
-                                        content: `CB-LCARS Generated at ${(new Date).toLocaleString()}`
-                                    },
-                                    {
-                                        type: 'custom:button-card',
-                                        template: 'cb-lcars-defs',
-                                        label: 'CB-LCARS init defaults',
-                                        show_label: false
-                                    }
-                                ]
+                                strategy: {
+                                    type: 'custom:cb-lcars-airlock',
+                                    options: config
+                                }
+                            },
+                            {
+                                strategy: {
+                                    type: 'custom:cb-lcars-gallery',
+                                    options: config
+                                }
                             }
                         ]
+            
                     };
                 }
             }
 
-            // Define the custom element
-            customElements.define('ll-strategy-dashboard-cb-lcars', CustomStrategy);
+            //define airlock view strategy
+            class CBLCARSViewStrategyAirlock {
+                static async generate(config, hass) {
+                    try {
+                        const yamlContent = await fetchYAML(airlock_url);
+                        const jsObject = jsyaml.load(yamlContent);
+                        return {
+                            ...jsObject
+                        };
+                    } catch (error) {
+                        cblcarsLog('error', `Error loading airlock view: ${error.message}`);
+                        throw error;
+                    }
+                }
+            }
+            //define gallery view strategy
+            class CBLCARSViewStrategyGallery {
+                static async generate(config, hass) {
+                    try {
+                        const yamlContent = await fetchYAML(gallery_url);
+                        const jsObject = jsyaml.load(yamlContent);
+                        return {
+                            ...jsObject
+                        };
+                    } catch (error) {
+                        cblcarsLog('error', `Error loading gallery view: ${error.message}`);
+                        throw error;
+                    }
+                }
+            }
+
+            // define the strategies in HA
+            customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
+            customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
+            customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
         })
         .catch(error => console.error(error));
 };

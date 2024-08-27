@@ -8,9 +8,10 @@ cb-lcars-card-base:
     card:
       - background-color: |
           [[[
-            if (states['input_boolean.lcars_ui_debug'].state === 'on') {
+            if (states['input_boolean.lcars_ui_debug'] && states['input_boolean.lcars_ui_debug'].state === 'on') {
               return variables.__get_random_css_color();
             } else {
               return 'transparent';
             }
           ]]]
+
