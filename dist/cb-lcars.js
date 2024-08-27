@@ -77,9 +77,9 @@ script.onload = () => {
                         hass.callWS({ type: "config/entity_registry/list" }),
                       ]);
                     
-                    cblcarsLog('debug areas:',areas);
-                    cblcarsLog('debug devices:',devices);
-                    cblcarsLog('debug entities:',entities);
+                    //cblcarsLog('debug areas:',areas);
+                    //cblcarsLog('debug devices:',devices);
+                    //cblcarsLog('debug entities:',entities);
 
                     return {
                         title: 'CB-LCARS',
@@ -114,6 +114,7 @@ script.onload = () => {
                         cblcarsLog('debug',jsObject);
             
                         return {
+                            title: 'CB-LCARS Airlock',
                             ...jsObject
                         };
                     } catch (error) {
@@ -132,6 +133,7 @@ script.onload = () => {
                         cblcarsLog('debug',jsObject);
             
                         return {
+                            title: 'CB-LCARS Gallery',
                             ...jsObject
                         };
                     } catch (error) {
