@@ -87,12 +87,14 @@ script.onload = () => {
 
                         views: [
                             {
+                                title: 'CB-LCARS Airlock',
                                 strategy: {
                                     type: 'custom:cb-lcars-airlock',
                                     options: config
                                 }
                             },
                             {
+                                title: 'CB-LCARS Gallery',
                                 strategy: {
                                     type: 'custom:cb-lcars-gallery',
                                     options: config
@@ -114,7 +116,6 @@ script.onload = () => {
                         cblcarsLog('debug',jsObject);
             
                         return {
-                            title: 'CB-LCARS Airlock',
                             ...jsObject
                         };
                     } catch (error) {
@@ -133,7 +134,6 @@ script.onload = () => {
                         cblcarsLog('debug',jsObject);
             
                         return {
-                            title: 'CB-LCARS Gallery',
                             ...jsObject
                         };
                     } catch (error) {
