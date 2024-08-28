@@ -929,8 +929,6 @@ button_card_templates:
   cb-lcars-defs:
     template:
         - cb-lcars-functions
-    triggers_update:
-      - '[[[ return variables.___helpers.alert_condition ]]]'
     variables:
       ___helpers:
         alert_condition: input_select.lcars_ui_alert_condition
@@ -1204,40 +1202,9 @@ button_card_templates:
           link.rel = 'stylesheet'; 
           document.head.appendChild(link);
         ]]]
-      colors: |
-        [[[
-          const themes = variables.__defs.themes;
-          let alertCondition = 'green'; // Default to 'green'
-          if (variables.___helpers && variables.___helpers.alert_condition) {
-            const entityState = states[variables.___helpers.alert_condition];
-            if (entityState) {
-              alertCondition = entityState.state.toLowerCase();
-            } else {
-              variables.__cblcarsLog('error', `Entity ${variables.___helpers.alert_condition} does not exist - defaulting to condition ${alertCondition}!`);
-            }
-          }
-          const selectedTheme = themes[`${alertCondition}_alert`];
-          //console.debug(variables.__defs.debug_title,'Setting alert condition ${alertCondition}'); 
-          variables.__cblcarsLog('info',`Setting alert condition ${alertCondition}`);
-          const colors = selectedTheme.colors;
-          for (const [colorGroup, colorValues] of Object.entries(colors)) {
-            for (const [colorName, colorValue] of Object.entries(colorValues)) {
-              const cssVarName = `--${colorName}`;
-              //if (getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim()) {
-                //console.debug(variables.__defs.debug_title,`Setting ${cssVarName}=${colorValue}`);
-                variables.__cblcarsLog('debug',`Setting ${cssVarName}=${colorValue}`);
-                document.documentElement.style.setProperty(cssVarName, colorValue);
-              //}
-            }
-          }
-        ]]]
     styles:
       custom_fields:
         font:
-          - height: 0
-          - width: 0
-          - visibility: hidden
-        colors:
           - height: 0
           - width: 0
           - visibility: hidden
@@ -2637,6 +2604,46 @@ button_card_templates:
             right_radius: 0px
           bottom:
             right_radius: 0px
+  cb-lcars-theme:
+    template:
+        - cb-lcars-functions
+        - cb-lcars-defs
+    triggers_update:
+      - '[[[ return variables.___helpers.alert_condition ]]]'
+    custom_fields:
+      colors: |
+        [[[
+          const themes = variables.__defs.themes;
+          let alertCondition = 'green'; // Default to 'green'
+          if (variables.___helpers && variables.___helpers.alert_condition) {
+            const entityState = states[variables.___helpers.alert_condition];
+            if (entityState) {
+              alertCondition = entityState.state.toLowerCase();
+            } else {
+              variables.__cblcarsLog('error', `Entity ${variables.___helpers.alert_condition} does not exist - defaulting to condition ${alertCondition}!`);
+            }
+          }
+          const selectedTheme = themes[`${alertCondition}_alert`];
+          //console.debug(variables.__defs.debug_title,'Setting alert condition ${alertCondition}'); 
+          variables.__cblcarsLog('info',`Setting alert condition ${alertCondition}`);
+          const colors = selectedTheme.colors;
+          for (const [colorGroup, colorValues] of Object.entries(colors)) {
+            for (const [colorName, colorValue] of Object.entries(colorValues)) {
+              const cssVarName = `--${colorName}`;
+              //if (getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim()) {
+                //console.debug(variables.__defs.debug_title,`Setting ${cssVarName}=${colorValue}`);
+                variables.__cblcarsLog('debug',`Setting ${cssVarName}=${colorValue}`);
+                document.documentElement.style.setProperty(cssVarName, colorValue);
+              //}
+            }
+          }
+        ]]]
+    styles:
+      custom_fields:
+        colors:
+          - height: 0
+          - width: 0
+          - visibility: hidden
   cb-lcars-footer-picard:
     template:
       - cb-lcars-card-base
