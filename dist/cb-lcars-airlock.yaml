@@ -39,21 +39,20 @@ sections:
               content: >-
                 # GREETINGS CAPTAIN
 
-
                 ### Welcome aboard to **CB-LCARS** for Home Assistant
 
                 **CB-LCARS** is a framework of card templates for building
-                LCARS interfaces in Home Assistant - based on
-                [custom-button-card](https://github.com/custom-cards/button-card).
-
-
+                LCARS interfaces in Home Assistant - based on <a
+                href="https://github.com/custom-cards/button-card"
+                style="color:#37a6d1 !important;">custom-button-card</a>.
 
 
                 Please enjoy using CB-LCARS to create, personalize, and
                 tinker with your LCARS interface.
 
-                For more information see the [CB-LCARS
-                Repository](https://github.com/snootched/cb-lcars)
+                For more information see the <a
+                href="https://github.com/snootched/cb-lcars" style="color:
+                var(--picard-blue);">CB-LCARS Repository</a>
               styles:
                 card:
                   - null
@@ -104,11 +103,6 @@ sections:
           - cb-lcars-card-base
           - cb-lcars-actions-disable
           - cb-lcars-defs
-        triggers_update:
-          - input_boolean.lcars_sound
-          - input_boolean.lcars_texture
-          - input_boolean.lcars_ui_debug
-          - input_select.lcars_ui_alert_condition
         variables:
           ___debug: true
           ___debug_hass: true
@@ -126,7 +120,7 @@ sections:
               my_slider_v2: my-slider-v2
               layout_card: layout-card
               grid_layout: grid-layout
-              hue_like_light_card: hue_like_light_card
+              hue_like_light_card: hue-like-light-card
             themes:
               ha_lcars: (DO NOT USE/MODIFY)=== Base customizations
               cb_lcars: LCARS Picard [cb-lcars]
@@ -184,6 +178,12 @@ sections:
                 [[[ return
                 hass.themes.themes.hasOwnProperty(variables.___reqs.themes.cb_lcars)
                 ]]]
+              is_cb_lcars_sys_default: >-
+                [[[ return hass.themes.default_dark_theme ===
+                variables.___reqs.themes.cb_lcars ]]]
+              is_cb_lcars_active: >-
+                [[[ return hass.themes.theme ===
+                variables.___reqs.themes.cb_lcars ]]]
         styles:
           card:
             - width: 70vw
@@ -239,13 +239,77 @@ sections:
               - text-align: left
               - width: 190px
               - top: 550px
+            theme_set_default:
+              - position: absolute
+              - left: 1055px
+              - top: 350px
+              - z-index: 10
+            theme_set_user:
+              - position: absolute
+              - left: 1225px
+              - top: 350px
+              - z-index: 10
         custom_fields:
           log_reqs: '[[[ variables.__cblcarsLog("debug",variables.reqs_status); ]]]'
+          theme_set_default:
+            card:
+              type: custom:button-card
+              triggers_update: all
+              template:
+                - cb-lcars-button-lozenge
+              label: sys default
+              variables:
+                card:
+                  width: 145px
+                  height: 45px
+                  color:
+                    background:
+                      inactive: >-
+                        [[[ return
+                        (variables.reqs_status.themes.is_cb_lcars_sys_default)
+                        ? "var(--picard-light-blue)" :
+                        "var(--picard-orange)" ]]]
+              tap_action:
+                action: call-service
+                service: frontend.set_theme
+                service_data:
+                  mode: dark
+                  name: '[[[ return variables.___reqs.themes.cb_lcars ]]]'
+                confirmation:
+                  text: >-
+                    [[[ return "Set [" + variables.___reqs.themes.cb_lcars +
+                    "] as the system default theme?" ]]]
+          theme_set_user:
+            card:
+              type: custom:button-card
+              triggers_update: all
+              template:
+                - cb-lcars-button-lozenge
+              label: set in profile
+              variables:
+                card:
+                  width: 145px
+                  height: 45px
+                  color:
+                    background:
+                      inactive: >-
+                        [[[ return
+                        (variables.reqs_status.themes.is_cb_lcars_active) ?
+                        "var(--picard-light-blue)" : "var(--picard-orange)"
+                        ]]]
+              tap_action:
+                action: navigate
+                navigation_path: /profile/general
+                confirmation:
+                  text: >-
+                    [[[ return "Navigate to your profile and set your theme
+                    to [" + variables.___reqs.themes.cb_lcars + "] (or to
+                    the system default if you set that)" ]]]
           helpers_text:
             card:
               type: markdown
               content: >-
-                ## Helpers and Themes
+                ## Themes and Helpers
 
                 CB-LCARS and HA-LCARS can utilize input helpers to control
                 functionality. Please ensure to create the input helpers per
@@ -882,7 +946,7 @@ sections:
                     - label: >-
                         [[[ return
                         (variables.reqs_status.custom_cards.hue_like_light_card)
-                        ? "online" : "offline" ]]]
+                        ? "online" : "optional" ]]]
                       variables:
                         card:
                           width: 240px
@@ -899,7 +963,7 @@ sections:
                                 [[[ return
                                 (variables.reqs_status.custom_cards.hue_like_light_card)
                                 ? 'var(--picard-medium-light-blue)' :
-                                'var(--picard-medium-light-orange)' ]]]
+                                'var(--picard-medium-dark-yellow)' ]]]
           custom_cards_header:
             card:
               type: custom:button-card
@@ -929,10 +993,10 @@ sections:
                     bottom:
                       size: 25px
       - type: custom:button-card
-        template: cb-lcars-defs
+        template: cb-lcars-theme
   - type: grid
     cards: []
   - type: grid
     cards: []
-icon: 'mdi:rocket-launch'
+icon: ''
 cards: []

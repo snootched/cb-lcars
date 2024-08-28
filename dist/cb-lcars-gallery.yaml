@@ -98,7 +98,7 @@ sections:
                       size: 40px
                     color: var(--picard-dark-gray)
       - type: custom:button-card
-        template: cb-lcars-defs
+        template: cb-lcars-theme
       - type: entities
         entities:
           - input_select.lcars_ui_alert_condition
