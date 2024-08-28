@@ -154,27 +154,27 @@ sections:
               button_card: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.button_card)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
               card_mod: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.card_mod)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
               my_slider_v2: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.my_slider_v2)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
               layout_card: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.layout_card)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
               grid_layout: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.grid_layout)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
               hue_like_light_card: >-
                 [[[ return typeof
                 customElements.get(variables.___reqs.custom_cards.hue_like_light_card)
-                !== undefined; ]]]
+                !== 'undefined'; ]]]
             themes:
               ha_lcars: >-
                 [[[ return
