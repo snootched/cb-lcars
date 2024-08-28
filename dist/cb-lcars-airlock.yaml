@@ -173,7 +173,7 @@ sections:
                 !== undefined; ]]]
               hue_like_light_card: >-
                 [[[ return typeof
-                customElements.get(variables.___reqs.custom_cards.button_card)
+                customElements.get(variables.___reqs.custom_cards.hue_like_light_card)
                 !== undefined; ]]]
             themes:
               ha_lcars: >-
