@@ -103,6 +103,7 @@ sections:
           - cb-lcars-card-base
           - cb-lcars-actions-disable
           - cb-lcars-defs
+        triggers_update: all
         variables:
           ___debug: true
           ___debug_hass: true
@@ -186,7 +187,7 @@ sections:
                 variables.___reqs.themes.cb_lcars ]]]
         styles:
           card:
-            - width: 70vw
+            - width: 80vw
             - height: 950px
             - border-radius: 0 !important
           custom_fields:
