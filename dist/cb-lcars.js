@@ -413,8 +413,13 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {}
-    }
+        return { 
+            cblcars_card_config: {
+                label: "CB-LCARS Label",
+                show_label: true
+            }
+        }
+      }
 }
 
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
@@ -429,13 +434,8 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return { 
-            cblcars_card_config: {
-                label: "CB-LCARS Header",
-                show_label: true
-            }
-        }
-      }
+        return {}
+    }
 }
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
