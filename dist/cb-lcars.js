@@ -110,37 +110,6 @@ async function cblcarsLog(level, message) {
 }
 
 
-async function cblcarsLogOld(level, message) {
-    let styles = [
-        'color: white',
-        'padding: 2px 4px',
-        'border-radius: 15px'
-    ];
-
-    switch (level) {
-        case 'info':
-            styles.push('background-color: #37a6d1'); // Blue
-            console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
-            break;
-        case 'warn':
-            styles.push('background-color: #ff6753'); // Orange
-            console.warn(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
-            break;
-        case 'error':
-            styles.push('background-color: #ef1d10'); // Red
-            console.error(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
-            break;
-        case 'debug':
-            styles.push('background-color: #8e44ad'); // Purple
-            console.debug(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
-            break;
-        default:
-            styles.push('background-color: #6d748c'); // Gray for unknown levels
-            console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
-            break;
-    }
-}
-
 // Function to get the Lovelace configuration
 function getLovelace() {
     let root = document.querySelector('home-assistant');
@@ -464,6 +433,7 @@ window.customCards.push({
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
+loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
