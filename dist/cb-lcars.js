@@ -165,7 +165,7 @@ class CBLCARSDashboardStrategy {
             cblcarsLog('debug',jsObject);
 
             return {
-                cb-lcars: {
+                'cb-lcars': {
                     manage_config: true
                 },
                 title: 'CB-LCARS',
