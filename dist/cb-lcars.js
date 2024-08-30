@@ -375,7 +375,12 @@ class CBLCARSBaseCard extends HTMLElement {
       return this._card ? this._card.getCardSize() : 1;
     }
 
+    constructor () {
+        super();
+        initializeConfigUpdate();
+    }
     connectedCallback() {
+        super.connectedCallback();
         cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
