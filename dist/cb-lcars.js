@@ -2,6 +2,8 @@
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
 
+const fontUrl = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 
+
 const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
 const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
@@ -26,6 +28,23 @@ const loadJsYaml = new Promise((resolve, reject) => {
     document.head.appendChild(script);
 });
 
+async function loadFont() {
+    try {
+      const existingLink = document.querySelector(`link[href="${fontUrl}"]`);
+      if (!existingLink) {
+        const link = document.createElement('link'); 
+        link.href = fontUrl; 
+        link.rel = 'stylesheet'; 
+        document.head.appendChild(link);
+        await cblcarsLog('info', `Loaded CB-LCARS required font from: ${fontUrl}`);
+      } else {
+        console.log(`CB-LCARS font already loaded from: ${fontUrl}`);
+      }
+    } catch (error) {
+      await cblcarsLog('error', `Failed to load font from: ${fontUrl}: ${error.message}`);
+    }
+  }
+  
 
 async function cblcarsLogBanner() {
     let styles1 = [
@@ -448,11 +467,14 @@ cblcarsLogBanner();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
-
+// load the font if it's not already available
+document.addEventListener('DOMContentLoaded', loadFont);
+    
+    
 
 /*
 
-look at this later...
+look at this later maybe...
 
 // Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
 const observer = new MutationObserver((mutations) => {
