@@ -334,7 +334,9 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 
 
 
-class CBLCARSWrapperCard extends HTMLElement {
+
+
+class CBLCARSBaseCard extends HTMLElement {
     setConfig(config) {
       if (!config || !config.cblcars_card_config) {
         throw new Error("You need to define cblcars_card_config");
@@ -378,15 +380,30 @@ class CBLCARSWrapperCard extends HTMLElement {
 }
 
 
- 
-customElements.define('cb-lcars-wrapper-card', CBLCARSWrapperCard);
+class CBLCARSLabelCard extends CBLCARSWrapperCard {
+    setConfig(config) {
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: 'cb-lcars-label'
+                label: 'Special Card',
+                // Add any other specific configurations here
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+}
 
-// Register the card for the GUI editor
+//Define the cards for Home Assistant usage
+customElements.define('cb-lcars-base-card', CBLCARSBaseCard);
+
+// Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
 window.customCards.push({
-type: 'cb-lcars-wrapper-card',
-name: 'CB-LCARS Wrapper Card',
-description: 'A wrapper card for testing CB-LCARS configuration.',
+type: 'cb-lcars-base-card',
+name: 'CB-LCARS Base Card',
+description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
 });
 
 // Call log banner function immediately when the script loads
