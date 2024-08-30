@@ -341,7 +341,6 @@ class CBLCARSBaseCard extends HTMLElement {
         // Create a new object to avoid modifying the original config
         const buttonCardConfig = {
         type: 'custom:button-card',
-        label: 'cb-lcars-base',
         ...config.cblcars_card_config,
         };
 
@@ -364,7 +363,12 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
     static getStubConfig() {
-        return { cb_lcars_card_config: '' }
+        return { 
+            cb_lcars_card_config: {
+                label: 'cb-lcars-base',
+                show_label: true
+            }
+        }
       }
   
     getCardSize() {
@@ -409,12 +413,8 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return { 
-            cblcars_card_config: {
-                label: "CB-LCARS Label" 
-            }
-        }
-      }
+        return {}
+    }
 }
 
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
@@ -431,7 +431,8 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
     static getStubConfig() {
         return { 
             cblcars_card_config: {
-                label: "CB-LCARS Header" 
+                label: "CB-LCARS Header",
+                show_label: true
             }
         }
       }
