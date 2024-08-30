@@ -441,8 +441,8 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {}
-    }
+        return {};
+    } 
 }
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
