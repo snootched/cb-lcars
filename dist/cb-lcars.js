@@ -105,10 +105,13 @@ async function updateLovelaceConfig(filePath) {
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
     cblcarsLog('debug',"In initializeConfigUpdate()");
+    cblcarsLog('debug',`isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
-        cblcarsLog('info',`Will ry to update lovelace config with contents of ${templates_url}`);
+        cblcarsLog('info',`Will try to update lovelace config with contents of ${templates_url}`);
         await updateLovelaceConfig(templates_url);
         isConfigMerged = true;
+    } else {
+        cblcarsLog('info','isConfigMerged is true - bypassing merge');
     }
 }
 
