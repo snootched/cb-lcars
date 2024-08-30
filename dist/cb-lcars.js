@@ -345,8 +345,7 @@ class CBLCARSBaseCard extends HTMLElement {
       // Create a new object to avoid modifying the original config
       const buttonCardConfig = {
         type: 'custom:button-card',
-        show_label: true,
-        label: 'wrapper',
+        label: 'cb-lcars-base',
         ...config.cblcars_card_config,
       };
   
@@ -368,6 +367,9 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card.hass = hass;
       }
     }
+    static getStubConfig() {
+        return { cb_lcars_card_config: '' }
+      }
   
     getCardSize() {
       return this._card ? this._card.getCardSize() : 1;
@@ -380,31 +382,44 @@ class CBLCARSBaseCard extends HTMLElement {
 }
 
 
-class CBLCARSLabelCard extends CBLCARSWrapperCard {
+class CBLCARSLabelCard extends CBLCARSBaseCard {
     setConfig(config) {
         const specialConfig = {
             ...config,
             cblcars_card_config: {
                 ...config.cblcars_card_config,
                 template: 'cb-lcars-label'
-                label: 'Special Card',
-                // Add any other specific configurations here
+                label: 'cb-lcars-label',
             }
         };
         super.setConfig(specialConfig);
     }
+    static getStubConfig() {
+        return { label: "CB-LCARS Label" }
+      }
 }
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card', CBLCARSBaseCard);
+customElements.define('cb-lcars-label-card',CBLCARSLabelCard)
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
 window.customCards.push({
-type: 'cb-lcars-base-card',
-name: 'CB-LCARS Base Card',
-description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
+    type: 'cb-lcars-base-card',
+    name: 'CB-LCARS Base Card',
+    description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
+window.customCards.push({
+    type: 'cb-lcars-label-card',
+    name: 'CB-LCARS Label',
+    preview: true,
+    description: 'CB-LCARS label card for text.',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+
+
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
