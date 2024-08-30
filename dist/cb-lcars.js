@@ -147,6 +147,8 @@ async function fetchYAML(url) {
         if (response.ok) {
             const yamlContent = await response.text();
             cblcarsLog('info',`fetched yaml file ${url}`);
+            cblcarsLog('warn',yamlContent);
+
             return yamlContent;
         } else {
             throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
