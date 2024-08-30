@@ -185,12 +185,12 @@ async function updateLovelaceConfig(filePath) {
 
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
-    await cblcarsLog('info',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
+    //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
         await cblcarsLog('info',`Will try to update lovelace config with contents of ${templates_url}`);
         await updateLovelaceConfig(templates_url);
     } else {
-        await cblcarsLog('debug','isConfigMerged is true - bypassing merge');
+        await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
     }
 }
 
@@ -380,7 +380,6 @@ class CBLCARSBaseCard extends HTMLElement {
         initializeConfigUpdate();
     }
     connectedCallback() {
-        super.connectedCallback();
         cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
