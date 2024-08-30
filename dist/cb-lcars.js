@@ -8,7 +8,7 @@ document.head.appendChild(script);
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
 
-const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full.yaml';
+const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
 const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 
@@ -104,8 +104,10 @@ async function updateLovelaceConfig(filePath) {
 
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
+    cblcarsLog('debug',"In initializeConfigUpdate()");
     if (!isConfigMerged) {
-        await updateLovelaceConfig('/hacsfiles/cb-lcars/cb-lcars-full-new.yaml');
+        cblcarsLog('info',`Will ry to update lovelace config with contents of ${templates_url}`);
+        await updateLovelaceConfig(templates_url);
         isConfigMerged = true;
     }
 }
@@ -288,11 +290,11 @@ document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
 
 // Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
 const observer = new MutationObserver((mutations) => {
-mutations.forEach((mutation) => {
-    if (mutation.addedNodes.length || mutation.removedNodes.length) {
-    initializeConfigUpdate();
-    }
-});
+    mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length || mutation.removedNodes.length) {
+            initializeConfigUpdate();
+        }
+    });
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
