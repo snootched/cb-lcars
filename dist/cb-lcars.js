@@ -1,9 +1,3 @@
-// Load js-yaml from CDN.. see if this can be packaged and distributed locally
-const script = document.createElement('script');
-//script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
-script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
-script.type = 'text/javascript';
-document.head.appendChild(script);
 
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
@@ -11,6 +5,26 @@ let isConfigMerged = false;
 const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
 const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
+
+
+/* old way.. 
+// Load js-yaml from CDN.. see if this can be packaged and distributed locally
+const script = document.createElement('script');
+//script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
+script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
+script.type = 'text/javascript';
+document.head.appendChild(script);
+*/
+
+//change to promise to make sure js-yaml is loaded for functions that need it
+const loadJsYaml = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
+    script.type = 'text/javascript';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load js-yaml script'));
+    document.head.appendChild(script);
+});
 
 
 async function cblcarsLogBanner() {
@@ -147,7 +161,7 @@ async function fetchYAML(url) {
         if (response.ok) {
             const yamlContent = await response.text();
             cblcarsLog('info',`fetched yaml file ${url}`);
-            cblcarsLog('warn',yamlContent);
+            //cblcarsLog('warn',yamlContent);
 
             return yamlContent;
         } else {
@@ -161,6 +175,7 @@ async function fetchYAML(url) {
 // Function to read and parse the YAML file
 async function readYamlFile(url) {
     try {
+        await loadJsYaml; // Wait for the js-yaml script to load
         const response = await fetchYAML(url);
         const jsObject = jsyaml.load(response);
         cblcarsLog('debug', jsObject);
