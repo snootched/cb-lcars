@@ -340,7 +340,7 @@ class CBLCARSBaseCard extends HTMLElement {
     
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
-        const userTemplates = config.cblcars_card_config.templates || [];
+        const userTemplates = config.cblcars_card_config.template || [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         // Create a new object to avoid modifying the original config
@@ -414,7 +414,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             ...config,
             cblcars_card_config: {
                 ...config.cblcars_card_config,
-                template: ['cb-lcars-label', ...(config.cblcars_card_config.templates || [])],
+                template: ['cb-lcars-label', ...(config.cblcars_card_config.template || [])],
             }
         };
         super.setConfig(specialConfig);
@@ -435,7 +435,7 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
             ...config,
             cblcars_card_config: {
                 ...config.cblcars_card_config,
-                template: ['cb-lcars-header', ...(config.cblcars_card_config.templates || [])],
+                template: ['cb-lcars-header', ...(config.cblcars_card_config.template || [])],
             }
         };
         super.setConfig(specialConfig);
