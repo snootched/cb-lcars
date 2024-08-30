@@ -376,8 +376,20 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     connectedCallback() {
-        //cblcarsLog("info","in connectedCallback()");
-        initializeConfigUpdate();
+        try {
+            // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
+            if (!this._card) {
+                this._card = document.createElement('button-card');
+                this.appendChild(this._card);
+            }
+            this._card.setConfig(this._config.cblcars_card_config);
+        } catch (error) {
+            cblcarsLog('error',`Error rendering card: ${error}`);
+        } finally {
+            cblcarsLog('debug','Attempting to initialize config')
+            // Ensure initializeConfigUpdate runs even if rendering fails
+            initializeConfigUpdate();
+        }
     }
 }
 
