@@ -2,7 +2,7 @@
 const script = document.createElement('script');
 //script.src = 'https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js';
 script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
-script.type = 'text/javascript'
+script.type = 'text/javascript';
 document.head.appendChild(script);
 
 // Flag to check if the configuration has been merged
@@ -23,23 +23,23 @@ async function cblcarsLog(level, message) {
     switch (level) {
         case 'info':
             styles.push('background-color: #37a6d1'); // Blue
-            console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+            await console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
             break;
         case 'warn':
             styles.push('background-color: #ff6753'); // Orange
-            console.warn(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+            await console.warn(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
             break;
         case 'error':
             styles.push('background-color: #ef1d10'); // Red
-            console.error(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+            await console.error(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
             break;
         case 'debug':
             styles.push('background-color: #8e44ad'); // Purple
-            console.debug(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+            await console.debug(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
             break;
         default:
             styles.push('background-color: #6d748c'); // Gray for unknown levels
-            console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
+            await console.log(`%c    CB-LCARS | ${level} `, styles.join(';'), message);
             break;
     }
 }
@@ -155,7 +155,7 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('debug',jsObject);
             const jsObject = await readYamlFile(templates_url);
 
-            cblcarsLog('warning',"dumping dash strategy after readYamlFile function...");
+            cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
             cblcarsLog('debug',jsObject);
 
             return {
@@ -181,7 +181,7 @@ class CBLCARSDashboardStrategy {
     
             };
         } catch (error) {
-            cblcarsLog('error', `Error loading airlock view: ${error.message}`);
+            cblcarsLog('error', `Error loading strategy: ${error.message}`);
             throw error;
         }
     }
@@ -196,7 +196,7 @@ class CBLCARSViewStrategyAirlock {
             //cblcarsLog('info',`fetched and parsed yaml ${airlock_url}`);
             //cblcarsLog('debug',jsObject);
             const jsObject = await readYamlFile(airlock_url);
-            cblcarsLog('warning',"dumping airlock strategy after readYamlFile function...");
+            cblcarsLog('warn',"dumping airlock strategy after readYamlFile function...");
             cblcarsLog('debug',jsObject);
             
             return {
@@ -218,7 +218,7 @@ class CBLCARSViewStrategyGallery {
             //cblcarsLog('debug',jsObject);
             
             const jsObject = await readYamlFile(gallery_url);
-            cblcarsLog('warning',"dumping gallery strategy after readYamlFile function...");
+            cblcarsLog('warn',"dumping gallery strategy after readYamlFile function...");
             cblcarsLog('debug',jsObject);
 
             return {
