@@ -326,41 +326,49 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 
 class CBLCARSBaseCard extends HTMLElement {
     setConfig(config) {
-      if (!config || !config.cblcars_card_config) {
-        throw new Error("You need to define cblcars_card_config");
-      }
-  
-      // Create a new object to avoid modifying the original config
-      const buttonCardConfig = {
+        if (!config || !config.cblcars_card_config) {
+        throw new Error("You need to define cblcars_card_config:");
+        }
+
+        // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
+        if (config.entity && !config.cblcars_card_config.entity) {
+        config.cblcars_card_config.entity = config.entity;
+        }
+        if (config.label && !config.cblcars_card_config.label) {
+            config.cblcars_card_config.label = config.label;
+        }
+    
+        // Create a new object to avoid modifying the original config
+        const buttonCardConfig = {
         type: 'custom:button-card',
         label: 'cb-lcars-base',
         ...config.cblcars_card_config,
-      };
-  
-      //merge the button_card_config into config
-      this._config = { ...config, cblcars_card_config: buttonCardConfig };
-  
-      //instantiate the button-card
-      if (!this._card) {
+        };
+
+        //merge the button_card_config into config
+        this._config = { ...config, cblcars_card_config: buttonCardConfig };
+
+        //instantiate the button-card
+        if (!this._card) {
         this._card = document.createElement('button-card');
         this.appendChild(this._card);
-      }
-  
-      //set our config on the button-card we just stood up
-      this._card.setConfig(this._config.cblcars_card_config);
+        }
+
+        //set our config on the button-card we just stood up
+        this._card.setConfig(this._config.cblcars_card_config);
     }
   
     set hass(hass) {
-      if (this._card) {
+        if (this._card) {
         this._card.hass = hass;
-      }
+        }
     }
     static getStubConfig() {
         return { cb_lcars_card_config: '' }
       }
   
     getCardSize() {
-      return this._card ? this._card.getCardSize() : 1;
+        return this._card ? this._card.getCardSize() : 1;
     }
 
     constructor () {
@@ -409,9 +417,29 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
       }
 }
 
+class CBLCARSHeaderCard extends CBLCARSBaseCard {
+    setConfig(config) {
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: 'cb-lcars-header',
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return { 
+            cblcars_card_config: {
+                label: "CB-LCARS Header" 
+            }
+        }
+      }
+}
 //Define the cards for Home Assistant usage
-customElements.define('cb-lcars-base-card', CBLCARSBaseCard);
-customElements.define('cb-lcars-label-card',CBLCARSLabelCard)
+customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
+customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
+customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
@@ -428,12 +456,19 @@ window.customCards.push({
     description: 'CB-LCARS label card for text.',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
+window.customCards.push({
+    type: 'cb-lcars-header-card',
+    name: 'CB-LCARS Header',
+    preview: true,
+    description: 'CB-LCARS header card',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
 
 
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
-loadFont();
+//loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
