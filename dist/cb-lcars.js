@@ -88,10 +88,13 @@ async function updateLovelaceConfig(filePath) {
             // Apply the updated configuration
             await lovelaceConfig.saveConfig(updatedConfig);
             await cblcarsLog('info', 'Lovelace configuration updated successfully');
+            isConfigMerged = true;
+
         } else if (newVersion === 0) {
             await cblcarsLog('warn', 'New configuration version is not defined. Please set a version in your YAML file.');
         } else {
             await cblcarsLog('info', 'Configuration is up to date');
+            isConfigMerged = true;
         }
         } else {
         await cblcarsLog('warn', 'Configuration management is disabled. Set cb-lcars.manage_config to true in your Lovelace configuration to enable it.');
@@ -104,12 +107,10 @@ async function updateLovelaceConfig(filePath) {
 
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
-    cblcarsLog('debug',"In initializeConfigUpdate()");
-    cblcarsLog('debug',`isConfigMerged = ${isConfigMerged}`);
+    cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
         cblcarsLog('info',`Will try to update lovelace config with contents of ${templates_url}`);
         await updateLovelaceConfig(templates_url);
-        isConfigMerged = true;
     } else {
         cblcarsLog('info','isConfigMerged is true - bypassing merge');
     }
@@ -164,6 +165,9 @@ class CBLCARSDashboardStrategy {
             cblcarsLog('debug',jsObject);
 
             return {
+                cb-lcars: {
+                    manage_config: true
+                },
                 title: 'CB-LCARS',
                 ...jsObject, // Use the parsed YAML content here
 
@@ -291,6 +295,12 @@ description: 'A wrapper card for testing CB-LCARS configuration.',
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
 
+
+
+/*
+
+look at this later...
+
 // Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
@@ -301,3 +311,4 @@ const observer = new MutationObserver((mutations) => {
 });
 
 observer.observe(document.body, { childList: true, subtree: true });
+*/
