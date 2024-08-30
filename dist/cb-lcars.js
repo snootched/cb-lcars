@@ -158,13 +158,16 @@ async function fetchYAML(url) {
 
 // Function to read and parse the YAML file
 async function readYamlFile(url) {
-    const response = await fetchYAML(url);
-    const jsObject = jsyaml.load(response);
-    cblcarsLog('debug',jsObject);
-
-    return jsObject;
+    try {
+        const response = await fetchYAML(url);
+        const jsObject = jsyaml.load(response);
+        cblcarsLog('debug', jsObject);
+        return jsObject;
+    } catch (error) {
+        cblcarsLog('error', `Failed to read or parse YAML file: ${error.message}`);
+        throw error; // Re-throw the error after logging it
+    }
 }
-
     
 // Define the dashboard class
 class CBLCARSDashboardStrategy {
@@ -307,7 +310,7 @@ class CBLCARSWrapperCard extends HTMLElement {
     }
 
     connectedCallback() {
-        cblcarsLog("info","in connectecCallback()");
+        cblcarsLog("info","in connectedCallback()");
         initializeConfigUpdate();
     }
 }
