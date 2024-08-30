@@ -99,28 +99,28 @@ async function updateLovelaceConfig(filePath) {
 
         // Check if the cb-lcars.manage_config flag is set
         if (cbLcarsConfig.manage_config) {
-        // Check if the new configuration version is different
-        const currentVersion = cbLcarsConfig.version || 0;
-        const newVersion = newCbLcarsConfig.version || 0;
+            // Check if the new configuration version is different
+            const currentVersion = cbLcarsConfig.version || 0;
+            const newVersion = newCbLcarsConfig.version || 0;
 
-        if (newVersion > currentVersion) {
-            // Merge the cb-lcars configurations
-            const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
+            if (newVersion > currentVersion) {
+                // Merge the cb-lcars configurations
+                const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
-            // Create a new configuration object by copying the existing one and updating cb-lcars
-            const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
+                // Create a new configuration object by copying the existing one and updating cb-lcars
+                const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
 
-            // Apply the updated configuration
-            await lovelaceConfig.saveConfig(updatedConfig);
-            await cblcarsLog('info', 'Lovelace configuration updated successfully');
-            isConfigMerged = true;
+                // Apply the updated configuration
+                await lovelaceConfig.saveConfig(updatedConfig);
+                await cblcarsLog('info', 'Lovelace configuration updated successfully');
+                isConfigMerged = true;
 
-        } else if (newVersion === 0) {
-            await cblcarsLog('warn', 'New configuration version is not defined. Please set a version in your YAML file.');
-        } else {
-            await cblcarsLog('info', 'Configuration is up to date');
-            isConfigMerged = true;
-        }
+            } else if (newVersion === 0) {
+                await cblcarsLog('warn', 'New configuration version is not defined. Please set a version in your YAML file.');
+            } else {
+                await cblcarsLog('info', 'Configuration is up to date');
+                isConfigMerged = true;
+            }
         } else {
         await cblcarsLog('warn', 'Configuration management is disabled. Set cb-lcars.manage_config to true in your Lovelace configuration to enable it.');
         }
@@ -307,7 +307,7 @@ class CBLCARSWrapperCard extends HTMLElement {
     }
 
     connectedCallback() {
-        cblcarsLogBanner;
+        cblcarsLogBanner();
         initializeConfigUpdate();
     }
 }
