@@ -435,6 +435,12 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
     setConfig(config) {
+        // Ensure cblcars_card_config is an object
+        config.cblcars_card_config = config.cblcars_card_config || {};
+
+        // Ensure template is an array
+        config.cblcars_card_config.template = config.cblcars_card_config.template || [];
+
         const specialConfig = {
             ...config,
             cblcars_card_config: {
