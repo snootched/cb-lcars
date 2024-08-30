@@ -376,12 +376,15 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     connectedCallback() {
+        cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
+                cblcarsLog('debug','creating new button-card element');
                 this._card = document.createElement('button-card');
                 this.appendChild(this._card);
             }
+            cblcarsLog('debug','setting config on button-card element');
             this._card.setConfig(this._config.cblcars_card_config);
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
@@ -401,13 +404,16 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             cblcars_card_config: {
                 ...config.cblcars_card_config,
                 template: 'cb-lcars-label',
-                label: 'cb-lcars-label',
             }
         };
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return { label: "CB-LCARS Label" }
+        return { 
+            cblcars_card_config: {
+                label: "CB-LCARS Label" 
+            }
+        }
       }
 }
 
