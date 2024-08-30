@@ -388,7 +388,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             ...config,
             cblcars_card_config: {
                 ...config.cblcars_card_config,
-                template: 'cb-lcars-label'
+                template: 'cb-lcars-label',
                 label: 'cb-lcars-label',
             }
         };
