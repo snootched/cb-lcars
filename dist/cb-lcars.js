@@ -132,7 +132,7 @@ async function updateLovelaceConfig(filePath) {
 
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
-    cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
+    cblcarsLog('info',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
         cblcarsLog('info',`Will try to update lovelace config with contents of ${templates_url}`);
         await updateLovelaceConfig(templates_url);
@@ -307,11 +307,13 @@ class CBLCARSWrapperCard extends HTMLElement {
     }
 
     connectedCallback() {
-        cblcarsLogBanner();
+        cblcarsLog("info","in connectecCallback()");
         initializeConfigUpdate();
     }
 }
-  
+
+
+ 
 customElements.define('cb-lcars-wrapper-card', CBLCARSWrapperCard);
 
 // Register the card for the GUI editor
@@ -322,9 +324,11 @@ name: 'CB-LCARS Wrapper Card',
 description: 'A wrapper card for testing CB-LCARS configuration.',
 });
 
+// Call log banner function immediately when the script loads
+cblcarsLogBanner();
+
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
-
 
 
 /*
