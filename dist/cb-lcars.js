@@ -241,14 +241,14 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 class CBLCARSWrapperCard extends HTMLElement {
     setConfig(config) {
       if (!config || !config.cblcars_card_config) {
-        throw new Error("You need to define button_card_config");
+        throw new Error("You need to define cblcars_card_config");
       }
   
       // Create a new object to avoid modifying the original config
       const buttonCardConfig = {
         type: 'custom:button-card',
-        show_icon: true,
-        show_name: true,
+        show_label: true,
+        label: 'wrapper',
         ...config.cblcars_card_config,
       };
   
@@ -271,14 +271,28 @@ class CBLCARSWrapperCard extends HTMLElement {
     getCardSize() {
       return this._card ? this._card.getCardSize() : 1;
     }
-  }
+}
   
-  customElements.define('cb-lcars-wrapper-card', CBLCARSWrapperCard);
-  
-  // Register the card for the GUI editor
-  window.customCards = window.customCards || [];
-  window.customCards.push({
-    type: 'cb-lcars-wrapper-card',
-    name: 'CB-LCARS Wrapper Card',
-    description: 'A wrapper card for testing CB-LCARS configuration.',
-  });
+customElements.define('cb-lcars-wrapper-card', CBLCARSWrapperCard);
+
+// Register the card for the GUI editor
+window.customCards = window.customCards || [];
+window.customCards.push({
+type: 'cb-lcars-wrapper-card',
+name: 'CB-LCARS Wrapper Card',
+description: 'A wrapper card for testing CB-LCARS configuration.',
+});
+
+// Use DOMContentLoaded event to initialize configuration update
+document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
+
+// Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
+const observer = new MutationObserver((mutations) => {
+mutations.forEach((mutation) => {
+    if (mutation.addedNodes.length || mutation.removedNodes.length) {
+    initializeConfigUpdate();
+    }
+});
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
