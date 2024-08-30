@@ -13,6 +13,31 @@ const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 
 
+async function cblcarsLogBanner() {
+    let styles1 = [
+        'color: white',
+        'font-weight: bold',
+        'padding: 2px 4px',
+        'border-radius: 5em 5em 0 0', // Top left and right rounded, bottom left and right square
+        'background-color: #37a6d1' // Blue
+    ];
+
+    let styles2 = [
+        'color: white',
+        'padding: 2px 4px',
+        'border-radius: 0 0 5em 5em', // Top left and right square, bottom left and right rounded
+        'background-color: #37a6d1' // Blue
+    ];
+
+    let invisibleStyle = [
+        'color: transparent',
+        'padding: 0',
+        'border: none'
+    ];
+
+    console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
+}
+
 async function cblcarsLog(level, message) {
     let styles = [
         'color: white',
@@ -282,7 +307,7 @@ class CBLCARSWrapperCard extends HTMLElement {
     }
 
     connectedCallback() {
-        console.log('CB-LCARS Wrapper Card loaded');
+        cblcarsLogBanner;
         initializeConfigUpdate();
     }
 }

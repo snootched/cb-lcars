@@ -35,9 +35,32 @@ cb-lcars-theme:
           }
         }
       ]]]
+
+
+    font: |
+      [[[
+        variables.__cblcarsLog('debug', `Adding link to font from: ${variables.__defs.font_url}`);
+        const existingLink = document.querySelector(`link[href="${variables.__defs.font_url}"]`);
+        if (!existingLink) {
+          const link = document.createElement('link'); 
+          link.href = variables.__defs.font_url; 
+          link.rel = 'stylesheet'; 
+          document.head.appendChild(link);
+          variables.__cblcarsLog('debug', `Added link to font from: ${variables.__defs.font_url}`);
+        } else {
+          variables.__cblcarsLog('debug', `Font link already exists: ${variables.__defs.font_url}`);
+        } 
+      ]]]
+
+    
   styles:
     custom_fields:
       colors:
         - height: 0
         - width: 0
         - visibility: hidden
+      font:
+        - height: 0
+        - width: 0
+        - visibility: hidden 
+

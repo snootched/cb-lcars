@@ -99,9 +99,594 @@ sections:
                     color: var(--picard-dark-gray)
       - type: custom:button-card
         template: cb-lcars-theme
+        variables:
+          ___debug: false
       - type: entities
         entities:
           - input_select.lcars_ui_alert_condition
+      - type: custom:button-card
+        template:
+          - cb-lcars-button-grid
+          - cb-lcars-defs
+        triggers_update: '[[[ return variables.___helpers.alert_condition ]]]'
+        variables:
+          button:
+            template:
+              - cb-lcars-button-picard-filled
+              - cb-lcars-button-picard-label-se
+              - cb-lcars-button-picard-name-nw
+            show_name: true
+            variables:
+              text:
+                label:
+                  font_size: 16px
+                  font_weight: 300
+                name:
+                  font_size: 14px
+                  font_weight: 300
+          grid:
+            X: 6
+            'Y': 8
+            buttons:
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-gray)
+                label: picard-darkest-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-blue)
+                label: picard-darkest-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-orange)
+                label: picard-darkest-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-green)
+                label: picard-darkest-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-yellow)
+                label: picard-darkest-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-black-cherry)
+                label: picard-black-cherry
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-black-cherry');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-gray)
+                label: picard-dark-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-blue)
+                label: picard-dark-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-orange)
+                label: picard-dark-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-green)
+                label: picard-dark-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-yellow)
+                label: picard-dark-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-font-color)
+                label: picard-font-color
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-font-color');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-gray)
+                label: picard-medium-dark-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-blue)
+                label: picard-medium-dark-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-orange)
+                label: picard-medium-dark-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-green)
+                label: picard-medium-dark-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-yellow)
+                label: picard-medium-dark-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-gray)
+                label: picard-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-blue)
+                label: picard-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-orange)
+                label: picard-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-green)
+                label: picard-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-yellow)
+                label: picard-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-gray)
+                label: picard-medium-light-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-blue)
+                label: picard-medium-light-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-orange)
+                label: picard-medium-light-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-green)
+                label: picard-medium-light-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-yellow)
+                label: picard-medium-light-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-gray)
+                label: picard-light-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-blue)
+                label: picard-light-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-orange)
+                label: picard-light-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-green)
+                label: picard-light-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-yellow)
+                label: picard-light-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-gray)
+                label: picard-lightest-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-blue)
+                label: picard-lightest-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-orange)
+                label: picard-lightest-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-green)
+                label: picard-lightest-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-yellow)
+                label: picard-lightest-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+      - type: custom:button-card
+        template:
+          - cb-lcars-button-grid
+          - cb-lcars-defs
+        triggers_update: '[[[ return variables.___helpers.alert_condition ]]]'
+        variables:
+          button:
+            template:
+              - cb-lcars-button-picard-filled
+              - cb-lcars-button-picard-label-se
+              - cb-lcars-button-picard-name-nw
+            show_name: true
+            variables:
+              text:
+                label:
+                  font_size: 16px
+                  font_weight: 300
+                name:
+                  font_size: 14px
+                  font_weight: 300
+          grid:
+            X: 4
+            'Y': 3
+            buttons:
+              - label: lcars-card-top-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-top-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-top-color');
+                  ]]]
+              - label: lcars-card-mid-left-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-mid-left-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-mid-left-color');
+                  ]]]
+              - label: lcars-card-button
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button');
+                  ]]]
+              - label: lcars-card-bottom-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-bottom-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-bottom-color');
+                  ]]]
+              - label: success-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--success-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--success-color');
+                  ]]]
+              - label: warning-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--warning-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--warning-color');
+                  ]]]
+              - label: error-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--error-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--error-color');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - label: lcars-ui-primary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-primary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-primary');
+                  ]]]
+              - label: lcars-ui-secondary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-secondary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-secondary');
+                  ]]]
+              - label: lcars-ui-tertiary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-tertiary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-tertiary');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
   - type: grid
     cards: []
   - type: grid

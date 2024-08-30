@@ -105,8 +105,8 @@ sections:
           - cb-lcars-defs
         triggers_update: all
         variables:
-          ___debug: true
-          ___debug_hass: true
+          ___debug: false
+          ___debug_hass: false
           ___reqs:
             helpers:
               cb_lcars:
@@ -995,9 +995,13 @@ sections:
                       size: 25px
       - type: custom:button-card
         template: cb-lcars-theme
+        variables:
+          ___debug: false
   - type: grid
     cards: []
   - type: grid
     cards: []
 icon: ''
 cards: []
+
+

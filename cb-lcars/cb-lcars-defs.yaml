@@ -267,19 +267,4 @@ cb-lcars-defs:
               picard-light-yellow: '#7b7b7b'
               picard-lightest-yellow: '#8b8b8b'
 
-  custom_fields:
-    font: |
-      [[[
-        variables.__cblcarsLog('info',`Adding link to font from: ${variables.__defs.font_url}`);
-        const link = document.createElement('link'); 
-        link.href = variables.__defs.font_url; 
-        link.rel = 'stylesheet'; 
-        document.head.appendChild(link);
-      ]]]
 
-  styles:
-    custom_fields:
-      font:
-        - height: 0
-        - width: 0
-        - visibility: hidden
