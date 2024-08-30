@@ -155,6 +155,9 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('debug',jsObject);
             const jsObject = readYamlFile(templates_url);
 
+            cblcarsLog('warning',"dumping dash strategy after readYamlFile function...");
+            cblcarsLog('debug',jsObject);
+
             return {
                 title: 'CB-LCARS',
                 ...jsObject, // Use the parsed YAML content here
@@ -193,6 +196,8 @@ class CBLCARSViewStrategyAirlock {
             //cblcarsLog('info',`fetched and parsed yaml ${airlock_url}`);
             //cblcarsLog('debug',jsObject);
             const jsObject = readYamlFile(airlock_url);
+            cblcarsLog('warning',"dumping airlock strategy after readYamlFile function...");
+            cblcarsLog('debug',jsObject);
             
             return {
                 ...jsObject
@@ -213,6 +218,9 @@ class CBLCARSViewStrategyGallery {
             //cblcarsLog('debug',jsObject);
             
             const jsObject = readYamlFile(gallery_url);
+            cblcarsLog('warning',"dumping gallery strategy after readYamlFile function...");
+            cblcarsLog('debug',jsObject);
+
             return {
                 ...jsObject
             };
