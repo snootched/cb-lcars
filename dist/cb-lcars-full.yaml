@@ -1193,21 +1193,6 @@ button_card_templates:
                 picard-medium-light-yellow: '#6b6b6b'
                 picard-light-yellow: '#7b7b7b'
                 picard-lightest-yellow: '#8b8b8b'
-    custom_fields:
-      font: |
-        [[[
-          variables.__cblcarsLog('info',`Adding link to font from: ${variables.__defs.font_url}`);
-          const link = document.createElement('link'); 
-          link.href = variables.__defs.font_url; 
-          link.rel = 'stylesheet'; 
-          document.head.appendChild(link);
-        ]]]
-    styles:
-      custom_fields:
-        font:
-          - height: 0
-          - width: 0
-          - visibility: hidden
   cb-lcars-state-blink-old:
     variables:
       blink_card_background_color: var(--error-color)
@@ -2638,12 +2623,30 @@ button_card_templates:
             }
           }
         ]]]
+      font: |
+        [[[
+          variables.__cblcarsLog('debug', `Adding link to font from: ${variables.__defs.font_url}`);
+          const existingLink = document.querySelector(`link[href="${variables.__defs.font_url}"]`);
+          if (!existingLink) {
+            const link = document.createElement('link'); 
+            link.href = variables.__defs.font_url; 
+            link.rel = 'stylesheet'; 
+            document.head.appendChild(link);
+            variables.__cblcarsLog('debug', `Added link to font from: ${variables.__defs.font_url}`);
+          } else {
+            variables.__cblcarsLog('debug', `Font link already exists: ${variables.__defs.font_url}`);
+          } 
+        ]]]
     styles:
       custom_fields:
         colors:
           - height: 0
           - width: 0
           - visibility: hidden
+        font:
+          - height: 0
+          - width: 0
+          - visibility: hidden 
   cb-lcars-footer-picard:
     template:
       - cb-lcars-card-base
