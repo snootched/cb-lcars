@@ -165,7 +165,7 @@ class CBLCARSDashboardStrategy {
             cblcarsLog('debug',jsObject);
 
             return {
-                'cb-lcars': {
+                'cb-lcars:' {
                     manage_config: true
                 },
                 title: 'CB-LCARS',
@@ -279,6 +279,11 @@ class CBLCARSWrapperCard extends HTMLElement {
   
     getCardSize() {
       return this._card ? this._card.getCardSize() : 1;
+    }
+
+    connectedCallback() {
+        console.log('CB-LCARS Wrapper Card loaded');
+        initializeConfigUpdate();
     }
 }
   
