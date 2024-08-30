@@ -330,6 +330,9 @@ class CBLCARSBaseCard extends HTMLElement {
         throw new Error("You need to define cblcars_card_config:");
         }
 
+        // Ensure cblcars_card_config is an object
+        config.cblcars_card_config = config.cblcars_card_config || {};
+
         // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
         if (config.entity && !config.cblcars_card_config.entity) {
         config.cblcars_card_config.entity = config.entity;
@@ -343,11 +346,12 @@ class CBLCARSBaseCard extends HTMLElement {
         const userTemplates = config.cblcars_card_config.template || [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
+
         // Create a new object to avoid modifying the original config
         const buttonCardConfig = {
-        type: 'custom:button-card',
-        template: mergedTemplates,
-        ...config.cblcars_card_config,
+            type: 'custom:button-card',
+            template: mergedTemplates,
+            ...config.cblcars_card_config,
         };
 
         //merge the button_card_config into config
@@ -355,8 +359,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //instantiate the button-card
         if (!this._card) {
-        this._card = document.createElement('button-card');
-        this.appendChild(this._card);
+            this._card = document.createElement('button-card');
+            this.appendChild(this._card);
         }
 
         //set our config on the button-card we just stood up
