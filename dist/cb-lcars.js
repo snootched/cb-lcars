@@ -52,7 +52,45 @@ async function cblcarsLogBanner() {
     console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
 }
 
+
+
 async function cblcarsLog(level, message) {
+    let styles = [
+        'color: white',
+        'padding: 2px 4px',
+        'border-radius: 15px'
+    ];
+
+    // Capture the stack trace to find out the caller and add it to the log so we can follow this mess better
+    const stack = new Error().stack;
+    const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
+
+    switch (level) {
+        case 'info':
+            styles.push('background-color: #37a6d1'); // Blue
+            await console.log(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'warn':
+            styles.push('background-color: #ff6753'); // Orange
+            await console.warn(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'error':
+            styles.push('background-color: #ef1d10'); // Red
+            await console.error(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'debug':
+            styles.push('background-color: #8e44ad'); // Purple
+            await console.debug(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        default:
+            styles.push('background-color: #6d748c'); // Gray for unknown levels
+            await console.log(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+    }
+}
+
+
+async function cblcarsLogOld(level, message) {
     let styles = [
         'color: white',
         'padding: 2px 4px',
