@@ -481,14 +481,16 @@ class CBLCARSCardEditor extends EditorForm {
         }
 
         console.log('before returnForm..');
-        returnForm =  this.renderForm([
-            { controls: [{ label: "Display Type", configValue: "display_type", type: FormControlType.Radio, items: [
+        const formContent = [
+            { controls: [{ label: "Display Type", configValue: "type", type: FormControlType.Radio, items: [
                 { label: 'Full', value: DisplayType.Full },
                 { label: 'Compact', value: DisplayType.Compact },
             ] }] },
             { controls: [{ label: "Name", configValue: "name", type: FormControlType.Textbox }] },
             { controls: [{ label: "Hide Species", configValue: "hide_species", type: FormControlType.Switch }] }
-        ]);
+        ];
+        console.log(formContent);
+        const returnForm =  this.renderForm(formContent);
         console.log(returnForm);
         return returnForm;
     }
