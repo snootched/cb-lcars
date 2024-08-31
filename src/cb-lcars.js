@@ -472,9 +472,10 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 class CBLCARSCardEditor extends EditorForm {
 
     render() {
-        if (!this._hass || !this._config) {
-            return html``;
-        }
+        console.log("in CBLCARSCardEditor.render()");
+        //if (!this._hass || !this._config) {
+        //    return html``;
+        //}
 
         return this.renderForm([
             { controls: [{ label: "Display Type", configValue: "display_type", type: FormControlType.Radio, items: [
