@@ -449,63 +449,6 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
         return {};
     } 
 }
-//Define the cards for Home Assistant usage
-customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
-customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
-customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
-customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
-
-// Register the cards to be available in the GUI editor
-window.customCards = window.customCards || [];
-window.customCards.push({
-    type: 'cb-lcars-base-card',
-    name: 'CB-LCARS Base Card',
-    description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-label-card',
-    name: 'CB-LCARS Label',
-    preview: true,
-    description: 'CB-LCARS label card for text.',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-header-card',
-    name: 'CB-LCARS Header',
-    preview: true,
-    description: 'CB-LCARS header card',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-
-
-
-// Call log banner function immediately when the script loads
-cblcarsLogBanner();
-//loadFont();
-
-// Use DOMContentLoaded event to initialize configuration update
-document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
-// load the font if it's not already available
-document.addEventListener('DOMContentLoaded', loadFont);
-    
-    
-
-/*
-
-look at this later maybe...
-
-// Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
-const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length || mutation.removedNodes.length) {
-            initializeConfigUpdate();
-        }
-    });
-});
-
-observer.observe(document.body, { childList: true, subtree: true });
-*/
 
 
 
@@ -615,6 +558,66 @@ export class CBLCARSCardEditor extends EditorForm {
         `;
     }
 }
+
+//Define the cards for Home Assistant usage
+customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
+customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
+customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
+customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
+
+// Register the cards to be available in the GUI editor
+window.customCards = window.customCards || [];
+window.customCards.push({
+    type: 'cb-lcars-base-card',
+    name: 'CB-LCARS Base Card',
+    description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+window.customCards.push({
+    type: 'cb-lcars-label-card',
+    name: 'CB-LCARS Label',
+    preview: true,
+    description: 'CB-LCARS label card for text.',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+window.customCards.push({
+    type: 'cb-lcars-header-card',
+    name: 'CB-LCARS Header',
+    preview: true,
+    description: 'CB-LCARS header card',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+
+
+
+// Call log banner function immediately when the script loads
+cblcarsLogBanner();
+//loadFont();
+
+// Use DOMContentLoaded event to initialize configuration update
+document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
+// load the font if it's not already available
+document.addEventListener('DOMContentLoaded', loadFont);
+    
+    
+
+/*
+
+look at this later maybe...
+
+// Use MutationObserver to watch for changes in the DOM and reinitialize if necessary
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length || mutation.removedNodes.length) {
+            initializeConfigUpdate();
+        }
+    });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+*/
+
+
 
 
 //decorator is experimental for webpack/babel
