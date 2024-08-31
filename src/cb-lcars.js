@@ -561,7 +561,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
-customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
+//customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
