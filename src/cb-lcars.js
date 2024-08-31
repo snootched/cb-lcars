@@ -2,6 +2,10 @@ import jsyaml from 'js-yaml';
 import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 
+
+console.log('EditorForm:', EditorForm);
+
+
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
 
