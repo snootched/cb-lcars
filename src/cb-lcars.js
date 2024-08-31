@@ -1,5 +1,6 @@
 import jsyaml from 'js-yaml';
 import EditorForm from '@marcokreeft/ha-editor-formbuilder';
+import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
@@ -450,7 +451,7 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 }
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
-//customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
+customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
@@ -518,7 +519,7 @@ export class CBLCARSCardEditor extends EditorForm {
         }
 
         return this.renderForm([
-            { controls: [{ label: "Card Type (Required)", configValue: "card_type", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(FormulaOneCardType) }] },
+            { controls: [{ label: "Card Type (Required)", configValue: "card_type", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(cblcarsFormVars.FormulaOneCardType) }] },
             { controls: [{ label: "Title", configValue: "title", type: FormControlType.Textbox }] },
             {
                 label: "Basic configuration",
@@ -538,7 +539,7 @@ export class CBLCARSCardEditor extends EditorForm {
             {
                 label: "Countdown Type",
                 cssClass: 'side-by-side',
-                controls: [{ configValue: "countdown_type", type: FormControlType.Checkboxes, items: this.getDropdownOptionsFromEnum(CountdownType) }]
+                controls: [{ configValue: "countdown_type", type: FormControlType.Checkboxes, items: this.getDropdownOptionsFromEnum(cblcarsFormVars.CountdownType) }]
             },
             {
                 cssClass: 'side-by-side',
@@ -547,7 +548,7 @@ export class CBLCARSCardEditor extends EditorForm {
                     { label: "Row limit", configValue: "row_limit", type: FormControlType.Textbox },
                 ]
             },
-            { controls: [{ label: "Previous race", configValue: "previous_race", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(PreviousRaceDisplay) }] },
+            { controls: [{ label: "Previous race", configValue: "previous_race", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(cblcarsFormVars.PreviousRaceDisplay) }] },
             {
                 label: "Standings",
                 cssClass: 'side-by-side',
@@ -571,7 +572,7 @@ export class CBLCARSCardEditor extends EditorForm {
                     { label: "Show weather", configValue: "show_weather", type: FormControlType.Switch },
                     { type: FormControlType.Filler },
                     { label: "API key", configValue: "weather_options.api_key", type: FormControlType.Textbox },
-                    { label: "Unit", configValue: "weather_options.unit", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(WeatherUnit) },
+                    { label: "Unit", configValue: "weather_options.unit", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(cblcarsFormVars.WeatherUnit) },
                     { label: "Show icon", configValue: "weather_options.show_icon", type: FormControlType.Switch },
                     { label: "Show precipitation", configValue: "weather_options.show_precipitation", type: FormControlType.Switch },
                     { label: "Show wind", configValue: "weather_options.show_wind", type: FormControlType.Switch },
