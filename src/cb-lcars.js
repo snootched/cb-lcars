@@ -1,18 +1,11 @@
 import jsyaml from 'js-yaml';
 import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 import * as cblcarsFormVars from './cb-lcars-form-vars.js'
-
+import { html, css } from 'lit';
 
 console.log('EditorForm:', EditorForm);
-
-window.addEventListener('error', function(event) {
-    console.error('Global error handler:', event.error);
-});
-
-window.addEventListener('unhandledrejection', function(event) {
-    console.error('Unhandled promise rejection:', event.reason);
-});
-
+console.log('html:',html);
+console.log('css',css);
 
 
 // Flag to check if the configuration has been merged
@@ -479,15 +472,15 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 class CBLCARSCardEditor extends EditorForm {
 
     render() {
-        //if (!this._hass || !this._config) {
-        //    return html``;
-       // }
+        if (!this._hass || !this._config) {
+            return html``;
+        }
 
         return this.renderForm([
             { controls: [{ label: "Title", configValue: "title", type: FormControlType.Textbox }] }
         ]);
     }
-/*
+
     static get styles() {
         return css`
             .form-row {
@@ -519,7 +512,6 @@ class CBLCARSCardEditor extends EditorForm {
             }
         `;
     }
-        */
 }
 
 //Define the cards for Home Assistant usage
