@@ -473,11 +473,15 @@ class CBLCARSCardEditor extends EditorForm {
 
     render() {
         console.log("in CBLCARSCardEditor.render()");
-        //if (!this._hass || !this._config) {
-        //    return html``;
-        //}
+        console.log(this._hass);
+        console.log(this._config);
+        if (!this._hass || !this._config) {
+            console.log('returning blank cuz reasons');
+            return html``;
+        }
 
-        return this.renderForm([
+        console.log('before returnForm..');
+        returnForm =  this.renderForm([
             { controls: [{ label: "Display Type", configValue: "display_type", type: FormControlType.Radio, items: [
                 { label: 'Full', value: DisplayType.Full },
                 { label: 'Compact', value: DisplayType.Compact },
@@ -485,6 +489,8 @@ class CBLCARSCardEditor extends EditorForm {
             { controls: [{ label: "Name", configValue: "name", type: FormControlType.Textbox }] },
             { controls: [{ label: "Hide Species", configValue: "hide_species", type: FormControlType.Switch }] }
         ]);
+        console.log(returnForm);
+        return returnForm;
     }
 
 }
