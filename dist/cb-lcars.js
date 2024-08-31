@@ -330,9 +330,6 @@ class CBLCARSBaseCard extends HTMLElement {
         throw new Error("You need to define cblcars_card_config:");
         }
 
-        // Ensure cblcars_card_config is an object
-        config.cblcars_card_config = config.cblcars_card_config || {};
-
         // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
         if (config.entity && !config.cblcars_card_config.entity) {
         config.cblcars_card_config.entity = config.entity;
@@ -435,9 +432,6 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
     setConfig(config) {
-        // Ensure cblcars_card_config is an object
-        config.cblcars_card_config = config.cblcars_card_config || {};
-
         // Merge templates only if they exist
         const defaultTemplates = ['cb-lcars-header'];
         const userTemplates = config.cblcars_card_config.template ? [...config.cblcars_card_config.template] : [];
