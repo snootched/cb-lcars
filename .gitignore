@@ -403,3 +403,5 @@ cb-lcars-full.yaml
 .obsidian/core-plugins.json
 .obsidian/workspace.json
 dist/cb-lcars-full.yaml
+archive/
+dist.bak/
