@@ -326,10 +326,11 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 
 class CBLCARSBaseCard extends HTMLElement {
     setConfig(config) {
-        if (!config || !config.cblcars_card_config) {
-        throw new Error("You need to define cblcars_card_config:");
+        if (!config) {
+            throw new Error("You need to define cblcars_card_config:");
         }
 
+        
         // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
         if (config.entity && !config.cblcars_card_config.entity) {
         config.cblcars_card_config.entity = config.entity;
@@ -340,7 +341,7 @@ class CBLCARSBaseCard extends HTMLElement {
     
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
-        const userTemplates = config.cblcars_card_config.template || [];
+        const userTemplates = config.cblcars_card_config.template ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
 
