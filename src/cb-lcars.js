@@ -463,7 +463,7 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 
 
 
-export class CBLCARSCardEditor extends EditorForm {
+class CBLCARSCardEditor extends EditorForm {
 
     render() {
         if (!this._hass || !this._config) {
