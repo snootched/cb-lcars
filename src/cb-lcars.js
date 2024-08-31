@@ -1,11 +1,24 @@
 import jsyaml from 'js-yaml';
-import EditorForm from '@marcokreeft/ha-editor-formbuilder';
+
 import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 import { html, css } from 'lit';
 
-console.log('EditorForm:', EditorForm);
 console.log('html:',html);
 console.log('css',css);
+
+import EditorForm from '@marcokreeft/ha-editor-formbuilder';
+console.log('EditorForm:', EditorForm);
+
+import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
+console.log('FormControlType:', FormControlType);
+import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
+console.log('getEntitiesByDomain:', getEntitiesByDomain);
+console.log('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
+console.log('formatList:', formatList);
+console.log('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
+
+
+
 
 
 // Flag to check if the configuration has been merged
