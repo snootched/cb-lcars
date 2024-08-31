@@ -494,7 +494,7 @@ class CBLCARSCardEditor extends EditorForm {
         }
 
         console.log('before returnForm..');
-        const formContent = [ { controls: [{ label: "Title", configValue: "title", type: FormControlType.Textbox }] } ];
+        const formContent = [ { controls: [{ label: "Label", configValue: "cblcars_card_config.label", type: FormControlType.Textbox }] } ];
         console.log(formContent);
         const returnForm =  this.renderForm(formContent);
         console.log(returnForm);
