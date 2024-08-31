@@ -501,6 +501,49 @@ class CBLCARSCardEditor extends EditorForm {
         return returnForm;
     }
 
+
+    _valueChanged(ev) {
+        if (!this._config || !this._hass) {
+            return;
+        }
+        const target = ev.target;
+        const detail = ev.detail;
+        console.log('target:', target);
+        console.log('detail:', detail);
+        console.log('target.configValue:', target.configValue);
+    
+        if (target.tagName === "HA-CHECKBOX") {
+            // Add or remove the value from the array
+            const index = this._config[target.configValue].indexOf(target.value);
+            if (target.checked && index < 0) {
+                this._config[target.configValue] = [...this._config[target.configValue], target.value];
+            } else if (!target.checked && index > -1) {
+                this._config[target.configValue] = [...this._config[target.configValue].slice(0, index), ...this._config[target.configValue].slice(index + 1)];
+            }
+        } else if (target.configValue) {
+            const keys = target.configValue.split(".");
+            let config = this._config;
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!config[keys[i]]) {
+                    config[keys[i]] = {};
+                }
+                config = config[keys[i]];
+            }
+            config[keys[keys.length - 1]] = target.checked !== undefined || !(detail === null || detail === void 0 ? void 0 : detail.value) ? target.value || target.checked : target.checked || detail.value;
+    
+            this._config = { ...this._config };
+        }
+    
+        (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
+            config: this._config,
+        }, {
+            bubbles: true,
+            composed: true,
+        });
+        this.requestUpdate("_config");
+    }
+    
+
 }
 
 //Define the cards for Home Assistant usage
