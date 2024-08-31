@@ -477,17 +477,17 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 
 
 class CBLCARSCardEditor extends EditorForm {
-/*
+
     render() {
-        if (!this._hass || !this._config) {
-            return html``;
-        }
+        //if (!this._hass || !this._config) {
+        //    return html``;
+       // }
 
         return this.renderForm([
             { controls: [{ label: "Title", configValue: "title", type: FormControlType.Textbox }] }
         ]);
     }
-
+/*
     static get styles() {
         return css`
             .form-row {
