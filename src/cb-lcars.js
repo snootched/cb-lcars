@@ -477,6 +477,7 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 
 
 class CBLCARSCardEditor extends EditorForm {
+/*
     render() {
         if (!this._hass || !this._config) {
             return html``;
@@ -518,6 +519,7 @@ class CBLCARSCardEditor extends EditorForm {
             }
         `;
     }
+        */
 }
 
 //Define the cards for Home Assistant usage
