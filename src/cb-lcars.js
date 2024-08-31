@@ -364,11 +364,22 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card.hass = hass;
         }
     }
-
     static getConfigElement() {
-        return document.createElement("cb-lcars-card-editor");
-      }
-
+        console.log('Attempting to create element: cb-lcars-card-editor');
+        try {
+            if (!customElements.get('cb-lcars-card-editor')) {
+                console.error('Custom element cb-lcars-card-editor is not defined');
+                return null;
+            }
+            const element = document.createElement('cb-lcars-card-editor');
+            console.log('Element created:', element);
+            return element;
+        } catch (error) {
+            console.error('Error creating element cb-lcars-card-editor:', error);
+            return null;
+        }
+    }
+    
     static getStubConfig() {
         return { 
             cb_lcars_card_config: {
@@ -561,7 +572,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
-//customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
+customElements.define("cb-lcars-card-editor", CBLCARSCardEditor);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
