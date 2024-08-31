@@ -438,14 +438,16 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
         // Ensure cblcars_card_config is an object
         config.cblcars_card_config = config.cblcars_card_config || {};
 
-        // Ensure template is an array
-        config.cblcars_card_config.template = config.cblcars_card_config.template || [];
+        // Merge templates only if they exist
+        const defaultTemplates = ['cb-lcars-header'];
+        const userTemplates = config.cblcars_card_config.template ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
             cblcars_card_config: {
                 ...config.cblcars_card_config,
-                template: ['cb-lcars-header', ...(config.cblcars_card_config.template || [])],
+                template: mergedTemplates,
             }
         };
         super.setConfig(specialConfig);
