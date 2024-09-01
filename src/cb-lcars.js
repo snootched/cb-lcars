@@ -37,7 +37,7 @@ async function cblcarsLogBanner() {
 cblcarsLogBanner();
 
 
-function cblcarsLog(level, message) {
+function cblcarsLog(level, message, obj = null) {
     
     const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
     const levelStyles = {
@@ -64,19 +64,19 @@ function cblcarsLog(level, message) {
     // Log the message using the chosen style and console method
     switch (level) {
       case 'info':
-        console.log(logMessage, style, message);
+        console.log(logMessage, style, message, obj);
         break;
       case 'warn':
-        console.warn(logMessage, style, message);
+        console.warn(logMessage, style, message, obj);
         break;
       case 'error':
-        console.error(logMessage, style, message);
+        console.error(logMessage, style, message, obj);
         break;
       case 'debug':
-        console.debug(logMessage, style, message);
+        console.debug(logMessage, style, message, obj);
         break;
       default:
-        console.log(logMessage, style, message);
+        console.log(logMessage, style, message, obj);
         break;
     }
   }
@@ -128,7 +128,7 @@ async function loadFont() {
         link.href = fontUrl; 
         link.rel = 'stylesheet'; 
         document.head.appendChild(link);
-        await cblcarsLog('info', `Loaded CB-LCARS required font from: ${fontUrl}`);
+        cblcarsLog('info', `Loaded CB-LCARS required font from: ${fontUrl}`);
       } else {
         console.log(`CB-LCARS font already loaded from: ${fontUrl}`);
       }
@@ -219,17 +219,17 @@ async function updateLovelaceConfig(filePath) {
 
                 // Apply the updated configuration
                 await lovelaceConfig.saveConfig(updatedConfig);
-                await cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
+                cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
                 isConfigMerged = true;
 
             } else if (newVersion === 0) {
-                await cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
+                cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
             } else {
-                await cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
+                cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
                 isConfigMerged = true;
             }
         } else {
-        await cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
+        cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
         }
     } else {
         cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
@@ -241,7 +241,7 @@ async function updateLovelaceConfig(filePath) {
 async function initializeConfigUpdate() {
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
-        await cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
+        cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
         await updateLovelaceConfig(templates_url);
     } else {
         //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
@@ -253,14 +253,14 @@ async function fetchYAML(url) {
         const response = await fetch(url);
         if (response.ok) {
             const yamlContent = await response.text();
-            await cblcarsLog('debug',`Fetched yaml file ${url}`);
+            cblcarsLog('debug',`Fetched yaml file ${url}`);
             
             return yamlContent;
         } else {
             throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
         }
     } catch (error) {
-        await cblcarsLog('error', `Error fetching YAML file: ${error.message}`);
+        cblcarsLog('error', `Error fetching YAML file: ${error.message}`);
         throw error;
     }
 }
@@ -275,7 +275,7 @@ async function readYamlFile(url) {
         //await cblcarsLog('debug', jsObject);
         return jsObject;
     } catch (error) {
-        await cblcarsLog('error', `Failed to parse YAML file: ${error.message}`);
+        cblcarsLog('error', `Failed to parse YAML file: ${error.message}`);
         throw error; // Re-throw the error after logging it
     }
 }
@@ -303,7 +303,7 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
             //cblcarsLog('debug',jsObject);
 
-            await cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
+            cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
             return {
                 'cb-lcars': {
                     manage_config: true
@@ -330,7 +330,7 @@ class CBLCARSDashboardStrategy {
     
             };
         } catch (error) {
-            await cblcarsLog('error', `Error generating CB-LCARS dashboard strategy: ${error.message}`);
+            cblcarsLog('error', `Error generating CB-LCARS dashboard strategy: ${error.message}`);
             throw error;
         }
     }
@@ -340,14 +340,14 @@ class CBLCARSDashboardStrategy {
 class CBLCARSViewStrategyAirlock {
     static async generate(config, hass) {
         try {
-            await cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
+            cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
             const jsObject = await readYamlFile(airlock_url);
 
             return {
                 ...jsObject
             };
         } catch (error) {
-            await cblcarsLog('error', `Error loading CB-LCARS Airlock strategy view: ${error.message}`);
+            cblcarsLog('error', `Error loading CB-LCARS Airlock strategy view: ${error.message}`);
             throw error;
         }
     }
@@ -356,14 +356,14 @@ class CBLCARSViewStrategyAirlock {
 class CBLCARSViewStrategyGallery {
     static async generate(config, hass) {
         try {
-            await cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
+            cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
             const jsObject = await readYamlFile(gallery_url);
 
             return {
                 ...jsObject
             };
         } catch (error) {
-            await cblcarsLog('error', `Error loading CB-LCARS Gallery strategy view: ${error.message}`);
+            cblcarsLog('error', `Error loading CB-LCARS Gallery strategy view: ${error.message}`);
             throw error;
         }
     }
@@ -435,7 +435,7 @@ class CBLCARSBaseCard extends HTMLElement {
             //console.log('Element created:', element);
             return element;
         } catch (error) {
-            cblcarsLog('error',`Error creating element cb-lcars-card-editor: ${error}`);
+            cblcarsLog('error',`Error creating element cb-lcars-card-editor: `,error);
             return null;
         }
     }
@@ -585,7 +585,7 @@ class CBLCARSCardEditor extends EditorForm {
                 { label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }
             ] }
         ];
-        cblcarsLog('debug',`Editor formContent: ${formContent}`);
+        cblcarsLog('debug',`Editor formContent: `,formContent);
 
         try {
             const returnForm = this.renderForm(formContent);
@@ -634,7 +634,7 @@ class CBLCARSCardEditor extends EditorForm {
             cblcarsLog('debug',`Updating key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
 
             this._config = { ...this._config };
-            cblcarsLog('debug',`form updated config: ${this._config}`);
+            cblcarsLog('debug','form updated config: ',this._config);
         }
 
          // Fire the config-changed event
