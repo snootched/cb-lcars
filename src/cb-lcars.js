@@ -8,6 +8,17 @@ import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownO
 
 
 
+// Flag to check if the configuration has been merged
+let isConfigMerged = false;
+
+const fontUrl = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 
+
+const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
+const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
+const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
+const card_editor_url = '/hacsfiles/cb-lcars/cb-lcars-card-editor.yaml'
+
+
 async function cblcarsLogBanner() {
     let styles1 = [
         'color: white',
@@ -110,14 +121,8 @@ logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
 console.groupEnd();
 
 
-// Flag to check if the configuration has been merged
-let isConfigMerged = false;
 
-const fontUrl = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 
 
-const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
-const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
-const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 
 
 async function loadFont() {
@@ -557,48 +562,40 @@ class CBLCARSCardEditor extends EditorForm {
 
     constructor() {
         super();
-        //this._boundValueChanged = this._valueChanged.bind(this);
-    }
-
- /*   
-    //lit lifecycle functions.. we want to add an eventlistener to update our preview on each change so it's more interactive from the form
-    firstUpdated() {
-        super.firstUpdated();
-        try {
-            this.shadowRoot.addEventListener('change', this._boundValueChanged, { capture: true });
-            console.log("Added event listener successfully.");
-        } catch (error) {
-            console.error("Error adding event listener:", error);
+        //load the editor form yaml here or die
+        
+        readYamlFile(card_editor_url)
+            .then(formDefinitions => {
+                this._formDefinitions = formDefinitions;
+                this._formContent = formDefinitions[this._config.card_type];
+                this._formStyles = formDefinitions[this._config.card_type].css || {};
+                this.requestUpdate();
+            })
+            .catch(error => {
+                cblcarsLog('error','Error fetching editor form definitions: ', error);
+            });    
         }
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        try {
-            this.shadowRoot.removeEventListener('change', this._boundValueChanged);
-            console.log("Removed event listener successfully.");
-        } catch (error) {
-            console.error("Error removing event listener:", error);
-        }
-    }
-*/
 
     render() {
         //console.log("in CBLCARSCardEditor.render()");
         //console.log('this._hass:', this._hass);
         //console.log('this._config:', this._config);
-        if (!this._hass || !this._config) {
-            console.log('returning blank cuz reasons');
+        if (!this._hass || !this._config || !this._formDefinitions) {
+            cblcarsLog('debug','Unable to setup form rendering - returning blank');
             return html``;
         }
 
+        
+        /*
         const formContent = [
             { controls: [
                 { label: "Label", configValue: "label", type: FormControlType.Textbox },
                 { label: "Label nested", configValue: "cblcars_card_config.label", type: FormControlType.Textbox },
                 { label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }
             ] }
-        ];
+        ];*/
+
+        const formContent = this._formContent;
         cblcarsLog('debug',`Editor formContent: `,formContent);
 
         try {
@@ -611,6 +608,26 @@ class CBLCARSCardEditor extends EditorForm {
         }
     }
 
+    styles() {
+        if (!!this._form_formStyles) {
+            cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
+            return css``;
+        }
+
+        /*
+        return css`
+            ${this._formStyles}
+            // ... (other custom styles)
+            .form-row {
+                margin-bottom: 10px;
+            }
+        `;
+        */
+
+        return css`
+            ${this._formStyles}
+        `;
+    }
 
     //this one should check and create the key in yaml if it doesn't exist
     _valueChanged(ev) {
