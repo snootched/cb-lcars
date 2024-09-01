@@ -197,42 +197,54 @@ function getLovelace() {
 
 // Function to update the Lovelace configuration
 async function updateLovelaceConfig(filePath) {
-    const newConfig = await readYamlFile(filePath);
-    const lovelaceConfig = getLovelace();
+    let newConfig;
+    try {
+        newConfig = await readYamlFile(filePath);
+    } catch (error) {
+        cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
+        throw error;
+    }
 
-    if (lovelaceConfig) {
-        const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
-        const newCbLcarsConfig = newConfig['cb-lcars'] || {};
+    if (!newConfig) {
+        cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.',error);
+        throw error;
+    } else {
+        const lovelaceConfig = getLovelace();
 
-        // Check if the cb-lcars.manage_config flag is set
-        if (cbLcarsConfig.manage_config) {
-            // Check if the new configuration version is different
-            const currentVersion = cbLcarsConfig.version || 0;
-            const newVersion = newCbLcarsConfig.version || 0;
+        if (lovelaceConfig) {
+            const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
+            const newCbLcarsConfig = newConfig['cb-lcars'] || {};
 
-            if (newVersion > currentVersion) {
-                // Merge the cb-lcars configurations
-                const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
+            // Check if the cb-lcars.manage_config flag is set
+            if (cbLcarsConfig.manage_config) {
+                // Check if the new configuration version is different
+                const currentVersion = cbLcarsConfig.version || 0;
+                const newVersion = newCbLcarsConfig.version || 0;
 
-                // Create a new configuration object by copying the existing one and updating cb-lcars
-                const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
+                if (newVersion > currentVersion) {
+                    // Merge the cb-lcars configurations
+                    const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
-                // Apply the updated configuration
-                await lovelaceConfig.saveConfig(updatedConfig);
-                cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
-                isConfigMerged = true;
+                    // Create a new configuration object by copying the existing one and updating cb-lcars
+                    const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
 
-            } else if (newVersion === 0) {
-                cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
+                    // Apply the updated configuration
+                    await lovelaceConfig.saveConfig(updatedConfig);
+                    cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
+                    isConfigMerged = true;
+
+                } else if (newVersion === 0) {
+                    cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
+                } else {
+                    cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
+                    isConfigMerged = true;
+                }
             } else {
-                cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
-                isConfigMerged = true;
+            cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
             }
         } else {
-        cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
+            cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
         }
-    } else {
-        cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
     }
 }
 
