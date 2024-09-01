@@ -576,6 +576,18 @@ class CBLCARSCardEditor extends EditorForm {
         this._boundValueChanged = this._valueChanged.bind(this);
     }
 
+    //lit lifecycle functions.. we want to add an eventlistener to update our preview on each change so it's more interactive from the form
+    firstUpdated() {
+        super.firstUpdated();
+        // Add event listener on first render
+        this.shadowRoot.addEventListener('change', this._boundValueChanged);
+    }
+    //cleanup our eventlistener
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        // Remove event listener on component removal
+        this.shadowRoot.removeEventListener('change', this._boundValueChanged);
+    }
     render() {
         console.log("in CBLCARSCardEditor.render()");
         console.log('this._hass:', this._hass);
@@ -597,8 +609,7 @@ class CBLCARSCardEditor extends EditorForm {
         try {
             const returnForm = this.renderForm(formContent);
             console.log('returnForm:', returnForm);
-            //add event listener to update preview/yaml interactively instead of on field focus change (config-change)
-            returnForm.addEventListener('change', this._boundValueChanged);
+
             return returnForm;
         } catch (error) {
             console.error('Error in renderForm:', error);
