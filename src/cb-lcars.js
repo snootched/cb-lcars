@@ -580,10 +580,12 @@ class CBLCARSCardEditor extends EditorForm {
             for (let i = 0; i < keys.length - 1; i++) {
                 if (!config[keys[i]]) {
                     config[keys[i]] = {};
+                    console.log(`Created nested key: ${keys.slice(0, i + 1).join('.')}`);
                 }
                 config = config[keys[i]];
             }
             config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
+            console.log(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
     
             this._config = { ...this._config };
         }
@@ -599,6 +601,7 @@ class CBLCARSCardEditor extends EditorForm {
         // Request an update to reflect the changes
         this.requestUpdate("_config");
     }
+    
     
     
     updated(changedProperties) {
