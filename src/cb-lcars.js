@@ -241,7 +241,7 @@ async function updateLovelaceConfig(filePath) {
 async function initializeConfigUpdate() {
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
-        cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
+        //cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
         await updateLovelaceConfig(templates_url);
     } else {
         //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
@@ -260,8 +260,8 @@ async function fetchYAML(url) {
             throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
         }
     } catch (error) {
-        cblcarsLog('error', `Error fetching YAML file: ${error.message}`);
-        throw error;
+        cblcarsLog('error', 'Error fetching YAML file',error);
+        //throw error;
     }
 }
 
@@ -275,8 +275,8 @@ async function readYamlFile(url) {
         //await cblcarsLog('debug', jsObject);
         return jsObject;
     } catch (error) {
-        cblcarsLog('error', `Failed to parse YAML file: ${error.message}`);
-        throw error; // Re-throw the error after logging it
+        cblcarsLog('error', 'Failed to parse YAML file',error.message);
+        //throw error; // Re-throw the error after logging it
     }
 }
     
