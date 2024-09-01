@@ -580,7 +580,7 @@ class CBLCARSCardEditor extends EditorForm {
     firstUpdated() {
         super.firstUpdated();
         try {
-            this.shadowRoot.addEventListener('change', this._boundValueChanged);
+            this.shadowRoot.addEventListener('change', this._boundValueChanged, { capture: true });
             console.log("Added event listener successfully.");
         } catch (error) {
             console.error("Error adding event listener:", error);
