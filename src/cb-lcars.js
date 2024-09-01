@@ -498,7 +498,10 @@ class CBLCARSCardEditor extends EditorForm {
 
     _updateYaml() {
         console.log("in _updateYaml()");
-        console.log("will try to update #yaml-config with: ", jsyaml.dump(this._config));
+        if (!this.shadowRoot) {
+            console.error("Shadow root is not available.");
+            return;
+        }
         const yamlElement = this.shadowRoot.querySelector('#yaml-config');
         if (yamlElement) {
             yamlElement.value = jsyaml.dump(this._config);
@@ -510,7 +513,10 @@ class CBLCARSCardEditor extends EditorForm {
     
     _updateCardPreview() {
         console.log("in _updateCardPreview()");
-        console.log("will try to update #card-preview with: ", this._config);
+        if (!this.shadowRoot) {
+            console.error("Shadow root is not available.");
+            return;
+        }
         const cardPreviewElement = this.shadowRoot.querySelector('#card-preview');
         if (cardPreviewElement) {
             cardPreviewElement.config = this._config;
@@ -519,7 +525,7 @@ class CBLCARSCardEditor extends EditorForm {
             console.error("#card-preview element not found.");
         }
     }
-    
+        
 
     render() {
         console.log("in CBLCARSCardEditor.render()");
