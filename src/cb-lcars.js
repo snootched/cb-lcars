@@ -572,7 +572,7 @@ class CBLCARSCardEditor extends EditorForm {
         cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
 
         // Remove "custom:" prefix if it exists
-        const cardType = config.card_type.replace(/^custom:/, '');
+        const cardType = config.type.replace(/^custom:/, '');
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
