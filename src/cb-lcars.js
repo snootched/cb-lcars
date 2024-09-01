@@ -484,73 +484,57 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
 
 class CBLCARSCardEditor extends EditorForm {
 
+    constructor() {
+        super();
+        this.addEventListener('config-changed', this._handleConfigChanged);
+    }
+
+    _handleConfigChanged(event) {
+        this._config = event.detail.config;
+        this._updateYaml();
+        this._updateCardPreview();
+    }
+
+    _updateYaml() {
+        const yamlElement = this.shadowRoot.querySelector('#yaml-config');
+        if (yamlElement) {
+            yamlElement.value = jsyaml.dump(this._config);
+        }
+    }
+
+    _updateCardPreview() {
+        // Implement the logic to update the card preview based on the new config
+        const cardPreviewElement = this.shadowRoot.querySelector('#card-preview');
+        if (cardPreviewElement) {
+            cardPreviewElement.config = this._config;
+        }
+    }
+
     render() {
         console.log("in CBLCARSCardEditor.render()");
-        console.log(this._hass);
-        console.log(this._config);
+        console.log('this._hass:', this._hass);
+        console.log('this._config:', this._config);
         if (!this._hass || !this._config) {
             console.log('returning blank cuz reasons');
             return html``;
         }
 
         console.log('before returnForm..');
-        const formContent = [ 
-            { controls: [{ label: "Label", configValue: "label", type: FormControlType.Textbox }] },
-            { controls: [{ label: "Label nested", configValue: "cblcars_card_config.label", type: FormControlType.Textbox }] } 
+        const formContent = [
+            { controls: [{ label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }] }
         ];
-        console.log(formContent);
-        const returnForm =  this.renderForm(formContent);
-        console.log(returnForm);
-        return returnForm;
+        console.log('formContent:', formContent);
+
+        try {
+            const returnForm = this.renderForm(formContent);
+            console.log('returnForm:', returnForm);
+            return returnForm;
+        } catch (error) {
+            console.error('Error in renderForm:', error);
+            return html`<p>Error rendering form</p>`;
+        }
     }
 
-    /* //this one doesn't create the yaml key if the form tries to set a value for a missing key
-    _valueChanged(ev) {
-        if (!this._config || !this._hass) {
-            return;
-        }
-        const target = ev.target;
-        const detail = ev.detail;
-        console.log('target:', target);
-        console.log('detail:', detail);
-        console.log('target.configValue:', target.configValue);
-    
-        if (target.tagName === "HA-CHECKBOX") {
-            // Add or remove the value from the array
-            const index = this._config[target.configValue].indexOf(target.value);
-            if (target.checked && index < 0) {
-                this._config[target.configValue] = [...this._config[target.configValue], target.value];
-            } else if (!target.checked && index > -1) {
-                this._config[target.configValue] = [...this._config[target.configValue].slice(0, index), ...this._config[target.configValue].slice(index + 1)];
-            }
-        } else if (target.configValue) {
-            const keys = target.configValue.split(".");
-            console.debug("keys: ",keys);
-            let config = this._config;
-            console.debug("config: ",config);
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (!config[keys[i]]) {
-                    config[keys[i]] = {};
-                }
-                config = config[keys[i]];
-            }
-            config[keys[keys.length - 1]] = target.checked !== undefined || !(detail === null || detail === void 0 ? void 0 : detail.value) ? target.value || target.checked : target.checked || detail.value;
-    
-            this._config = { ...this._config };
-        }
-    
-        // Fire the config-changed event
-        (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
-            config: this._config,
-        }, {
-            bubbles: true,
-            composed: true,
-        });
-    
-        // Request an update to reflect the changes
-        this.requestUpdate("_config");
-    }
-    */
 
     //this one should check and create the key in yaml if it doesn't exist
     _valueChanged(ev) {
@@ -562,7 +546,7 @@ class CBLCARSCardEditor extends EditorForm {
         console.log('target:', target);
         console.log('detail:', detail);
         console.log('target.configValue:', target.configValue);
-    
+
         if (target.tagName === "HA-CHECKBOX") {
             // Add or remove the value from the array
             const index = this._config[target.configValue]?.indexOf(target.value) ?? -1;
@@ -586,10 +570,10 @@ class CBLCARSCardEditor extends EditorForm {
             }
             config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
             console.log(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
-    
+
             this._config = { ...this._config };
         }
-    
+
         // Fire the config-changed event
         (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
             config: this._config,
@@ -597,13 +581,13 @@ class CBLCARSCardEditor extends EditorForm {
             bubbles: true,
             composed: true,
         });
-    
+
         // Request an update to reflect the changes
         this.requestUpdate("_config");
     }
+}    
     
-    
-    
+/*    
     updated(changedProperties) {
         console.debug("in updated() changedProperties: ",changedProperties);
         if (changedProperties.has('_config')) {
@@ -619,53 +603,9 @@ class CBLCARSCardEditor extends EditorForm {
             yamlElement.value = jsyaml.dump(this._config);
         }
     }
-    /*
-    _valueChanged(ev) {
-        if (!this._config || !this._hass) {
-            return;
-        }
-        const target = ev.target;
-        const detail = ev.detail;
-        console.log('target:', target);
-        console.log('detail:', detail);
-        console.log('target.configValue:', target.configValue);
-    
-        if (target.tagName === "HA-CHECKBOX") {
-            // Add or remove the value from the array
-            const index = this._config[target.configValue].indexOf(target.value);
-            if (target.checked && index < 0) {
-                this._config[target.configValue] = [...this._config[target.configValue], target.value];
-            } else if (!target.checked && index > -1) {
-                this._config[target.configValue] = [...this._config[target.configValue].slice(0, index), ...this._config[target.configValue].slice(index + 1)];
-            }
-        } else if (target.configValue) {
-            const keys = target.configValue.split(".");
-            console.debug("keys: ",keys);
-            let config = this._config;
-            console.debug("config: ",config);
-            for (let i = 0; i < keys.length - 1; i++) {
-                if (!config[keys[i]]) {
-                    config[keys[i]] = {};
-                }
-                config = config[keys[i]];
-            }
-            config[keys[keys.length - 1]] = target.checked !== undefined || !(detail === null || detail === void 0 ? void 0 : detail.value) ? target.value || target.checked : target.checked || detail.value;
-    
-            this._config = { ...this._config };
-        }
-    
-        (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
-            config: this._config,
-        }, {
-            bubbles: true,
-            composed: true,
-        });
-        this.requestUpdate("_config");
-    }
-    */
+    */    
     
 
-}
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
