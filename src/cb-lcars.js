@@ -1,23 +1,109 @@
-import jsyaml from 'js-yaml';
-
 import * as cblcarsFormVars from './cb-lcars-form-vars.js'
+import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
-
-console.log('html:',html);
-console.log('css',css);
-
+import { HomeAssistant, LovelaceCardConfig, fireEvent } from "custom-card-helpers";
 import EditorForm from '@marcokreeft/ha-editor-formbuilder';
-console.log('EditorForm:', EditorForm);
-
 import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
-console.log('FormControlType:', FormControlType);
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
-console.log('getEntitiesByDomain:', getEntitiesByDomain);
-console.log('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
-console.log('formatList:', formatList);
-console.log('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
 
 
+
+function cblcarsLogBanner() {
+    // Combine styles for efficiency and readability
+    const bannerStyle = [
+      'color: white',
+      'font-weight: bold',
+      'padding: 2px 4px',
+      'background-color: #37a6d1' // Blue
+    ];
+  
+    const roundedLeft = 'border-radius: 5em 0 0 5em'; // Top left rounded
+    const roundedRight = 'border-radius: 0 5em 5em 0'; // Top right rounded
+  
+    // Create the banner message with formatted styles
+    const bannerMessage = `%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `;
+    const logStyles = [bannerStyle.join(';'), '', bannerStyle.join(';') + ';' + roundedRight];
+  
+    console.info(bannerMessage, ...logStyles);
+  }
+
+function cblcarsLog(level, message) {
+    // Define a map of level-specific styles for consistency
+    const levelStyles = {
+      info: 'background-color: #37a6d1', // Blue
+      warn: 'background-color: #ff6753', // Orange
+      error: 'background-color: #ef1d10', // Red
+      debug: 'background-color: #8e44ad', // Purple
+      default: 'background-color: #6d748c', // Gray for unknown levels
+    };
+  
+    // Capture the stack trace for caller information
+    const stack = new Error().stack;
+    const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
+  
+    // Create a formatted log message with the specified level, caller, and message
+    //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
+    //remove caller cuz of webpack..
+    const logMessage = `%c    CB-LCARS | ${level} `;
+  
+    // Choose the appropriate style based on the level
+    const style = levelStyles[level] || levelStyles.default;
+  
+    // Log the message using the chosen style and console method
+    switch (level) {
+      case 'info':
+        console.log(logMessage, style, message);
+        break;
+      case 'warn':
+        console.warn(logMessage, style, message);
+        break;
+      case 'error':
+        console.error(logMessage, style, message);
+        break;
+      case 'debug':
+        console.debug(logMessage, style, message);
+        break;
+      default:
+        console.log(logMessage, style, message);
+        break;
+    }
+  }
+
+    // Assuming cblcarsLog is defined elsewhere with appropriate styling
+function cblcarsLogGroup(level, title) {
+    console.groupCollapsed(); // Create a collapsed group
+    cblcarsLog(level, `Group: ${title}`);
+    }
+
+  function logImportStatus(importName, importedValue) {
+    if (importedValue === undefined) {
+      cblcarsLog('error', `Import error: ${importName} is not imported correctly.`);
+    } else {
+      console.debug(`${importName} imported successfully.`);
+    }
+  }
+
+  // Log import statuses for each import
+  console.groupCollapsed('general imports');
+  logImportStatus('cblcarsFormVars', cblcarsFormVars);
+  logImportStatus('jsyaml', jsyaml);
+  console.groupEnd();
+
+  console.groupCollapsed('lit imports');
+  logImportStatus('html:', html);
+  logImportStatus('css', css);
+  console.groupEnd();
+  
+  console.groupCollapsed('ha-editor-formbuilder imports');
+  logImportStatus('HomeAssistant:', HomeAssistant);
+  logImportStatus('LoveLaceCardConfig:', LovelaceCardConfig);
+  logImportStatus('fireEvent:', fireEvent);
+  logImportStatus('FormControlType:', FormControlType);
+  logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
+  logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
+  logImportStatus('formatList:', formatList);
+  logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
+  console.groupEnd();
 
 
 
@@ -32,6 +118,8 @@ const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 
 
 //change to promise to make sure js-yaml is loaded for functions that need it
+//obsolete - imported and packed
+/*
 const loadJsYaml = new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
@@ -39,7 +127,7 @@ const loadJsYaml = new Promise((resolve, reject) => {
     script.onload = () => resolve();
     script.onerror = () => reject(new Error('Failed to load js-yaml script'));
     document.head.appendChild(script);
-});
+})*/
 
 async function loadFont() {
     try {
@@ -59,7 +147,7 @@ async function loadFont() {
   }
   
 
-async function cblcarsLogBanner() {
+async function cblcarsLogBannerOld() {
     let styles1 = [
         'color: white',
         'font-weight: bold',
@@ -84,9 +172,7 @@ async function cblcarsLogBanner() {
     console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
 }
 
-
-
-async function cblcarsLog(level, message) {
+async function cblcarsLogOld(level, message) {
     let styles = [
         'color: white',
         'padding: 2px 4px',
@@ -596,11 +682,11 @@ class CBLCARSCardEditor extends EditorForm {
         }
 
         // Manually call the handleConfigChanged method
-        console.log("gonna try calling out own config changed event handler....");
-        this._handleConfigChanged({ detail: { config: this._config } });
+        //console.log("gonna try calling out own config changed event handler....");
+        //this._handleConfigChanged({ detail: { config: this._config } });
         
         // Fire the config-changed event
-        (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
+        (0, fireEvent)(this, "config-changed", {
             config: this._config,
         }, {
             bubbles: true,
