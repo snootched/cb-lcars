@@ -23,6 +23,6 @@ module.exports = {
     resolve: {
         extensions: ['.js'],
     },
-    devtool: 'inline-source-map',
+    devtool: 'source-map',
 };
 

@@ -498,22 +498,28 @@ class CBLCARSCardEditor extends EditorForm {
 
     _updateYaml() {
         console.log("in _updateYaml()");
-        console.log("will try to update #yaml-config with: ",jsyaml.dump(this._config));
+        console.log("will try to update #yaml-config with: ", jsyaml.dump(this._config));
         const yamlElement = this.shadowRoot.querySelector('#yaml-config');
         if (yamlElement) {
             yamlElement.value = jsyaml.dump(this._config);
+            console.log("Updated #yaml-config successfully.");
+        } else {
+            console.error("#yaml-config element not found.");
         }
     }
-
+    
     _updateCardPreview() {
         console.log("in _updateCardPreview()");
-        console.log("will try to update #card-preview with: ",this._config);
-        // Implement the logic to update the card preview based on the new config
+        console.log("will try to update #card-preview with: ", this._config);
         const cardPreviewElement = this.shadowRoot.querySelector('#card-preview');
         if (cardPreviewElement) {
             cardPreviewElement.config = this._config;
+            console.log("Updated #card-preview successfully.");
+        } else {
+            console.error("#card-preview element not found.");
         }
     }
+    
 
     render() {
         console.log("in CBLCARSCardEditor.render()");
