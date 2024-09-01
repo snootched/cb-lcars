@@ -491,13 +491,14 @@ class CBLCARSCardEditor extends EditorForm {
 
     _handleConfigChanged(event) {
         this._config = event.detail.config;
+        console.log("in _handleConfigChanged _config: ",this._config);
         this._updateYaml();
         this._updateCardPreview();
     }
 
     _updateYaml() {
         console.log("in _updateYaml()");
-        console.log("will try to update #yaml-config with: ",jsyaml.dump(this.config));
+        console.log("will try to update #yaml-config with: ",jsyaml.dump(this._config));
         const yamlElement = this.shadowRoot.querySelector('#yaml-config');
         if (yamlElement) {
             yamlElement.value = jsyaml.dump(this._config);
