@@ -579,7 +579,9 @@ class CBLCARSCardEditor extends EditorForm {
         readYamlFile(card_editor_url)
             .then(formDefinitions => {
                 this._formDefinitions = formDefinitions;
+                console.debug('this._formDefinitions: ',this._formDefinitions)
                 this._formContent = formDefinitions[cardType];
+                console.debug('this._formContent: ',this._formContent)
                 this._formStyles = formDefinitions[cardType].css || {};
                 this.requestUpdate();
             })
