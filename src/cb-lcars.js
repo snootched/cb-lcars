@@ -275,7 +275,7 @@ async function fetchYAML(url) {
         }
     } catch (error) {
         cblcarsLog('error', 'Error fetching YAML file',error);
-        //throw error;
+        throw error;
     }
 }
 
@@ -290,7 +290,7 @@ async function readYamlFile(url) {
         return jsObject;
     } catch (error) {
         cblcarsLog('error', 'Failed to parse YAML file',error.message);
-        //throw error; // Re-throw the error after logging it
+        throw error; // Re-throw the error after logging it
     }
 }
     
