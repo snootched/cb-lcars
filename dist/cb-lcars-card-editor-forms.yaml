@@ -3,10 +3,10 @@ cb-lcars-base-card:
     - controls:
       - label: "Base Label Test"
         configValue: "label"
-        type: FormControlType.Textbox
+        type: !ref FormControlType.Textbox
       - label: Label (nested var)
         configValue: cblcars_card_config.label
-        type: FormControlType.Textbox
+        type: !ref FormControlType.Textbox
   css:
     ha-textfield:
       width: 50%
@@ -15,13 +15,13 @@ cb-lcars-label-card:
     - controls:
         - label: "Label"
           configValue: "label"
-          type: FormControlType.Textbox
+          type: !ref FormControlType.Textbox
         - label: Label (nested var)
           configValue: cblcars_card_config.label
-          type: FormControlType.Textbox
+          type: !@ref FormControlType.Textbox
         - label: Font Size
           configValue: cblcars_card_config.variables.text.label.font_size
-          type: FormControlType.Textbox
+          type: !ref FormControlType.Textbox
   css:
     ha-textfield:
       width: 100%
