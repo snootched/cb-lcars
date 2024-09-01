@@ -579,6 +579,7 @@ class CBLCARSCardEditor extends EditorForm {
             console.log(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
 
             this._config = { ...this._config };
+            console.log("updated config: ",this._config);
         }
 
         // Fire the config-changed event
