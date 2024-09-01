@@ -466,7 +466,7 @@ class CBLCARSBaseCard extends HTMLElement {
                 this._card = document.createElement('button-card');
                 this.appendChild(this._card);
             }
-            cblcarsLog('debug','setting config on button-card element');
+            //cblcarsLog('debug','setting config on button-card element');
             this._card.setConfig(this._config.cblcars_card_config);
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
@@ -570,9 +570,9 @@ class CBLCARSCardEditor extends EditorForm {
 */
 
     render() {
-        console.log("in CBLCARSCardEditor.render()");
-        console.log('this._hass:', this._hass);
-        console.log('this._config:', this._config);
+        //console.log("in CBLCARSCardEditor.render()");
+        //console.log('this._hass:', this._hass);
+        //console.log('this._config:', this._config);
         if (!this._hass || !this._config) {
             console.log('returning blank cuz reasons');
             return html``;
@@ -585,7 +585,7 @@ class CBLCARSCardEditor extends EditorForm {
                 { label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }
             ] }
         ];
-        console.log('formContent:', formContent);
+        cblcarsLog('debug',`Editor formContent: ${formContent}`);
 
         try {
             const returnForm = this.renderForm(formContent);
@@ -605,9 +605,9 @@ class CBLCARSCardEditor extends EditorForm {
         }
         const target = ev.target;
         const detail = ev.detail;
-        console.debug('target:', target);
-        console.debug('detail:', detail);
-        console.debug('target.configValue:', target.configValue);
+        //console.debug('target:', target);
+        //console.debug('detail:', detail);
+        //.debug('target.configValue:', target.configValue);
 
         if (target.tagName === "HA-CHECKBOX") {
             // Add or remove the value from the array
@@ -631,10 +631,10 @@ class CBLCARSCardEditor extends EditorForm {
                 config = config[keys[i]];
             }
             config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
-            console.debug(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
+            cblcarsLog('debug',`Updating key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
 
             this._config = { ...this._config };
-            console.debug("updated config: ",this._config);
+            cblcarsLog('debug',`form updated config: ${this._config}`);
         }
 
          // Fire the config-changed event
