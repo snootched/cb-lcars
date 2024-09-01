@@ -496,6 +496,8 @@ class CBLCARSCardEditor extends EditorForm {
     }
 
     _updateYaml() {
+        console.log("in _updateYaml()");
+        console.log("will try to update #yaml-config with: ",jsyaml.dump(this.config));
         const yamlElement = this.shadowRoot.querySelector('#yaml-config');
         if (yamlElement) {
             yamlElement.value = jsyaml.dump(this._config);
@@ -503,6 +505,8 @@ class CBLCARSCardEditor extends EditorForm {
     }
 
     _updateCardPreview() {
+        console.log("in _updateCardPreview()");
+        console.log("will try to update #card-preview with: ",this._config);
         // Implement the logic to update the card preview based on the new config
         const cardPreviewElement = this.shadowRoot.querySelector('#card-preview');
         if (cardPreviewElement) {
@@ -519,9 +523,12 @@ class CBLCARSCardEditor extends EditorForm {
             return html``;
         }
 
-        console.log('before returnForm..');
         const formContent = [
-            { controls: [{ label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }] }
+            { controls: [
+                { label: "Label", configValue: "label", type: FormControlType.Textbox },
+                { label: "Label nested", configValue: "cblcars_card_config.label", type: FormControlType.Textbox },
+                { label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }
+            ] }
         ];
         console.log('formContent:', formContent);
 
