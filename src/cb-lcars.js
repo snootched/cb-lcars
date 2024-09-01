@@ -206,8 +206,8 @@ async function updateLovelaceConfig(filePath) {
     }
 
     cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
-    
-    if (!newConfig) {
+
+    if (newConfig === undefined || newConfig === null) {
         cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.',error);
         throw error;
     } else {
