@@ -270,11 +270,11 @@ async function fetchYAML(url) {
             cblcarsLog('debug',`Fetched yaml file ${url}`);
             
             return yamlContent;
-        } else {
-            throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
-        }
+        } //else {
+          //  throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
+        //}
     } catch (error) {
-        cblcarsLog('error', 'Error fetching YAML file',error);
+        cblcarsLog('error', 'Error fetching YAML file ',error);
         throw error;
     }
 }
