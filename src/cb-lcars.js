@@ -583,6 +583,10 @@ class CBLCARSCardEditor extends EditorForm {
             console.log("updated config: ",this._config);
         }
 
+        // Manually call the handleConfigChanged method
+        console.log("gonna try calling out own config changed event handler....");
+        this._handleConfigChanged({ detail: { config: this._config } });
+        
         // Fire the config-changed event
         (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
             config: this._config,
@@ -590,10 +594,6 @@ class CBLCARSCardEditor extends EditorForm {
             bubbles: true,
             composed: true,
         });
-
-        // Manually call the handleConfigChanged method
-        console.log("gonna try calling out own config changed event handler....");
-        this._handleConfigChanged({ detail: { config: this._config } });
 
         // Request an update to reflect the changes
         this.requestUpdate("_config");
