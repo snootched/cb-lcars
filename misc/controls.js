@@ -36,6 +36,7 @@ const renderTextbox = (card, control) => {
     label="${control.label}"
     .value="${getNestedProperty(card._config, control.configValue) || ''}"
     .configValue="${control.configValue}"
+    @input="${card._valueChanged}"
     @change="${card._valueChanged}">
     </ha-textfield>
     </div>

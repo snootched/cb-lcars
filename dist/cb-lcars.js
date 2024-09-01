@@ -50,6 +50,7 @@
     label="${t.label}"
     .value="${o(e._config,t.configValue)||""}"
     .configValue="${t.configValue}"
+    @input="${e._valueChanged}"
     @change="${e._valueChanged}">
     </ha-textfield>
     </div>
