@@ -551,13 +551,16 @@ class CBLCARSCardEditor extends EditorForm {
     }
     
     updated(changedProperties) {
+        console.debug("in updated() changedProperties: ",changedProperties);
         if (changedProperties.has('_config')) {
             this._updateYaml();
         }
     }
 
     _updateYaml() {
+        console.debug("in _updateYaml()")
         const yamlElement = this.shadowRoot.querySelector('#yaml-config');
+        console.debug("yamleElement: ",yamlElement);
         if (yamlElement) {
             yamlElement.value = jsyaml.dump(this._config);
         }
