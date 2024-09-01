@@ -563,7 +563,14 @@ class CBLCARSCardEditor extends EditorForm {
     constructor() {
         super();
         //load the editor form yaml here or die
-        
+        }
+
+    setConfig(config) {
+        //let's get our this._config setup..
+        super.setConfig(config);
+
+        cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
+
         readYamlFile(card_editor_url)
             .then(formDefinitions => {
                 this._formDefinitions = formDefinitions;
@@ -574,8 +581,7 @@ class CBLCARSCardEditor extends EditorForm {
             .catch(error => {
                 cblcarsLog('error','Error fetching editor form definitions: ', error);
             });    
-        }
-
+    }
     render() {
         //console.log("in CBLCARSCardEditor.render()");
         //console.log('this._hass:', this._hass);
