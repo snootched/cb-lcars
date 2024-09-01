@@ -504,7 +504,7 @@ class CBLCARSCardEditor extends EditorForm {
         return returnForm;
     }
 
-    /*
+    
     _valueChanged(ev) {
         if (!this._config || !this._hass) {
             return;
@@ -525,7 +525,9 @@ class CBLCARSCardEditor extends EditorForm {
             }
         } else if (target.configValue) {
             const keys = target.configValue.split(".");
+            console.debug("keys: ",keys);
             let config = this._config;
+            console.debug("config: ",config);
             for (let i = 0; i < keys.length - 1; i++) {
                 if (!config[keys[i]]) {
                     config[keys[i]] = {};
@@ -545,7 +547,8 @@ class CBLCARSCardEditor extends EditorForm {
         });
         this.requestUpdate("_config");
     }
-    */
+    
+    
 
 }
 
