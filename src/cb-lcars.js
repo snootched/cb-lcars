@@ -7,7 +7,6 @@ import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfa
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
 
 
-
 function cblcarsLogBanner() {
     // Combine styles for efficiency and readability
     const bannerStyle = [
@@ -26,6 +25,8 @@ function cblcarsLogBanner() {
   
     console.info(bannerMessage, ...logStyles);
   }
+// Call log banner function immediately when the script loads
+cblcarsLogBanner();
 
 function cblcarsLog(level, message) {
     // Define a map of level-specific styles for consistency
@@ -572,46 +573,8 @@ class CBLCARSCardEditor extends EditorForm {
 
     constructor() {
         super();
-        this.addEventListener('config-changed', this._handleConfigChanged);
+        this._boundValueChanged = this._valueChanged.bind(this);
     }
-
-    _handleConfigChanged(event) {
-        this._config = event.detail.config;
-        console.log("in _handleConfigChanged _config: ",this._config);
-        this._updateYaml();
-        this._updateCardPreview();
-    }
-
-    _updateYaml() {
-        console.log("in _updateYaml()");
-        if (!this.shadowRoot) {
-            console.error("Shadow root is not available.");
-            return;
-        }
-        const yamlElement = this.shadowRoot.querySelector('#yaml-config');
-        if (yamlElement) {
-            yamlElement.value = jsyaml.dump(this._config);
-            console.log("Updated #yaml-config successfully.");
-        } else {
-            console.error("#yaml-config element not found.");
-        }
-    }
-    
-    _updateCardPreview() {
-        console.log("in _updateCardPreview()");
-        if (!this.shadowRoot) {
-            console.error("Shadow root is not available.");
-            return;
-        }
-        const cardPreviewElement = this.shadowRoot.querySelector('#card-preview');
-        if (cardPreviewElement) {
-            cardPreviewElement.config = this._config;
-            console.log("Updated #card-preview successfully.");
-        } else {
-            console.error("#card-preview element not found.");
-        }
-    }
-        
 
     render() {
         console.log("in CBLCARSCardEditor.render()");
@@ -634,6 +597,8 @@ class CBLCARSCardEditor extends EditorForm {
         try {
             const returnForm = this.renderForm(formContent);
             console.log('returnForm:', returnForm);
+            //add event listener to update preview/yaml interactively instead of on field focus change (config-change)
+            returnForm.addEventListener('change', this._boundValueChanged);
             return returnForm;
         } catch (error) {
             console.error('Error in renderForm:', error);
@@ -649,9 +614,9 @@ class CBLCARSCardEditor extends EditorForm {
         }
         const target = ev.target;
         const detail = ev.detail;
-        console.log('target:', target);
-        console.log('detail:', detail);
-        console.log('target.configValue:', target.configValue);
+        console.debug('target:', target);
+        console.debug('detail:', detail);
+        console.debug('target.configValue:', target.configValue);
 
         if (target.tagName === "HA-CHECKBOX") {
             // Add or remove the value from the array
@@ -670,22 +635,18 @@ class CBLCARSCardEditor extends EditorForm {
             for (let i = 0; i < keys.length - 1; i++) {
                 if (!config[keys[i]]) {
                     config[keys[i]] = {};
-                    console.log(`Created nested key: ${keys.slice(0, i + 1).join('.')}`);
+                    console.debug(`Created nested key: ${keys.slice(0, i + 1).join('.')}`);
                 }
                 config = config[keys[i]];
             }
             config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
-            console.log(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
+            console.debug(`Updated key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
 
             this._config = { ...this._config };
-            console.log("updated config: ",this._config);
+            console.debug("updated config: ",this._config);
         }
 
-        // Manually call the handleConfigChanged method
-        //console.log("gonna try calling out own config changed event handler....");
-        //this._handleConfigChanged({ detail: { config: this._config } });
-        
-        // Fire the config-changed event
+         // Fire the config-changed event
         (0, fireEvent)(this, "config-changed", {
             config: this._config,
         }, {
@@ -763,8 +724,6 @@ window.customCards.push({
 
 
 
-// Call log banner function immediately when the script loads
-cblcarsLogBanner();
 //loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
