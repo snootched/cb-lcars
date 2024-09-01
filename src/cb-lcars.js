@@ -504,6 +504,7 @@ class CBLCARSCardEditor extends EditorForm {
         return returnForm;
     }
 
+    /* //this one doesn't create the yaml key if the form tries to set a value for a missing key
     _valueChanged(ev) {
         if (!this._config || !this._hass) {
             return;
@@ -549,6 +550,56 @@ class CBLCARSCardEditor extends EditorForm {
         // Request an update to reflect the changes
         this.requestUpdate("_config");
     }
+    */
+
+    //this one should check and create the key in yaml if it doesn't exist
+    _valueChanged(ev) {
+        if (!this._config || !this._hass) {
+            return;
+        }
+        const target = ev.target;
+        const detail = ev.detail;
+        console.log('target:', target);
+        console.log('detail:', detail);
+        console.log('target.configValue:', target.configValue);
+    
+        if (target.tagName === "HA-CHECKBOX") {
+            // Add or remove the value from the array
+            const index = this._config[target.configValue]?.indexOf(target.value) ?? -1;
+            if (target.checked && index < 0) {
+                this._config[target.configValue] = [...(this._config[target.configValue] || []), target.value];
+            } else if (!target.checked && index > -1) {
+                this._config[target.configValue] = [
+                    ...this._config[target.configValue].slice(0, index),
+                    ...this._config[target.configValue].slice(index + 1)
+                ];
+            }
+        } else if (target.configValue) {
+            const keys = target.configValue.split(".");
+            let config = this._config;
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!config[keys[i]]) {
+                    config[keys[i]] = {};
+                }
+                config = config[keys[i]];
+            }
+            config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
+    
+            this._config = { ...this._config };
+        }
+    
+        // Fire the config-changed event
+        (0, custom_card_helpers_1.fireEvent)(this, "config-changed", {
+            config: this._config,
+        }, {
+            bubbles: true,
+            composed: true,
+        });
+    
+        // Request an update to reflect the changes
+        this.requestUpdate("_config");
+    }
+    
     
     updated(changedProperties) {
         console.debug("in updated() changedProperties: ",changedProperties);
