@@ -1,35 +1,45 @@
 import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
-import { HomeAssistant, LovelaceCardConfig, fireEvent } from "custom-card-helpers";
+import { fireEvent } from "custom-card-helpers";
 import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
 
 
-function cblcarsLogBanner() {
-    // Combine styles for efficiency and readability
-    const bannerStyle = [
-      'color: white',
-      'font-weight: bold',
-      'padding: 2px 4px',
-      'background-color: #37a6d1' // Blue
+
+async function cblcarsLogBanner() {
+    let styles1 = [
+        'color: white',
+        'font-weight: bold',
+        'padding: 2px 4px',
+        'border-radius: 5em 5em 0 0', // Top left and right rounded, bottom left and right square
+        'background-color: #37a6d1' // Blue
     ];
-  
-    const roundedLeft = 'border-radius: 5em 0 0 5em'; // Top left rounded
-    const roundedRight = 'border-radius: 0 5em 5em 0'; // Top right rounded
-  
-    // Create the banner message with formatted styles
-    const bannerMessage = `%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `;
-    const logStyles = [bannerStyle.join(';'), '', bannerStyle.join(';') + ';' + roundedRight];
-  
-    console.info(bannerMessage, ...logStyles);
-  }
+
+    let styles2 = [
+        'color: white',
+        'padding: 2px 4px',
+        'border-radius: 0 0 5em 5em', // Top left and right square, bottom left and right rounded
+        'background-color: #37a6d1' // Blue
+    ];
+
+    let invisibleStyle = [
+        'color: transparent',
+        'padding: 0',
+        'border: none'
+    ];
+
+    console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
+}
+
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
 
+
 function cblcarsLog(level, message) {
-    // Define a map of level-specific styles for consistency
+    
+    const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
     const levelStyles = {
       info: 'background-color: #37a6d1', // Blue
       warn: 'background-color: #ff6753', // Orange
@@ -39,16 +49,17 @@ function cblcarsLog(level, message) {
     };
   
     // Capture the stack trace for caller information
-    const stack = new Error().stack;
-    const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
-  
+    //const stack = new Error().stack;
+    //const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
     // Create a formatted log message with the specified level, caller, and message
     //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
     //remove caller cuz of webpack..
+
     const logMessage = `%c    CB-LCARS | ${level} `;
-  
+    
     // Choose the appropriate style based on the level
-    const style = levelStyles[level] || levelStyles.default;
+    //const style = levelStyles[level] || levelStyles.default;
+    const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
   
     // Log the message using the chosen style and console method
     switch (level) {
@@ -76,36 +87,27 @@ function cblcarsLogGroup(level, title) {
     cblcarsLog(level, `Group: ${title}`);
     }
 
-  function logImportStatus(importName, importedValue) {
-    if (importedValue === undefined) {
-      cblcarsLog('error', `Import error: ${importName} is not imported correctly.`);
-    } else {
-      console.debug(`${importName} imported successfully.`);
-    }
-  }
+function logImportStatus(importName, importedValue) {
+if (importedValue === undefined) {
+    cblcarsLog('error', `Import error: ${importName} is not imported correctly.`);
+} else {
+    console.debug(`${importName} imported successfully.`);
+}
+}
 
-  // Log import statuses for each import
-  console.groupCollapsed('general imports');
-  logImportStatus('cblcarsFormVars', cblcarsFormVars);
-  logImportStatus('jsyaml', jsyaml);
-  console.groupEnd();
-
-  console.groupCollapsed('lit imports');
-  logImportStatus('html:', html);
-  logImportStatus('css', css);
-  console.groupEnd();
-  
-  console.groupCollapsed('ha-editor-formbuilder imports');
-  logImportStatus('HomeAssistant:', HomeAssistant);
-  logImportStatus('LoveLaceCardConfig:', LovelaceCardConfig);
-  logImportStatus('fireEvent:', fireEvent);
-  logImportStatus('FormControlType:', FormControlType);
-  logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
-  logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
-  logImportStatus('formatList:', formatList);
-  logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
-  console.groupEnd();
-
+// Log import statuses for each import
+console.groupCollapsed('CB-LCARS imports');
+logImportStatus('cblcarsFormVars', cblcarsFormVars);
+logImportStatus('jsyaml', jsyaml);
+logImportStatus('html:', html);
+logImportStatus('css', css);
+logImportStatus('fireEvent:', fireEvent);
+logImportStatus('FormControlType:', FormControlType);
+logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
+logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
+logImportStatus('formatList:', formatList);
+logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
+console.groupEnd();
 
 
 // Flag to check if the configuration has been merged
@@ -117,18 +119,6 @@ const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
 const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 
-
-//change to promise to make sure js-yaml is loaded for functions that need it
-//obsolete - imported and packed
-/*
-const loadJsYaml = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = '/hacsfiles/cb-lcars/js-yaml.min.js';
-    script.type = 'text/javascript';
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load js-yaml script'));
-    document.head.appendChild(script);
-})*/
 
 async function loadFont() {
     try {
@@ -148,31 +138,7 @@ async function loadFont() {
   }
   
 
-async function cblcarsLogBannerOld() {
-    let styles1 = [
-        'color: white',
-        'font-weight: bold',
-        'padding: 2px 4px',
-        'border-radius: 5em 5em 0 0', // Top left and right rounded, bottom left and right square
-        'background-color: #37a6d1' // Blue
-    ];
-
-    let styles2 = [
-        'color: white',
-        'padding: 2px 4px',
-        'border-radius: 0 0 5em 5em', // Top left and right square, bottom left and right rounded
-        'background-color: #37a6d1' // Blue
-    ];
-
-    let invisibleStyle = [
-        'color: transparent',
-        'padding: 0',
-        'border: none'
-    ];
-
-    console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
-}
-
+/*
 async function cblcarsLogOld(level, message) {
     let styles = [
         'color: white',
@@ -208,7 +174,7 @@ async function cblcarsLogOld(level, message) {
             break;
     }
 }
-
+*/
 
 // Function to get the Lovelace configuration
 function getLovelace() {
@@ -253,20 +219,20 @@ async function updateLovelaceConfig(filePath) {
 
                 // Apply the updated configuration
                 await lovelaceConfig.saveConfig(updatedConfig);
-                await cblcarsLog('info', 'CB-LCARS template configuration updated successfully in Lovelace');
+                await cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
                 isConfigMerged = true;
 
             } else if (newVersion === 0) {
-                await cblcarsLog('warn', 'New configuration version is not defined. Please set a version in your YAML file.');
+                await cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
             } else {
-                await cblcarsLog('info', 'CB-LCARS dashboard templates configuration is up to date');
+                await cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
                 isConfigMerged = true;
             }
         } else {
-        await cblcarsLog('warn', 'Automatic configuration management of CB-LCARS templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace configuration to enable it.');
+        await cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
         }
     } else {
-        await cblcarsLog('error', 'Failed to retrieve Lovelace configuration');
+        cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
     }
 }
 
@@ -275,10 +241,10 @@ async function updateLovelaceConfig(filePath) {
 async function initializeConfigUpdate() {
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
-        await cblcarsLog('info',`Will try to update lovelace config with contents of ${templates_url}`);
+        await cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
         await updateLovelaceConfig(templates_url);
     } else {
-        await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
+        //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
     }
 }
 
@@ -294,7 +260,8 @@ async function fetchYAML(url) {
             throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
         }
     } catch (error) {
-        throw new Error(`Error fetching YAML: ${error.message}`);
+        await cblcarsLog('error', `Error fetching YAML file: ${error.message}`);
+        throw error;
     }
 }
 
@@ -304,11 +271,11 @@ async function readYamlFile(url) {
         //await loadJsYaml; // Wait for the js-yaml script to load
         const response = await fetchYAML(url);
         const jsObject = jsyaml.load(response);
-        await cblcarsLog('info',`Processed YAML file: ${url}`);
-        await cblcarsLog('debug', jsObject);
+        //await cblcarsLog('info',`Processed YAML file: ${url}`);
+        //await cblcarsLog('debug', jsObject);
         return jsObject;
     } catch (error) {
-        await cblcarsLog('error', `Failed to read or parse YAML file: ${error.message}`);
+        await cblcarsLog('error', `Failed to parse YAML file: ${error.message}`);
         throw error; // Re-throw the error after logging it
     }
 }
@@ -336,7 +303,7 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
             //cblcarsLog('debug',jsObject);
 
-            await cblcarsLog('info','Generating CB-LCARS dashboard strategy');
+            await cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
             return {
                 'cb-lcars': {
                     manage_config: true
@@ -373,16 +340,9 @@ class CBLCARSDashboardStrategy {
 class CBLCARSViewStrategyAirlock {
     static async generate(config, hass) {
         try {
-            //const yamlContent = await fetchYAML(airlock_url);
-            //const jsObject = jsyaml.load(yamlContent);
-            //cblcarsLog('info',`fetched and parsed yaml ${airlock_url}`);
-            //cblcarsLog('debug',jsObject);
-
+            await cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
             const jsObject = await readYamlFile(airlock_url);
-            //cblcarsLog('warn',"dumping airlock strategy after readYamlFile function...");
-            //cblcarsLog('debug',jsObject);
 
-            await cblcarsLog('info','Generating CB-LCARS Airlock strategy view');
             return {
                 ...jsObject
             };
@@ -396,15 +356,9 @@ class CBLCARSViewStrategyAirlock {
 class CBLCARSViewStrategyGallery {
     static async generate(config, hass) {
         try {
-            //const yamlContent = await fetchYAML(gallery_url);
-            //const jsObject = jsyaml.load(yamlContent);
-            //cblcarsLog('info',`fetched and parsed yaml ${gallery_url}`);
-            //cblcarsLog('debug',jsObject);
-            
+            await cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
             const jsObject = await readYamlFile(gallery_url);
-            //cblcarsLog('warn',"dumping gallery strategy after readYamlFile function...");
-            //cblcarsLog('debug',jsObject);
-            await cblcarsLog('info','Generating CB-LCARS Gallery strategy view');
+
             return {
                 ...jsObject
             };
@@ -427,9 +381,8 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 class CBLCARSBaseCard extends HTMLElement {
     setConfig(config) {
         if (!config) {
-            throw new Error("You need to define cblcars_card_config:");
+            throw new Error("'cblcars_card_config:' section is required");
         }
-
 
         // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
         if (config.entity && !config.cblcars_card_config.entity) {
@@ -470,18 +423,19 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card.hass = hass;
         }
     }
+
     static getConfigElement() {
-        console.log('Attempting to create element: cb-lcars-card-editor');
+        //console.log('Attempting to create element: cb-lcars-card-editor');
         try {
             if (!customElements.get('cb-lcars-card-editor')) {
-                console.error('Custom element cb-lcars-card-editor is not defined');
+                cblcarsLog('error','Custom element cb-lcars-card-editor is not defined!');
                 return null;
             }
             const element = document.createElement('cb-lcars-card-editor');
-            console.log('Element created:', element);
+            //console.log('Element created:', element);
             return element;
         } catch (error) {
-            console.error('Error creating element cb-lcars-card-editor:', error);
+            cblcarsLog('error',`Error creating element cb-lcars-card-editor: ${error}`);
             return null;
         }
     }
@@ -504,7 +458,7 @@ class CBLCARSBaseCard extends HTMLElement {
         initializeConfigUpdate();
     }
     connectedCallback() {
-        cblcarsLog('debug','connectedcallback called');
+        //cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
@@ -517,7 +471,7 @@ class CBLCARSBaseCard extends HTMLElement {
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
         } finally {
-            cblcarsLog('debug','Attempting to initialize config')
+            cblcarsLog('debug','Unable to create and render card - Attempting to re-initialize config')
             // Ensure initializeConfigUpdate runs even if rendering fails
             initializeConfigUpdate();
         }
@@ -527,6 +481,21 @@ class CBLCARSBaseCard extends HTMLElement {
 
 class CBLCARSLabelCard extends CBLCARSBaseCard {
     setConfig(config) {
+
+        const defaultTemplates = ['cb-lcars-label'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+
+        /*
         const specialConfig = {
             ...config,
             cblcars_card_config: {
@@ -535,6 +504,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             }
         };
         super.setConfig(specialConfig);
+        */
     }
     static getStubConfig() {
         return { 
@@ -548,7 +518,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
     setConfig(config) {
-        // Merge templates only if they exist
+ 
         const defaultTemplates = ['cb-lcars-header'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
@@ -573,9 +543,10 @@ class CBLCARSCardEditor extends EditorForm {
 
     constructor() {
         super();
-        this._boundValueChanged = this._valueChanged.bind(this);
+        //this._boundValueChanged = this._valueChanged.bind(this);
     }
 
+ /*   
     //lit lifecycle functions.. we want to add an eventlistener to update our preview on each change so it's more interactive from the form
     firstUpdated() {
         super.firstUpdated();
@@ -596,6 +567,7 @@ class CBLCARSCardEditor extends EditorForm {
             console.error("Error removing event listener:", error);
         }
     }
+*/
 
     render() {
         console.log("in CBLCARSCardEditor.render()");
@@ -677,36 +649,19 @@ class CBLCARSCardEditor extends EditorForm {
         this.requestUpdate("_config");
     }
 }    
-    
-/*    
-    updated(changedProperties) {
-        console.debug("in updated() changedProperties: ",changedProperties);
-        if (changedProperties.has('_config')) {
-            this._updateYaml();
-        }
-    }
-
-    _updateYaml() {
-        console.debug("in _updateYaml()")
-        const yamlElement = this.shadowRoot.querySelector('#yaml-config');
-        console.debug("yamleElement: ",yamlElement);
-        if (yamlElement) {
-            yamlElement.value = jsyaml.dump(this._config);
-        }
-    }
-    */    
-    
+        
 
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 
-console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
+
+//console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
     try {
-        console.log('Attempting to define custom element: cb-lcars-card-editor');
+        //console.log('Attempting to define custom element: cb-lcars-card-editor');
         customElements.define('cb-lcars-card-editor', CBLCARSCardEditor);
-        console.log('Custom element cb-lcars-card-editor defined successfully');
+        //console.log('Custom element cb-lcars-card-editor defined successfully');
     } catch (error) {
         console.error('Error defining custom element cb-lcars-card-editor:', error);
     }
