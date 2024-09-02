@@ -682,6 +682,9 @@ class CBLCARSCardEditor extends EditorForm {
         `;
     }
 
+
+
+   /*
     //this one should check and create the key in yaml if it doesn't exist
     _valueChanged(ev) {
         if (!this._config || !this._hass) {
@@ -732,6 +735,7 @@ class CBLCARSCardEditor extends EditorForm {
         // Request an update to reflect the changes
         this.requestUpdate("_config");
     }
+    */
 }    
         
 
