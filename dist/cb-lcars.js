@@ -42,6 +42,7 @@
       .hass="${e._hass}"
       domain-filter="${t.domain}"
       @change="${e._valueChanged}"
+      @input="${t=>{const n=t.target;if(""===n.value){const t=new CustomEvent("value-changed",{detail:{value:{itemValue:"",parentElement:{configValue:n.configValue}}},bubbles:!0,composed:!0});e._valueChanged({...t,target:{value:"",configValue:n.configValue,checked:n.checked,tagName:n.tagName}})}}}"
     ></ha-entity-picker>
   </div>
   `},t.renderTextbox=(e,t)=>{var n;return r.html`
