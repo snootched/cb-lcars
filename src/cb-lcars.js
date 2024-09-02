@@ -298,7 +298,51 @@ async function readYamlFile(url) {
         throw error; // Re-throw the error after logging it
     }
 }
-    
+ 
+
+//custom yaml schema for the FormControlType
+async function readFormEditorYamlFile(url) {
+    try {
+        // Define a custom type for FormControlType
+        const FormControlType = {
+            Textbox: 'Textbox',
+            Dropdown: 'Dropdown',
+            Switch: 'Switch',
+            Checkboxes: 'Checkboxes',
+            Filler: 'Filler'
+        };
+        
+        // Custom YAML type for FormControlType
+        const FormControlTypeYamlType = new yaml.Type('!FormControlType', {
+            kind: 'scalar',
+            resolve: function (data) {
+            return FormControlType.hasOwnProperty(data);
+            },
+            construct: function (data) {
+            return FormControlType[data];
+            },
+            instanceOf: String,
+            represent: function (data) {
+            return data;
+            }
+        });
+        
+        // Create a schema that includes the custom type
+        const SCHEMA = yaml.Schema.create([FormControlTypeYamlType]);
+  
+
+        //await loadJsYaml; // Wait for the js-yaml script to load
+        const response = await fetchYAML(url);
+        const jsObject = jsyaml.load(response, { schema: SCHEMA });
+        cblcarsLog('debug',`Processed YAML file: ${url}`);
+        cblcarsLog('debug','FormEditor object from custom schema:' ,jsObject);
+        return jsObject;
+    } catch (error) {
+        cblcarsLog('error', 'Failed to parse YAML file',error.message);
+        throw error; // Re-throw the error after logging it
+    }
+}
+
 // Define the dashboard class
 class CBLCARSDashboardStrategy {
     static async generate(config, hass) {
@@ -576,7 +620,7 @@ class CBLCARSCardEditor extends EditorForm {
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
-        readYamlFile(card_editor_url)
+        readFormEditorYamlFile(card_editor_url)
             .then(formDefinitions => {
                 console.debug('formDefinitions: ',formDefinitions);
                 this._formDefinitions = formDefinitions;
