@@ -1,0 +1,150 @@
+name: yaml-lint
+
+on:
+  workflow_dispatch:
+#  push:
+#    branches: [ "main" ]
+#    paths:
+#      - 'package.json'
+#  pull_request:
+#    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build for Release
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Get version from package.json
+        id: get_version
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+      - name: Check if tag exists already
+        uses: mukunku/tag-exists-action@v1.4.0
+        id: check_tag
+        with:
+          tag: "v${{ env.VERSION }}"
+
+      - name: Cancel if tag is already present
+        run: |
+          echo "Tag already present: v${{ env.VERSION }}. Not creating a new release"
+          gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.check_tag.outputs.exists == 'true'
+
+      - name: Create full yaml
+        run: |
+          ./create_full_yaml.sh --output ./dist/cb-lcars-lovelace.yaml --path cb-lcars
+
+      - name: Add version and manage_config to cb-lcars-lovelace.yaml
+        run: |
+          echo "cb-lcars:" > ./dist/temp.yaml
+          echo "  version: ${{ env.VERSION }}" >> ./dist/temp.yaml
+          echo "  manage_config: true" >> ./dist/temp.yaml
+          cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
+          mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+
+      - name: Lint cb-lcars-lovelace.yaml
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          file_or_dir: ./dist/cb-lcars-lovelace.yaml
+          format: parsable
+          config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
+
+      - name: Lint other YAML files in ./src
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          file_or_dir: ./src/*.yaml
+          format: parsable
+          config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
+
+      - name: Copy linted YAML files to ./dist
+        run: |
+          mkdir -p ./dist
+          cp ./src/*.yaml ./dist/
+
+      - name: Upload YAML files
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: yaml-files
+          path: ./dist/*.yaml
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: Add linted YAML files
+          committer_name: GitHub Actions
+          committer_email: 41898282+github-actions[bot]@users.noreply.github.com
+          add: './dist/*.yaml --force'
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from package.json
+        id: get_version
+        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+      - name: Get git sha
+        id: get_sha
+        run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
+
+      - name: Check if tag exists already
+        uses: mukunku/tag-exists-action@v1.4.0
+        id: check_tag
+        with:
+          tag: "v${{ env.VERSION }}"
+
+      - name: Cancel if tag is already present
+        run: |
+          echo "Tag already present: v${{ env.VERSION }}. Not creating a new release"
+          gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.check_tag.outputs.exists == 'true'
+
+      - name: Create new tag
+        uses: rickstaa/action-create-tag@v1
+        id: tag_create
+        with:
+          tag: "v${{ env.VERSION }}"
+          commit_sha: "${{ env.CURRENT_SHA }}"
+          tag_exists_error: false
+          message: "Version ${{ env.VERSION }}"
+
+      - name: Generate release changelog
+        id: changelog
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }} 
+          sinceTag: ${{ steps.last_release.outputs.tag_name }}
+          headerLabel: "# Notable changes since ${{ steps.last_release.outputs.tag_name }}"
+          stripGeneratorNotice: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: ${{ contains(env.VERSION, 'beta') }}
+          body: "${{ steps.changelog.outputs.changelog }}"
+          name: "Version ${{ env.VERSION }}"
+          tag_name: "v${{ env.VERSION }}"
+          target_commitish: "${{ env.CURRENT_SHA }}"
