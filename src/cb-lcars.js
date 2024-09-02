@@ -328,7 +328,7 @@ async function readFormEditorYamlFile(url) {
         });
         
         // Create a schema that includes the custom type
-        const SCHEMA = yaml.Schema.create([FormControlTypeYamlType]);
+        const SCHEMA = jsyaml.Schema.create([FormControlTypeYamlType]);
   
 
         //await loadJsYaml; // Wait for the js-yaml script to load
