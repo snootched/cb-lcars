@@ -631,6 +631,7 @@ class CBLCARSCardEditor extends EditorForm {
                 this._formContent = formDefinitions[cardType].render_form;
                 console.debug('this._formContent: ',this._formContent)
                 this._formStyles = formDefinitions[cardType].css || {};
+                console.debug('this._formStyles: ',this._formStyles)
                 this.requestUpdate();
             })
             .catch(error => {
@@ -646,15 +647,6 @@ class CBLCARSCardEditor extends EditorForm {
             return html``;
         }
 
-        
-        /*
-        const formContent = [
-            { controls: [
-                { label: "Label", configValue: "label", type: FormControlType.Textbox },
-                { label: "Label nested", configValue: "cblcars_card_config.label", type: FormControlType.Textbox },
-                { label: "Font Size", configValue: "cblcars_card_config.variables.text.label.font_size", type: FormControlType.Textbox }
-            ] }
-        ];*/
 
         const formContent = this._formContent;
         cblcarsLog('debug',`Editor formContent: `,formContent);
