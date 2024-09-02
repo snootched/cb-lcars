@@ -24,5 +24,6 @@ module.exports = {
         extensions: ['.js'],
     },
     devtool: 'source-map',
+    cache: false,
 };
 
