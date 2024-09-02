@@ -313,7 +313,7 @@ async function readFormEditorYamlFile(url) {
         };
         
         // Custom YAML type for FormControlType
-        const FormControlTypeYamlType = new yaml.Type('!FormControlType', {
+        const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
             kind: 'scalar',
             resolve: function (data) {
             return FormControlType.hasOwnProperty(data);
