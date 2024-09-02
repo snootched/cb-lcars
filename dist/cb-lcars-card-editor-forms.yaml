@@ -6,7 +6,7 @@ cb-lcars-base-card:
         type: !FormControlType Textbox
       - label: Label (nested var)
         configValue: cblcars_card_config.label
-        type: !FormControlType FormControlType.Textbox
+        type: !FormControlType Textbox
   css:
     ha-textfield:
       width: 50%
@@ -15,7 +15,7 @@ cb-lcars-label-card:
     - controls:
         - label: "Label"
           configValue: "label"
-          type: !FormControlType FormControlType.Textbox
+          type: !FormControlType Textbox
         - label: Label (nested var)
           configValue: cblcars_card_config.label
           type:  !FormControlType Textbox

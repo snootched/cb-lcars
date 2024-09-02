@@ -303,29 +303,32 @@ async function readYamlFile(url) {
 //custom yaml schema for the FormControlType
 async function readFormEditorYamlFile(url) {
     try {
-        // Define a custom type for FormControlType
+       // Define the FormControlType enum as per the renderer's code
         const FormControlType = {
-            Textbox: 'Textbox',
-            Dropdown: 'Dropdown',
-            Switch: 'Switch',
-            Checkboxes: 'Checkboxes',
-            Filler: 'Filler'
+            Dropdown: 'dropdown',
+            Checkbox: 'checkbox',
+            Checkboxes: 'checkboxes',
+            Radio: 'radio',
+            Switch: 'switch',
+            Textbox: 'textbox',
+            Filler: 'filler',
+            EntityDropdown: 'entity-dropdown'
         };
         
         // Custom YAML type for FormControlType
         const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
             kind: 'scalar',
             resolve: function (data) {
-            return FormControlType.hasOwnProperty(data);
+              return FormControlType.hasOwnProperty(data);
             },
             construct: function (data) {
-            return FormControlType[data];
+              return FormControlType[data];
             },
             instanceOf: String,
             represent: function (data) {
-            return data;
+              return data;
             }
-        });
+          });
         
         // Create a schema that includes the custom type
         const SCHEMA = jsyaml.DEFAULT_SCHEMA.extend([FormControlTypeYamlType]);
