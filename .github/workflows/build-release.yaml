@@ -56,11 +56,13 @@ jobs:
 
       - name: Add version and manage_config to cb-lcars-lovelace.yaml
         run: |
+          mkdir -p ./dist
           echo "cb-lcars:" > ./dist/temp.yaml
           echo "  version: ${{ env.VERSION }}" >> ./dist/temp.yaml
           echo "  manage_config: true" >> ./dist/temp.yaml
           cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
           mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+          head -10 ./dist/cb-lcars-lovelace.yaml
 
       - name: Lint cb-lcars-lovelace.yaml
         uses: ibiqlik/action-yamllint@v3.1.1
@@ -79,7 +81,7 @@ jobs:
       - name: Copy linted YAML files to ./dist
         run: |
           mkdir -p ./dist
-          cp ./src/*.yaml ./dist/
+          cp -v ./src/*.yaml ./dist/
 
       - name: Upload YAML files
         uses: actions/upload-artifact@v4.3.6
