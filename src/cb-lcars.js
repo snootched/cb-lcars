@@ -236,7 +236,7 @@ async function updateLovelaceConfig(filePath) {
                     cblcarsLog('info', `CB-LCARS dashboard templates updated v${newLovelaceVersion} (from v${currentLovelaceVersion})`);
                     isConfigMerged = true;
 
-                } else if (newVersion === 0) {
+                } else if (newLovelaceVersion === 0) {
                     cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
                 } else {
                     cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion}`);
