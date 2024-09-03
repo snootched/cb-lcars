@@ -1,7 +1,7 @@
 {
   "name": "cb-lcars",
-  "version": "0.0.1-beta.1",
-  "description": "<p align=\"center\">",
+  "version": "2024.9.0-beta.1",
+  "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "directories": {
     "doc": "doc"
@@ -9,9 +9,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "Home",
+    "Assistant",
+    "HomeAssistant",
+    "HASS",
+    "LCARS",
+    "Star Trek"
+  ],
+  "author": "Jason Weyermars",
+  "license": "MIT",
+  "homepage": "https://cb-lcars.unimatrix01.ca",
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
