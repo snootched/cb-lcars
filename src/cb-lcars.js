@@ -23,7 +23,7 @@ let isConfigMerged = false;
 
 const fontUrl = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 
 
-const templates_url = '/hacsfiles/cb-lcars/cb-lcars-full-new.yaml';
+const templates_url = '/hacsfiles/cb-lcars/cb-lcars-lovelace.yaml';
 const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 const card_editor_url = '/hacsfiles/cb-lcars/cb-lcars-card-editor-forms.yaml'
