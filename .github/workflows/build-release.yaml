@@ -123,7 +123,7 @@ jobs:
         if: steps.check_tag.outputs.exists == 'true'
 
       - name: Create new tag
-        uses: rickstaa/action-create-tag@v1
+        uses: rickstaa/action-create-tag@v1.7.2
         id: tag_create
         with:
           tag: "v${{ env.VERSION }}"
