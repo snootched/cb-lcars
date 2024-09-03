@@ -98,6 +98,8 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Get version from package.json
         id: get_version
