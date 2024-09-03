@@ -1,6 +1,7 @@
 //CB-LCARS main verson from package.json
 const packageJson = require('../package.json');
 export const CBLCARS_VERSION = packageJson.version;
+export const project_url = "https://cb-lcars.unimatrix01.ca";
 
 //Antonio font url
 export const font_url = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 

@@ -40,7 +40,20 @@ async function cblcarsLogBanner() {
         'border: none'
     ];
 
-    console.info(`%c                    CB-LCARS v${CBLCARS.CBLCARS_VERSION} %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
+    const version = CBLCARS.CBLCARS_VERSION;
+    const url = CBLCARS.project_url;
+    const baseString = "CB-LCARS v" + version;
+    const padding = 4;
+
+    // Calculate the total length including padding
+    const totalLength = url.length + padding;
+    const spacesNeeded = totalLength - baseString.length;
+
+    // Create strings with the required number of spaces
+    const spaces = ' '.repeat(spacesNeeded);
+    const paddedUrl = ' '.repeat(padding) + url;
+
+    console.info(`%c${spaces}${baseString}  %c\n%c${paddedUrl}  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
 }
 
 // Call log banner function immediately when the script loads
@@ -239,7 +252,7 @@ async function updateLovelaceConfig(filePath) {
                 } else if (newLovelaceVersion === 0) {
                     cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
                 } else {
-                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion}`);
+                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion})`);
                     isConfigMerged = true;
                 }
             } else {
