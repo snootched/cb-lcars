@@ -97,6 +97,10 @@ jobs:
           committer_email: 41898282+github-actions[bot]@users.noreply.github.com
           add: './dist/*.yaml --force'
 
+      - name: Output version
+        id: output_version
+        run: echo "::set-output name=version::${{ env.VERSION }}"
+
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -111,9 +115,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version from package.json
-        id: get_version
-        run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+      - name: Get version from build job
+        run: echo "VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
 
       - name: Get git sha
         id: get_sha
