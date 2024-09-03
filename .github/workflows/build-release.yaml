@@ -29,6 +29,10 @@ jobs:
       - name: Get version from package.json
         id: get_version
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
+
+      - name: Set output version
+        id: set_output
+        run: echo "::set-output name=version::$(jq -r '.version' package.json)"
       
       - name: Print env
         run: printenv
@@ -37,11 +41,11 @@ jobs:
         uses: mukunku/tag-exists-action@v1.4.0
         id: check_tag
         with:
-          tag: "v${{ env.VERSION }}"
+          tag: "v${{ steps.set_output.outputs.version }}"
 
       - name: Cancel if tag is already present
         run: |
-          echo "Tag already present: v${{ env.VERSION }}. Not creating a new release"
+          echo "Tag already present: v${{ steps.set_output.outputs.version }}. Not creating a new release"
           gh run cancel ${{ github.run_id }}
           gh run watch ${{ github.run_id }}
         env:
@@ -56,7 +60,7 @@ jobs:
         run: |
           mkdir -p ./dist
           echo "cb-lcars:" > ./dist/temp.yaml
-          echo "  version: ${{ env.VERSION }}" >> ./dist/temp.yaml
+          echo "  version: ${{ steps.set_output.outputs.version }}" >> ./dist/temp.yaml
           echo "  manage_config: true" >> ./dist/temp.yaml
           cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
           mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
@@ -110,9 +114,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version from environment
-        id: get_version
-        run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_ENV
+      - name: Get version from build job
+        run: echo "VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
 
       - name: Get git sha
         id: get_sha
@@ -125,11 +128,11 @@ jobs:
         uses: mukunku/tag-exists-action@v1.4.0
         id: check_tag
         with:
-          tag: "v${{ env.VERSION }}"
+          tag: "v${{ needs.build.outputs.version }}"
 
       - name: Cancel if tag is already present
         run: |
-          echo "Tag already present: v${{ env.VERSION }}. Not creating a new release"
+          echo "Tag already present: v${{ needs.build.outputs.version }}. Not creating a new release"
           gh run cancel ${{ github.run_id }}
           gh run watch ${{ github.run_id }}
         env:
@@ -140,10 +143,10 @@ jobs:
         uses: rickstaa/action-create-tag@v1.7.2
         id: tag_create
         with:
-          tag: "v${{ env.VERSION }}"
+          tag: "v${{ needs.build.outputs.version }}"
           commit_sha: "${{ env.CURRENT_SHA }}"
           tag_exists_error: false
-          message: "Version ${{ env.VERSION }}"
+          message: "Version ${{ needs.build.outputs.version }}"
 
       - name: Generate release changelog
         id: changelog
@@ -157,8 +160,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: ${{ contains(env.VERSION, 'beta') }}
+          prerelease: ${{ contains(needs.build.outputs.version, 'beta') }}
           body: "${{ steps.changelog.outputs.changelog }}"
-          name: "Version ${{ env.VERSION }}"
-          tag_name: "v${{ env.VERSION }}"
+          name: "Version ${{ needs.build.outputs.version }}"
+          tag_name: "v${{ needs.build.outputs.version }}"
           target_commitish: "${{ env.CURRENT_SHA }}"
