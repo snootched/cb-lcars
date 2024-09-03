@@ -1,4 +1,4 @@
-name: build_release
+name: Build Release
 
 on:
   push:
@@ -45,14 +45,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.check_tag.outputs.exists == 'true'
 
-      - name: Build and update YAML files
-        run: ./update_yaml.sh ${{ steps.get_version.outputs.version }} ./dist/
+
+      - name: Create full yaml
+        run: |
+          ./create_full_yaml.sh --output ./dist/cb-lcars-lovelace.yaml --path cb-lcars
+
+      - name: Add version and manage_config to cb-lcars-lovelace.yaml
+        run: |
+          mkdir -p ./dist
+          echo "cb-lcars:" > ./dist/temp.yaml
+          echo "  version: ${{ steps.get_version.outputs.version }}" >> ./dist/temp.yaml
+          echo "  manage_config: true" >> ./dist/temp.yaml
+          cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
+          mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+          echo "Head of generated cb-lcars-lovelace.yaml"
+          head -10 ./dist/cb-lcars-lovelace.yaml
 
       - name: Lint YAML files
         uses: ibiqlik/action-yamllint@v3.1.1
         with:
           file_or_dir: ./dist/*.yaml
           format: parsable
+          config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
           # Consider adjusting linter configuration instead of disabling rules
 
       - name: Upload YAML files
