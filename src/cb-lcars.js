@@ -107,7 +107,7 @@ if (importedValue === undefined) {
 
 // Log import statuses for each import
 console.groupCollapsed('CB-LCARS imports');
-logImportStatus('cblcarsFormVars', cblcarsFormVars);
+logImportStatus('CBLCARS', CBLCARS);
 logImportStatus('jsyaml', jsyaml);
 logImportStatus('html:', html);
 logImportStatus('css', css);
