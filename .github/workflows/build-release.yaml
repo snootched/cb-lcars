@@ -28,7 +28,7 @@ jobs:
         id: get_version
         run: |
           VERSION=$(jq -r '.version' package.json)
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Check if tag exists already
         uses: mukunku/tag-exists-action@v1.4.0
