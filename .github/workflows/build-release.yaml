@@ -1,13 +1,13 @@
 name: Build Release
 
 on:
-  workflow_dispatch:
   push:
     branches: [ "main" ]
     paths:
       - 'package.json'
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
