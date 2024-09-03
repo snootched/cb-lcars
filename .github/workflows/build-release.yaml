@@ -32,6 +32,10 @@ jobs:
         id: get_version
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
 
+      - name: Set version output
+        id: set_version_output
+        run: echo "::set-output name=version::${{ env.VERSION }}"
+
       - name: Print env
         run: printenv
         
@@ -96,10 +100,6 @@ jobs:
           committer_name: GitHub Actions
           committer_email: 41898282+github-actions[bot]@users.noreply.github.com
           add: './dist/*.yaml --force'
-
-      - name: Output version
-        id: output_version
-        run: echo "::set-output name=version::${{ env.VERSION }}"
 
   release:
     name: Release
