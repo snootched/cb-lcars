@@ -2,9 +2,14 @@ import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
-import EditorForm from '@marcokreeft/ha-editor-formbuilder';
-import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
-import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
+
+
+//import EditorForm from '@marcokreeft/ha-editor-formbuilder';
+//import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
+//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
+import EditorForm from 'ha-editor-formbuilder';
+import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
+import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
 
