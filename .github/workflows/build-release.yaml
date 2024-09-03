@@ -22,8 +22,6 @@ jobs:
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
-        #with:
-        #  node-version: '16'
 
       - name: Install dependencies
         run: npm install
@@ -32,9 +30,6 @@ jobs:
         id: get_version
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
       
-      - name: Set version environment variable
-        run: echo "VERSION=$GITHUB_ENV::VERSION" >> $GITHUB_ENV
-        
       - name: Print env
         run: printenv
         
@@ -117,7 +112,8 @@ jobs:
 
       - name: Get version from environment
         id: get_version
-        run: echo "VERSION=$GITHUB_ENV::VERSION"
+        run: echo "VERSION=${{ env.VERSION }}" >> $GITHUB_ENV
+
       - name: Get git sha
         id: get_sha
         run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
