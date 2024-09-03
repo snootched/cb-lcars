@@ -1,13 +1,13 @@
-name: yaml-lint
+name: Build Release
 
 on:
   workflow_dispatch:
-#  push:
-#    branches: [ "main" ]
-#    paths:
-#      - 'package.json'
-#  pull_request:
-#    branches: [ "main" ]
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'package.json'
+  pull_request:
+    branches: [ "main" ]
 
 jobs:
   build:
