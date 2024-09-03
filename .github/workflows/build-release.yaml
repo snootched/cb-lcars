@@ -22,8 +22,8 @@ jobs:
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+        #with:
+        #  node-version: '16'
 
       - name: Install dependencies
         run: npm install
@@ -31,11 +31,10 @@ jobs:
       - name: Get version from package.json
         id: get_version
         run: echo "VERSION=$(jq -r '.version' package.json)" >> $GITHUB_ENV
-
-      - name: Set version output
-        id: set_version_output
-        run: echo "::set-output name=version::${{ env.VERSION }}"
-
+      
+      - name: Set version environment variable
+        run: echo "VERSION=$GITHUB_ENV::VERSION" >> $GITHUB_ENV
+        
       - name: Print env
         run: printenv
         
@@ -66,6 +65,7 @@ jobs:
           echo "  manage_config: true" >> ./dist/temp.yaml
           cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
           mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+          echo "Head of generated cb-lcars-lovelace.yaml"
           head -10 ./dist/cb-lcars-lovelace.yaml
 
       - name: Lint cb-lcars-lovelace.yaml
@@ -115,9 +115,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get version from build job
-        run: echo "VERSION=${{ needs.build.outputs.version }}" >> $GITHUB_ENV
-
+      - name: Get version from environment
+        id: get_version
+        run: echo "VERSION=$GITHUB_ENV::VERSION"
       - name: Get git sha
         id: get_sha
         run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
