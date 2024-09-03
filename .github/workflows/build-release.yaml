@@ -96,6 +96,11 @@ jobs:
     name: Release
     runs-on: ubuntu-latest
     needs: build
+
+    permissions:
+      contents: write
+      deployments: write
+
     steps:
       - uses: actions/checkout@v4
         with:
