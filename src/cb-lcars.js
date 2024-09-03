@@ -1,12 +1,8 @@
-import * as cblcarsFormVars from './cb-lcars-form-vars.js'
+import * as CBLCARS from './cb-lcars-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
-
-//get version
-const packageJson = require('../package.json');
-const currentVersion = packageJson.version;
 
 
 //import EditorForm from '@marcokreeft/ha-editor-formbuilder';
@@ -17,16 +13,9 @@ import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
-
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
 
-const fontUrl = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap'; 
-
-const templates_url = '/hacsfiles/cb-lcars/cb-lcars-lovelace.yaml';
-const airlock_url = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
-const gallery_url = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
-const card_editor_url = '/hacsfiles/cb-lcars/cb-lcars-card-editor-forms.yaml'
 
 
 async function cblcarsLogBanner() {
@@ -51,7 +40,7 @@ async function cblcarsLogBanner() {
         'border: none'
     ];
 
-    console.info(`%c                    CB-LCARS v0.0.0 %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
+    console.info(`%c                    CB-LCARS v${CBLCARS.CBLCARS_VERSION} %c\n%c   https://cb-lcars.unimatrix01.ca  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
 }
 
 // Call log banner function immediately when the script loads
@@ -132,23 +121,20 @@ console.groupEnd();
 
 
 
-
-
-
 async function loadFont() {
     try {
-      const existingLink = document.querySelector(`link[href="${fontUrl}"]`);
+      const existingLink = document.querySelector(`link[href="${CBLCARS.font_url}"]`);
       if (!existingLink) {
         const link = document.createElement('link'); 
-        link.href = fontUrl; 
+        link.href = CBLCARS.font_url; 
         link.rel = 'stylesheet'; 
         document.head.appendChild(link);
-        cblcarsLog('info', `Loaded CB-LCARS required font from: ${fontUrl}`);
+        cblcarsLog('info', `Loaded CB-LCARS required font from: ${CBLCARS.font_url}`);
       } else {
-        console.log(`CB-LCARS font already loaded from: ${fontUrl}`);
+        console.log(`CB-LCARS font already loaded from: ${CBLCARS.font_url}`);
       }
     } catch (error) {
-      await cblcarsLog('error', `Failed to load font from: ${fontUrl}: ${error.message}`);
+      await cblcarsLog('error', `Failed to load font from: ${CBLCARS.font_url}: ${error.message}`);
     }
   }
   
@@ -235,10 +221,10 @@ async function updateLovelaceConfig(filePath) {
             // Check if the cb-lcars.manage_config flag is set
             if (cbLcarsConfig.manage_config) {
                 // Check if the new configuration version is different
-                const currentVersion = cbLcarsConfig.version || '0.0.0';
-                const newVersion = newCbLcarsConfig.version || '0.0.0';
+                const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
+                const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
 
-                if (semver.gt(newVersion, currentVersion)) {
+                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
                     // Merge the cb-lcars configurations
                     const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
@@ -247,13 +233,13 @@ async function updateLovelaceConfig(filePath) {
 
                     // Apply the updated configuration
                     await lovelaceConfig.saveConfig(updatedConfig);
-                    cblcarsLog('info', 'CB-LCARS templates have been updated in dashboard configuration.');
+                    cblcarsLog('info', `CB-LCARS dashboard templates updated v${newLovelaceVersion} (from v${currentLovelaceVersion})`);
                     isConfigMerged = true;
 
                 } else if (newVersion === 0) {
                     cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
                 } else {
-                    cblcarsLog('info', 'CB-LCARS dashboard templates are up to date.');
+                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion}`);
                     isConfigMerged = true;
                 }
             } else {
@@ -270,8 +256,8 @@ async function updateLovelaceConfig(filePath) {
 async function initializeConfigUpdate() {
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
-        //cblcarsLog('debug',`Check (and update) lovelace config against: ${templates_url}`);
-        await updateLovelaceConfig(templates_url);
+        //cblcarsLog('debug',`Check (and update) lovelace config against: ${CBLCARS.templates_uri}`);
+        await updateLovelaceConfig(CBLCARS.templates_uri);
     } else {
         //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
     }
@@ -370,11 +356,11 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('debug devices:',devices);
             //cblcarsLog('debug entities:',entities);
 
-            //const yamlContent = await fetchYAML(templates_url);
+            //const yamlContent = await fetchYAML(CBLCARS.templates_uri);
             //const jsObject = jsyaml.load(yamlContent);
-            //cblcarsLog('info',`fetched and parsed yaml ${templates_url}`);
+            //cblcarsLog('info',`fetched and parsed yaml ${CBLCARS.templates_uri}`);
             //cblcarsLog('debug',jsObject);
-            const jsObject = await readYamlFile(templates_url);
+            const jsObject = await readYamlFile(CBLCARS.templates_uri);
 
             //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
             //cblcarsLog('debug',jsObject);
@@ -417,7 +403,7 @@ class CBLCARSViewStrategyAirlock {
     static async generate(config, hass) {
         try {
             cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
-            const jsObject = await readYamlFile(airlock_url);
+            const jsObject = await readYamlFile(CBLCARS.airlock_uri);
 
             return {
                 ...jsObject
@@ -433,7 +419,7 @@ class CBLCARSViewStrategyGallery {
     static async generate(config, hass) {
         try {
             cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
-            const jsObject = await readYamlFile(gallery_url);
+            const jsObject = await readYamlFile(CBLCARS.gallery_uri);
 
             return {
                 ...jsObject
@@ -633,7 +619,7 @@ class CBLCARSCardEditor extends EditorForm {
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
-        readFormEditorYamlFile(card_editor_url)
+        readFormEditorYamlFile(CBLCARS.card_editor_uri)
             .then(formDefinitions => {
                 console.debug('formDefinitions: ',formDefinitions);
                 this._formDefinitions = formDefinitions;
