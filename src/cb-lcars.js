@@ -2,6 +2,11 @@ import * as cblcarsFormVars from './cb-lcars-form-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
+import semver from 'semver';
+
+//get version
+const packageJson = require('../package.json');
+const currentVersion = packageJson.version;
 
 
 //import EditorForm from '@marcokreeft/ha-editor-formbuilder';
@@ -230,10 +235,10 @@ async function updateLovelaceConfig(filePath) {
             // Check if the cb-lcars.manage_config flag is set
             if (cbLcarsConfig.manage_config) {
                 // Check if the new configuration version is different
-                const currentVersion = cbLcarsConfig.version || 0;
-                const newVersion = newCbLcarsConfig.version || 0;
+                const currentVersion = cbLcarsConfig.version || '0.0.0';
+                const newVersion = newCbLcarsConfig.version || '0.0.0';
 
-                if (newVersion > currentVersion) {
+                if (semver.gt(newVersion, currentVersion)) {
                     // Merge the cb-lcars configurations
                     const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
