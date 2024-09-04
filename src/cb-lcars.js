@@ -481,7 +481,13 @@ class CBLCARSBaseCard extends HTMLElement {
         };
 
         //merge the button_card_config into config
-        this._config = { ...config, cblcars_card_config: buttonCardConfig };
+        this._config = { 
+            ...config, 
+            cblcars_card_config: buttonCardConfig 
+
+        };
+
+        cblcarsLog('debug','new card config: ',this._config);
 
         //instantiate the button-card
         if (!this._card) {
