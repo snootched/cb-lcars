@@ -555,7 +555,7 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('debug','Unable to create and render card - Attempting to re-initialize config')
             cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
             // Ensure initializeConfigUpdate runs even if rendering fails
-            i//nitializeConfigUpdate();
+            //nitializeConfigUpdate();
         }
     }
 }
