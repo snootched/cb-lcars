@@ -547,8 +547,9 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('error',`Error rendering card: ${error}`);
         } finally {
             cblcarsLog('debug','Unable to create and render card - Attempting to re-initialize config')
+            cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
             // Ensure initializeConfigUpdate runs even if rendering fails
-            initializeConfigUpdate();
+            i//nitializeConfigUpdate();
         }
     }
 }
@@ -671,7 +672,7 @@ class CBLCARSCardEditor extends EditorForm {
     }
 
     styles() {
-        if (!!this._form_formStyles) {
+        if (!!this._formStyles) {
             cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
             return css``;
         }
@@ -686,6 +687,7 @@ class CBLCARSCardEditor extends EditorForm {
         `;
         */
 
+        cblcarsLog('debug',"formStyles: ",this._formStyles)
         return css`
             ${this._formStyles}
         `;
