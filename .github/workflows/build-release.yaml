@@ -18,13 +18,8 @@ jobs:
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-
-      - name: Install dependencies
-        run: npm install
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Get version from package.json
         id: get_version
@@ -47,6 +42,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.check_tag.outputs.exists == 'true'
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
         run: |
           mkdir -p ./dist
@@ -55,7 +56,7 @@ jobs:
           echo "  version: ${{ steps.get_version.outputs.version }}" >> ./dist/temp.yaml
           echo "  manage_config: true" >> ./dist/temp.yaml
           cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
-          mv ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+          mv -f ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
           echo "Head of generated cb-lcars-lovelace.yaml"
           head -10 ./dist/cb-lcars-lovelace.yaml
           echo "Copy yamls from src to dist for lint"
@@ -90,20 +91,21 @@ jobs:
       contents: write
       deployments: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-  
+          ref: master
+          
       - name: Get git sha
         id: get_sha
         run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
-  
+
       - name: Check if tag exists already
         uses: mukunku/tag-exists-action@v1.4.0
         id: check_tag
         with:
           tag: "v${{ needs.build.outputs.version }}"
-  
+
       - name: Cancel if tag is already present
         run: |
           echo "Tag already present: v${{ needs.build.outputs.version }}. Not creating a new release"
@@ -113,6 +115,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.check_tag.outputs.exists == 'true'
   
+      - name: "Get previous release version"
+        id: last_release
+        uses: InsonusK/get-latest-release@v1.1.0
+        with:
+          myToken: ${{ secrets.GITHUB_TOKEN }}
+          exclude_types: "draft|prerelease"
+          
       - name: Create new tag
         uses: rickstaa/action-create-tag@v1.7.2
         id: tag_create
@@ -122,13 +131,13 @@ jobs:
           tag_exists_error: false
           message: "Version ${{ needs.build.outputs.version }}"
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: dist-yaml-files
+ #     - name: Download artifacts
+ #       uses: actions/download-artifact@v3
+ #       with:
+ #         name: dist-yaml-files
 
-      - name: Extract artifacts
-        run: tar -xzf dist-yaml-files.tar.gz -C ./dist
+ #     - name: Extract artifacts
+ #       run: tar -xzf dist-yaml-files.tar.gz -C ./dist
 
       - name: Generate release changelog
         id: changelog
