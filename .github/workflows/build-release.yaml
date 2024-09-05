@@ -121,7 +121,15 @@ jobs:
           commit_sha: "${{ env.CURRENT_SHA }}"
           tag_exists_error: false
           message: "Version ${{ needs.build.outputs.version }}"
-  
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: yaml-files
+
+      - name: Extract artifacts
+        run: tar -xzf yaml-files.tar.gz -C ./dist
+
       - name: Generate release changelog
         id: changelog
         uses: heinrichreimer/github-changelog-generator-action@v2.3
