@@ -17,7 +17,6 @@ jobs:
       contents: write
     outputs:
       version: ${{ steps.get_version.outputs.version }}
-      artifact_id: ${{ steps.upload_artifacts.outputs.artifact_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -74,7 +73,6 @@ jobs:
         with:
           name: dist-yaml-files
           path: ./dist/*.yaml
-        id: upload_artifacts
 
       - name: Commit changes
         uses: EndBug/add-and-commit@v9
