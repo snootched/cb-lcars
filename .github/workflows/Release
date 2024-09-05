@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+  
+      - name: Get git sha
+        id: get_sha
+        run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
+  
+      - name: Check if tag exists already
+        uses: mukunku/tag-exists-action@v1.4.0
+        id: check_tag
+        with:
+          tag: "v${{ github.event.workflow_run.outputs.version }}"
+  
+      - name: Cancel if tag is already present
+        run: |
+          echo "Tag already present: v${{ github.event.workflow_run.outputs.version }}. Not creating a new release"
+          gh run cancel ${{ github.run_id }}
+          gh run watch ${{ github.run_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.check_tag.outputs.exists == 'true'
+  
+      - name: Create new tag
+        uses: rickstaa/action-create-tag@v1.7.2
+        id: tag_create
+        with:
+          tag: "v${{ github.event.workflow_run.outputs.version }}"
+          commit_sha: "${{ env.CURRENT_SHA }}"
+          tag_exists_error: false
+          message: "Version ${{ github.event.workflow_run.outputs.version }}"
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dist-yaml-files
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: List downloaded files
+        run: ls -la ./dist
+
+      - name: Extract artifacts
+        run: tar -xzf dist-yaml-files.tar.gz -C ./dist
+
+      - name: Generate release changelog
+        id: changelog
+        uses: heinrichreimer/github-changelog-generator-action@v2.3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sinceTag: ${{ steps.last_release.outputs.tag_name }}
+          headerLabel: "# Notable changes since ${{ steps.last_release.outputs.tag_name }}"
+          stripGeneratorNotice: true
+  
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          prerelease: ${{ contains(github.event.workflow_run.outputs.version, 'beta') }}
+          body: "${{ steps.changelog.outputs.changelog }}"
+          name: "Version ${{ github.event.workflow_run.outputs.version }}"
+          tag_name: "v${{ github.event.workflow_run.outputs.version }}"
+          target_commitish: "${{ env.CURRENT_SHA }}"
