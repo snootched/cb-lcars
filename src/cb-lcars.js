@@ -2,8 +2,7 @@ import * as CBLCARS from './cb-lcars-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
-//import semver from 'semver';
-import * as calver from 'calver';
+import semver from 'semver';
 
 //import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 //import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
@@ -236,7 +235,7 @@ async function updateLovelaceConfig(filePath) {
                 const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
                 const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
 
-                if (calver.nt(newLovelaceVersion, currentLovelaceVersion)) {
+                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
                     // Merge the cb-lcars configurations
                     const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
