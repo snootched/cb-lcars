@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2024.9.2-beta.3",
+  "version": "2024.9.2-beta.4",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "directories": {
@@ -29,9 +29,9 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
+    "@marcokreeft/ha-editor-formbuilder": "^2024.4.1",
     "calver": "^24.1.0",
     "custom-card-helpers": "^1.9.0",
-    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder#configvalue-enhancements",
     "js-yaml": "^4.1.0",
     "lit": "^3.2.0"
   }
