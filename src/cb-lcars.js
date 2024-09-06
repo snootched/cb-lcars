@@ -7,7 +7,6 @@ import semver from 'semver';
 //import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 //import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
-
 import EditorForm from 'ha-editor-formbuilder';
 import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
@@ -151,12 +150,46 @@ async function loadFont() {
   }
   
 
+/*
+async function cblcarsLogOld(level, message) {
+    let styles = [
+        'color: white',
+        'padding: 2px 4px',
+        'border-radius: 15px'
+    ];
 
+    // Capture the stack trace to find out the caller and add it to the log so we can follow this mess better
+    const stack = new Error().stack;
+    const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
+    //const functionName = caller.match(/at (\w+)/)[1]; // Extract the function name
+
+    switch (level) {
+        case 'info':
+            styles.push('background-color: #37a6d1'); // Blue
+            await console.log(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'warn':
+            styles.push('background-color: #ff6753'); // Orange
+            await console.warn(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'error':
+            styles.push('background-color: #ef1d10'); // Red
+            await console.error(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        case 'debug':
+            styles.push('background-color: #8e44ad'); // Purple
+            await console.debug(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+        default:
+            styles.push('background-color: #6d748c'); // Gray for unknown levels
+            await console.log(`%c    CB-LCARS | ${level} | ${caller} `, styles.join(';'), message);
+            break;
+    }
+}
+*/
 
 // Function to get the Lovelace configuration
 function getLovelace() {
-    //travel down to get the lovelace
-    //this function code from custom-button-card project
     let root = document.querySelector('home-assistant');
     root = root && root.shadowRoot;
     root = root && root.querySelector('home-assistant-main');
@@ -174,8 +207,7 @@ function getLovelace() {
     return null;
 }
 
-// Function to update the Lovelace configuration if we have a newer version available in the card vs. the dashboard's version
-// update and save the newer version to the dashboard
+// Function to update the Lovelace configuration
 async function updateLovelaceConfig(filePath) {
     let newConfig;
     try {
@@ -335,6 +367,10 @@ class CBLCARSDashboardStrategy {
             //cblcarsLog('debug devices:',devices);
             //cblcarsLog('debug entities:',entities);
 
+            //const yamlContent = await fetchYAML(CBLCARS.templates_uri);
+            //const jsObject = jsyaml.load(yamlContent);
+            //cblcarsLog('info',`fetched and parsed yaml ${CBLCARS.templates_uri}`);
+            //cblcarsLog('debug',jsObject);
             const jsObject = await readYamlFile(CBLCARS.templates_uri);
 
             //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
@@ -662,11 +698,65 @@ class CBLCARSCardEditor extends EditorForm {
     }
 
 
+
+   /*
+    //this one should check and create the key in yaml if it doesn't exist
+    _valueChanged(ev) {
+        if (!this._config || !this._hass) {
+            return;
+        }
+        const target = ev.target;
+        const detail = ev.detail;
+        //console.debug('target:', target);
+        //console.debug('detail:', detail);
+        //.debug('target.configValue:', target.configValue);
+
+        if (target.tagName === "HA-CHECKBOX") {
+            // Add or remove the value from the array
+            const index = this._config[target.configValue]?.indexOf(target.value) ?? -1;
+            if (target.checked && index < 0) {
+                this._config[target.configValue] = [...(this._config[target.configValue] || []), target.value];
+            } else if (!target.checked && index > -1) {
+                this._config[target.configValue] = [
+                    ...this._config[target.configValue].slice(0, index),
+                    ...this._config[target.configValue].slice(index + 1)
+                ];
+            }
+        } else if (target.configValue) {
+            const keys = target.configValue.split(".");
+            let config = this._config;
+            for (let i = 0; i < keys.length - 1; i++) {
+                if (!config[keys[i]]) {
+                    config[keys[i]] = {};
+                    console.debug(`Created nested key: ${keys.slice(0, i + 1).join('.')}`);
+                }
+                config = config[keys[i]];
+            }
+            config[keys[keys.length - 1]] = target.checked !== undefined || !(detail?.value) ? target.value || target.checked : target.checked || detail.value;
+            cblcarsLog('debug',`Updating key: ${target.configValue} with value: ${config[keys[keys.length - 1]]}`);
+
+            this._config = { ...this._config };
+            cblcarsLog('debug','form updated config: ',this._config);
+        }
+
+         // Fire the config-changed event
+        (0, fireEvent)(this, "config-changed", {
+            config: this._config,
+        }, {
+            bubbles: true,
+            composed: true,
+        });
+
+        // Request an update to reflect the changes
+        this.requestUpdate("_config");
+    }
+    */
 }    
         
 
 
-
+//Define the cards for Home Assistant usage
+customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
@@ -683,10 +773,6 @@ if (!customElements.get('cb-lcars-card-editor')) {
 }
 
 
-
-
-//Define the cards for Home Assistant usage
-customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
@@ -715,7 +801,7 @@ window.customCards.push({
 
 
 
-loadFont();
+//loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
