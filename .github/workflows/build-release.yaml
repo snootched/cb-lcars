@@ -166,7 +166,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           prerelease: ${{ contains(needs.build.outputs.version, 'beta') }}
-          body: "${{ steps.changelog.outputs.changelog }}"
+          #body: "${{ steps.changelog.outputs.changelog }}"
           name: "Version ${{ needs.build.outputs.version }}"
           tag_name: "v${{ needs.build.outputs.version }}"
           target_commitish: "${{ env.CURRENT_SHA }}"
