@@ -24,6 +24,7 @@ cb-lcars-label-card:
           configValue: cblcars_card_config.variables.text.label.font_size
           type: !FormControlType Textbox
     - label: "a group of shit"
+      cssClass: 'side-by-side'
       controls:
         - label: "some shit"
           configValue: cblcars_card_config.variables.some_shit
@@ -38,6 +39,30 @@ cb-lcars-label-card:
           type: !FormControlType EntityDropdown
           domain: light
   css: |
-    ha-textfield {
-      width: 75%;
+    .form-row {
+    margin-bottom: 10px;
+    }
+    .form-control {
+        display: flex;
+        align-items: center;
+    }
+    ha-switch {
+        padding: 16px 6px;
+    }
+    .side-by-side {
+        display: flex;
+        flex-flow: row wrap;
+    }            
+    .side-by-side > label {
+        width: 100%;
+    }
+    .side-by-side > .form-control {
+        width: 49%;
+        padding: 2px;
+    }
+    ha-textfield { 
+        width: 100%;
+    }
+    .hidden {
+        display: none;
     }
