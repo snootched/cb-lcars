@@ -2,8 +2,8 @@ import * as CBLCARS from './cb-lcars-vars.js'
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
-import semver from 'semver';
-
+//import semver from 'semver';
+import * as calver from 'calver';
 
 //import EditorForm from '@marcokreeft/ha-editor-formbuilder';
 //import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
@@ -104,7 +104,6 @@ function cblcarsLog(level, message, obj = null) {
     }
   }
 
-    // Assuming cblcarsLog is defined elsewhere with appropriate styling
 function cblcarsLogGroup(level, title) {
     console.groupCollapsed(); // Create a collapsed group
     cblcarsLog(level, `Group: ${title}`);
@@ -237,7 +236,7 @@ async function updateLovelaceConfig(filePath) {
                 const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
                 const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
 
-                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
+                if (calver.nt(newLovelaceVersion, currentLovelaceVersion)) {
                     // Merge the cb-lcars configurations
                     const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
 
