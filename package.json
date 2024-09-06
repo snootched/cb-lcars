@@ -1,12 +1,11 @@
 {
   "name": "cb-lcars",
-  "version": "2024.9.1-beta.1",
+  "version": "2024.9.2-beta.1",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
   "license": "MIT",
   "homepage": "https://cb-lcars.unimatrix01.ca",
-  
   "directories": {
     "doc": "doc"
   },
@@ -17,12 +16,10 @@
     "LCARS",
     "Star Trek"
   ],
-  
   "scripts": {
     "clean": "rimraf dist",
     "build": "webpack --mode production"
   },
-  
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
@@ -34,7 +31,7 @@
   },
   "dependencies": {
     "custom-card-helpers": "^1.9.0",
-    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder",
+    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder#configvalue-enhancements",
     "js-yaml": "^4.1.0",
     "lit": "^3.2.0"
   }
