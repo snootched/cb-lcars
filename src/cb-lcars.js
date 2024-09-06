@@ -4,12 +4,13 @@ import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
-//import EditorForm from '@marcokreeft/ha-editor-formbuilder';
-//import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
-//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
-import EditorForm from 'ha-editor-formbuilder';
-import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
-import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
+import EditorForm from '@marcokreeft/ha-editor-formbuilder';
+import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
+import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
+
+//import EditorForm from 'ha-editor-formbuilder';
+//import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
+//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
 // Flag to check if the configuration has been merged
@@ -801,7 +802,7 @@ window.customCards.push({
 
 
 
-//loadFont();
+loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);

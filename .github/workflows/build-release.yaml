@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
     paths:
       - 'package.json'
+    # Ignore changes in folders that are affected by the auto commit. (Node.js project)
+    #paths-ignore:
+    #  - 'dist/**'
+
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
