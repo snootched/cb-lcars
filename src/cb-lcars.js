@@ -748,7 +748,9 @@ const WeatherUnit = {
 
 //////test section for js-only form config
 class CBLCARSCardEditorTest extends EditorForm {
-
+    constructor() {
+        super();
+        }
     render() {
         return this.renderForm([
             { controls: [{ label: "Card Type (Required)", configValue: "card_type", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(FormulaOneCardType) }] },
