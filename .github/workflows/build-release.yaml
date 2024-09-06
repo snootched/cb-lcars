@@ -153,14 +153,14 @@ jobs:
  #     - name: Extract artifacts
  #       run: tar -xzf dist-yaml-files.tar.gz -C ./dist
 
-      - name: Generate release changelog
-        id: changelog
-        uses: heinrichreimer/github-changelog-generator-action@v2.3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          sinceTag: ${{ steps.last_release.outputs.tag_name }}
-          headerLabel: "# Notable changes since ${{ steps.last_release.outputs.tag_name }}"
-          stripGeneratorNotice: true
+#      - name: Generate release changelog
+#        id: changelog
+#        uses: heinrichreimer/github-changelog-generator-action@v2.3
+#        with:
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          sinceTag: ${{ steps.last_release.outputs.tag_name }}
+#          headerLabel: "# Notable changes since ${{ steps.last_release.outputs.tag_name }}"
+#          stripGeneratorNotice: true
   
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
