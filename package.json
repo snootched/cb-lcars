@@ -29,9 +29,8 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
-    "@marcokreeft/ha-editor-formbuilder": "^2024.4.1",
-    "calver": "^24.1.0",
     "custom-card-helpers": "^1.9.0",
+    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder",
     "js-yaml": "^4.1.0",
     "lit": "^3.2.0"
   }

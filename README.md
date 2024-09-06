@@ -1,3 +1,7 @@
+***
+Note: This project is under reconstruction.  The goal is to move towards consuming these templates as custom cards.  This will take some time - but you can still use the below from the original version.
+***
+
 <p align="center">
 
 ![cb-lcars](images/screenshots/cb-lcars-banner.png)
