@@ -456,14 +456,6 @@ class CBLCARSBaseCard extends HTMLElement {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
-
-        // Check if 'entity' or 'label' is defined in the main config and copy it to cblcars_card_config if not already present.  user may not remember to that the button-card config is in cblcars_card_config
-        if (config.entity && !config.cblcars_card_config.entity) {
-        config.cblcars_card_config.entity = config.entity;
-        }
-        if (config.label && !config.cblcars_card_config.label) {
-            config.cblcars_card_config.label = config.label;
-        }
     
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
@@ -484,6 +476,12 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcars_card_config: buttonCardConfig 
 
         };
+        if (this._config.entity && !this._config.cblcars_card_config.entity) {
+            this._config.cblcars_card_config.entity = this._config.entity;
+        }
+        if (this._config.label && !this._config.cblcars_card_config.label) {
+            this._config.cblcars_card_config.label = this._config.label;
+        }
 
         cblcarsLog('debug','new card config: ',this._config);
 
@@ -521,7 +519,7 @@ class CBLCARSBaseCard extends HTMLElement {
     
     static getStubConfig() {
         return { 
-            cb_lcars_card_config: {
+            cblcars_card_config: {
                 label: 'cb-lcars-base',
                 show_label: true
             }
@@ -550,7 +548,7 @@ class CBLCARSBaseCard extends HTMLElement {
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
         } finally {
-            cblcarsLog('debug','Unable to create and render card - Attempting to re-initialize config')
+            cblcarsLog('debug','Unable to create and render card',this);
             cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
             // Ensure initializeConfigUpdate runs even if rendering fails
             //nitializeConfigUpdate();
@@ -574,18 +572,8 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             }
         };
         super.setConfig(specialConfig);
-
-        /*
-        const specialConfig = {
-            ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: ['cb-lcars-label', ...(config.cblcars_card_config.template || [])],
-            }
-        };
-        super.setConfig(specialConfig);
-        */
     }
+
     static getStubConfig() {
         return { 
             cblcars_card_config: {
@@ -617,7 +605,26 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
     } 
 }
 
+class CBLCARSMultimeterCard extends CBLCARSBaseCard {
+    setConfig(config) {
+ 
+        const defaultTemplates = ['cb-lcars-multimeter'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return {};
+    } 
+}
 
 class CBLCARSCardEditor extends EditorForm {
 
@@ -680,16 +687,6 @@ class CBLCARSCardEditor extends EditorForm {
             cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
             return css``;
         }
-
-        /*
-        return css`
-            ${this._formStyles}
-            // ... (other custom styles)
-            .form-row {
-                margin-bottom: 10px;
-            }
-        `;
-        */
 
         cblcarsLog('debug',"formStyles: ",this._formStyles)
         return css`
@@ -755,9 +752,14 @@ class CBLCARSCardEditor extends EditorForm {
         
 
 
+
+
+
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
-
+customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
+customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
+customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -773,8 +775,6 @@ if (!customElements.get('cb-lcars-card-editor')) {
 }
 
 
-customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
-customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
@@ -798,10 +798,16 @@ window.customCards.push({
     description: 'CB-LCARS header card',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
+window.customCards.push({
+    type: 'cb-lcars-multimeter-card',
+    name: 'CB-LCARS Multimeter',
+    preview: true,
+    description: 'CB-LCARS Multimeter card',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
 
 
-
-//loadFont();
+loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
