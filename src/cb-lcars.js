@@ -719,9 +719,146 @@ class CBLCARSCardEditor extends EditorForm {
         
 
 
-//Define the cards for Home Assistant usage
-customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
+// Enum for FormulaOneCardType
+const FormulaOneCardType = {
+    DRIVER: 'Driver',
+    TEAM: 'Team',
+    RACE: 'Race'
+};
 
+// Enum for CountdownType
+const CountdownType = {
+    RACE_START: 'Race Start',
+    QUALIFYING: 'Qualifying',
+    PRACTICE: 'Practice'
+};
+
+// Enum for PreviousRaceDisplay
+const PreviousRaceDisplay = {
+    WINNER: 'Winner',
+    PODIUM: 'Podium',
+    TOP_TEN: 'Top Ten'
+};
+
+// Enum for WeatherUnit
+const WeatherUnit = {
+    METRIC: 'Metric',
+    IMPERIAL: 'Imperial'
+};
+
+//////test section for js-only form config
+class CBLCARSCardEditorTest extends EditorForm {
+
+    render() {
+        return this.renderForm([
+            { controls: [{ label: "Card Type (Required)", configValue: "card_type", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(FormulaOneCardType) }] },
+            { controls: [{ label: "Title", configValue: "title", type: FormControlType.Textbox }] },
+            {
+                label: "Basic configuration",
+                cssClass: 'side-by-side',
+                controls: [
+                    { label: "Use F1 font", configValue: "f1_font", type: FormControlType.Switch },
+                    { label: "Image clickable", configValue: "image_clickable", type: FormControlType.Switch },
+                    { label: "Show carnumber", configValue: "show_carnumber", type: FormControlType.Switch },
+                    { label: "Location clickable", configValue: "location_clickable", type: FormControlType.Switch },
+                    { label: "Show race information", configValue: "show_raceinfo", type: FormControlType.Switch },
+                    { label: "Hide track layout", configValue: "hide_tracklayout", type: FormControlType.Switch },
+                    { label: "Hide race dates and times", configValue: "hide_racedatetimes", type: FormControlType.Switch },
+                    { label: "Show last years result", configValue: "show_lastyears_result", type: FormControlType.Switch },
+                    { label: "Only show date", configValue: "only_show_date", type: FormControlType.Switch }
+                ]
+            },    
+            {
+                label: "Countdown Type",
+                cssClass: 'side-by-side',
+                controls: [{ configValue: "countdown_type", type: FormControlType.Checkboxes, items: this.getDropdownOptionsFromEnum(CountdownType) }]
+            },
+            {
+                cssClass: 'side-by-side',
+                controls: [
+                    { label: "Next race delay", configValue: "next_race_delay", type: FormControlType.Textbox },
+                    { label: "Row limit", configValue: "row_limit", type: FormControlType.Textbox },
+                ]
+            },
+            { controls: [{ label: "Previous race", configValue: "previous_race", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(PreviousRaceDisplay) }] },
+            {
+                label: "Standings",
+                cssClass: 'side-by-side',
+                controls: [
+                    { label: "Show team", configValue: "standings.show_team", type: FormControlType.Switch },
+                    { label: "Show flag", configValue: "standings.show_flag", type: FormControlType.Switch },
+                    { label: "Show teamlogo", configValue: "standings.show_teamlogo", type: FormControlType.Switch }
+                ]
+            }, 
+            {
+                cssClass: 'side-by-side',
+                controls: [
+                    { label: "Next race delay", configValue: "next_race_delay", type: FormControlType.Textbox },
+                    { label: "Row limit", configValue: "row_limit", type: FormControlType.Textbox },
+                ]
+            },
+            {
+                label: "Weather",
+                cssClass: 'side-by-side',
+                controls: [
+                    { label: "Show weather", configValue: "show_weather", type: FormControlType.Switch },
+                    { type: FormControlType.Filler },
+                    { label: "API key", configValue: "weather_options.api_key", type: FormControlType.Textbox },
+                    { label: "Unit", configValue: "weather_options.unit", type: FormControlType.Dropdown, items: this.getDropdownOptionsFromEnum(WeatherUnit) },
+                    { label: "Show icon", configValue: "weather_options.show_icon", type: FormControlType.Switch },
+                    { label: "Show precipitation", configValue: "weather_options.show_precipitation", type: FormControlType.Switch },
+                    { label: "Show wind", configValue: "weather_options.show_wind", type: FormControlType.Switch },
+                    { label: "Show temperature", configValue: "weather_options.show_temperature", type: FormControlType.Switch },
+                    { label: "Show cloud coverage", configValue: "weather_options.show_cloud_cover", type: FormControlType.Switch },
+                    { label: "Show visibility", configValue: "weather_options.show_visibility", type: FormControlType.Switch },
+                    { label: "Show Icon", configValue: "weather_options.show_icon", type: FormControlType.Switch },
+                    { label: "Show Icon", configValue: "weather_options.show_icon", type: FormControlType.Switch },
+                ]
+            }, 
+        ]);
+    }
+
+    static get styles() {
+        return css`
+            .form-row {
+                margin-bottom: 10px;
+            }
+            .form-control {
+                display: flex;
+                align-items: center;
+            }
+            ha-switch {
+                padding: 16px 6px;
+            }
+            .side-by-side {
+                display: flex;
+                flex-flow: row wrap;
+            }            
+            .side-by-side > label {
+                width: 100%;
+            }
+            .side-by-side > .form-control {
+                width: 49%;
+                padding: 2px;
+            }
+            ha-textfield { 
+                width: 100%;
+            }
+            .hidden {
+                display: none;
+            }
+        `;
+    }
+}
+
+
+customElements.define('cb-lcars-card-editor', CBLCARSCardEditorTest);
+//////test section for js-only form config
+
+
+
+
+/* put back after test
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -735,8 +872,13 @@ if (!customElements.get('cb-lcars-card-editor')) {
 } else {
     console.log('Custom element cb-lcars-card-editor is already defined');
 }
+*/
 
 
+
+
+//Define the cards for Home Assistant usage
+customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 
