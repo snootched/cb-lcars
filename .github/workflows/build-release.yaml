@@ -13,6 +13,9 @@ jobs:
   build:
     name: Build for Release
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
     permissions:
       contents: write
     outputs:
@@ -42,12 +45,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.check_tag.outputs.exists == 'true'
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-
-      - name: Install dependencies
-        run: npm install
-
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+  
+      - name: Build
+        run: |
+          npm install
+          npx webpack
+       
       - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
         run: |
           mkdir -p ./dist
@@ -120,7 +127,8 @@ jobs:
         uses: InsonusK/get-latest-release@v1.1.0
         with:
           myToken: ${{ secrets.GITHUB_TOKEN }}
-          exclude_types: "draft|prerelease"
+          #exclude_types: "draft|prerelease"
+          exclude_types: "draft"
           
       - name: Create new tag
         uses: rickstaa/action-create-tag@v1.7.2
