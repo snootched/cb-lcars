@@ -417,7 +417,18 @@ class CBLCARSBaseCard extends HTMLElement {
 
     constructor () {
         super();
+        //this.attachShadow({ mode: 'open' });
+
         initializeConfigUpdate();
+
+        // Bind event handlers
+        this.handleResize = this.handleResize.bind(this);
+        //this.handleClick = this.handleClick.bind(this);
+        //this.handleInput = this.handleInput.bind(this);
+        //this.handleMouseOver = this.handleMouseOver.bind(this);
+        //this.handleMouseOut = this.handleMouseOut.bind(this);
+        //this.handleMutations = this.handleMutations.bind(this);
+        //this.handleCustomEvent = this.handleCustomEvent.bind(this);
     }
 
     setConfig(config) {
@@ -509,6 +520,20 @@ class CBLCARSBaseCard extends HTMLElement {
             }
             //cblcarsLog('debug','setting config on button-card element');
             this._card.setConfig(this._config.cblcars_card_config);
+
+            // Add event listeners
+            window.addEventListener('resize', this.handleResize);
+            //this.addEventListener('click', this.handleClick);
+            //this.addEventListener('input', this.handleInput);
+            //this.addEventListener('mouseover', this.handleMouseOver);
+            //this.addEventListener('mouseout', this.handleMouseOut);
+
+            // Set up MutationObserver
+            //const observer = new MutationObserver(this.handleMutations);
+            //observer.observe(this, { attributes: true, childList: true, subtree: true });
+
+
+
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
         } finally {
@@ -518,6 +543,67 @@ class CBLCARSBaseCard extends HTMLElement {
             //nitializeConfigUpdate();
         }
     }
+
+    
+    disconnectedCallback() {
+        // Remove event listeners
+        window.removeEventListener('resize', this.handleResize);
+        //this.removeEventListener('click', this.handleClick);
+        //this.removeEventListener('input', this.handleInput);
+        //this.removeEventListener('mouseover', this.handleMouseOver);
+        //this.removeEventListener('mouseout', this.handleMouseOut);
+    }
+    
+
+    
+    handleResize() {
+        cblcarsLog('debug','Window resized, updating child card...');
+        this.redrawChildCard();
+    }
+    /*
+    handleClick(event) {
+        console.log('Element clicked:', event.target);
+    }
+
+    handleInput(event) {
+        console.log('Input changed:', event.target.value);
+    }
+
+    handleMouseOver(event) {
+        console.log('Mouse over:', event.target);
+    }
+
+    handleMouseOut(event) {
+        console.log('Mouse out:', event.target);
+    }
+
+    handleMutations(mutationsList) {
+        for (const mutation of mutationsList) {
+            console.log('Mutation observed:', mutation);
+        }
+    }
+
+    handleCustomEvent(event) {
+        console.log('Custom event triggered:', event.detail);
+    }
+    */
+    redrawChildCard() {
+        //requestUpdate for lit-based cards
+        if (this._card.requestUpdate) {
+            this._card.requestUpdate();
+        } else {
+            //remove drom the DOM and and reinsert forcing non-lit elements to re-render
+            let parent = this._card.parentNode;
+            let next = this._card.nextSibling;
+            parent.removeChild(this._card);
+            parent.insertBefore(this._card, next);
+        }
+    }
+    
+
+
+
+
 }
 
 
