@@ -590,8 +590,10 @@ class CBLCARSBaseCard extends HTMLElement {
     redrawChildCard() {
         //requestUpdate for lit-based cards
         if (this._card.requestUpdate) {
+            cblcarsLog('debug', "doing this._card.requestUpdater()");
             this._card.requestUpdate();
         } else {
+            cblcarsLog('debug', "requestUpdate doesn't exist - doing alternate method");
             //remove drom the DOM and and reinsert forcing non-lit elements to re-render
             let parent = this._card.parentNode;
             let next = this._card.nextSibling;
