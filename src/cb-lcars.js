@@ -588,6 +588,24 @@ class CBLCARSBaseCard extends HTMLElement {
     }
     */
     redrawChildCard() {
+
+        if (this._card.requestUpdate) {
+            // If the child card uses LitElement, this will schedule an update
+            cblcarsLog('debug', "doing this._card.requestUpdate()");
+            this._card.requestUpdate();
+        }
+
+        // Re-read the configuration and re-render the card
+        if (this._config) {
+            cblcarsLog('debug', "doing a this._card.setConfig() on the child");
+            this._card.setConfig(this._config.cblcars_card_config);
+        } else {
+            console.error('No configuration found for the child card.');
+        }
+
+
+
+        /*
         //requestUpdate for lit-based cards
         if (this._card.requestUpdate) {
             cblcarsLog('debug', "doing this._card.requestUpdater()");
@@ -600,6 +618,7 @@ class CBLCARSBaseCard extends HTMLElement {
             parent.removeChild(this._card);
             parent.insertBefore(this._card, next);
         }
+        */
     }
     
 
