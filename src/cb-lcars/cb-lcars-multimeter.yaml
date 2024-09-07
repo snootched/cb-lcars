@@ -2,16 +2,42 @@ cb-lcars-multimeter:
   template:
     - cb-lcars-functions
     - cb-lcars-card-base
-  entity: light.tv
+  entity: |
+    [[[ 
+      const lights = Object.keys(hass.states).filter(e => e.startsWith('light.'));
+      return lights[Math.floor(Math.random() * lights.length)];
+    ]]]
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
+
+
     card:
-      width: 500px
-      height: 60px
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px');
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px');
+        ]]]      
     panel:
+      width: |
+        [[[
+          //console.log("card_width: ",variables.card.width);
+          let card_width = parseFloat(variables.card.width);
+          let panel_width = (card_width * 0.76);
+          //console.log("panel_width: ",panel_width);
+          return panel_width+"px"
+        ]]]
+      height: |
+        [[[
+          //console.log("card_height: ",variables.card.height);
+          let card_height = parseFloat(variables.card.height);
+          let panel_height = (card_height * 0.83);
+          //console.log("panel_height: ",panel_height)
+          return panel_height+"px"
+        ]]]      
       mode: gauge
-      width: 380px
-      height: 50px
       padding:
         top: 5px
         left: 5px

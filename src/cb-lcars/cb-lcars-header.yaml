@@ -1,9 +1,23 @@
+cb-lcars-header-base:
+  template:
+    - cb-lcars-base
+    - cb-lcars-functions
+  variables:
+    card:
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px');
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px');
+        ]]] 
 cb-lcars-header:
-  template: cb-lcars-base
+  template: 
+    - cb-lcars-header-base
   show_label: true
   variables:
     card:
-      height: 60px
       border:
         top:
           size: 20px
@@ -42,7 +56,8 @@ cb-lcars-header:
           [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
           variables.card.border.inner.factor +" )";]]]
 cb-lcars-header-open:
-  template: cb-lcars-base
+  template:
+    - cb-lcars-header-base
   show_label: true
   variables:
     card:
@@ -50,7 +65,8 @@ cb-lcars-header-open:
         top:
           size: 20px
 cb-lcars-header-contained:
-  template: cb-lcars-header-open
+  template:
+    - cb-lcars-header-open
   variables:
     card:
       min_height: 40px
@@ -75,7 +91,8 @@ cb-lcars-header-contained:
           [[[ return "calc(" + variables.card.border.top.right_radius + " / "
           + variables.card.border.inner.factor +" )";]]]
 cb-lcars-header-right:
-  template: cb-lcars-base
+  template: 
+    - cb-lcars-header-base
   show_label: true
   variables:
     card:
