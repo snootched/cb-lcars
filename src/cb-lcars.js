@@ -538,9 +538,9 @@ class CBLCARSBaseCard extends HTMLElement {
             // Set up MutationObserver
             this.observer = new MutationObserver(this.handleMutations.bind(this));
             if (this.parentElement) {
-                this.observer.observe(this.parentElement, { attributes: true, childList: true });
+                this.observer.observe(this.parentElement, { attributes: true, childList: true, subtree: true });
             }
-            this.observer.observe(this._card, { attributes: true });
+            //this.observer.observe(this._card, { attributes: true });
 
 
             //causes inifinite loop
