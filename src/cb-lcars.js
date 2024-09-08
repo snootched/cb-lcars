@@ -421,6 +421,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
         initializeConfigUpdate();
 
+        this.observer = null;
+        
         // Bind event handlers
         this.handleResize = this.handleResize.bind(this);
         //this.handleClick = this.handleClick.bind(this);
@@ -521,6 +523,9 @@ class CBLCARSBaseCard extends HTMLElement {
             //cblcarsLog('debug','setting config on button-card element');
             this._card.setConfig(this._config.cblcars_card_config);
 
+            // Force a redraw on the first instantiation
+            this.redrawChildCard();
+
             // Add event listeners
             window.addEventListener('resize', this.handleResize);
             //this.addEventListener('click', this.handleClick);
@@ -529,6 +534,8 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.addEventListener('mouseout', this.handleMouseOut);
 
             // Set up MutationObserver
+            this.observer = new MutationObserver(this.handleMutations.bind(this));
+            this.observer.observe(this, { childList: true, subtree: true, attributes: true });
             //const observer = new MutationObserver(this.handleMutations);
             //observer.observe(this, { attributes: true, childList: true, subtree: true });
 
@@ -552,13 +559,25 @@ class CBLCARSBaseCard extends HTMLElement {
         //this.removeEventListener('input', this.handleInput);
         //this.removeEventListener('mouseover', this.handleMouseOver);
         //this.removeEventListener('mouseout', this.handleMouseOut);
-    }
+        if (this.observer) {
+            this.observer.disconnect();
+        }   }
     
 
     
     handleResize() {
         cblcarsLog('debug','Window resized, updating child card...');
         this.redrawChildCard();
+    }
+
+    handleMutations(mutationsList) {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                cblcarsLog('debug', 'DOM mutation observed, updating child card...');
+                this.redrawChildCard();
+                break;
+            }
+        }
     }
     /*
     handleClick(event) {
@@ -575,12 +594,6 @@ class CBLCARSBaseCard extends HTMLElement {
 
     handleMouseOut(event) {
         console.log('Mouse out:', event.target);
-    }
-
-    handleMutations(mutationsList) {
-        for (const mutation of mutationsList) {
-            console.log('Mutation observed:', mutation);
-        }
     }
 
     handleCustomEvent(event) {
