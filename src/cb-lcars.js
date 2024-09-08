@@ -513,6 +513,9 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     connectedCallback() {
+
+        super.connectedCallback();
+
         //cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
@@ -536,21 +539,19 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.addEventListener('mouseout', this.handleMouseOut);
 
             // Set up MutationObserver
-            this.observer = new MutationObserver(this.handleMutations.bind(this));
-            if (this.parentElement) {
-                cblcarsLog("warn","creating mutation observer")
-                this.observer.observe(this.parentElement, { attributes: true, childList: true, subtree: true });
-            }
+            //this.observer = new MutationObserver(this.handleMutations.bind(this));
+            //if (this.parentElement) {
+            //    cblcarsLog("warn","creating mutation observer")
+            //    this.observer.observe(this.parentElement, { attributes: true, childList: true, subtree: true });
+            //}
             //this.observer.observe(this._card, { attributes: true });
 
-
-            //causes inifinite loop
-            //this.observer = new MutationObserver(this.handleMutations.bind(this));
-            //this.observer.observe(this, { childList: true, subtree: true, attributes: true });
-            
-            //const observer = new MutationObserver(this.handleMutations);
-            //observer.observe(this, { attributes: true, childList: true, subtree: true });
-
+            const resizeObserver = new ResizeObserver(() => {
+                cblcarsLog('debug', 'Element resized, updating child card...');
+                this.redrawChildCard();
+              });
+          
+            resizeObserver.observe(this.parentElement);
 
 
         } catch (error) {
@@ -565,6 +566,9 @@ class CBLCARSBaseCard extends HTMLElement {
 
     
     disconnectedCallback() {
+
+        super.disconnectedCallback();
+
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
@@ -572,9 +576,13 @@ class CBLCARSBaseCard extends HTMLElement {
         //this.removeEventListener('input', this.handleInput);
         //this.removeEventListener('mouseover', this.handleMouseOver);
         //this.removeEventListener('mouseout', this.handleMouseOut);
-        if (this.observer) {
-            this.observer.disconnect();
-        }   }
+        //if (this.observer) {
+        //    this.observer.disconnect();
+       // }
+
+        this.resizeObserver.disconnect();
+}
+   }
     
 
     
