@@ -422,7 +422,7 @@ class CBLCARSBaseCard extends HTMLElement {
         initializeConfigUpdate();
 
         this.observer = null;
-        
+
         // Bind event handlers
         this.handleResize = this.handleResize.bind(this);
         //this.handleClick = this.handleClick.bind(this);
@@ -534,8 +534,14 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.addEventListener('mouseout', this.handleMouseOut);
 
             // Set up MutationObserver
-            this.observer = new MutationObserver(this.handleMutations.bind(this));
-            this.observer.observe(this, { childList: true, subtree: true, attributes: true });
+            this.observer.observe(this.parentElement, { attributes: true, childList: true });
+            this.observer.observe(this._card, { attributes: true });
+
+            
+            //causes inifinite loop
+            //this.observer = new MutationObserver(this.handleMutations.bind(this));
+            //this.observer.observe(this, { childList: true, subtree: true, attributes: true });
+            
             //const observer = new MutationObserver(this.handleMutations);
             //observer.observe(this, { attributes: true, childList: true, subtree: true });
 
