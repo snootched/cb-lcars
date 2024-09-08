@@ -1,4 +1,10 @@
 import * as CBLCARS from './cb-lcars-vars.js'
+import { cblcarsLog, logImportStatus, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
+import { fetchYAML, readYamlFile } from './utils/cb-lcars-fileutils.js';
+import { CBLCARSDashboardStrategy, CBLCARSViewStrategyAirlock, CBLCARSViewStrategyGallery } from './strategy/cb-lcars-strategy.js';
+import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
+import { loadFont } from './utils/cb-lcars-theme.js';
+
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
@@ -12,109 +18,8 @@ import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
-// Flag to check if the configuration has been merged
-let isConfigMerged = false;
-
-
-
-async function cblcarsLogBanner() {
-    let styles1 = [
-        'color: white',
-        'font-weight: bold',
-        'padding: 2px 4px',
-        'border-radius: 5em 5em 0 0', // Top left and right rounded, bottom left and right square
-        'background-color: #37a6d1' // Blue
-    ];
-
-    let styles2 = [
-        'color: white',
-        'padding: 2px 4px',
-        'border-radius: 0 0 5em 5em', // Top left and right square, bottom left and right rounded
-        'background-color: #37a6d1' // Blue
-    ];
-
-    let invisibleStyle = [
-        'color: transparent',
-        'padding: 0',
-        'border: none'
-    ];
-
-    const version = CBLCARS.CBLCARS_VERSION;
-    const url = CBLCARS.project_url;
-    const baseString = "CB-LCARS v" + version;
-    const padding = 4;
-
-    // Calculate the total length including padding
-    const totalLength = url.length + padding;
-    const spacesNeeded = totalLength - baseString.length;
-
-    // Create strings with the required number of spaces
-    const spaces = ' '.repeat(spacesNeeded);
-    const paddedUrl = ' '.repeat(padding) + url;
-
-    console.info(`%c${spaces}${baseString}  %c\n%c${paddedUrl}  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
-}
-
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
-
-
-function cblcarsLog(level, message, obj = {}) {
-    
-    const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
-    const levelStyles = {
-      info: 'background-color: #37a6d1', // Blue
-      warn: 'background-color: #ff6753', // Orange
-      error: 'background-color: #ef1d10', // Red
-      debug: 'background-color: #8e44ad', // Purple
-      default: 'background-color: #6d748c', // Gray for unknown levels
-    };
-  
-    // Capture the stack trace for caller information
-    //const stack = new Error().stack;
-    //const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
-    // Create a formatted log message with the specified level, caller, and message
-    //remove caller cuz of webpack..
-
-    //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
-    const logMessage = `%c    CB-LCARS | ${level} `;
-    
-    // Choose the appropriate style based on the level
-    //const style = levelStyles[level] || levelStyles.default;
-    const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
-  
-    // Log the message using the chosen style and console method
-    switch (level) {
-      case 'info':
-        console.log(logMessage, style, message, obj);
-        break;
-      case 'warn':
-        console.warn(logMessage, style, message, obj);
-        break;
-      case 'error':
-        console.error(logMessage, style, message, obj);
-        break;
-      case 'debug':
-        console.debug(logMessage, style, message, obj);
-        break;
-      default:
-        console.log(logMessage, style, message, obj);
-        break;
-    }
-  }
-
-function cblcarsLogGroup(level, title) {
-    console.groupCollapsed(); // Create a collapsed group
-    cblcarsLog(level, `Group: ${title}`);
-    }
-
-function logImportStatus(importName, importedValue) {
-if (importedValue === undefined) {
-    cblcarsLog('error', `Import error: ${importName} is not imported correctly.`);
-} else {
-    console.debug(`${importName} imported successfully.`);
-}
-}
 
 // Log import statuses for each import
 console.groupCollapsed('CB-LCARS imports');
@@ -130,26 +35,12 @@ logImportStatus('formatList:', formatList);
 logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
 console.groupEnd();
 
-
-
-async function loadFont() {
-    try {
-      const existingLink = document.querySelector(`link[href="${CBLCARS.font_url}"]`);
-      if (!existingLink) {
-        const link = document.createElement('link'); 
-        link.href = CBLCARS.font_url; 
-        link.rel = 'stylesheet'; 
-        document.head.appendChild(link);
-        cblcarsLog('info', `Loaded CB-LCARS required font from: ${CBLCARS.font_url}`);
-      } else {
-        console.log(`CB-LCARS font already loaded from: ${CBLCARS.font_url}`);
-      }
-    } catch (error) {
-      await cblcarsLog('error', `Failed to load font from: ${CBLCARS.font_url}: ${error.message}`);
-    }
-  }
-  
 loadFont();
+
+// Flag to check if the configuration has been merged
+let isConfigMerged = false;
+
+
 
 // Function to get the Lovelace configuration
 function getLovelace() {
@@ -243,181 +134,6 @@ async function initializeConfigUpdate() {
     }
 }
 
-async function fetchYAML(url) {
-    try {
-        const response = await fetch(url);
-        if (response.ok) {
-            const yamlContent = await response.text();
-            cblcarsLog('debug',`Fetched yaml file ${url}`);
-            
-            return yamlContent;
-        } //else {
-          //  throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
-        //}
-    } catch (error) {
-        cblcarsLog('error', 'Error fetching YAML file ',error);
-        throw error;
-    }
-}
-
-// Function to read and parse the YAML file
-async function readYamlFile(url) {
-    try {
-        //await loadJsYaml; // Wait for the js-yaml script to load
-        const response = await fetchYAML(url);
-        const jsObject = jsyaml.load(response);
-        //await cblcarsLog('info',`Processed YAML file: ${url}`);
-        //await cblcarsLog('debug', jsObject);
-        return jsObject;
-    } catch (error) {
-        cblcarsLog('error', 'Failed to parse YAML file',error.message);
-        throw error; // Re-throw the error after logging it
-    }
-}
- 
-
-//custom yaml schema for the FormControlType
-async function readFormEditorYamlFile(url) {
-    try {
-       // Define the FormControlType enum as per the renderer's code
-        const FormControlType = {
-            Dropdown: 'dropdown',
-            Checkbox: 'checkbox',
-            Checkboxes: 'checkboxes',
-            Radio: 'radio',
-            Switch: 'switch',
-            Textbox: 'textbox',
-            Filler: 'filler',
-            EntityDropdown: 'entity-dropdown'
-        };
-        
-        // Custom YAML type for FormControlType
-        const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
-            kind: 'scalar',
-            resolve: function (data) {
-              return FormControlType.hasOwnProperty(data);
-            },
-            construct: function (data) {
-              return FormControlType[data];
-            },
-            instanceOf: String,
-            represent: function (data) {
-              return data;
-            }
-          });
-        
-        // Create a schema that includes the custom type
-        const SCHEMA = jsyaml.DEFAULT_SCHEMA.extend([FormControlTypeYamlType]);
-  
-
-        //await loadJsYaml; // Wait for the js-yaml script to load
-        const response = await fetchYAML(url);
-        const jsObject = jsyaml.load(response, { schema: SCHEMA });
-        cblcarsLog('debug',`Processed YAML file: ${url}`);
-        cblcarsLog('debug','FormEditor object from custom schema:' ,jsObject);
-        return jsObject;
-    } catch (error) {
-        cblcarsLog('error', 'Failed to parse YAML file',error.message);
-        throw error; // Re-throw the error after logging it
-    }
-}
-
-// Define the dashboard class
-class CBLCARSDashboardStrategy {
-    static async generate(config, hass) {
-        try {
-            const [areas, devices, entities] = await Promise.all([
-                hass.callWS({ type: "config/area_registry/list" }),
-                hass.callWS({ type: "config/device_registry/list" }),
-                hass.callWS({ type: "config/entity_registry/list" }),
-                ]);
-            
-            //cblcarsLog('debug areas:',areas);
-            //cblcarsLog('debug devices:',devices);
-            //cblcarsLog('debug entities:',entities);
-
-            //const yamlContent = await fetchYAML(CBLCARS.templates_uri);
-            //const jsObject = jsyaml.load(yamlContent);
-            //cblcarsLog('info',`fetched and parsed yaml ${CBLCARS.templates_uri}`);
-            //cblcarsLog('debug',jsObject);
-            const jsObject = await readYamlFile(CBLCARS.templates_uri);
-
-            //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
-            //cblcarsLog('debug',jsObject);
-
-            cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
-            return {
-                'cb-lcars': {
-                    manage_config: true
-                },
-                title: 'CB-LCARS',
-                ...jsObject, // Use the parsed YAML content here
-
-                views: [
-                    {
-                        title: 'CB-LCARS Airlock',
-                        strategy: {
-                            type: 'custom:cb-lcars-airlock',
-                            options: config
-                        }
-                    },
-                    {
-                        title: 'CB-LCARS Gallery',
-                        strategy: {
-                            type: 'custom:cb-lcars-gallery',
-                            options: config
-                        }
-                    }
-                ]
-    
-            };
-        } catch (error) {
-            cblcarsLog('error', `Error generating CB-LCARS dashboard strategy: ${error.message}`);
-            throw error;
-        }
-    }
-}
-
-//define airlock view strategy
-class CBLCARSViewStrategyAirlock {
-    static async generate(config, hass) {
-        try {
-            cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
-            const jsObject = await readYamlFile(CBLCARS.airlock_uri);
-
-            return {
-                ...jsObject
-            };
-        } catch (error) {
-            cblcarsLog('error', `Error loading CB-LCARS Airlock strategy view: ${error.message}`);
-            throw error;
-        }
-    }
-}
-//define gallery view strategy
-class CBLCARSViewStrategyGallery {
-    static async generate(config, hass) {
-        try {
-            cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
-            const jsObject = await readYamlFile(CBLCARS.gallery_uri);
-
-            return {
-                ...jsObject
-            };
-        } catch (error) {
-            cblcarsLog('error', `Error loading CB-LCARS Gallery strategy view: ${error.message}`);
-            throw error;
-        }
-    }
-}
-
-// define the strategies in HA
-customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
-customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
-customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
-
-
-
 
 
 class CBLCARSBaseCard extends HTMLElement {
@@ -428,7 +144,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         initializeConfigUpdate();
 
-        this.observer = null;
+        //this.observer = null;
 
         // Bind event handlers
         //this.handleResize = this.handleResize.bind(this);
@@ -516,8 +232,15 @@ class CBLCARSBaseCard extends HTMLElement {
       }
   
     getCardSize() {
-        return this._card ? this._card.getCardSize() : 1;
+        return this._card ? this._card.getCardSize() : 4;
     }
+
+    getLayoutOptions() {
+        return {
+          grid_rows: 1,
+          grid_columns: 4
+        };
+      }
 
     connectedCallback() {
 
@@ -525,7 +248,7 @@ class CBLCARSBaseCard extends HTMLElement {
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
-                cblcarsLog('debug','creating new button-card element');
+                //cblcarsLog('debug','creating new button-card element');
                 this._card = document.createElement('button-card');
                 this.appendChild(this._card);
             }
@@ -552,7 +275,7 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.observer.observe(this._card, { attributes: true });
 
             const resizeObserver = new ResizeObserver(() => {
-                cblcarsLog('debug', 'Element resized, updating child card...');
+                //cblcarsLog('debug', 'Element resized, updating child card...');
                 this.redrawChildCard();
               });
           
@@ -562,7 +285,7 @@ class CBLCARSBaseCard extends HTMLElement {
         } catch (error) {
             cblcarsLog('error',`Error rendering card: ${error}`);
         } finally {
-            cblcarsLog('debug','Unable to create and render card',this);
+            //cblcarsLog('debug','Unable to create and render card',this);
             //cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
             // Ensure initializeConfigUpdate runs even if rendering fails
             //nitializeConfigUpdate();
@@ -589,7 +312,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
     
     handleResize() {
-        cblcarsLog('debug','Window resized, updating child card...');
+        //cblcarsLog('debug','Window resized, updating child card...');
         this.redrawChildCard();
     }
 
@@ -628,11 +351,6 @@ class CBLCARSBaseCard extends HTMLElement {
     }
     */
     redrawChildCard() {
-        // If the child card uses LitElement, this will schedule an update      
-        if (this._card.requestUpdate) {
-            //cblcarsLog('debug', "doing this._card.requestUpdate()");
-            this._card.requestUpdate();
-        }
 
         // Re-read the configuration and re-render the card
         if (this._config) {
@@ -641,9 +359,14 @@ class CBLCARSBaseCard extends HTMLElement {
         } else {
             console.error('No configuration found for the child card.');
         }
+        // If the child card uses LitElement, this will schedule an update      
+        if (this._card.requestUpdate) {
+            //cblcarsLog('debug', "doing this._card.requestUpdate()");
+            this._card.requestUpdate();
+        }
+
     }
 }
-
 
 class CBLCARSLabelCard extends CBLCARSBaseCard {
     setConfig(config) {
@@ -691,6 +414,12 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
     static getStubConfig() {
         return {};
     } 
+    getLayoutOptions() {
+        return {
+          grid_rows: 1,
+          grid_columns: 4
+        };
+      }
 }
 
 class CBLCARSMultimeterCard extends CBLCARSBaseCard {
@@ -716,85 +445,19 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     getLayoutOptions() {
         return {
           grid_rows: 1,
-          grid_columns: 3
+          grid_columns: 4
         };
       }
 }
 
-class CBLCARSCardEditor extends EditorForm {
-
-    constructor() {
-        super();
-        //load the editor form yaml here or die
-        }
-
-    setConfig(config) {
-        //let's get our this._config setup..
-        super.setConfig(config);
-
-        cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
-
-        // Remove "custom:" prefix if it exists
-        const cardType = config.type.replace(/^custom:/, '');
-
-        cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
-
-        readFormEditorYamlFile(CBLCARS.card_editor_uri)
-            .then(formDefinitions => {
-                cblcarsLog('debug','formDefinitions: ',formDefinitions);
-                this._formDefinitions = formDefinitions;
-                //console.debug('this._formDefinitions: ',this._formDefinitions)
-                this._formContent = formDefinitions[cardType].render_form;
-                //console.debug('this._formContent: ',this._formContent)
-                this._formStyles = formDefinitions[cardType].css || {};
-                //console.debug('this._formStyles: ',this._formStyles)
-                this.requestUpdate();
-            })
-            .catch(error => {
-                cblcarsLog('error','Error fetching editor form definitions: ', error);
-            });    
-    }
-    render() {
-        //console.log("in CBLCARSCardEditor.render()");
-        //console.log('this._hass:', this._hass);
-        //console.log('this._config:', this._config);
-        if (!this._hass || !this._config || !this._formDefinitions) {
-            cblcarsLog('debug','Unable to setup form rendering - returning blank');
-            return html``;
-        }
-
-
-        const formContent = this._formContent;
-        cblcarsLog('debug',`Editor formContent: `,formContent);
-
-        try {
-            const returnForm = this.renderForm(formContent);
-            //console.log('returnForm:', returnForm);
-            return returnForm;
-        } catch (error) {
-            console.error('Error in renderForm:', error);
-            return html`<p>Error rendering form</p>`;
-        }
-    }
-
-    styles() {
-        if (!!this._formStyles) {
-            //cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
-            return css``;
-        }
-
-        //cblcarsLog('debug',"formStyles: ",this._formStyles)
-        return css`
-            ${this._formStyles}
-        `;
-    }
-
-}    
         
 
 
 
-
+// define the strategies in HA
+customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
+customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
+customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
 
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
@@ -848,10 +511,4 @@ window.customCards.push({
 });
 
 
-
-// Use DOMContentLoaded event to initialize configuration update
-//document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
-// load the font if it's not already available
-//document.addEventListener('DOMContentLoaded', loadFont);
-    
     
