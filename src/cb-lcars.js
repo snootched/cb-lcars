@@ -581,9 +581,7 @@ class CBLCARSBaseCard extends HTMLElement {
        // }
 
         this.resizeObserver.disconnect();
-}
-   }
-    
+    }
 
     
     handleResize() {
