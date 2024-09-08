@@ -1,3 +1,4 @@
+import * as CBLCARS from '../cb-lcars-vars.js';
 export function cblcarsLog(level, message, obj = {}) {
     
     const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
@@ -55,7 +56,7 @@ export function logImportStatus(importName, importedValue) {
     }
 }
 
-export async function cblcarsLogBanner() {
+export function cblcarsLogBanner() {
   let styles1 = [
       'color: white',
       'font-weight: bold',
