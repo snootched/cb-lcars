@@ -424,7 +424,8 @@ class CBLCARSBaseCard extends HTMLElement {
         this.observer = null;
 
         // Bind event handlers
-        this.handleResize = this.handleResize.bind(this);
+        //this.handleResize = this.handleResize.bind(this);
+        //this.handleResize = this.handleLoad.bind(this);
         //this.handleClick = this.handleClick.bind(this);
         //this.handleInput = this.handleInput.bind(this);
         //this.handleMouseOver = this.handleMouseOver.bind(this);
@@ -535,7 +536,10 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.addEventListener('mouseout', this.handleMouseOut);
 
             // Set up MutationObserver
-            this.observer.observe(this.parentElement, { attributes: true, childList: true });
+            this.observer = new MutationObserver(this.handleMutations.bind(this));
+            if (this.parentElement) {
+                this.observer.observe(this.parentElement, { attributes: true, childList: true });
+            }
             this.observer.observe(this._card, { attributes: true });
 
 
@@ -561,7 +565,7 @@ class CBLCARSBaseCard extends HTMLElement {
     
     disconnectedCallback() {
         // Remove event listeners
-        window.removeEventListener('resize', this.handleResize);
+        window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
         //this.removeEventListener('click', this.handleClick);
         //this.removeEventListener('input', this.handleInput);
