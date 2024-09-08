@@ -514,7 +514,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
     connectedCallback() {
 
-        super.connectedCallback();
+        //super.connectedCallback();
 
         //cblcarsLog('debug','connectedcallback called');
         try {
@@ -567,7 +567,7 @@ class CBLCARSBaseCard extends HTMLElement {
     
     disconnectedCallback() {
 
-        super.disconnectedCallback();
+        //super.disconnectedCallback();
 
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
