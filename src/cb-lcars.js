@@ -208,7 +208,7 @@ async function updateLovelaceConfig(filePath) {
                     cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
                     cblcarsLog('debug','new lovelace config: ',newConfig);
 
-                    
+
                     // Apply the updated configuration
                     await lovelaceConfig.saveConfig(updatedConfig);
                     cblcarsLog('info', `CB-LCARS dashboard templates updated v${newLovelaceVersion} (from v${currentLovelaceVersion})`);
@@ -222,6 +222,8 @@ async function updateLovelaceConfig(filePath) {
                 }
             } else {
             cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
+            lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
+            cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',ll);
             }
         } else {
             cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
