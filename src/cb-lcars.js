@@ -274,12 +274,16 @@ class CBLCARSBaseCard extends HTMLElement {
             //}
             //this.observer.observe(this._card, { attributes: true });
 
-            const resizeObserver = new ResizeObserver(() => {
-                //cblcarsLog('debug', 'Element resized, updating child card...');
-                this.redrawChildCard();
-              });
-          
-            resizeObserver.observe(this.parentElement);
+            try {
+                const resizeObserver = new ResizeObserver(() => {
+                    //cblcarsLog('debug', 'Element resized, updating child card...');
+                    this.redrawChildCard();
+                });
+            
+                resizeObserver.observe(this.parentElement);
+            } catch (error) {
+                cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
+            }  
 
 
         } catch (error) {
