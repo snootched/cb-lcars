@@ -59,7 +59,7 @@ async function cblcarsLogBanner() {
 cblcarsLogBanner();
 
 
-function cblcarsLog(level, message, obj = null) {
+function cblcarsLog(level, message, obj = {}) {
     
     const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
     const levelStyles = {
@@ -74,9 +74,9 @@ function cblcarsLog(level, message, obj = null) {
     //const stack = new Error().stack;
     //const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
     // Create a formatted log message with the specified level, caller, and message
-    //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
     //remove caller cuz of webpack..
 
+    //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
     const logMessage = `%c    CB-LCARS | ${level} `;
     
     // Choose the appropriate style based on the level
@@ -149,6 +149,7 @@ async function loadFont() {
     }
   }
   
+loadFont();
 
 // Function to get the Lovelace configuration
 function getLovelace() {
@@ -204,6 +205,10 @@ async function updateLovelaceConfig(filePath) {
                     // Create a new configuration object by copying the existing one and updating cb-lcars
                     const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
 
+                    cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
+                    cblcarsLog('debug','new lovelace config: ',newConfig);
+
+                    
                     // Apply the updated configuration
                     await lovelaceConfig.saveConfig(updatedConfig);
                     cblcarsLog('info', `CB-LCARS dashboard templates updated v${newLovelaceVersion} (from v${currentLovelaceVersion})`);
@@ -514,8 +519,6 @@ class CBLCARSBaseCard extends HTMLElement {
 
     connectedCallback() {
 
-        //super.connectedCallback();
-
         //cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
@@ -567,8 +570,6 @@ class CBLCARSBaseCard extends HTMLElement {
     
     disconnectedCallback() {
 
-        //super.disconnectedCallback();
-
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
@@ -579,8 +580,9 @@ class CBLCARSBaseCard extends HTMLElement {
         //if (this.observer) {
         //    this.observer.disconnect();
        // }
-
-        this.resizeObserver.disconnect();
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+        }
     }
 
     
@@ -593,6 +595,7 @@ class CBLCARSBaseCard extends HTMLElement {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.redrawChildCard();
     }
+    /*
     handleMutations(mutationsList) {
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' || mutation.type === 'attributes') {
@@ -602,7 +605,6 @@ class CBLCARSBaseCard extends HTMLElement {
             }
         }
     }
-    /*
     handleClick(event) {
         console.log('Element clicked:', event.target);
     }
@@ -624,43 +626,20 @@ class CBLCARSBaseCard extends HTMLElement {
     }
     */
     redrawChildCard() {
-
+        // If the child card uses LitElement, this will schedule an update      
         if (this._card.requestUpdate) {
-            // If the child card uses LitElement, this will schedule an update
-            cblcarsLog('debug', "doing this._card.requestUpdate()");
+            //cblcarsLog('debug', "doing this._card.requestUpdate()");
             this._card.requestUpdate();
         }
 
         // Re-read the configuration and re-render the card
         if (this._config) {
-            cblcarsLog('debug', "doing a this._card.setConfig() on the child");
+            //cblcarsLog('debug', "doing a this._card.setConfig() on the child");
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
             console.error('No configuration found for the child card.');
         }
-
-
-
-        /*
-        //requestUpdate for lit-based cards
-        if (this._card.requestUpdate) {
-            cblcarsLog('debug', "doing this._card.requestUpdater()");
-            this._card.requestUpdate();
-        } else {
-            cblcarsLog('debug', "requestUpdate doesn't exist - doing alternate method");
-            //remove drom the DOM and and reinsert forcing non-lit elements to re-render
-            let parent = this._card.parentNode;
-            let next = this._card.nextSibling;
-            parent.removeChild(this._card);
-            parent.insertBefore(this._card, next);
-        }
-        */
     }
-    
-
-
-
-
 }
 
 
@@ -860,7 +839,6 @@ window.customCards.push({
 });
 
 
-loadFont();
 
 // Use DOMContentLoaded event to initialize configuration update
 //document.addEventListener('DOMContentLoaded', initializeConfigUpdate);
