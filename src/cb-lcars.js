@@ -142,6 +142,8 @@ class CBLCARSBaseCard extends HTMLElement {
         super();
         //this.attachShadow({ mode: 'open' });
 
+        this.resizeObserver = null; // Define resizeObserver as a class property
+
         initializeConfigUpdate();
 
         //this.observer = null;
@@ -275,12 +277,12 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.observer.observe(this._card, { attributes: true });
 
             try {
-                const resizeObserver = new ResizeObserver(() => {
+                this.resizeObserver = new ResizeObserver(() => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     this.redrawChildCard();
                 });
             
-                resizeObserver.observe(this.parentElement);
+                this.resizeObserver.observe(this.parentElement);
             } catch (error) {
                 cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
             }  
@@ -309,8 +311,9 @@ class CBLCARSBaseCard extends HTMLElement {
         //if (this.observer) {
         //    this.observer.disconnect();
        // }
-        if (resizeObserver) {
-            resizeObserver.disconnect();
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
         }
     }
 
