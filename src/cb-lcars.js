@@ -538,6 +538,7 @@ class CBLCARSBaseCard extends HTMLElement {
             // Set up MutationObserver
             this.observer = new MutationObserver(this.handleMutations.bind(this));
             if (this.parentElement) {
+                cblcarsLog("warn","creating mutation observer")
                 this.observer.observe(this.parentElement, { attributes: true, childList: true, subtree: true });
             }
             //this.observer.observe(this._card, { attributes: true });
