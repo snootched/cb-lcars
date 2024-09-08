@@ -222,8 +222,8 @@ async function updateLovelaceConfig(filePath) {
                 }
             } else {
             cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
-            lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
-            cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
+            //lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
+            //cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
             }
         } else {
             cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
@@ -712,6 +712,13 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     static getStubConfig() {
         return {};
     } 
+
+    getLayoutOptions() {
+        return {
+          grid_rows: 1,
+          grid_columns: 3
+        };
+      }
 }
 
 class CBLCARSCardEditor extends EditorForm {
