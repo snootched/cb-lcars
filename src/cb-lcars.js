@@ -527,7 +527,8 @@ class CBLCARSBaseCard extends HTMLElement {
             this.redrawChildCard();
 
             // Add event listeners
-            window.addEventListener('resize', this.handleResize);
+            window.addEventListener('resize', this.handleResize.bind(this));
+            window.addEventListener('load', this.handleLoad.bind(this));
             //this.addEventListener('click', this.handleClick);
             //this.addEventListener('input', this.handleInput);
             //this.addEventListener('mouseover', this.handleMouseOver);
@@ -537,7 +538,7 @@ class CBLCARSBaseCard extends HTMLElement {
             this.observer.observe(this.parentElement, { attributes: true, childList: true });
             this.observer.observe(this._card, { attributes: true });
 
-            
+
             //causes inifinite loop
             //this.observer = new MutationObserver(this.handleMutations.bind(this));
             //this.observer.observe(this, { childList: true, subtree: true, attributes: true });
@@ -561,6 +562,7 @@ class CBLCARSBaseCard extends HTMLElement {
     disconnectedCallback() {
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize);
+        window.removeEventListener('load', this.handleLoad.bind(this));
         //this.removeEventListener('click', this.handleClick);
         //this.removeEventListener('input', this.handleInput);
         //this.removeEventListener('mouseover', this.handleMouseOver);
@@ -576,6 +578,10 @@ class CBLCARSBaseCard extends HTMLElement {
         this.redrawChildCard();
     }
 
+    handleLoad() {
+        cblcarsLog('debug', 'Page loaded, updating child card...');
+        this.redrawChildCard();
+    }
     handleMutations(mutationsList) {
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' || mutation.type === 'attributes') {
