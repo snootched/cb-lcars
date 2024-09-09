@@ -9,8 +9,6 @@ cb-lcars-multimeter:
     ]]]
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
-
-
     card:
       width: |
         [[[

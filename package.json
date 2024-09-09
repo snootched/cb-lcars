@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2024.9.3-beta.7",
+  "version": "2024.9.3-beta.8",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "custom-card-helpers": "^1.9.0",
-    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder#configvalue-enhancements",
+    "ha-editor-formbuilder": "github:snootched/ha-editor-formbuilder",
     "js-yaml": "^4.1.0",
     "lit": "^3.2.0"
   }
