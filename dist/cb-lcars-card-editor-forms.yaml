@@ -43,4 +43,5 @@ cb-lcars-label-card:
           type: !FormControlType Slider                                  
           min: 12                                                        
           max: 48
-          step: 2            
+          step: 2
+          helper: "Select a font size"        
