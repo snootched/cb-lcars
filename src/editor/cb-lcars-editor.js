@@ -80,11 +80,11 @@ export class CBLCARSCardEditor extends EditorForm {
             .then(formDefinitions => {
                 cblcarsLog('debug','formDefinitions: ',formDefinitions);
                 this._formDefinitions = formDefinitions;
-                //console.debug('this._formDefinitions: ',this._formDefinitions)
+                console.debug('this._formDefinitions: ',this._formDefinitions)
                 this._formContent = formDefinitions[cardType].render_form;
-                //console.debug('this._formContent: ',this._formContent)
+                console.debug('this._formContent: ',this._formContent)
                 this._formStyles = formDefinitions[cardType].css || {};
-                //console.debug('this._formStyles: ',this._formStyles)
+                console.debug('this._formStyles: ',this._formStyles)
                 this.requestUpdate();
             })
             .catch(error => {
@@ -106,7 +106,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
         try {
             const returnForm = this.renderForm(formContent);
-            //console.log('returnForm:', returnForm);
+            console.log('returnForm:', returnForm);
             return returnForm;
         } catch (error) {
             console.error('Error in renderForm:', error);
