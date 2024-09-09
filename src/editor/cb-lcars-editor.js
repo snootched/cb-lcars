@@ -23,7 +23,8 @@ export async function readFormEditorYamlFile(url) {
             Switch: 'switch',
             Textbox: 'textbox',
             Filler: 'filler',
-            EntityDropdown: 'entity-dropdown'
+            EntityDropdown: 'entity-dropdown',
+            Slider: 'slider'
         };
         
         // Custom YAML type for FormControlType
