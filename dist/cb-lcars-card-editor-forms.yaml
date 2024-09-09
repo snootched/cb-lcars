@@ -1,36 +1,5 @@
-cb-lcars-css-common: &cb-lcars-css-common
-  css: |                                                                 
-    .form-row {                                                          
-    margin-bottom: 10px;                                                 
-    }                                                                    
-    .form-control {                                                      
-        display: flex;                                                   
-        align-items: center;                                             
-    }                                                                    
-    ha-switch {                                                          
-        padding: 16px 6px;                                               
-    }                                                                    
-    .side-by-side {                                                      
-        display: flex;                                                   
-        flex-flow: row wrap;                                             
-    }                                                                    
-    .side-by-side > label {                                              
-        width: 100%;                                                     
-    }                                                                    
-    .side-by-side > .form-control {                                      
-        width: 49%;                                           
-        padding: 2px;                                         
-    }                                                         
-    ha-textfield {                                            
-        width: 60%;                                          
-    }                                                         
-    .hidden {                                              
-        display: none;                                     
-    }
-
 cb-lcars-base-card:
   render_form:
-    - cssClass: 'side-by-side'
     - controls:
       - label: "Base Label Test"
         configValue: "label"
@@ -43,7 +12,6 @@ cb-lcars-base-card:
       width: 75%;
     }
 cb-lcars-label-card:
-  <<: *cb-lcars-css-common
   render_form:
     - controls:
         - label: "Label"
@@ -56,7 +24,6 @@ cb-lcars-label-card:
           configValue: cblcars_card_config.variables.text.label.font_size
           type: !FormControlType Textbox
     - label: "A group of controls"
-      cssClass: 'side-by-side'
       controls:
         - label: "Additional Templates"
           configValue: cblcars_card_config.templates
@@ -70,4 +37,10 @@ cb-lcars-label-card:
           configValue: cblcars_card_config.variables.entity
           type: !FormControlType EntityDropdown
           domain: light
-          
+    - controls:                                                          
+        - label: "my new slider"                                         
+          configValue: cblcars_card_config.variables.text.label.font_size2 
+          type: !FormControlType Slider                                  
+          min: 12                                                        
+          max: 48
+          step: 2            
