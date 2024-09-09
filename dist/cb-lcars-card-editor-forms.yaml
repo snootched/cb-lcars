@@ -44,4 +44,8 @@ cb-lcars-label-card:
           min: 12                                                        
           max: 48
           step: 2
-          helper: "Select a font size"        
+          helper: "Select a font size"    
+    - controls:                                                           
+        - label: "my toggle"                                              
+          configValue: cblcars_card_config.variables.___debug
+          type: !FormControlType Switch      
