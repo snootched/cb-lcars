@@ -4,6 +4,8 @@ import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { fetchYAML } from '../utils/cb-lcars-fileutils.js';
 
+import { html, css } from 'lit';
+
 import EditorForm from 'ha-editor-formbuilder';
 import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
