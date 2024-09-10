@@ -48,4 +48,43 @@ cb-lcars-label-card:
     - controls:                                                           
         - label: "my toggle"                                              
           configValue: cblcars_card_config.variables.___debug
-          type: !FormControlType Switch      
+          type: !FormControlType Switch
+cb-lcars-multimeter-card:                                                 
+  render_form:                                                                  
+    - controls:                                                           
+        - label: Pick                                                           
+          configValue: cblcars_card_config.variables.panel.mode           
+          type: !FormControlType Dropdown                                       
+          items:                                                          
+            - value: 'gauge'                                                    
+              label: 'Gauge'                                              
+            - value: 'slider'                                             
+              label: 'Slider'                                             
+            - value: 'icon_grid'                                          
+              label: 'Icons'
+cb-lcars-header-card:                                                     
+  render_form:                                                            
+    - controls:                                                           
+        - label: "LCARS Curve"                                            
+          configValue: cblcars_card_config.variables.card.border.top.left_radius
+          type: !FormControlType Slider                                   
+          min: 0                                                                
+          max: 180                                                        
+          step: 1
+cb-lcars-button-card:                                                     
+  render_form:                                                            
+    - controls:                                                           
+        - label: "LCARS Button Type"                                            
+          configValue: cblcars_button_type
+          type: !FormControlType Dropdown
+          items:                                                          
+            - value: 'cb-lcars-button-lozenge'                                                    
+              label: '[TNG] Lozenge'                                              
+            - value: 'cb-lcars-button-bullet'                                                    
+              label: '[TNG] Bullet'                                              
+            - value: 'cb-lcars-button-capped'                                                    
+              label: '[TNG] Capped'                                              
+            - value: 'cb-lcars-button-picard'                                             
+              label: '[Picard] Outline'                                             
+            - value: 'cb-licars-button-picard-filled'                                          
+              label: '[Picard] Filled'    
