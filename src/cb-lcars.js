@@ -405,7 +405,9 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 class CBLCARSHeaderCard extends CBLCARSBaseCard {
     setConfig(config) {
  
-        const defaultTemplates = ['cb-lcars-header'];
+        const defaultCardType = 'cb-lcars-header';
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
+        //const defaultTemplates = ['cb-lcars-header'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
@@ -537,6 +539,9 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
                 template: mergedTemplates,
             }
         };
+
+        //cblcarsLog('debug','button card specialConfig: ',specialConfig);
+
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
@@ -552,7 +557,7 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
         return {
             grid_min_rows: 1,
             grid_rows: 1,
-            grid_columns: 1,
+            grid_columns: 2,
             grid_min_columns: 1
         };
       }
