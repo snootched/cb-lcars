@@ -1,12 +1,21 @@
 cb-lcars-footer-base:
-  template: cb-lcars-base
+  template: 
+    - cb-lcars-base
   variables:
     card:
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px');
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px');
+        ]]]
       border:
         color: var(--lcars-card-bottom-color)
-
 cb-lcars-footer:
-  template: cb-lcars-footer-base
+  template:
+    - cb-lcars-footer-base
   show_label: true
   variables:
     card:
@@ -48,7 +57,8 @@ cb-lcars-footer:
           [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
       - border-bottom-right-radius: 0px
 cb-lcars-footer-open:
-  template: cb-lcars-footer-base
+  template: 
+    - cb-lcars-footer-base
   show_label: true
   variables:
     card:
@@ -56,7 +66,8 @@ cb-lcars-footer-open:
         bottom:
           size: 20px
 cb-lcars-footer-contained:
-  template: cb-lcars-footer-open
+  template:
+    - cb-lcars-footer-open
   show_label: true
   variables:
     card:
@@ -80,7 +91,8 @@ cb-lcars-footer-contained:
       - border-bottom-right-radius: >-
           [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
 cb-lcars-footer-right:
-  template: cb-lcars-footer-base
+  template: 
+    - cb-lcars-footer-base
   show_label: true
   variables:
     card:

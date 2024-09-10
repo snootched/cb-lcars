@@ -62,10 +62,10 @@ cb-lcars-multimeter-card:
               label: 'Slider'                                             
             - value: 'icon_grid'                                          
               label: 'Icons'
-cb-lcars-header-card:                                                     
+cb-lcars-elbow-card:                                                     
   render_form:                                                            
     - controls:                                                           
-        - label: "LCARS Elbo Type"                                            
+        - label: "LCARS Elbow Type"                                            
           configValue: cblcars_card_type
           type: !FormControlType Dropdown
           items:                                                          
@@ -77,6 +77,10 @@ cb-lcars-header-card:
               label: 'Header [Open]' 
             - value: 'cb-lcars-header-contained'                                                    
               label: 'Header [Contained]'
+            - value: 'cb-lcars-header-callout'
+              label: 'Header [Callout]'
+            - value: 'cb-lcars-header-callout-right'
+              label: 'Header [Callout Right]'
             - value: 'cb-lcars-footer'                                             
               label: 'Footer'
             - value: 'cb-lcars-footer-right'                                             
@@ -85,8 +89,10 @@ cb-lcars-header-card:
               label: 'Footer [Open]'
             - value: 'cb-lcars-footer-contained'
               label: 'Footer [Contained]'
-                                                           
-
+            - value: 'cb-lcars-footer-callout'
+              label: 'Footer [Callout]'
+            - value: 'cb-lcars-footer-callout-right'
+              label: 'Footer [Callout Right]'
     - controls:                                                           
         - label: "LCARS Curve"                                            
           configValue: cblcars_card_config.variables.card.border.top.left_radius

@@ -175,6 +175,13 @@ cb-lcars-functions:
           }
         }
       ]]]
+    __get_random_entity: |
+      [[[
+          return function get_random_entity(domain) {
+            const entityList = Object.keys(hass.states).filter(e => e.startsWith(domain+'.'));
+            return entityList[Math.floor(Math.random() * entityList.length)];
+          }
+      ]]]
     __get_random_css_color: |
       [[[
           return function get_random_css_color() {

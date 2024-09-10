@@ -1,5 +1,6 @@
 cb-lcars-label:
-  template: cb-lcars-base
+  template:
+    - cb-lcars-base
   show_label: true
   variables:
     card:

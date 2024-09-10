@@ -2,11 +2,7 @@ cb-lcars-multimeter:
   template:
     - cb-lcars-functions
     - cb-lcars-card-base
-  entity: |
-    [[[ 
-      const lights = Object.keys(hass.states).filter(e => e.startsWith('light.'));
-      return lights[Math.floor(Math.random() * lights.length)];
-    ]]]
+  entity: '[[[ return variables.__get_random_entity("light"); ]]]'
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
     card:

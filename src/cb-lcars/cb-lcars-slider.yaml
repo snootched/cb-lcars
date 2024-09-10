@@ -2,12 +2,18 @@ cb-lcars-slider:
   template:
     - cb-lcars-card-base
     - cb-lcars-functions
-  entity: ''
+  entity: '[[[ return variables.__get_random_entity("light"); ]]]'
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
     card:
-      width: 80px
-      height: 300px
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px');
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px');
+        ]]]  
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
     entity_match_slider_start: false
@@ -86,8 +92,9 @@ cb-lcars-slider:
           thumb:
             - background: none
 cb-lcars-slider-horizontal:
-  template: cb-lcars-slider
-  entity: ''
+  template: 
+    - cb-lcars-slider
+  entity: '[[[ return variables.__get_random_entity("light"); ]]]'
   variables:
     meter:
       template: cb-lcars-meter-horizontal
