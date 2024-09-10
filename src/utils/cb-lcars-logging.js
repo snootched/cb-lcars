@@ -1,7 +1,7 @@
 import * as CBLCARS from '../cb-lcars-vars.js';
 export function cblcarsLog(level, message, obj = {}) {
     
-    const commonStyles = 'color: white; padding: 2px 4px; border-radius: 15px;';
+    const commonStyles = 'color: white; padding: 1px 4px; border-radius: 15px;';
     const levelStyles = {
       info: 'background-color: #37a6d1', // Blue
       warn: 'background-color: #ff6753', // Orange

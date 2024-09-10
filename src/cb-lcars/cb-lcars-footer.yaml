@@ -1,5 +1,6 @@
 cb-lcars-footer-base:
-  template: 
+  template:
+    - cb-lcars-functions
     - cb-lcars-base
   variables:
     card:
