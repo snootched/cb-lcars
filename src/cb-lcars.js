@@ -525,8 +525,8 @@ class CBLCARSButtonPicardFilled extends CBLCARSBaseCard {
 class CBLCARSButtonCard extends CBLCARSBaseCard {
     setConfig(config) {
  
-        const defaultCardType = { cblcars_card_type: 'cb-lcars-button-lozenge' };
-        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType.cblcars_card_type];
+        const defaultCardType = 'cb-lcars-button-lozenge';
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
