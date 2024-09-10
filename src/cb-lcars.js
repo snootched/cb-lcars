@@ -102,7 +102,7 @@ async function updateLovelaceConfig(filePath) {
 
                     // Apply the updated configuration
                     await lovelaceConfig.saveConfig(updatedConfig);
-                    cblcarsLog('info', `CB-LCARS dashboard templates updated v${newLovelaceVersion} (from v${currentLovelaceVersion})`);
+                    cblcarsLog('info', `CB-LCARS dashboard templates updated (v${currentLovelaceVersion} --> v${newLovelaceVersion})`);
                     isConfigMerged = true;
 
                 } else if (newLovelaceVersion === 0) {
@@ -502,7 +502,12 @@ class CBLCARSButtonPicardFilled extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {};
+        return {
+            cblcars_card_config: {
+                label: "CB-LCARS Label",
+                show_label: true
+            }
+        }
     } 
 
     getLayoutOptions() {
@@ -516,6 +521,43 @@ class CBLCARSButtonPicardFilled extends CBLCARSBaseCard {
 }
 
 
+
+class CBLCARSButtonCard extends CBLCARSBaseCard {
+    setConfig(config) {
+ 
+        const defaultCardType = { cblcars_card_type: 'cb-lcars-button-lozenge' };
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType.cblcars_card_type];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return {
+            cblcars_card_config: {
+                label: "CB-LCARS Button",
+                show_label: true
+            }
+        }
+    } 
+
+    getLayoutOptions() {
+        return {
+            grid_min_rows: 1,
+            grid_rows: 1,
+            grid_columns: 1,
+            grid_min_columns: 1
+        };
+      }
+}
+
 // define the strategies in HA
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
 customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
@@ -528,6 +570,7 @@ customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
 customElements.define('cb-lcars-button-picard-filled-card',CBLCARSButtonPicardFilled);
+customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -585,6 +628,13 @@ window.customCards.push({
     name: 'CB-LCARS Button (Picard)',
     preview: true,
     description: 'CB-LCARS Button from Picard',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+window.customCards.push({
+    type: 'cb-lcars-button-card',
+    name: 'CB-LCARS Button',
+    preview: true,
+    description: 'CB-LCARS Buttons [various styles]',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
 
