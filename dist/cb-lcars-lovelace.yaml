@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.4-beta.34
+  version: 2024.9.5-beta.1
   manage_config: true
 button_card_templates:
   cb-lcars-actions-hue-tap:
@@ -55,13 +55,23 @@ button_card_templates:
       action: none
       haptic: failure
   cb-lcars-footer-base:
-    template: cb-lcars-base
+    template: 
+      - cb-lcars-base
     variables:
       card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px');
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px');
+          ]]]
         border:
           color: var(--lcars-card-bottom-color)
   cb-lcars-footer:
-    template: cb-lcars-footer-base
+    template:
+      - cb-lcars-footer-base
     show_label: true
     variables:
       card:
@@ -103,7 +113,8 @@ button_card_templates:
             [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
         - border-bottom-right-radius: 0px
   cb-lcars-footer-open:
-    template: cb-lcars-footer-base
+    template: 
+      - cb-lcars-footer-base
     show_label: true
     variables:
       card:
@@ -111,7 +122,8 @@ button_card_templates:
           bottom:
             size: 20px
   cb-lcars-footer-contained:
-    template: cb-lcars-footer-open
+    template:
+      - cb-lcars-footer-open
     show_label: true
     variables:
       card:
@@ -135,7 +147,8 @@ button_card_templates:
         - border-bottom-right-radius: >-
             [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
   cb-lcars-footer-right:
-    template: cb-lcars-footer-base
+    template: 
+      - cb-lcars-footer-base
     show_label: true
     variables:
       card:
@@ -492,12 +505,18 @@ button_card_templates:
     template:
       - cb-lcars-card-base
       - cb-lcars-functions
-    entity: ''
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     triggers_update: '[[[ return variables.entity ]]]'
     variables:
       card:
-        width: 80px
-        height: 300px
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px');
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px');
+          ]]]  
       entity: '[[[ return entity.entity_id ]]]'
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_slider_start: false
@@ -574,8 +593,9 @@ button_card_templates:
             thumb:
               - background: none
   cb-lcars-slider-horizontal:
-    template: cb-lcars-slider
-    entity: ''
+    template: 
+      - cb-lcars-slider
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     variables:
       meter:
         template: cb-lcars-meter-horizontal
@@ -756,6 +776,13 @@ button_card_templates:
               return object2;
             }
           }
+        ]]]
+      __get_random_entity: |
+        [[[
+            return function get_random_entity(domain) {
+              const entityList = Object.keys(hass.states).filter(e => e.startsWith(domain+'.'));
+              return entityList[Math.floor(Math.random() * entityList.length)];
+            }
         ]]]
       __get_random_css_color: |
         [[[
@@ -1940,11 +1967,7 @@ button_card_templates:
     template:
       - cb-lcars-functions
       - cb-lcars-card-base
-    entity: |
-      [[[ 
-        const lights = Object.keys(hass.states).filter(e => e.startsWith('light.'));
-        return lights[Math.floor(Math.random() * lights.length)];
-      ]]]
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     triggers_update: '[[[ return variables.entity ]]]'
     variables:
       card:
@@ -3108,7 +3131,7 @@ button_card_templates:
     template:
       - cb-lcars-card-base
       - cb-lcars-functions
-    entity: ''
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     triggers_update: '[[[ return variables.entity ]]]'
     variables:
       card:
@@ -3249,7 +3272,7 @@ button_card_templates:
             thumb:
               - background: none
   cb-lcars-slider-horizontal-gauge:
-    entity: ''
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     template:
       - cb-lcars-functions
       - cb-lcars-slider-horizontal
@@ -3690,7 +3713,8 @@ button_card_templates:
             padding:
               bottom: 10px
   cb-lcars-label:
-    template: cb-lcars-base
+    template:
+      - cb-lcars-base
     show_label: true
     variables:
       card:
