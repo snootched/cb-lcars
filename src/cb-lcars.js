@@ -609,7 +609,7 @@ const CBLCARSCardClasses = [
     },
     {
         type: 'cb-lcars-elbow-card',
-        name: 'CB-LCARS Header',
+        name: 'CB-LCARS Elbow',
         preview: true,
         description: 'CB-LCARS Elbow card',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
