@@ -65,6 +65,29 @@ cb-lcars-multimeter-card:
 cb-lcars-header-card:                                                     
   render_form:                                                            
     - controls:                                                           
+        - label: "LCARS Elbo Type"                                            
+          configValue: cblcars_card_type
+          type: !FormControlType Dropdown
+          items:                                                          
+            - value: 'cb-lcars-header'                                                    
+              label: 'Header'                                              
+            - value: 'cb-lcars-header-right'                                                    
+              label: 'Header [Right]'                                              
+            - value: 'cb-lcars-header-open'                                                    
+              label: 'Header [Open]' 
+            - value: 'cb-lcars-header-contained'                                                    
+              label: 'Header [Contained]'
+            - value: 'cb-lcars-footer'                                             
+              label: 'Footer'
+            - value: 'cb-lcars-footer-right'                                             
+              label: 'Footer [Right]'
+            - value: 'cb-lcars-footer-open'                                             
+              label: 'Footer [Open]'
+            - value: 'cb-lcars-footer-contained'
+              label: 'Footer [Contained]'
+                                                           
+
+    - controls:                                                           
         - label: "LCARS Curve"                                            
           configValue: cblcars_card_config.variables.card.border.top.left_radius
           type: !FormControlType Slider                                   
@@ -75,7 +98,7 @@ cb-lcars-button-card:
   render_form:                                                            
     - controls:                                                           
         - label: "LCARS Button Type"                                            
-          configValue: cblcars_button_type
+          configValue: cblcars_card_type
           type: !FormControlType Dropdown
           items:                                                          
             - value: 'cb-lcars-button-lozenge'                                                    
@@ -86,5 +109,5 @@ cb-lcars-button-card:
               label: '[TNG] Capped'                                              
             - value: 'cb-lcars-button-picard'                                             
               label: '[Picard] Outline'                                             
-            - value: 'cb-licars-button-picard-filled'                                          
+            - value: 'cb-lcars-button-picard-filled'                                          
               label: '[Picard] Filled'    
