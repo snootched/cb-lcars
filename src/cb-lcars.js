@@ -457,6 +457,33 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
       }
 }
 
+class CBLCARSDPADCard extends CBLCARSBaseCard {
+    setConfig(config) {
+ 
+        const defaultTemplates = ['cb-lcars-dpad'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return {};
+    } 
+
+    getLayoutOptions() {
+        return {
+          grid_rows: 1,
+          grid_columns: 4
+        };
+      }
+}
         
 
 
@@ -471,6 +498,7 @@ customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
+customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -514,6 +542,12 @@ window.customCards.push({
     name: 'CB-LCARS Multimeter',
     preview: true,
     description: 'CB-LCARS Multimeter card',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});window.customCards.push({
+    type: 'cb-lcars-dpad-card',
+    name: 'CB-LCARS D-Pad',
+    preview: true,
+    description: 'CB-LCARS D-Pad card',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
 
