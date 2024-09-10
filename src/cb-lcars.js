@@ -423,8 +423,8 @@ class CBLCARSHeaderCard extends CBLCARSBaseCard {
     } 
     getLayoutOptions() {
         return {
-          grid_rows: 1,
-          grid_columns: 4
+            grid_rows: 1,
+            grid_columns: 4
         };
       }
 }
@@ -451,8 +451,8 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 
     getLayoutOptions() {
         return {
-          grid_rows: 1,
-          grid_columns: 4
+            grid_rows: 1,
+            grid_columns: 4
         };
       }
 }
@@ -479,13 +479,41 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
 
     getLayoutOptions() {
         return {
-          grid_rows: 1,
-          grid_columns: 4
+            grid_rows: 1,
+            grid_columns: 4
         };
       }
 }
         
+class CBLCARSButtonPicardFilled extends CBLCARSBaseCard {
+    setConfig(config) {
+ 
+        const defaultTemplates = ['cb-lcars-button-picard-filled'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return {};
+    } 
+
+    getLayoutOptions() {
+        return {
+            grid_min_rows: 1,
+            grid_rows: 1,
+            grid_columns: 1,
+            grid_min_columns: 1
+        };
+      }
+}
 
 
 // define the strategies in HA
@@ -499,6 +527,7 @@ customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
+customElements.define('cb-lcars-button-picard-filled-card',CBLCARSButtonPicardFilled);
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -543,11 +572,19 @@ window.customCards.push({
     preview: true,
     description: 'CB-LCARS Multimeter card',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
-});window.customCards.push({
+});
+window.customCards.push({
     type: 'cb-lcars-dpad-card',
     name: 'CB-LCARS D-Pad',
     preview: true,
     description: 'CB-LCARS D-Pad card',
+    documentationURL: "https://cb-lcars.unimatrix01.ca",
+});
+window.customCards.push({
+    type: 'cb-lcars-button-picard-filled-card',
+    name: 'CB-LCARS Button (Picard)',
+    preview: true,
+    description: 'CB-LCARS Button from Picard',
     documentationURL: "https://cb-lcars.unimatrix01.ca",
 });
 
