@@ -402,7 +402,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
       }
 }
 
-class CBLCARSHeaderCard extends CBLCARSBaseCard {
+class CBLCARSElbowCard extends CBLCARSBaseCard {
     setConfig(config) {
  
         const defaultCardType = 'cb-lcars-header';
@@ -487,42 +487,6 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
       }
 }
         
-class CBLCARSButtonPicardFilled extends CBLCARSBaseCard {
-    setConfig(config) {
- 
-        const defaultTemplates = ['cb-lcars-button-picard-filled'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
-        const mergedTemplates = [...defaultTemplates, ...userTemplates];
-
-        const specialConfig = {
-            ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
-        };
-        super.setConfig(specialConfig);
-    }
-    static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                label: "CB-LCARS Label",
-                show_label: true
-            }
-        }
-    } 
-
-    getLayoutOptions() {
-        return {
-            grid_min_rows: 1,
-            grid_rows: 1,
-            grid_columns: 1,
-            grid_min_columns: 1
-        };
-      }
-}
-
-
 
 class CBLCARSButtonCard extends CBLCARSBaseCard {
     setConfig(config) {
@@ -563,6 +527,41 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
       }
 }
 
+class CBLCARSSliderCard extends CBLCARSBaseCard {
+    setConfig(config) {
+ 
+        const defaultCardType = 'cb-lcars-slider';
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
+        //const defaultTemplates = ['cb-lcars-header'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+    static getStubConfig() {
+        return {};
+    } 
+    getLayoutOptions() {
+        if (this._config.cblcars_card_type && this._config.cblcars_card_type.includes('horizontal')) {
+            return {
+                grid_rows: 1,
+                grid_columns: 4
+            };
+        } else {
+            return {
+                grid_rows: 4,
+                grid_columns: 1
+            };
+        }
+    }
+}
 // define the strategies in HA
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
 customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
@@ -571,11 +570,11 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 //Define the cards for Home Assistant usage
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
-customElements.define('cb-lcars-header-card',CBLCARSHeaderCard);
+customElements.define('cb-lcars-elbow-card',CBLCARSElbowCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
-customElements.define('cb-lcars-button-picard-filled-card',CBLCARSButtonPicardFilled);
 customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
+customElements.define('cb-lcars-slider-card',CBLCARSSliderCard);
 
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
@@ -594,54 +593,58 @@ if (!customElements.get('cb-lcars-card-editor')) {
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
-window.customCards.push({
-    type: 'cb-lcars-base-card',
-    name: 'CB-LCARS Base Card',
-    description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-label-card',
-    name: 'CB-LCARS Label',
-    preview: true,
-    description: 'CB-LCARS label card for text.',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-header-card',
-    name: 'CB-LCARS Header',
-    preview: true,
-    description: 'CB-LCARS header card',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-multimeter-card',
-    name: 'CB-LCARS Multimeter',
-    preview: true,
-    description: 'CB-LCARS Multimeter card',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-dpad-card',
-    name: 'CB-LCARS D-Pad',
-    preview: true,
-    description: 'CB-LCARS D-Pad card',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-button-picard-filled-card',
-    name: 'CB-LCARS Button (Picard)',
-    preview: true,
-    description: 'CB-LCARS Button from Picard',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
-window.customCards.push({
-    type: 'cb-lcars-button-card',
-    name: 'CB-LCARS Button',
-    preview: true,
-    description: 'CB-LCARS Buttons [various styles]',
-    documentationURL: "https://cb-lcars.unimatrix01.ca",
-});
+const CBLCARSCardClasses = [
+    {
+        type: 'cb-lcars-base-card',
+        name: 'CB-LCARS Base Card',
+        description: 'For advanced use: the CB-LCARS base card for full manual configuration.',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-label-card',
+        name: 'CB-LCARS Label',
+        preview: true,
+        description: 'CB-LCARS label card for text.',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-elbow-card',
+        name: 'CB-LCARS Header',
+        preview: true,
+        description: 'CB-LCARS Elbow card',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-multimeter-card',
+        name: 'CB-LCARS Multimeter',
+        preview: true,
+        description: 'CB-LCARS Multimeter card',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-dpad-card',
+        name: 'CB-LCARS D-Pad',
+        preview: true,
+        description: 'CB-LCARS D-Pad card',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-button-card',
+        name: 'CB-LCARS Buttons',
+        preview: true,
+        description: 'CB-LCARS Buttons [various styles]',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-slider-card',
+        name: 'CB-LCARS Sliders',
+        preview: true,
+        description: 'CB-LCARS Sliders and Gauges [no decorations]',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+];
+
+window.customCards.push(...CBLCARSCardClasses);
 
 
     
