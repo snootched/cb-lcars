@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2024.9.6-beta.15",
+  "version": "2024.9.6-beta.16",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
