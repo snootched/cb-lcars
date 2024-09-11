@@ -49,6 +49,10 @@ cb-lcars-label-card:
         - label: "my toggle"                                              
           configValue: cblcars_card_config.variables.___debug
           type: !FormControlType Switch
+    - controls:                                                           
+        - label: "choose your colour"                                     
+          configValue: cblcars_card_config.variables.text.label.color.default
+          type: !FormControlType ColorPicker            
 cb-lcars-multimeter-card:                                                 
   render_form:                                                                  
     - controls:                                                           
