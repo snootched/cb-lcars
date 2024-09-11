@@ -15,7 +15,8 @@ import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownO
 export async function readFormEditorYamlFile(url) {
     try {
        // Define the FormControlType enum as per the renderer's code
-        const FormControlType = {
+/*
+       const FormControlType = {
             Dropdown: 'dropdown',
             Checkbox: 'checkbox',
             Checkboxes: 'checkboxes',
@@ -25,8 +26,9 @@ export async function readFormEditorYamlFile(url) {
             Filler: 'filler',
             EntityDropdown: 'entity-dropdown',
             Slider: 'slider'
+
         };
-        
+*/        
         // Custom YAML type for FormControlType
         const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
             kind: 'scalar',
