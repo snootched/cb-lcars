@@ -7,7 +7,7 @@ import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 import { html, css } from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
-import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
+//import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
 //import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
