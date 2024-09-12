@@ -52,7 +52,15 @@ cb-lcars-label-card:
     - controls:                                                           
         - label: "choose your colour"                                     
           configValue: cblcars_card_config.variables.text.label.color.default
-          type: ColorPicker            
+          type: ColorPicker   
+    - label: "Advanced Settings"                                             
+      type: Section                                                          
+      outlined: true                                                         
+      leftChevron: true                                                      
+      controls:                                                              
+        - label: "some shit in a section"                                    
+          configValue: cblcars_card_config.variables.some_shit               
+          type: Textbox              
 cb-lcars-multimeter-card:                                                 
   render_form:                                                                  
     - controls:                                                           
