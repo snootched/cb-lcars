@@ -3,10 +3,10 @@ cb-lcars-base-card:
     - controls:
       - label: "Base Label Test"
         configValue: "label"
-        type: !FormControlType Textbox
+        type: Textbox
       - label: Label (nested var)
         configValue: cblcars_card_config.label
-        type: !FormControlType Textbox
+        type: Textbox
   css: |
     ha-textfield {
       width: 75%;
@@ -16,18 +16,18 @@ cb-lcars-label-card:
     - controls:
         - label: "Label"
           configValue: "label"
-          type: !FormControlType Textbox
+          type: Textbox
         - label: Label (nested var)
           configValue: cblcars_card_config.label
-          type:  !FormControlType Textbox
+          type:  Textbox
         - label: Font Size
           configValue: cblcars_card_config.variables.text.label.font_size
-          type: !FormControlType Textbox
+          type: Textbox
     - label: "A group of controls"
       controls:
         - label: "Additional Templates"
           configValue: cblcars_card_config.templates
-          type: !FormControlType Checkboxes 
+          type: Checkboxes 
           items:
             - value: 'cb-lcars-state-blink'
               label: 'Blink'
@@ -35,12 +35,12 @@ cb-lcars-label-card:
               label: 'Disable Actions'
         - label: "Select Light"
           configValue: cblcars_card_config.variables.entity
-          type: !FormControlType EntityDropdown
+          type: EntityDropdown
           domain: light
     - controls:                                                          
         - label: "my new slider"                                         
           configValue: cblcars_card_config.variables.text.label.font_size2 
-          type: !FormControlType Slider                                  
+          type: Slider                                  
           min: 12                                                        
           max: 48
           step: 2
@@ -48,17 +48,17 @@ cb-lcars-label-card:
     - controls:                                                           
         - label: "my toggle"                                              
           configValue: cblcars_card_config.variables.___debug
-          type: !FormControlType Switch
+          type: Switch
     - controls:                                                           
         - label: "choose your colour"                                     
           configValue: cblcars_card_config.variables.text.label.color.default
-          type: !FormControlType ColorPicker            
+          type: ColorPicker            
 cb-lcars-multimeter-card:                                                 
   render_form:                                                                  
     - controls:                                                           
         - label: Pick                                                           
           configValue: cblcars_card_config.variables.panel.mode           
-          type: !FormControlType Dropdown                                       
+          type: Dropdown                                       
           items:                                                          
             - value: 'gauge'                                                    
               label: 'Gauge'                                              
@@ -71,7 +71,7 @@ cb-lcars-elbow-card:
     - controls:                                                           
         - label: "LCARS Elbow Type"                                            
           configValue: cblcars_card_type
-          type: !FormControlType Dropdown
+          type: Dropdown
           items:                                                          
             - value: 'cb-lcars-header'                                                    
               label: 'Header'                                              
@@ -100,7 +100,7 @@ cb-lcars-elbow-card:
     - controls:                                                           
         - label: "LCARS Curve"                                            
           configValue: cblcars_card_config.variables.card.border.top.left_radius
-          type: !FormControlType Slider                                   
+          type: Slider                                   
           min: 0                                                                
           max: 180                                                        
           step: 1
@@ -109,7 +109,7 @@ cb-lcars-button-card:
     - controls:                                                           
         - label: "LCARS Button Type"                                            
           configValue: cblcars_card_type
-          type: !FormControlType Dropdown
+          type: Dropdown
           items:                                                          
             - value: 'cb-lcars-button-lozenge'                                                    
               label: '[TNG] Lozenge'                                              
