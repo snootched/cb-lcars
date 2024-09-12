@@ -2,33 +2,20 @@ import jsyaml from 'js-yaml';
 
 import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
-import { fetchYAML } from '../utils/cb-lcars-fileutils.js';
+import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 
 import { html, css } from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
-import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
-import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
+//import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
+//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
 //custom yaml schema for the FormControlType
 export async function readFormEditorYamlFile(url) {
     try {
        // Define the FormControlType enum as per the renderer's code
-/*
-       const FormControlType = {
-            Dropdown: 'dropdown',
-            Checkbox: 'checkbox',
-            Checkboxes: 'checkboxes',
-            Radio: 'radio',
-            Switch: 'switch',
-            Textbox: 'textbox',
-            Filler: 'filler',
-            EntityDropdown: 'entity-dropdown',
-            Slider: 'slider'
-
-        };
-*/        
+    
         // Custom YAML type for FormControlType
         const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
             kind: 'scalar',
@@ -78,15 +65,23 @@ export class CBLCARSCardEditor extends EditorForm {
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
-        readFormEditorYamlFile(CBLCARS.card_editor_uri)
+        readYamlFile(CBLCARS.card_editor_uri)
             .then(formDefinitions => {
                 cblcarsLog('debug','formDefinitions: ',formDefinitions);
                 this._formDefinitions = formDefinitions;
                 console.debug('this._formDefinitions: ',this._formDefinitions)
-                this._formContent = formDefinitions[cardType].render_form;
-                console.debug('this._formContent: ',this._formContent)
+
+                //returns the content for this card type
+                this._formControls = formDefinitions[cardType];
+
+                //old shit
+                //this._formContent = formDefinitions[cardType].render_form;
+                //console.debug('this._formContent: ',this._formContent)
+                
                 this._formStyles = formDefinitions[cardType].css || {};
                 console.debug('this._formStyles: ',this._formStyles)
+                
+                
                 this.requestUpdate();
             })
             .catch(error => {
@@ -103,11 +98,15 @@ export class CBLCARSCardEditor extends EditorForm {
         }
 
 
-        const formContent = this._formContent;
+        const formContent = this._formControls;
         cblcarsLog('debug',`Editor formContent: `,formContent);
 
         try {
-            const returnForm = this.renderForm(formContent);
+            //old
+            //const returnForm = this.renderForm(formContent);
+            
+            
+            const returnForm = this.generateForm(formContent);
             console.log('returnForm:', returnForm);
             return returnForm;
         } catch (error) {
