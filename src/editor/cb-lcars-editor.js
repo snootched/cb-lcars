@@ -7,11 +7,13 @@ import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 import { html, css } from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
+import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
 //import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
 //custom yaml schema for the FormControlType
+/*
 export async function readFormEditorYamlFile(url) {
     try {
        // Define the FormControlType enum as per the renderer's code
@@ -46,6 +48,7 @@ export async function readFormEditorYamlFile(url) {
         throw error; // Re-throw the error after logging it
     }
 }
+*/
 
 export class CBLCARSCardEditor extends EditorForm {
 
@@ -106,7 +109,7 @@ export class CBLCARSCardEditor extends EditorForm {
             //const returnForm = this.renderForm(formContent);
             
             
-            const returnForm = this.generateForm(formContent);
+            const returnForm = generateForm(formContent);
             console.log('returnForm:', returnForm);
             return returnForm;
         } catch (error) {
