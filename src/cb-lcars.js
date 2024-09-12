@@ -14,7 +14,7 @@ import semver from 'semver';
 //import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
 import EditorForm from 'ha-editor-formbuilder';
-import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
+//import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
@@ -28,7 +28,7 @@ logImportStatus('jsyaml', jsyaml);
 logImportStatus('html:', html);
 logImportStatus('css', css);
 logImportStatus('fireEvent:', fireEvent);
-logImportStatus('FormControlType:', FormControlType);
+//logImportStatus('FormControlType:', FormControlType);
 logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
 logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
 logImportStatus('formatList:', formatList);
@@ -546,7 +546,9 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {};
+        return {
+            cblcars_card_type: 'cb-lcars-slider'
+        };
     } 
     getLayoutOptions() {
         if (this._config.cblcars_card_type && this._config.cblcars_card_type.includes('horizontal')) {
