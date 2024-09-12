@@ -11,45 +11,6 @@ import EditorForm from 'ha-editor-formbuilder';
 //import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
-
-//custom yaml schema for the FormControlType
-/*
-export async function readFormEditorYamlFile(url) {
-    try {
-       // Define the FormControlType enum as per the renderer's code
-    
-        // Custom YAML type for FormControlType
-        const FormControlTypeYamlType = new jsyaml.Type('!FormControlType', {
-            kind: 'scalar',
-            resolve: function (data) {
-              return FormControlType.hasOwnProperty(data);
-            },
-            construct: function (data) {
-              return FormControlType[data];
-            },
-            instanceOf: String,
-            represent: function (data) {
-              return data;
-            }
-          });
-        
-        // Create a schema that includes the custom type
-        const SCHEMA = jsyaml.DEFAULT_SCHEMA.extend([FormControlTypeYamlType]);
-  
-
-        //await loadJsYaml; // Wait for the js-yaml script to load
-        const response = await fetchYAML(url);
-        const jsObject = jsyaml.load(response, { schema: SCHEMA });
-        cblcarsLog('debug',`Processed YAML file: ${url}`);
-        cblcarsLog('debug','FormEditor object from custom schema:' ,jsObject);
-        return jsObject;
-    } catch (error) {
-        cblcarsLog('error', 'Failed to parse YAML file',error.message);
-        throw error; // Re-throw the error after logging it
-    }
-}
-*/
-
 export class CBLCARSCardEditor extends EditorForm {
 
     constructor() {
@@ -109,7 +70,7 @@ export class CBLCARSCardEditor extends EditorForm {
             //const returnForm = this.renderForm(formContent);
             
             
-            const returnForm = generateForm(formContent);
+            const returnForm = this.generateForm(formContent);
             console.log('returnForm:', returnForm);
             return returnForm;
         } catch (error) {
