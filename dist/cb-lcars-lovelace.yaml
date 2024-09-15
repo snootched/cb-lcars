@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.8-beta.13
+  version: 2024.9.8-beta.14
   manage_config: true
 button_card_templates:
   cb-lcars-actions-hue-tap:
