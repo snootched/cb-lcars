@@ -46,6 +46,7 @@ export class CBLCARSCardEditor extends EditorForm {
             })
             .catch(error => {
                 cblcarsLog('error','Error fetching editor form definitions: ', error);
+                return Promise.reject(error);
             });
 
 
@@ -53,14 +54,18 @@ export class CBLCARSCardEditor extends EditorForm {
 
     async setConfig(config) {
 
-        await this._initializationPromise;
-        
-        //let's get our this._config setup..
-        super.setConfig(config);
+        try {
+            await this._initializationPromise;
 
-        cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
+            //let's get our this._config setup..
+            super.setConfig(config);
 
-        this.requestUpdate();
+            cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
+
+            this.requestUpdate();
+        } catch (error) {
+            cblcarsLog('error', 'Error in setConfig: ', error);
+        }
 
 /*
         // Remove "custom:" prefix if it exists
