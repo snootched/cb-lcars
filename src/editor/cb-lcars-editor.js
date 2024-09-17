@@ -16,6 +16,7 @@ export class CBLCARSCardEditor extends EditorForm {
     _formDefinitions;
     _formControls;
     _userStyles;
+    _initializationPromise;
 
     constructor(cardType) {
         super();
@@ -23,13 +24,14 @@ export class CBLCARSCardEditor extends EditorForm {
         this._formDefinitions = {};
         this._formControls = {};
         this._userStyles = css``;
+       
 
         //this._cardType = cardType;
         //this._cardType = config.type.replace(/^custom:/, '');    
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
-        readYamlFile(CBLCARS.card_editor_uri)
+        this._initializationPromise = readYamlFile(CBLCARS.card_editor_uri)
             .then(formDefinitions => {
                 cblcarsLog('debug','formDefinitions: ',formDefinitions);
                 this._formDefinitions = formDefinitions;
@@ -49,7 +51,10 @@ export class CBLCARSCardEditor extends EditorForm {
 
     }
 
-    setConfig(config) {
+    async setConfig(config) {
+
+        await this._initializationPromise;
+        
         //let's get our this._config setup..
         super.setConfig(config);
 
