@@ -18,11 +18,12 @@ export class CBLCARSCardEditor extends EditorForm {
     _cardType;
     _userStyles;
 
-    constructor() {
+    constructor(cardType) {
         super();
         //load the editor form yaml here or die
 
-        this._cardType = config.type.replace(/^custom:/, '');    
+        this._cardType = cardType;
+        //this._cardType = config.type.replace(/^custom:/, '');    
 
         cblcarsLog('debug',`_cardType key for YAML config: ${this._cardType}`);
 

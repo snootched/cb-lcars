@@ -14,7 +14,7 @@ import semver from 'semver';
 //import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
 //import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
 import EditorForm from 'ha-editor-formbuilder';
-//import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
+//      import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
 import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 
@@ -578,6 +578,27 @@ customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
 customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
 customElements.define('cb-lcars-slider-card',CBLCARSSliderCard);
 
+customElements.define('cb-lcars-base-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-base-card'); // Pass the card type as a parameter
+    }
+});
+
+customElements.define('cb-lcars-label-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-label-card'); // Pass the card type as a parameter
+    }
+});
+
+customElements.define('cb-lcars-elbow-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-label-elbow'); // Pass the card type as a parameter
+    }
+});
+
+
+/*
+/////original editor working before we try the contructor method
 //console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
 if (!customElements.get('cb-lcars-card-editor')) {
     try {
@@ -590,7 +611,7 @@ if (!customElements.get('cb-lcars-card-editor')) {
 } else {
     console.log('Custom element cb-lcars-card-editor is already defined');
 }
-
+*/
 
 
 // Register the cards to be available in the GUI editor
