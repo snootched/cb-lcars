@@ -118,12 +118,13 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
- //   static get styles() {
- //       const baseStyles = super.styles;
- //       return [ baseStyles, this._userStyles ];
- //   }
+    static get styles() {
+        const baseStyles = super.styles;
+        return baseStyles;
+        //return [ baseStyles, this._userStyles ];
+    }
 
- 
+
     /*
     static get styles() {
         //if (!this._formStyles) {
