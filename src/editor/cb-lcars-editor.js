@@ -45,7 +45,9 @@ export class CBLCARSCardEditor extends EditorForm {
                 EditorForm.setUserStyles(userStyles);
                 console.debug('setting userStyles: ', userStyles);
 
-                this.requestUpdate();
+                this.requestUpdate().then(() => {
+                    cblcarsLog('debug','Requesting update after setting formControls');
+                });
             })
             .catch(error => {
                 cblcarsLog('error','Error fetching editor form definitions: ', error);
