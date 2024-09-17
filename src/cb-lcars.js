@@ -209,7 +209,25 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     static getConfigElement() {
-        //console.log('Attempting to create element: cb-lcars-card-editor');
+        
+        //get the editor type from the card config type
+        const cardType = this._config.type.replace(/^custom:/, '');
+        const editorType = `${cardType}-editor`;
+        
+        try {
+            if (!customElements.get(editorType)) {
+                cblcarsLog('error',`Graphical editor element [${editorType}] is not defined defined in Home Assistant!`);
+                return null;
+            }
+            const element = document.createElement(editorType);
+            //console.log('Element created:', element);
+            return element;
+        } catch (error) {
+            cblcarsLog('error',`Error creating element ${editorType}: `,error);
+            return null;
+        }
+
+        /*
         try {
             if (!customElements.get('cb-lcars-card-editor')) {
                 cblcarsLog('error','Custom element cb-lcars-card-editor is not defined!');
@@ -222,6 +240,7 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('error',`Error creating element cb-lcars-card-editor: `,error);
             return null;
         }
+        */
     }
     
     static getStubConfig() {
