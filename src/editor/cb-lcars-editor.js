@@ -15,17 +15,16 @@ export class CBLCARSCardEditor extends EditorForm {
 
     _formDefinitions;
     _formControls;
-    _cardType;
     _userStyles;
 
     constructor(cardType) {
         super();
         //load the editor form yaml here or die
 
-        this._cardType = cardType;
+        //this._cardType = cardType;
         //this._cardType = config.type.replace(/^custom:/, '');    
 
-        cblcarsLog('debug',`_cardType key for YAML config: ${this._cardType}`);
+        cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
         readYamlFile(CBLCARS.card_editor_uri)
             .then(formDefinitions => {
@@ -34,9 +33,9 @@ export class CBLCARSCardEditor extends EditorForm {
                 console.debug('this._formDefinitions: ',this._formDefinitions)
 
                 //returns the content for this card type
-                this._formControls = formDefinitions[this._cardType];
+                this._formControls = formDefinitions[cardType];
        
-                this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css || '')}`;
+                this._userStyles = css`${unsafeCSS(formDefinitions[cardType].css || '')}`;
                 
                 this.requestUpdate();
             })
