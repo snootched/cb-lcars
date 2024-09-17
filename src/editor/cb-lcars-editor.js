@@ -42,8 +42,8 @@ export class CBLCARSCardEditor extends EditorForm {
                 //console.debug('this._formStyles: ',this._formStyles)
                 
                 const userStyles = formDefinitions[cardType].css || '';
-                CBLCARSCardEditor._userStyles = css`${unsafeCSS(userStyles)}`;
-                console.debug('setting CBLCARSCardEditor._userStyles: ', CBLCARSCardEditor._userStyles);
+                EditorForm.setUserStyles(userStyles);
+                console.debug('setting userStyles: ', userStyles);
 
                 this.requestUpdate();
             })
@@ -74,6 +74,7 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
+    /*
     static get styles() {
         //if (!this._formStyles) {
         if (!CBLCARSCardEditor._userStyles) {
@@ -81,18 +82,13 @@ export class CBLCARSCardEditor extends EditorForm {
             return super.styles;
         }
 
-        /*
-        cblcarsLog('debug',"formStyles: ", this._formStyles);
-        cblcarsLog('info',"Returning editor form styles for this card: ", this._formStyles);
-        return css`
-            ${this._formStyles}
-        `;*/
-
+        
         cblcarsLog('debug',"formStyles: ", CBLCARSCardEditor._userStyles);
         cblcarsLog('info',"Returning editor form styles for this card: ", CBLCARSCardEditor._formStyles);
-        return css`
-            ${CBLCARSCardEditor._userStyles}
-        `;
+        return [
+            super.styles,
+            CBLCARSCardEditor._userStyles
+        ];
     }
-
+    */
 }    
