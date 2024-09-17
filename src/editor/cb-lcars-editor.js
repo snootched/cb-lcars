@@ -43,7 +43,7 @@ export class CBLCARSCardEditor extends EditorForm {
         cblcarsLog('debug',`this._cardType key for YAML config: ${this._cardType}`);
         
         try {
-            const formDefinitions = readYamlFile(CBLCARS.card_editor_uri)
+            const formDefinitions = await readYamlFile(CBLCARS.card_editor_uri)
             cblcarsLog('debug','formDefinitions: ',formDefinitions);
             this._formDefinitions = formDefinitions;
             console.debug('this._formDefinitions: ',this._formDefinitions)
