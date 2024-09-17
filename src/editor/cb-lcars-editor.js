@@ -81,11 +81,12 @@ export class CBLCARSCardEditor extends EditorForm {
 
     styles() {
         if (!!this._formStyles) {
-            //cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
+            cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
             return css``;
         }
 
-        //cblcarsLog('debug',"formStyles: ",this._formStyles)
+        cblcarsLog('debug',"formStyles: ",this._formStyles)
+        cblcarsLog('info',"Returning editor form styles for this card: ",this._formStyles);
         return css`
             ${this._formStyles}
         `;
