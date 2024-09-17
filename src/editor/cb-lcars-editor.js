@@ -13,6 +13,11 @@ import EditorForm from 'ha-editor-formbuilder';
 
 export class CBLCARSCardEditor extends EditorForm {
 
+    _formDefinitions;
+    _formControls;
+    _cardType;
+    _userStyles;
+
     constructor() {
         super();
         //load the editor form yaml here or die
@@ -25,7 +30,8 @@ export class CBLCARSCardEditor extends EditorForm {
         cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
 
         // Remove "custom:" prefix if it exists
-        const cardType = config.type.replace(/^custom:/, '');
+        //const cardType = config.type.replace(/^custom:/, '');
+        this._cardType = config.type.replace(/^custom:/, '');
 
         cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
 
@@ -36,18 +42,17 @@ export class CBLCARSCardEditor extends EditorForm {
                 console.debug('this._formDefinitions: ',this._formDefinitions)
 
                 //returns the content for this card type
-                this._formControls = formDefinitions[cardType];
+                this._formControls = formDefinitions[this._cardType];
        
+                this._userStyles = css`${formDefinitions[this._cardType].css || ''}`;
                 //this._formStyles = formDefinitions[cardType].css || {};
                 //console.debug('this._formStyles: ',this._formStyles)
                 
-                console.debug("BEFORE setUserStyles - userStyles: ", EditorForm._userStyles);
-
-                const userStyles = formDefinitions[cardType].css || '';
-                EditorForm.setUserStyles(userStyles);
-                console.debug('setting userStyles: ', userStyles);
-
-                console.debug("AFTER setUserStyles - userStyles: ", EditorForm._userStyles);
+                ////console.debug("BEFORE setUserStyles - userStyles: ", EditorForm._userStyles);
+                ////const userStyles = formDefinitions[cardType].css || '';
+                ////EditorForm.setUserStyles(userStyles);
+                ////console.debug('setting userStyles: ', userStyles);
+                ////console.debug("AFTER setUserStyles - userStyles: ", EditorForm._userStyles);
 
                 this.requestUpdate();
             })
@@ -78,6 +83,10 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
+    static get styles() {
+        const baseStyles = super.styles;
+        return [ baseStyles, this._userStyles ];
+    }
     /*
     static get styles() {
         //if (!this._formStyles) {
