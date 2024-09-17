@@ -40,7 +40,7 @@ export class CBLCARSCardEditor extends EditorForm {
        
                 this._userStyles = css`${unsafeCSS(formDefinitions[cardType].css || '')}`;
                 
-                this.requestUpdate();
+                //this.requestUpdate();
             })
             .catch(error => {
                 cblcarsLog('error','Error fetching editor form definitions: ', error);
