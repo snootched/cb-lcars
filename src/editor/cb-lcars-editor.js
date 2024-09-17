@@ -4,7 +4,7 @@ import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 
-import { html, css, CSSResult } from 'lit';
+import { html, css, unsafeCSS, CSSResult} from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
 //import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
@@ -41,8 +41,9 @@ export class CBLCARSCardEditor extends EditorForm {
                 //this._formStyles = formDefinitions[cardType].css || {};
                 //console.debug('this._formStyles: ',this._formStyles)
                 
-                CBLCARSCardEditor._formStyles = css`${formDefinitions[cardType].css || ''}`;
-                console.debug('this._formStyles: ', CBLCARSCardEditor._formStyles);
+                const userStyles = formDefinitions[cardType].css || '';
+                CBLCARSCardEditor._userStyles = css`${unsafeCSS(userStyles)}`;
+                console.debug('setting CBLCARSCardEditor._userStyles: ', CBLCARSCardEditor._userStyles);
 
                 this.requestUpdate();
             })
@@ -75,8 +76,8 @@ export class CBLCARSCardEditor extends EditorForm {
 
     static get styles() {
         //if (!this._formStyles) {
-        if (!CBLCARSCardEditor._formStyles) {
-                cblcarsLog('debug','No editor form styles found for this card - returning base class css.');
+        if (!CBLCARSCardEditor._userStyles) {
+                cblcarsLog('debug','No editor form custom styles found for this card - returning base class css.');
             return super.styles;
         }
 
@@ -86,10 +87,11 @@ export class CBLCARSCardEditor extends EditorForm {
         return css`
             ${this._formStyles}
         `;*/
-        cblcarsLog('debug',"formStyles: ", CBLCARSCardEditor._formStyles);
+
+        cblcarsLog('debug',"formStyles: ", CBLCARSCardEditor._userStyles);
         cblcarsLog('info',"Returning editor form styles for this card: ", CBLCARSCardEditor._formStyles);
         return css`
-            ${CBLCARSCardEditor._formStyles}
+            ${CBLCARSCardEditor._userStyles}
         `;
     }
 
