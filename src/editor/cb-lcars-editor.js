@@ -4,7 +4,7 @@ import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 
-import { html, css } from 'lit';
+import { html, css, CSSResult } from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
 //import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
@@ -38,10 +38,12 @@ export class CBLCARSCardEditor extends EditorForm {
                 //returns the content for this card type
                 this._formControls = formDefinitions[cardType];
        
-                this._formStyles = formDefinitions[cardType].css || {};
-                console.debug('this._formStyles: ',this._formStyles)
+                //this._formStyles = formDefinitions[cardType].css || {};
+                //console.debug('this._formStyles: ',this._formStyles)
                 
-                
+                CBLCARSCardEditor._formStyles = css`${formDefinitions[cardType].css || ''}`;
+                console.debug('this._formStyles: ', CBLCARSCardEditor._formStyles);
+
                 this.requestUpdate();
             })
             .catch(error => {
@@ -71,16 +73,23 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
-    styles() {
-        if (!this._formStyles) {
-            cblcarsLog('debug','No editor form styles found for this card - returning base class css.');
+    static get styles() {
+        //if (!this._formStyles) {
+        if (!CBLCARSCardEditor._formStyles) {
+                cblcarsLog('debug','No editor form styles found for this card - returning base class css.');
             return super.styles;
         }
 
+        /*
         cblcarsLog('debug',"formStyles: ", this._formStyles);
         cblcarsLog('info',"Returning editor form styles for this card: ", this._formStyles);
         return css`
             ${this._formStyles}
+        `;*/
+        cblcarsLog('debug',"formStyles: ", CBLCARSCardEditor._formStyles);
+        cblcarsLog('info',"Returning editor form styles for this card: ", CBLCARSCardEditor._formStyles);
+        return css`
+            ${CBLCARSCardEditor._formStyles}
         `;
     }
 
