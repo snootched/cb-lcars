@@ -31,9 +31,9 @@ export class CBLCARSCardEditor extends EditorForm {
 
         // Remove "custom:" prefix if it exists
         //const cardType = config.type.replace(/^custom:/, '');
-        this._cardType = config.type.replace(/^custom:/, '');
+        this._cardType = config.type.replace(/^custom:/, '');    
 
-        cblcarsLog('debug',`cardType key for YAML config: ${cardType}`);
+        cblcarsLog('debug',`_cardType key for YAML config: ${this._cardType}`);
 
         readYamlFile(CBLCARS.card_editor_uri)
             .then(formDefinitions => {
