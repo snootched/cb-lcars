@@ -44,7 +44,9 @@ export class CBLCARSCardEditor extends EditorForm {
                 //returns the content for this card type
                 this._formControls = formDefinitions[this._cardType];
        
-                this._userStyles = css`${formDefinitions[this._cardType].css || ''}`;
+                //this._userStyles = css`${formDefinitions[this._cardType].css || ''}`;
+                this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css || '')}`;
+                
                 //this._formStyles = formDefinitions[cardType].css || {};
                 //console.debug('this._formStyles: ',this._formStyles)
                 
