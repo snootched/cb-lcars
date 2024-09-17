@@ -79,7 +79,7 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
-    styles() {
+    static get styles() {
         if (!!this._formStyles) {
             cblcarsLog('debug','No editor form styles found for this card - returning blank css.');
             return css``;
