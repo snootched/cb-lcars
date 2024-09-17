@@ -37,11 +37,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
                 //returns the content for this card type
                 this._formControls = formDefinitions[cardType];
-
-                //old shit
-                //this._formContent = formDefinitions[cardType].render_form;
-                //console.debug('this._formContent: ',this._formContent)
-                
+       
                 this._formStyles = formDefinitions[cardType].css || {};
                 console.debug('this._formStyles: ',this._formStyles)
                 
@@ -66,10 +62,6 @@ export class CBLCARSCardEditor extends EditorForm {
         cblcarsLog('debug',`Editor formContent: `,formContent);
 
         try {
-            //old
-            //const returnForm = this.renderForm(formContent);
-            
-            
             const returnForm = this.generateForm(formContent);
             console.log('returnForm:', returnForm);
             return returnForm;
