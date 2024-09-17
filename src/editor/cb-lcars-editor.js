@@ -39,9 +39,11 @@ export class CBLCARSCardEditor extends EditorForm {
         //let's get our this._config setup..
         super.setConfig(config);
 
+        cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
         cblcarsLog('debug',`this._cardType key for YAML config: ${this._cardType}`);
-        readYamlFile(CBLCARS.card_editor_uri)
-        .then(formDefinitions => {
+        
+        try {
+            const formDefinitions = readYamlFile(CBLCARS.card_editor_uri)
             cblcarsLog('debug','formDefinitions: ',formDefinitions);
             this._formDefinitions = formDefinitions;
             console.debug('this._formDefinitions: ',this._formDefinitions)
@@ -53,15 +55,10 @@ export class CBLCARSCardEditor extends EditorForm {
             this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css || '')}`;
             console.debug('this._userStyles: ',this._userStyles);
 
-            //this.requestUpdate();
-        })
-        .catch(error => {
+            this.requestUpdate();
+        } catch(error) {
             cblcarsLog('error','Error fetching editor form definitions: ', error);
-        });
-
-        cblcarsLog('debug','CBLCARSCardEditor.setConfig()  this._config:',this._config);
-
-        this.requestUpdate();
+        }
 /*
         // Remove "custom:" prefix if it exists
         //const cardType = config.type.replace(/^custom:/, '');
