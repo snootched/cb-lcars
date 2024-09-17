@@ -19,7 +19,10 @@ export class CBLCARSCardEditor extends EditorForm {
 
     constructor(cardType) {
         super();
-        //load the editor form yaml here or die
+
+        this._formDefinitions = {};
+        this._formControls = {};
+        this._userStyles = css``;
 
         //this._cardType = cardType;
         //this._cardType = config.type.replace(/^custom:/, '');    
