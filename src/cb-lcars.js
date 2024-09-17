@@ -208,11 +208,14 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
+
+    static get editorType() {
+        return 'cb-lcars-base-card-editor';
+    }
+
     static getConfigElement() {
         
-        //get the editor type from the card config type
-        const cardType = this._config.type.replace(/^custom:/, '');
-        const editorType = `${cardType}-editor`;
+        const editorType = this.editorType;
         
         try {
             if (!customElements.get(editorType)) {
@@ -395,6 +398,10 @@ class CBLCARSBaseCard extends HTMLElement {
 }
 
 class CBLCARSLabelCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-label-card-editor';
+    }
+
     setConfig(config) {
 
         const defaultTemplates = ['cb-lcars-label'];
@@ -422,6 +429,10 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 }
 
 class CBLCARSElbowCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-elbow-card-editor';
+    }
+
     setConfig(config) {
  
         const defaultCardType = 'cb-lcars-header';
@@ -451,6 +462,10 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
 }
 
 class CBLCARSMultimeterCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-multimeter-card-editor';
+    }
+
     setConfig(config) {
  
         const defaultTemplates = ['cb-lcars-multimeter'];
@@ -479,6 +494,10 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 }
 
 class CBLCARSDPADCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-dpad-card-editor';
+    }
+
     setConfig(config) {
  
         const defaultTemplates = ['cb-lcars-dpad'];
@@ -508,6 +527,10 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
         
 
 class CBLCARSButtonCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-button-card-editor';
+    }  
+
     setConfig(config) {
  
         const defaultCardType = 'cb-lcars-button-lozenge';
@@ -547,6 +570,10 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 }
 
 class CBLCARSSliderCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-slider-card-editor';
+    }
+    
     setConfig(config) {
  
         const defaultCardType = 'cb-lcars-slider';
