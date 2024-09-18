@@ -229,21 +229,6 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('error',`Error creating element ${editorType}: `,error);
             return null;
         }
-
-        /*
-        try {
-            if (!customElements.get('cb-lcars-card-editor')) {
-                cblcarsLog('error','Custom element cb-lcars-card-editor is not defined!');
-                return null;
-            }
-            const element = document.createElement('cb-lcars-card-editor');
-            //console.log('Element created:', element);
-            return element;
-        } catch (error) {
-            cblcarsLog('error',`Error creating element cb-lcars-card-editor: `,error);
-            return null;
-        }
-        */
     }
     
     static getStubConfig() {
@@ -573,7 +558,7 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-slider-card-editor';
     }
-    
+
     setConfig(config) {
  
         const defaultCardType = 'cb-lcars-slider';
@@ -626,19 +611,43 @@ customElements.define('cb-lcars-slider-card',CBLCARSSliderCard);
 
 customElements.define('cb-lcars-base-card-editor', class extends CBLCARSCardEditor {
     constructor() {
-        super('cb-lcars-base-card'); // Pass the card type as a parameter
+        super('cb-lcars-base-card');
     }
 });
 
 customElements.define('cb-lcars-label-card-editor', class extends CBLCARSCardEditor {
     constructor() {
-        super('cb-lcars-label-card'); // Pass the card type as a parameter
+        super('cb-lcars-label-card');
     }
 });
 
 customElements.define('cb-lcars-elbow-card-editor', class extends CBLCARSCardEditor {
     constructor() {
-        super('cb-lcars-label-elbow'); // Pass the card type as a parameter
+        super('cb-lcars-elbow-card');
+    }
+});
+
+customElements.define('cb-lcars-multimeter-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-multimeter-card');
+    }
+});
+
+customElements.define('cb-lcars-dpad-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-dpad-card');
+    }
+});
+
+customElements.define('cb-lcars-button-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-button-card');
+    }
+});
+
+customElements.define('cb-lcars-slider-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-slider-card');
     }
 });
 
