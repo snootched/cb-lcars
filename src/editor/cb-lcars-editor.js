@@ -7,24 +7,24 @@ import { fetchYAML, readYamlFile } from '../utils/cb-lcars-fileutils.js';
 import { html, css, unsafeCSS, CSSResult} from 'lit';
 
 import EditorForm from 'ha-editor-formbuilder';
-//import { generateForm } from 'ha-editor-formbuilder/dist/index.js';
-//import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
-//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
 
 export class CBLCARSCardEditor extends EditorForm {
 
     _formDefinitions;
     _formControls;
-    _userStyles;
-    _initializationPromise;
     _cardType;
+
+    /// !!!move to base class
+    //_userStyles;
 
     constructor(cardType) {
         super();
 
+        /// !!!move to base class
+        //this._userStyles = css``;
+        
         this._formDefinitions = {};
         this._formControls = {};
-        this._userStyles = css``;
         this._cardType = "";
 
         this._cardType = cardType;
@@ -59,40 +59,6 @@ export class CBLCARSCardEditor extends EditorForm {
         } catch(error) {
             cblcarsLog('error','Error fetching editor form definitions: ', error);
         }
-/*
-        // Remove "custom:" prefix if it exists
-        //const cardType = config.type.replace(/^custom:/, '');
-        this._cardType = config.type.replace(/^custom:/, '');    
-
-        cblcarsLog('debug',`_cardType key for YAML config: ${this._cardType}`);
-
-        readYamlFile(CBLCARS.card_editor_uri)
-            .then(formDefinitions => {
-                cblcarsLog('debug','formDefinitions: ',formDefinitions);
-                this._formDefinitions = formDefinitions;
-                console.debug('this._formDefinitions: ',this._formDefinitions)
-
-                //returns the content for this card type
-                this._formControls = formDefinitions[this._cardType];
-       
-                //this._userStyles = css`${formDefinitions[this._cardType].css || ''}`;
-                this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css || '')}`;
-                
-                //this._formStyles = formDefinitions[cardType].css || {};
-                //console.debug('this._formStyles: ',this._formStyles)
-                
-                ////console.debug("BEFORE setUserStyles - userStyles: ", EditorForm._userStyles);
-                ////const userStyles = formDefinitions[cardType].css || '';
-                ////EditorForm.setUserStyles(userStyles);
-                ////console.debug('setting userStyles: ', userStyles);
-                ////console.debug("AFTER setUserStyles - userStyles: ", EditorForm._userStyles);
-
-                this.requestUpdate();
-            })
-            .catch(error => {
-                cblcarsLog('error','Error fetching editor form definitions: ', error);
-            });   
-*/ 
     }
 
     updated(changedProperties) {
@@ -103,9 +69,6 @@ export class CBLCARSCardEditor extends EditorForm {
     }
 
     render() {
-        //console.log("in CBLCARSCardEditor.render()");
-        //console.log('this._hass:', this._hass);
-        //console.log('this._config:', this._config);
         if (!this._hass || !this._config || !this._formDefinitions) {
             cblcarsLog('debug','Unable to setup form rendering - returning blank');
             return html``;
@@ -125,11 +88,18 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
+
+/*  !!!move to base class 
     static get styles() {
         const baseStyles = super.styles;
         return baseStyles;
         //return [ baseStyles, this._userStyles ];
     }
+*/
+
+
+
+
 
 
     /*
