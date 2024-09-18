@@ -97,9 +97,9 @@ export class CBLCARSCardEditor extends EditorForm {
 
     updated(changedProperties) {
         super.updated(changedProperties);
-        if (changedProperties.has('_userStyles')) {
+        //if (changedProperties.has('_userStyles')) {
             this.shadowRoot.adoptedStyleSheets = [this.constructor.styles.styleSheet, this._userStyles.styleSheet];
-        }
+        //}
     }
 
     render() {
