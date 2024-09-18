@@ -52,8 +52,10 @@ export class CBLCARSCardEditor extends EditorForm {
             this._formControls = formDefinitions[this._cardType];
             console.debug('this._formControls: ',this._formControls);
 
-            this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css || '')}`;
+            this._userStyles = css`${unsafeCSS(formDefinitions[this._cardType].css.cssText || '')}`;
             console.debug('this._userStyles: ',this._userStyles);
+            this._mergeUserStyles = formDefinitions[this._cardType].css.mergeStyles || true;
+            console.debug('this._mergeUserStyles: ',this._mergeUserStyles);
 
             this.requestUpdate();
         } catch(error) {
