@@ -7,10 +7,12 @@ cb-lcars-base-card:
       - label: Label (nested var)
         configValue: cblcars_card_config.label
         type: Textbox
-  css: |
-    ha-textfield {
-      width: 75%;
-    }
+  css:
+    mergeUserStyles: true
+    cssText: |
+      ha-textfield {
+        width: 75%;
+      }
 cb-lcars-label-card:
   render_form:
     - controls:
