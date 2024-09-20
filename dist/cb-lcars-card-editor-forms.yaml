@@ -1,18 +1,111 @@
 cb-lcars-base-card:
   render_form:
-    - controls:
-      - label: "Base Label Test"
-        configValue: "label"
-        type: Textbox
-      - label: Label (nested var)
-        configValue: cblcars_card_config.label
-        type: Textbox
-  css:
-    mergeUserStyles: true
-    cssText: |
-      ha-textfield {
-        width: 75%;
-      }
+    - type: Section
+      label: "Section 31"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:space-invaders"
+      noCollapse: false
+      rows:
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Label (text)"
+              helper: "I'm a text selector"
+              configValue: "configSample.textSelector.typeText"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                string:
+                  type: text
+            - label: "Label (color)"
+              helper: "I'm a text color selector"
+              configValue: "configSample.textSelector.typeColor"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                string:
+                  type: color
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Label (number)"
+              helper: "I'm a text number selector"
+              configValue: "configSample.textSelector.typeNumber"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                string:
+                  type: number
+            - label: "Label (password)"
+              helper: "I'm a text password selector"
+              configValue: "configSample.textSelector.typePassword"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                string:
+                  type: color
+    - type: Section
+      label: "Section 32"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:space-invaders"
+      noCollapse: false
+      rows:
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Label (boolean)"
+              helper: "I'm a boolean selector"
+              configValue: "configSample.booleanSelector.bool1"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                boolean:
+            - label: "Label (boolean 2)"
+              helper: "I'm a boolean selector too!"
+              configValue: "configSample.booleanSelector.bool2"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                boolean:
+        - type: ControlRow
+          controls:
+            - label: "Number Selector"
+              helper: "I'm a number slider"
+              configValue: "configSample.numberSelector.numValue"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                number:
+                  min: 0
+                  max: 100
+                  step: 1
+                  mode: slider
+                  unit_of_measurement: "px"
+                  slider_ticks: true
+            - label: "Number Selector"
+              helper: "I'm a number box"
+              configValue: "configSample.numberSelector.numValue2"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                number:
+                  min: 0
+                  max: 100
+                  step: 1
+                  mode: box
+                  unit_of_measurement: "px"
 cb-lcars-label-card:
   render_form:
     - controls:
