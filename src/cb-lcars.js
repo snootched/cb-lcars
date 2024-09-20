@@ -28,7 +28,6 @@ logImportStatus('jsyaml', jsyaml);
 logImportStatus('html:', html);
 logImportStatus('css', css);
 logImportStatus('fireEvent:', fireEvent);
-//logImportStatus('FormControlType:', FormControlType);
 logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
 logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
 logImportStatus('formatList:', formatList);
