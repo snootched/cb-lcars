@@ -18,7 +18,7 @@ cb-lcars-base-card:
               required: true
               type: Selector
               selector:
-                string:
+                text:
                   type: text
             - label: "Label (color)"
               helper: "I'm a text color selector"
@@ -27,7 +27,7 @@ cb-lcars-base-card:
               required: true
               type: Selector
               selector:
-                string:
+                text:
                   type: color
         - type: ControlRow
           cssClass: "form-row two-controls"
@@ -39,7 +39,7 @@ cb-lcars-base-card:
               required: true
               type: Selector
               selector:
-                string:
+                text:
                   type: number
             - label: "Label (password)"
               helper: "I'm a text password selector"
@@ -48,8 +48,8 @@ cb-lcars-base-card:
               required: true
               type: Selector
               selector:
-                string:
-                  type: color
+                text:
+                  type: password
     - type: Section
       label: "Section 32"
       outlined: true
@@ -106,6 +106,124 @@ cb-lcars-base-card:
                   step: 1
                   mode: box
                   unit_of_measurement: "px"
+    - type: Section
+      label: "Section 33"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:rocket"
+      noCollapse: false
+      rows:
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Select Any Entity"
+              helper: "I'm an entity selector"
+              configValue: "configSample.entitySelector.ent1"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                entity:
+            - label: "Select Light"
+              helper: "I'm an entity selector for lights"
+              configValue: "configSample.entitySelector.ent2"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                entity:
+                  domain: light
+            - label: "Select Switch"
+              helper: "I'm an entity selector for switches"
+              configValue: "configSample.entitySelector.ent3"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                entity:
+                  domain: switch
+            - label: "Selcect Icon"
+              helper: "I'm an icon selector"
+              configValue: "configSample.iconSelector.icon"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                icon:
+        - type: ControlRow
+          controls:
+            - label: "Select Selector (Dropdown)"
+              helper: "I'm a select selector (dropdown list)"
+              configValue: "configSample.selectSelector.list1"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                select:
+                  mode: dropdown
+                  options:
+                    - value: "option1"
+                      label: "Option 1"
+                    - value: "option2"
+                      label: "Option 2 (disabled)"
+                      disabled: true
+                    - value: "option3"
+                      label: "Option 3"
+            - label: "Select Selector (radio buttons)"
+              helper: "I'm a select selector (radio buttons)"
+              configValue: "configSample.selectSelector.list2"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                select:
+                  mode: list
+                  options:
+                    - value: "option1"
+                      label: "Option 1"
+                    - value: "option2"
+                      label: "Option 2 (disabled)"
+                      disabled: true
+                    - value: "option3"
+                      label: "Option 3"
+            - type: Divider
+            - label: "Select Selector (Multi Dropdown)"
+              helper: "I'm a select multi selector (dropdown list)"
+              configValue: "configSample.selectSelector.list3"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                select:
+                  mode: dropdown
+                  multiple: true
+                  options:
+                    - value: "option1"
+                      label: "Option 1"
+                    - value: "option2"
+                      label: "Option 2 (disabled)"
+                      disabled: true
+                    - value: "option3"
+                      label: "Option 3"
+            - label: "Select Selector (multi checkboxes)"
+              helper: "I'm a select selector (checkboxes)"
+              configValue: "configSample.selectSelector.list4"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                select:
+                  mode: list
+                  multiple: true
+                  options:
+                    - value: "option1"
+                      label: "Option 1"
+                    - value: "option2"
+                      label: "Option 2 (disabled)"
+                      disabled: true
+                    - value: "option3"
+                      label: "Option 3"
 cb-lcars-label-card:
   render_form:
     - controls:
