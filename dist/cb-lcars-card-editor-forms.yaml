@@ -224,6 +224,36 @@ cb-lcars-base-card:
                       disabled: true
                     - value: "option3"
                       label: "Option 3"
+
+    - type: Section
+      label: "Section 33"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:rocket"
+      noCollapse: false
+      rows:
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Tap Action"
+              helper: "I'm an action selector"
+              configValue: "configSample.actionSelector.actionTap"
+              type: Selector
+              selector:
+                ui_action:
+            - label: "Double-tap Action"
+              helper: "I'm an action selector"
+              configValue: "configSample.actionSelector.actionDoubleTap"
+              type: Selector
+              selector:
+                ui_action:
+            - label: "Hold Action"
+              helper: "I'm an action selector"
+              configValue: "configSample.actionSelector.actionHold"
+              type: Selector
+              selector:
+                ui_action:
 cb-lcars-label-card:
   render_form:
     - controls:
