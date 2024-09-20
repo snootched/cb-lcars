@@ -53,13 +53,6 @@ export class CBLCARSCardEditor extends EditorForm {
         }
     }
 
-//    updated(changedProperties) {
-//        super.updated(changedProperties);
-        //if (changedProperties.has('_userStyles')) {
-//            this.shadowRoot.adoptedStyleSheets = [this.constructor.styles.styleSheet, this._userStyles.styleSheet];
-        //}
-//    }
-
     render() {
         if (!this._hass) {
             return html`<ha-alert alert-type="error" title="Error">Home Assistant instance is missing.</ha-alert>`;
