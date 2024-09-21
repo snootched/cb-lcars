@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.7-beta.9
+  version: 2024.9.8-beta.1
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -1758,9 +1758,9 @@ button_card_templates:
         height: |
           [[[
             return variables.__getParentDimension(this,'height','px');
-          ]]] 
+          ]]]
   cb-lcars-header:
-    template: 
+    template:
       - cb-lcars-header-base
     show_label: true
     variables:
@@ -1799,9 +1799,12 @@ button_card_templates:
     styles:
       label:
         - border-top-right-radius: 0px
-        - border-top-left-radius: >-
-            [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
-            variables.card.border.inner.factor +" )";]]]
+        - border-top-left-radius: |
+            [[[
+                let leftRadius = variables.card.border.top.left_radius;
+                let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+                return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
   cb-lcars-header-open:
     template:
       - cb-lcars-header-base
@@ -1831,14 +1834,20 @@ button_card_templates:
             right_radius: 0px
     styles:
       label:
-        - border-top-left-radius: >-
-            [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
-            variables.card.border.inner.factor +" )";]]]
-        - border-top-right-radius: >-
-            [[[ return "calc(" + variables.card.border.top.right_radius + " / "
-            + variables.card.border.inner.factor +" )";]]]
+        - border-top-left-radius: |
+            [[[
+                let leftRadius = variables.card.border.top.left_radius;
+                let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+                return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
+        - border-top-right-radius: |
+            [[[
+                let rightRadius = variables.card.border.top.right_radius;
+                let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+                return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
   cb-lcars-header-right:
-    template: 
+    template:
       - cb-lcars-header-base
     show_label: true
     variables:
@@ -1881,9 +1890,12 @@ button_card_templates:
     styles:
       label:
         - border-top-left-radius: 0px
-        - border-top-right-radius: >-
-            [[[ return "calc(" + variables.card.border.top.right_radius + " / "
-            + variables.card.border.inner.factor +" )";]]]
+        - border-top-right-radius: |
+            [[[
+                let rightRadius = variables.card.border.top.right_radius;
+                let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+                return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
   cb-lcars-button-base:
     template:
       - cb-lcars-base
@@ -2115,30 +2127,56 @@ button_card_templates:
         - width: '[[[ return variables.card.width; ]]]'
         - border-top: >-
             [[[ return variables.card.border.top.size + " solid " +
-                (variables.card.border.top.color || variables.card.border.color) 
+                (variables.card.border.top.color || variables.card.border.color)
             ]]]
-        - border-left: >-
-            [[[ return variables.card.border.left.size + " solid " +
-                (variables.card.border.left.color || variables.card.border.color) 
+        - border-top: |
+            [[[
+                let size = variables.card.border.top.size;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " solid " + (variables.card.border.top.color || variables.card.border.color);
             ]]]
-        - border-right: >-
-            [[[ return variables.card.border.right.size + " solid " +
-                (variables.card.border.right.color || variables.card.border.color) 
+        - border-left: |
+            [[[
+                let size = variables.card.border.left.size;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " solid " + (variables.card.border.left.color || variables.card.border.color);
             ]]]
-        - border-bottom: >-
-            [[[ return variables.card.border.bottom.size + " solid " +
-                (variables.card.border.bottom.color || variables.card.border.color)
+        - border-right: |
+            [[[
+                let size = variables.card.border.right.size;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " solid " + (variables.card.border.right.color || variables.card.border.color);
+            ]]]
+        - border-bottom: |
+            [[[
+                let size = variables.card.border.bottom.size;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
             ]]]
         - background: '[[[ return variables.card.color.background.default ]]]'
-        - border-top-left-radius: '[[[ return variables.card.border.top.left_radius + " !important" ]]]'
-        - border-top-right-radius: >-
-            [[[ return variables.card.border.top.right_radius + " !important"
+        - border-top-left-radius: |
+            [[[
+                let size = variables.card.border.top.left_radius;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " !important";
             ]]]
-        - border-bottom-left-radius: >-
-            [[[ return variables.card.border.bottom.left_radius + " !important"
+        - border-top-right-radius: |
+            [[[
+                let size = variables.card.border.top.right_radius;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " !important";
             ]]]
-        - border-bottom-right-radius: >-
-            [[[ return variables.card.border.bottom.right_radius + " !important"
+        - border-bottom-left-radius: |
+            [[[
+                let size = variables.card.border.bottom.left_radius;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " !important";
+            ]]]
+        - border-bottom-right-radius: |
+            [[[
+                let size = variables.card.border.bottom.right_radius;
+                let sizeWithUnit = isNaN(size) ? size : size + 'px';
+                return sizeWithUnit + " !important";
             ]]]
         - position: relative
       label:
@@ -2266,7 +2304,7 @@ button_card_templates:
                 variables.card.color.inactive ]]]
             - border-bottom: >-
                 [[[ return variables.card.border.bottom.size + " solid " +
-                variables.card.color.inactive ]]]          
+                variables.card.color.inactive ]]]
           state:
             - color: '[[[ return variables.text.state.color.off ]]]'
           label:
@@ -2369,7 +2407,7 @@ button_card_templates:
             - color: >-
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]    
+                [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
   cb-lcars-footer-picard:
     template:
       - cb-lcars-card-base
@@ -2947,7 +2985,7 @@ button_card_templates:
         height: |
           [[[
             return variables.__getParentDimension(this,'height','px');
-          ]]]      
+          ]]]
       panel:
         width: |
           [[[
@@ -2964,7 +3002,7 @@ button_card_templates:
             let panel_height = (card_height * 0.83);
             //console.log("panel_height: ",panel_height)
             return panel_height+"px"
-          ]]]      
+          ]]]
         mode: gauge
         padding:
           top: 5px
@@ -3072,7 +3110,7 @@ button_card_templates:
                 show_label: false
                 entity: '[[[ return variables.entity ]]]'
             template_columns: >-
-              [[[ return  variables.y_header_width + " " + variables.y_trim_width 
+              [[[ return  variables.y_header_width + " " + variables.y_trim_width
               ]]]
             gap: 0px
       z_gauge_card:
@@ -3088,7 +3126,7 @@ button_card_templates:
           slider: |
             [[[
             let sliderObject = (variables.panel && variables.panel.slider) ?
-            variables.panel.slider : {}; 
+            variables.panel.slider : {};
             let defaultVariables = {
               variables: {
                 step: 1
@@ -3101,7 +3139,7 @@ button_card_templates:
           gauge: |
             [[[
             let gaugeObject = (variables.panel && variables.panel.gauge) ?
-            variables.panel.gauge : {}; 
+            variables.panel.gauge : {};
             let defaultVariables = {
               "show_sub_meter": true,
               "meter": {
@@ -3168,7 +3206,7 @@ button_card_templates:
           meter: |
             [[[
             let meterObject = (variables.panel && variables.panel.meter) ?
-            variables.panel.meter : {}; 
+            variables.panel.meter : {};
             let defaultVariables = {
               variables: {
                 button: {
@@ -3188,7 +3226,7 @@ button_card_templates:
           slider: |
             [[[
             let sliderObject = (variables.panel && variables.panel.slider) ?
-            variables.panel.slider : {}; 
+            variables.panel.slider : {};
             let defaultVariables = {
               variables: {
                 step: 1
@@ -3390,11 +3428,15 @@ button_card_templates:
           justify: left
     styles:
       label:
-        - border-bottom-left-radius: >-
-            [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
+        - border-bottom-left-radius: |
+            [[[
+                let leftRadius = variables.card.border.bottom.left_radius;
+                let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+                return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
         - border-bottom-right-radius: 0px
   cb-lcars-footer-open:
-    template: 
+    template:
       - cb-lcars-footer-base
     show_label: true
     variables:
@@ -3423,12 +3465,20 @@ button_card_templates:
             right_radius: 0px
     styles:
       label:
-        - border-bottom-left-radius: >-
-            [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
-        - border-bottom-right-radius: >-
-            [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
+        - border-bottom-left-radius: |
+            [[[
+                let leftRadius = variables.card.border.bottom.left_radius;
+                let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+                return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
+        - border-bottom-right-radius: |
+            [[[
+                let rightRadius = variables.card.border.bottom.right_radius;
+                let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+                return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]
   cb-lcars-footer-right:
-    template: 
+    template:
       - cb-lcars-footer-base
     show_label: true
     variables:
@@ -3468,9 +3518,12 @@ button_card_templates:
     styles:
       label:
         - border-bottom-left-radius: 0px
-        - border-bottom-right-radius: >-
-            [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
-  cb-lcars-button-picard-icon:
+        - border-bottom-right-radius: |
+            [[[
+                let rightRadius = variables.card.border.bottom.right_radius;
+                let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+                return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+            ]]]cb-lcars-button-picard-icon:
     template:
       - cb-lcars-button-picard-filled-dense
       - cb-lcars-actions-toggle
