@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.7-beta.7
+  version: 2024.9.7-beta.8
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -3499,6 +3499,8 @@ button_card_templates:
     show_icon: true
     show_label: false
   cb-lcars-dpad:
+    template:
+      - cb-lcars-functions
     variables:
       __defs_dpad:
         color:
@@ -3508,7 +3510,10 @@ button_card_templates:
             inactive: |
               [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary") ]]]
       card:
-        size: 300px
+        size: |
+          [[[
+            return variables.__getParentDimension(this,'width','px') || '300px';
+          ]]]
       dpad:
         color:
           background: '#1111ee'
