@@ -118,30 +118,56 @@ cb-lcars-base:
       - width: '[[[ return variables.card.width; ]]]'
       - border-top: >-
           [[[ return variables.card.border.top.size + " solid " +
-              (variables.card.border.top.color || variables.card.border.color) 
+              (variables.card.border.top.color || variables.card.border.color)
           ]]]
-      - border-left: >-
-          [[[ return variables.card.border.left.size + " solid " +
-              (variables.card.border.left.color || variables.card.border.color) 
+      - border-top: |
+          [[[
+              let size = variables.card.border.top.size;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " solid " + (variables.card.border.top.color || variables.card.border.color);
           ]]]
-      - border-right: >-
-          [[[ return variables.card.border.right.size + " solid " +
-              (variables.card.border.right.color || variables.card.border.color) 
+      - border-left: |
+          [[[
+              let size = variables.card.border.left.size;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " solid " + (variables.card.border.left.color || variables.card.border.color);
           ]]]
-      - border-bottom: >-
-          [[[ return variables.card.border.bottom.size + " solid " +
-              (variables.card.border.bottom.color || variables.card.border.color)
+      - border-right: |
+          [[[
+              let size = variables.card.border.right.size;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " solid " + (variables.card.border.right.color || variables.card.border.color);
+          ]]]
+      - border-bottom: |
+          [[[
+              let size = variables.card.border.bottom.size;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
           ]]]
       - background: '[[[ return variables.card.color.background.default ]]]'
-      - border-top-left-radius: '[[[ return variables.card.border.top.left_radius + " !important" ]]]'
-      - border-top-right-radius: >-
-          [[[ return variables.card.border.top.right_radius + " !important"
+      - border-top-left-radius: |
+          [[[
+              let size = variables.card.border.top.left_radius;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " !important";
           ]]]
-      - border-bottom-left-radius: >-
-          [[[ return variables.card.border.bottom.left_radius + " !important"
+      - border-top-right-radius: |
+          [[[
+              let size = variables.card.border.top.right_radius;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " !important";
           ]]]
-      - border-bottom-right-radius: >-
-          [[[ return variables.card.border.bottom.right_radius + " !important"
+      - border-bottom-left-radius: |
+          [[[
+              let size = variables.card.border.bottom.left_radius;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " !important";
+          ]]]
+      - border-bottom-right-radius: |
+          [[[
+              let size = variables.card.border.bottom.right_radius;
+              let sizeWithUnit = isNaN(size) ? size : size + 'px';
+              return sizeWithUnit + " !important";
           ]]]
       - position: relative
     label:
@@ -269,7 +295,7 @@ cb-lcars-base:
               variables.card.color.inactive ]]]
           - border-bottom: >-
               [[[ return variables.card.border.bottom.size + " solid " +
-              variables.card.color.inactive ]]]          
+              variables.card.color.inactive ]]]
         state:
           - color: '[[[ return variables.text.state.color.off ]]]'
         label:
@@ -372,4 +398,4 @@ cb-lcars-base:
           - color: >-
               [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
           - background: >-
-              [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]    
+              [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]

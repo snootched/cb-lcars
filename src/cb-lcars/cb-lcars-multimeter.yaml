@@ -13,7 +13,7 @@ cb-lcars-multimeter:
       height: |
         [[[
           return variables.__getParentDimension(this,'height','px');
-        ]]]      
+        ]]]
     panel:
       width: |
         [[[
@@ -30,7 +30,7 @@ cb-lcars-multimeter:
           let panel_height = (card_height * 0.83);
           //console.log("panel_height: ",panel_height)
           return panel_height+"px"
-        ]]]      
+        ]]]
       mode: gauge
       padding:
         top: 5px
@@ -139,7 +139,7 @@ cb-lcars-multimeter:
               show_label: false
               entity: '[[[ return variables.entity ]]]'
           template_columns: >-
-            [[[ return  variables.y_header_width + " " + variables.y_trim_width 
+            [[[ return  variables.y_header_width + " " + variables.y_trim_width
             ]]]
           gap: 0px
     z_gauge_card:
@@ -155,7 +155,7 @@ cb-lcars-multimeter:
         slider: |
           [[[
           let sliderObject = (variables.panel && variables.panel.slider) ?
-          variables.panel.slider : {}; 
+          variables.panel.slider : {};
           let defaultVariables = {
             variables: {
               step: 1
@@ -169,9 +169,9 @@ cb-lcars-multimeter:
         gauge: |
           [[[
           let gaugeObject = (variables.panel && variables.panel.gauge) ?
-          variables.panel.gauge : {}; 
+          variables.panel.gauge : {};
           let defaultVariables = {
-          
+
             "show_sub_meter": true,
             "meter": {
                 "variables": {
@@ -239,7 +239,7 @@ cb-lcars-multimeter:
         meter: |
           [[[
           let meterObject = (variables.panel && variables.panel.meter) ?
-          variables.panel.meter : {}; 
+          variables.panel.meter : {};
           let defaultVariables = {
             variables: {
               button: {
@@ -260,7 +260,7 @@ cb-lcars-multimeter:
         slider: |
           [[[
           let sliderObject = (variables.panel && variables.panel.slider) ?
-          variables.panel.slider : {}; 
+          variables.panel.slider : {};
           let defaultVariables = {
             variables: {
               step: 1

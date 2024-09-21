@@ -254,6 +254,53 @@ cb-lcars-base-card:
               type: Selector
               selector:
                 ui_action:
+
+    - &actionsSection
+      type: Section
+      label: "Actions"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:gesture-double-tap"
+      noCollapse: false
+      rows:
+        - &tapActionSection
+          type: Section
+          label: "Tap Action"
+          icon: "mdi:gesture-tap"
+          outline: true
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Tap Action"
+                  configValue: "cblcars_card_config.variables.tap_action"
+                  type: Selector
+                  selector:
+                    ui_action:
+        - &doubleTapActionSection
+          type: Section
+          label: "Double-Tap Action"
+          icon: "mdi:gesture-double-tap"
+          outline: true
+          rows:
+            - controls:
+                - label: "Double-tap Action"
+                  configValue: "cblcars_card_config.variables.double_tap_action"
+                  type: Selector
+                  selector:
+                    ui_action:
+        - &holdActionSection
+          type: Section
+          label: "Hold Action"
+          icon: "mdi:gesture-tap-hold"
+          outline: true
+          rows:
+            - controls:
+                - label: "Hold Action"
+                  configValue: "cblcars_card_config.variables.hold_action"
+                  type: Selector
+                  selector:
+                    ui_action:
 cb-lcars-label-card:
   render_form:
     - controls:
@@ -270,7 +317,7 @@ cb-lcars-label-card:
       controls:
         - label: "Additional Templates"
           configValue: cblcars_card_config.templates
-          type: Checkboxes 
+          type: Checkboxes
           items:
             - value: 'cb-lcars-state-blink'
               label: 'Blink'
@@ -280,95 +327,240 @@ cb-lcars-label-card:
           configValue: cblcars_card_config.variables.entity
           type: EntityDropdown
           domain: light
-    - controls:                                                          
-        - label: "my new slider"                                         
-          configValue: cblcars_card_config.variables.text.label.font_size2 
-          type: Slider                                  
-          min: 12                                                        
+    - controls:
+        - label: "my new slider"
+          configValue: cblcars_card_config.variables.text.label.font_size2
+          type: Slider
+          min: 12
           max: 48
           step: 2
-          helper: "Select a font size"    
-    - controls:                                                           
-        - label: "my toggle"                                              
+          helper: "Select a font size"
+    - controls:
+        - label: "my toggle"
           configValue: cblcars_card_config.variables.___debug
           type: Switch
-    - controls:                                                           
-        - label: "choose your colour"                                     
+    - controls:
+        - label: "choose your colour"
           configValue: cblcars_card_config.variables.text.label.color.default
-          type: ColorPicker   
-    - label: "Advanced Settings"                                             
-      type: Section                                                          
-      outlined: true                                                         
-      leftChevron: true                                                      
-      controls:                                                              
-        - label: "some shit in a section"                                    
-          configValue: cblcars_card_config.variables.some_shit               
-          type: Textbox              
-cb-lcars-multimeter-card:                                                 
-  render_form:                                                                  
-    - controls:                                                           
-        - label: Pick                                                           
-          configValue: cblcars_card_config.variables.panel.mode           
-          type: Dropdown                                       
-          items:                                                          
-            - value: 'gauge'                                                    
-              label: 'Gauge'                                              
-            - value: 'slider'                                             
-              label: 'Slider'                                             
-            - value: 'icon_grid'                                          
-              label: 'Icons'
-cb-lcars-elbow-card:                                                     
-  render_form:                                                            
-    - controls:                                                           
-        - label: "LCARS Elbow Type"                                            
+          type: ColorPicker
+    - label: "Advanced Settings"
+      type: Section
+      outlined: true
+      leftChevron: true
+      controls:
+        - label: "some shit in a section"
+          configValue: cblcars_card_config.variables.some_shit
+          type: Textbox
+cb-lcars-multimeter-card:
+  render_form:
+    - type: Section
+      label: "Look & Feel"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      rows:
+        - controls:
+            - label: Control Mode
+              helper: "Choose the mode for the control panel"
+              configValue: cblcars_card_config.variables.panel.mode
+              required: true
+              type: Selector
+              selector:
+                select:
+                  mode: dropdowm
+                  options:
+                    - value: 'gauge'
+                      label: 'Gauge'
+                    - value: 'slider'
+                      label: 'Slider'
+                    - value: 'icon_grid'
+                      label: 'Icons (coming soon)'
+                      disabled: true
+            - label: "Choose Entity"
+              configValue: "cblcars_card_config.entity"
+              type: Selector
+              selector:
+                entity:
+        - type: ControlRow
+          cssClass: "form-row two-controls"
+          controls:
+            - label: "Control Label"
+              configValue: "cblcars_card_config.variables.label"
+              type: Selector
+              selector:
+                text:
+                  type: text
+            - label: "Match Control "
+              configValue: "cblcars_card_config.variables.entity_match_header"
+              type: Selector
+              selector:
+                boolean:
+            - label: "match gauge"
+              configValue: "cblcars_card_config.variables.entity_match_gauge"
+              type: Selector
+              selector:
+                boolean:
+            - label: "match slider"
+              configValue: "cblcars_card_config.variables.entity_match_slider"
+              type: Selector
+              selector:
+                boolean:
+            - label: "match slider start"
+              configValue: "cblcars_card_config.variables.entity_match_slider_start"
+              type: Selector
+              selector:
+                boolean:
+            - label: "match slider end"
+              configValue: "cblcars_card_config.variables.entity_match_slider_end"
+              type: Selector
+              selector:
+                boolean:
+    - <<: *actionsSection
+      rows:
+        - <<: *tapActionSection
+          rows:
+            - controls:
+              - label: "Tap Action"
+                configValue: "cblcars_card_config.variables.header_button.tap_action"
+                type: Selector
+                selector:
+                  ui_action:
+        - <<: *doubleTapActionSection
+          rows:
+            - controls:
+              - label: "Double-tap Action"
+                configValue: "cblcars_card_config.variables.header_button.double_tap_action"
+                type: Selector
+                selector:
+                  ui_action:
+        - <<: *holdActionSection
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Hold Action"
+                  configValue: "cblcars_card_config.variables.header_button.hold_action"
+                  type: Selector
+                  selector:
+                    ui_action:
+cb-lcars-elbow-card:
+  render_form:
+    - controls:
+        - label: "LCARS Elbow Type"
           configValue: cblcars_card_type
-          type: Dropdown
-          items:                                                          
-            - value: 'cb-lcars-header'                                                    
-              label: 'Header'                                              
-            - value: 'cb-lcars-header-right'                                                    
-              label: 'Header [Right]'                                              
-            - value: 'cb-lcars-header-open'                                                    
-              label: 'Header [Open]' 
-            - value: 'cb-lcars-header-contained'                                                    
-              label: 'Header [Contained]'
-            - value: 'cb-lcars-header-callout'
-              label: 'Header [Callout]'
-            - value: 'cb-lcars-header-callout-right'
-              label: 'Header [Callout Right]'
-            - value: 'cb-lcars-footer'                                             
-              label: 'Footer'
-            - value: 'cb-lcars-footer-right'                                             
-              label: 'Footer [Right]'
-            - value: 'cb-lcars-footer-open'                                             
-              label: 'Footer [Open]'
-            - value: 'cb-lcars-footer-contained'
-              label: 'Footer [Contained]'
-            - value: 'cb-lcars-footer-callout'
-              label: 'Footer [Callout]'
-            - value: 'cb-lcars-footer-callout-right'
-              label: 'Footer [Callout Right]'
-    - controls:                                                           
-        - label: "LCARS Curve"                                            
-          configValue: cblcars_card_config.variables.card.border.top.left_radius
-          type: Slider                                   
-          min: 0                                                                
-          max: 180                                                        
-          step: 1
-cb-lcars-button-card:                                                     
-  render_form:                                                            
-    - controls:                                                           
-        - label: "LCARS Button Type"                                            
+          type: Selector
+          selector:
+            select:
+              options:
+                - value: 'cb-lcars-header'
+                  label: 'Header'
+                - value: 'cb-lcars-header-right'
+                  label: 'Header [Right]'
+                - value: 'cb-lcars-header-open'
+                  label: 'Header [Open]'
+                - value: 'cb-lcars-header-contained'
+                  label: 'Header [Contained]'
+                - value: 'cb-lcars-header-callout'
+                  label: 'Header [Callout]'
+                - value: 'cb-lcars-header-callout-right'
+                  label: 'Header [Callout Right]'
+                - value: 'cb-lcars-footer'
+                  label: 'Footer'
+                - value: 'cb-lcars-footer-right'
+                  label: 'Footer [Right]'
+                - value: 'cb-lcars-footer-open'
+                  label: 'Footer [Open]'
+                - value: 'cb-lcars-footer-contained'
+                  label: 'Footer [Contained]'
+                - value: 'cb-lcars-footer-callout'
+                  label: 'Footer [Callout]'
+                - value: 'cb-lcars-footer-callout-right'
+                  label: 'Footer [Callout Right]'
+    - type: Section
+      label: "Text Content"
+      icon: "mdi:text-box-multiple"
+      rows:
+        - type: ControlRow
+          controls:
+            - label: "Text Content"
+              helper: "Text content (basic string - or - get fancy with <elt></elt> elements!"
+              configValue: "cblcars_card_config.label"
+              required: false
+              type: Selector
+              selector:
+                text:
+                  multiline: true
+                  type: text
+    - type: Section
+      label: "Look & Feel"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      noCollapse: false
+      rows:
+        - type: ControlRow
+          controls:
+            - label: "LCARS Vertical Size"
+              helper: "The width of the vertical side of the LCARS elbow"
+              configValue: "cblcars_card_config.variables.card.border.left.size"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                number:
+                  min: 1
+                  max: 400
+                  step: 1
+                  mode: slider
+                  unit_of_measurement: "px"
+                  slider_ticks: false
+            - label: "LCARS Horizontal Size"
+              helper: "The height of the horizontal side of the LCARS elbow"
+              configValue: "cblcars_card_config.variables.card.border.top.size"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                number:
+                  min: 1
+                  max: 100
+                  step: 1
+                  mode: slider
+                  unit_of_measurement: "px"
+                  slider_ticks: false
+            - label: "LCARS Elbow Radius"
+              helper: "The curve of the LCARS elbow"
+              configValue: "cblcars_card_config.variables.card.border.top.left_radius"
+              disabled: false
+              required: true
+              type: Selector
+              selector:
+                number:
+                  min: 1
+                  max: 200
+                  step: 1
+                  mode: slider
+                  unit_of_measurement: "px"
+                  slider_ticks: false
+cb-lcars-button-card:
+  render_form:
+    - controls:
+        - label: "LCARS Button Type"
           configValue: cblcars_card_type
-          type: Dropdown
-          items:                                                          
-            - value: 'cb-lcars-button-lozenge'                                                    
-              label: '[TNG] Lozenge'                                              
-            - value: 'cb-lcars-button-bullet'                                                    
-              label: '[TNG] Bullet'                                              
-            - value: 'cb-lcars-button-capped'                                                    
-              label: '[TNG] Capped'                                              
-            - value: 'cb-lcars-button-picard'                                             
-              label: '[Picard] Outline'                                             
-            - value: 'cb-lcars-button-picard-filled'                                          
-              label: '[Picard] Filled'    
+          type: Selector
+          required: true
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - value: 'cb-lcars-button-lozenge'
+                  label: '[TNG] Lozenge'
+                - value: 'cb-lcars-button-bullet'
+                  label: '[TNG] Bullet'
+                - value: 'cb-lcars-button-capped'
+                  label: '[TNG] Capped'
+                - value: 'cb-lcars-button-picard'
+                  label: '[Picard] Outline'
+                - value: 'cb-lcars-button-picard-filled'
+                  label: '[Picard] Filled'

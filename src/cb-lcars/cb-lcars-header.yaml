@@ -11,9 +11,9 @@ cb-lcars-header-base:
       height: |
         [[[
           return variables.__getParentDimension(this,'height','px');
-        ]]] 
+        ]]]
 cb-lcars-header:
-  template: 
+  template:
     - cb-lcars-header-base
   show_label: true
   variables:
@@ -52,9 +52,12 @@ cb-lcars-header:
   styles:
     label:
       - border-top-right-radius: 0px
-      - border-top-left-radius: >-
-          [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
-          variables.card.border.inner.factor +" )";]]]
+      - border-top-left-radius: |
+          [[[
+              let leftRadius = variables.card.border.top.left_radius;
+              let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+              return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
 cb-lcars-header-open:
   template:
     - cb-lcars-header-base
@@ -84,14 +87,22 @@ cb-lcars-header-contained:
           right_radius: 0px
   styles:
     label:
-      - border-top-left-radius: >-
-          [[[ return "calc(" + variables.card.border.top.left_radius + " / " +
-          variables.card.border.inner.factor +" )";]]]
-      - border-top-right-radius: >-
-          [[[ return "calc(" + variables.card.border.top.right_radius + " / "
-          + variables.card.border.inner.factor +" )";]]]
+      - border-top-left-radius: |
+          [[[
+              let leftRadius = variables.card.border.top.left_radius;
+              let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+              return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
+
+      - border-top-right-radius: |
+          [[[
+              let rightRadius = variables.card.border.top.right_radius;
+              let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+              return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
+
 cb-lcars-header-right:
-  template: 
+  template:
     - cb-lcars-header-base
   show_label: true
   variables:
@@ -134,6 +145,9 @@ cb-lcars-header-right:
   styles:
     label:
       - border-top-left-radius: 0px
-      - border-top-right-radius: >-
-          [[[ return "calc(" + variables.card.border.top.right_radius + " / "
-          + variables.card.border.inner.factor +" )";]]]
+      - border-top-right-radius: |
+          [[[
+              let rightRadius = variables.card.border.top.right_radius;
+              let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+              return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]

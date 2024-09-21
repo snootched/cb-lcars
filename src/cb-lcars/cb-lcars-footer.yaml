@@ -54,11 +54,15 @@ cb-lcars-footer:
         justify: left
   styles:
     label:
-      - border-bottom-left-radius: >-
-          [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
+      - border-bottom-left-radius: |
+          [[[
+              let leftRadius = variables.card.border.bottom.left_radius;
+              let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+              return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
       - border-bottom-right-radius: 0px
 cb-lcars-footer-open:
-  template: 
+  template:
     - cb-lcars-footer-base
   show_label: true
   variables:
@@ -87,12 +91,20 @@ cb-lcars-footer-contained:
           right_radius: 0px
   styles:
     label:
-      - border-bottom-left-radius: >-
-          [[[ return "calc(" + variables.card.border.bottom.left_radius + " / " + variables.card.border.inner.factor +" )";]]]
-      - border-bottom-right-radius: >-
-          [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
+      - border-bottom-left-radius: |
+          [[[
+              let leftRadius = variables.card.border.bottom.left_radius;
+              let leftRadiusWithUnit = isNaN(leftRadius) ? leftRadius : leftRadius + 'px';
+              return "calc(" + leftRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
+      - border-bottom-right-radius: |
+          [[[
+              let rightRadius = variables.card.border.bottom.right_radius;
+              let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+              return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
 cb-lcars-footer-right:
-  template: 
+  template:
     - cb-lcars-footer-base
   show_label: true
   variables:
@@ -132,5 +144,9 @@ cb-lcars-footer-right:
   styles:
     label:
       - border-bottom-left-radius: 0px
-      - border-bottom-right-radius: >-
-          [[[ return "calc(" + variables.card.border.bottom.right_radius + " / " + variables.card.border.inner.factor +" )";]]]
+      - border-bottom-right-radius: |
+          [[[
+              let rightRadius = variables.card.border.bottom.right_radius;
+              let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
+              return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
+          ]]]
