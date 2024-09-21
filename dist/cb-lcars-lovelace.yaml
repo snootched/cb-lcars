@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.8-beta.1
+  version: 2024.9.8-beta.2
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -3523,7 +3523,8 @@ button_card_templates:
                 let rightRadius = variables.card.border.bottom.right_radius;
                 let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
                 return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
-            ]]]cb-lcars-button-picard-icon:
+            ]]]
+  cb-lcars-button-picard-icon:
     template:
       - cb-lcars-button-picard-filled-dense
       - cb-lcars-actions-toggle
