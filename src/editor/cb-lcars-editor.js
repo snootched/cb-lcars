@@ -55,28 +55,6 @@ export class CBLCARSCardEditor extends EditorForm {
         super.setConfig(config);
         this.requestUpdate();
 
-        /*  ..try moving to constructor to read yaml file once
-        try {
-            const formDefinitions = await readYamlFile(CBLCARS.card_editor_uri)
-//            cblcarsLog('debug','formDefinitions: ',formDefinitions);
-            this._formDefinitions = formDefinitions;
-//            console.debug('this._formDefinitions: ',this._formDefinitions)
-
-            //returns the content for this card type
-            this._formControls = formDefinitions[this._cardType];
-//            console.debug('this._formControls: ',this._formControls);
-
-            this._userStyles = css`${unsafeCSS((formDefinitions[this._cardType].css && formDefinitions[this._cardType].css.cssText) || '')}`;
-            //console.debug('this._userStyles: ',this._userStyles);
-            this._mergeUserStyles = formDefinitions[this._cardType]?.css?.mergeUserStyles ?? true;
-            //console.debug('this._mergeUserStyles: ',this._mergeUserStyles);
-
-            this.requestUpdate();
-        } catch(error) {
-            cblcarsLog('error','Error fetching editor form definitions: ', error);
-        }
-        */
-
     }
 
     render() {
