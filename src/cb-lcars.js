@@ -10,13 +10,6 @@ import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
-//import EditorForm from '@marcokreeft/ha-editor-formbuilder';
-//import { FormControlType } from '@marcokreeft/ha-editor-formbuilder/dist/interfaces.js';
-//import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from '@marcokreeft/ha-editor-formbuilder/dist/utils/entities.js';
-import EditorForm from 'ha-editor-formbuilder';
-//      import { FormControlType } from 'ha-editor-formbuilder/dist/interfaces.js';
-import { getEntitiesByDomain, getEntitiesByDeviceClass, formatList, getDropdownOptionsFromEnum } from 'ha-editor-formbuilder/dist/utils/entities.js';
-
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -28,11 +21,18 @@ logImportStatus('jsyaml', jsyaml);
 logImportStatus('html:', html);
 logImportStatus('css', css);
 logImportStatus('fireEvent:', fireEvent);
-logImportStatus('getEntitiesByDomain:', getEntitiesByDomain);
-logImportStatus('getEntitiesByDeviceClass:', getEntitiesByDeviceClass);
-logImportStatus('formatList:', formatList);
-logImportStatus('getDropdownOptionsFromEnum:', getDropdownOptionsFromEnum);
 console.groupEnd();
+
+// Check for custom element dependencies
+if (!customElements.get('button-card')) {
+    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
+}
+
+//prepare for HA-LCARS card support
+if (!customElements.get('html-card')) {
+    cblcarsLog('error',`Lovelace HTML Card [html-card] was not found!  Please install from HACS.`);
+}
+
 
 loadFont();
 
@@ -146,7 +146,6 @@ class CBLCARSBaseCard extends HTMLElement {
         initializeConfigUpdate();
 
         //this.observer = null;
-
         // Bind event handlers
         //this.handleResize = this.handleResize.bind(this);
         //this.handleResize = this.handleLoad.bind(this);
@@ -406,10 +405,38 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         return { 
             cblcars_card_config: {
                 label: "CB-LCARS Label",
-                show_label: true
+                show_label: true,
+                variables: {
+                    text: {
+                        label: {
+                            font_size: "40px",
+                            font_weight: "lighter",
+                            color: {
+                                default: "var(--picard-yellow)"
+                            },
+                            justify: "right",
+                            padding: {
+                                right: "15px",
+                                bottom: "5px"
+                            }
+                        }
+                    },
+                    card: {
+                        height: "45px",
+                        border: {
+                            left: {
+                                size: "60px"
+                            },
+                            right: {
+                                size: "40px"
+                            },
+                            color: "var(--picard-dark-gray)"
+                        }
+                    }
+                }
             }
         }
-      }
+    }
 }
 
 class CBLCARSElbowCard extends CBLCARSBaseCard {
@@ -503,8 +530,8 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
 
     getLayoutOptions() {
         return {
-            grid_rows: 1,
-            grid_columns: 4
+            grid_rows: 4,
+            grid_columns: 2
         };
       }
 }
@@ -560,9 +587,8 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
 
     setConfig(config) {
  
-        const defaultCardType = 'cb-lcars-slider';
+        const defaultCardType = 'cb-lcars-slider-horizontal';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        //const defaultTemplates = ['cb-lcars-header'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
@@ -577,7 +603,7 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
     }
     static getStubConfig() {
         return {
-            cblcars_card_type: 'cb-lcars-slider'
+            cblcars_card_type: 'cb-lcars-slider-horizontal'
         };
     } 
     getLayoutOptions() {
@@ -588,8 +614,8 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
             };
         } else {
             return {
-                grid_rows: 4,
-                grid_columns: 1
+                grid_rows: 1,
+                grid_columns: 4
             };
         }
     }
@@ -649,23 +675,6 @@ customElements.define('cb-lcars-slider-card-editor', class extends CBLCARSCardEd
         super('cb-lcars-slider-card');
     }
 });
-
-
-/*
-/////original editor working before we try the contructor method
-//console.log('Does class exist before define..CBLCARSCardEditor:', CBLCARSCardEditor);
-if (!customElements.get('cb-lcars-card-editor')) {
-    try {
-        //console.log('Attempting to define custom element: cb-lcars-card-editor');
-        customElements.define('cb-lcars-card-editor', CBLCARSCardEditor);
-        //console.log('Custom element cb-lcars-card-editor defined successfully');
-    } catch (error) {
-        console.error('Error defining custom element cb-lcars-card-editor:', error);
-    }
-} else {
-    console.log('Custom element cb-lcars-card-editor is already defined');
-}
-*/
 
 
 // Register the cards to be available in the GUI editor

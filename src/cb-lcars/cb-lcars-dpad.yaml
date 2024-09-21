@@ -1,4 +1,6 @@
 cb-lcars-dpad:
+  template:
+    - cb-lcars-functions
   variables:
     __defs_dpad:
       color:
@@ -8,7 +10,10 @@ cb-lcars-dpad:
           inactive: |
             [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary") ]]]
     card:
-      size: 300px
+      size: |
+        [[[
+          return variables.__getParentDimension(this,'width','px') || '300px';
+        ]]]
     dpad:
       color:
         background: '#1111ee'
