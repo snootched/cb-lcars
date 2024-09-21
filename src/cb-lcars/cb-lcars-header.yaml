@@ -151,3 +151,4 @@ cb-lcars-header-right:
               let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
               return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
           ]]]
+
