@@ -51,7 +51,8 @@ let templates = {};
 async function loadTemplates(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
-        templates = yamlContent.button_card_templates || {};
+        //templates = yamlContent.button_card_templates || {};
+        templates = yamlContent || {};
         templatesLoaded = true;
         cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`,templates);
     } catch (error) {
@@ -80,6 +81,7 @@ function getLovelace() {
     return null;
 }
 
+/* original file method
 // Function to update the Lovelace configuration
 async function updateLovelaceConfig(filePath) {
     let newConfig;
@@ -140,11 +142,87 @@ async function updateLovelaceConfig(filePath) {
         }
     }
 }
+*/
+
+// Function to update the Lovelace configuration
+async function updateLovelaceConfig(filePath) {
+
+    let newConfig;
+    if(!templatesLoaded) {
+        cblcarsLog('debug','Templates not loaded yet - attempting to load from source file.');
+        try {
+            //newConfig = await readYamlFile(filePath);
+            await loadTemplates(filePath);
+            newConfig = templates;
+        } catch (error) {
+            cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
+            //throw error;
+        }
+    } else {
+        newConfig = templates;
+    }
 
 
+
+    //cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
+
+    if (newConfig === undefined || newConfig === null || newConfig === 'undefined') {
+        cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.');
+        //throw error;
+    } else {
+        const lovelaceConfig = getLovelace();
+
+        if (lovelaceConfig) {
+            const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
+            const newCbLcarsConfig = newConfig['cb-lcars'] || {};
+
+            // Check if the cb-lcars.manage_config flag is set
+            if (cbLcarsConfig.manage_config) {
+                // Check if the new configuration version is different
+                const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
+                const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
+
+                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
+                    // Merge the cb-lcars configurations
+                    const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
+
+                    // Create a new configuration object by copying the existing one and updating cb-lcars
+                    const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
+
+                    cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
+                    cblcarsLog('debug','new lovelace config: ',newConfig);
+
+
+                    // Apply the updated configuration
+                    await lovelaceConfig.saveConfig(updatedConfig);
+                    cblcarsLog('info', `CB-LCARS dashboard templates updated (v${currentLovelaceVersion} --> v${newLovelaceVersion})`);
+                    isConfigMerged = true;
+
+                } else if (newLovelaceVersion === 0) {
+                    cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
+                } else {
+                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion})`);
+                    isConfigMerged = true;
+                }
+            } else {
+            cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
+            //lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
+            //cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
+            }
+        } else {
+            cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
+        }
+    }
+}
 
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
+
+
+    await templatesPromise;
+    this.templatesLoaded = true;
+
+
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
         //cblcarsLog('debug',`Check (and update) lovelace config against: ${CBLCARS.templates_uri}`);
@@ -465,7 +543,6 @@ class CBLCARSBaseCard extends HTMLElement {
             window.addEventListener('resize', this.handleResize.bind(this));
             window.addEventListener('load', this.handleLoad.bind(this));
 
-
             try {
                 this.resizeObserver = new ResizeObserver(() => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
@@ -476,8 +553,6 @@ class CBLCARSBaseCard extends HTMLElement {
             } catch (error) {
                 cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
             }
-
-
 
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
