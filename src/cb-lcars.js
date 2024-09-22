@@ -26,12 +26,12 @@ console.groupEnd();
 
 
 
-class CBLCARSCustomButtonCard extends ButtonCard {
-    constructor() {
-        super();
-    }
-}
-customElements.define('cblcars-button-card', CBLCARSCustomButtonCard);
+//class CBLCARSCustomButtonCard extends ButtonCard {
+//    constructor() {
+//        super();
+//    }
+//}
+//customElements.define('cblcars-button-card', CBLCARSCustomButtonCard);
 if (!customElements.get('cblcars-button-card')) {
     cblcarsLog('error',`CBLCARS Custom Button Card [cblcars-button-card] was not found!`);
 } else {
