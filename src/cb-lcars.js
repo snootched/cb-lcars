@@ -255,6 +255,8 @@ class CBLCARSBaseCard extends HTMLElement {
         let buttonCardConfigCopy = { ...buttonCardConfig };
         buttonCardConfigCopy = this.configFromTemplates(buttonCardConfigCopy);
 
+        // Remove the template array from the config as we have pre-processed it
+        delete buttonCardConfigCopy.template;
 
         //merge the button_card_config into config
         this._config = {
