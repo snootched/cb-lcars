@@ -26,16 +26,16 @@ console.groupEnd();
 
 
 
-//class CBLCARSCustomButtonCard extends ButtonCard {
-//    constructor() {
-//        super();
-//    }
-//}
-//customElements.define('cblcars-button-card', CBLCARSCustomButtonCard);
-if (!customElements.get('cblcars-button-card')) {
-    cblcarsLog('error',`CBLCARS Custom Button Card [cblcars-button-card] was not found!`);
+class CBLCARSCustomButtonCard extends ButtonCard {
+    constructor() {
+        super();
+    }
+}
+customElements.define('cb-lcars-custom-button-card', CBLCARSCustomButtonCard);
+if (!customElements.get('cb-lcars-custom-button-card')) {
+    cblcarsLog('error',`CBLCARS Custom Button Card [cb-lcars-custom-button-card] was not found!`);
 } else {
-    cblcarsLog('info',`CBLCARS Custom Button Card [cblcars-button-card] loaded successfully!`);
+    cblcarsLog('info',`CBLCARS Custom Button Card [cb-lcars-custom-button-card] loaded successfully!`);
 }
 
 
