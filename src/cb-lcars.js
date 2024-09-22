@@ -382,6 +382,16 @@ class CBLCARSBaseCard extends HTMLElement {
             // Force a redraw on the first instantiation
             //this.redrawChildCard();
 
+            // Instantiate the button-card if it doesn't exist
+            if (!this._card) {
+                this._card = document.createElement('button-card');
+                this.appendChild(this._card);
+            }
+            this._card.setConfig(this.preprocessedConfig.cblcars_card_config);
+            //this._card.setConfig(this._config.cblcars_card_config);
+            this.redrawChildCard();
+
+
             // Add event listeners
             window.addEventListener('resize', this.handleResize.bind(this));
             window.addEventListener('load', this.handleLoad.bind(this));
@@ -393,15 +403,6 @@ class CBLCARSBaseCard extends HTMLElement {
             });
 
             this.resizeObserver.observe(this.parentElement);
-
-            // Instantiate the button-card if it doesn't exist
-            if (!this._card) {
-                this._card = document.createElement('button-card');
-                this.appendChild(this._card);
-            }
-            this._card.setConfig(this.preprocessedConfig);
-            //this._card.setConfig(this._config.cblcars_card_config);
-            this.redrawChildCard();
 
 
             // Ensure the configuration is loaded and set it on the card
