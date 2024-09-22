@@ -11,6 +11,7 @@ import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
 import { ButtonCard } from 'button-card';
+import { mergeDeep, mergeStatesById,} from 'button-card';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -30,6 +31,77 @@ class CBLCARSCustomButtonCard extends ButtonCard {
     constructor() {
         super();
     }
+
+    _configFromYAMLTemplates(yamlConfig, config) {
+        const tpl = config.template;
+        if (!tpl) return config;
+        let result = {};
+        let mergedStateConfig = undefined;
+        const tpls = tpl && Array.isArray(tpl) ? tpl : [tpl];
+        tpls?.forEach((template) => {
+          if (!yamlConfig.cblcars_card_templates?.[template])
+            throw new Error(`LCARS Button-card template '${template}' is missing!`);
+          const res = this._configFromYAMLTemplates(yamlConfig, yamlConfig.cblcars_card_templates[template]);
+          result = mergeDeep(result, res);
+          mergedStateConfig = mergeStatesById(mergedStateConfig, res.state);
+        });
+        result = mergeDeep(result, config);
+        result.state = mergeStatesById(mergedStateConfig, config.state);
+        return result;
+      }
+
+    setConfig(config) {
+        if (!config) {
+          throw new Error('Invalid configuration');
+        }
+        if (this._initialSetupComplete) {
+          this._initialSetupComplete = false;
+        }
+
+        this._cards = {};
+        this._cardsConfig = {};
+        const ll = getLovelace() || getLovelaceCast();
+        let template = copy(config);
+        template = this._configFromLLTemplates(ll, template);
+
+        let yamlConfig;
+        try {
+            yamlConfig = readYamlFile(CBLCARS.templates_uri);
+            template = this._configFromYAMLTemplates(yamlConfig, template);
+        } catch (error) {
+            cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
+            //throw error;
+        }
+
+        this._config = {
+          type: 'custom:button-card',
+          group_expand: false,
+          hold_action: { action: 'none' },
+          double_tap_action: { action: 'none' },
+          layout: 'vertical',
+          size: '40%',
+          color_type: 'icon',
+          show_name: true,
+          show_state: false,
+          show_icon: true,
+          show_units: true,
+          show_label: false,
+          show_entity_picture: false,
+          show_live_stream: false,
+          card_size: 3,
+          ...template,
+          lock: {
+            enabled: false,
+            duration: 5,
+            unlock: 'tap',
+            ...template.lock,
+          },
+        };
+
+        if (!this._initialSetupComplete) {
+          this._finishSetup();
+        }
+      }
 }
 customElements.define('cb-lcars-custom-button-card', CBLCARSCustomButtonCard);
 if (!customElements.get('cb-lcars-custom-button-card')) {
@@ -159,7 +231,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.resizeObserver = null; // Define resizeObserver as a class property
 
-        initializeConfigUpdate();
+        // commenting out initializeConfigUpdate for now....to try yaml load in button card
+        //initializeConfigUpdate();
 
         //this.observer = null;
         // Bind event handlers
@@ -272,7 +345,7 @@ class CBLCARSBaseCard extends HTMLElement {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
                 //cblcarsLog('debug','creating new button-card element');
-                this._card = document.createElement('button-card');
+                this._card = document.createElement('cb-lcars-button-card');
                 this.appendChild(this._card);
             }
             //cblcarsLog('debug','setting config on button-card element');
