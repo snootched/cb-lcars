@@ -11,7 +11,7 @@ import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
 //import { ButtonCard } from 'button-card';
-//import { mergeDeep, mergeStatesById,} from 'button-card';
+import { mergeDeep, mergeStatesById,} from 'button-card';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -26,90 +26,6 @@ logImportStatus('fireEvent:', fireEvent);
 console.groupEnd();
 
 
-/*
-class CBLCARSCustomButtonCard extends ButtonCard {
-    constructor() {
-        super();
-    }
-
-    _configFromYAMLTemplates(yamlConfig, config) {
-        const tpl = config.template;
-        if (!tpl) return config;
-        let result = {};
-        let mergedStateConfig = undefined;
-        const tpls = tpl && Array.isArray(tpl) ? tpl : [tpl];
-        tpls?.forEach((template) => {
-          if (!yamlConfig.cblcars_card_templates?.[template])
-            throw new Error(`LCARS Button-card template '${template}' is missing!`);
-          const res = this._configFromYAMLTemplates(yamlConfig, yamlConfig.cblcars_card_templates[template]);
-          result = mergeDeep(result, res);
-          mergedStateConfig = mergeStatesById(mergedStateConfig, res.state);
-        });
-        result = mergeDeep(result, config);
-        result.state = mergeStatesById(mergedStateConfig, config.state);
-        return result;
-      }
-
-    setConfig(config) {
-        if (!config) {
-          throw new Error('Invalid configuration');
-        }
-        if (this._initialSetupComplete) {
-          this._initialSetupComplete = false;
-        }
-
-        this._cards = {};
-        this._cardsConfig = {};
-        const ll = getLovelace() || getLovelaceCast();
-        let template = copy(config);
-        template = this._configFromLLTemplates(ll, template);
-
-        let yamlConfig;
-        try {
-            yamlConfig = readYamlFile(CBLCARS.templates_uri);
-            template = this._configFromYAMLTemplates(yamlConfig, template);
-        } catch (error) {
-            cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
-            //throw error;
-        }
-
-        this._config = {
-          type: 'custom:button-card',
-          group_expand: false,
-          hold_action: { action: 'none' },
-          double_tap_action: { action: 'none' },
-          layout: 'vertical',
-          size: '40%',
-          color_type: 'icon',
-          show_name: true,
-          show_state: false,
-          show_icon: true,
-          show_units: true,
-          show_label: false,
-          show_entity_picture: false,
-          show_live_stream: false,
-          card_size: 3,
-          ...template,
-          lock: {
-            enabled: false,
-            duration: 5,
-            unlock: 'tap',
-            ...template.lock,
-          },
-        };
-
-        if (!this._initialSetupComplete) {
-          this._finishSetup();
-        }
-      }
-}
-customElements.define('cb-lcars-custom-button-card', CBLCARSCustomButtonCard);
-if (!customElements.get('cb-lcars-custom-button-card')) {
-    cblcarsLog('error',`CBLCARS Custom Button Card [cb-lcars-custom-button-card] was not found!`);
-} else {
-    cblcarsLog('info',`CBLCARS Custom Button Card [cb-lcars-custom-button-card] loaded successfully!`);
-}
-*/
 
 // Check for custom element dependencies
 if (!customElements.get('button-card')) {
@@ -231,21 +147,46 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.resizeObserver = null; // Define resizeObserver as a class property
 
-        initializeConfigUpdate();
+        ////////
+        this._initializationPromise = this._initialize();
 
-        //this.observer = null;
-        // Bind event handlers
-        //this.handleResize = this.handleResize.bind(this);
-        //this.handleResize = this.handleLoad.bind(this);
-        //this.handleClick = this.handleClick.bind(this);
-        //this.handleInput = this.handleInput.bind(this);
-        //this.handleMouseOver = this.handleMouseOver.bind(this);
-        //this.handleMouseOut = this.handleMouseOut.bind(this);
-        //this.handleMutations = this.handleMutations.bind(this);
-        //this.handleCustomEvent = this.handleCustomEvent.bind(this);
+        //initializeConfigUpdate();
+
     }
 
-    setConfig(config) {
+    async _initialize() {
+        try {
+            this.templates = {};
+            this.templates = await readYamlFile(CBLCARS.templates_uri);
+            cblcarsLog('debug','this.templates: ',this.templates);
+            } catch (error) {
+                cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
+        }
+    }
+
+
+    configFromTemplates(config, templates) {
+        const tpl = config.template;
+        if (!tpl) return config;
+        let result = {};
+        let mergedStateConfig;
+        const tpls = Array.isArray(tpl) ? tpl : [tpl];
+        tpls.forEach((template) => {
+          if (!templates[template]) throw new Error(`Template '${template}' is missing!`);
+          const res = configFromTemplates(templates[template], templates);
+          result = mergeDeep(result, res);
+          mergedStateConfig = mergeStatesById(mergedStateConfig, res.state);
+        });
+        result = mergeDeep(result, config);
+        result.state = mergeStatesById(mergedStateConfig, config.state);
+        return result;
+    }
+
+    async setConfig(config) {
+
+        ///////
+        await this._initializationPromise;
+
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
@@ -262,6 +203,10 @@ class CBLCARSBaseCard extends HTMLElement {
             template: mergedTemplates,
             ...config.cblcars_card_config,
         };
+
+        //////////////////////////
+        // Merge the templates into buttonCardConfig
+        buttonCardConfig = this.configFromTemplates(buttonCardConfig, this.templates);
 
         //merge the button_card_config into config
         this._config = {
@@ -293,7 +238,6 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card.hass = hass;
         }
     }
-
 
     static get editorType() {
         return 'cb-lcars-base-card-editor';
@@ -391,19 +335,12 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-
     disconnectedCallback() {
 
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
-        //this.removeEventListener('click', this.handleClick);
-        //this.removeEventListener('input', this.handleInput);
-        //this.removeEventListener('mouseover', this.handleMouseOver);
-        //this.removeEventListener('mouseout', this.handleMouseOut);
-        //if (this.observer) {
-        //    this.observer.disconnect();
-       // }
+
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
@@ -420,36 +357,7 @@ class CBLCARSBaseCard extends HTMLElement {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.redrawChildCard();
     }
-    /*
-    handleMutations(mutationsList) {
-        for (const mutation of mutationsList) {
-            if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                cblcarsLog('debug', 'DOM mutation observed, updating child card...');
-                this.redrawChildCard();
-                break;
-            }
-        }
-    }
-    handleClick(event) {
-        console.log('Element clicked:', event.target);
-    }
 
-    handleInput(event) {
-        console.log('Input changed:', event.target.value);
-    }
-
-    handleMouseOver(event) {
-        console.log('Mouse over:', event.target);
-    }
-
-    handleMouseOut(event) {
-        console.log('Mouse out:', event.target);
-    }
-
-    handleCustomEvent(event) {
-        console.log('Custom event triggered:', event.detail);
-    }
-    */
     redrawChildCard() {
 
         // Re-read the configuration and re-render the card

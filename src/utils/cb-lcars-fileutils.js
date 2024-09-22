@@ -7,8 +7,8 @@ export async function fetchYAML(url) {
         const response = await fetch(url);
         if (response.ok) {
             const yamlContent = await response.text();
-            cblcarsLog('debug',`Fetched yaml file ${url}`);
-            
+            //cblcarsLog('debug',`Fetched yaml file ${url}`);
+
             return yamlContent;
         } //else {
           //  throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
