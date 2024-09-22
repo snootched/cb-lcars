@@ -242,6 +242,7 @@ class CBLCARSBaseCard extends HTMLElement {
         ///////
         if (!this.initialized) {
             await this._initialize();
+            this.initialized = true;
         }
 
         if (!config) {
@@ -348,53 +349,37 @@ class CBLCARSBaseCard extends HTMLElement {
         //cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
-            if (!this._card) {
-                //cblcarsLog('debug','creating new button-card element');
-                this._card = document.createElement('button-card');
-                this.appendChild(this._card);
-            }
+            //if (!this._card) {
+            //    //cblcarsLog('debug','creating new button-card element');
+            //    this._card = document.createElement('button-card');
+            //    this.appendChild(this._card);
+            //}
             //cblcarsLog('debug','setting config on button-card element');
-            this._card.setConfig(this._config.cblcars_card_config);
+            //this._card.setConfig(this._config.cblcars_card_config);
 
             // Force a redraw on the first instantiation
-            this.redrawChildCard();
+            //this.redrawChildCard();
 
             // Add event listeners
             window.addEventListener('resize', this.handleResize.bind(this));
             window.addEventListener('load', this.handleLoad.bind(this));
-            //this.addEventListener('click', this.handleClick);
-            //this.addEventListener('input', this.handleInput);
-            //this.addEventListener('mouseover', this.handleMouseOver);
-            //this.addEventListener('mouseout', this.handleMouseOut);
 
-            // Set up MutationObserver
-            //this.observer = new MutationObserver(this.handleMutations.bind(this));
-            //if (this.parentElement) {
-            //    cblcarsLog("warn","creating mutation observer")
-            //    this.observer.observe(this.parentElement, { attributes: true, childList: true, subtree: true });
-            //}
-            //this.observer.observe(this._card, { attributes: true });
 
-            try {
-                this.resizeObserver = new ResizeObserver(() => {
-                    //cblcarsLog('debug', 'Element resized, updating child card...');
-                    this.redrawChildCard();
-                });
+            this.resizeObserver = new ResizeObserver(() => {
+                //cblcarsLog('debug', 'Element resized, updating child card...');
+                this.redrawChildCard();
+            });
 
-                this.resizeObserver.observe(this.parentElement);
-            } catch (error) {
-                cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
-            }
-
+            this.resizeObserver.observe(this.parentElement);
 
         } catch (error) {
-            cblcarsLog('error',`Error rendering card: ${error}`);
-        } finally {
+            cblcarsLog('error',`Error in connectedCallback: ${error}`);
+        } //finally {
             //cblcarsLog('debug','Unable to create and render card',this);
             //cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
             // Ensure initializeConfigUpdate runs even if rendering fails
             //nitializeConfigUpdate();
-        }
+        //}
     }
 
     disconnectedCallback() {
