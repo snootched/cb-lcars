@@ -16,7 +16,7 @@ cb-lcars-grid:
       auto_rows: null
       gap: 5px
     button:
-      type: custom:button-card
+      type: custom:cb-lcars-base-card
       variables:
         card:
           width: 180px
@@ -86,7 +86,7 @@ cb-lcars-grid:
               let defaultVariables = variables.button;
               //cardObject.variables = {...defaultVariables, ...cardObject.variables};
               cardObject = variables.__deepMerge(defaultVariables, cardObject);
-              
+
               let additionalObject = {
                 view_layout: {
                   show: '[[[ return variables.y_total_cards >= x ? "always" : "never"; ]]]'

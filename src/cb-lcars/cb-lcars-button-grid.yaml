@@ -15,7 +15,7 @@ cb-lcars-button-grid:
       auto_rows: null
       gap: 5px
     button:
-      type: custom:button-card
+      type: custom:cb-lcars-base-card
       variables:
         card:
           width: 180px

@@ -402,6 +402,9 @@ class CBLCARSBaseCard extends HTMLElement {
 
             // Wait for setConfig and then proceed
             setConfigPromise.then(() => {
+
+                this.redrawChildCard();
+
                 // Add event listeners
                 window.addEventListener('resize', this.handleResize.bind(this));
                 window.addEventListener('load', this.handleLoad.bind(this));

@@ -13,7 +13,7 @@ cb-lcars-slider:
       height: |
         [[[
           return variables.__getParentDimension(this,'height','px');
-        ]]]  
+        ]]]
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
     entity_match_slider_start: false
@@ -65,7 +65,7 @@ cb-lcars-slider:
   custom_fields:
     meter:
       card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
@@ -92,7 +92,7 @@ cb-lcars-slider:
           thumb:
             - background: none
 cb-lcars-slider-horizontal:
-  template: 
+  template:
     - cb-lcars-slider
   entity: '[[[ return variables.__get_random_entity("light"); ]]]'
   variables:

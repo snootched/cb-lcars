@@ -77,7 +77,7 @@ cb-lcars-slider-gauge:
         color_alpha: 0.95
         border_color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
-          "var(--picard-blue)" ]]]  
+          "var(--picard-blue)" ]]]
         border_alpha: 0.5
         border_width: 2px
         height: '[[[ return variables.card.height ]]]'
@@ -105,7 +105,7 @@ cb-lcars-slider-gauge:
   custom_fields:
     meter:
       card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
@@ -314,6 +314,6 @@ cb-lcars-slider-horizontal-gauge:
             - top: '[[[ return variables.slider.variables.top_padding ]]]'
     sub_meter:
       card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template: cb-lcars-meter-horizontal
         variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
