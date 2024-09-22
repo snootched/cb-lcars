@@ -10,8 +10,8 @@ import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
-import { ButtonCard } from 'button-card';
-import { mergeDeep, mergeStatesById,} from 'button-card';
+//import { ButtonCard } from 'button-card';
+//import { mergeDeep, mergeStatesById,} from 'button-card';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -26,7 +26,7 @@ logImportStatus('fireEvent:', fireEvent);
 console.groupEnd();
 
 
-
+/*
 class CBLCARSCustomButtonCard extends ButtonCard {
     constructor() {
         super();
@@ -109,7 +109,7 @@ if (!customElements.get('cb-lcars-custom-button-card')) {
 } else {
     cblcarsLog('info',`CBLCARS Custom Button Card [cb-lcars-custom-button-card] loaded successfully!`);
 }
-
+*/
 
 // Check for custom element dependencies
 if (!customElements.get('button-card')) {
@@ -231,8 +231,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.resizeObserver = null; // Define resizeObserver as a class property
 
-        // commenting out initializeConfigUpdate for now....to try yaml load in button card
-        //initializeConfigUpdate();
+        initializeConfigUpdate();
 
         //this.observer = null;
         // Bind event handlers
@@ -281,8 +280,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //instantiate the button-card
         if (!this._card) {
-            //this._card = document.createElement('button-card');
-            this._card = document.createElement('cb-lcars-custom-button-card');
+            this._card = document.createElement('button-card');
             this.appendChild(this._card);
         }
 
@@ -346,7 +344,7 @@ class CBLCARSBaseCard extends HTMLElement {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
                 //cblcarsLog('debug','creating new button-card element');
-                this._card = document.createElement('cb-lcars-custom-button-card');
+                this._card = document.createElement('button-card');
                 this.appendChild(this._card);
             }
             //cblcarsLog('debug','setting config on button-card element');
