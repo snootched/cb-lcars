@@ -383,35 +383,41 @@ class CBLCARSBaseCard extends HTMLElement {
             //this.redrawChildCard();
 
             // Instantiate the button-card if it doesn't exist
-            if (!this._card) {
-                this._card = document.createElement('button-card');
-                this.appendChild(this._card);
-                this._card.setConfig(this.defaultConfig);
-                this._card.setConfig(this._config.cblcars_card_config);
-                this.redrawChildCard();
-            }
+            //if (!this._card) {
+            //    this._card = document.createElement('button-card');
+            //    this.appendChild(this._card);
+            //    this._card.setConfig(this.defaultConfig);
+            //    this._card.setConfig(this._config.cblcars_card_config);
+            //    this.redrawChildCard();
+            //}
 
-
-            // Add event listeners
-            window.addEventListener('resize', this.handleResize.bind(this));
-            window.addEventListener('load', this.handleLoad.bind(this));
-
-
-            this.resizeObserver = new ResizeObserver(() => {
-                //cblcarsLog('debug', 'Element resized, updating child card...');
-                this.redrawChildCard();
+            // Create a promise to wait for setConfig
+            const setConfigPromise = new Promise((resolve) => {
+                this.setConfig = (...args) => {
+                const originalSetConfig = this.setConfig;
+                originalSetConfig.apply(this, args);
+                resolve();
+                };
             });
 
-            this.resizeObserver.observe(this.parentElement);
+            // Wait for setConfig and then proceed
+            setConfigPromise.then(() => {
+                // Add event listeners
+                window.addEventListener('resize', this.handleResize.bind(this));
+                window.addEventListener('load', this.handleLoad.bind(this));
 
 
-            // Ensure the configuration is loaded and set it on the card
-            //if (this._config) {
-            //    this._card.setConfig(this._config.cblcars_card_config);
-            //} else {
-                // Load a default or generic config if needed
-            //    this.loadDefaultConfig();
-            //}
+                this.resizeObserver = new ResizeObserver(() => {
+                    //cblcarsLog('debug', 'Element resized, updating child card...');
+                    this.redrawChildCard();
+                });
+
+                this.resizeObserver.observe(this.parentElement);
+
+            });
+
+
+
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
         }
