@@ -237,6 +237,23 @@ class CBLCARSBaseCard extends HTMLElement {
         return result;
     }
 
+
+    loadDefaultConfig() {
+        const defaultConfig = {
+            type: 'custom:button-card',
+            template: ['cb-lcars-base'],
+            // Add other default configurations as needed
+        };
+
+        this._config = {
+            cblcars_card_config: defaultConfig
+        };
+
+        if (this._card) {
+            this._card.setConfig(this._config.cblcars_card_config);
+        }
+    }
+
     async setConfig(config) {
 
         ///////
@@ -383,7 +400,7 @@ class CBLCARSBaseCard extends HTMLElement {
                 this._card.setConfig(this._config.cblcars_card_config);
             } else {
                 // Load a default or generic config if needed
-                getStubConfig();
+                this.loadDefaultConfig();
             }
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
