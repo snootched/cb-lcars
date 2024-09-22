@@ -170,7 +170,7 @@ class CBLCARSBaseCard extends HTMLElement {
         // Obtain the default configuration from getStubConfig
         const defaultConfig = this.constructor.getStubConfig();
         // Pre-process the default configuration
-        this.preprocessedConfig = this.configFromTemplates(defaultConfig);
+        //this.preprocessedConfig = this.configFromTemplates(defaultConfig.cblcars_card_config);
 
         //initializeConfigUpdate();
     }
@@ -386,10 +386,10 @@ class CBLCARSBaseCard extends HTMLElement {
             if (!this._card) {
                 this._card = document.createElement('button-card');
                 this.appendChild(this._card);
+                this._card.setConfig(this.defaultConfig);
+                this._card.setConfig(this._config.cblcars_card_config);
+                this.redrawChildCard();
             }
-            this._card.setConfig(this.preprocessedConfig.cblcars_card_config);
-            //this._card.setConfig(this._config.cblcars_card_config);
-            this.redrawChildCard();
 
 
             // Add event listeners
