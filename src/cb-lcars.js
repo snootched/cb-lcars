@@ -281,7 +281,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //instantiate the button-card
         if (!this._card) {
-            this._card = document.createElement('button-card');
+            //this._card = document.createElement('button-card');
+            this._card = document.createElement('cb-lcars-custom-button-card');
             this.appendChild(this._card);
         }
 
@@ -345,7 +346,7 @@ class CBLCARSBaseCard extends HTMLElement {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
                 //cblcarsLog('debug','creating new button-card element');
-                this._card = document.createElement('cb-lcars-button-card');
+                this._card = document.createElement('cb-lcars-custom-button-card');
                 this.appendChild(this._card);
             }
             //cblcarsLog('debug','setting config on button-card element');
