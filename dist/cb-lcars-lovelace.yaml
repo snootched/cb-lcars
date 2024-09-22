@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.12-beta.17
+  version: 2024.9.12-beta.18
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -963,7 +963,7 @@ button_card_templates:
         height: |
           [[[
             return variables.__getParentDimension(this,'height','px');
-          ]]]  
+          ]]]
       entity: '[[[ return entity.entity_id ]]]'
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_slider_start: false
@@ -1013,7 +1013,7 @@ button_card_templates:
     custom_fields:
       meter:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template: '[[[ return variables.meter.template ]]]'
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
@@ -1040,7 +1040,7 @@ button_card_templates:
             thumb:
               - background: none
   cb-lcars-slider-horizontal:
-    template: 
+    template:
       - cb-lcars-slider
     entity: '[[[ return variables.__get_random_entity("light"); ]]]'
     variables:
@@ -1472,7 +1472,7 @@ button_card_templates:
           color_alpha: 0.95
           border_color: |
             [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-blue)" ]]]  
+            "var(--picard-blue)" ]]]
           border_alpha: 0.5
           border_width: 2px
           height: '[[[ return variables.card.height ]]]'
@@ -1500,7 +1500,7 @@ button_card_templates:
     custom_fields:
       meter:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template: '[[[ return variables.meter.template ]]]'
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
@@ -1708,7 +1708,7 @@ button_card_templates:
               - top: '[[[ return variables.slider.variables.top_padding ]]]'
       sub_meter:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template: cb-lcars-meter-horizontal
           variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
   cb-lcars-button-lozenge:
@@ -2496,7 +2496,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-footer
           variables:
@@ -2516,7 +2516,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-footer
           label: '[[[ return variables.card_label; ]]]'
@@ -2627,7 +2627,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-footer-right
           variables:
@@ -2647,7 +2647,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-footer-right
           label: '[[[ return variables.card_label; ]]]'
@@ -3320,7 +3320,7 @@ button_card_templates:
         auto_rows: null
         gap: 5px
       button:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         variables:
           card:
             width: 180px
@@ -4207,7 +4207,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-header
           variables:
@@ -4227,7 +4227,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-header
           label: '[[[ return variables.card_label; ]]]'
@@ -4337,7 +4337,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-header-right
           variables:
@@ -4359,7 +4359,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cb-lcars-base-card
           template:
             - cb-lcars-header-right
           label: '[[[ return variables.card_label; ]]]'
@@ -4467,7 +4467,7 @@ button_card_templates:
         auto_rows: null
         gap: 5px
       button:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         variables:
           card:
             width: 180px
