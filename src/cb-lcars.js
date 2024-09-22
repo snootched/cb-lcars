@@ -157,7 +157,8 @@ class CBLCARSBaseCard extends HTMLElement {
     async _initialize() {
         try {
             this.templates = {};
-            this.templates = await readYamlFile(CBLCARS.templates_uri);
+            const yamlContent = await readYamlFile(CBLCARS.templates_uri);
+            this.templates = yamlContent.button_card_templates || {};
             cblcarsLog('debug','this.templates: ',this.templates);
             } catch (error) {
                 cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
@@ -250,7 +251,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //////////////////////////
         // Merge the templates into buttonCardConfig
-        buttonCardConfig = this.configFromTemplates(buttonCardConfig);
+    buttonCardConfig = this.configFromTemplates(buttonCardConfig);
 
         //merge the button_card_config into config
         this._config = {
