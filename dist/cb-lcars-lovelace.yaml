@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.12-beta.12
+  version: 2024.9.12-beta.13
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -3066,7 +3066,7 @@ button_card_templates:
         [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
         ")" ]]]
       z_button_card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template:
           - cb-lcars-button-grid
         variables:
@@ -3114,7 +3114,7 @@ button_card_templates:
               ]]]
             gap: 0px
       z_gauge_card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template:
           - cb-lcars-slider-horizontal-gauge
         variables:
@@ -3192,7 +3192,7 @@ button_card_templates:
             return gaugeObject;
             ]]]
       z_slider_card:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template:
           - cb-lcars-functions
           - cb-lcars-slider-horizontal
@@ -3237,7 +3237,7 @@ button_card_templates:
             return sliderObject;
             ]]]
       z_icon_grid:
-        type: custom:button-card
+        type: custom:cb-lcars-base-card
         template:
           - cb-lcars-button-grid-icons
         variables: >
