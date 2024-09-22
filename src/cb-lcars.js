@@ -28,14 +28,14 @@ console.groupEnd();
 
 
 // Check for custom element dependencies
-if (!customElements.get('button-card')) {
-    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
-}
+//if (!customElements.get('button-card')) {
+////    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
+//}
 
 //prepare for HA-LCARS card support
-if (!customElements.get('html-card')) {
-    cblcarsLog('error',`Lovelace HTML Card [html-card] was not found!  Please install from HACS.`);
-}
+//if (!customElements.get('html-card')) {
+//   cblcarsLog('error',`Lovelace HTML Card [html-card] was not found!  Please install from HACS.`);
+//}
 
 
 loadFont();
@@ -222,13 +222,25 @@ async function initializeConfigUpdate() {
         await templatesPromise;
     }
 
-    //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
+    // Use a promise to ensure only one update happens at a time
     if (!isConfigMerged) {
-        //cblcarsLog('debug',`Check (and update) lovelace config against: ${CBLCARS.templates_uri}`);
+        const updatePromise = new Promise(async (resolve) => {
+        // Update Lovelace config
         await updateLovelaceConfig(CBLCARS.templates_uri);
-    } else {
-        //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
+        resolve();
+        });
+
+        await updatePromise;
+        isConfigMerged = true;
     }
+
+    /////// try move to promise above ^^ so that it only runs once across all instances
+    //if (!isConfigMerged) {
+        //cblcarsLog('debug',`Check (and update) lovelace config against: ${CBLCARS.templates_uri}`);
+    //    await updateLovelaceConfig(CBLCARS.templates_uri);
+    //} else {
+        //await cblcarsLog('debug','isConfigMerged is true - bypassing config merge into lovelace');
+    //}
 }
 
 
