@@ -11,7 +11,7 @@ import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
 //import { ButtonCard } from 'button-card';
-import { mergeDeep, mergeStatesById,} from 'button-card';
+import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
