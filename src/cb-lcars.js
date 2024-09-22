@@ -40,23 +40,23 @@ if (!customElements.get('html-card')) {
 
 loadFont();
 
-// Flag to check if the configuration has been merged
+// Flag to check if the configuration has been merged (this was for lovelace config)
 let isConfigMerged = false;
+
+// Flag to check if the templates have been loaded
 let templatesLoaded = false;
+
+// Load the templates from our yaml file
 let templates = {};
-function loadTemplates(filePath) {
-    return new Promise((resolve, reject) => {
-        try {
-            const yamlContent = readYamlFile(filePath);
-            templates = yamlContent.button_card_templates || {};
-            templatesLoaded = true;
-            cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`,templates);
-            resolve();
-        } catch (error) {
-            cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
-            reject(error);
-        }
-    })
+async function loadTemplates(filePath) {
+    try {
+        const yamlContent = await readYamlFile(filePath);
+        templates = yamlContent.button_card_templates || {};
+        templatesLoaded = true;
+        cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`,templates);
+    } catch (error) {
+        cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
+    }
 }
 const templatesPromse = loadTemplates(CBLCARS.templates_uri);
 
@@ -241,7 +241,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         ///////
         if (!this.initialized) {
-            await this.initialize();
+            await this._initialize();
         }
 
         if (!config) {
