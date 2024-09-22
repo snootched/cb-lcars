@@ -383,7 +383,7 @@ class CBLCARSBaseCard extends HTMLElement {
                 this._card.setConfig(this._config.cblcars_card_config);
             } else {
                 // Load a default or generic config if needed
-                this.getStubConfig();
+                getStubConfig();
             }
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
