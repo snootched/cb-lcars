@@ -20,8 +20,7 @@ cb-lcars-footer:
   show_label: true
   variables:
     card:
-      height: 60px
-      border:
+       border:
         left:
           size: 90px
         bottom:
@@ -76,7 +75,7 @@ cb-lcars-footer-contained:
   show_label: true
   variables:
     card:
-      min_height: 40px
+      min_height: 10px
       border:
         left:
           size: 50px
@@ -109,7 +108,6 @@ cb-lcars-footer-right:
   show_label: true
   variables:
     card:
-      height: 60px
       border:
         right:
           size: 90px
