@@ -49,9 +49,8 @@ function loadTemplates(filePath) {
         try {
             const yamlContent = readYamlFile(filePath);
             templates = yamlContent.button_card_templates || {};
-            cblcarsLog('debug','Loaded templates from file: ',templates);
             templatesLoaded = true;
-            cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`);
+            cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`,templates);
             resolve();
         } catch (error) {
             cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
@@ -166,7 +165,7 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver = null; // Define resizeObserver as a class property
 
         ////////
-        this._initializate();
+        this._initialize();
 
         //initializeConfigUpdate();
     }
