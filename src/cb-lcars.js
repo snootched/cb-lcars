@@ -58,7 +58,7 @@ async function loadTemplates(filePath) {
         cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
     }
 }
-const templatesPromse = loadTemplates(CBLCARS.templates_uri);
+const templatesPromise = loadTemplates(CBLCARS.templates_uri);
 
 
 // Function to get the Lovelace configuration
@@ -167,11 +167,16 @@ class CBLCARSBaseCard extends HTMLElement {
         ////////
         this._initialize();
 
+        // Obtain the default configuration from getStubConfig
+        const defaultConfig = this.constructor.getStubConfig();
+        // Pre-process the default configuration
+        this.preprocessedConfig = this.configFromTemplates(defaultConfig);
+
         //initializeConfigUpdate();
     }
 
     async _initialize() {
-        await templatesPromse;
+        await templatesPromise;
         this.initialized = true;
     }
 
@@ -394,8 +399,8 @@ class CBLCARSBaseCard extends HTMLElement {
                 this._card = document.createElement('button-card');
                 this.appendChild(this._card);
             }
-
-            this._card.setConfig(this._config.cblcars_card_config);
+            this._card.setConfig(this.preprocessedConfig);
+            //this._card.setConfig(this._config.cblcars_card_config);
             this.redrawChildCard();
 
 
