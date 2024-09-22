@@ -372,14 +372,22 @@ class CBLCARSBaseCard extends HTMLElement {
 
             this.resizeObserver.observe(this.parentElement);
 
+            // Instantiate the button-card if it doesn't exist
+            if (!this._card) {
+                this._card = document.createElement('button-card');
+                this.appendChild(this._card);
+            }
+
+            // Ensure the configuration is loaded and set it on the card
+            if (this._config) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                // Load a default or generic config if needed
+                this.getStubConfig();
+            }
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
-        } //finally {
-            //cblcarsLog('debug','Unable to create and render card',this);
-            //cblcarsLog('warning','commenting out initializeConfigUpdate for now....')
-            // Ensure initializeConfigUpdate runs even if rendering fails
-            //nitializeConfigUpdate();
-        //}
+        }
     }
 
     disconnectedCallback() {
