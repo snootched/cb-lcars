@@ -11,7 +11,7 @@ import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
 //import { ButtonCard } from 'button-card';
-import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
+//import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -164,21 +164,65 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
+    mergeDeep(...objects) {
+        const isObject = (obj) => obj && typeof obj === 'object';
 
-    configFromTemplates(config, templates) {
+        return objects.reduce((prev, obj) => {
+            Object.keys(obj).forEach((key) => {
+                const pVal = prev[key];
+                const oVal = obj[key];
+
+                if (Array.isArray(pVal) && Array.isArray(oVal)) {
+                    /* eslint no-param-reassign: 0 */
+                    prev[key] = pVal.concat(...oVal);
+                } else if (isObject(pVal) && isObject(oVal)) {
+                    prev[key] = this.mergeDeep(pVal, oVal);
+                } else {
+                    prev[key] = oVal;
+                }
+            });
+
+            return prev;
+        }, {});
+    }
+
+    mergeStatesById(intoStates, fromStates) {
+        let resultStateConfigs = [];
+        if (intoStates) {
+            intoStates.forEach((intoState) => {
+                let localState = intoState;
+                if (fromStates) {
+                    fromStates.forEach((fromState) => {
+                        if (fromState.id && intoState.id && fromState.id == intoState.id)
+                            localState = this.mergeDeep(localState, fromState);
+                    });
+                }
+                resultStateConfigs.push(localState);
+            });
+        }
+        if (fromStates) {
+            /* eslint eqeqeq: 0 no-confusing-arrow: 0 */
+            resultStateConfigs = resultStateConfigs.concat(
+                fromStates.filter((x) => (!intoStates ? true : !intoStates.find((y) => (y.id && x.id ? y.id == x.id : false)))),
+            );
+        }
+        return resultStateConfigs;
+    }
+
+    configFromTemplates(config) {
         const tpl = config.template;
         if (!tpl) return config;
         let result = {};
         let mergedStateConfig;
         const tpls = Array.isArray(tpl) ? tpl : [tpl];
         tpls.forEach((template) => {
-          if (!templates[template]) throw new Error(`Template '${template}' is missing!`);
-          const res = configFromTemplates(templates[template], templates);
-          result = mergeDeep(result, res);
-          mergedStateConfig = mergeStatesById(mergedStateConfig, res.state);
+            if (!this.templates[template]) throw new Error(`Template '${template}' is missing!`);
+            const res = this.configFromTemplates(this.templates[template]);
+            result = this.mergeDeep(result, res);
+            mergedStateConfig = this.mergeStatesById(mergedStateConfig, res.state);
         });
-        result = mergeDeep(result, config);
-        result.state = mergeStatesById(mergedStateConfig, config.state);
+        result = this.mergeDeep(result, config);
+        result.state = this.mergeStatesById(mergedStateConfig, config.state);
         return result;
     }
 
@@ -206,7 +250,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //////////////////////////
         // Merge the templates into buttonCardConfig
-        buttonCardConfig = this.configFromTemplates(buttonCardConfig, this.templates);
+        buttonCardConfig = this.configFromTemplates(buttonCardConfig);
 
         //merge the button_card_config into config
         this._config = {
