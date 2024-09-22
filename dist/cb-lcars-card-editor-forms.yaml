@@ -448,54 +448,140 @@ cb-lcars-elbow-card:
       label: "Look & Feel"
       outlined: true
       leftChevron: false
-      headerLevel: 4
+      headerLevel: 3
       icon: "mdi:palette-advanced"
       noCollapse: false
       rows:
-        - type: ControlRow
-          controls:
-            - label: "LCARS Vertical Size"
-              helper: "The width of the vertical side of the LCARS elbow"
-              configValue: "cblcars_card_config.variables.card.border.left.size"
-              disabled: false
-              required: true
-              type: Selector
-              selector:
-                number:
-                  min: 1
-                  max: 400
-                  step: 1
-                  mode: slider
-                  unit_of_measurement: "px"
-                  slider_ticks: false
-            - label: "LCARS Horizontal Size"
-              helper: "The height of the horizontal side of the LCARS elbow"
-              configValue: "cblcars_card_config.variables.card.border.top.size"
-              disabled: false
-              required: true
-              type: Selector
-              selector:
-                number:
-                  min: 1
-                  max: 100
-                  step: 1
-                  mode: slider
-                  unit_of_measurement: "px"
-                  slider_ticks: false
-            - label: "LCARS Elbow Radius"
-              helper: "The curve of the LCARS elbow"
-              configValue: "cblcars_card_config.variables.card.border.top.left_radius"
-              disabled: false
-              required: true
-              type: Selector
-              selector:
-                number:
-                  min: 1
-                  max: 200
-                  step: 1
-                  mode: slider
-                  unit_of_measurement: "px"
-                  slider_ticks: false
+        - type: Section
+          label: Borders
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:border-style"
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "LCARS Left Size"
+                  helper: "The width of the left side of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.left.size"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 400
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Top Size"
+                  helper: "The height of the top side of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.top.size"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Right Size"
+                  helper: "The width of the right side of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.right.size"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 1
+                      max: 400
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Bottom Size"
+                  helper: "The height of the bottom side of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.bottom.size"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+        - type: Section
+          label: Corners
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:rounded-corner"
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "LCARS Top Left Radius"
+                  helper: "The top left curve of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.top.left_radius"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Top Right Radius"
+                  helper: "The top right curve of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.top.right_radius"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Bottom Left Radius"
+                  helper: "The bottom left curve of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.bottom.left_radius"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+                - label: "LCARS Bottom Right Radius"
+                  helper: "The bottom right curve of LCARS"
+                  configValue: "cblcars_card_config.variables.card.border.bottom.right_radius"
+                  disabled: false
+                  required: true
+                  type: Selector
+                  selector:
+                    number:
+                      min: 0
+                      max: 200
+                      step: 1
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
 cb-lcars-button-card:
   render_form:
     - controls:

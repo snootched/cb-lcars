@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.13-beta.4
+  version: 2024.9.13-beta.5
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -1819,7 +1819,7 @@ button_card_templates:
       - cb-lcars-header-open
     variables:
       card:
-        min_height: 40px
+        min_height: 10px
         border:
           left:
             size: 50px
@@ -1852,7 +1852,6 @@ button_card_templates:
     show_label: true
     variables:
       card:
-        height: 60px
         border:
           top:
             size: 20px
@@ -3394,8 +3393,7 @@ button_card_templates:
     show_label: true
     variables:
       card:
-        height: 60px
-        border:
+         border:
           left:
             size: 90px
           bottom:
@@ -3450,7 +3448,7 @@ button_card_templates:
     show_label: true
     variables:
       card:
-        min_height: 40px
+        min_height: 10px
         border:
           left:
             size: 50px
@@ -3483,7 +3481,6 @@ button_card_templates:
     show_label: true
     variables:
       card:
-        height: 60px
         border:
           right:
             size: 90px
