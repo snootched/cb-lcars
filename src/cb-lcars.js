@@ -218,10 +218,9 @@ async function updateLovelaceConfig(filePath) {
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
 
-
-    await templatesPromise;
-    this.templatesLoaded = true;
-
+    if(!templatesLoaded) {
+        await templatesPromise;
+    }
 
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
     if (!isConfigMerged) {
