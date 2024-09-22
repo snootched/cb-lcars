@@ -349,7 +349,7 @@ cb-lcars-dpad:
   custom_fields:
     dpad_center_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.center.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -370,7 +370,7 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.center.color.overlay.inactive ]]]'
     dpad_up_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.up.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -392,7 +392,7 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.up.color.overlay.inactive ]]]'
     dpad_down_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.down.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -414,7 +414,7 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.down.color.overlay.inactive ]]]'
     dpad_left_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.left.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -436,7 +436,7 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.left.color.overlay.inactive ]]]'
     dpad_right_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.right.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -458,7 +458,7 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.right.color.overlay.inactive ]]]'
     dpad_up_left_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.up_left.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -485,7 +485,7 @@ cb-lcars-dpad:
         show_state: '[[[ return variables.dpad.up_left.show_state ]]]'
     dpad_up_right_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.up_right.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -512,7 +512,7 @@ cb-lcars-dpad:
         show_state: '[[[ return variables.dpad.up_right.show_state ]]]'
     dpad_down_left_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.down_left.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -539,7 +539,7 @@ cb-lcars-dpad:
         show_state: '[[[ return variables.dpad.down_left.show_state ]]]'
     dpad_down_right_button:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         entity: '[[[ return variables.dpad.down_right.entity; ]]]'
         template:
           - cb-lcars-animate-press

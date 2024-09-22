@@ -86,7 +86,7 @@ cb-lcars-footer-picard:
   custom_fields:
     lcars_outer:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template:
           - cb-lcars-footer
         variables:
@@ -106,7 +106,7 @@ cb-lcars-footer-picard:
               color: '[[[ return variables.lcars_outer.card.color ]]]'
     lcars_inner:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template:
           - cb-lcars-footer
         label: '[[[ return variables.card_label; ]]]'
@@ -217,7 +217,7 @@ cb-lcars-footer-picard-right:
   custom_fields:
     lcars_outer:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template:
           - cb-lcars-footer-right
         variables:
@@ -237,7 +237,7 @@ cb-lcars-footer-picard-right:
               color: '[[[ return variables.lcars_outer.card.color ]]]'
     lcars_inner:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template:
           - cb-lcars-footer-right
         label: '[[[ return variables.card_label; ]]]'

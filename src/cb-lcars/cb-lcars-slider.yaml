@@ -65,7 +65,7 @@ cb-lcars-slider:
   custom_fields:
     meter:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:

@@ -142,6 +142,7 @@ async function updateLovelaceConfig(filePath) {
 }
 
 
+
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
     //await cblcarsLog('debug',`In initializeConfigUpdate() isConfigMerged = ${isConfigMerged}`);
@@ -156,6 +157,7 @@ async function initializeConfigUpdate() {
 
 
 
+
 class CBLCARSBaseCard extends HTMLElement {
 
     constructor () {
@@ -164,21 +166,27 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.resizeObserver = null; // Define resizeObserver as a class property
 
+        initializeConfigUpdate();
+
+
         ////////
-        this._initialize();
+        //this._initialize();
 
         // Obtain the default configuration from getStubConfig
-        const defaultConfig = this.constructor.getStubConfig();
+        //const defaultConfig = this.constructor.getStubConfig();
         // Pre-process the default configuration
         //this.preprocessedConfig = this.configFromTemplates(defaultConfig.cblcars_card_config);
-
-        //initializeConfigUpdate();
     }
 
+
+    /*
     async _initialize() {
         await templatesPromise;
         this.initialized = true;
     }
+    */
+
+    /*
 
     mergeDeep(...objects) {
         const isObject = (obj) => obj && typeof obj === 'object';
@@ -189,7 +197,7 @@ class CBLCARSBaseCard extends HTMLElement {
                 const oVal = obj[key];
 
                 if (Array.isArray(pVal) && Array.isArray(oVal)) {
-                    /* eslint no-param-reassign: 0 */
+
                     prev[key] = pVal.concat(...oVal);
                 } else if (isObject(pVal) && isObject(oVal)) {
                     prev[key] = this.mergeDeep(pVal, oVal);
@@ -201,7 +209,9 @@ class CBLCARSBaseCard extends HTMLElement {
             return prev;
         }, {});
     }
+    */
 
+     /*
     mergeStatesById(intoStates, fromStates) {
         let resultStateConfigs = [];
         if (intoStates) {
@@ -217,14 +227,15 @@ class CBLCARSBaseCard extends HTMLElement {
             });
         }
         if (fromStates) {
-            /* eslint eqeqeq: 0 no-confusing-arrow: 0 */
+
             resultStateConfigs = resultStateConfigs.concat(
                 fromStates.filter((x) => (!intoStates ? true : !intoStates.find((y) => (y.id && x.id ? y.id == x.id : false)))),
             );
         }
         return resultStateConfigs;
     }
-
+    */
+    /*
     configFromTemplates(config) {
         const tpl = config.template;
         if (!tpl) return config;
@@ -241,8 +252,9 @@ class CBLCARSBaseCard extends HTMLElement {
         result.state = this.mergeStatesById(mergedStateConfig, config.state);
         return result;
     }
+    */
 
-
+    /*
     loadDefaultConfig() {
         const defaultConfig = {
             type: 'custom:button-card',
@@ -258,7 +270,52 @@ class CBLCARSBaseCard extends HTMLElement {
             this._card.setConfig(this._config.cblcars_card_config);
         }
     }
+    */
 
+    setConfig(config) {
+        if (!config) {
+            throw new Error("'cblcars_card_config:' section is required");
+        }
+
+        // Handle merging of templates array
+        const defaultTemplates = ['cb-lcars-base'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+
+        // Create a new object to avoid modifying the original config
+        const buttonCardConfig = {
+            type: 'custom:button-card',
+            template: mergedTemplates,
+            ...config.cblcars_card_config,
+        };
+
+        //merge the button_card_config into config
+        this._config = {
+            ...config,
+            cblcars_card_config: buttonCardConfig
+
+        };
+        if (this._config.entity && !this._config.cblcars_card_config.entity) {
+            this._config.cblcars_card_config.entity = this._config.entity;
+        }
+        if (this._config.label && !this._config.cblcars_card_config.label) {
+            this._config.cblcars_card_config.label = this._config.label;
+        }
+
+        cblcarsLog('debug','new card config: ',this._config);
+
+        //instantiate the button-card
+        if (!this._card) {
+            this._card = document.createElement('button-card');
+            this.appendChild(this._card);
+        }
+
+        //set our config on the button-card we just stood up
+        this._card.setConfig(this._config.cblcars_card_config);
+    }
+
+    /*  this one is messed up trying to pre-merge templates
     async setConfig(config) {
 
         ///////
@@ -317,6 +374,7 @@ class CBLCARSBaseCard extends HTMLElement {
         //set our config on the button-card we just stood up
         this._card.setConfig(this._config.cblcars_card_config);
     }
+    */
 
     set hass(hass) {
         if (this._card) {
@@ -371,16 +429,25 @@ class CBLCARSBaseCard extends HTMLElement {
         //cblcarsLog('debug','connectedcallback called');
         try {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
-            //if (!this._card) {
+            if (!this._card) {
             //    //cblcarsLog('debug','creating new button-card element');
-            //    this._card = document.createElement('button-card');
-            //    this.appendChild(this._card);
-            //}
+                this._card = document.createElement('button-card');
+                this.appendChild(this._card);
+            }
             //cblcarsLog('debug','setting config on button-card element');
             //this._card.setConfig(this._config.cblcars_card_config);
 
+
+            // Ensure the configuration is loaded and set it on the card
+            if (this._config) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                // Load a default or generic config if needed
+                this.loadDefaultConfig();
+            }
+
             // Force a redraw on the first instantiation
-            //this.redrawChildCard();
+            this.redrawChildCard();
 
             // Instantiate the button-card if it doesn't exist
             //if (!this._card) {
@@ -391,33 +458,24 @@ class CBLCARSBaseCard extends HTMLElement {
             //    this.redrawChildCard();
             //}
 
-            // Create a promise to wait for setConfig
-            const setConfigPromise = new Promise((resolve) => {
-                this.setConfig = (...args) => {
-                const originalSetConfig = this.setConfig;
-                originalSetConfig.apply(this, args);
-                resolve();
-                };
-            });
-
-            // Wait for setConfig and then proceed
-            setConfigPromise.then(() => {
-
-                this.redrawChildCard();
-
-                // Add event listeners
-                window.addEventListener('resize', this.handleResize.bind(this));
-                window.addEventListener('load', this.handleLoad.bind(this));
 
 
+
+            // Add event listeners
+            window.addEventListener('resize', this.handleResize.bind(this));
+            window.addEventListener('load', this.handleLoad.bind(this));
+
+
+            try {
                 this.resizeObserver = new ResizeObserver(() => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     this.redrawChildCard();
                 });
 
                 this.resizeObserver.observe(this.parentElement);
-
-            });
+            } catch (error) {
+                cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
+            }
 
 
 

@@ -105,7 +105,7 @@ cb-lcars-slider-gauge:
   custom_fields:
     meter:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
@@ -314,6 +314,6 @@ cb-lcars-slider-horizontal-gauge:
             - top: '[[[ return variables.slider.variables.top_padding ]]]'
     sub_meter:
       card:
-        type: custom:cb-lcars-base-card
+        type: custom:button-card
         template: cb-lcars-meter-horizontal
         variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
