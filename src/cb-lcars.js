@@ -251,13 +251,16 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //////////////////////////
         // Merge the templates into buttonCardConfig
-    buttonCardConfig = this.configFromTemplates(buttonCardConfig);
+        //buttonCardConfig = this.configFromTemplates(buttonCardConfig);
+        let buttonCardConfigCopy = { ...buttonCardConfig };
+        buttonCardConfigCopy = this.configFromTemplates(buttonCardConfigCopy);
+
 
         //merge the button_card_config into config
         this._config = {
             ...config,
-            cblcars_card_config: buttonCardConfig
-
+            cblcars_card_config: buttonCardConfigCopy
+            //cblcars_card_config: buttonCardConfig
         };
         if (this._config.entity && !this._config.cblcars_card_config.entity) {
             this._config.cblcars_card_config.entity = this._config.entity;
