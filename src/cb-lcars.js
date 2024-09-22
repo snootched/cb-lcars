@@ -395,13 +395,17 @@ class CBLCARSBaseCard extends HTMLElement {
                 this.appendChild(this._card);
             }
 
+            this._card.setConfig(this._config.cblcars_card_config);
+            this.redrawChildCard();
+
+
             // Ensure the configuration is loaded and set it on the card
-            if (this._config) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            } else {
+            //if (this._config) {
+            //    this._card.setConfig(this._config.cblcars_card_config);
+            //} else {
                 // Load a default or generic config if needed
-                this.loadDefaultConfig();
-            }
+            //    this.loadDefaultConfig();
+            //}
         } catch (error) {
             cblcarsLog('error',`Error in connectedCallback: ${error}`);
         }

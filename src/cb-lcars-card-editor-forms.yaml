@@ -303,54 +303,7 @@ cb-lcars-base-card:
                     ui_action:
 cb-lcars-label-card:
   render_form:
-    - controls:
-        - label: "Label"
-          configValue: "label"
-          type: Textbox
-        - label: Label (nested var)
-          configValue: cblcars_card_config.label
-          type:  Textbox
-        - label: Font Size
-          configValue: cblcars_card_config.variables.text.label.font_size
-          type: Textbox
-    - label: "A group of controls"
-      controls:
-        - label: "Additional Templates"
-          configValue: cblcars_card_config.templates
-          type: Checkboxes
-          items:
-            - value: 'cb-lcars-state-blink'
-              label: 'Blink'
-            - value: 'cb-lcars-actions-disable'
-              label: 'Disable Actions'
-        - label: "Select Light"
-          configValue: cblcars_card_config.variables.entity
-          type: EntityDropdown
-          domain: light
-    - controls:
-        - label: "my new slider"
-          configValue: cblcars_card_config.variables.text.label.font_size2
-          type: Slider
-          min: 12
-          max: 48
-          step: 2
-          helper: "Select a font size"
-    - controls:
-        - label: "my toggle"
-          configValue: cblcars_card_config.variables.___debug
-          type: Switch
-    - controls:
-        - label: "choose your colour"
-          configValue: cblcars_card_config.variables.text.label.color.default
-          type: ColorPicker
-    - label: "Advanced Settings"
-      type: Section
-      outlined: true
-      leftChevron: true
-      controls:
-        - label: "some shit in a section"
-          configValue: cblcars_card_config.variables.some_shit
-          type: Textbox
+    - <<: *actionsSection
 cb-lcars-multimeter-card:
   render_form:
     - type: Section
@@ -564,3 +517,9 @@ cb-lcars-button-card:
                   label: '[Picard] Outline'
                 - value: 'cb-lcars-button-picard-filled'
                   label: '[Picard] Filled'
+cb-lcars-slider-card:
+  render_form:
+    - <<: *actionsSection
+cb-lcars-dpad-card:
+  render_form:
+    - <<: *actionsSection
