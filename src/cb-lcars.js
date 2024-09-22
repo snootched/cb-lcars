@@ -10,6 +10,7 @@ import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
+import { ButtonCard } from 'button-card';
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -22,6 +23,21 @@ logImportStatus('html:', html);
 logImportStatus('css', css);
 logImportStatus('fireEvent:', fireEvent);
 console.groupEnd();
+
+
+
+class CBLCARSCustomButtonCard extends ButtonCard {
+    constructor() {
+        super();
+    }
+}
+customElements.define('cblcars-button-card', CBLCARSCustomButtonCard);
+if (!customElements.get('cblcars-button-card')) {
+    cblcarsLog('error',`CBLCARS Custom Button Card [cblcars-button-card] was not found!`);
+} else {
+    cblcarsLog('info',`CBLCARS Custom Button Card [cblcars-button-card] loaded successfully!`);
+}
+
 
 // Check for custom element dependencies
 if (!customElements.get('button-card')) {
@@ -43,15 +59,15 @@ let isConfigMerged = false;
 
 // Function to get the Lovelace configuration
 function getLovelace() {
-    let root = document.querySelector('home-assistant');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('home-assistant-main');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-    root = (root && root.shadowRoot) || root;
-    root = root && root.querySelector('ha-panel-lovelace');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('hui-root');
+        let root = document.querySelector('home-assistant');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('home-assistant-main');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+        root = (root && root.shadowRoot) || root;
+        root = root && root.querySelector('ha-panel-lovelace');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('hui-root');
     if (root) {
         const ll = root.lovelace;
         ll.current_view = root.___curView;
@@ -161,7 +177,7 @@ class CBLCARSBaseCard extends HTMLElement {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
-    
+
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
@@ -176,9 +192,9 @@ class CBLCARSBaseCard extends HTMLElement {
         };
 
         //merge the button_card_config into config
-        this._config = { 
-            ...config, 
-            cblcars_card_config: buttonCardConfig 
+        this._config = {
+            ...config,
+            cblcars_card_config: buttonCardConfig
 
         };
         if (this._config.entity && !this._config.cblcars_card_config.entity) {
@@ -199,7 +215,7 @@ class CBLCARSBaseCard extends HTMLElement {
         //set our config on the button-card we just stood up
         this._card.setConfig(this._config.cblcars_card_config);
     }
-  
+
     set hass(hass) {
         if (this._card) {
         this._card.hass = hass;
@@ -212,9 +228,9 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     static getConfigElement() {
-        
+
         const editorType = this.editorType;
-        
+
         try {
             if (!customElements.get(editorType)) {
                 cblcarsLog('error',`Graphical editor element [${editorType}] is not defined defined in Home Assistant!`);
@@ -228,16 +244,16 @@ class CBLCARSBaseCard extends HTMLElement {
             return null;
         }
     }
-    
+
     static getStubConfig() {
-        return { 
+        return {
             cblcars_card_config: {
                 label: 'cb-lcars-base',
                 show_label: true
             }
         }
       }
-  
+
     getCardSize() {
         return this._card ? this._card.getCardSize() : 4;
     }
@@ -286,11 +302,11 @@ class CBLCARSBaseCard extends HTMLElement {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     this.redrawChildCard();
                 });
-            
+
                 this.resizeObserver.observe(this.parentElement);
             } catch (error) {
                 cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
-            }  
+            }
 
 
         } catch (error) {
@@ -303,7 +319,7 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-    
+
     disconnectedCallback() {
 
         // Remove event listeners
@@ -322,7 +338,7 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-    
+
     handleResize() {
         //cblcarsLog('debug','Window resized, updating child card...');
         this.redrawChildCard();
@@ -371,7 +387,7 @@ class CBLCARSBaseCard extends HTMLElement {
         } else {
             console.error('No configuration found for the child card.');
         }
-        // If the child card uses LitElement, this will schedule an update      
+        // If the child card uses LitElement, this will schedule an update
         if (this._card.requestUpdate) {
             //cblcarsLog('debug', "doing this._card.requestUpdate()");
             this._card.requestUpdate();
@@ -402,7 +418,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
     }
 
     static getStubConfig() {
-        return { 
+        return {
             cblcars_card_config: {
                 label: "CB-LCARS Label",
                 show_label: true,
@@ -445,7 +461,7 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
- 
+
         const defaultCardType = 'cb-lcars-header';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
         //const defaultTemplates = ['cb-lcars-header'];
@@ -462,8 +478,24 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {};
-    } 
+        return {
+            cblcars_card_config: {
+                variables: {
+                    card: {
+                        border: {
+                            left: {
+                                size: 90
+                            },
+                            top: {
+                                size: 20
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     getLayoutOptions() {
         return {
             grid_rows: 1,
@@ -478,7 +510,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
- 
+
         const defaultTemplates = ['cb-lcars-multimeter'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
@@ -494,7 +526,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     }
     static getStubConfig() {
         return {};
-    } 
+    }
 
     getLayoutOptions() {
         return {
@@ -510,7 +542,7 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
- 
+
         const defaultTemplates = ['cb-lcars-dpad'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
@@ -526,7 +558,7 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
     }
     static getStubConfig() {
         return {};
-    } 
+    }
 
     getLayoutOptions() {
         return {
@@ -535,15 +567,15 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
         };
       }
 }
-        
+
 
 class CBLCARSButtonCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-button-card-editor';
-    }  
+    }
 
     setConfig(config) {
- 
+
         const defaultCardType = 'cb-lcars-button-lozenge';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
@@ -568,7 +600,7 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
                 show_label: true
             }
         }
-    } 
+    }
 
     getLayoutOptions() {
         return {
@@ -586,7 +618,7 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
- 
+
         const defaultCardType = 'cb-lcars-slider-horizontal';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
@@ -605,7 +637,7 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
         return {
             cblcars_card_type: 'cb-lcars-slider-horizontal'
         };
-    } 
+    }
     getLayoutOptions() {
         if (this._config.cblcars_card_type && this._config.cblcars_card_type.includes('horizontal')) {
             return {
@@ -733,4 +765,3 @@ const CBLCARSCardClasses = [
 window.customCards.push(...CBLCARSCardClasses);
 
 
-    
