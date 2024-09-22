@@ -42,7 +42,24 @@ loadFont();
 
 // Flag to check if the configuration has been merged
 let isConfigMerged = false;
-
+let templatesLoaded = false;
+let templates = {};
+function loadTemplates(filePath) {
+    return new Promise((resolve, reject) => {
+        try {
+            const yamlContent = readYamlFile(filePath);
+            templates = yamlContent.button_card_templates || {};
+            cblcarsLog('debug','Loaded templates from file: ',templates);
+            templatesLoaded = true;
+            cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`);
+            resolve();
+        } catch (error) {
+            cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
+            reject(error);
+        }
+    })
+}
+const templatesPromse = loadTemplates(CBLCARS.templates_uri);
 
 
 // Function to get the Lovelace configuration
@@ -139,6 +156,7 @@ async function initializeConfigUpdate() {
 
 
 
+
 class CBLCARSBaseCard extends HTMLElement {
 
     constructor () {
@@ -148,21 +166,14 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver = null; // Define resizeObserver as a class property
 
         ////////
-        this._initializationPromise = this._initialize();
+        this._initializate();
 
         //initializeConfigUpdate();
-
     }
 
     async _initialize() {
-        try {
-            this.templates = {};
-            const yamlContent = await readYamlFile(CBLCARS.templates_uri);
-            this.templates = yamlContent.button_card_templates || {};
-            cblcarsLog('debug','this.templates: ',this.templates);
-            } catch (error) {
-                cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
-        }
+        await templatesPromse;
+        this.initialized = true;
     }
 
     mergeDeep(...objects) {
@@ -217,8 +228,8 @@ class CBLCARSBaseCard extends HTMLElement {
         let mergedStateConfig;
         const tpls = Array.isArray(tpl) ? tpl : [tpl];
         tpls.forEach((template) => {
-            if (!this.templates[template]) throw new Error(`Template '${template}' is missing!`);
-            const res = this.configFromTemplates(this.templates[template]);
+            if (!templates[template]) throw new Error(`CB-LCARS Template ['${template}'] is missing!`);
+            const res = this.configFromTemplates(templates[template]);
             result = this.mergeDeep(result, res);
             mergedStateConfig = this.mergeStatesById(mergedStateConfig, res.state);
         });
@@ -230,7 +241,9 @@ class CBLCARSBaseCard extends HTMLElement {
     async setConfig(config) {
 
         ///////
-        await this._initializationPromise;
+        if (!this.initialized) {
+            await this.initialize();
+        }
 
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
