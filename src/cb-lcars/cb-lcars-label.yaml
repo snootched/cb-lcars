@@ -4,6 +4,14 @@ cb-lcars-label:
   show_label: true
   variables:
     card:
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px');
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px');
+        ]]]
       min_height: 40px
       color:
         background:
