@@ -43,19 +43,19 @@ cb-lcars-functions:
           return function(thisObj, dimension, units, specificParent = 'div') {
               let parentElement = thisObj.parentElement;
               //console.log("Parent element: ", parentElement);
-              
+
               // Use the specificParent parameter or default to 'div'
               let parentSelector = specificParent || 'div';
               let specificParentElement = thisObj.closest(parentSelector);
               //console.log("Specific parent container: ", specificParentElement);
-              
+
               // Check if the specific parent element has a class of 'preview'
               if (specificParentElement && specificParentElement.classList.contains('preview')) {
                   // Use the first child of the 'preview' element
                   //console.log("parent class contains preview - using .firstElementChild....");
                   specificParentElement = specificParentElement.firstElementChild;
               }
-              
+
               // Get the dimension of the specific parent container
               let parentDimension;
               if (dimension === 'width') {
@@ -67,7 +67,7 @@ cb-lcars-functions:
                   return null;
               }
               //console.log("Parent " + dimension + ": ", parentDimension);
-              
+
               // Return the dimension with or without units
               if (units) {
                   return parentDimension + units;
@@ -81,12 +81,12 @@ cb-lcars-functions:
         return function(thisObj, dimension, units, specificParent = 'div') {
           let parentElement = thisObj.parentElement;
           //console.log("Parent element: ", parentElement);
-          
+
           // Use the specificParent parameter or default to 'div'
           let parentSelector = specificParent || 'div';
           let specificParentElement = thisObj.closest(parentSelector);
           //console.log("Specific parent container: ", specificParentElement);
-           
+
           // Get the dimension of the specific parent container
           let parentDimension;
           if (dimension === 'width') {
@@ -98,7 +98,7 @@ cb-lcars-functions:
             return null;
           }
           //console.log("Parent " + dimension + ": ", parentDimension);
-          
+
           // Return the dimension with or without units
           if (units) {
             return parentDimension + units;
@@ -117,8 +117,8 @@ cb-lcars-functions:
           //console.debug("... card_dimension: " + card_dimension);
           //console.debug("... grid_cells: " + grid_cells);
           //console.debug("... grid_gap: " + grid_gap);
-          
-        
+
+
           // If card_dimension is not defined or is 0, return defaultButtonCardDimension (default or user overrides this)
           if (card_dimension === 0) {
             //console.debug("...returning defaultButtonCardDimension: " + defaultButtonCardDimension);
@@ -129,9 +129,9 @@ cb-lcars-functions:
           let button_card_dimension = ((card_dimension - grid_gap * (grid_cells - 1)) / grid_cells);
 
           //console.debug("...button_card_dimension calulated: " + button_card_dimension);
-          
+
           return (button_card_dimension +"px");
-        } 
+        }
       ]]]
     __calculate_grid_cells: |
       [[[
@@ -139,11 +139,11 @@ cb-lcars-functions:
           let card_dimension = cardDimension ? parseInt(cardDimension) : 0;
           let button_card_dimension = buttonCardDimension ? parseInt(buttonCardDimension) : 0;
           let grid_gap = gridGap ? parseInt(gridGap) : 0;
-        
+
           //console.debug("... card_dimension: " + card_dimension);
           //console.debug("... grid_gap: " + grid_gap);
           //console.debug("... defaultGridCells: " + defaultGridCells);
-          
+
           // If card_dimension is not defined or is 0, return defaultGridCells (default or user overrides this)
           if (card_dimension === 0) {
             //console.debug("...returning defaultGridCells!");
@@ -154,7 +154,7 @@ cb-lcars-functions:
           //console.debug("...returing calc. grid_dimension: " + grid_dimension);
           return grid_dimension;
         }
-      ]]]      
+      ]]]
     __deepMerge: |
       [[[
         return function deepMerge(object1, object2) {
@@ -167,12 +167,18 @@ cb-lcars-functions:
               } else {
                 acc = { ...acc, [key]: value };
               }
-              
+
               return acc;
             }, { ...object1 });
           } else {
             return object2;
           }
+        }
+      ]]]
+    __get_num_with_unit: |
+      [[[
+        return function getSizeWithUnit(size, unit = 'px') {
+          return isNaN(size) ? size : size + unit;
         }
       ]]]
     __get_random_entity: |
@@ -246,7 +252,7 @@ cb-lcars-functions:
           } else {
               hex = input;
           }
-          
+
           let r, g, b;
           if (hex.length === 7) {
               r = parseInt(hex.slice(1, 3), 16);
@@ -313,16 +319,16 @@ cb-lcars-functions:
           let start_r = variables.__extract_color_channel(start_rgb, 'r');
           let start_g = variables.__extract_color_channel(start_rgb, 'g');
           let start_b = variables.__extract_color_channel(start_rgb, 'b');
-        
+
           let end_r = variables.__extract_color_channel(end_rgb, 'r');
           let end_g = variables.__extract_color_channel(end_rgb, 'g');
           let end_b = variables.__extract_color_channel(end_rgb, 'b');
-        
+
           let interpolated_r = Math.round(start_r + step * (end_r - start_r) / total_steps);
           let interpolated_g = Math.round(start_g + step * (end_g - start_g) / total_steps);
           let interpolated_b = Math.round(start_b + step * (end_b - start_b) / total_steps);
           //console.log("in function r="+interpolated_r + ",g=" +interpolated_g+ ",b=" + interpolated_b);
-        
+
           return `rgb(${interpolated_r}, ${interpolated_g}, ${interpolated_b})`;
 
         }
@@ -333,7 +339,7 @@ cb-lcars-functions:
         if (!variables.___debug) return
 
         const o = {
-          variables: variables, 
+          variables: variables,
           entity: entity ? entity : {},
           bc: this
         }

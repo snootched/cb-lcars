@@ -740,7 +740,15 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
         super.setConfig(specialConfig);
     }
     static getStubConfig() {
-        return {};
+        return {
+            cblcars_card_config: {
+                variables: {
+                    panel: {
+                        mode: gauge
+                    }
+                }
+            }
+        }
     }
 
     getLayoutOptions() {
