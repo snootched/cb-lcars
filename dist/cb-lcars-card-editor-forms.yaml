@@ -567,8 +567,6 @@ cb-lcars-base-card:
                   selector:
                     text:
                       type: color
-
-
     - &iconSection
       type: Section
       label: "Icon"
@@ -590,7 +588,7 @@ cb-lcars-base-card:
             - label: "Icon"
               helper: "I'm a text selector"
               configValue: "cblcars_card_config.icon"
-              visibilityCondition: "this._config.show_icon === true"
+              visibilityCondition: "this._config.cblcars_card_config.show_icon === true"
               disabled: false
               type: Selector
               selector:
@@ -598,22 +596,35 @@ cb-lcars-base-card:
         - type: ControlRow
           cssClass: "form-row two-controls"
           rows:
+          controls:
             - label: "Size"
               helper: "I'm a text color selector"
-              configValue: "cblcars_card_config.icon.size"
+              configValue: "cblcars_card_config.variables.icon.size"
               disabled: false
               required: true
               type: Selector
               selector:
                 text:
-                  type: color
-            - controls:
-                - <<: *justifyControl
-                  configValue: "cblcars_card_config.variables.icon.justify"
-                  type: Selector
-                  selector:
-                    select:
-                      mode: dropdown
+                  type: number
+            - label: "Justify"
+              configValue: "cblcars_card_config.variables.icon.justify"
+              type: Selector
+              selector:
+                select:
+                  mode: dropdown
+                  options:
+                    - value: flex-start
+                      label: Flex Start
+                    - value: flex-end
+                      label: Flex End
+                    - value: center
+                      label: Center
+                    - value: space-between
+                      label: Space Between
+                    - value: space-around
+                      label: Space Around
+                    - value: space-evenly
+                      label: Space Evenly
         - &iconColorSection
           type: Section
           label: "Colors"
