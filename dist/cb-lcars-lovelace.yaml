@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.9.13-beta.5
+  version: 2024.9.13-beta.6
   manage_config: true
 button_card_templates:
   cb-lcars-theme:
@@ -1183,7 +1183,7 @@ button_card_templates:
             let button_card_dimension = ((card_dimension - grid_gap * (grid_cells - 1)) / grid_cells);
             //console.debug("...button_card_dimension calulated: " + button_card_dimension);
             return (button_card_dimension +"px");
-          } 
+          }
         ]]]
       __calculate_grid_cells: |
         [[[
@@ -1204,7 +1204,7 @@ button_card_templates:
             //console.debug("...returing calc. grid_dimension: " + grid_dimension);
             return grid_dimension;
           }
-        ]]]      
+        ]]]
       __deepMerge: |
         [[[
           return function deepMerge(object1, object2) {
@@ -1222,6 +1222,12 @@ button_card_templates:
             } else {
               return object2;
             }
+          }
+        ]]]
+      __get_num_with_unit: |
+        [[[
+          return function getSizeWithUnit(size, unit = 'px') {
+            return isNaN(size) ? size : size + unit;
           }
         ]]]
       __get_random_entity: |
@@ -1375,7 +1381,7 @@ button_card_templates:
         [[[
           if (!variables.___debug) return
           const o = {
-            variables: variables, 
+            variables: variables,
             entity: entity ? entity : {},
             bc: this
           }
@@ -2007,6 +2013,8 @@ button_card_templates:
         - padding-left: '[[[ return variables.icon.border.left.padding ]]]'
         - padding-right: '[[[ return variables.icon.border.right.padding ]]]'
   cb-lcars-base:
+    template:
+      - cb-lcars-functions
     label: ' '
     variables:
       text:
@@ -2124,58 +2132,38 @@ button_card_templates:
         - height: '[[[ return variables.card.height; ]]]'
         - min-height: '[[[ return variables.card.min_height; ]]]'
         - width: '[[[ return variables.card.width; ]]]'
-        - border-top: >-
-            [[[ return variables.card.border.top.size + " solid " +
-                (variables.card.border.top.color || variables.card.border.color)
-            ]]]
         - border-top: |
             [[[
-                let size = variables.card.border.top.size;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " solid " + (variables.card.border.top.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);
             ]]]
         - border-left: |
             [[[
-                let size = variables.card.border.left.size;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " solid " + (variables.card.border.left.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.border.left.color || variables.card.border.color);
             ]]]
         - border-right: |
             [[[
-                let size = variables.card.border.right.size;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " solid " + (variables.card.border.right.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.border.right.color || variables.card.border.color);
             ]]]
         - border-bottom: |
             [[[
-                let size = variables.card.border.bottom.size;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
             ]]]
         - background: '[[[ return variables.card.color.background.default ]]]'
         - border-top-left-radius: |
             [[[
-                let size = variables.card.border.top.left_radius;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " !important";
+              return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
             ]]]
         - border-top-right-radius: |
             [[[
-                let size = variables.card.border.top.right_radius;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " !important";
+              return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
             ]]]
         - border-bottom-left-radius: |
             [[[
-                let size = variables.card.border.bottom.left_radius;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " !important";
+              return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
             ]]]
         - border-bottom-right-radius: |
             [[[
-                let size = variables.card.border.bottom.right_radius;
-                let sizeWithUnit = isNaN(size) ? size : size + 'px';
-                return sizeWithUnit + " !important";
+              return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
             ]]]
         - position: relative
       label:
@@ -2192,18 +2180,21 @@ button_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.text.label.padding.left + " - " + variables.text.label.padding.right + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.text.label.padding.top + " - " + variables.text.label.padding.bottom + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.top) + " - " + variables.__get_num_with_unit(variables.text.label.padding.bottom) + ")"; ]]]
         - color: '[[[ return variables.text.label.color.default ]]]'
-        - font-size: '[[[ return variables.text.label.font_size ]]]'
+        - font-size: |
+            [[[
+              return variables.__get_num_with_unit(variables.text.label.font_size);
+            ]]]
         - font-weight: '[[[ return variables.text.label.font_weight ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.label.align ]]]'
-        - padding-top: '[[[ return variables.text.label.padding.top ]]]'
-        - padding-left: '[[[ return variables.text.label.padding.left ]]]'
-        - padding-right: '[[[ return variables.text.label.padding.right  ]]]'
-        - padding-bottom: '[[[ return variables.text.label.padding.bottom; ]]]'
+        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.top) ]]]'
+        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.left) ]]]'
+        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
+        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
         - outline: >-
             [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
       state:
@@ -2220,18 +2211,21 @@ button_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.text.state.padding.left + " - " + variables.text.state.padding.right + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.left) + " - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.text.state.padding.top + " - " + variables.text.state.padding.bottom + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.top) + " - " + variables.__get_num_with_unit(variables.text.state.padding.bottom) + ")"; ]]]
         - color: '[[[ return variables.text.state.color.default ]]]'
-        - font-size: '[[[ return variables.text.state.font_size ]]]'
+        - font-size: |
+            [[[
+              return variables.__get_num_with_unit(variables.text.state.font_size);
+            ]]]
         - font-weight: '[[[ return variables.text.state.font_weight ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.state.align ]]]'
-        - padding-top: '[[[ return variables.text.state.padding.top ]]]'
-        - padding-left: '[[[ return variables.text.state.padding.left ]]]'
-        - padding-right: '[[[ return variables.text.state.padding.right ]]]'
-        - padding-bottom: '[[[ return variables.text.state.padding.bottom ]]]'
+        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.top) ]]]'
+        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.left) ]]]'
+        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
+        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
         - outline: >-
             [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
       name:
@@ -2248,18 +2242,21 @@ button_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.text.name.padding.left + " - " + variables.text.name.padding.right + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.left) + " - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.text.name.padding.top + " - " + variables.text.name.padding.bottom + ")"; ]]]
+            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.top) + " - " + variables.__get_num_with_unit(variables.text.name.padding.bottom) + ")"; ]]]
         - color: '[[[ return variables.text.name.color.default ]]]'
-        - font-size: '[[[ return variables.text.name.font_size ]]]'
+        - font-size: |
+            [[[
+                return variables.__get_num_with_unit(variables.text.name.font_size);
+            ]]]
         - font-weight: '[[[ return variables.text.name.font_weight ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.name.align ]]]'
-        - padding-top: '[[[ return variables.text.name.padding.top ]]]'
-        - padding-left: '[[[ return variables.text.name.padding.left ]]]'
-        - padding-right: '[[[ return variables.text.name.padding.right ]]]'
-        - padding-bottom: '[[[ return variables.text.name.padding.bottom ]]]'
+        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.top) ]]]'
+        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.left) ]]]'
+        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
+        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
         - outline: >-
             [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
     state:
@@ -2268,14 +2265,22 @@ button_card_templates:
         styles:
           card:
             - background-color: '[[[ return variables.card.color.background.active ]]]'
-            - border-top: >-
-                [[[ return variables.card.border.top.size + " solid " + variables.card.color.active ]]]
-            - border-left: >-
-                [[[ return variables.card.border.left.size + " solid " + variables.card.color.active ]]]
-            - border-right: >-
-                [[[ return variables.card.border.right.size + " solid " + variables.card.color.active ]]]
-            - border-bottom: >-
-                [[[ return variables.card.border.bottom.size + " solid " + variables.card.color.active ]]]
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.active;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.active;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.active;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.active;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.on ]]]'
           label:
@@ -2292,18 +2297,22 @@ button_card_templates:
         styles:
           card:
             - background-color: '[[[ return variables.card.color.background.inactive ]]]'
-            - border-top: >-
-                [[[ return variables.card.border.top.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-left: >-
-                [[[ return variables.card.border.left.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-right: >-
-                [[[ return variables.card.border.right.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-bottom: >-
-                [[[ return variables.card.border.bottom.size + " solid " +
-                variables.card.color.inactive ]]]
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.inactive;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.inactive;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.inactive;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.inactive;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.off ]]]'
           label:
