@@ -254,7 +254,25 @@ cb-lcars-base-card:
               type: Selector
               selector:
                 ui_action:
-
+    - controls:
+        - label: "options from vars"
+          configValue: "cblcars_card_config.variables.card.background.color.default"
+          type: Selector
+          selector:
+            select:
+              optionsCondition: |
+                  (() => {
+                    const styles = document.documentElement.style;
+                    const options = [];
+                    for (let i = 0; i < styles.length; i++) {
+                      const name = styles[i];
+                      if (name.startsWith('--picard-')) {
+                        const value = styles.getPropertyValue(name).trim();
+                        options.push({ value, label: name.replace('--', '') });
+                      }
+                    }
+                    return options;
+                  })()
     - &actionsSection
       type: Section
       label: "Actions"

@@ -744,7 +744,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
             cblcars_card_config: {
                 variables: {
                     panel: {
-                        mode: gauge
+                        mode: 'gauge'
                     }
                 }
             }
