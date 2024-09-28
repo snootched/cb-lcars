@@ -5,6 +5,8 @@ import { CBLCARSDashboardStrategy, CBLCARSViewStrategyAirlock, CBLCARSViewStrate
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
+import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
+
 import jsyaml from 'js-yaml';
 import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
@@ -875,6 +877,11 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
         }
     }
 }
+
+
+// define test panel
+customElements.define("cb-lcars-panel", CBLCARSPanel);
+
 // define the strategies in HA
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
 customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
