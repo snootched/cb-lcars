@@ -1,0 +1,71 @@
+name: Build
+
+on:
+  #push:
+ #   branches: [ "main" ]
+    # Ignore changes in folders that are affected by the auto commit. (Node.js project)
+    #paths-ignore:
+    #  - 'dist/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        #node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x]
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+  
+      - name: Build
+        run: |
+          npm install
+          npx webpack
+       
+      - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
+        run: |
+          mkdir -p ./dist
+          ./create_full_yaml.sh --output ./dist/cb-lcars-lovelace.yaml --path ./src/cb-lcars
+          echo "cb-lcars:" > ./dist/temp.yaml
+          echo "  version: ${{ steps.get_version.outputs.version }}" >> ./dist/temp.yaml
+          echo "  manage_config: true" >> ./dist/temp.yaml
+          cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml
+          mv -f ./dist/temp.yaml ./dist/cb-lcars-lovelace.yaml
+          echo "Head of generated cb-lcars-lovelace.yaml"
+          head -10 ./dist/cb-lcars-lovelace.yaml
+          echo "Copy yamls from src to dist for lint"
+          cp -v ./src/*.yaml ./dist
+
+      - name: Lint YAML files
+        uses: ibiqlik/action-yamllint@v3.1.1
+        with:
+          file_or_dir: ./dist/*.yaml
+          format: parsable
+          config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
+
+      - name: Upload YAML files
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: dist-files
+          #path: ./dist/*.yaml
+          path: ./dist
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: Add dist files
+          committer_name: GitHub Actions
+          committer_email: 41898282+github-actions[bot]@users.noreply.github.com
+          add: './dist --force'
