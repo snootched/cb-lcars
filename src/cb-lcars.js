@@ -246,7 +246,13 @@ async function initializeConfigUpdate() {
 }
 
 
-
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
 
 
 class CBLCARSBaseCard extends HTMLElement {
@@ -256,6 +262,9 @@ class CBLCARSBaseCard extends HTMLElement {
         //this.attachShadow({ mode: 'open' });
 
         this.resizeObserver = null; // Define resizeObserver as a class property
+
+        // Debounce the handleResize method
+        this.handleResize = debounce(this.handleResize.bind(this), 100);
 
         initializeConfigUpdate();
 
@@ -553,13 +562,15 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
             // Add event listeners
-            window.addEventListener('resize', this.handleResize.bind(this));
+            //window.addEventListener('resize', this.handleResize.bind(this));
+            window.addEventListener('resize', this.handleResize);
             window.addEventListener('load', this.handleLoad.bind(this));
 
             try {
                 this.resizeObserver = new ResizeObserver(() => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
-                    this.redrawChildCard();
+                    //this.redrawChildCard();
+                    this.handleResize();
                 });
 
                 this.resizeObserver.observe(this.parentElement);
@@ -575,7 +586,7 @@ class CBLCARSBaseCard extends HTMLElement {
     disconnectedCallback() {
 
         // Remove event listeners
-        window.removeEventListener('resize', this.handleResize.bind(this));
+        window.removeEventListener('resize', this.handleResize);
         window.removeEventListener('load', this.handleLoad.bind(this));
 
         if (this.resizeObserver) {
