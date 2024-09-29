@@ -1120,8 +1120,8 @@ button_card_templates:
                 let specificParentElement = thisObj.closest(parentSelector);
                 //console.log("Specific parent container: ", specificParentElement);
                 // Check if the specific parent element has a class of 'preview'
-                if (specificParentElement && specificParentElement.classList.contains('preview')) {
-                    // Use the first child of the 'preview' element
+                //if (specificParentElement && specificParentElement.classList.contains('preview')) {
+                if (specificParentElement && (specificParentElement.classList.contains('preview') || specificParentElement.id === 'root')) {    // Use the first child of the 'preview' element
                     //console.log("parent class contains preview - using .firstElementChild....");
                     specificParentElement = specificParentElement.firstElementChild;
                 }
@@ -2138,9 +2138,9 @@ button_card_templates:
       img_cell:
         - justify-content: '[[[ return variables.icon.justify ]]]'
       card:
-        - height: '[[[ return variables.card.height; ]]]'
-        - min-height: '[[[ return variables.card.min_height; ]]]'
-        - width: '[[[ return variables.card.width; ]]]'
+        - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
+        - min-height: '[[[ return variables.__get_num_with_unit(variables.card.min_height); ]]]'
+        - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
         - border-top: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);
