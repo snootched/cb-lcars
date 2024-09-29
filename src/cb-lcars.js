@@ -265,7 +265,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.isResizing = false;
         // Debounce the handleResize method
-        this.handleResize = debounce(this.handleResize.bind(this), 100);
+        //this.handleResize = debounce(this.handleResize.bind(this), 100);
 
         initializeConfigUpdate();
 
@@ -563,8 +563,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
             // Add event listeners
-            //window.addEventListener('resize', this.handleResize.bind(this));
-            window.addEventListener('resize', this.handleResize);
+            window.addEventListener('resize', this.handleResize.bind(this));
+            //window.addEventListener('resize', this.handleResize);
             window.addEventListener('load', this.handleLoad.bind(this));
 
             try {
@@ -587,7 +587,8 @@ class CBLCARSBaseCard extends HTMLElement {
     disconnectedCallback() {
 
         // Remove event listeners
-        window.removeEventListener('resize', this.handleResize);
+        //window.removeEventListener('resize', this.handleResize);
+        window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
 
         if (this.resizeObserver) {
