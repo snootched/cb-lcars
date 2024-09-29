@@ -363,6 +363,11 @@ class CBLCARSBaseCard extends HTMLElement {
         ////may not need this since in connectedCallback
         //set our config on the button-card we just stood up
         //this._card.setConfig(this._config.cblcars_card_config);
+
+        // Set the config on the button-card after it's attached to the DOM
+        this._card.addEventListener('hass-card-element', () => {
+            this._card.setConfig(this._config.cblcars_card_config);
+        });
     }
 
     /*  this one is messed up trying to pre-merge templates
