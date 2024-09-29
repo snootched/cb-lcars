@@ -263,6 +263,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.resizeObserver = null; // Define resizeObserver as a class property
 
+        this.isResizing = false;
         // Debounce the handleResize method
         this.handleResize = debounce(this.handleResize.bind(this), 100);
 
@@ -598,7 +599,13 @@ class CBLCARSBaseCard extends HTMLElement {
 
     handleResize() {
         //cblcarsLog('debug','Window resized, updating child card...');
+        if (this.isResizing) {
+            return;
+        }
+
+        this.isResizing = true;
         this.redrawChildCard();
+        this.isResizing = false;
     }
 
     handleLoad() {
@@ -616,10 +623,10 @@ class CBLCARSBaseCard extends HTMLElement {
             console.error('No configuration found for the child card.');
         }
         // If the child card uses LitElement, this will schedule an update
-        if (this._card.requestUpdate) {
+        //if (this._card.requestUpdate) {
             //cblcarsLog('debug', "doing this._card.requestUpdate()");
-            this._card.requestUpdate();
-        }
+        //    this._card.requestUpdate();
+        //}
 
     }
 }
