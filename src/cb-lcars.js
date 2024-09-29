@@ -53,7 +53,7 @@ async function loadTemplates(filePath) {
         //templates = yamlContent.button_card_templates || {};
         templates = yamlContent || {};
         templatesLoaded = true;
-        cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}].`,templates);
+        cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`,templates);
     } catch (error) {
         cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
     }
@@ -67,7 +67,7 @@ async function loadStubConfig(filePath) {
         const yamlContent = await readYamlFile(filePath);
         stubConfig = yamlContent || {};
         stubConfigLoaded = true;
-        cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}].`,stubConfig);
+        cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`,stubConfig);
     } catch (error) {
         cblcarsLog('error','Failed to get the CB-LCARS stub configuration from source file.',error);
     }
@@ -197,7 +197,7 @@ async function initializeConfigUpdate() {
     //}
 }
 
-
+/*
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -205,7 +205,7 @@ function debounce(func, wait) {
         timeout = setTimeout(() => func.apply(this, args), wait);
     };
 }
-
+*/
 
 class CBLCARSBaseCard extends HTMLElement {
 
@@ -360,8 +360,9 @@ class CBLCARSBaseCard extends HTMLElement {
             this.appendChild(this._card);
         }
 
+        ////may not need this since in connectedCallback
         //set our config on the button-card we just stood up
-        this._card.setConfig(this._config.cblcars_card_config);
+        //this._card.setConfig(this._config.cblcars_card_config);
     }
 
     /*  this one is messed up trying to pre-merge templates
