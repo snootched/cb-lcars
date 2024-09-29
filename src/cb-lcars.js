@@ -174,8 +174,6 @@ async function updateLovelaceConfig(filePath) {
         newConfig = templates;
     }
 
-
-
     //cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
 
     if (newConfig === undefined || newConfig === null || newConfig === 'undefined') {
@@ -498,6 +496,18 @@ class CBLCARSBaseCard extends HTMLElement {
     static get editorType() {
         return 'cb-lcars-base-card-editor';
     }
+    static get cardType() {
+        return 'cb-lcars-base-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_config: {
+                label: "CB-LCARS Base Card",
+                show_label: true
+            }
+        };
+    }
 
     static getConfigElement() {
 
@@ -518,13 +528,13 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                label: 'cb-lcars-base',
-                show_label: true
-            }
+        const cardType = this.cardType;
+        if (stubConfig[cardType]) {
+            return stubConfig[cardType];
+        } else {
+            return this.defaultConfig();
         }
-      }
+    }
 
     getCardSize() {
         return this._card ? this._card.getCardSize() : 4;
@@ -636,6 +646,19 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         return 'cb-lcars-label-card-editor';
     }
 
+    static get cardType() {
+        return 'cb-lcars-label-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_config: {
+                label: "CB-LCARS Label",
+                show_label: true
+            }
+        };
+    }
+
     setConfig(config) {
 
         const defaultTemplates = ['cb-lcars-label'];
@@ -651,55 +674,34 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         };
         super.setConfig(specialConfig);
     }
-
-    static getStubConfig() {
-        //const cardType = this._config.type.replace('custom:', ''); // Derive the card name from _config.type
-        cblcarsLog('debug','stubConfig this: ',this);
-        const cardType = 'cb-lcars-label';
-        if (stubConfig[cardType]) {
-            return stubConfig[cardType];
-        } else {
-            return {
-                cblcars_card_config: {
-                    label: "def label code",
-                    show_label: true,
-                    variables: {
-                        text: {
-                            label: {
-                                font_size: "40px",
-                                font_weight: "lighter",
-                                color: {
-                                    default: "var(--picard-yellow)"
-                                },
-                                justify: "right",
-                                padding: {
-                                    right: "15px",
-                                    bottom: "5px"
-                                }
-                            }
-                        },
-                        card: {
-                            height: "45px",
-                            border: {
-                                left: {
-                                    size: "60px"
-                                },
-                                right: {
-                                    size: "40px"
-                                },
-                                color: "var(--picard-dark-gray)"
-                            }
-                        }
-                    }
-                }
-            };
-        }
-    }
 }
 
 class CBLCARSElbowCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-elbow-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-elbow-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_config: {
+                variables: {
+                    card: {
+                        border: {
+                            left: {
+                                size: 90
+                            },
+                            top: {
+                                size: 20
+                            }
+                        }
+                    }
+                }
+            }
+        };
     }
 
     setConfig(config) {
@@ -719,24 +721,6 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
         };
         super.setConfig(specialConfig);
     }
-    static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                variables: {
-                    card: {
-                        border: {
-                            left: {
-                                size: 90
-                            },
-                            top: {
-                                size: 20
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     getLayoutOptions() {
         return {
@@ -749,6 +733,22 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
 class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-multimeter-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-multimeter-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_config: {
+                variables: {
+                    panel: {
+                        mode: 'gauge'
+                    }
+                }
+            }
+        };
     }
 
     setConfig(config) {
@@ -766,17 +766,6 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
         };
         super.setConfig(specialConfig);
     }
-    static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                variables: {
-                    panel: {
-                        mode: 'gauge'
-                    }
-                }
-            }
-        }
-    }
 
     getLayoutOptions() {
         return {
@@ -789,6 +778,14 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 class CBLCARSDPADCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-dpad-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-dpad-card';
+    }
+
+    static get defaultConfig() {
+        return {};
     }
 
     setConfig(config) {
@@ -806,9 +803,6 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
         };
         super.setConfig(specialConfig);
     }
-    static getStubConfig() {
-        return {};
-    }
 
     getLayoutOptions() {
         return {
@@ -818,10 +812,22 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
       }
 }
 
-
 class CBLCARSButtonCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-button-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-button-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_config: {
+                label: "CB-LCARS Button",
+                show_label: true
+            }
+        };
     }
 
     setConfig(config) {
@@ -843,14 +849,6 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 
         super.setConfig(specialConfig);
     }
-    static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                label: "CB-LCARS Button",
-                show_label: true
-            }
-        }
-    }
 
     getLayoutOptions() {
         return {
@@ -865,6 +863,16 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 class CBLCARSSliderCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-slider-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-slider-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            cblcars_card_type: 'cb-lcars-slider-horizontal'
+        };
     }
 
     setConfig(config) {
@@ -883,11 +891,7 @@ class CBLCARSSliderCard extends CBLCARSBaseCard {
         };
         super.setConfig(specialConfig);
     }
-    static getStubConfig() {
-        return {
-            cblcars_card_type: 'cb-lcars-slider-horizontal'
-        };
-    }
+
     getLayoutOptions() {
         if (this._config.cblcars_card_type && this._config.cblcars_card_type.includes('horizontal')) {
             return {
