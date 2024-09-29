@@ -28,17 +28,10 @@ logImportStatus('fireEvent:', fireEvent);
 console.groupEnd();
 
 
-
 // Check for custom element dependencies
 //if (!customElements.get('button-card')) {
 ////    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
 //}
-
-//prepare for HA-LCARS card support
-//if (!customElements.get('html-card')) {
-//   cblcarsLog('error',`Lovelace HTML Card [html-card] was not found!  Please install from HACS.`);
-//}
-
 
 loadFont();
 
@@ -47,6 +40,9 @@ let isConfigMerged = false;
 
 // Flag to check if the templates have been loaded
 let templatesLoaded = false;
+
+// Flag to check if the stub configuration has been loaded
+let stubConfigLoaded = false;
 
 // Load the templates from our yaml file
 let templates = {};
@@ -62,6 +58,20 @@ async function loadTemplates(filePath) {
     }
 }
 const templatesPromise = loadTemplates(CBLCARS.templates_uri);
+
+// Load the stub configuration from our yaml file
+let stubConfig = {};
+async function loadStubConfig(filePath) {
+    try {
+        const yamlContent = await readYamlFile(filePath);
+        stubConfig = yamlContent || {};
+        stubConfigLoaded = true;
+        cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}].`,stubConfig);
+    } catch (error) {
+        cblcarsLog('error','Failed to get the CB-LCARS stub configuration from source file.',error);
+    }
+}
+const stubConfigPromise = loadStubConfig(CBLCARS.stub_config_uri);
 
 
 // Function to get the Lovelace configuration
@@ -217,11 +227,17 @@ async function updateLovelaceConfig(filePath) {
     }
 }
 
+
+
 // Function to initialize the configuration update
 async function initializeConfigUpdate() {
 
     if(!templatesLoaded) {
         await templatesPromise;
+    }
+
+    if(!stubConfigLoaded) {
+        await stubConfigPromise;
     }
 
     // Use a promise to ensure only one update happens at a time
@@ -264,15 +280,11 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver = null; // Define resizeObserver as a class property
 
         this.isResizing = false;
-        // Debounce the handleResize method
-        //this.handleResize = debounce(this.handleResize.bind(this), 100);
 
         initializeConfigUpdate();
 
-
         ////////
         //this._initialize();
-
         // Obtain the default configuration from getStubConfig
         //const defaultConfig = this.constructor.getStubConfig();
         // Pre-process the default configuration
@@ -312,7 +324,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
     */
 
-     /*
+    /*
     mergeStatesById(intoStates, fromStates) {
         let resultStateConfigs = [];
         if (intoStates) {
@@ -550,18 +562,6 @@ class CBLCARSBaseCard extends HTMLElement {
             // Force a redraw on the first instantiation
             this.redrawChildCard();
 
-            // Instantiate the button-card if it doesn't exist
-            //if (!this._card) {
-            //    this._card = document.createElement('button-card');
-            //    this.appendChild(this._card);
-            //    this._card.setConfig(this.defaultConfig);
-            //    this._card.setConfig(this._config.cblcars_card_config);
-            //    this.redrawChildCard();
-            //}
-
-
-
-
             // Add event listeners
             window.addEventListener('resize', this.handleResize.bind(this));
             //window.addEventListener('resize', this.handleResize);
@@ -596,7 +596,6 @@ class CBLCARSBaseCard extends HTMLElement {
             this.resizeObserver = null;
         }
     }
-
 
     handleResize() {
         //cblcarsLog('debug','Window resized, updating child card...');
@@ -654,39 +653,44 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
     }
 
     static getStubConfig() {
-        return {
-            cblcars_card_config: {
-                label: "CB-LCARS Label",
-                show_label: true,
-                variables: {
-                    text: {
-                        label: {
-                            font_size: "40px",
-                            font_weight: "lighter",
-                            color: {
-                                default: "var(--picard-yellow)"
-                            },
-                            justify: "right",
-                            padding: {
-                                right: "15px",
-                                bottom: "5px"
+        const cardType = this._config.type.replace('custom:', ''); // Derive the card name from _config.type
+        if (stubConfig[cardType]) {
+            return stubConfig[cardType];
+        } else {
+            return {
+                cblcars_card_config: {
+                    label: "def label code",
+                    show_label: true,
+                    variables: {
+                        text: {
+                            label: {
+                                font_size: "40px",
+                                font_weight: "lighter",
+                                color: {
+                                    default: "var(--picard-yellow)"
+                                },
+                                justify: "right",
+                                padding: {
+                                    right: "15px",
+                                    bottom: "5px"
+                                }
                             }
-                        }
-                    },
-                    card: {
-                        height: "45px",
-                        border: {
-                            left: {
-                                size: "60px"
-                            },
-                            right: {
-                                size: "40px"
-                            },
-                            color: "var(--picard-dark-gray)"
+                        },
+                        card: {
+                            height: "45px",
+                            border: {
+                                left: {
+                                    size: "60px"
+                                },
+                                right: {
+                                    size: "40px"
+                                },
+                                color: "var(--picard-dark-gray)"
+                            }
                         }
                     }
                 }
-            }
+            };
         }
     }
 }
