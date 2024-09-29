@@ -38,7 +38,55 @@ cb-lcars-functions:
             }
         }
       ]]]
+
+
+
     __getParentDimension: |
+        [[[
+          return function(thisObj, dimension, units, specificParent = 'div') {
+              let parentElement = thisObj.parentElement;
+              //console.log("Parent element: ", parentElement);
+
+              // Use the specificParent parameter or default to 'div'
+              let parentSelector = specificParent || 'div';
+              let specificParentElement = thisObj.closest(parentSelector);
+              //console.log("Specific parent container: ", specificParentElement);
+              // Check if the specific parent element has a class of 'preview'
+
+
+              //if (specificParentElement && specificParentElement.classList.contains('preview') ) {
+              if (specificParentElement && (specificParentElement.classList.contains('preview') || specificParentElement.id === 'root')) {
+                  // Use the first child of the 'preview' element
+                  //console.log("parent class contains preview or id=room - using .firstElementChild....");
+                  specificParentElement = specificParentElement.firstElementChild;
+              }
+
+
+              //specificParentElement = specificParentElement.firstElementChild;
+
+
+              // Get the dimension of the specific parent container
+              let parentDimension;
+              if (dimension === 'width') {
+                  parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
+              } else if (dimension === 'height') {
+                  parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
+              } else {
+                  console.error("Invalid dimension specified. Use 'width' or 'height'.");
+                  return null;
+              }
+              //console.log("specificParentElement: ", specificParentElement);
+              //console.log("Parent " + dimension + ": ", parentDimension);
+              // Return the dimension with or without units
+              if (units) {
+                  return parentDimension + units;
+              } else {
+                  return parentDimension;
+              }
+          }
+        ]]]
+
+    __getParentDimensionOld: |
         [[[
           return function(thisObj, dimension, units, specificParent = 'div') {
               let parentElement = thisObj.parentElement;
