@@ -1,22 +1,23 @@
 cb-lcars-label-card:
-  label: "Label YAML"
-  show_label: true
-  variables:
-    text:
-      label:
-        font_size: "40px"
-        font_weight: "lighter"
-        color:
-          default: "var(--picard-yellow)"
-        justify: "right"
-        padding:
-          right: "15px"
-          bottom: "5px"
-    card:
-      height: "45px"
-      border:
-        left:
-          size: "60px"
-        right:
-          size: "40px"
-        color: "var(--picard-dark-gray)"
+  cblcars_card_config:
+    label: "Label YAML"
+    show_label: true
+    variables:
+      text:
+        label:
+          font_size: "40px"
+          font_weight: "lighter"
+          color:
+            default: "var(--picard-yellow)"
+          justify: "right"
+          padding:
+            right: "15px"
+            bottom: "5px"
+      card:
+        height: "45px"
+        border:
+          left:
+            size: "60px"
+          right:
+            size: "40px"
+          color: "var(--picard-dark-gray)"

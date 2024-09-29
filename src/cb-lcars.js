@@ -653,7 +653,9 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
     }
 
     static getStubConfig() {
-        const cardType = this._config.type.replace('custom:', ''); // Derive the card name from _config.type
+        //const cardType = this._config.type.replace('custom:', ''); // Derive the card name from _config.type
+        cblcarsLog('debug','stubConfig this: ',this);
+        const cardType = 'cb-lcars-label';
         if (stubConfig[cardType]) {
             return stubConfig[cardType];
         } else {
