@@ -1,23 +1,22 @@
 cb-lcars-label-card:
   cblcars_card_config:
-    label: "Label YAML"
+    label: LCARS LABEL
     show_label: true
     variables:
       text:
         label:
-          font_size: "40px"
-          font_weight: "lighter"
+          font_size: 52
+          font_weight: 100
           color:
-            default: "var(--picard-yellow)"
-          justify: "right"
+            default: '#f9ef97'
+          justify: right
           padding:
-            right: "15px"
-            bottom: "5px"
+            right: 15
+            bottom: 8
       card:
-        height: "45px"
         border:
           left:
-            size: "60px"
+            size: 60
           right:
-            size: "40px"
-          color: "var(--picard-dark-gray)"
+            size: 40
+          color: '#52596e'
