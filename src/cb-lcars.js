@@ -532,7 +532,7 @@ class CBLCARSBaseCard extends HTMLElement {
         if (stubConfig[cardType]) {
             return stubConfig[cardType];
         } else {
-            return this.defaultConfig();
+            return this.defaultConfig;
         }
     }
 
