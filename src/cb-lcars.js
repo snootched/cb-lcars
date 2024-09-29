@@ -19,6 +19,7 @@ import semver from 'semver';
 cblcarsLogBanner();
 
 // Log import statuses for each import
+/*
 console.groupCollapsed('CB-LCARS imports');
 logImportStatus('CBLCARS', CBLCARS);
 logImportStatus('jsyaml', jsyaml);
@@ -26,7 +27,7 @@ logImportStatus('html:', html);
 logImportStatus('css', css);
 logImportStatus('fireEvent:', fireEvent);
 console.groupEnd();
-
+*/
 
 // Check for custom element dependencies
 //if (!customElements.get('button-card')) {
@@ -92,69 +93,6 @@ function getLovelace() {
     }
     return null;
 }
-
-/* original file method
-// Function to update the Lovelace configuration
-async function updateLovelaceConfig(filePath) {
-    let newConfig;
-    try {
-        newConfig = await readYamlFile(filePath);
-    } catch (error) {
-        cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
-        //throw error;
-    }
-
-    //cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
-
-    if (newConfig === undefined || newConfig === null || newConfig === 'undefined') {
-        cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.');
-        //throw error;
-    } else {
-        const lovelaceConfig = getLovelace();
-
-        if (lovelaceConfig) {
-            const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
-            const newCbLcarsConfig = newConfig['cb-lcars'] || {};
-
-            // Check if the cb-lcars.manage_config flag is set
-            if (cbLcarsConfig.manage_config) {
-                // Check if the new configuration version is different
-                const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
-                const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
-
-                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
-                    // Merge the cb-lcars configurations
-                    const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
-
-                    // Create a new configuration object by copying the existing one and updating cb-lcars
-                    const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
-
-                    cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
-                    cblcarsLog('debug','new lovelace config: ',newConfig);
-
-
-                    // Apply the updated configuration
-                    await lovelaceConfig.saveConfig(updatedConfig);
-                    cblcarsLog('info', `CB-LCARS dashboard templates updated (v${currentLovelaceVersion} --> v${newLovelaceVersion})`);
-                    isConfigMerged = true;
-
-                } else if (newLovelaceVersion === 0) {
-                    cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
-                } else {
-                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion})`);
-                    isConfigMerged = true;
-                }
-            } else {
-            cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
-            //lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
-            //cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
-            }
-        } else {
-            cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
-        }
-    }
-}
-*/
 
 // Function to update the Lovelace configuration
 async function updateLovelaceConfig(filePath) {
@@ -414,7 +352,7 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        cblcarsLog('debug','new card config: ',this._config);
+        //cblcarsLog('debug','new card config: ',this._config);
 
         //instantiate the button-card
         if (!this._card) {
