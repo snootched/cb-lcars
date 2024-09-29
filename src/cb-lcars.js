@@ -507,11 +507,17 @@ class CBLCARSBaseCard extends HTMLElement {
 
             // Ensure the configuration is loaded and set it on the card
             if (this._config) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            } else {
+
+                // Set the config on the button-card after it's attached to the DOM
+                this._card.addEventListener('hass-card-element', () => {
+                    this._card.setConfig(this._config.cblcars_card_config);
+                });
+
+                //this._card.setConfig(this._config.cblcars_card_config);
+            } //else {
                 // Load a default or generic config if needed
-                this.loadDefaultConfig();
-            }
+                //this.loadDefaultConfig();
+            //}
 
             // Force a redraw on the first instantiation
             this.redrawChildCard();
