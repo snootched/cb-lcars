@@ -115,9 +115,9 @@ cb-lcars-base:
     img_cell:
       - justify-content: '[[[ return variables.icon.justify ]]]'
     card:
-      - height: '[[[ return variables.card.height; ]]]'
-      - min-height: '[[[ return variables.card.min_height; ]]]'
-      - width: '[[[ return variables.card.width; ]]]'
+      - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
+      - min-height: '[[[ return variables.__get_num_with_unit(variables.card.min_height); ]]]'
+      - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
       - border-top: |
           [[[
             return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);

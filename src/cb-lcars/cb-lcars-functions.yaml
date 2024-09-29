@@ -50,8 +50,8 @@ cb-lcars-functions:
               //console.log("Specific parent container: ", specificParentElement);
 
               // Check if the specific parent element has a class of 'preview'
-              if (specificParentElement && specificParentElement.classList.contains('preview')) {
-                  // Use the first child of the 'preview' element
+              //if (specificParentElement && specificParentElement.classList.contains('preview')) {
+              if (specificParentElement && (specificParentElement.classList.contains('preview') || specificParentElement.id === 'root')) {    // Use the first child of the 'preview' element
                   //console.log("parent class contains preview - using .firstElementChild....");
                   specificParentElement = specificParentElement.firstElementChild;
               }
