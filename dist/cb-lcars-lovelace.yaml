@@ -1063,9 +1063,6 @@ button_card_templates:
               card:
                 height: '[[[ return variables.card.height ]]]'
                 width: 10px
-      card:
-        width: 375px
-        height: 45px
     triggers_update: '[[[ return variables.entity  ]]]'
     custom_fields:
       slider:
@@ -1111,6 +1108,91 @@ button_card_templates:
           }
         ]]]
       __getParentDimension: |
+        [[[
+          // new take on things - just try to traverse up the DOM tree until a reasonable size is found
+          return function(thisObj, dimension, units, fallbackDimensions) {
+              let currentElement = thisObj.parentElement;
+              let parentDimension = 0;
+              // Function to check if the dimension is reasonable
+              function isReasonableSize(size) {
+                  return size > 0; // adjust this condition based on what is 'reasonable'
+              }
+              // Function to find the ancestor with id="root" (this is in stacks, grids, etc.)
+              function findRootAncestor(element) {
+                  while (element) {
+                      if (element.id === 'root') {
+                          return element;
+                      }
+                      if (element.parentNode instanceof ShadowRoot) {
+                          element = element.parentNode.host;
+                      } else {
+                          element = element.parentElement;
+                      }
+                  }
+                  return null;
+              }
+              // Function to resolve CSS variable (for fallback dimensions that are passed in as vars)
+              function resolveCSSVariable(variable) {
+                  return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+              }
+              // Check if there is an ancestor with id="root" and handle height dimension (we want the first row height for now)
+              if (dimension === 'height') {
+                  const rootAncestor = findRootAncestor(thisObj);
+                  if (rootAncestor && rootAncestor.firstElementChild) {
+                      const firstChild = rootAncestor.firstElementChild;
+                      parentDimension = firstChild.clientHeight;
+                      // If the dimensions are reasonable, return them
+                      if (isReasonableSize(parentDimension)) {
+                          if (units) {
+                              return parentDimension + units;
+                          } else {
+                              return parentDimension;
+                          }
+                      }
+                  }
+              }
+              // Traverse up the DOM tree to find a reasonable size
+              while (currentElement) {
+                  if (dimension === 'width') {
+                      parentDimension = currentElement.clientWidth;
+                  } else if (dimension === 'height') {
+                      parentDimension = currentElement.clientHeight;
+                  } else {
+                      console.error("Invalid dimension specified. Use 'width' or 'height'.");
+                      return null;
+                  }
+                  if (isReasonableSize(parentDimension)) {
+                      break;
+                  }
+                  currentElement = currentElement.parentElement;
+              }
+              // If no reasonable size found, use fallback dimensions or window dimensions as fallback
+              if (!isReasonableSize(parentDimension)) {
+                  if (fallbackDimensions && fallbackDimensions[dimension]) {
+                      const fallbackValue = fallbackDimensions[dimension];
+                      if (typeof fallbackValue === 'string' && fallbackValue.startsWith('var(')) {
+                          const cssVariable = fallbackValue.slice(4, -1).trim();
+                          parentDimension = parseFloat(resolveCSSVariable(cssVariable));
+                      } else {
+                          parentDimension = parseFloat(fallbackValue);
+                      }
+                  } else {
+                      if (dimension === 'width') {
+                          parentDimension = window.innerWidth;
+                      } else if (dimension === 'height') {
+                          parentDimension = window.innerHeight;
+                      }
+                  }
+              }
+              // Return the dimension with or without units
+              if (units) {
+                  return parentDimension + units;
+              } else {
+                  return parentDimension;
+              }
+          }
+        ]]]
+      __getParentDimension_working_before_grid_fixes: |
         [[[
           // new take on things - just try to traverse up the DOM tree until a reasonable size is found
           return function(thisObj, dimension, units) {
@@ -1552,8 +1634,14 @@ button_card_templates:
     triggers_update: '[[[ return variables.entity ]]]'
     variables:
       card:
-        width: 80px
-        height: 400px
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px') {height: 400, width: 80};
+          ]]]
       entity: '[[[ return entity.entity_id ]]]'
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_slider: false
@@ -1696,8 +1784,14 @@ button_card_templates:
     triggers_update: '[[[ return variables.entity ]]]'
     variables:
       card:
-        width: 500px
-        height: 45px
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px') {height: 445, width: 500};
+          ]]]
       entity: '[[[ return entity.entity_id ]]]'
       entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
       entity_match_slider: false
@@ -2061,11 +2155,11 @@ button_card_templates:
       card:
         width: |
           [[[
-            return variables.__getParentDimension(this,'width','px');
+            return variables.__getParentDimension(this,'width','px',{ height: 56, width: 200 });
           ]]]
         height: |
           [[[
-            return variables.__getParentDimension(this,'height','px');
+            return variables.__getParentDimension(this,'height','px',{ height: 56, width: 200 });
           ]]]
         min_height: 45px
         color:

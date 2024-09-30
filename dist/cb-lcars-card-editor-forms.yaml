@@ -1070,6 +1070,21 @@ cb-lcars-button-card:
     - <<: *iconSection
 cb-lcars-slider-card:
   render_form:
+    - controls:
+        - label: "LCARS Slider Type"
+          configValue: cblcars_card_type
+          type: Selector
+          selector:
+            select:
+              options:
+                - value: 'cb-lcars-slider-horizontal'
+                  label: 'Slider [Horizontal]'
+                - value: 'cb-lcars-slider'
+                  label: 'Slider [Vertical]'
+                - value: 'cb-lcars-slider-gauge'
+                  label: 'Gauge [Vertical]'
+                - value: 'cb-lcars-slider-horizontal-gauge'
+                  label: 'Gauge [Horizontal]'
     - <<: *actionsSection
 cb-lcars-dpad-card:
   render_form:
