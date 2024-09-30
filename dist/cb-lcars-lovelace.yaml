@@ -1111,6 +1111,105 @@ button_card_templates:
           }
         ]]]
       __getParentDimension: |
+        [[[
+          // new take on things - just try to traverse up the DOM tree until a reasonable size is found
+          return function(thisObj, dimension, units) {
+              let currentElement = thisObj.parentElement;
+              let parentDimension = 0;
+              // Function to check if the dimension is reasonable
+              function isReasonableSize(size) {
+                  return size > 0; // You can adjust this condition based on what you consider reasonable
+              }
+              // Traverse up the DOM tree to find a reasonable size
+              while (currentElement) {
+                  if (dimension === 'width') {
+                      parentDimension = currentElement.clientWidth;
+                  } else if (dimension === 'height') {
+                      parentDimension = currentElement.clientHeight;
+                  } else {
+                      console.error("Invalid dimension specified. Use 'width' or 'height'.");
+                      return null;
+                  }
+                  if (isReasonableSize(parentDimension)) {
+                      break;
+                  }
+                  currentElement = currentElement.parentElement;
+              }
+              // If no reasonable size found, use window dimensions as fallback
+              if (!isReasonableSize(parentDimension)) {
+                  if (dimension === 'width') {
+                      parentDimension = window.innerWidth;
+                  } else if (dimension === 'height') {
+                      parentDimension = window.innerHeight;
+                  }
+              }
+              // Return the dimension with or without units
+              if (units) {
+                  return parentDimension + units;
+              } else {
+                  return parentDimension;
+              }
+          }
+        ]]]
+      __getParentDimensionCurrent: |
+        [[[
+          // this method is updated for grids/vertical stacks, but horizontal stacks are not yet supported
+          return function(thisObj, dimension, units, specificParent = 'div') {
+              let parentElement = thisObj.parentElement;
+              let grandParentElement = thisObj.parentElement.parentElement;
+              console.log("parentElement: ", parentElement);
+              console.log("grandParentElement: ",grandParentElement);
+              // Use the specificParent parameter or default to 'div'
+              let parentSelector = specificParent || 'div';
+              let specificParentElement = thisObj.closest(parentSelector);
+              //console.log("Specific parent container: ", specificParentElement);
+              // Check if the specific parent element has a class of 'preview'
+              if (specificParentElement && specificParentElement.classList.contains('preview') ) {
+                  // Use the first child of the 'preview' element
+                  //console.log("parent class contains preview or id=room - using .firstElementChild....");
+                  specificParentElement = specificParentElement.firstElementChild;
+              }
+              // Handle the 'root' case and the 'hui-card' element
+              if (specificParentElement && specificParentElement.id === 'root') {
+                  if (specificParentElement.querySelector('hui-card')) {
+                      console.log("I'm in a 'root' with 'hui-card' - using grandParentElement");
+                      specificParentElement = grandParentElement;
+                  } else {
+                      console.log("I'm in a 'root' without 'hui-card' - using parentElement");
+                      specificParentElement = parentElement;
+                  }
+              }
+              /*
+              if (specificParentElement && specificParentElement.id === 'root') {
+                  // Use the grandparent
+                  console.log("I'm in a 'root' - using parentElement");
+                  specificParentElement = parentElement;
+                  console.log("my root parent height: ",specificParentElement.clientHeight);
+                  console.log("my root parent width: ",specificParentElement.clientWidth);
+              }
+              */
+              //specificParentElement = specificParentElement.firstElementChild;
+              // Get the dimension of the specific parent container
+              let parentDimension;
+              if (dimension === 'width') {
+                  parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
+              } else if (dimension === 'height') {
+                  parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
+              } else {
+                  console.error("Invalid dimension specified. Use 'width' or 'height'.");
+                  return null;
+              }
+              //console.log("specificParentElement: ", specificParentElement);
+              //console.log("Parent " + dimension + ": ", parentDimension);
+              // Return the dimension with or without units
+              if (units) {
+                  return parentDimension + units;
+              } else {
+                  return parentDimension;
+              }
+          }
+        ]]]
+      __getParentDimensionOrig: |
           [[[
             return function(thisObj, dimension, units, specificParent = 'div') {
                 let parentElement = thisObj.parentElement;
@@ -1954,8 +2053,11 @@ button_card_templates:
     show_icon: false
     show_name: false
     show_label: true
+    label: |
+      [[[
+        return (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0'))))
+      ]]]
     variables:
-      label: ' '
       card:
         width: |
           [[[
