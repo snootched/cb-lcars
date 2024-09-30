@@ -680,6 +680,46 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
       }
 }
 
+class CBLCARSDoubleElbowCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-double-elbow-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-double-elbow-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            };
+    }
+
+    setConfig(config) {
+
+        const defaultCardType = 'cb-lcars-header-picard';
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
+        //const defaultTemplates = ['cb-lcars-header'];
+        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            cblcars_card_config: {
+                ...config.cblcars_card_config,
+                template: mergedTemplates,
+            }
+        };
+        super.setConfig(specialConfig);
+    }
+
+    getLayoutOptions() {
+        return {
+            grid_rows: 1,
+            grid_columns: 4
+        };
+      }
+}
+
 class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-multimeter-card-editor';
@@ -870,6 +910,7 @@ customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy
 customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
 customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
 customElements.define('cb-lcars-elbow-card',CBLCARSElbowCard);
+customElements.define('cb-lcars-double-elbow-card',CBLCARSDoubleElbowCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
 customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
@@ -890,6 +931,12 @@ customElements.define('cb-lcars-label-card-editor', class extends CBLCARSCardEdi
 customElements.define('cb-lcars-elbow-card-editor', class extends CBLCARSCardEditor {
     constructor() {
         super('cb-lcars-elbow-card');
+    }
+});
+
+customElements.define('cb-lcars-double-elbow-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-double-elbow-card');
     }
 });
 
@@ -939,6 +986,13 @@ const CBLCARSCardClasses = [
         name: 'CB-LCARS Elbow',
         preview: true,
         description: 'CB-LCARS Elbow card',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-double-elbow-card',
+        name: 'CB-LCARS Double Elbow',
+        preview: true,
+        description: 'CB-LCARS Double Elbow card',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
     },
     {

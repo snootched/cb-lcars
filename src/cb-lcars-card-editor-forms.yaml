@@ -931,6 +931,26 @@ cb-lcars-elbow-card:
     - <<: *textLabelSection
     - <<: *cardSection
 
+cb-lcars-double-elbow-card:
+  render_form:
+    - controls:
+        - label: "LCARS Elbow Type"
+          configValue: cblcars_card_type
+          type: Selector
+          selector:
+            select:
+              options:
+                - value: 'cb-lcars-header-picard'
+                  label: 'Header'
+                - value: 'cb-lcars-header-picard-right'
+                  label: 'Header [Right]'
+                - value: 'cb-lcars-footer-picard'
+                  label: 'Footer'
+                - value: 'cb-lcars-footer-picard-right'
+                  label: 'Footer [Right]'
+    - <<: *textLabelSection
+    - <<: *cardSection
+
 cb-lcars-multimeter-card:
   render_form:
     - type: Section
