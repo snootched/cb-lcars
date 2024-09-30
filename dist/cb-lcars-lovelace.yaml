@@ -1957,7 +1957,14 @@ button_card_templates:
     variables:
       label: ' '
       card:
-        height: 60px
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px');
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px');
+          ]]]
         min_height: 45px
         color:
           active: var(--lcars-ui-secondary)
