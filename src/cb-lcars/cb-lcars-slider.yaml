@@ -107,9 +107,6 @@ cb-lcars-slider-horizontal:
             card:
               height: '[[[ return variables.card.height ]]]'
               width: 10px
-    card:
-      width: 375px
-      height: 45px
   triggers_update: '[[[ return variables.entity  ]]]'
   custom_fields:
     slider:

@@ -13,11 +13,11 @@ cb-lcars-button-base:
     card:
       width: |
         [[[
-          return variables.__getParentDimension(this,'width','px');
+          return variables.__getParentDimension(this,'width','px',{ height: 56, width: 200 });
         ]]]
       height: |
         [[[
-          return variables.__getParentDimension(this,'height','px');
+          return variables.__getParentDimension(this,'height','px',{ height: 56, width: 200 });
         ]]]
       min_height: 45px
       color:

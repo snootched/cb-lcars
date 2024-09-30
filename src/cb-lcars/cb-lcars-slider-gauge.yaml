@@ -6,8 +6,14 @@ cb-lcars-slider-gauge:
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
     card:
-      width: 80px
-      height: 400px
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px') {height: 400, width: 80};
+        ]]]
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
     entity_match_slider: false
@@ -150,8 +156,14 @@ cb-lcars-slider-horizontal-gauge:
   triggers_update: '[[[ return variables.entity ]]]'
   variables:
     card:
-      width: 500px
-      height: 45px
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px') {height: 445, width: 500};
+        ]]]
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
     entity_match_slider: false
