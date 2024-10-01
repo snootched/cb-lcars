@@ -533,7 +533,8 @@ class CBLCARSBaseCard extends HTMLElement {
                     //this.redrawChildCard();
                     for (let entry of entries) {
                         console.log('ResizeObserver entry for this.parentElement:', entry);
-                        const { width, height } = entry.contentRect;
+                        let width = entry.contentRect.width || entry.target.offsetWidth;
+                        let height = entry.contentRect.height || entry.target.offsetHeight;
                         console.log('ParentElement dimensions:', width, height);
                       }
 
@@ -546,8 +547,9 @@ class CBLCARSBaseCard extends HTMLElement {
                     //this.redrawChildCard();
                     for (let entry of entries) {
                         console.log('ResizeObserver entry for this:', entry);
-                        const { width, height } = entry.contentRect;
-                        console.log('This        dimensions:', width, height);
+                        let width = entry.contentRect.width || entry.target.offsetWidth;
+                        let height = entry.contentRect.height || entry.target.offsetHeight;
+                        console.log('This dimensions:', width, height);
                       }
 
                     //this.handleResize();
