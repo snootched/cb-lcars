@@ -12,7 +12,7 @@ cb-lcars-slider-gauge:
         ]]]
       height: |
         [[[
-          return variables.__getParentDimension(this,'height','px') {height: 400, width: 80};
+          return variables.__getParentDimension(this,'height','px', {height: 400, width: 80});
         ]]]
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
@@ -162,7 +162,7 @@ cb-lcars-slider-horizontal-gauge:
         ]]]
       height: |
         [[[
-          return variables.__getParentDimension(this,'height','px') {height: 445, width: 500};
+          return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
         ]]]
     entity: '[[[ return entity.entity_id ]]]'
     entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'

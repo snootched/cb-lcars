@@ -531,10 +531,30 @@ class CBLCARSBaseCard extends HTMLElement {
                 this.resizeObserver = new ResizeObserver(() => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     //this.redrawChildCard();
+                    for (let entry of entries) {
+                        console.log('ResizeObserver entry for this.parentElement:', entry);
+                        const { width, height } = entry.contentRect;
+                        console.log('ParentElement dimensions:', width, height);
+                      }
+
                     this.handleResize();
                 });
-
                 this.resizeObserver.observe(this.parentElement);
+
+                this.resizeObserver2 = new ResizeObserver(() => {
+                    //cblcarsLog('debug', 'Element resized, updating child card...');
+                    //this.redrawChildCard();
+                    for (let entry of entries) {
+                        console.log('ResizeObserver entry for this:', entry);
+                        const { width, height } = entry.contentRect;
+                        console.log('This dimensions:', width, height);
+                      }
+
+                    //this.handleResize();
+                });
+                this.resizeObserver2.observe(this);
+
+
             } catch (error) {
                 cblcarsLog('error',`Error creating ResizeObserver: ${error}`);
             }
