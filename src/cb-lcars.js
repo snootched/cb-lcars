@@ -528,7 +528,7 @@ class CBLCARSBaseCard extends HTMLElement {
             window.addEventListener('load', this.handleLoad.bind(this));
 
             try {
-                this.resizeObserver = new ResizeObserver(() => {
+                this.resizeObserver = new ResizeObserver(entries => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     //this.redrawChildCard();
                     for (let entry of entries) {
@@ -541,13 +541,13 @@ class CBLCARSBaseCard extends HTMLElement {
                 });
                 this.resizeObserver.observe(this.parentElement);
 
-                this.resizeObserver2 = new ResizeObserver(() => {
+                this.resizeObserver2 = new ResizeObserver(entries => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     //this.redrawChildCard();
                     for (let entry of entries) {
                         console.log('ResizeObserver entry for this:', entry);
                         const { width, height } = entry.contentRect;
-                        console.log('This dimensions:', width, height);
+                        console.log('This        dimensions:', width, height);
                       }
 
                     //this.handleResize();
