@@ -551,7 +551,8 @@ class CBLCARSBaseCard extends HTMLElement {
                         let width = entry.contentRect.width || entry.target.offsetWidth;
                         let height = entry.contentRect.height || entry.target.offsetHeight;
                         console.log('This dimensions:', width, height);
-                        this.handleResize(width, height);
+                        //this.handleResize(width, height);
+                        this.handleResize();
                     }
 
                 });
@@ -584,7 +585,8 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-    handleResize(width, height) {
+    //handleResize(width, height) {
+    handleResize() {
         //cblcarsLog('debug','Window resized, updating child card...');
         if (this.isResizing) {
             return;
@@ -592,6 +594,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this.isResizing = true;
 
+        /*
         // Update the configuration with new width and height
         if (this._config && this._config.cblcars_card_config && this._config.cblcars_card_config.variables) {
             // Create a shallow copy of the variables object
@@ -605,7 +608,7 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('debug', `Resizing card to ${width}x${height}...`);
             cblcarsLog('debug', `New card config: `, this._config);
         }
-
+        */
 
 
         this.redrawChildCard();
