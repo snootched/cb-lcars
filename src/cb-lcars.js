@@ -584,7 +584,7 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-    handleResize(width, height) {
+    handleResize = (width, height) => {
         //cblcarsLog('debug','Window resized, updating child card...');
         if (this.isResizing) {
             return;
@@ -607,7 +607,7 @@ class CBLCARSBaseCard extends HTMLElement {
         this.isResizing = false;
     }
 
-    handleLoad() {
+    handleLoad = () => {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.redrawChildCard();
     }
