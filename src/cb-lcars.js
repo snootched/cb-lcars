@@ -551,9 +551,9 @@ class CBLCARSBaseCard extends HTMLElement {
                         let width = entry.contentRect.width || entry.target.offsetWidth;
                         let height = entry.contentRect.height || entry.target.offsetHeight;
                         console.log('This dimensions:', width, height);
-                      }
+                        this.handleResize(width, height);
+                    }
 
-                    this.handleResize(width, height);
                 });
                 this.resizeObserver2.observe(this);
 
@@ -584,7 +584,7 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-    handleResize = (width, height) => {
+    handleResize(width, height) {
         //cblcarsLog('debug','Window resized, updating child card...');
         if (this.isResizing) {
             return;
@@ -607,7 +607,7 @@ class CBLCARSBaseCard extends HTMLElement {
         this.isResizing = false;
     }
 
-    handleLoad = () => {
+    handleLoad() {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.redrawChildCard();
     }
