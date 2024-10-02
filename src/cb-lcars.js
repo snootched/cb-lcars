@@ -596,6 +596,9 @@ class CBLCARSBaseCard extends HTMLElement {
        if (this._config && this._config.cblcars_card_config && this._config.cblcars_card_config.variables) {
         this._config.cblcars_card_config.variables.width = `${width}px`;
         this._config.cblcars_card_config.variables.height = `${height}px`;
+
+        cblcarsLog('debug',`Resizing card to ${width}x${height}...`);
+        cblcarsLog('debug',`New card config: `,this._config);
         }
 
 
