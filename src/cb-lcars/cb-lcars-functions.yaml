@@ -38,338 +38,113 @@ cb-lcars-functions:
             }
         }
       ]]]
-
     __getParentDimension: |
       [[[
         // new take on things - just try to traverse up the DOM tree until a reasonable size is found
         return function(thisObj, dimension, units, fallbackDimensions) {
-            let currentElement = thisObj.parentElement;
-            let parentDimension = 0;
-
-            // Function to check if the dimension is reasonable
-            function isReasonableSize(size) {
-                return size > 0; // adjust this condition based on what is 'reasonable'
-            }
-
-            // Function to find the ancestor with id="root" (this is in stacks, grids, etc.)
-            function findRootAncestor(element) {
-                while (element) {
-                    if (element.id === 'root') {
-                        return element;
-                    }
-                    if (element.parentNode instanceof ShadowRoot) {
-                        element = element.parentNode.host;
-                    } else {
-                        element = element.parentElement;
-                    }
-                }
-                return null;
-            }
-
-            // Function to resolve CSS variable (for fallback dimensions that are passed in as vars)
-            function resolveCSSVariable(variable) {
-                return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
-            }
-
-            // Check if there is an ancestor with id="root" and handle height dimension (we want the first row height for now)
-            if (dimension === 'height') {
-                const rootAncestor = findRootAncestor(thisObj);
-                if (rootAncestor && rootAncestor.firstElementChild) {
-                    const firstChild = rootAncestor.firstElementChild;
-                    parentDimension = firstChild.clientHeight;
-
-                    // If the dimensions are reasonable, return them
-                    if (isReasonableSize(parentDimension)) {
-                        if (units) {
-                            return parentDimension + units;
-                        } else {
-                            return parentDimension;
-                        }
-                    }
-                }
-            }
-
-            // Traverse up the DOM tree to find a reasonable size
-            while (currentElement) {
-                if (dimension === 'width') {
-                    parentDimension = currentElement.clientWidth;
-                } else if (dimension === 'height') {
-                    parentDimension = currentElement.clientHeight;
-                } else {
-                    console.error("Invalid dimension specified. Use 'width' or 'height'.");
-                    return null;
-                }
-                if (isReasonableSize(parentDimension)) {
-                    break;
-                }
-                currentElement = currentElement.parentElement;
-            }
-
-            // If no reasonable size found, use fallback dimensions or window dimensions as fallback
-            if (!isReasonableSize(parentDimension)) {
-                if (fallbackDimensions && fallbackDimensions[dimension]) {
-                    const fallbackValue = fallbackDimensions[dimension];
-                    if (typeof fallbackValue === 'string' && fallbackValue.startsWith('var(')) {
-                        const cssVariable = fallbackValue.slice(4, -1).trim();
-                        parentDimension = parseFloat(resolveCSSVariable(cssVariable));
-                    } else {
-                        parentDimension = parseFloat(fallbackValue);
-                    }
-                } else {
-                    if (dimension === 'width') {
-                        parentDimension = window.innerWidth;
-                    } else if (dimension === 'height') {
-                        parentDimension = window.innerHeight;
-                    }
-                }
-            }
-
-            // Return the dimension with or without units
-            if (units) {
-                return parentDimension + units;
-            } else {
-                return parentDimension;
-            }
-        }
-      ]]]
-
-
-
-
-
-    __getParentDimension_working_before_grid_fixes: |
-      [[[
-        // new take on things - just try to traverse up the DOM tree until a reasonable size is found
-        return function(thisObj, dimension, units) {
-            let currentElement = thisObj.parentElement;
-            let parentDimension = 0;
-
-            // Function to check if the dimension is reasonable
-            function isReasonableSize(size) {
-                return size > 0; // You can adjust this condition based on what you consider reasonable
-            }
-
-            // Traverse up the DOM tree to find a reasonable size
-            while (currentElement) {
-                if (dimension === 'width') {
-                    parentDimension = currentElement.clientWidth;
-                } else if (dimension === 'height') {
-                    parentDimension = currentElement.clientHeight;
-                } else {
-                    console.error("Invalid dimension specified. Use 'width' or 'height'.");
-                    return null;
-                }
-
-                if (isReasonableSize(parentDimension)) {
-                    break;
-                }
-
-                currentElement = currentElement.parentElement;
-            }
-
-            // If no reasonable size found, use window dimensions as fallback
-            if (!isReasonableSize(parentDimension)) {
-                if (dimension === 'width') {
-                    parentDimension = window.innerWidth;
-                } else if (dimension === 'height') {
-                    parentDimension = window.innerHeight;
-                }
-            }
-
-            // Return the dimension with or without units
-            if (units) {
-                return parentDimension + units;
-            } else {
-                return parentDimension;
-            }
-        }
-      ]]]
-    __getParentDimensionCurrent: |
-      [[[
-        // this method is updated for grids/vertical stacks, but horizontal stacks are not yet supported
-        return function(thisObj, dimension, units, specificParent = 'div') {
-            let parentElement = thisObj.parentElement;
-            let grandParentElement = thisObj.parentElement.parentElement;
-
-
-
-            console.log("parentElement: ", parentElement);
-            console.log("grandParentElement: ",grandParentElement);
-
-
-            // Use the specificParent parameter or default to 'div'
-            let parentSelector = specificParent || 'div';
-            let specificParentElement = thisObj.closest(parentSelector);
-            //console.log("Specific parent container: ", specificParentElement);
-
-
-            // Check if the specific parent element has a class of 'preview'
-            if (specificParentElement && specificParentElement.classList.contains('preview') ) {
-                // Use the first child of the 'preview' element
-                //console.log("parent class contains preview or id=room - using .firstElementChild....");
-                specificParentElement = specificParentElement.firstElementChild;
-            }
-
-
-            // Handle the 'root' case and the 'hui-card' element
-            if (specificParentElement && specificParentElement.id === 'root') {
-                if (specificParentElement.querySelector('hui-card')) {
-                    console.log("I'm in a 'root' with 'hui-card' - using grandParentElement");
-                    specificParentElement = grandParentElement;
-                } else {
-                    console.log("I'm in a 'root' without 'hui-card' - using parentElement");
-                    specificParentElement = parentElement;
-                }
-            }
-
-            /*
-            if (specificParentElement && specificParentElement.id === 'root') {
-                // Use the grandparent
-                console.log("I'm in a 'root' - using parentElement");
-                specificParentElement = parentElement;
-                console.log("my root parent height: ",specificParentElement.clientHeight);
-                console.log("my root parent width: ",specificParentElement.clientWidth);
-            }
-            */
-
-
-            //specificParentElement = specificParentElement.firstElementChild;
-            // Get the dimension of the specific parent container
-            let parentDimension;
-            if (dimension === 'width') {
-                parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
-            } else if (dimension === 'height') {
-                parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
-            } else {
-                console.error("Invalid dimension specified. Use 'width' or 'height'.");
-                return null;
-            }
-            //console.log("specificParentElement: ", specificParentElement);
-            //console.log("Parent " + dimension + ": ", parentDimension);
-            // Return the dimension with or without units
-            if (units) {
-                return parentDimension + units;
-            } else {
-                return parentDimension;
-            }
-        }
-      ]]]
-
-
-    __getParentDimensionOrig: |
-        [[[
-          return function(thisObj, dimension, units, specificParent = 'div') {
-              let parentElement = thisObj.parentElement;
-              //console.log("Parent element: ", parentElement);
-
-              // Use the specificParent parameter or default to 'div'
-              let parentSelector = specificParent || 'div';
-              let specificParentElement = thisObj.closest(parentSelector);
-              //console.log("Specific parent container: ", specificParentElement);
-              // Check if the specific parent element has a class of 'preview'
-
-
-              //if (specificParentElement && specificParentElement.classList.contains('preview') ) {
-              if (specificParentElement && (specificParentElement.classList.contains('preview') || specificParentElement.id === 'root')) {
-                  // Use the first child of the 'preview' element
-                  //console.log("parent class contains preview or id=room - using .firstElementChild....");
-                  specificParentElement = specificParentElement.firstElementChild;
-              }
-
-
-              //specificParentElement = specificParentElement.firstElementChild;
-
-
-              // Get the dimension of the specific parent container
-              let parentDimension;
-              if (dimension === 'width') {
-                  parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
-              } else if (dimension === 'height') {
-                  parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
-              } else {
-                  console.error("Invalid dimension specified. Use 'width' or 'height'.");
-                  return null;
-              }
-              //console.log("specificParentElement: ", specificParentElement);
-              //console.log("Parent " + dimension + ": ", parentDimension);
-              // Return the dimension with or without units
-              if (units) {
-                  return parentDimension + units;
-              } else {
-                  return parentDimension;
-              }
+          let currentElement = thisObj.parentElement;
+          let parentDimension = 0;
+          // Function to check if the dimension is reasonable
+          function isReasonableSize(size) {
+            return size > 0; // adjust this condition based on what is 'reasonable'
           }
-        ]]]
-
-    __getParentDimensionOld: |
-        [[[
-          return function(thisObj, dimension, units, specificParent = 'div') {
-              let parentElement = thisObj.parentElement;
-              //console.log("Parent element: ", parentElement);
-
-              // Use the specificParent parameter or default to 'div'
-              let parentSelector = specificParent || 'div';
-              let specificParentElement = thisObj.closest(parentSelector);
-              //console.log("Specific parent container: ", specificParentElement);
-
-              // Check if the specific parent element has a class of 'preview'
-              //if (specificParentElement && specificParentElement.classList.contains('preview')) {
-              if (specificParentElement && (specificParentElement.classList.contains('preview') || specificParentElement.id === 'root')) {    // Use the first child of the 'preview' element
-                  //console.log("parent class contains preview - using .firstElementChild....");
-                  specificParentElement = specificParentElement.firstElementChild;
+          // Function to find the ancestor with id="root" (this is in stacks, grids, etc.)
+          function findRootAncestor(element) {
+            while (element) {
+              if (element.id === 'root') {
+                return element;
               }
-
-              // Get the dimension of the specific parent container
-              let parentDimension;
-              if (dimension === 'width') {
-                  parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
-              } else if (dimension === 'height') {
-                  parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
+              if (element.parentNode instanceof ShadowRoot) {
+                element = element.parentNode.host;
               } else {
-                  console.error("Invalid dimension specified. Use 'width' or 'height'.");
-                  return null;
+                element = element.parentElement;
               }
-
-              //console.log("specificParentElement: ", specificParentElement);
-              //console.log("Parent " + dimension + ": ", parentDimension);
-
-
-              // Return the dimension with or without units
-              if (units) {
-                  return parentDimension + units;
-              } else {
-                  return parentDimension;
-              }
-          }
-        ]]]
-    __getParentDimension2: |
-      [[[
-        return function(thisObj, dimension, units, specificParent = 'div') {
-          let parentElement = thisObj.parentElement;
-          //console.log("Parent element: ", parentElement);
-
-          // Use the specificParent parameter or default to 'div'
-          let parentSelector = specificParent || 'div';
-          let specificParentElement = thisObj.closest(parentSelector);
-          //console.log("Specific parent container: ", specificParentElement);
-
-          // Get the dimension of the specific parent container
-          let parentDimension;
-          if (dimension === 'width') {
-            parentDimension = specificParentElement ? specificParentElement.clientWidth : window.innerWidth;
-          } else if (dimension === 'height') {
-            parentDimension = specificParentElement ? specificParentElement.clientHeight : window.innerHeight;
-          } else {
-            console.error("Invalid dimension specified. Use 'width' or 'height'.");
+            }
             return null;
           }
-          //console.log("Parent " + dimension + ": ", parentDimension);
-
-          // Return the dimension with or without units
-          if (units) {
-            return parentDimension + units;
+          // Function to resolve CSS variable (for fallback dimensions that are passed in as vars)
+          function resolveCSSVariable(variable) {
+            return getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
+          }
+          // Function to check if the element is within a vertical stack
+          function isVerticalStack(element) {
+            // Check if the element or any ancestor is a HUI-VERTICAL-STACK-CARD
+            while (element) {
+              if (element.tagName === "HUI-VERTICAL-STACK-CARD") {
+                return true;
+              }
+              if (element.parentNode instanceof ShadowRoot) {
+                element = element.parentNode.host;
+              } else {
+                element = element.parentElement;
+              }
+            }
+            return false;
+          }
+          // Check if there is an ancestor with id="root" and handle height dimension (we want the first row height for now)
+          if (dimension === 'height' && isVerticalStack(thisObj)) {
+            // If the card is in a vertical stack, return the default row height
+            return `var(--row-height)`;
           } else {
-            return parentDimension;
+            // Otherwise, continue with the existing logic
+            if (dimension === 'height') {
+              const rootAncestor = findRootAncestor(thisObj);
+              if (rootAncestor && rootAncestor.firstElementChild) {
+                const firstChild = rootAncestor.firstElementChild;
+                parentDimension = firstChild.clientHeight;
+                // If the dimensions are reasonable, return them
+                if (isReasonableSize(parentDimension)) {
+                  if (units) {
+                    return parentDimension + units;
+                  } else {
+                    return parentDimension;
+                  }
+                }
+              }
+            }
+            // Traverse up the DOM tree to find a reasonable size
+            while (currentElement) {
+              if (dimension === 'width') {
+                parentDimension = currentElement.clientWidth;
+              } else if (dimension === 'height') {
+                parentDimension = currentElement.clientHeight;
+              } else {
+                console.error("Invalid dimension specified. Use 'width' or 'height'.");
+                return null;
+              }
+              if (isReasonableSize(parentDimension)) {
+                break;
+              }
+              if (currentElement.parentNode instanceof ShadowRoot) {
+                currentElement = currentElement.parentNode.host;
+              } else {
+                currentElement = currentElement.parentElement;
+              }
+            }
+            // If no reasonable size found, use fallback dimensions or window dimensions as fallback
+            if (!isReasonableSize(parentDimension)) {
+              if (fallbackDimensions && fallbackDimensions[dimension]) {
+                const fallbackValue = fallbackDimensions[dimension];
+                if (typeof fallbackValue === 'string' && fallbackValue.startsWith('var(')) {
+                  const cssVariable = fallbackValue.slice(4, -1).trim();
+                  parentDimension = parseFloat(resolveCSSVariable(cssVariable));
+                } else {
+                  parentDimension = parseFloat(fallbackValue);
+                }
+              } else {
+                if (dimension === 'width') {
+                  parentDimension = window.innerWidth;
+                } else if (dimension === 'height') {
+                  parentDimension = window.innerHeight;
+                }
+              }
+            }
+            // Return the dimension with or without units
+            if (units) {
+              return parentDimension + units;
+            } else {
+              return parentDimension;
+            }
           }
         }
       ]]]
