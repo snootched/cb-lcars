@@ -406,3 +406,11 @@ dist/cb-lcars-full.yaml
 archive/
 dist.bak/
 dist/
+dist/cb-lcars-airlock.yaml
+dist/cb-lcars-card-editor-forms.yaml
+dist/cb-lcars-gallery.yaml
+dist/cb-lcars-lovelace.yaml
+dist/cb-lcars-stub-config.yaml
+dist/cb-lcars.js
+dist/cb-lcars.js.LICENSE.txt
+dist/cb-lcars.js.map
