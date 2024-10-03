@@ -23,9 +23,9 @@
                 <div class="form-control">
                     ${(0,i.unsafeHTML)(t.html||"")}
                 </div>
-            `;case"ColorPreview":const o=(0,e.getNestedProperty)(r._config,t.configValue),a=getComputedStyle(document.documentElement).getPropertyValue(o).trim(),u=(t=>{const e=t.match(/\d+/g).map(Number),[r,n,i]=e.map((t=>t/255)).map((t=>t<=.03928?t/12.92:Math.pow((t+.055)/1.055,2.4)));return.2126*r+.7152*n+.0722*i})(a)>.5?"#000":"#fff";return n.html`
+            `;case"ColorPreview":const o=(0,e.getNestedProperty)(r._config,t.configValue);console.log("colorValue:",o);const a=getComputedStyle(document.documentElement).getPropertyValue(o).trim();console.log("computedColorValue:",a);const u=(t=>{console.log("RGB input to getLuminance:",t);const e=t.match(/\d+/g).map(Number);console.log("Parsed RGB values:",e);const[r,n,i]=e.map((t=>t/255)).map((t=>t<=.03928?t/12.92:Math.pow((t+.055)/1.055,2.4)));return console.log("Normalized RGB values:",[r,n,i]),.2126*r+.7152*n+.0722*i})(a);console.log("Luminance:",u);const l=u>.5?"#000":"#fff";return console.log("textColor:",l),n.html`
                 <div class="form-control" style="width: 100%;">
-                    <div style="width: 100%; height: 60px; background-color: ${o}; border-radius: 25px; border: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: ${u}; padding: 5px;">
+                    <div style="width: 100%; height: 60px; background-color: ${o}; border-radius: 25px; border: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: ${l}; padding: 5px;">
                         <div>${o}</div>
                         <div>${a}</div>
                     </div>
