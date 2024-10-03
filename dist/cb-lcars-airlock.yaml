@@ -5,98 +5,64 @@ max_columns: 3
 sections:
   - type: grid
     cards:
-      - type: custom:button-card
-        template:
-          - cb-lcars-base
-          - cb-lcars-actions-disable
-        variables:
-          card:
-            height: 330px
-            width: 75vw
-        styles:
-          card:
-            - height: 330px
-            - width: 75vw
-          custom_fields:
-            header:
-              - position: absolute
-              - top: 0
-              - left: 0
-            header_label:
-              - position: absolute
-              - top: 0
-              - right: 0
-            message:
-              - position: absolute
-              - top: 80px
-              - left: 220px
-              - text-align: left
-              - z-index: 1
-        custom_fields:
-          message:
+      - type: custom:cb-lcars-elbow-card
+        cblcars_card_config:
+          variables:
             card:
-              type: markdown
-              content: >-
-                # GREETINGS CAPTAIN
-
-                ### Welcome aboard to **CB-LCARS** for Home Assistant
-
-                **CB-LCARS** is a framework of card templates for building
-                LCARS interfaces in Home Assistant - based on <a
-                href="https://github.com/custom-cards/button-card"
-                style="color:#37a6d1 !important;">custom-button-card</a>.
-
-
-                Please enjoy using CB-LCARS to create, personalize, and
-                tinker with your LCARS interface.
-
-                For more information see the <a
-                href="https://github.com/snootched/cb-lcars" style="color:
-                var(--picard-blue);">CB-LCARS Repository</a>
-              styles:
-                card:
-                  - null
-          header:
+              border:
+                left:
+                  size: 180
+                top:
+                  size: 45
+                  left_radius: 150
+                color: '#2f3749'
+            text:
+              label:
+                padding:
+                  left: 56
+                  top: 35
+                font_size: '18'
+          label: |2-
+                  <elt>
+                      <h1>GREETINGS CAPTAIN</h1>
+                      <h4>Welcome aboard to <strong>CB-LCARS</strong> for Home Assistant</h4>
+                      <p><strong>CB-LCARS</strong> is a framework of card templates for building LCARS interfaces in Home Assistant - based on <a href="https://github.com/custom-cards/button-card" style="color:#37a6d1 !important;">custom-button-card</a>.</p>
+                      <p>Please enjoy using CB-LCARS to create, personalize, and tinker with your LCARS interface.</p>
+                      <p>For more information see the <a href="https://github.com/snootched/cb-lcars" style="color: var(--picard-blue);">CB-LCARS Repository</a></p>
+                  </elt>
+        cblcars_card_type: cb-lcars-header
+        layout_options:
+          grid_columns: 9
+          grid_rows: 5
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: CB-LCARS AIRLOCK
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 42
+                font_weight: 100
+                color:
+                  default: '#f9ef97'
+                justify: right
+                padding:
+                  right: 15
+                  bottom: 6
             card:
-              type: custom:button-card
-              template: cb-lcars-header
-              variables:
-                card:
-                  height: 330px
-                  width: calc(75vw - 450px)
-                  border:
-                    color: var(--picard-dark-gray)
-                    left:
-                      size: 180px
-                    top:
-                      size: 45px
-                      left_radius: 150px
-          header_label:
-            card:
-              type: custom:button-card
-              template: cb-lcars-label
-              label: cb-lcars airlock
-              show_label: true
-              variables:
-                text:
-                  label:
-                    font_size: 40px
-                    font_weight: lighter
-                    color:
-                      default: var(--picard-yellow)
-                    justify: right
-                    padding:
-                      right: 15px
-                      bottom: 5px
-                card:
-                  height: 45px
-                  width: 450px
-                  border:
-                    left:
-                      size: 110px
-                    right:
-                      size: 40px
-                    color: var(--picard-dark-gray)
+              height: 45
+              border:
+                left:
+                  size: 0
+                right:
+                  size: 65
+                color: '#2f3749'
+        layout_options:
+          grid_columns: 3
+          grid_rows: 1
+    column_span: 3
+  - type: grid
+    cards:
       - type: custom:button-card
         template:
           - cb-lcars-functions
@@ -1003,5 +969,3 @@ sections:
     cards: []
 icon: ''
 cards: []
-
-
