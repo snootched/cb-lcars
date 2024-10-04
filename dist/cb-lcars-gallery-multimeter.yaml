@@ -1,0 +1,148 @@
+title: Gallery LCARS Multimeter
+path: gallery-lcars-multimeter
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Multimeter (gauge/slider/icons)
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity: light.tv
+            label: guage
+            header_button: {}
+        layout_options:
+          grid_columns: 4
+          grid_rows: 1
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity: light.tv
+            label: slider
+            panel:
+              mode: slider
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity: ''
+            label: icons
+            panel:
+              mode: icons
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Multimeter Variations
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            label: btn.orange
+            header_button:
+              variables:
+                card:
+                  color:
+                    background:
+                      active: var(--picard-orange)
+        layout_options:
+          grid_columns: 4
+          grid_rows: 1
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_header: true
+            label: match hdr.
+            header_button: {}
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            panel:
+              mode: slider
+            entity_match_header: false
+            entity_match_slider_end: true
+            label: match end
+            header_button: {}
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_header: false
+            entity_match_slider_start: true
+            label: match start
+            panel:
+              mode: slider
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_gauge: false
+            entity_match_slider: true
+            label: match sldr
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_gauge: true
+            entity_match_slider: true
+            entity_match_header: true
+            label: match ALL
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_slider_end: true
+            entity_match_slider_start: true
+            entity_match_header: true
+            label: match ALL
+            panel:
+              mode: slider
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Horizontal Slider/Gauge
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config: null
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config:
+          variables:
+            meter:
+              variables:
+                gradient_start_color: var(--picard-dark-blue)
+                gradient_end_color: var(--picard-lightest-blue)
+                button:
+                  template: cb-lcars-button-lozenge
+            slider:
+              variables:
+                mask_color: rgba(0,255,0,0.7)
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config:
+          variables:
+            card:
+              height: 20px
+            meter:
+              variables:
+                gradient_start_color: var(--picard-dark-blue)
+                gradient_end_color: var(--picard-orange)
+                _gradient:
+                  gap: 10px
+                  X: 8
+                button:
+                  variables:
+                    card:
+                      width: 30px
+                      height: 20px
+                  template:
+                    - cb-lcars-button-lozenge
+            slider:
+              variables:
+                mask_color: rgba(0,0,0,0.7)
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_type: cb-lcars-slider-horizontal-gauge
+        variables:
+          gauge:
+            show_sub_meter: true
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_type: cb-lcars-slider-horizontal-gauge
+        cblcars_card_config:
+          variables:
+            gauge:
+              show_sub_meter: false
+            entity_match_slider: true
+max_columns: 4
+subview: true
+cards: []

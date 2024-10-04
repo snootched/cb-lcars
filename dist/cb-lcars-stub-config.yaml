@@ -25,4 +25,35 @@ cb-lcars-button-card:
   cblcars_card_config:
     label: "LCARS Button"
     show_label: true
+cb-lcars-elbow-card:
+  cblcars_card_type: cb-lcars-header
+  cblcars_card_config:
+    variables:
+      card:
+        border:
+          left:
+            size: 90
+          top:
+            size: 20
+            left_radius: 34
+            right_radius: 0
+          bottom:
+            size: 0
+            left_radius: 0
+            right_radius: 0
+          right:
+            size: 0
+      text:
+        label:
+          font_size: "22"
+          font_weight: 400
+          align: left
+          align_items: flex-start
+          justify: flex-start
+          padding:
+            top: 10
+            bottom: 10
+            left: 20
+            right: 0
+
 
