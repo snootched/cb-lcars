@@ -26,13 +26,13 @@ export class CBLCARSDashboardStrategy {
             const galleryPaths = CBLCARS.gallery_views_uris || [];
 
             // Generate gallery views from the array of file paths
-            const galleryViews = await Promise.all(galleryPaths.map(async (path) => {
-                const galleryConfig = await readYamlFile(path);
+            const galleryViews = await Promise.all(galleryPaths.map(async (filePath) => {
+                const fileName = path.basename(filePath, path.extname(filePath));
                 return {
-                    title: `Gallery from ${path}`,
+                    title: `Gallery-${fileName}`,
                     strategy: {
                         type: 'custom:cb-lcars-view',
-                        options: galleryConfig
+                        options: { path: filePath }
                     }
                 };
             }));
