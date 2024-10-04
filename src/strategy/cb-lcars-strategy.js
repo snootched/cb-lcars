@@ -79,24 +79,6 @@ export class CBLCARSViewStrategyAirlock {
         }
     }
 }
-//define gallery view strategy
-/*
-export class CBLCARSViewStrategyGallery {
-    static async generate(config, hass) {
-        try {
-            cblcarsLog('info','Generating CB-LCARS Gallery strategy view...');
-            const jsObject = await readYamlFile(CBLCARS.gallery_uri);
-
-            return {
-                ...jsObject
-            };
-        } catch (error) {
-            cblcarsLog('error', `Error loading CB-LCARS Gallery strategy view: ${error.message}`);
-            throw error;
-        }
-    }
-}
-    */
 
 export class CBLCARSViewStrategy {
     static async generate(config, hass) {
