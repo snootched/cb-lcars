@@ -33,7 +33,8 @@ export class CBLCARSDashboardStrategy {
                         strategy: {
                             type: 'custom:cb-lcars-view',
                             options: { path: filePath }
-                        }
+                        },
+                        subview: true
                     };
                 }));
 

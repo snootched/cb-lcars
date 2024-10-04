@@ -55,15 +55,13 @@ sections:
             card:
               height: 45
               border:
-                left:
-                  size: 56
                 right:
                   size: 65
                 color: var(--picard-dark-gray)
         layout_options:
           grid_columns: 4
           grid_rows: 1
-    column_span: 5
+    column_span: 4
   - type: grid
     cards:
       - type: custom:cb-lcars-elbow-card
