@@ -1,0 +1,347 @@
+title: Gallery LCARS Buttons
+path: gallery-lcars-buttons
+icon: ''
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Lozenge Buttons
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-lozenge
+        cblcars_card_config:
+          label: ...button-lozenge
+          show_label: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-lozenge-right
+        cblcars_card_config:
+          label: ...button-lozenge-right
+          show_label: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-lozenge
+        cblcars_card_config:
+          label: ...button-lozenge
+          show_label: true
+          icon: mdi:space-invaders
+          show_icon: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-lozenge-right
+        cblcars_card_config:
+          label: ...button-lozenge-right
+          show_label: true
+          icon: mdi:space-invaders
+          show_icon: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Bullet Buttons
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-bullet
+        cblcars_card_config:
+          label: ...button-bullet
+          show_label: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-bullet-right
+        cblcars_card_config:
+          label: ...button-bullet-right
+          show_label: true
+          variables: {}
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-bullet
+        cblcars_card_config:
+          label: ...button-bullet
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-bullet-right
+        cblcars_card_config:
+          label: ...button-bullet-right
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Capped Buttons
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-capped
+        cblcars_card_config:
+          label: ...button-capped
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-capped-right
+        cblcars_card_config:
+          label: ...button-capped-right
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-capped
+        cblcars_card_config:
+          label: ...button-capped
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-capped-right
+        cblcars_card_config:
+          label: ...button-capped-right
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Picard Buttons [open)
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard
+        cblcars_card_config:
+          label: Button-picard
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-right
+        cblcars_card_config:
+          label: Button-picard-right
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard
+        cblcars_card_config:
+          label: Button-picard
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-right
+        cblcars_card_config:
+          label: Button-picard-right
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard
+        cblcars_card_config:
+          show_label: true
+          variables: {}
+          template:
+            - cb-lcars-button-picard-label-ne
+          label: ...picard-label-ne
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard
+        cblcars_card_config:
+          show_label: true
+          variables: {}
+          template:
+            - cb-lcars-button-picard-label-sw
+          label: ...picard-label-sw
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Picard Buttons [filled]
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled
+        cblcars_card_config:
+          label: picard-filled
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled-right
+        cblcars_card_config:
+          label: picard-filled-right
+          show_label: true
+          variables: {}
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled
+        cblcars_card_config:
+          label: picard-filled
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled-right
+        cblcars_card_config:
+          label: picard-filled-rt
+          show_label: true
+          variables: {}
+          show_icon: true
+          icon: mdi:space-invaders
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled
+        cblcars_card_config:
+          show_label: true
+          variables: {}
+          template:
+            - cb-lcars-button-picard-label-ne
+          label: ...picard-label-ne
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled
+        cblcars_card_config:
+          show_label: true
+          variables: {}
+          template:
+            - cb-lcars-button-picard-label-sw
+          label: ...picard-label-sw
+      - type: custom:cb-lcars-button-card
+        cblcars_card_type: cb-lcars-button-picard-filled
+        cblcars_card_config:
+          label: picard-filled
+          show_label: true
+          show_icon: true
+          icon: mdi:space-invaders
+          template:
+            - cb-lcars-button-picard-label-se
+            - cb-lcars-button-picard-name-ne
+          show_name: true
+          name: '{name-ne}'
+          variables:
+            text:
+              label:
+                font_size: 22px
+                font_weight: bold
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Labels
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 100]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 100
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 200]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 200
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 300]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 300
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 400]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 400
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 500]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 500
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 600]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 600
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: cb-lcars-label [Weight 700]
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 32
+                font_weight: 700
+                color:
+                  default: var(--picard-light-orange)
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: LCARS LABEL
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 52
+                font_weight: 100
+                color:
+                  default: '#f9ef97'
+                justify: right
+                padding:
+                  right: 15
+                  bottom: 8
+            card:
+              border:
+                left:
+                  size: 60
+                right:
+                  size: 40
+                color: '#2f3749'
+        layout_options:
+          grid_columns: 4
+          grid_rows: 1
+max_columns: 4
+cards: []
+subview: true

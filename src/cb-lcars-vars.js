@@ -12,3 +12,11 @@ export const stub_config_uri = '/hacsfiles/cb-lcars/cb-lcars-stub-config.yaml';
 export const airlock_uri = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 export const gallery_uri = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 export const card_editor_uri = '/hacsfiles/cb-lcars/cb-lcars-card-editor-forms.yaml'
+export const gallery_views_uris = [
+        '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml',
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-buttons.yaml',
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-elbows.yaml',
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-extras.yaml',
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-multimeter.yaml',
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-sliders.yaml'
+    ]

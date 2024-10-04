@@ -1,7 +1,7 @@
 import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsLog, logImportStatus, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { fetchYAML, readYamlFile } from './utils/cb-lcars-fileutils.js';
-import { CBLCARSDashboardStrategy, CBLCARSViewStrategyAirlock, CBLCARSViewStrategyGallery } from './strategy/cb-lcars-strategy.js';
+import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock, CBLCARSViewStrategyGallery } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
@@ -529,6 +529,8 @@ class CBLCARSBaseCard extends HTMLElement {
             window.addEventListener('load', this.handleLoad.bind(this));
 
             try {
+
+                /*
                 this.resizeObserver = new ResizeObserver(entries => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     //this.redrawChildCard();
@@ -542,21 +544,23 @@ class CBLCARSBaseCard extends HTMLElement {
                     //this.handleResize();
                 });
                 this.resizeObserver.observe(this.parentElement);
+                */
 
-                this.resizeObserver2 = new ResizeObserver(entries => {
+
+                this.resizeObserver = new ResizeObserver(entries => {
                     //cblcarsLog('debug', 'Element resized, updating child card...');
                     //this.redrawChildCard();
                     for (let entry of entries) {
-                        console.log('ResizeObserver entry for this:', entry);
-                        let width = entry.contentRect.width || entry.target.offsetWidth;
-                        let height = entry.contentRect.height || entry.target.offsetHeight;
-                        console.log('This dimensions:', width, height);
+                        //console.log('ResizeObserver entry for this:', entry);
+                        //let width = entry.contentRect.width || entry.target.offsetWidth;
+                        //let height = entry.contentRect.height || entry.target.offsetHeight;
+                        //console.log('This dimensions:', width, height);
                         //this.handleResize(width, height);
                         this.handleResize();
                     }
 
                 });
-                this.resizeObserver2.observe(this);
+                this.resizeObserver.observe(this);
 
 
             } catch (error) {
@@ -571,17 +575,12 @@ class CBLCARSBaseCard extends HTMLElement {
     disconnectedCallback() {
 
         // Remove event listeners
-        //window.removeEventListener('resize', this.handleResize);
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
 
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
-        }
-        if (this.resizeObserver2) {
-            this.resizeObserver2.disconnect();
-            this.resizeObserver2 = null;
         }
     }
 
@@ -950,7 +949,8 @@ customElements.define("cb-lcars-panel", CBLCARSPanel);
 
 // define the strategies in HA
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
-customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
+//customElements.define('ll-strategy-view-cb-lcars-gallery', CBLCARSViewStrategyGallery);
+customElements.define('ll-strategy-view-cb-lcars-view', CBLCARSViewStrategy);
 customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
 
 //Define the cards for Home Assistant usage

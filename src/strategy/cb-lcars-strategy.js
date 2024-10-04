@@ -12,27 +12,37 @@ export class CBLCARSDashboardStrategy {
                 hass.callWS({ type: "config/device_registry/list" }),
                 hass.callWS({ type: "config/entity_registry/list" }),
                 ]);
-            
+
             //cblcarsLog('debug areas:',areas);
             //cblcarsLog('debug devices:',devices);
             //cblcarsLog('debug entities:',entities);
 
-            //const yamlContent = await fetchYAML(CBLCARS.templates_uri);
-            //const jsObject = jsyaml.load(yamlContent);
-            //cblcarsLog('info',`fetched and parsed yaml ${CBLCARS.templates_uri}`);
-            //cblcarsLog('debug',jsObject);
-            const jsObject = await readYamlFile(CBLCARS.templates_uri);
-
-            //cblcarsLog('warn',"dumping dash strategy after readYamlFile function...");
-            //cblcarsLog('debug',jsObject);
-
             cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
+
+            // Load the main CB-LCARS button card templates
+            const buttonTemplates = await readYamlFile(CBLCARS.templates_uri);
+
+            // Array of file paths for gallery views
+            const galleryPaths = CBLCARS.gallery_views_uris || [];
+
+            // Generate gallery views from the array of file paths
+            const galleryViews = await Promise.all(galleryPaths.map(async (path) => {
+                const galleryConfig = await readYamlFile(path);
+                return {
+                    title: `Gallery from ${path}`,
+                    strategy: {
+                        type: 'custom:cb-lcars-view',
+                        options: galleryConfig
+                    }
+                };
+            }));
+
             return {
                 'cb-lcars': {
                     manage_config: true
                 },
                 title: 'CB-LCARS',
-                ...jsObject, // Use the parsed YAML content here
+                ...buttonTemplates,
 
                 views: [
                     {
@@ -42,15 +52,9 @@ export class CBLCARSDashboardStrategy {
                             options: config
                         }
                     },
-                    {
-                        title: 'CB-LCARS Gallery',
-                        strategy: {
-                            type: 'custom:cb-lcars-gallery',
-                            options: config
-                        }
-                    }
+                    ...galleryViews
                 ]
-    
+
             };
         } catch (error) {
             cblcarsLog('error', `Error generating CB-LCARS dashboard strategy: ${error.message}`);
@@ -76,6 +80,7 @@ export class CBLCARSViewStrategyAirlock {
     }
 }
 //define gallery view strategy
+/*
 export class CBLCARSViewStrategyGallery {
     static async generate(config, hass) {
         try {
@@ -87,6 +92,24 @@ export class CBLCARSViewStrategyGallery {
             };
         } catch (error) {
             cblcarsLog('error', `Error loading CB-LCARS Gallery strategy view: ${error.message}`);
+            throw error;
+        }
+    }
+}
+    */
+
+export class CBLCARSViewStrategy {
+    static async generate(config, hass) {
+        try {
+            const { path } = config;
+            cblcarsLog('info',`Generating CB-LCARS strategy view from path: ${path}...`);
+            const jsObject = await readYamlFile(path);
+
+            return {
+                ...jsObject
+            };
+        } catch (error) {
+            cblcarsLog('error', `Error loading CB-LCARS strategy view: ${error.message}`);
             throw error;
         }
     }
