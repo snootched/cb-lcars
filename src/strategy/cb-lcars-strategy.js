@@ -3,6 +3,7 @@
 import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { readYamlFile } from '../utils/cb-lcars-fileutils.js';
+import { path } from 'path';
 
 export class CBLCARSDashboardStrategy {
     static async generate(config, hass) {
