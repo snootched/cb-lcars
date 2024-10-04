@@ -25,7 +25,7 @@
                 </div>
             `;case"ColorPreview":let o=(0,e.getNestedProperty)(r._config,t.configValue);console.log("colorValue:",o),o||(o="var(--default-color, #0000ff)");const a=o.startsWith("var(");let u=o,l=o;if(a){const t=o.match(/var\((--[^,)]+)\)/),e=t?t[1]:o;console.log("cssVariableName:",e),u=getComputedStyle(document.documentElement).getPropertyValue(e).trim(),console.log("computedColorValue:",u),u||(console.warn(`CSS variable ${e} is not defined. Using fallback color.`),u="#0000ff")}else l="User Defined Color";const f=(t=>{console.log("RGB input to getLuminance:",t);const e=t.match(/\d+/g).map(Number);console.log("Parsed RGB values:",e);const[r,n,i]=e.map((t=>t/255)).map((t=>t<=.03928?t/12.92:Math.pow((t+.055)/1.055,2.4)));return console.log("Normalized RGB values:",[r,n,i]),.2126*r+.7152*n+.0722*i})(u);console.log("Luminance:",f);const p=f>.5?"#000":"#fff";return console.log("textColor:",p),n.html`
                 <div class="form-control" style="width: 100%;">
-                    <div style="width: 100%; height: 50px; background-color: ${o}; border-radius: 25px; border: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: ${p};">
+                    <div style="-webkit-fill-available; height: 50px; background-color: ${o}; border-radius: 25px; border: 1px solid #000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: ${p};">
                         <div>${l}</div>
                         <div>${u}</div>
                     </div>
@@ -91,13 +91,12 @@
 
             /* ensure full width for form controls not in two-controls class */
 
-            /*.form-row:not(.two-controls) .form-control > * {
-                width: 100% ;
-            }*/
+            .form-row:not(.two-controls) .form-control > * {
+                width: -webkit-fill-available;
+            }
 
             /* Base styles for form controls */
             .form-control {
-                width: auto;
                 display: flex; /* Use flexbox for internal alignment */
                 align-items: center;
                 padding: 8px;
