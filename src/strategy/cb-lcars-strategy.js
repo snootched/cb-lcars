@@ -3,7 +3,6 @@
 import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { readYamlFile } from '../utils/cb-lcars-fileutils.js';
-import { path } from 'path-browserify';
 
 export class CBLCARSDashboardStrategy {
     static async generate(config, hass) {
@@ -27,16 +26,16 @@ export class CBLCARSDashboardStrategy {
             const galleryPaths = CBLCARS.gallery_views_uris || [];
 
             // Generate gallery views from the array of file paths
-            const galleryViews = await Promise.all(galleryPaths.map(async (filePath) => {
-                const fileName = path.basename(filePath, path.extname(filePath));
-                return {
-                    title: `Gallery-${fileName}`,
-                    strategy: {
-                        type: 'custom:cb-lcars-view',
-                        options: { path: filePath }
-                    }
-                };
-            }));
+                const galleryViews = await Promise.all(galleryPaths.map(async (filePath) => {
+                    const fileName = filePath.split('/').pop().split('.')[0];
+                    return {
+                        title: `Gallery-${fileName}`,
+                        strategy: {
+                            type: 'custom:cb-lcars-view',
+                            options: { path: filePath }
+                        }
+                    };
+                }));
 
             return {
                 'cb-lcars': {
