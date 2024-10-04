@@ -34,6 +34,6 @@
     "ha-card-formbuilder": "github:snootched/ha-card-formbuilder",
     "js-yaml": "^4.1.0",
     "lit": "^3.2.0",
-    "path": "^0.12.7"
+    "path-browserify": "^1.0.1"
   }
 }
