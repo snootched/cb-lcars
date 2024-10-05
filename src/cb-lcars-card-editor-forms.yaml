@@ -1,6 +1,14 @@
   cb-lcars-base-card:
     render_form:
-      - type: Section
+      - type: ControlRow
+        controls:
+          - type: RawHTML
+            html: |
+                <ha-tip position="bottom-start" offset="10" delay="500" hide-delay="200">
+                  <ha-icon icon="mdi:exclamation"></ha-icon>
+                  This is a warning.
+                </ha-tip>
+          - type: Section
         label: "Section 31"
         outlined: true
         leftChevron: false
@@ -266,9 +274,10 @@
                     (() => {
                       const styles = document.documentElement.style;
                       const options = [];
+                      options.push({ value: 'transparent', label: '**transparent**' });
                       for (let i = 0; i < styles.length; i++) {
                         const name = styles[i];
-                        if (name.startsWith('--picard-') || name.startsWith('--lcars-')) {
+                        if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {
                           //const value = styles.getPropertyValue(name).trim();
                           const value = `var(${name})`;
                           options.push({ value, label: name.replace('--', '') });
@@ -542,6 +551,9 @@
                     configValue: "cblcars_card_config.variables.text.label.color.default"
                   - <<: *colorControl
                     configValue: "cblcars_card_config.variables.text.label.color.default"
+              - controls:
+                  - <<: *colorPreviewControl
+                    configValue: "cblcars_card_config.variables.text.label.color.default"
               - type: Section
                 label: "State Colors"
                 outlined: true
@@ -569,14 +581,23 @@
                             selector:
                               text:
                                 type: color
+                      - controls:
+                          - <<: *colorPreviewControl
+                            configValue: "cblcars_card_config.variables.text.label.color.on"
+                      - type: ControlRow
+                        cssClass: "form-row two-controls"
+                        controls:
                           - <<: *colorLCARSListControl
-                            configValue: "cblcars_card_config.variables.text.label.color.of"
+                            configValue: "cblcars_card_config.variables.text.label.color.off"
                           - label: "Text Color (state: off)"
                             configValue: "cblcars_card_config.variables.text.label.color.off"
                             type: Selector
                             selector:
                               text:
                                 type: color
+                      - controls:
+                          - <<: *colorPreviewControl
+                            configValue: "cblcars_card_config.variables.text.label.color.off"
                   - type: Section
                     label: "Zero/Non-Zero"
                     outlined: true
@@ -589,14 +610,6 @@
                         cssClass: "form-row two-controls"
                         controls:
                           - <<: *colorLCARSListControl
-                            configValue: "cblcars_card_config.variables.text.label.color.non_zero"
-                          - label: "Text Color (number: non-zero)"
-                            configValue: "cblcars_card_config.variables.text.label.color.non_zero"
-                            type: Selector
-                            selector:
-                              text:
-                                type: color
-                          - <<: *colorLCARSListControl
                             configValue: "cblcars_card_config.variables.text.label.color.zero"
                           - label: "Text Color (number: zero)"
                             configValue: "cblcars_card_config.variables.text.label.color.zero"
@@ -604,6 +617,23 @@
                             selector:
                               text:
                                 type: color
+                      - controls:
+                          - <<: *colorPreviewControl
+                            configValue: "cblcars_card_config.variables.text.label.color.zero"
+                      - type: ControlRow
+                        cssClass: "form-row two-controls"
+                        controls:
+                          - <<: *colorLCARSListControl
+                            configValue: "cblcars_card_config.variables.text.label.color.non_zero"
+                          - label: "Text Color (number: non-zero)"
+                            configValue: "cblcars_card_config.variables.text.label.color.non_zero"
+                            type: Selector
+                            selector:
+                              text:
+                                type: color
+                      - controls:
+                          - <<: *colorPreviewControl
+                            configValue: "cblcars_card_config.variables.text.label.color.non_zero"
       - &cardSection
         type: Section
         label: "Card"
@@ -640,6 +670,7 @@
             icon: "mdi:border-style"
             rows:
               - type: ControlRow
+                cssClass: "form-row two-controls"
                 controls:
                   - label: "Left Border Size"
                     helper: "The width of the left side of LCARS"
@@ -650,7 +681,7 @@
                     selector:
                       number:
                         min: 0
-                        max: 400
+                        max: 300
                         step: 1
                         mode: slider
                         unit_of_measurement: "px"
@@ -677,8 +708,8 @@
                     type: Selector
                     selector:
                       number:
-                        min: 1
-                        max: 400
+                        min: 0
+                        max: 300
                         step: 1
                         mode: slider
                         unit_of_measurement: "px"
@@ -706,6 +737,7 @@
             icon: "mdi:rounded-corner"
             rows:
               - type: ControlRow
+                cssClass: "form-row two-controls"
                 controls:
                   - label: "Top Left Radius"
                     helper: "The top left curve of LCARS"

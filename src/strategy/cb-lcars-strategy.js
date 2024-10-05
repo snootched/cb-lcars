@@ -26,17 +26,17 @@ export class CBLCARSDashboardStrategy {
             const galleryPaths = CBLCARS.gallery_views_uris || [];
 
             // Generate gallery views from the array of file paths
-                const galleryViews = await Promise.all(galleryPaths.map(async (filePath) => {
-                    const fileName = filePath.split('/').pop().split('.')[0];
-                    return {
-                        title: `Gallery-${fileName}`,
-                        strategy: {
-                            type: 'custom:cb-lcars-view',
-                            options: { path: filePath }
-                        },
-                        subview: true
-                    };
-                }));
+            const galleryViews = await Promise.all(galleryPaths.map(async (filePath) => {
+                const fileName = filePath.split('/').pop().split('.')[0];
+                return {
+                    title: `Gallery-${fileName}`,
+                    strategy: {
+                        type: 'custom:cb-lcars-view',
+                        options: { path: filePath }
+                    },
+                    subview: true
+                };
+            }));
 
             return {
                 'cb-lcars': {
