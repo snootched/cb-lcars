@@ -122,8 +122,6 @@ sections:
       - type: heading
         heading: CB-LCARS Meter [no slider control]
         heading_style: title
-      - type: heading
-        heading: New section
       - type: custom:button-card
         template:
           - cb-lcars-meter
