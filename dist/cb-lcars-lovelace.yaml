@@ -2372,10 +2372,16 @@ button_card_templates:
                 ]]]
           state:
             - color: '[[[ return variables.text.state.color.on ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
           label:
             - color: '[[[ return variables.text.label.color.on ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
           name:
             - color: '[[[ return variables.text.name.color.on ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
           icon:
             - color: >-
                 [[[ return variables.icon.color.active || variables.icon.color.default ]]]
@@ -2404,10 +2410,16 @@ button_card_templates:
                 ]]]
           state:
             - color: '[[[ return variables.text.state.color.off ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
           label:
             - color: '[[[ return variables.text.label.color.off ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
           name:
             - color: '[[[ return variables.text.name.color.off ]]]'
+            - outline: >-
+                [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
           icon:
             - color: >-
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
