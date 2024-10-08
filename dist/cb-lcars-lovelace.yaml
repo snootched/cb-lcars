@@ -1364,7 +1364,7 @@ button_card_templates:
                 g = parseInt(hex[2] + hex[2], 16);
                 b = parseInt(hex[3] + hex[3], 16);
             } else {
-                throw new Error('Invalid HEX color.');
+                throw new Error(`Invalid HEX color: ${input}`);
             }
             return `rgba(${r}, ${g}, ${b}, ${alpha})`;
           }
@@ -3216,6 +3216,13 @@ button_card_templates:
           [[[
             return variables.__getParentDimension(this,'height','px');
           ]]]
+      text:
+        label:
+          font_size: 24px
+        state:
+          font_size: 24px
+        name:
+          font_size: 24px
       panel:
         width: |
           [[[
@@ -3268,8 +3275,7 @@ button_card_templates:
               background:
                 active: >
                   [[[ return  variables.entity_match_header ? variables.entity_color
-                  :
-                  "var(--lcars-ui-secondary)" ]]]
+                  : "var(--lcars-ui-secondary)" ]]]
                 inactive: var(--lcars-ui-primary)
               border: null
           icon:
@@ -3314,19 +3320,7 @@ button_card_templates:
                   card:
                     width: '[[[ return variables.y_header_width ]]]'
                     height: '[[[ return variables.y_header_height ]]]'
-                  text:
-                    label:
-                      font_size: >-
-                        [[[ return
-                        variables.header_button.variables.text.label.font_size ]]]
-                    state:
-                      font_size: >-
-                        [[[ return
-                        variables.header_button.variables.text.state.font_size ]]]
-                    name:
-                      font_size: >-
-                        [[[ return
-                        variables.header_button.variables.text.name.font_size ]]]
+                  text: '[[[ return variables.text ]]]'
                 show_label: true
                 label: '[[[ return variables.label ]]]'
                 template:
@@ -4142,6 +4136,7 @@ button_card_templates:
         card:
           type: custom:button-card
           entity: '[[[ return variables.dpad.center.entity; ]]]'
+          label: '[[[ return variables.dpad.center.label ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
@@ -4163,6 +4158,7 @@ button_card_templates:
         card:
           type: custom:button-card
           entity: '[[[ return variables.dpad.up.entity; ]]]'
+          label: '[[[ return variables.dpad.up.label ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
@@ -4185,6 +4181,7 @@ button_card_templates:
         card:
           type: custom:button-card
           entity: '[[[ return variables.dpad.down.entity; ]]]'
+          label: '[[[ return variables.dpad.down.label ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
@@ -4207,6 +4204,7 @@ button_card_templates:
         card:
           type: custom:button-card
           entity: '[[[ return variables.dpad.left.entity; ]]]'
+          label: '[[[ return variables.dpad.left.label ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
@@ -4229,6 +4227,7 @@ button_card_templates:
         card:
           type: custom:button-card
           entity: '[[[ return variables.dpad.right.entity; ]]]'
+          label: '[[[ return variables.dpad.right.label ]]]'
           template:
             - cb-lcars-animate-press
             - cb-lcars-button-square
