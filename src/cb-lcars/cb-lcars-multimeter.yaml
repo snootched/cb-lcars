@@ -14,6 +14,13 @@ cb-lcars-multimeter:
         [[[
           return variables.__getParentDimension(this,'height','px');
         ]]]
+    text:
+      label:
+        font_size: 24px
+      state:
+        font_size: 24px
+      name:
+        font_size: 24px
     panel:
       width: |
         [[[
@@ -66,9 +73,7 @@ cb-lcars-multimeter:
             background:
               active: >
                 [[[ return  variables.entity_match_header ? variables.entity_color
-                :
-
-                "var(--lcars-ui-secondary)" ]]]
+                : "var(--lcars-ui-secondary)" ]]]
               inactive: var(--lcars-ui-primary)
             border: null
         icon:
@@ -113,19 +118,7 @@ cb-lcars-multimeter:
                 card:
                   width: '[[[ return variables.y_header_width ]]]'
                   height: '[[[ return variables.y_header_height ]]]'
-                text:
-                  label:
-                    font_size: >-
-                      [[[ return
-                      variables.header_button.variables.text.label.font_size ]]]
-                  state:
-                    font_size: >-
-                      [[[ return
-                      variables.header_button.variables.text.state.font_size ]]]
-                  name:
-                    font_size: >-
-                      [[[ return
-                      variables.header_button.variables.text.name.font_size ]]]
+                text: '[[[ return variables.text ]]]'
               show_label: true
               label: '[[[ return variables.label ]]]'
               template:

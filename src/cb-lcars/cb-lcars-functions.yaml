@@ -305,7 +305,7 @@ cb-lcars-functions:
               g = parseInt(hex[2] + hex[2], 16);
               b = parseInt(hex[3] + hex[3], 16);
           } else {
-              throw new Error('Invalid HEX color.');
+              throw new Error(`Invalid HEX color: ${input}`);
           }
           return `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }

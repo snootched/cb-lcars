@@ -351,6 +351,7 @@ cb-lcars-dpad:
       card:
         type: custom:button-card
         entity: '[[[ return variables.dpad.center.entity; ]]]'
+        label: '[[[ return variables.dpad.center.label ]]]'
         template:
           - cb-lcars-animate-press
           - cb-lcars-button-square
@@ -372,6 +373,7 @@ cb-lcars-dpad:
       card:
         type: custom:button-card
         entity: '[[[ return variables.dpad.up.entity; ]]]'
+        label: '[[[ return variables.dpad.up.label ]]]'
         template:
           - cb-lcars-animate-press
           - cb-lcars-button-square
@@ -394,6 +396,7 @@ cb-lcars-dpad:
       card:
         type: custom:button-card
         entity: '[[[ return variables.dpad.down.entity; ]]]'
+        label: '[[[ return variables.dpad.down.label ]]]'
         template:
           - cb-lcars-animate-press
           - cb-lcars-button-square
@@ -416,6 +419,7 @@ cb-lcars-dpad:
       card:
         type: custom:button-card
         entity: '[[[ return variables.dpad.left.entity; ]]]'
+        label: '[[[ return variables.dpad.left.label ]]]'
         template:
           - cb-lcars-animate-press
           - cb-lcars-button-square
@@ -438,6 +442,7 @@ cb-lcars-dpad:
       card:
         type: custom:button-card
         entity: '[[[ return variables.dpad.right.entity; ]]]'
+        label: '[[[ return variables.dpad.right.label ]]]'
         template:
           - cb-lcars-animate-press
           - cb-lcars-button-square

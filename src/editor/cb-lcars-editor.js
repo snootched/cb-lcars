@@ -31,11 +31,11 @@ export class CBLCARSCardEditor extends EditorForm {
             const formDefinitions = await readYamlFile(CBLCARS.card_editor_uri)
             cblcarsLog('debug','formDefinitions: ',formDefinitions);
             this._formDefinitions = formDefinitions;
-            console.debug('this._formDefinitions: ',this._formDefinitions)
+            //console.debug('this._formDefinitions: ',this._formDefinitions)
 
             //returns the content for this card type
             this._formControls = formDefinitions[this._cardType];
-            console.debug('this._formControls: ',this._formControls);
+            //console.debug('this._formControls: ',this._formControls);
 
             this._userStyles = css`${unsafeCSS((formDefinitions[this._cardType].css && formDefinitions[this._cardType].css.cssText) || '')}`;
             //console.debug('this._userStyles: ',this._userStyles);
