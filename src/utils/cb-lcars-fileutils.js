@@ -22,7 +22,6 @@ export async function fetchYAML(url) {
 // Function to read and parse the YAML file
 export async function readYamlFile(url) {
     try {
-        //await loadJsYaml; // Wait for the js-yaml script to load
         const response = await fetchYAML(url);
         const jsObject = jsyaml.load(response);
         //await cblcarsLog('info',`Processed YAML file: ${url}`);

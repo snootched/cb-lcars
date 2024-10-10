@@ -5,11 +5,11 @@ cb-lcars-button-base:
   show_icon: false
   show_name: false
   show_label: true
-  label: |
-    [[[
-      return (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0'))))
-    ]]]
   variables:
+    label: |
+      [[[
+        return (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0'))))
+      ]]]
     card:
       width: |
         [[[
@@ -21,12 +21,12 @@ cb-lcars-button-base:
         ]]]
       min_height: 45px
       color:
-        active: var(--lcars-ui-secondary)
-        inactive: var(--lcars-ui-tertiary)
+        active: var(--lcars-card-button)
+        inactive: var(--lcars-card-button-off)
         background:
           default: null
-          active: var(--lcars-ui-secondary)
-          inactive: var(--lcars-ui-tertiary)
+          active: var(--lcars-card-button)
+          inactive: var(--lcars-card-button-off)
     text:
       label:
         padding:

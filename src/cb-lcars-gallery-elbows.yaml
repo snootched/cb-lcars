@@ -24,7 +24,7 @@ sections:
                 font_size: '17'
           label: |-
             <elt>
-                <h2>Elbows (aka Headers and Footers</h2>
+                <h2>Elbows [aka Headers and Footers]</h2>
                 <p>Elbows are resizable decorators that can be used to build out LCARS interfaces.</p>
                 <p>Sizes, Colors, radius, text and positioning are all customizable.</p>
             </elt>

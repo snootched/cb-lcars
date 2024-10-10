@@ -1,62 +1,60 @@
-  cb-lcars-label-card:
-    cblcars_card_config:
-      label: LCARS LABEL
-      show_label: true
+cb-lcars-label-card:
+  cblcars_card_config:
+    label: LCARS LABEL
+    show_label: true
+    variables:
+      text:
+        label:
+          font_size: 52
+          font_weight: 100
+          color:
+            default: '#f9ef97'
+          justify: right
+          padding:
+            right: 15
+            bottom: 8
+      card:
+        border:
+          left:
+            size: 60
+          right:
+            size: 40
+          color: '#52596e'
+cb-lcars-button-card:
+  cblcars_card_type: cb-lcars-button-picard
+  cblcars_card_config:
+    label: "LCARS Button"
+    show_label: true
+cb-lcars-elbow-card:
+  cblcars_card_type: cb-lcars-header
+  tap_action:
+    action: none
+  double_tap_action:
+    action: none
+  hold_action:
+    action: none
+cb-lcars-multimeter-card:
+  cblcars_card_config:
+    variables:
+      header_button:
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: more-info
+      panel:
+        mode: gauge
+      gauge:
+        show_sub_meter: true
+      entity_match_header: false
+      entity_match_slider: false
+      entity_match_gauge: false
+      entity_match_slider_start: false
+      entity_match_slider_end: false
+cb-lcars-slider-card:
+  cblcars_card_type: cb-lcars-slider-horizontal
+  cblcars_card_config:
       variables:
-        text:
-          label:
-            font_size: 52
-            font_weight: 100
-            color:
-              default: '#f9ef97'
-            justify: right
-            padding:
-              right: 15
-              bottom: 8
-        card:
-          border:
-            left:
-              size: 60
-            right:
-              size: 40
-            color: '#52596e'
-  cb-lcars-button-card:
-    cblcars_card_type: cb-lcars-button-picard
-    cblcars_card_config:
-      label: "LCARS Button"
-      show_label: true
-  cb-lcars-elbow-card:
-    cblcars_card_type: cb-lcars-header
-    tap_action:
-      action: none
-    double_tap_action:
-      action: none
-    hold_action:
-      action: none
-  cb-lcars-multimeter-card:
-    cblcars_card_config:
-      variables:
-        header_button:
-          tap_action:
-            action: toggle
-          double_tap_action:
-            action: none
-          hold_action:
-            action: more-info
-        panel:
-          mode: gauge
-        gauge:
-          show_sub_meter: true
-        entity_match_header: false
-        entity_match_slider: false
-        entity_match_gauge: false
         entity_match_slider_start: false
         entity_match_slider_end: false
-
-
-  cb-lcars-slider-card:
-    cblcars_card_type: cb-lcars-slider-horizontal
-    cblcars_card_config:
-        variables:
-          entity_match_slider_start: false
-          entity_match_slider_end: false

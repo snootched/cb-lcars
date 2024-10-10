@@ -22,7 +22,7 @@ cb-lcars-header-picard:
         inner:
           factor: 1
           width: 35px
-    card_label: ' '
+    label: ' '
     lcars:
       border:
         gap: 4px
@@ -53,6 +53,7 @@ cb-lcars-header-picard:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
+      text: '[[[ return variables.text ]]]'
       card:
         color: var(--lcars-card-top-color)
         border:
@@ -156,8 +157,9 @@ cb-lcars-header-picard:
         type: custom:button-card
         template:
           - cb-lcars-header
-        label: '[[[ return variables.card_label; ]]]'
+        label: '[[[ return variables.label]]]'
         variables:
+          text: '[[[ return variables.text ]]]'
           card:
             width: |
               [[[
@@ -189,9 +191,6 @@ cb-lcars-header-picard:
                   [[[
                     return variables.lcars_inner.card.border.inner.factor;
                   ]]]
-
-
-
 cb-lcars-header-picard-right:
   template:
     - cb-lcars-functions
@@ -216,7 +215,7 @@ cb-lcars-header-picard-right:
         inner:
           factor: 1
           width: 35px
-    card_label: ' '
+    label: ' '
     lcars:
       border:
         gap: 4px
@@ -247,6 +246,7 @@ cb-lcars-header-picard-right:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
+      text: '[[[ return variables.text ]]]'
       card:
         color: var(--lcars-card-top-color)
         border:
@@ -257,9 +257,11 @@ cb-lcars-header-picard-right:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + " ) / " + variables.lcars.border.factor + ")";
               ]]]
           top:
-            size: >-
-              [[[ return "calc((" + variables.lcars.border.top.size + " - " +
-              variables.lcars.border.gap + ") / 2)";]]]
+            size: |
+              [[[
+                return "calc((" + variables.lcars.border.top.size + " - " +
+                variables.lcars.border.gap + ") / 2)";
+              ]]]
             right_radius: |
               [[[
                 return "calc((" + variables.__get_num_with_unit(variables.card.border.top.right_radius) + " ) / " + variables.card.border.inner.factor +" )";
@@ -350,8 +352,9 @@ cb-lcars-header-picard-right:
         type: custom:button-card
         template:
           - cb-lcars-header-right
-        label: '[[[ return variables.card_label; ]]]'
+        label: '[[[ return variables.label; ]]]'
         variables:
+          text: '[[[ return variables.text ]]]'
           card:
             width: |
               [[[

@@ -22,7 +22,7 @@ cb-lcars-footer-picard:
         inner:
           factor: 1
           width: 35px
-    card_label: ' '
+    label: ' '
     lcars:
       border:
         gap: 4px
@@ -53,6 +53,7 @@ cb-lcars-footer-picard:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
+      text: '[[[ return variables.text ]]]'
       card:
         color: var(--lcars-card-bottom-color)
         border:
@@ -156,8 +157,9 @@ cb-lcars-footer-picard:
         type: custom:button-card
         template:
           - cb-lcars-footer
-        label: '[[[ return variables.card_label; ]]]'
+        label: '[[[ return variables.label; ]]]'
         variables:
+          text: '[[[ return variables.text ]]]'
           card:
             width: |
               [[[
@@ -213,7 +215,7 @@ cb-lcars-footer-picard-right:
         inner:
           factor: 1
           width: 35px
-    card_label: ' '
+    label: ' '
     lcars:
       border:
         gap: 4px
@@ -244,6 +246,7 @@ cb-lcars-footer-picard-right:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
+      text: '[[[ return variables.text ]]]'
       card:
         color: var(--lcars-card-bottom-color)
         border:
@@ -347,8 +350,9 @@ cb-lcars-footer-picard-right:
         type: custom:button-card
         template:
           - cb-lcars-footer-right
-        label: '[[[ return variables.card_label; ]]]'
+        label: '[[[ return variables.label; ]]]'
         variables:
+          text: '[[[ return variables.text ]]]'
           card:
             width: |
               [[[

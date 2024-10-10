@@ -2,8 +2,8 @@ cb-lcars-footer-base:
   template:
     - cb-lcars-functions
     - cb-lcars-button-base
-  label: ' '
   variables:
+    label: ' '
     text:
       label:
         font_size: 20px

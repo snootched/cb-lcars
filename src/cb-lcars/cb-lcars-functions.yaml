@@ -226,7 +226,29 @@ cb-lcars-functions:
     __get_random_entity: |
       [[[
           return function get_random_entity(domain) {
-            const entityList = Object.keys(hass.states).filter(e => e.startsWith(domain+'.'));
+            const entityList = Object.keys(hass.states).filter(e => e.startsWith(domain + '.'));
+
+            if (domain === 'light') {
+                // Filter entities that are powered on
+                const poweredOnLights = entityList.filter(e => hass.states[e].state === 'on');
+
+                if (poweredOnLights.length === 0) {
+                    // If no lights are powered on, return a random light entity
+                    return entityList[Math.floor(Math.random() * entityList.length)];
+                }
+
+                // Sort powered on lights by brightness in descending order
+                poweredOnLights.sort((a, b) => {
+                    const brightnessA = hass.states[a].attributes.brightness || 0;
+                    const brightnessB = hass.states[b].attributes.brightness || 0;
+                    return brightnessB - brightnessA;
+                });
+
+                // Return the brightest powered on light
+                return poweredOnLights[0];
+            }
+
+            // For other domains, return a random entity
             return entityList[Math.floor(Math.random() * entityList.length)];
           }
       ]]]

@@ -1,8 +1,9 @@
 cb-lcars-base:
   template:
     - cb-lcars-functions
-  label: ' '
+  label: '[[[ return variables.label ]]]'
   variables:
+    label: ' '
     text:
       label:
         font_size: 20px
@@ -175,6 +176,7 @@ cb-lcars-base:
             return variables.__get_num_with_unit(variables.text.label.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.label.font_weight ]]]'
+      - font-family: '''Antonio'', Arial, sans-serif'
       - justify-self: start
       - text-align: '[[[ return variables.text.label.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.top) ]]]'
@@ -206,6 +208,7 @@ cb-lcars-base:
             return variables.__get_num_with_unit(variables.text.state.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.state.font_weight ]]]'
+      - font-family: '''Antonio'', Arial, sans-serif'
       - justify-self: start
       - text-align: '[[[ return variables.text.state.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.top) ]]]'
@@ -237,6 +240,7 @@ cb-lcars-base:
               return variables.__get_num_with_unit(variables.text.name.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.name.font_weight ]]]'
+      - font-family: '''Antonio'', Arial, sans-serif'
       - justify-self: start
       - text-align: '[[[ return variables.text.name.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.top) ]]]'
