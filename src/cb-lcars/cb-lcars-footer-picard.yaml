@@ -53,7 +53,7 @@ cb-lcars-footer-picard:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
-      text: '[[[ return variables.text ]]]'
+      text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
         color: var(--lcars-card-bottom-color)
         border:
@@ -120,6 +120,7 @@ cb-lcars-footer-picard:
         template:
           - cb-lcars-footer
         variables:
+          entity: '[[[ return variables.entity; ]]]'
           card:
             width: |
               [[[
@@ -157,9 +158,10 @@ cb-lcars-footer-picard:
         type: custom:button-card
         template:
           - cb-lcars-footer
+        entity: '[[[ return variables.entity; ]]]'
         label: '[[[ return variables.label; ]]]'
         variables:
-          text: '[[[ return variables.text ]]]'
+          text: '[[[ return variables.text ? variables.text : {} ]]]'
           card:
             width: |
               [[[
@@ -246,7 +248,7 @@ cb-lcars-footer-picard-right:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
-      text: '[[[ return variables.text ]]]'
+      text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
         color: var(--lcars-card-bottom-color)
         border:
@@ -312,6 +314,7 @@ cb-lcars-footer-picard-right:
         type: custom:button-card
         template:
           - cb-lcars-footer-right
+        entity: '[[[ return variables.entity; ]]]'
         variables:
           card:
             width: |
@@ -350,9 +353,10 @@ cb-lcars-footer-picard-right:
         type: custom:button-card
         template:
           - cb-lcars-footer-right
+        entity: '[[[ return variables.entity; ]]]'
         label: '[[[ return variables.label; ]]]'
         variables:
-          text: '[[[ return variables.text ]]]'
+          text: '[[[ return variables.text ? variables.text : {} ]]]'
           card:
             width: |
               [[[
