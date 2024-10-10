@@ -365,7 +365,7 @@ cb-lcars-base-card:
               controls:
                 - label: "Text Content"
                   helper: "Text content (basic string - or - get fancy with <elt></elt> elements!"
-                  configValue: "cblcars_card_config.label"
+                  configValue: "cblcars_card_config.variables.label"
                   required: false
                   type: Selector
                   selector:
@@ -1225,7 +1225,7 @@ cb-lcars-label-card:
               alertType: info
               message: "Optional: Select an entity to enable matching colors to state"
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               helper: "Setting an entity enables state color options"
               type: Selector
               selector:
@@ -1280,7 +1280,7 @@ cb-lcars-elbow-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               helper: "Setting an entity enables state color options"
               type: Selector
               selector:
@@ -1320,7 +1320,7 @@ cb-lcars-double-elbow-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               helper: "Setting an entity enables state color options"
               type: Selector
               selector:
@@ -1360,7 +1360,7 @@ cb-lcars-multimeter-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               required: true
               type: Selector
               selector:
@@ -1907,7 +1907,7 @@ cb-lcars-button-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               helper: "Setting an entity enables state color options"
               type: Selector
               selector:
@@ -1944,7 +1944,7 @@ cb-lcars-slider-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity"
-              configValue: "cblcars_card_config.entity"
+              configValue: "cblcars_card_config.variables.entity"
               required: true
               type: Selector
               selector:
