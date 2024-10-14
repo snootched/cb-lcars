@@ -1,26 +1,5 @@
 cb-lcars-label-card:
-  cblcars_card_config:
-    label: LCARS LABEL
-    show_label: true
-    variables:
-      text:
-        label:
-          font_size: 52
-          font_weight: 100
-          color:
-            default: '#f9ef97'
-          justify: right
-          padding:
-            right: 15
-            bottom: 8
-      card:
-        border:
-          left:
-            size: 60
-          right:
-            size: 40
-          color: '#52596e'
-
+  cblcars_card_type: cb-lcars-label-picard
 cb-lcars-button-card:
   cblcars_card_type: cb-lcars-button-picard
   cblcars_card_config:
