@@ -1221,6 +1221,17 @@ cb-lcars-label-card:
       icon: "mdi:palette-advanced"
       rows:
         - controls:
+            - label: "LCARS Label Preset"
+              configValue: cblcars_card_type
+              helper: "Presets for various LCARS label styles and ornamentation"
+              type: Selector
+              selector:
+                select:
+                  options:
+                    - value: 'cb-lcars-label'
+                      label: 'Standard Label'
+                    - value: 'cb-lcars-cascade'
+                      label: 'Data Cascade'
             - type: Message
               alertType: info
               message: "Optional: Select an entity to enable matching colors to state"

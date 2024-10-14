@@ -20,6 +20,7 @@ cb-lcars-label-card:
           right:
             size: 40
           color: '#52596e'
+
 cb-lcars-button-card:
   cblcars_card_type: cb-lcars-button-picard
   cblcars_card_config:

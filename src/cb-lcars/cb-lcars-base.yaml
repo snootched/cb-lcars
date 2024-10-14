@@ -185,7 +185,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
     state:
       - display: flex
       - justify-content: '[[[ return variables.text.state.justify ]]]'
@@ -217,7 +217,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
     name:
       - display: flex
       - justify-content: '[[[ return variables.text.name.justify ]]]'
@@ -249,7 +249,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.card.border.inner.width + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
   state:
     - value: 'on'
       id: state_on
@@ -275,15 +275,15 @@ cb-lcars-base:
         state:
           - color: '[[[ return variables.text.state.color.on ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         label:
           - color: '[[[ return variables.text.label.color.on ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         name:
           - color: '[[[ return variables.text.name.color.on ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.active; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         icon:
           - color: >-
               [[[ return variables.icon.color.active || variables.icon.color.default ]]]
@@ -313,15 +313,15 @@ cb-lcars-base:
         state:
           - color: '[[[ return variables.text.state.color.off ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         label:
           - color: '[[[ return variables.text.label.color.off ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         name:
           - color: '[[[ return variables.text.name.color.off ]]]'
           - outline: >-
-              [[[ return variables.card.border.inner.width + " solid " + variables.card.color.inactive; ]]]
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         icon:
           - color: >-
               [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]

@@ -621,7 +621,8 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 
     setConfig(config) {
 
-        const defaultTemplates = ['cb-lcars-label'];
+        const defaultCardType = 'cb-lcars-label';
+        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
