@@ -1,38 +1,43 @@
 cb-lcars-cascade:
   template:
     - cb-lcars-functions
+    - cb-lcars-label
   show_label: true
   variables:
-    grid:
-      num_cols: null
-      gap: 8
-      column_width: 60
-      num_rows: null
-      row_height: 24
-    colors:
-      text: var(--picard-dark-blue)
-      animation_start: var(--picard-blue)
-      animation_end: var(--picard-moonlight)
-      text_orig: '#000'
-      animation_start_orig: '#26f'
-      animation_end_orig: '#def'
+    text:
+      label:
+        font_size: 24
+        font_weight: 300
+    cascade:
+      grid:
+        num_cols: null
+        gap: 8
+        column_width: 60
+        num_rows: null
+        row_height: 24
+      colors:
+        text: var(--picard-dark-blue)
+        animation_start: var(--picard-blue)
+        animation_end: var(--picard-moonlight)
+        text_orig: '#000'
+        animation_start_orig: '#26f'
+        animation_end_orig: '#def'
   label: |
     [[[
 
       const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
       const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
 
-      variables.__cblcarsLog('debug', 'card_height', `${card_height}`);
       //console.debug( `${card_height}`);
       //console.debug( `${card_width}`);
 
       const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
-      const row_height = variables.__get_num_with_unit(variables.grid.row_height) || '24px';
-      const grid_gap = variables.__get_num_with_unit(variables.grid.gap) || '8px';
-      const column_width = variables.__get_num_with_unit(variables.grid.column_width) || '80px';
-      const text_color = variables.colors.text || '#000';
-      const animation_start_color = variables.colors.animation_start || '#26f';
-      const animation_end_color = variables.colors.animation_end || '#def';
+      const row_height = variables.__get_num_with_unit(variables.cascade.grid.row_height) || '24px';
+      const grid_gap = variables.__get_num_with_unit(variables.cascade.grid.gap) || '8px';
+      const column_width = variables.__get_num_with_unit(variables.cascade.grid.column_width) || '80px';
+      const text_color = variables.cascade.colors.text || '#000';
+      const animation_start_color = variables.cascade.colors.animation_start || '#26f';
+      const animation_end_color = variables.cascade.colors.animation_end || '#def';
 
       const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
       //console.debug(`${auto_num_cols}`);
@@ -44,8 +49,8 @@ cb-lcars-cascade:
       const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
       //console.debug(`${auto_num_rows}`);
 
-      const num_rows = variables.grid.num_rows || auto_num_rows;
-      const num_cols = variables.grid.num_cols || auto_num_cols;
+      const num_rows = variables.cascade.grid.num_rows || auto_num_rows;
+      const num_cols = variables.cascade.grid.num_cols || auto_num_cols;
 
       // Predefined animation delays and durations for a more random feel
       const animationSettings = [

@@ -1,0 +1,21 @@
+cb-lcars-label-picard:
+  show_label: true
+  variables:
+    label: LCARS LABEL
+    text:
+      label:
+        font_size: 52
+        font_weight: 100
+        color:
+          default: '#f9ef97'
+        justify: right
+        padding:
+          right: 15
+          bottom: 8
+    card:
+      border:
+        left:
+          size: 60
+        right:
+          size: 40
+        color: '#52596e'

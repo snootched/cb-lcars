@@ -1227,9 +1227,12 @@ cb-lcars-label-card:
               type: Selector
               selector:
                 select:
+                  mode: dropdown
                   options:
                     - value: 'cb-lcars-label'
                       label: 'Standard Label'
+                    - value: 'cb-lcars-label-picard'
+                      label: 'Picard Label'
                     - value: 'cb-lcars-cascade'
                       label: 'Data Cascade'
             - type: Message

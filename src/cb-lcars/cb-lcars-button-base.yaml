@@ -21,12 +21,12 @@ cb-lcars-button-base:
         ]]]
       min_height: 45px
       color:
-        active: var(--lcars-card-button)
-        inactive: var(--lcars-card-button-off)
+        active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+        inactive: "var(--lcars-card-button-off, var(--picard-gray))"
         background:
           default: null
-          active: var(--lcars-card-button)
-          inactive: var(--lcars-card-button-off)
+          active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+          inactive: "var(--lcars-card-button-off, var(--picard-gray))"
     text:
       label:
         padding:
