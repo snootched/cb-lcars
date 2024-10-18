@@ -283,6 +283,7 @@ cb-lcars-base-card:
                         options.push({ value, label: name.replace('--', '') });
                       }
                     }
+                    options.sort((a, b) => a.label.localeCompare(b.label));
                     return options;
                   })()
         - &colorControl
@@ -674,7 +675,7 @@ cb-lcars-base-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:space-invaders"
+      icon: "mdi:card-multiple-outline"
       noCollapse: false
       rows:
         - &cardColorSection
@@ -1016,7 +1017,7 @@ cb-lcars-base-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:space-invaders"
+      icon: "mdi:alpha-i-circle-outline"
       noCollapse: false
       rows:
         - type: ControlRow
@@ -1246,6 +1247,132 @@ cb-lcars-label-card:
                 entity:
     - <<: *textLabelSection
       expanded: true
+      visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
+    - type: Section
+      label: "Cascade"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:matrix"
+      noCollapse: false
+      visibilityCondition: "this._config.cblcars_card_type === 'cb-lcars-cascade'"
+      rows:
+        - &cascadeTextSection
+          type: Section
+          label: "Text"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:format-textbox"
+          noCollapse: false
+          rows:
+            - type: Section
+              label: "Label"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-textbox"
+              noCollapse: true
+              expanded: true
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - &fontSizeControl
+                      label: "Font Size"
+                      configValue: "cblcars_card_config.variables.text.label.font_size"
+                      type: Selector
+                      selector:
+                        text:
+                          type: number
+                    - &fontWeightControl
+                      label: "Font Weight"
+                      configValue: "cblcars_card_config.variables.text.label.font_weight"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: 100
+                              label: Thin (100)
+                            - value: 200
+                              label: Extra Light (200)
+                            - value: 300
+                              label: Light (300)
+                            - value: 400
+                              label: Normal (400)
+                            - value: 500
+                              label: Medium (500)
+                            - value: 600
+                              label: Semi Bold (600)
+                            - value: 700
+                              label: Bold (700)
+                            - value: 800
+                              label: Extra Bold (800)
+                            - value: 900
+                              label: Black (900)
+
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Base Color</label>
+                - cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                    - <<: *colorControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation Start Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                    - label: "Text Color (state: on)"
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                      type: Selector
+                      selector:
+                        text:
+                          type: color
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation End Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                    - label: "Text Color (state: off)"
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                      type: Selector
+                      selector:
+                        text:
+                          type: color
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+
+
+
     - <<: *cardSection
     - <<: *actionsSection
 cb-lcars-elbow-card:
@@ -1391,7 +1518,7 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:button-pointer"
           rows:
             - type: ControlRow
               controls:
@@ -1406,7 +1533,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:palette"
               noCollapse: false
               expanded: false
               rows:
@@ -1451,7 +1578,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:format-textbox"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1474,7 +1601,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:palette"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -1527,7 +1654,7 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:view-grid-compact"
           rows:
             - controls:
                 - label: "Gauge: Show Minor Ticks"
@@ -1551,7 +1678,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:palette"
               noCollapse: false
               expanded: true
               rows:
@@ -1560,7 +1687,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:wallpaper"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1605,7 +1732,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:format-textbox"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1650,7 +1777,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:tally-mark-4"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1696,7 +1823,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:tally-mark-3"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1742,7 +1869,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:slider-horizontal"
               noCollapse: false
               expanded: true
               rows:
@@ -1751,7 +1878,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:border-right-variant"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -1774,7 +1901,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:border-none-variant"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -1800,21 +1927,21 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:tune-variant"
           rows:
             - controls:
-                - label: "Slider: Match Left to Entity Color"
+                - label: "Gradient: Match [Left/Top] to Entity Color"
                   configValue: "cblcars_card_config.variables.entity_match_slider_start"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
-              label: "Slider - Left/Start"
+              label: "Gradient - Left/Top"
               visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:gradient-horizontal"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1832,18 +1959,18 @@ cb-lcars-multimeter-card:
                     - <<: *colorPreviewControl
                       configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
             - controls:
-                - label: "Slider: Match Right to Entity Color"
+                - label: "Gradient: Match [Right/Bottom] to Entity Color"
                   configValue: "cblcars_card_config.variables.entity_match_slider_end"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
-              label: "Slider - Right/End"
+              label: "Slider - Right/Bottom"
               visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:gradient-vertical"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1968,21 +2095,21 @@ cb-lcars-slider-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:palette-advanced"
+      icon: "mdi:tune-variant"
       rows:
         - controls:
-            - label: "Slider: Match Left to Entity Color"
+            - label: "Gradient: Match [Left/Top] to Entity Color"
               configValue: "cblcars_card_config.variables.entity_match_slider_start"
               type: Selector
               selector:
                 boolean:
         - type: Section
-          label: "Slider - Left/Start"
+          label: "Gradient - Left/Top"
           visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:gradient-horizontal"
           noCollapse: false
           rows:
             - type: ControlRow
@@ -2000,18 +2127,18 @@ cb-lcars-slider-card:
                 - <<: *colorPreviewControl
                   configValue: "cblcars_card_config.variables.meter.variables.gradient_start_color"
         - controls:
-            - label: "Slider: Match Right to Entity Color"
+            - label: "Gradient: Match [Right/Bottom] to Entity Color"
               configValue: "cblcars_card_config.variables.entity_match_slider_end"
               type: Selector
               selector:
                 boolean:
         - type: Section
-          label: "Slider - Right/End"
+          label: "Gradient - Right/Bottom"
           visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:gradient-vertical"
           noCollapse: false
           rows:
             - type: ControlRow

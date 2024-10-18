@@ -25,8 +25,8 @@ cb-lcars-multimeter-card:
           action: more-info
       panel:
         mode: gauge
-      gauge:
-        show_sub_meter: true
+        gauge:
+          show_sub_meter: true
       entity_match_header: false
       entity_match_slider: false
       entity_match_gauge: false

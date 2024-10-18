@@ -1,4 +1,6 @@
 cb-lcars-label-picard:
+  template:
+    - cb-lcars-label
   show_label: true
   variables:
     label: LCARS LABEL

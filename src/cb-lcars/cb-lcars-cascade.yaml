@@ -12,16 +12,11 @@ cb-lcars-cascade:
       grid:
         num_cols: null
         gap: 8
-        column_width: 60
         num_rows: null
-        row_height: 24
       colors:
         text: var(--picard-dark-blue)
         animation_start: var(--picard-blue)
         animation_end: var(--picard-moonlight)
-        text_orig: '#000'
-        animation_start_orig: '#26f'
-        animation_end_orig: '#def'
   label: |
     [[[
 
@@ -32,9 +27,10 @@ cb-lcars-cascade:
       //console.debug( `${card_width}`);
 
       const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
-      const row_height = variables.__get_num_with_unit(variables.cascade.grid.row_height) || '24px';
+      const row_height = variables.__get_num_with_unit(variables.cascade.grid.row_height) || font_size;
+      const column_width = variables.__get_num_with_unit(variables.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
       const grid_gap = variables.__get_num_with_unit(variables.cascade.grid.gap) || '8px';
-      const column_width = variables.__get_num_with_unit(variables.cascade.grid.column_width) || '80px';
+
       const text_color = variables.cascade.colors.text || '#000';
       const animation_start_color = variables.cascade.colors.animation_start || '#26f';
       const animation_end_color = variables.cascade.colors.animation_end || '#def';
@@ -66,7 +62,7 @@ cb-lcars-cascade:
 
       // Function to generate random text for cells (digits, floats, or text)
       function getRandomText() {
-        const types = ['digit', 'float', 'text'];
+        const types = ['digit', 'float','digit', 'float', 'text'];
         const type = types[Math.floor(Math.random() * types.length)];
         switch (type) {
           case 'digit':
