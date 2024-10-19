@@ -5,10 +5,14 @@ cb-lcars-dpad:
     __defs_dpad:
       color:
         background:
-          active: |
-            [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-tertiary") ]]]
-          inactive: |
-            [[[ return getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary") ]]]
+          active: >
+            [[[ return
+            getComputedStyle(document.body).getPropertyValue("--lcars-ui-tertiary")
+            ]]]
+          inactive: >
+            [[[ return
+            getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary")
+            ]]]
     card:
       size: |
         [[[
@@ -21,8 +25,10 @@ cb-lcars-dpad:
         scale: 6.5
         min_height: 10px
         color:
-          ripple: |
-            [[[ return getComputedStyle(document.body).getPropertyValue("--state-color") ]]]
+          ripple: >
+            [[[ return
+            getComputedStyle(document.body).getPropertyValue("--state-color")
+            ]]]
       up:
         color:
           background:
@@ -40,6 +46,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       down:
         color:
           background:
@@ -57,6 +69,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       left:
         color:
           background:
@@ -74,6 +92,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       right:
         color:
           background:
@@ -91,6 +115,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       center:
         color:
           background:
@@ -108,6 +138,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       up_left:
         color:
           background:
@@ -125,6 +161,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       up_right:
         color:
           background:
@@ -142,6 +184,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       down_left:
         color:
           background:
@@ -159,6 +207,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
       down_right:
         color:
           background:
@@ -176,7 +230,12 @@ cb-lcars-dpad:
         label: null
         entity: null
         active_state: 'on'
-
+        tap_action:
+          action: toggle
+        double_tap_action:
+          action: none
+        hold_action:
+          action: none
   triggers_update:
     - '[[[ return variables.dpad.up.entity; ]]]'
     - '[[[ return variables.dpad.down.entity; ]]]'
@@ -189,8 +248,8 @@ cb-lcars-dpad:
     - '[[[ return variables.dpad.down_right.entity; ]]]'
   styles:
     card:
-      - height: '[[[ return variables.card.size ]]]'
-      - width: '[[[ return variables.card.size ]]]'
+      - height: '[[[ return variables.__get_num_with_unit(variables.card.size) ]]]'
+      - width: '[[[ return variables.__get_num_with_unit(variables.card.size) ]]]'
       - background: |
           [[[
             let button_ripple_color = variables.dpad.button.color.ripple;
@@ -282,49 +341,55 @@ cb-lcars-dpad:
             return backgroundImage;
           ]]]
       - background-position: center
-      - background-size: '[[[ return variables.card.size ]]]'
+      - background-size: '[[[ return variables.__get_num_with_unit(variables.card.size) ]]]'
       - background-color: none
     custom_fields:
       dpad_up_button:
         - position: absolute
         - top: 0px
         - left: >
-            [[[ return "calc((" + variables.card.size + "/2) - (" +
-            variables.card.size + " / " + variables.dpad.button.scale +
-            "/2))"; ]]]
+            [[[ return "calc((" +
+            variables.__get_num_with_unit(variables.card.size) + "/2) - (" +
+            variables.__get_num_with_unit(variables.card.size) + " / " +
+            variables.dpad.button.scale + "/2))"; ]]]
         - z-index: 100
       dpad_down_button:
         - position: absolute
         - bottom: 0px
         - left: >
-            [[[ return "calc((" + variables.card.size + "/2) - (" +
-            variables.card.size + " / " + variables.dpad.button.scale +
-            "/2))"; ]]]
+            [[[ return "calc((" +
+            variables.__get_num_with_unit(variables.card.size) + "/2) - (" +
+            variables.__get_num_with_unit(variables.card.size) + " / " +
+            variables.dpad.button.scale + "/2))"; ]]]
         - z-index: 100
       dpad_left_button:
         - position: absolute
         - left: 0px
         - top: >
-            [[[ return "calc((" + variables.card.size + "/2) - (" +
-            variables.card.size + " / " + variables.dpad.button.scale +
-            "/2))"; ]]]
+            [[[ return "calc((" +
+            variables.__get_num_with_unit(variables.card.size) + "/2) - (" +
+            variables.__get_num_with_unit(variables.card.size) + " / " +
+            variables.dpad.button.scale + "/2))"; ]]]
         - z-index: 100
       dpad_right_button:
         - position: absolute
         - right: 0px
         - top: >
-            [[[ return "calc((" + variables.card.size + "/2) - (" +
-            variables.card.size + " / " + variables.dpad.button.scale +
-            "/2))"; ]]]
+            [[[ return "calc((" +
+            variables.__get_num_with_unit(variables.card.size) + "/2) - (" +
+            variables.__get_num_with_unit(variables.card.size) + " / " +
+            variables.dpad.button.scale + "/2))"; ]]]
         - z-index: 100
       dpad_center_button:
         - position: absolute
-        - right: |
-            [[[ return "calc(" + variables.card.size + " /4 )";]]]
+        - right: >
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.size) + " /4 )";]]]
         - top: >
-            [[[ return "calc((" + variables.card.size + "/2) - (" +
-            variables.card.size + " / " + variables.dpad.button.scale +
-            "/2))"; ]]]
+            [[[ return "calc((" +
+            variables.__get_num_with_unit(variables.card.size) + "/2) - (" +
+            variables.__get_num_with_unit(variables.card.size) + " / " +
+            variables.dpad.button.scale + "/2))"; ]]]
         - z-index: 100
       dpad_up_left_button:
         - position: absolute
@@ -359,16 +424,22 @@ cb-lcars-dpad:
           ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
           card:
             min_height: '[[[ return variables.dpad.button.min_height; ]]]'
-            width: |
-              [[[ return "calc(" + variables.card.size + " /2 )";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / " +
+            width: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " /2 )";]]]
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
+
               variables.dpad.button.scale + " )";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.center.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.center.color.overlay.active ]]]'
                 inactive: '[[[ return variables.dpad.center.color.overlay.inactive ]]]'
+        tap_action: '[[[ return variables.dpad.center.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.center.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.center.hold_action ]]]'
     dpad_up_button:
       card:
         type: custom:button-card
@@ -382,16 +453,22 @@ cb-lcars-dpad:
           card:
             min_height: '[[[ return variables.dpad.button.min_height; ]]]'
             width: >
-              [[[ return "calc(" + variables.card.size + " / " +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
               variables.dpad.button.scale + ")";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / " +
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
+
               variables.dpad.button.scale + ")";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.up.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.up.color.overlay.active ]]]'
                 inactive: '[[[ return variables.dpad.up.color.overlay.inactive ]]]'
+        tap_action: '[[[ return variables.dpad.up.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.up.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.up.hold_action ]]]'
     dpad_down_button:
       card:
         type: custom:button-card
@@ -405,16 +482,22 @@ cb-lcars-dpad:
           card:
             min_height: '[[[ return variables.dpad.button.min_height; ]]]'
             width: >
-              [[[ return "calc(" + variables.card.size + " / " +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
               variables.dpad.button.scale + ")";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / " +
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
+
               variables.dpad.button.scale + ")";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.down.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.down.color.overlay.active ]]]'
                 inactive: '[[[ return variables.dpad.down.color.overlay.inactive ]]]'
+        tap_action: '[[[ return variables.dpad.down.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.down.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.down.hold_action ]]]'
     dpad_left_button:
       card:
         type: custom:button-card
@@ -428,16 +511,22 @@ cb-lcars-dpad:
           card:
             min_height: '[[[ return variables.dpad.button.min_height; ]]]'
             width: >
-              [[[ return "calc(" + variables.card.size + " / " +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
               variables.dpad.button.scale + ")";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / " +
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
+
               variables.dpad.button.scale + ")";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.left.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.left.color.overlay.active ]]]'
                 inactive: '[[[ return variables.dpad.left.color.overlay.inactive ]]]'
+        tap_action: '[[[ return variables.dpad.left.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.left.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.left.hold_action ]]]'
     dpad_right_button:
       card:
         type: custom:button-card
@@ -451,16 +540,22 @@ cb-lcars-dpad:
           card:
             min_height: '[[[ return variables.dpad.button.min_height; ]]]'
             width: >
-              [[[ return "calc(" + variables.card.size + " / " +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
               variables.dpad.button.scale + ")";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / " +
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / " +
+
               variables.dpad.button.scale + ")";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.right.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.right.color.overlay.active ]]]'
                 inactive: '[[[ return variables.dpad.right.color.overlay.inactive ]]]'
+        tap_action: '[[[ return variables.dpad.right.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.right.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.right.hold_action ]]]'
     dpad_up_left_button:
       card:
         type: custom:button-card
@@ -471,10 +566,12 @@ cb-lcars-dpad:
         variables:
           ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
           card:
-            width: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
+            width: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.up_left.color.overlay.default ]]]'
@@ -482,12 +579,16 @@ cb-lcars-dpad:
                 inactive: '[[[ return variables.dpad.up_left.color.overlay.inactive ]]]'
             border:
               top:
-                left_radius: |
-                  [[[ return "calc(" + variables.card.size + " / 2)";]]]
+                left_radius: >
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
         label: '[[[ return variables.dpad.up_left.label ]]]'
         show_name: '[[[ return variables.dpad.up_left.show_name ]]]'
         show_label: '[[[ return variables.dpad.up_left.show_label]]]'
         show_state: '[[[ return variables.dpad.up_left.show_state ]]]'
+        tap_action: '[[[ return variables.dpad.up_left.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.up_left.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.up_left.hold_action ]]]'
     dpad_up_right_button:
       card:
         type: custom:button-card
@@ -498,23 +599,31 @@ cb-lcars-dpad:
         variables:
           ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
           card:
-            width: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
+            width: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
             color:
               background:
                 default: '[[[ return variables.dpad.up_right.color.overlay.default ]]]'
                 active: '[[[ return variables.dpad.up_right.color.overlay.active ]]]'
-                inactive: '[[[ return variables.dpad.up_right.color.overlay.inactive ]]]'
+                inactive: >-
+                  [[[ return variables.dpad.up_right.color.overlay.inactive
+                  ]]]
             border:
               top:
-                right_radius: |
-                  [[[ return "calc(" + variables.card.size + " / 2)";]]]
+                right_radius: >
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
         label: '[[[ return variables.dpad.up_right.label ]]]'
         show_name: '[[[ return variables.dpad.up_right.show_name ]]]'
         show_label: '[[[ return variables.dpad.up_right.show_label]]]'
         show_state: '[[[ return variables.dpad.up_right.show_state ]]]'
+        tap_action: '[[[ return variables.dpad.up_right.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.up_right.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.up_right.hold_action ]]]'
     dpad_down_left_button:
       card:
         type: custom:button-card
@@ -525,23 +634,33 @@ cb-lcars-dpad:
         variables:
           ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
           card:
-            width: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
+            width: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
             color:
               background:
-                default: '[[[ return variables.dpad.down_left.color.overlay.default ]]]'
+                default: >-
+                  [[[ return variables.dpad.down_left.color.overlay.default
+                  ]]]
                 active: '[[[ return variables.dpad.down_left.color.overlay.active ]]]'
-                inactive: '[[[ return variables.dpad.down_left.color.overlay.inactive ]]]'
+                inactive: >-
+                  [[[ return variables.dpad.down_left.color.overlay.inactive
+                  ]]]
             border:
               bottom:
-                left_radius: |
-                  [[[ return "calc(" + variables.card.size + " / 2)";]]]
+                left_radius: >
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
         label: '[[[ return variables.dpad.down_left.label ]]]'
         show_name: '[[[ return variables.dpad.down_left.show_name ]]]'
         show_label: '[[[ return variables.dpad.down_left.show_label]]]'
         show_state: '[[[ return variables.dpad.down_left.show_state ]]]'
+        tap_action: '[[[ return variables.dpad.down_left.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.down_left.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.down_left.hold_action ]]]'
     dpad_down_right_button:
       card:
         type: custom:button-card
@@ -552,20 +671,33 @@ cb-lcars-dpad:
         variables:
           ripple_color: '[[[ return variables.dpad.button.color.ripple; ]]]'
           card:
-            width: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
-            height: |
-              [[[ return "calc(" + variables.card.size + " / 2)";]]]
+            width: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
+            height: >
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
             color:
               background:
-                default: '[[[ return variables.dpad.down_right.color.overlay.default ]]]'
-                active: '[[[ return variables.dpad.down_right.color.overlay.active ]]]'
-                inactive: '[[[ return variables.dpad.down_right.color.overlay.inactive ]]]'
+                default: >-
+                  [[[ return variables.dpad.down_right.color.overlay.default
+                  ]]]
+                active: >-
+                  [[[ return variables.dpad.down_right.color.overlay.active
+                  ]]]
+                inactive: >-
+                  [[[ return variables.dpad.down_right.color.overlay.inactive
+                  ]]]
             border:
               bottom:
-                right_radius: |
-                  [[[ return "calc(" + variables.card.size + " / 2)";]]]
+                right_radius: >
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.size) + " / 2)";]]]
         label: '[[[ return variables.dpad.down_right.label ]]]'
         show_name: '[[[ return variables.dpad.down_right.show_name ]]]'
         show_label: '[[[ return variables.dpad.down_right.show_label]]]'
         show_state: '[[[ return variables.dpad.down_right.show_state ]]]'
+        tap_action: '[[[ return variables.dpad.down_right.tap_action ]]]'
+        double_tap_action: '[[[ return variables.dpad.down_right.double_tap_action ]]]'
+        hold_action: '[[[ return variables.dpad.down_right.hold_action ]]]'
+
