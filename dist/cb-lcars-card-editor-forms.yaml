@@ -2,6 +2,13 @@ cb-lcars-base-card:
   render_form:
     - type: ControlRow
       controls:
+        - type: Message
+          alertType: info
+          message: "This is a base card for advanced use.  Visual Editor is not available for this card."
+cb-lcars-base-controls:
+  render_form:
+    - type: ControlRow
+      controls:
         - type: RawHTML
           html: |
               <ha-tip position="bottom-start" offset="10" delay="500" hide-delay="200">
@@ -283,6 +290,7 @@ cb-lcars-base-card:
                         options.push({ value, label: name.replace('--', '') });
                       }
                     }
+                    options.sort((a, b) => a.label.localeCompare(b.label));
                     return options;
                   })()
         - &colorControl
@@ -352,6 +360,13 @@ cb-lcars-base-card:
       icon: "mdi:format-textbox"
       noCollapse: false
       rows:
+        - type: ControlRow
+          controls:
+            - label: "Show Label"
+              configValue: "cblcars_card_config.show_label"
+              type: Selector
+              selector:
+                boolean:
         - type: Section
           label: "Label"
           outlined: true
@@ -674,7 +689,7 @@ cb-lcars-base-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:space-invaders"
+      icon: "mdi:card-multiple-outline"
       noCollapse: false
       rows:
         - &cardColorSection
@@ -1016,7 +1031,7 @@ cb-lcars-base-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:space-invaders"
+      icon: "mdi:alpha-i-circle-outline"
       noCollapse: false
       rows:
         - type: ControlRow
@@ -1246,6 +1261,132 @@ cb-lcars-label-card:
                 entity:
     - <<: *textLabelSection
       expanded: true
+      visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
+    - type: Section
+      label: "Cascade"
+      outlined: true
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:matrix"
+      noCollapse: false
+      visibilityCondition: "this._config.cblcars_card_type === 'cb-lcars-cascade'"
+      rows:
+        - &cascadeTextSection
+          type: Section
+          label: "Text"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:format-textbox"
+          noCollapse: false
+          rows:
+            - type: Section
+              label: "Label"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-textbox"
+              noCollapse: true
+              expanded: true
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - &fontSizeControl
+                      label: "Font Size"
+                      configValue: "cblcars_card_config.variables.text.label.font_size"
+                      type: Selector
+                      selector:
+                        text:
+                          type: number
+                    - &fontWeightControl
+                      label: "Font Weight"
+                      configValue: "cblcars_card_config.variables.text.label.font_weight"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: 100
+                              label: Thin (100)
+                            - value: 200
+                              label: Extra Light (200)
+                            - value: 300
+                              label: Light (300)
+                            - value: 400
+                              label: Normal (400)
+                            - value: 500
+                              label: Medium (500)
+                            - value: 600
+                              label: Semi Bold (600)
+                            - value: 700
+                              label: Bold (700)
+                            - value: 800
+                              label: Extra Bold (800)
+                            - value: 900
+                              label: Black (900)
+
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Base Color</label>
+                - cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                    - <<: *colorControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation Start Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                    - label: "Text Color (state: on)"
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                      type: Selector
+                      selector:
+                        text:
+                          type: color
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation End Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                    - label: "Text Color (state: off)"
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                      type: Selector
+                      selector:
+                        text:
+                          type: color
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+
+
+
     - <<: *cardSection
     - <<: *actionsSection
 cb-lcars-elbow-card:
@@ -1391,7 +1532,7 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:button-pointer"
           rows:
             - type: ControlRow
               controls:
@@ -1406,7 +1547,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:palette"
               noCollapse: false
               expanded: false
               rows:
@@ -1451,7 +1592,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:format-textbox"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1474,7 +1615,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:palette"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -1527,7 +1668,7 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:view-grid-compact"
           rows:
             - controls:
                 - label: "Gauge: Show Minor Ticks"
@@ -1551,7 +1692,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:palette"
               noCollapse: false
               expanded: true
               rows:
@@ -1560,7 +1701,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:wallpaper"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1605,7 +1746,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:format-textbox"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1650,7 +1791,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:tally-mark-4"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1696,7 +1837,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:tally-mark-3"
                   noCollapse: false
                   rows:
                     - controls:
@@ -1742,7 +1883,7 @@ cb-lcars-multimeter-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:slider-horizontal"
               noCollapse: false
               expanded: true
               rows:
@@ -1751,7 +1892,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:border-right-variant"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -1774,7 +1915,7 @@ cb-lcars-multimeter-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:border-none-variant"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -1800,21 +1941,21 @@ cb-lcars-multimeter-card:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:tune-variant"
           rows:
             - controls:
-                - label: "Slider: Match Left to Entity Color"
+                - label: "Gradient: Match [Left/Top] to Entity Color"
                   configValue: "cblcars_card_config.variables.entity_match_slider_start"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
-              label: "Slider - Left/Start"
+              label: "Gradient - Left/Top"
               visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:gradient-horizontal"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1832,18 +1973,18 @@ cb-lcars-multimeter-card:
                     - <<: *colorPreviewControl
                       configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
             - controls:
-                - label: "Slider: Match Right to Entity Color"
+                - label: "Gradient: Match [Right/Bottom] to Entity Color"
                   configValue: "cblcars_card_config.variables.entity_match_slider_end"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
-              label: "Slider - Right/End"
+              label: "Slider - Right/Bottom"
               visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:gradient-vertical"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -1968,21 +2109,21 @@ cb-lcars-slider-card:
       outlined: true
       leftChevron: false
       headerLevel: 4
-      icon: "mdi:palette-advanced"
+      icon: "mdi:tune-variant"
       rows:
         - controls:
-            - label: "Slider: Match Left to Entity Color"
+            - label: "Gradient: Match [Left/Top] to Entity Color"
               configValue: "cblcars_card_config.variables.entity_match_slider_start"
               type: Selector
               selector:
                 boolean:
         - type: Section
-          label: "Slider - Left/Start"
+          label: "Gradient - Left/Top"
           visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:gradient-horizontal"
           noCollapse: false
           rows:
             - type: ControlRow
@@ -2000,18 +2141,18 @@ cb-lcars-slider-card:
                 - <<: *colorPreviewControl
                   configValue: "cblcars_card_config.variables.meter.variables.gradient_start_color"
         - controls:
-            - label: "Slider: Match Right to Entity Color"
+            - label: "Gradient: Match [Right/Bottom] to Entity Color"
               configValue: "cblcars_card_config.variables.entity_match_slider_end"
               type: Selector
               selector:
                 boolean:
         - type: Section
-          label: "Slider - Right/End"
+          label: "Gradient - Right/Bottom"
           visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:gradient-vertical"
           noCollapse: false
           rows:
             - type: ControlRow
@@ -2028,7 +2169,1328 @@ cb-lcars-slider-card:
             - controls:
                 - <<: *colorPreviewControl
                   configValue: "cblcars_card_config.variables.meter.variables.gradient_end_color"
-
 cb-lcars-dpad-card:
   render_form:
-    - <<: *actionsSection
+    - type: Section
+      label: "DPAD Defaults"
+      outlined: true
+      leftChevron: false
+      expanded: true
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      rows:
+        - type: Section
+          label: "Colors"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:palette"
+          noCollapse: false
+          expanded: false
+          rows:
+            - controls:
+                - type: Message
+                  alertType: info
+                  message: "These colors are used as defaults for the DPAD buttons.\nYou can override these colors for each button individually.\n\nQuandrant colors are inverted from DPAD button colors by default."
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+        - type: Section
+          label: "Size"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:palette"
+          noCollapse: false
+          expanded: false
+          rows:
+            - controls:
+                - type: Message
+                  alertType: info
+                  message: "By default the DPAD will autosize to fit the card dimensions.\nYou can override this behavior by setting a fixed size here."
+                - label: "DPAD Size"
+                  configValue: "cblcars_card_config.variables.card.size"
+                  disabled: false
+                  required: false
+                  type: Selector
+                  selector:
+                    number:
+                      min: 100
+                      max: 1000
+                      step: 10
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+    - type: Section
+      label: "DPAD Buttons"
+      outlined: true
+      leftChevron: false
+      expanded: true
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      rows:
+        - type: Section
+          label: "Up Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-up"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.up.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Down Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-down"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.down.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Left Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-left"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.left.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.left.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.left.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Right Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-right"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.right.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.right.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.right.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Center Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-round"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.center.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.center.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.center.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.center.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Upper Left Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-1-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up_left.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up_left.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.up_left.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Upper Right Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-2-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up_right.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.up_right.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.up_right.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Lower Left Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-3-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down_left.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down_left.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.down_left.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+        - type: Section
+          label: "Lower Right Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-4-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+            - <<: *actionsSection
+              rows:
+                - <<: *tapActionSection
+                  rows:
+                    - controls:
+                      - label: "Tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down_right.tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *doubleTapActionSection
+                  rows:
+                    - controls:
+                      - label: "Double-tap Action"
+                        configValue: "cblcars_card_config.variables.dpad.down_right.double_tap_action"
+                        type: Selector
+                        selector:
+                          ui_action:
+                - <<: *holdActionSection
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Hold Action"
+                          configValue: "cblcars_card_config.variables.dpad.down_right.hold_action"
+                          type: Selector
+                          selector:
+                            ui_action:
+    - type: Section
+      label: "DPAD Defaults"
+      outlined: true
+      leftChevron: false
+      expanded: true
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      rows:
+        - type: Section
+          label: "Colors"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:palette"
+          noCollapse: false
+          expanded: false
+          rows:
+            - controls:
+                - type: Message
+                  alertType: info
+                  message: "These colors are used as defaults for the DPAD buttons.\nYou can override these colors for each button individually.\n\nQuandrant colors are inverted from DPAD button colors by default."
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+        - type: Section
+          label: "Size"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:palette"
+          noCollapse: false
+          expanded: false
+          rows:
+            - controls:
+                - type: Message
+                  alertType: info
+                  message: "By default the DPAD will autosize to fit the card dimensions.\nYou can override this behavior by setting a fixed size here."
+                - label: "DPAD Size"
+                  configValue: "cblcars_card_config.variables.card.size"
+                  disabled: false
+                  required: false
+                  type: Selector
+                  selector:
+                    number:
+                      min: 100
+                      max: 1000
+                      step: 10
+                      mode: slider
+                      unit_of_measurement: "px"
+                      slider_ticks: false
+    - type: Section
+      label: "DPAD Buttons"
+      outlined: true
+      leftChevron: false
+      expanded: true
+      headerLevel: 4
+      icon: "mdi:palette-advanced"
+      rows:
+        - type: Section
+          label: "Up Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-up"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+        - type: Section
+          label: "Down Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-down"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+        - type: Section
+          label: "Left Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-left"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+        - type: Section
+          label: "Right Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-right"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+        - type: Section
+          label: "Center Button"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:gamepad-round"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.center.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+        - type: Section
+          label: "Upper Left Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-1-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+        - type: Section
+          label: "Upper Right Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-2-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+        - type: Section
+          label: "Lower Left Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-3-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+        - type: Section
+          label: "Lower Right Quadrant"
+          outlined: true
+          leftChevron: false
+          expanded: false
+          headerLevel: 4
+          icon: "mdi:numeric-4-circle"
+          rows:
+            - controls:
+                - label: "Entity"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.entity"
+                  required: true
+                  type: Selector
+                  selector:
+                    entity:
+                - type: RawHTML
+                  html: |
+                      <label>State: ON</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                - label: "Color (state: on)"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+            - controls:
+                - type: RawHTML
+                  html: |
+                      <label>State: OFF</label>
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - <<: *colorLCARSListControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                - label: "Color (state: off)"
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                  type: Selector
+                  selector:
+                    text:
+                      type: color
+            - controls:
+                - <<: *colorPreviewControl
+                  configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
