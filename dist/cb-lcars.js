@@ -41,11 +41,11 @@
                 ${e}
             </div>
         `}}generateTabs(t){const e=t.filter((t=>this._evaluateCondition(t.visibilityCondition||"true")));return i.html`
-            <mwc-tabs @MDCTabBar:activated=${this._handleTabActivated}>
+            <mwc-tab-bar @MDCTabBar:activated=${this._handleTabActivated}>
                 ${e.map(((t,e)=>i.html`
                     <mwc-tab label="${t.label}" ?selected=${this._selectedTab===e}></mwc-tab>
                 `))}
-            </mwc-tabs>
+            </mwc-tab-bar>
             <div class="tab-content">
                 ${e.map(((t,e)=>i.html`
                     <div class="tab-panel" ?hidden=${this._selectedTab!==e}>
@@ -80,7 +80,7 @@
             }
 
              /* Styles for tabs */
-            mwc-tabs {
+            mwc-tab-bar {
                 border-bottom: 1px solid var(--divider-color);
             }
             .tab-content {
