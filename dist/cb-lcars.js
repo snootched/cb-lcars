@@ -36,7 +36,7 @@
                     The control type "${t.type}" is not supported.
                 </ha-alert>
                 </div>
-                `}};const n=r(337),i=r(781);function o(t){return null!==t&&"object"==typeof t}e.getNestedProperty=(t,e)=>e.split(".").reduce(((t,e)=>t&&t[e]),t)},448:(t,e,r)=>{"use strict";const n=r(356),i=r(337),o=r(781),a=r(898),s=r(372);customElements.get("md-tabs")||Promise.resolve().then((()=>r(522)));class c extends i.LitElement{constructor(){super(...arguments),this._selectedTab=0,this._userStyles=i.css``,this._mergeUserStyles=!0}setConfig(t){this._config=t,this.requestUpdate("_config")}set hass(t){this._hass=t}generateForm(t){if(!t)return i.html``;if(t.tabs)return this.generateTabs(t.tabs);{const e=t.render_form.map((t=>(0,a.isSection)(t)?this.generateSection(t):this.generateRow(t)));return i.html`
+                `}};const n=r(337),i=r(781);function o(t){return null!==t&&"object"==typeof t}e.getNestedProperty=(t,e)=>e.split(".").reduce(((t,e)=>t&&t[e]),t)},448:(t,e,r)=>{"use strict";const n=r(356),i=r(337),o=r(781),a=r(898),s=r(372);customElements.get("mwc-tab-bar")||Promise.resolve().then((()=>r(522)));class c extends i.LitElement{constructor(){super(...arguments),this._selectedTab=0,this._userStyles=i.css``,this._mergeUserStyles=!0}setConfig(t){this._config=t,this.requestUpdate("_config")}set hass(t){this._hass=t}generateForm(t){if(!t)return i.html``;if(t.tabs)return this.generateTabs(t.tabs);{const e=t.render_form.map((t=>(0,a.isSection)(t)?this.generateSection(t):this.generateRow(t)));return i.html`
             <div class="card-form">
                 ${e}
             </div>
