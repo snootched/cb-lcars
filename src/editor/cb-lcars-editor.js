@@ -18,10 +18,9 @@ export class CBLCARSCardEditor extends EditorForm {
         this._formDefinitions = {};
         this._formControls = {};
         this._cardType = "";
-
         this._cardType = cardType;
 
-        cblcarsLog('debug',`Setting up editor for ${cardType}`);
+        //cblcarsLog('debug',`Setting up editor for ${cardType}`);
 
         this._initializationPromise = this._initialize();
     }

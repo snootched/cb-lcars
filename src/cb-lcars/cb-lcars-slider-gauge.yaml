@@ -148,7 +148,7 @@ cb-lcars-slider-gauge:
             - background: none
           thumb:
             - background: none
-cb-lcars-slider-horizontal-gauge:
+cb-lcars-slider-horizontal-gauge-orig:
   entity: '[[[ return variables.__get_random_entity("light"); ]]]'
   template:
     - cb-lcars-functions
@@ -290,8 +290,7 @@ cb-lcars-slider-horizontal-gauge:
         - position: absolute
         - top: 0
         - left: >-
-            [[[ return "calc(" + variables.slider.variables.border_width + " *
-            -1)" ]]]
+            [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
       sub_meter:
         - position: absolute
         - top: 0px
@@ -329,3 +328,197 @@ cb-lcars-slider-horizontal-gauge:
         type: custom:button-card
         template: cb-lcars-meter-horizontal
         variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
+
+cb-lcars-slider-horizontal-gauge:
+  entity: "[[[ return variables.entity ]]]"
+  template:
+    - cb-lcars-functions
+    - cb-lcars-slider-horizontal
+  triggers_update: "[[[ return variables.entity ]]]"
+  variables:
+    card:
+      width: |
+        [[[
+          return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
+        ]]]
+      height: |
+        [[[
+          return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
+        ]]]
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
+    entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+    entity_match_slider: false
+    entity_match_gauge: false
+    slider:
+      variables:
+        color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-lightest-blue)" ]]]
+        color_alpha: 0.95
+        border_color: |
+          [[[ return  variables.entity_match_slider ? variables.entity_color :
+          "var(--picard-blue)" ]]]
+        border_alpha: 0.5
+        border_width: 2px
+        height: 10px
+        width: "[[[ return variables.card_width ]]]"
+        top_padding: 10px
+        step: 5
+    gauge:
+      show_sub_meter: true
+      meter: {}
+      color:
+        active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+        inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+        background:
+          active: transparent
+          inactive: transparent
+      sub_meter:
+        active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+        inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+        background:
+          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+          inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+      label:
+        active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+        inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+
+    meter: "[[[ return variables.gauge.meter ]]]"
+  styles:
+    custom_fields:
+      slider:
+        - position: absolute
+        - top: 0
+        - left: >-
+            [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
+  custom_fields:
+    slider:
+      card:
+        flipped: false
+        vertical: false
+        inverse: false
+        styles:
+          card:
+            - height: "[[[ return variables.card.height ]]]"
+            - width: "[[[ return variables.card.width ]]]"
+            - background: none
+          progress:
+            - background-color: >-
+                [[[ return
+                variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                ]]]
+            - border: >-
+                [[[ return variables.slider.variables.border_width + " solid " +
+                variables.__hex_to_rgba(variables.slider.variables.border_color,
+                variables.slider.variables.border_alpha)  ]]]
+            - border-radius: 2px
+            - height: "[[[ return variables.slider.variables.height ]]]"
+            - width: "[[[ return variables.slider.variables.width ]]]"
+            - top: "[[[ return variables.slider.variables.top_padding ]]]"
+  show_label: true
+  label: |
+    [[[
+      const bg_fill_value = variables.gauge.bg_fill_value || 0;  //bg_fill_value of bg fill
+      const bg_fill_color = variables.gauge.bg_fill_color || 'transparent';  //bg fill color
+      const showSubticks = variables.gauge.show_sub_meter;
+
+      const entityState = entity.state;
+      //console.debug('entityState', entityState);
+
+      const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
+      const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
+      const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
+      const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
+
+      const width = (parseInt(variables.card.width) - 2)+"px";
+      const height = variables.card.height;
+
+      const meterTicks = [];
+      for (let i = 0; i <= 100; i += 10) {
+        if (i <= 100) {
+          meterTicks.push(`<div class="meter-tick" style="left: ${i === 100 ? 100 : i}%"></div>`);
+          meterTicks.push(`<span class="meter-tick-label" style="left: ${i === 100 ? 100 : i}%">${i}</span>`);
+        }
+        if (showSubticks && i < 100) {
+          for (let j = 1; j <= 4; j++) {  // Ensure 4 sub-ticks
+            meterTicks.push(`<div class="meter-subtick" style="left: ${i + (j / 5) * 10}%"></div>`);
+          }
+        }
+      }
+
+      return `
+        <elt class="meter-card">
+          <style>
+            .meter-card {
+              display: block;
+              width: ${width};
+              height: ${height};
+              position: relative;
+              grid-template-columns: repeat(10, 1fr);
+              grid-template-rows: 1fr;
+              gap: 0;
+              margin-right: 5px
+            }
+
+            .meter-bar {
+              grid-column: 1 / span 10;
+              grid-row: 1;
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              background-color: ${meter_bg_color};
+              border-radius: 0px;
+            }
+
+            .meter-inner {
+              position: absolute;
+              top: 0;
+              left: 0;
+              height: 100%;
+              background-color: ${bg_fill_color};
+            }
+
+            .meter-ticks {
+              grid-column: 1 / span 10;
+              grid-row: 1;
+              display: grid;
+              grid-template-columns: repeat(10, 1fr);
+              grid-template-rows: 1fr;
+              gap: 0;
+            }
+
+            .meter-tick {
+              position: absolute;
+              width: 2px;
+              height: 100%; /* Adjust height to match card height */
+              background-color: ${meter_tick_color};
+            }
+
+            .meter-subtick {
+              position: absolute;
+              width: 1px;
+              height: 10px; /* Adjust height as needed */
+              background-color: ${meter_subtick_color};
+            }
+
+            .meter-tick-label {
+              position: absolute;
+              bottom: 0; /* Align label at the bottom of the tick */
+              font-size: 14px; /* Adjust font size */
+              text-align: right;
+              transform: translateX(-100%); /* Center the label */
+              padding-right: 5px;
+              color: ${meter_label_color};
+            }
+          </style>
+          <div class="meter-bar">
+            <div class="meter-inner" style="width: ${bg_fill_value}%; background-color: ${bg_fill_color};"></div>
+          </div>
+          <div class="meter-ticks">
+            ${meterTicks.join('')}
+          </div>
+        </elt>
+      `;
+    ]]]
