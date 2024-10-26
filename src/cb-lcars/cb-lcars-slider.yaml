@@ -44,6 +44,7 @@ cb-lcars-slider:
       variables:
         mask_color: rgb(0,0,0,0.8)
         step: 1
+        mode: brightness
   styles:
     card:
       - width: '[[[ return variables.card.width ]]]'
@@ -72,7 +73,7 @@ cb-lcars-slider:
       card:
         type: custom:my-slider-v2
         entity: '[[[ return variables.entity ]]]'
-        mode: brightness
+        mode: '[[[ return variables.slider.variables.mode ]]]'
         flipped: true
         inverse: true
         vertical: true
