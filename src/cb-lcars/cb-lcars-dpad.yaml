@@ -5,14 +5,8 @@ cb-lcars-dpad:
     __defs_dpad:
       color:
         background:
-          active: >
-            [[[ return
-            getComputedStyle(document.body).getPropertyValue("--lcars-ui-tertiary")
-            ]]]
-          inactive: >
-            [[[ return
-            getComputedStyle(document.body).getPropertyValue("--lcars-ui-secondary")
-            ]]]
+          active: var(--lcars-ui-tertiary)
+          inactive: var(--lcars-ui-secondary)
     card:
       size: |
         [[[
@@ -25,10 +19,7 @@ cb-lcars-dpad:
         scale: 6.5
         min_height: 10px
         color:
-          ripple: >
-            [[[ return
-            getComputedStyle(document.body).getPropertyValue("--state-color")
-            ]]]
+          ripple: var(--state-color)
       up:
         color:
           background:
@@ -252,19 +243,29 @@ cb-lcars-dpad:
       - width: '[[[ return variables.__get_num_with_unit(variables.card.size) ]]]'
       - background: |
           [[[
-            let button_ripple_color = variables.dpad.button.color.ripple;
-            let svg_dpad_up_bg = (variables.dpad.up.entity && states[variables.dpad.up.entity] && states[variables.dpad.up.entity].state === variables.dpad.up.active_state) ? variables.dpad.up.color.background.active : variables.dpad.up.color.background.inactive;
-            let svg_dpad_down_bg = (variables.dpad.down.entity && states[variables.dpad.down.entity] && states[variables.dpad.down.entity].state === variables.dpad.down.active_state) ? variables.dpad.down.color.background.active : variables.dpad.down.color.background.inactive;
-            let svg_dpad_left_bg = (variables.dpad.left.entity && states[variables.dpad.left.entity] && states[variables.dpad.left.entity].state === variables.dpad.left.active_state) ? variables.dpad.left.color.background.active : variables.dpad.left.color.background.inactive;
-            let svg_dpad_right_bg = (variables.dpad.right.entity && states[variables.dpad.right.entity] && states[variables.dpad.right.entity].state === variables.dpad.right.active_state) ? variables.dpad.right.color.background.active : variables.dpad.right.color.background.inactive;
-            let svg_dpad_center_bg = (variables.dpad.center.entity && states[variables.dpad.center.entity] && states[variables.dpad.center.entity].state === variables.dpad.center.active_state) ? variables.dpad.center.color.background.active : variables.dpad.center.color.background.inactive;
+            // Function to resolve CSS variables to their hex color values
+            function resolveCssVariable(variable) {
+              if (variable.startsWith('var(')) {
+                const cssVarName = variable.slice(4, -1).trim();
+                return getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
+              }
+              return variable;
+            }
 
-            let svg_dpad_up_left_bg = (variables.dpad.up_left.entity && states[variables.dpad.up_left.entity] && states[variables.dpad.up_left.entity].state === variables.dpad.up_left.active_state) ? variables.dpad.up_left.color.background.active : variables.dpad.up_left.color.background.inactive;
-            let svg_dpad_up_right_bg = (variables.dpad.up_right.entity && states[variables.dpad.up_right.entity] && states[variables.dpad.up_right.entity].state === variables.dpad.up_right.active_state) ? variables.dpad.up_right.color.background.active : variables.dpad.up_right.color.background.inactive;
-            let svg_dpad_down_left_bg = (variables.dpad.down_left.entity && states[variables.dpad.down_left.entity] && states[variables.dpad.down_left.entity].state === variables.dpad.down_left.active_state) ? variables.dpad.down_left.color.background.active : variables.dpad.down_left.color.background.inactive;
-            let svg_dpad_down_right_bg = (variables.dpad.down_right.entity && states[variables.dpad.down_right.entity] && states[variables.dpad.down_right.entity].state === variables.dpad.down_right.active_state) ? variables.dpad.down_right.color.background.active : variables.dpad.down_right.color.background.inactive;
+            let button_ripple_color = resolveCssVariable(variables.dpad.button.color.ripple);
+            let svg_dpad_up_bg = (variables.dpad.up.entity && states[variables.dpad.up.entity] && states[variables.dpad.up.entity].state === variables.dpad.up.active_state) ? resolveCssVariable(variables.dpad.up.color.background.active) : resolveCssVariable(variables.dpad.up.color.background.inactive);
+            let svg_dpad_down_bg = (variables.dpad.down.entity && states[variables.dpad.down.entity] && states[variables.dpad.down.entity].state === variables.dpad.down.active_state) ? resolveCssVariable(variables.dpad.down.color.background.active) : resolveCssVariable(variables.dpad.down.color.background.inactive);
+            let svg_dpad_left_bg = (variables.dpad.left.entity && states[variables.dpad.left.entity] && states[variables.dpad.left.entity].state === variables.dpad.left.active_state) ? resolveCssVariable(variables.dpad.left.color.background.active) : resolveCssVariable(variables.dpad.left.color.background.inactive);
+            let svg_dpad_right_bg = (variables.dpad.right.entity && states[variables.dpad.right.entity] && states[variables.dpad.right.entity].state === variables.dpad.right.active_state) ? resolveCssVariable(variables.dpad.right.color.background.active) : resolveCssVariable(variables.dpad.right.color.background.inactive);
+            let svg_dpad_center_bg = (variables.dpad.center.entity && states[variables.dpad.center.entity] && states[variables.dpad.center.entity].state === variables.dpad.center.active_state) ? resolveCssVariable(variables.dpad.center.color.background.active) : resolveCssVariable(variables.dpad.center.color.background.inactive);
 
-            let svg_background_color = variables.dpad.color.background;
+            let svg_dpad_up_left_bg = (variables.dpad.up_left.entity && states[variables.dpad.up_left.entity] && states[variables.dpad.up_left.entity].state === variables.dpad.up_left.active_state) ? resolveCssVariable(variables.dpad.up_left.color.background.active) : resolveCssVariable(variables.dpad.up_left.color.background.inactive);
+            let svg_dpad_up_right_bg = (variables.dpad.up_right.entity && states[variables.dpad.up_right.entity] && states[variables.dpad.up_right.entity].state === variables.dpad.up_right.active_state) ? resolveCssVariable(variables.dpad.up_right.color.background.active) : resolveCssVariable(variables.dpad.up_right.color.background.inactive);
+            let svg_dpad_down_left_bg = (variables.dpad.down_left.entity && states[variables.dpad.down_left.entity] && states[variables.dpad.down_left.entity].state === variables.dpad.down_left.active_state) ? resolveCssVariable(variables.dpad.down_left.color.background.active) : resolveCssVariable(variables.dpad.down_left.color.background.inactive);
+            let svg_dpad_down_right_bg = (variables.dpad.down_right.entity && states[variables.dpad.down_right.entity] && states[variables.dpad.down_right.entity].state === variables.dpad.down_right.active_state) ? resolveCssVariable(variables.dpad.down_right.color.background.active) : resolveCssVariable(variables.dpad.down_right.color.background.inactive);
+
+            let svg_background_color = resolveCssVariable(variables.dpad.color.background);
+
             let svgString = `<?xml version="1.0" encoding="UTF-8"?>
             <svg width="80mm" height="80mm" version="1.1" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink">
               <metadata>

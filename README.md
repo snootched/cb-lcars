@@ -22,7 +22,6 @@ Note: This project is under reconstruction.  The goal is to move towards consumi
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
-    - [What it can look like...](#what-it-can-look-like)
     - [What can be done...](#what-can-be-done)
 - [Make it so!](#make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
@@ -33,24 +32,24 @@ Note: This project is under reconstruction.  The goal is to move towards consumi
     - [4. Boldly Go...](#4-boldly-go)
       - [New Dashboard w/Strategy](#new-dashboard-wstrategy)
       - [Engage!](#engage)
-- [TODO - Organize this...](#todo---organize-this)
-  - [Actions](#actions)
-  - [Flare](#flare)
-  - [LCARS Basic Shapes](#lcars-basic-shapes)
-    - [LCARS Elbows](#lcars-elbows)
-      - [Headers](#headers)
-      - [Footers](#footers)
-      - [LCARS Callouts](#lcars-callouts)
-    - [LCARS Text Labels](#lcars-text-labels)
-      - [Text/Labels](#textlabels)
+- [CB-LCARS Cards](#cb-lcars-cards)
+  - [LCARS Elbows](#lcars-elbows)
+    - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
+    - [`type: custom:cb-lcars-double-elbow-card`](#type-customcb-lcars-double-elbow-card)
   - [LCARS Buttons](#lcars-buttons)
-    - [Standard Buttons](#standard-buttons)
-    - [Rounded Buttons](#rounded-buttons)
-    - [Picard-Style Buttons](#picard-style-buttons)
-    - [Button Examples](#button-examples)
+    - [`type: custom:cb-lcars-button-card`](#type-customcb-lcars-button-card)
+  - [LCARS Multimeter (Sliders/Gauges)](#lcars-multimeter-slidersgauges)
+    - [`type:cb-lcars-multimeter-card`](#typecb-lcars-multimeter-card)
+  - [LCARS Label (Stylized Text)](#lcars-label-stylized-text)
+    - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
+  - [LCARS DPAD](#lcars-dpad)
+    - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
 - [Screenshots](#screenshots)
+      - [Button Samples](#button-samples)
+      - [Sliders/Gauges](#slidersgauges)
       - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
       - [Room Selector with Sliders for Lights](#room-selector-with-sliders-for-lights)
+    - [Some Dashboard possibilities...](#some-dashboard-possibilities)
 - [Acknowledgements \& Thanks](#acknowledgements--thanks)
 - [License](#license)
 
@@ -83,24 +82,6 @@ For some controls you need to install other cards from HACS (all requirements li
 - Professional work.<br>As this is my first crack at an HA custom card - it's a WIP and as I learn, updates and optimaztions will be made.  Hobbyist here, not a pro.
 - A complete set of bugless components to fit every use-case you can imagine.  Maybe in the next-class starship :P
 
-
-
-### What it can look like...
-
-
-![dashboard_1](images/screenshots/dashboard_sample_1.png)
-
-<br>
-
-![dashboard_2](images/screenshots/dashboard_sample_2.png)
-
-<br>
-
-![dashboard_red_alert_1](images/screenshots/dashboard_sample_red_alert_1.png)
-
-<br>
-
-![dashboard_3](images/screenshots/dashboard_sample_3.png)
 
 <br>
 
@@ -155,13 +136,13 @@ In no particular ordeer:
 The following should be installed and working in your Home Assistant instance - these are available in HACS
 <br><b>Please follow the instructions in the respective project documentation for installation details. </b>
 
-| Custom Card    |  Required?   | Function    |
-|----------------|--------------|-------------|
-| [custom-button-card](https://github.com/custom-cards/button-card) | Required | Base Framework |
-| [ha-lcars theme](https://github.com/th3jesta/ha-lcars) | Required | Provides base theme elements, styes, color variables, etc. |
-| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards) | Required | Provides slider function which is used in the slider/gauge controls. |
-| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required | Used internally by some cards.<br><br>Also handy for the ultimate in dashboard layout customization! |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | Recommended | Not strictly needed for CB-LCARS, but is used by HA-LCARS at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| Custom Card                                                                 |  Required?  | Function    |
+|-----------------------------------------------------------------------------|-------------|-------------|
+| [custom-button-card](https://github.com/custom-cards/button-card)           | Required    | Base Framework |
+| [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
+| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | Required    | Provides slider function which is used in the slider/gauge controls. |
+| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Recommended | Not strictly needed for CB-LCARS, but is used by HA-LCARS at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
 
 
@@ -229,205 +210,138 @@ You can now "Take Control" and begin your LCARS adventure!
 3. Click the 3 dots in the top right and choose *Take Control*
 4. On the next dialog just click **Take Control**  *(do not choose to start with an empty dashboard!)*
 
-
----
----
----
-
-# TODO - Organize this...
-
-## Actions
-
-
-Of note in this list - if you like the style of Philips Hue interface, then `cb-lcars-actions-hue-*` is for you!
-
-| Template                     | Description |
-| ---------------------------- | ----------- |
-| [`cb-lcars-actions-hue-[tap\|hold]`](cb-lcars/cb-lcars-actions.yaml)       | Uses [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) API to pop up the Hue-style light control dialog on `[tap\|hold]`<br><br>-<b>tap</b><br>`tap_action:` hue card<br>`double_tap_action: more-info`<br>`hold_action: toggle`<br><br><b>-hold</b><br>`tap_action: toggle` <br>`double_tap_action: more-info`<br>`hold_action:` hue card<br><br>TODO: instructions how to use this![hue_popup](images/screenshots/hue_popup.png)
-</details>
-
-## Flare
-
-<details closed><summary>Flare</summary>
-
-| Template                 | Description |
-| ------------------------ | ----------- |
-| [`cb-lcars-animate-press`](cb-lcars/cb-lcars-animate-press.yaml) | Adds an animation to the button when pressed.  |
-| [`cb-lcars-state-blink`](cb-lcars/cb-lcars-state-blink.yaml)   | Causes the button to blink when active. <br><br> ![picard-button-blink](images/screenshots/picard-button-blink.gif) |
-</details>
+<br>
 
 ---
 
-## LCARS Basic Shapes
+# CB-LCARS Cards
 
-These are the basic shapes found in LCARS.  These are highly configurable - default styles are shown with some examples of how to configur them to look like other versions seen in Picard.
+These are the cards found in CB-LCARS.  These are highly configurable - some default styles are shown.  Additional style possibilities can be found in the screenshots section.
 
-### LCARS Elbows
+<br>
 
-#### Headers
+## LCARS Elbows
 
-| Template       | Default Style          |
-| -------------- | ---------------------- |
+
+### `type: custom:cb-lcars-elbow-card`
+
+
+| `cblcars_card_type:`                                            | Default Style          |
+| --------------------------------------------------------------- | ---------------------- |
 | [`cb-lcars-header`](cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
 | [`cb-lcars-header-right`](cb-lcars/cb-lcars-header.yaml)        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
 | [`cb-lcars-header-contained`](cb-lcars/cb-lcars-header.yaml)    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
 | [`cb-lcars-header-open`](cb-lcars/cb-lcars-header.yaml)         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
-| [`cb-lcars-header-picard`](cb-lcars/cb-lcars-header-picard.yaml)       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
-| [`cb-lcars-header-picard-right`](cb-lcars/cb-lcars-header-picard.yaml) | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
 
 
-#### Footers
-
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| [`cb-lcars-footer-base`](cb-lcars/cb-lcars-footer.yaml)         |     n/a                                                        |
+| `cblcars_card_type:`                                            | Default Style          |
+| --------------------------------------------------------------- | ---------------------- |
 | [`cb-lcars-footer`](cb-lcars/cb-lcars-footer.yaml)              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
-| [`cb-lcars-footer-right`](cb-lcars/cb-lcars-footer.yaml)        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png)(cb-lcars/cb-lcars-footer.yaml)        |
+| [`cb-lcars-footer-right`](cb-lcars/cb-lcars-footer.yaml)        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png) |
 | [`cb-lcars-footer-contained`](cb-lcars/cb-lcars-footer.yaml)    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
 | [`cb-lcars-footer-open`](cb-lcars/cb-lcars-footer.yaml)         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
-| [`cb-lcars-footer-picard`](cb-lcars/cb-lcars-footer-picard.yaml)       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
-| [`cb-lcars-footer-picard-right`](cb-lcars/cb-lcars-footer-picard.yaml) | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
-</details>
 
-
-#### LCARS Callouts
-
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| [`cb-lcars-callout-base`](cb-lcars/cb-lcars-callout.yaml)         |    n/a                                                          |
+| `cblcars_card_type:`                                              | Default Style          |
+| ----------------------------------------------------------------- | ---------------------- |
 | [`cb-lcars-header-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
 | [`cb-lcars-header-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
 | [`cb-lcars-footer-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
 | [`cb-lcars-footer-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 
+<br>
 
-### LCARS Text Labels
+### `type: custom:cb-lcars-double-elbow-card`
 
-#### Text/Labels
+| `cblcars_card_type:`                                                   | Default Style          |
+| ---------------------------------------------------------------------- | ---------------------- |
+| [`cb-lcars-header-picard`](cb-lcars/cb-lcars-header-picard.yaml)       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
+| [`cb-lcars-header-picard-right`](cb-lcars/cb-lcars-header-picard.yaml) | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
+| [`cb-lcars-footer-picard`](cb-lcars/cb-lcars-footer-picard.yaml)       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
+| [`cb-lcars-footer-picard-right`](cb-lcars/cb-lcars-footer-picard.yaml) | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
 
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| [`cb-lcars-label`](cb-lcars/cb-lcars-label.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png)<br>![picard-callout-2](images/screenshots/label-2.png)
-
- |
-
----
+<br>
 
 ## LCARS Buttons
 
-### Standard Buttons
+### `type: custom:cb-lcars-button-card`
 
-<details open><summary>Button Templates</summary>
+| `cblcars_card_type:`                                                                 | Default Style          |
+| ------------------------------------------------------------------------------------ | ---------------------- |
+| [`cb-lcars-button-lozenge`](cb-lcars/cb-lcars-button-lozenge.yaml)                   | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
+| [`cb-lcars-button-bullet`](cb-lcars/cb-lcars-button-bullet.yaml)                     | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
+| [`cb-lcars-button-capped`](cb-lcars/cb-lcars-button-capped.yaml)                     | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
+| [`cb-lcars-button-picard`](cb-lcars/cb-lcars-button-picard.yaml)                     | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
+| [`cb-lcars-button-picard-dense`](cb-lcars/cb-lcars-button-picard.yaml)               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
+| [`cb-lcars-button-picard-filled`](cb-lcars/cb-lcars-button-picard-filled.yaml)       | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
+| [`cb-lcars-button-picard-filled-dense`](cb-lcars/cb-lcars-button-picard-filled.yaml) | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
+| [`cb-lcars-button-picard-icon`](cb-lcars/cb-lcars-button-picard-icon.yaml)           | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
 
-| Template       | Default Style          |
+<br>
+
+## LCARS Multimeter (Sliders/Gauges)
+
+### `type:cb-lcars-multimeter-card`
+
+<br>
+
+## LCARS Label (Stylized Text)
+
+### `type:cb-lcars-label-card`
+
+| `cblcars_card_type:`        | Styles          |
 | -------------- | ---------------------- |
-| [`cb-lcars-button-base`](cb-lcars/cb-lcars-button-base.yaml)<br>[`cb-lcars-button-square`](cb-lcars/cb-lcars-button-base.yaml) | ![cb-lcars-button-base](images/button_samples/cb-lcars-button-base.png) |
+| [`cb-lcars-label`](cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
+| [`cb-lcars-label-picard`](cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
+| [`cb-lcars-cascade`](cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 
-### Rounded Buttons
+<br>
 
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| [`cb-lcars-button-lozenge`](cb-lcars/cb-lcars-button-lozenge.yaml)<br>[`cb-lcars-button-lozenge-right`](cb-lcars/cb-lcars-button-lozenge.yaml) | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
-| [`cb-lcars-button-bullet`](cb-lcars/cb-lcars-button-bullet.yaml)<br>[`cb-lcars-button-bullet-right`](cb-lcars/cb-lcars-button-bullet.yaml)   | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
-| [`cb-lcars-button-capped`](cb-lcars/cb-lcars-button-capped.yaml)<br>[`cb-lcars-button-capped-right`](cb-lcars/cb-lcars-button-capped.yaml)   | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
-</details>
+## LCARS DPAD
 
+### `type:cb-lcars-dpad-card`
 
+- Card-wide active/inactive colors
+- Per-segment active/inactive colors
+- Assignable entity per segment
+- Assignable actions/controls per segment (deafult `toggle`)
 
-### Picard-Style Buttons
+![cb-lcars-dpad](images/screenshots/dpad.gif)
 
-<details open><summary>Picard Button Templates</summary>
+TODOs:
+- update/remove ripple effect
+- add 'match entity color' for active state
 
-| Template       | Default Style          |
-| -------------- | ---------------------- |
-| [`cb-lcars-button-picard`](cb-lcars/cb-lcars-button-picard.yaml)<br>[`cb-lcars-button-picard-right`](cb-lcars/cb-lcars-button-picard.yaml)<br>                       | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
-| [`cb-lcars-button-picard-dense`](cb-lcars/cb-lcars-button-picard.yaml)<br>[`cb-lcars-button-picard-dense-right`](cb-lcars/cb-lcars-button-picard.yaml)               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
-| [`cb-lcars-button-picard-filled`](cb-lcars/cb-lcars-button-picard-filled.yaml)<br>[`cb-lcars-button-picard-filled-right`](cb-lcars/cb-lcars-button-picard-filled.yaml)             | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
-| [`cb-lcars-button-picard-filled-dense`](cb-lcars/cb-lcars-button-picard-filled.yaml)<br>[`cb-lcars-button-picard-filled-dense-right`](cb-lcars/cb-lcars-button-picard-filled.yaml) | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
-| [`cb-lcars-button-picard-icon`](cb-lcars/cb-lcars-button-picard-icon.yaml)                                                        | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
-</details>
-
-
-### Button Examples
-
-![picard-button-1](images/screenshots/picard-button-1.png)
-
-![picard-button-1-off](images/screenshots/picard-button-1-off.png)
-
-![picard-button-2](images/screenshots/picard-button-2.png)
-
-![picard-button-2-off](images/screenshots/picard-button-2-off.png)
-
-![lozenge-button-1](images/screenshots/lozenge-button-1.png)
-
-![lozenge-button-1-off](images/screenshots/lozenge-button-1-off.png)
-
-
----
-
-
+<br>
 
 ---
 
 # Screenshots
 
+Below are screenshots and snippets of potential variations of the controls.
+
+#### Button Samples
+
+![picard-button-1](images/screenshots/picard-button-1.png)
+![picard-button-1-off](images/screenshots/picard-button-1-off.png)
+![picard-button-2](images/screenshots/picard-button-2.png)
+![picard-button-2-off](images/screenshots/picard-button-2-off.png)
+![lozenge-button-1](images/screenshots/lozenge-button-1.png)
+![lozenge-button-1-off](images/screenshots/lozenge-button-1-off.png)
 ![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)
-
-
 ![button-grid-1](images/screenshots/button-grid-1.png)
-
-
 ![button-grid-2](images/screenshots/button-grid-2.png)
-
-
 ![icon-gird-1](images/screenshots/icon-grid-1.png)
 
 
 
+#### Sliders/Gauges
 
-![cb-lcars-meter](images/button_samples/cb-lcars-meter.png)
-
-![cb-lcars-meter-horizontal](images/button_samples/cb-lcars-meter-horizontal.png)
-
-![cb-lcars-slider](images/button_samples/cb-lcars-slider.png)
-
-![cb-lcars-slider-gauge](images/button_samples/cb-lcars-slider-gauge.png)
-
-![cb-lcars-slider-horizontal](images/button_samples/cb-lcars-slider-horizontal.png)
-
-![cb-lcars-slider-horizontal-gauge](images/button_samples/cb-lcars-slider-horizontal-gauge.png)
-
-![slider-1](images/screenshots/slider-1.png)
-
-![slider-2](images/screenshots/slider-2.png)
-
-![slider-3](images/screenshots/slider-3.png)
-
-![slider-horizontal-1](images/screenshots/slider-horiz-1.png)
-
-![slider-horizontal-3](images/screenshots/slider-horiz-2.png)
-
-
-![slider-horizontal-4](images/screenshots/slider-horiz-4.png)
-
-
-![slider-horizontal-5](images/screenshots/slider-horiz-5.png)
-
-
-![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png)
-
-![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
-
-![meter-5](images/screenshots/meter-5.png)
+![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png) ![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
 
 ![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)
 
-![cb-lcars-dpad](images/button_samples/cb-lcars-dpad.png)
-
 ![multimeter-1](images/screenshots/multimeter-1.png)
 
-
-![multimeter-1](images/screenshots/multimeter-2.png)
 
 
 #### Row of sliders (Transporter controls? :grin:)
@@ -436,6 +350,22 @@ These are the basic shapes found in LCARS.  These are highly configurable - defa
 
 #### Room Selector with Sliders for Lights
 ![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
+
+### Some Dashboard possibilities...
+
+![dashboard_1](images/screenshots/dashboard_sample_1.png)
+
+<br>
+
+![dashboard_2](images/screenshots/dashboard_sample_2.png)
+
+<br>
+
+![dashboard_red_alert_1](images/screenshots/dashboard_sample_red_alert_1.png)
+
+<br>
+
+![dashboard_3](images/screenshots/dashboard_sample_3.png)
 
 ---
 

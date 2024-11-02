@@ -3672,7 +3672,6 @@ cb-lcars-multimeter-card-old:
                     - <<: *colorPreviewControl
                       configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
 
-
 cb-lcars-multimeter-card:
   tabs:
     - label: "LCARS Mode"
