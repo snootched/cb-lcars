@@ -30,9 +30,13 @@ console.groupEnd();
 */
 
 // Check for custom element dependencies
-//if (!customElements.get('button-card')) {
-////    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
-//}
+if (!customElements.get('button-card')) {
+    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
+}
+// Check for custom element dependencies
+if (!customElements.get('my-slider-v2')) {
+    cblcarsLog('error',`MySliderV2 Custom Card [my-slider-v2] was not found!  Please install from HACS.`);
+}
 
 loadFont();
 
@@ -744,9 +748,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
         return {
             cblcars_card_config: {
                 variables: {
-                    panel: {
-                        mode: 'gauge'
-                    }
+                    _mode: 'gauge'
                 }
             }
         };
@@ -1029,7 +1031,7 @@ const CBLCARSCardClasses = [
     },
     {
         type: 'cb-lcars-slider-card',
-        name: 'CB-LCARS Sliders',
+        name: 'CB-LCARS Sliders [deprecated]',
         preview: true,
         description: 'CB-LCARS Sliders and Gauges [no decorations]',
         documentationURL: "https://cb-lcars.unimatrix01.ca",

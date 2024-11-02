@@ -1,599 +1,771 @@
 cb-lcars-multimeter:
   type: custom:button-card
-  template:
-    - cb-lcars-functions
-    - cb-lcars-card-base
   entity: "[[[ return variables.entity ]]]"
-  triggers_update: "[[[ return variables.entity ]]]"
-  variables:
-    card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
-    text:
-      label:
-        font_size: 24px
-      state:
-        font_size: 24px
-      name:
-        font_size: 24px
-    panel:
-      width: |
-        [[[
-          //console.log("card_width: ",variables.card.width);
-          let card_width = parseFloat(variables.card.width);
-          let panel_width = (card_width * 0.76);
-          //console.log("panel_width: ",panel_width);
-          return panel_width+"px"
-        ]]]
-      height: |
-        [[[
-          //console.log("card_height: ",variables.card.height);
-          let card_height = parseFloat(variables.card.height);
-          let panel_height = (card_height * 0.83);
-          //console.log("panel_height: ",panel_height)
-          return panel_height+"px"
-        ]]]
-      mode: gauge
-      padding:
-        top: 5px
-        left: 5px
-        right: 0px
-        bottom: 0px
-      meter: {}
-      slider: {}
-      gauge: {}
-      icon_grid: null
-    entity: light.tv
-    entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
-    entity_match_gauge: false
-    entity_match_slider: false
-    entity_match_header: false
-    entity_match_slider_start: false
-    entity_match_slider_end: false
-    label: null
-    header_button:
-      variables:
-        text:
-          label:
-            font_size: 24px
-          state:
-            font_size: 24px
-          name:
-            font_size: 24px
-        card:
-          color:
-            active: |
-              [[[ return  variables.entity_match_header ? variables.entity_color :
-              "var(--lcars-ui-secondary)" ]]]
-            inactive: var(--lcars-ui-primary)
-            background:
-              active: >
-                [[[ return  variables.entity_match_header ? variables.entity_color
-                : "var(--lcars-ui-secondary)" ]]]
-              inactive: var(--lcars-ui-primary)
-            border: null
-        icon:
-          color:
-            active: null
-            inactive: null
-            background:
-              active: null
-              inactive: null
-    y_panel_width_padded: >-
-      [[[ return  (parseInt(variables.panel.width) -
-      parseInt(variables.panel.padding.left) -
-      parseInt(variables.panel.padding.right))+"px" ]]]
-    y_panel_height_padded: >-
-      [[[ return  (parseInt(variables.panel.height) -
-      parseInt(variables.panel.padding.top) -
-      parseInt(variables.panel.padding.bottom))+"px" ]]]
-    y_trim_height: >-
-      [[[ return "calc(" + variables.card.height + " - " + variables.panel.height
-      + ")" ]]]
-    y_trim_width: "[[[ return variables.panel.width ]]]"
-    y_header_height: "[[[ return variables.card.height ]]]"
-    y_header_width: >-
-      [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
-      ")" ]]]
-    z_button_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-button-grid
-      variables:
-        card:
-          width: "[[[ return variables.card.width ]]]"
-          height: "[[[ return variables.card.height ]]]"
-        button: "[[[ return variables.header_button ]]]"
-        grid:
-          auto_calc_X: false
-          auto_calc_Y: false
-          X: 2
-          "Y": 1
-          buttons:
-            - variables:
-                card:
-                  width: "[[[ return variables.y_header_width ]]]"
-                  height: "[[[ return variables.y_header_height ]]]"
-                text: "[[[ return variables.text ]]]"
-              show_label: true
-              label: "[[[ return variables.label ]]]"
-              template:
-                - cb-lcars-button-picard-filled
-              entity: "[[[ return variables.entity ]]]"
-            - variables:
-                card:
-                  width: "[[[ return variables.y_trim_width ]]]"
-                  height: "[[[ return variables.y_trim_height ]]]"
-                  min_height: "[[[ return variables.y_trim_height ]]]"
-              show_label: false
-              entity: "[[[ return variables.entity ]]]"
-          template_columns: >-
-            [[[ return  variables.y_header_width + " " + variables.y_trim_width
-            ]]]
-          gap: 0px
-    z_gauge_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-slider-horizontal-gauge
-      triggers_update: "[[[ return variables.entity ]]]"
-      variables:
-        card:
-          height: "[[[ return variables.panel.height ]]]"
-          width: "[[[ return variables.panel.width ]]]"
-        entity: "[[[ return variables.entity ]]]"
-        entity_match_slider: "[[[ return variables.entity_match_slider ]]]"
-        entity_match_gauge: "[[[ return variables.entity_match_gauge ]]]"
-        gauge: "[[[ return variables.panel.gauge ]]]"
-        slider: "[[[ return variables.panel.slider ]]]"
-    z_slider_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-functions
-        - cb-lcars-slider-horizontal
-      variables:
-        card:
-          height: "[[[ return variables.y_panel_height_padded ]]]"
-          width: "[[[ return variables.y_panel_width_padded ]]]"
-        entity: "[[[ return variables.entity ]]]"
-        entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
-        entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
-        meter: |
-          [[[
-          let meterObject = (variables.panel && variables.panel.meter) ?
-          variables.panel.meter : {};
-          let defaultVariables = {
-            variables: {
-              button: {
-                template: "cb-lcars-button-picard-filled",
-                variables: {
-                  card: {
-                    height: variables.y_panel_height_padded,
-                    },
-                  },
-              }
-            }
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          meterObject = variables.__deepMerge(defaultVariables,meterObject);
-          return meterObject;
-          ]]]
-        slider: |
-          [[[
-          let sliderObject = (variables.panel && variables.panel.slider) ?
-          variables.panel.slider : {};
-          let defaultVariables = {
-            variables: {
-              step: 1
-            }
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          sliderObject = variables.__deepMerge(defaultVariables,sliderObject);
-          return sliderObject;
-          ]]]
-    z_icon_grid:
-      type: custom:button-card
-      template:
-        - cb-lcars-button-grid-icons
-      variables: >
-        [[[ let iconObject = (variables.panel.icon_grid &&
-        variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables
-        : {}; let defaultVariables = {
-          card: {
-            height: variables.y_panel_height_padded,
-            width: variables.y_panel_width_padded,
-            },
-          grid: {
-            gap: "9px",
-          },
-            button: {
-            variables: {
-              card: {
-                width: "45px",
-                height: "45px"
-              }
-            }
-          }
-        }; iconObject = variables.__deepMerge(defaultVariables,iconObject); return
-        iconObject; ]]]
-  styles:
-    card:
-      - background: none
-      - width: "[[[ return variables.card.width; ]]]"
-      - height: "[[[  return variables.card.height; ]]]"
-      - border-radius: 0 !important
-    custom_fields:
-      panel:
-        - position: absolute
-        - right: 0px
-        - bottom: 0px
-      button:
-        - position: absolute
-        - left: 0px
-        - top: 0px
-  custom_fields:
-    button:
-      card: "[[[ return variables.z_button_card ]]]"
-    panel:
-      card: |
-        [[[
-        let panel_card;
-        switch (variables.panel.mode) {
-          case 'icons':
-          case 'icon_grid':
-            panel_card = variables.z_icon_grid;
-            break;
-          case 'slider':
-            panel_card = variables.z_slider_card;
-            break;
-          case 'gauge':
-            panel_card = variables.z_gauge_card;
-            break;
-          default:
-            panel_card = null;
-        }
-        return panel_card;
-        ]]]
-cb-lcars-multimeter-orig:
   template:
     - cb-lcars-functions
-    - cb-lcars-card-base
-  entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-  triggers_update: '[[[ return variables.entity ]]]'
+    - cb-lcars-header-base
+    - cb-lcars-actions-disable
+  triggers_update: "[[[ return variables.entity ]]]"
+  show_icon: false
+  show_label: true
+  label: lcars
+  show_name: false
+  show_state: false
   variables:
-    card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
-    text:
-      label:
-        font_size: 24px
-      state:
-        font_size: 24px
-      name:
-        font_size: 24px
-    panel:
-      width: |
-        [[[
-          //console.log("card_width: ",variables.card.width);
-          let card_width = parseFloat(variables.card.width);
-          let panel_width = (card_width * 0.76);
-          //console.log("panel_width: ",panel_width);
-          return panel_width+"px"
-        ]]]
-      height: |
-        [[[
-          //console.log("card_height: ",variables.card.height);
-          let card_height = parseFloat(variables.card.height);
-          let panel_height = (card_height * 0.83);
-          //console.log("panel_height: ",panel_height)
-          return panel_height+"px"
-        ]]]
-      mode: gauge
-      padding:
-        top: 5px
-        left: 5px
-        right: 0px
-        bottom: 0px
-      meter: null
-      slider: null
-      icon_grid: null
-    entity: '[[[ return entity.entity_id ]]]'
-    entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
-    entity_match_gauge: false
+    _mode: slider
+    _vertical: false
+    _slider_thickness: 12
+    _slider_step: 1
+    _slider_mode: brightness
+    _min: 0
+    _max: 100
+    _increment: 10
+    _show_unit_of_measurement: false
+    _unit_of_measurement: "%"
+    entity: light.tv
+    entityOrig: |
+      [[[
+        return variables.__get_random_entity('light');
+      ]]]
+    entity_min: |
+      [[[
+        const entityDomain = entity.entity_id.split('.')[0];
+        let minValue = variables._min || 0;
+
+        switch (entityDomain) {
+          case 'light':
+            switch (variables._slider_mode) {
+              case 'brightness':
+                minValue = variables._min || 0; //0-100
+                break;
+              case 'temperature':
+                minValue = entity.attributes.min_mireds;  // min_mireds/max_mireds
+                break;
+              case 'saturation':
+                minValue = variables._min || 0; //0-100
+                break;
+              case 'hue':
+                minValue = variables._min || 0;  //0-360
+                break;
+              default:
+                minValue = variables._min || 0;
+            }
+            break;
+          case 'fan':
+          case 'switch':
+          case 'media_player':
+            minValue = variables._min || 0;
+            break;
+          default:
+            minValue = variables._min || 0;
+        }
+        return parseInt(minValue);
+      ]]]
+    entity_max: |
+      [[[
+        const entityDomain = entity.entity_id.split('.')[0];
+        let maxValue = variables._max || 100;
+
+        switch (entityDomain) {
+          case 'light':
+            switch (variables._slider_mode) {
+              case 'brightness':
+                maxValue = variables._max || 100; //0-100
+                break;
+              case 'temperature':
+                maxValue = entity.attributes.max_mireds;  // min_mireds/max_mireds
+                break;
+              case 'saturation':
+                maxValue = variables._max || 100; //0-100
+                break;
+              case 'hue':
+                maxValue = variables._max || 360;  //0-360
+                break;
+              default:
+                maxValue = variables._max || 100;
+            }
+            break;
+          case 'fan':
+          case 'switch':
+          case 'media_player':
+            maxValue = variables._max || 100;
+            break;
+          default:
+            maxValue = variables._max || 100;
+        }
+        return parseInt(maxValue);
+      ]]]
+    entity_unit_of_measurement: |
+      [[[
+        return entity.attributes.unit_of_measurement || variables._unit_of_measurement
+      ]]]
+    entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
     entity_match_slider: false
+    entity_match_gauge: false
     entity_match_header: false
     entity_match_slider_start: false
     entity_match_slider_end: false
-    label: null
-    header_button:
-      variables:
-        text:
-          label:
-            font_size: 24px
-          state:
-            font_size: 24px
-          name:
-            font_size: 24px
-        card:
-          color:
-            active: |
-              [[[ return  variables.entity_match_header ? variables.entity_color :
-              "var(--lcars-ui-secondary)" ]]]
-            inactive: var(--lcars-ui-primary)
-            background:
-              active: >
-                [[[ return  variables.entity_match_header ? variables.entity_color
-                : "var(--lcars-ui-secondary)" ]]]
-              inactive: var(--lcars-ui-primary)
-            border: null
-        icon:
-          color:
-            active: null
-            inactive: null
-            background:
-              active: null
-              inactive: null
-    y_panel_width_padded: >-
-      [[[ return  (parseInt(variables.panel.width) -
-      parseInt(variables.panel.padding.left) -
-      parseInt(variables.panel.padding.right))+"px" ]]]
-    y_panel_height_padded: >-
-      [[[ return  (parseInt(variables.panel.height) -
-      parseInt(variables.panel.padding.top) -
-      parseInt(variables.panel.padding.bottom))+"px" ]]]
-    y_trim_height: >-
-      [[[ return "calc(" + variables.card.height + " - " + variables.panel.height
-      + ")" ]]]
-    y_trim_width: '[[[ return variables.panel.width ]]]'
-    y_header_height: '[[[ return variables.card.height ]]]'
-    y_header_width: >-
-      [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
-      ")" ]]]
-    z_button_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-button-grid
-      variables:
-        card:
-          width: '[[[ return variables.card.width ]]]'
-          height: '[[[ return variables.card.height ]]]'
-        button: '[[[ return variables.header_button ]]]'
-        grid:
-          auto_calc_X: false
-          auto_calc_Y: false
-          X: 2
-          'Y': 1
-          buttons:
-            - variables:
-                card:
-                  width: '[[[ return variables.y_header_width ]]]'
-                  height: '[[[ return variables.y_header_height ]]]'
-                text: '[[[ return variables.text ]]]'
-              show_label: true
-              label: '[[[ return variables.label ]]]'
-              template:
-                - cb-lcars-button-picard-filled
-              entity: '[[[ return variables.entity ]]]'
-            - variables:
-                card:
-                  width: '[[[ return variables.y_trim_width ]]]'
-                  height: '[[[ return variables.y_trim_height ]]]'
-                  min_height: '[[[ return variables.y_trim_height ]]]'
-              show_label: false
-              entity: '[[[ return variables.entity ]]]'
-          template_columns: >-
-            [[[ return  variables.y_header_width + " " + variables.y_trim_width
+    text:
+      label:
+        font_size: 22px
+        align_items: center
+        justify: right
+        padding:
+          top: 0
+          left: 0
+          right: |
+            [[[
+              return "calc(" + variables.card.width + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
             ]]]
-          gap: 0px
-    z_gauge_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-slider-horizontal-gauge
-      variables:
-        card:
-          height: '[[[ return variables.panel.height ]]]'
-          width: '[[[ return variables.panel.width ]]]'
-        entity: '[[[ return variables.entity ]]]'
-        entity_match_slider: '[[[ return variables.entity_match_slider ]]]'
-        slider: |
-          [[[
-          let sliderObject = (variables.panel && variables.panel.slider) ?
-          variables.panel.slider : {};
-          let defaultVariables = {
-            variables: {
-              step: 1
-            }
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          sliderObject = variables.__deepMerge(defaultVariables,sliderObject);
-
-          return sliderObject;
-          ]]]
-        gauge: |
-          [[[
-          let gaugeObject = (variables.panel && variables.panel.gauge) ?
-          variables.panel.gauge : {};
-          let defaultVariables = {
-
-            "show_sub_meter": true,
-            "meter": {
-                "variables": {
-                  "button": {
-                      "variables": {
-                        "text": {
-                            "label": {
-                              "color": {
-                                  "off": variables.header_button.variables.card.color.background.inactive,
-                                  "on": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
-                              }
-                            }
-                        },
-                        "card": {
-                            "color": {
-                              "inactive": variables.header_button.variables.card.color.background.inactive,
-                              "active": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
-                            }
-                        }
-                      }
-                  }
-                }
-            },
-            "sub_meter": {
-                "variables": {
-                  "button": {
-                      "variables": {
-                        "text": {
-                            "label": {
-                              "color": {
-                                  "off": variables.header_button.variables.card.color.background.inactive,
-                                  "on": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
-                              }
-                            }
-                        },
-                        "card": {
-                            "color": {
-                              "inactive": variables.header_button.variables.card.color.background.inactive,
-                              "active": variables.entity_match_gauge ? variables.entity_color : "var(--lcars-ui-secondary)"
-                            }
-                        }
-                      }
-                  }
-                }
-            }
-
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          gaugeObject = variables.__deepMerge(defaultVariables,gaugeObject);
-
-          return gaugeObject;
-          ]]]
-    z_slider_card:
-      type: custom:button-card
-      template:
-        - cb-lcars-functions
-        - cb-lcars-slider-horizontal
-      variables:
-        card:
-          height: '[[[ return variables.y_panel_height_padded ]]]'
-          width: '[[[ return variables.y_panel_width_padded ]]]'
-        entity: '[[[ return variables.entity ]]]'
-        entity_match_slider_start: '[[[ return variables.entity_match_slider_start ]]]'
-        entity_match_slider_end: '[[[ return variables.entity_match_slider_end ]]]'
-        meter: |
-          [[[
-          let meterObject = (variables.panel && variables.panel.meter) ?
-          variables.panel.meter : {};
-          let defaultVariables = {
-            variables: {
-              button: {
-                template: "cb-lcars-button-picard-filled",
-                variables: {
-                  card: {
-                    height: variables.y_panel_height_padded,
-                    },
-                  },
-              }
-            }
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          meterObject = variables.__deepMerge(defaultVariables,meterObject);
-
-          return meterObject;
-          ]]]
-        slider: |
-          [[[
-          let sliderObject = (variables.panel && variables.panel.slider) ?
-          variables.panel.slider : {};
-          let defaultVariables = {
-            variables: {
-              step: 1
-            }
-          };
-          //meterObject = {...defaultVariables, ...meterObject};
-          sliderObject = variables.__deepMerge(defaultVariables,sliderObject);
-
-          return sliderObject;
-          ]]]
-    z_icon_grid:
-      type: custom:button-card
-      template:
-        - cb-lcars-button-grid-icons
-      variables: >
+          bottom: 5
+        color:
+          default: black
+          "on": black
+          "off": black
+      name:
+        font_size: 22px
+        align_items: center
+        justify: left
+        padding:
+          top: 0px
+          left: 10px
+          right: 0px
+          bottom: 5px
+        color:
+          default: black
+          "on": black
+          "off": black
+    card:
+      border:
+        top:
+          size: 10
+        bottom:
+          size: 0
+        left:
+          size: 120
+        right:
+          size: 0
+    slider:
+      locked: |
         [[[
-
-        let iconObject = (variables.panel.icon_grid &&
-        variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables
-        : {};
-
-        let defaultVariables = {
-          card: {
-            height: variables.y_panel_height_padded,
-            width: variables.y_panel_width_padded,
-            },
-          grid: {
-            gap: "9px",
-          },
-            button: {
-            variables: {
-              card: {
-                width: "45px",
-                height: "45px"
-              }
-            }
+          const entityDomain = entity.entity_id.split('.')[0];
+          let locked = true;
+          switch (entityDomain) {
+            case 'light':
+            case 'input_number':
+            case 'number':
+            case 'media_player':
+            case 'cover':
+            case 'fan':
+            case 'switch':
+            case 'input_boolean':
+            case 'lock':
+              locked = false;
+              break;
+            default:
+              locked = true;
+              break;
           }
-        };
-
-        iconObject = variables.__deepMerge(defaultVariables,iconObject);
-
-        return iconObject;
-
+          return locked;
         ]]]
+      color: |
+        [[[ return  variables.entity_match_slider ? variables.entity_color :
+        "var(--picard-lightest-blue)" ]]]
+      color_alpha: 0.95
+      border_color: |
+        [[[ return  variables.entity_match_slider ? variables.entity_color :
+        "var(--picard-blue)" ]]]
+      border_alpha: 0.5
+      border_width: 0px
+      border_radius: 2px
+      flipped: "[[[ return (variables._vertical) ? true : false ]]]"
+      height: >-
+        [[[ return (variables._vertical) ? variables.card.height :
+        variables.__get_num_with_unit(variables._slider_thickness) ]]]
+      width: >-
+        [[[ return (variables._vertical) ?
+        variables.__get_num_with_unit(variables._slider_thickness) :
+        variables.card.width ]]]
+      left_padding: 1px
+      top_padding: "[[[ return variables.gauge.sub_meter.tick_size ]]]"
+      step: |
+        [[[
+          return entity.attributes.percentage_step || variables._slider_step;
+        ]]]
+      mode: "[[[ return variables._slider_mode ]]]"
+      min: "[[[ return variables.entity_min ]]]"
+      max: "[[[ return variables.entity_max ]]]"
+    gauge:
+      bg_fill_value: 0
+      min: "[[[ return variables.entity_min ]]]"
+      max: "[[[ return variables.entity_max ]]]"
+      increment: |
+        [[[
+          const entityDomain = entity.entity_id.split('.')[0];
+          let increment = variables._increment || 10;
+
+          switch (entityDomain) {
+            case 'light':
+              switch (variables._slider_mode) {
+                case 'temperature':
+                  increment = 50;
+                  break;
+                default:
+                  increment = variables._increment || 10;
+              }
+              break;
+            default:
+              increment = 10;
+          }
+          return parseInt(increment);
+        ]]]
+      color:
+        active: >-
+          [[[ return variables.entity_match_gauge ? variables.entity_color :
+          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
+        inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
+        background:
+          active: transparent
+          inactive: transparent
+      sub_meter:
+        show_sub_meter: true
+        tick_size: 10px
+        tick_count: 4
+        active: >-
+          [[[ return variables.entity_match_gauge ? variables.entity_color :
+          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
+        inactive: var(--lcars-card-button-off, var(--picard-dark-gray))
+        background:
+          active: >-
+            [[[ return variables.entity_match_gauge ? variables.entity_color :
+            "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
+          inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
+      label:
+        decimal_places: 0
+        font_size: 14
+        active: >-
+          [[[ return variables.entity_match_gauge ? variables.entity_color :
+          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
+        inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
+    slider_track:
+      padding:
+        left: 5px
+        right: 0px
+        top: 5px
+        bottom: 0px
+      meter:
+        _gradient:
+          gap: 5px
+  state:
+    - value: "on"
+      id: state_on
+      styles:
+        custom_fields:
+          gauge:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+          slider_track:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                ]]]
+    - value: "off"
+      id: state_off
+      styles:
+        custom_fields:
+          gauge:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+          slider_track:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                ]]]
   styles:
     card:
-      - background: none
-      - width: '[[[ return variables.card.width; ]]]'
-      - height: '[[[  return variables.card.height; ]]]'
+      - width: "[[[ return variables.card.width ]]]"
+      - height: "[[[ return variables.card.height ]]]"
       - border-radius: 0 !important
+      - background: none
+      - border: none
     custom_fields:
-      panel:
+      gauge:
+        - visibility: "[[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden' ]]]"
+        - border-top: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-bottom: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-left: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-right: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-top-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
+            ]]]
+        - border-top-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
+            ]]]
+        - border-bottom-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
+            ]]]
+        - border-bottom-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
+            ]]]
+      slider_track:
+        - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
+        - border-top: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-bottom: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-left: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-right: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+            ]]]
+        - border-top-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
+            ]]]
+        - border-top-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
+            ]]]
+        - border-bottom-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
+            ]]]
+        - border-bottom-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
+            ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.slider_track.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.slider_track.padding.right)
+            ]]]
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.slider_track.padding.top) ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+            ]]]
+      slider:
+        - visibility: >-
+            [[[ return ((variables._mode === 'gauge') &&
+            !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
         - position: absolute
-        - right: 0px
-        - bottom: 0px
-      button:
+        - top: |
+            [[[
+                if (variables._vertical) {
+                  return variables.__get_num_with_unit(variables.card.border.top.size);
+                } else {
+                  return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
+                }
+            ]]]
+        - left: |
+            [[[
+              if (variables._vertical) {
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
+              } else {
+                return variables.__get_num_with_unit(variables.card.border.left.size);
+              }
+            ]]]
+        - z-index: 1
+        - width: >-
+            [[[ return "calc(" + variables.card.width + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
+            " + variables.__get_num_with_unit(variables.card.border.right.size) +
+            ")" ]]]
+        - height: >-
+            [[[ return "calc(" + variables.card.height + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
+            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            ")" ]]]
+      locked_bar:
+        - visibility: "[[[ return (variables.slider.locked) ? 'visible' : 'hidden' ]]]"
         - position: absolute
-        - left: 0px
-        - top: 0px
+        - z-index: 1
+        - left: |
+            [[[
+              if (variables._vertical) {
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
+              } else {
+                return variables.__get_num_with_unit(variables.card.border.left.size);
+              }
+            ]]]
+        - padding-left: 1px
+        - top: |
+            [[[
+                if (variables._vertical) {
+                  return variables.__get_num_with_unit(variables.card.border.top.size);
+                } else {
+                  return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
+                }
+            ]]]
+        - width: >-
+            [[[ return "calc(" + variables.card.width + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
+            " + variables.__get_num_with_unit(variables.card.border.right.size) +
+            ")" ]]]
+        - height: >-
+            [[[ return "calc(" + variables.card.height + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
+            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            ")" ]]]
   custom_fields:
-    button:
-      card: '[[[ return variables.z_button_card ]]]'
-    panel:
-      card: |
-        [[[
-        let panel_card;
-        switch (variables.panel.mode) {
-          case 'icons':
-          case 'icon_grid':
-            panel_card = variables.z_icon_grid;
+    slider:
+      card:
+        type: custom:my-slider-v2
+        entity: "[[[ return variables.entity ]]]"
+        mode: "[[[ return variables.slider.mode ]]]"
+        vertical: "[[[ return variables._vertical ]]]"
+        flipped: false
+        inverse: false
+        step: "[[[ return variables.slider.step; ]]]"
+        min: |
+          [[[
+          //  if (variables.slider.mode === 'temperature') {
+          //    return entity.attributes.min_mired
+          //  } else {
+              return variables.slider.min;
+          //  }
+          ]]]
+        max: |
+          [[[
+          //  if (variables.slider.mode === 'temperature') {
+          //    return entity.attributes.max_mired
+          //  } else {
+              return variables.slider.max;
+          //  }
+          ]]]
+        styles:
+          card:
+            - width: >-
+                [[[ return "calc(" + variables.card.width + " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size)  +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size) +
+                ")" ]]]
+            - height: >-
+                [[[ return "calc(" + variables.card.height + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)  + "
+                - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                ")" ]]]
+            - background: none
+            - border-radius: 0
+          progress:
+            - background-color: >-
+                [[[ return
+                variables.__hex_to_rgba(variables.slider.color,variables.slider.color_alpha)
+                ]]]
+            - border: >-
+                [[[ return variables.slider.border_width + " solid " +
+                variables.__hex_to_rgba(variables.slider.border_color,
+                variables.slider.border_alpha)  ]]]
+            - border-radius: "[[[ return variables.slider.border_radius ]]]"
+            - height: "[[[ return variables.slider.height ]]]"
+            - width: "[[[ return variables.slider.width ]]]"
+            - left: "[[[ return variables.slider.left_padding ]]]"
+          container:
+            - border-radius: 0
+          track:
+            - background: none
+          thumb:
+            - background: none
+    locked_bar: |
+      [[[
+        const entityState = entity.state;
+        const entityType = entity.entity_id.split('.')[0]; // Extract entity type
+
+        let progressPercentage = 0;
+
+        switch(entityType) {
+          case 'light':
+
+            progressPercentage = ((parseFloat(entity.attributes.brightness) / 256) * 100)/ variables.slider.max *100;
             break;
-          case 'slider':
-            panel_card = variables.z_slider_card;
-            break;
-          case 'gauge':
-            panel_card = variables.z_gauge_card;
+          case 'fan':
+            progressPercentage = (parseFloat(entity.attributes.percentage) / variables.slider.max) *100;
             break;
           default:
-            panel_card = null;
+            progressPercentage = (parseFloat(entityState) / variables.slider.max) *100;
+            break;
         }
-        return panel_card;
-        ]]]
+
+        const isVertical = variables._vertical;
+        const width = variables.slider.width;
+        const height = variables.slider.height;
+
+        const borderRadius = 0;
+        const borderWidth = variables.slider.border_width;
+        const borderColor = variables.slider.border_color;
+        const backgroundColor = variables.slider.color;
+
+        return `
+          <div class="progress-bar-container" style="width: ${width}; height: ${height};">
+            <div class="progress-bar-card" style="position: relative; width: 100%; height: 100%;">
+              <div class="progress-bar" style="
+                position: absolute;
+                ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+                width: ${isVertical ? '100' : progressPercentage}%;
+                height: ${isVertical ? progressPercentage : '100'}%;
+                border-radius: ${borderRadius};
+                border: ${borderWidth} solid ${borderColor};
+                background-color: ${backgroundColor};
+              "></div>
+            </div>
+          </div>
+        `;
+      ]]]
+    gauge: |
+      [[[
+        let minVal = variables.gauge.min;
+        let maxVal = variables.gauge.max;
+        //let increment = (variables.slider.mode === 'temperature') ? 30 : variables.gauge.increment || 10;
+        let increment = variables.gauge.increment;
+
+        const orientation = variables._vertical ? 'vertical' : 'horizontal';
+
+        const bg_fill_value = variables.gauge.bg_fill_value || 0;
+        const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
+        const showSubticks = variables.gauge.sub_meter.show_sub_meter;
+
+        const entityState = entity.state;
+
+        const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
+        const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
+        const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
+        const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
+        const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
+
+        const width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) -2 )+"px";
+        const height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) )+"px";
+        const meter_subtick_size = variables.gauge.sub_meter.tick_size || '10px';
+
+        const numSubticks = variables.gauge.sub_meter.tick_count;
+        const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+        const subTickIncrement = 100 / numSegments / (numSubticks+1)
+        const decimal_places = variables.gauge.label.decimal_places || 0;
+
+        const meterTicks = [];
+        for (let i = minVal; i <= maxVal; i += increment) {
+          // Calculate percentage based on the full range and reversed for vertical mode
+          const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+
+          //console.log("tick percent: ",percent);
+
+          meterTicks.push(`<div class="meter-tick ${orientation === 'vertical' ? 'vertical-tick' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${percent}%"></div>`);
+          meterTicks.push(`<span class="meter-tick-label ${orientation === 'vertical' ? 'vertical-label' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${percent}%; ${orientation === 'vertical' ? 'right' : 'bottom'}: 0;">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</span>`);
+
+          if (showSubticks && i <= maxVal) {
+            for (let j = 1; j <= numSubticks; j++) {
+              const subTickPercent = percent + (j * subTickIncrement);
+              meterTicks.push(`<div class="meter-subtick ${orientation === 'vertical' ? 'vertical-subtick' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${subTickPercent}%; ${orientation === 'vertical' ? 'left' : 'right'}: 0;"></div>`);
+            }
+          }
+        }
+
+        return `
+          <elt class="meter-card">
+            <style>
+              .meter-card {
+                display: block;
+                width: ${width};
+                height: ${height};
+                position: relative;
+                /* Adjust grid layout for vertical orientation */
+                grid-template-columns: ${orientation === 'vertical' ? '1fr' : 'repeat(10, 1fr)'};
+                grid-template-rows: ${orientation === 'vertical' ? `repeat(${maxVal / increment + 1}, 1fr)` : '1fr'};
+                gap: 0;
+                margin-right: 5px;
+              }
+
+              .meter-bar {
+                grid-column: 1 / span 10;
+                grid-row: 1;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: ${meter_bg_color};
+                border-radius: 0px;
+              }
+
+              .meter-inner {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: ${bg_fill_color};
+                ${orientation === 'vertical' ? 'height' : 'width'}: ${bg_fill_value}%;
+              }
+
+              .meter-ticks {
+                grid-column: 1 / span 10;
+                grid-row: 1;
+                display: grid;
+                grid-template-columns: ${orientation === 'vertical' ? '1fr' : 'repeat(10, 1fr)'};
+                grid-template-rows: ${orientation === 'vertical' ? `repeat(${maxVal / increment + 1}, 1fr)` : '1fr'};
+                gap: 0;
+              }
+
+              .meter-tick {
+                position: absolute;
+                width: 2px;
+                height: 100%; /* Adjust height to match card height */
+                background-color: ${meter_tick_color};
+              }
+
+              .meter-subtick {
+                position: absolute;
+                width: 1px;
+                height: ${meter_subtick_size}; /* Adjust height as needed */
+                background-color: ${meter_subtick_color};
+              }
+
+              .meter-tick-label {
+                position: absolute;
+                bottom: 0;
+                font-size: ${meter_label_font_size};
+                text-align: right;
+                transform: translateX(-100%);
+                padding-right: 2px;
+                color: ${meter_label_color};
+                white-space: nowrap; /* Prevent text from wrapping */
+              }
+
+              /* Vertical Orientation Styles */
+              .vertical-tick {
+                width: 100%;
+                height: 2px;
+              }
+
+              .vertical-label {
+                padding-top: 3px;
+                padding-right: 3px;
+                text-align: right;
+                transform: translateX(0%);
+                white-space: nowrap;
+              }
+
+              .vertical-subtick {
+                width: ${meter_subtick_size};
+                height: 1px;
+              }
+            </style>
+            <div class="meter-bar">
+                <div class="meter-inner ${orientation === 'vertical' ? 'vertical' : ''}">
+                </div>
+              </div>
+              <div class="meter-ticks ${orientation === 'vertical' ? 'vertical' : ''}">
+                ${meterTicks.join('')}
+              </div>
+          </elt>
+        `;
+      ]]]
+    slider_track:
+      card:
+        type: custom:button-card
+        template: |
+          [[[
+            if(variables._vertical) {
+              return ['cb-lcars-functions', 'cb-lcars-slider'];
+            } else {
+              return ['cb-lcars-functions', 'cb-lcars-slider-horizontal'];
+            }
+          ]]]
+        variables:
+          card:
+            width: |
+              [[[
+                  return (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right))+"px";
+              ]]]
+            height: |
+              [[[
+
+                return (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom))+"px";
+              ]]]
+          entity: "[[[ return variables.entity ]]]"
+          entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
+          entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
+          meter:
+            variables: "[[[ return variables.slider_track.meter ]]]"
+          slider:
+            variables: "[[[ return variables.slider ]]]"
