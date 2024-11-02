@@ -282,6 +282,28 @@ These are the cards found in CB-LCARS.  These are highly configurable - some def
 
 ### `type:cb-lcars-multimeter-card`
 
+- Run in Slider or Guage mode
+- Horizontal or Vertical orientation
+- Configurable multi-modal slider control:
+  - Light: brightness, temperature, hue, saturation
+  - Media Player: volume, seek
+  - etc.
+- Fully configurable borders, label/text, slider
+- Color match [border|slider|gauge|gradient start/end etc.] to entity color
+- Configurable min, max, gauge increments, slider step size
+- Show/Hide Units, Override unit
+- Configurable Subticks
+  - Show/Hide
+  - Size
+  - Count (number of subticks per segement)
+
+![cb-lcars-multimeter](images/screenshots/multimeter.gif)
+
+TODOs:
+- update slider mode to new code (code that gauge uses - better performance)
+- expose customization parameters for slider (rounded/square, width/height, etc.)
+- add RTL (right-to-left) support (?)
+
 <br>
 
 ## LCARS Label (Stylized Text)
