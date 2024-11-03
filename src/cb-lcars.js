@@ -927,7 +927,9 @@ customElements.define('cb-lcars-double-elbow-card',CBLCARSDoubleElbowCard);
 customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
 customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
 customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
-customElements.define('cb-lcars-slider-card',CBLCARSSliderCard);
+
+//deprecated - moved into new multimeter card
+//customElements.define('cb-lcars-slider-card',CBLCARSSliderCard);
 
 customElements.define('cb-lcars-base-card-editor', class extends CBLCARSCardEditor {
     constructor() {
@@ -1028,7 +1030,8 @@ const CBLCARSCardClasses = [
         preview: true,
         description: 'CB-LCARS Buttons [various styles]',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
-    },
+    }
+    /*
     {
         type: 'cb-lcars-slider-card',
         name: 'CB-LCARS Sliders [deprecated]',
@@ -1036,6 +1039,7 @@ const CBLCARSCardClasses = [
         description: 'CB-LCARS Sliders and Gauges [no decorations]',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
     },
+    */
 ];
 
 window.customCards.push(...CBLCARSCardClasses);
