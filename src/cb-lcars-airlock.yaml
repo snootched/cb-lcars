@@ -70,6 +70,28 @@ sections:
         layout_options:
           grid_columns: 3
           grid_rows: 1
+      - square: false
+        type: grid
+        cards:
+          - type: custom:gap-card
+          - type: custom:gap-card
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-lozenge
+            cblcars_card_config:
+              show_label: true
+              variables:
+                label: View Gallery
+                card:
+                  color:
+                    background:
+                      inactive: var(--picard-light-blue)
+              tap_action:
+                action: navigate
+                navigation_path: cb-lcars-template-gallery
+        columns: 1
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
     column_span: 3
   - type: grid
     cards:

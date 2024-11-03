@@ -35,9 +35,9 @@ sections:
           grid_rows: 5
       - type: custom:cb-lcars-label-card
         cblcars_card_config:
-          label: CB-LCARS GALLERY
           show_label: true
           variables:
+            label: GALLERY
             text:
               label:
                 font_size: 42
@@ -55,9 +55,9 @@ sections:
                   size: 65
                 color: var(--picard-dark-gray)
         layout_options:
-          grid_columns: 4
+          grid_columns: 2
           grid_rows: 1
-    column_span: 4
+    column_span: 3
   - type: grid
     cards:
       - type: custom:cb-lcars-elbow-card
@@ -94,7 +94,7 @@ sections:
         layout_options:
           grid_columns: 14
           grid_rows: 2
-    column_span: 5
+    column_span: 3
   - type: grid
     cards:
       - type: vertical-stack
@@ -788,6 +788,6 @@ sections:
         layout_options:
           grid_columns: full
           grid_rows: 7
-    column_span: 3
-max_columns: 4
+    column_span: 2
+max_columns: 3
 cards: []
