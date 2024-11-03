@@ -1,5 +1,7 @@
 cb-lcars-card-base:
-  template: cb-lcars-functions
+  template:
+    - cb-lcars-functions
+    - cb-lcars-actions-disable
   show_icon: false
   show_label: false
   show_name: false

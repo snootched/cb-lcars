@@ -1,6 +1,7 @@
 cb-lcars-base:
   template:
     - cb-lcars-functions
+    - cb-lcars-actions-disable
   label: '[[[ return variables.label ]]]'
   entity: '[[[ return variables.entity ]]]'
   variables:
