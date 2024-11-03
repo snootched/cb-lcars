@@ -270,7 +270,9 @@ button_card_templates:
                 picard-light-yellow: '#7b7b7b'
                 picard-lightest-yellow: '#8b8b8b'
   cb-lcars-card-base:
-    template: cb-lcars-functions
+    template:
+      - cb-lcars-functions
+      - cb-lcars-actions-disable
     show_icon: false
     show_label: false
     show_name: false
@@ -4716,6 +4718,7 @@ button_card_templates:
   cb-lcars-base:
     template:
       - cb-lcars-functions
+      - cb-lcars-actions-disable
     label: '[[[ return variables.label ]]]'
     entity: '[[[ return variables.entity ]]]'
     variables:
