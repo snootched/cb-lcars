@@ -1,5 +1,5 @@
 ***
-Note: This project is under reconstruction.  The goal is to move towards consuming these templates as custom cards.  This will take some time - but you can still use the below from the original version.
+**Note:** This project is active development.  Functionality and configurations may change over time.  Things may break - so you may not want to use this on your primary dashboard just yet.
 ***
 
 <p align="center">
