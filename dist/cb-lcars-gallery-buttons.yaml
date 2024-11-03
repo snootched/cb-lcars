@@ -25,8 +25,8 @@ sections:
           label: |-
             <elt>
                 <h2>Buttons and Labels</h2>
-                <p>Buttons act like traditional buttons supporting actions and entities.</p>
-                <p>They can take on different colors based on state like on/off, heat/cool, etc.</p>
+                <p>Buttons act like traditional buttons supporting actions and entities.
+                <br>They can take on different colors based on state like on/off, heat/cool, etc.</p>
             </elt>
         cblcars_card_type: cb-lcars-header
         layout_options:
@@ -374,7 +374,6 @@ sections:
                   default: var(--picard-light-orange)
       - type: custom:cb-lcars-label-card
         cblcars_card_config:
-          label: LCARS LABEL
           show_label: true
           variables:
             text:
@@ -394,9 +393,34 @@ sections:
                 right:
                   size: 40
                 color: '#2f3749'
+            label: PICARD LABEL
         layout_options:
           grid_columns: 4
           grid_rows: 1
+  - type: grid
+    cards:
+      - type: heading
+        heading: Data Cascade
+        heading_style: title
+      - type: custom:cb-lcars-label-card
+        cblcars_card_type: cb-lcars-cascade
+        cblcars_card_config: {}
+        layout_options:
+          grid_columns: 7
+          grid_rows: 4
+      - type: custom:cb-lcars-label-card
+        cblcars_card_type: cb-lcars-cascade
+        cblcars_card_config:
+          variables:
+            cascade:
+              colors:
+                text: var(--lcars-african-violet)
+                animation_start: var(--lcars-african-violet)
+                animation_end: '#000000'
+        layout_options:
+          grid_columns: 5
+          grid_rows: 4
+    column_span: 3
 max_columns: 3
 cards: []
 subview: true

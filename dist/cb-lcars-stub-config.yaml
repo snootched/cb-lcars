@@ -16,22 +16,29 @@ cb-lcars-elbow-card:
 cb-lcars-multimeter-card:
   cblcars_card_config:
     variables:
-      header_button:
-        tap_action:
-          action: toggle
-        double_tap_action:
-          action: none
-        hold_action:
-          action: more-info
-      panel:
-        mode: gauge
-        gauge:
-          show_sub_meter: true
       entity_match_header: false
       entity_match_slider: false
       entity_match_gauge: false
       entity_match_slider_start: false
       entity_match_slider_end: false
+      _mode: gauge
+      _vertical: false
+      card:
+        border:
+          left:
+            size: 120
+          top:
+            size: 10
+      gauge:
+        sub_meter:
+          show_sub_meter: true
+    tap_action:
+      action: toggle
+    double_tap_action:
+      action: none
+    hold_action:
+      action: none
+    show_label: false
 cb-lcars-slider-card:
   cblcars_card_type: cb-lcars-slider-horizontal
   cblcars_card_config:

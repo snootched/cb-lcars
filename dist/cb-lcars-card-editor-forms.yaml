@@ -3730,7 +3730,7 @@ cb-lcars-multimeter-card:
                     entity:
                 - label: "Light Control Mode"
                   configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity.split('.')[0] === 'light'"
+                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'light'"
                   required: true
                   type: Selector
                   selector:
@@ -3747,7 +3747,7 @@ cb-lcars-multimeter-card:
                           label: 'Hue'
                 - label: "Cover Control Mode"
                   configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity.split('.')[0] === 'cover'"
+                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'cover'"
                   required: true
                   type: Selector
                   selector:
@@ -3760,7 +3760,7 @@ cb-lcars-multimeter-card:
                           label: 'Tilt'
                 - label: "Media Player Control Mode"
                   configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity.split('.')[0] === 'media_player'"
+                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'media_player'"
                   required: true
                   type: Selector
                   selector:
@@ -3772,7 +3772,7 @@ cb-lcars-multimeter-card:
                         - value: 'seekbar'
                           label: 'Seekbar'
             - type: ControlRow
-              visibilityCondition: "!['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.cblcars_card_config.variables.entity.split('.')[0])"
+              visibilityCondition: "this._config.cblcars_card_config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.cblcars_card_config.variables.entity.split('.')[0])"
               controls:
                 - type: Message
                   alertType: warning

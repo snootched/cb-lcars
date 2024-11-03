@@ -2661,7 +2661,7 @@ button_card_templates:
     triggers_update: "[[[ return variables.entity ]]]"
     show_icon: false
     show_label: true
-    label: lcars
+    label: '[[[ return variables.label ]]]'
     show_name: false
     show_state: false
     variables:
@@ -2675,8 +2675,7 @@ button_card_templates:
       _increment: 10
       _show_unit_of_measurement: false
       _unit_of_measurement: "%"
-      entity: light.tv
-      entityOrig: |
+      entity: |
         [[[
           return variables.__get_random_entity('light');
         ]]]
