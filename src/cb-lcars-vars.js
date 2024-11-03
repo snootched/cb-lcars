@@ -16,6 +16,5 @@ export const gallery_views_uris = [
         '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml',
         '/hacsfiles/cb-lcars/cb-lcars-gallery-buttons.yaml',
         '/hacsfiles/cb-lcars/cb-lcars-gallery-elbows.yaml',
-        '/hacsfiles/cb-lcars/cb-lcars-gallery-multimeter.yaml',
-        '/hacsfiles/cb-lcars/cb-lcars-gallery-sliders.yaml'
+        '/hacsfiles/cb-lcars/cb-lcars-gallery-multimeter.yaml'
     ]

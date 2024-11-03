@@ -21,22 +21,18 @@ sections:
                   left: 56
                   top: 35
                 font_size: '17'
-          label: >-
-            <elt>
-                <h2>Welcome to the <strong>CB-LCARS</strong> Gallery</h2>
-                <p>Here you will find examples for all of the base card templates, with their default configurations.</p>
-                <p>Also included are some common variations of these templates that are found in various LCARS interfaces out there.</p>
-                <p>The look and feel of the cards can be (almost) completely customized with adjusting variables of the templates.</p>
-            <p>Be sure to check out the variables in these examples, the
-            examples online at the CB-LCARS repository, and in the template
-            code itself.</p>
-                <p>Please enjoy using and tinkering with these cards to personalize your LCARS interface to your own preferences.</p>
-                <p>For more information see the <a href="https://github.com/snootched/cb-lcars" style="color: var(--picard-blue);">CB-LCARS Repository</a></p>
-            </elt>
+            label: |2-
+                    <elt>
+                        <h2>Welcome to the <strong>CB-LCARS</strong> Gallery</h2>
+                        <p>Here you will find examples for each of the cards with some variations.
+                        <br>Defaults are shown, but the look and feel of the cards are highly customizable.</p>
+                        <p>Please enjoy using and tinkering with these cards to personalize your LCARS interface!</p>
+                        <p>For more information see the <a href="https://github.com/snootched/cb-lcars" style="color: var(--picard-blue);">CB-LCARS Repository</a></p>
+                    </elt>
         cblcars_card_type: cb-lcars-header
         layout_options:
           grid_columns: 10
-          grid_rows: 6
+          grid_rows: 5
       - type: custom:cb-lcars-label-card
         cblcars_card_config:
           label: CB-LCARS GALLERY
@@ -88,6 +84,13 @@ sections:
                 top:
                   size: 20
                   left_radius: 150
+            label: THEME COLORS
+            text:
+              label:
+                font_size: '36'
+                font_weight: 300
+                justify: flex-end
+          show_label: true
         layout_options:
           grid_columns: 14
           grid_rows: 2
@@ -144,22 +147,7 @@ sections:
           - type: custom:cb-lcars-button-card
             cblcars_card_type: cb-lcars-button-picard-filled
             cblcars_card_config:
-              label: Sliders
-              show_label: true
-              variables:
-                card:
-                  width: 200
-              tap_action:
-                action: navigate
-                navigation_path: gallery-lcars-sliders
-              double_tap_action:
-                action: none
-              hold_action:
-                action: none
-          - type: custom:cb-lcars-button-card
-            cblcars_card_type: cb-lcars-button-picard-filled
-            cblcars_card_config:
-              label: Multimeter
+              label: Controls
               show_label: true
               variables:
                 card:
@@ -184,7 +172,7 @@ sections:
                     align_items: flex-end
         layout_options:
           grid_columns: 2
-          grid_rows: auto
+          grid_rows: 8
   - type: grid
     cards:
       - type: entities
@@ -215,7 +203,7 @@ sections:
                   font_weight: 300
           grid:
             X: 4
-            'Y': 3
+            'Y': 4
             buttons:
               - label: lcars-card-top-color
                 variables:
@@ -237,6 +225,26 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-mid-left-color');
                   ]]]
+              - label: lcars-card-bottom-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-bottom-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-bottom-color');
+                  ]]]
+              - label: lcars-card-background
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-background)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-background');
+                  ]]]
               - label: lcars-card-button
                 variables:
                   card:
@@ -247,15 +255,35 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button');
                   ]]]
-              - label: lcars-card-bottom-color
+              - label: lcars-card-button-off
                 variables:
                   card:
                     color:
                       background:
-                        inactive: var(--lcars-card-bottom-color)
+                        inactive: var(--lcars-card-button-off)
                 name: |
                   [[[
-                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-bottom-color');
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-off');
+                  ]]]
+              - label: lcars-card-button-unavailable
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button-unavailable)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-unavailable');
+                  ]]]
+              - label: lcars-card-button-bar
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button-bar)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-bar');
                   ]]]
               - label: success-color
                 variables:
@@ -287,11 +315,16 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--error-color');
                   ]]]
-              - variables:
+              - label: alert-color
+                variables:
                   card:
                     color:
                       background:
-                        inactive: black
+                        inactive: var(--lcars-alert-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-alert-color');
+                  ]]]
               - label: lcars-ui-primary
                 variables:
                   card:
@@ -322,18 +355,27 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-tertiary');
                   ]]]
-              - variables:
+              - label: lcars-ui-quaternary
+                variables:
                   card:
                     color:
                       background:
-                        inactive: black
+                        inactive: var(--lcars-ui-quaternary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-quaternary');
+                  ]]]
         layout_options:
-          grid_columns: 6
+          grid_columns: full
           grid_rows: 3
       - type: custom:button-card
         template: cb-lcars-theme
         variables:
           ___debug: false
+      - type: custom:gap-card
+        layout_options:
+          grid_columns: full
+        height: 30px
       - type: custom:button-card
         template:
           - cb-lcars-button-grid
@@ -355,8 +397,8 @@ sections:
                   font_size: 14px
                   font_weight: 300
           grid:
-            X: 6
-            'Y': 8
+            X: 5
+            'Y': 7
             buttons:
               - variables:
                   card:
@@ -412,16 +454,6 @@ sections:
                   card:
                     color:
                       background:
-                        inactive: var(--picard-black-cherry)
-                label: picard-black-cherry
-                name: |
-                  [[[
-                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-black-cherry');
-                  ]]]
-              - variables:
-                  card:
-                    color:
-                      background:
                         inactive: var(--picard-dark-gray)
                 label: picard-dark-gray
                 name: |
@@ -467,16 +499,6 @@ sections:
                 name: |
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-yellow');
-                  ]]]
-              - variables:
-                  card:
-                    color:
-                      background:
-                        inactive: var(--picard-font-color)
-                label: picard-font-color
-                name: |
-                  [[[
-                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-font-color');
                   ]]]
               - variables:
                   card:
@@ -532,11 +554,6 @@ sections:
                   card:
                     color:
                       background:
-                        inactive: black
-              - variables:
-                  card:
-                    color:
-                      background:
                         inactive: var(--picard-gray)
                 label: picard-gray
                 name: |
@@ -583,11 +600,6 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--picard-yellow');
                   ]]]
-              - variables:
-                  card:
-                    color:
-                      background:
-                        inactive: black
               - variables:
                   card:
                     color:
@@ -642,11 +654,6 @@ sections:
                   card:
                     color:
                       background:
-                        inactive: black
-              - variables:
-                  card:
-                    color:
-                      background:
                         inactive: var(--picard-light-gray)
                 label: picard-light-gray
                 name: |
@@ -693,11 +700,6 @@ sections:
                   [[[
                     return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-yellow');
                   ]]]
-              - variables:
-                  card:
-                    color:
-                      background:
-                        inactive: black
               - variables:
                   card:
                     color:

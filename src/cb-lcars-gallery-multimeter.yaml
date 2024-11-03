@@ -23,9 +23,10 @@ sections:
                 font_size: '17'
           label: |-
             <elt>
-                <h2>Multimeter</h2>
-                <p>Multimeter is a slider control that is very customizable.</p>
-                <p>It and run in slider, gauge, or icon mode, and the header can also work as a button.</p>
+                <h2>Controls</h2>
+                <p>A collection of controls seen in LCARS interfaces.</p>
+                <p>Multimeter is a slider control that is very customizable.<br>
+                DPAD is a classic LCARS staple.</p>
             </elt>
         cblcars_card_type: cb-lcars-header
         layout_options:
@@ -33,9 +34,9 @@ sections:
           grid_rows: 4
       - type: custom:cb-lcars-label-card
         cblcars_card_config:
-          label: multimeter
           show_label: true
           variables:
+            label: controls
             text:
               label:
                 font_size: 42
@@ -59,138 +60,175 @@ sections:
   - type: grid
     cards:
       - type: heading
-        heading: CB-LCARS Multimeter (gauge/slider/icons)
+        heading: CB-LCARS Multimeter (gauge/slider)
+        heading_style: title
       - type: custom:cb-lcars-multimeter-card
         cblcars_card_config:
           variables:
-            label: guage
-            header_button: {}
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            label: slider
-            panel:
-              mode: slider
-            header_button: {}
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity: ''
-            label: icons
-            panel:
-              mode: icons
-  - type: grid
-    cards:
-      - type: heading
-        heading: CB-LCARS Multimeter Variations
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            label: btn.orange
-            header_button:
-              variables:
-                card:
-                  color:
-                    background:
-                      active: var(--picard-orange)
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity_match_header: true
-            label: match hdr.
-            header_button: {}
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            panel:
-              mode: slider
-            entity_match_header: false
-            entity_match_slider_end: true
-            label: match end
-            header_button: {}
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity_match_header: false
-            entity_match_slider_start: true
-            label: match start
-            panel:
-              mode: slider
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity_match_gauge: false
-            entity_match_slider: true
-            label: match sldr
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity_match_gauge: true
-            entity_match_slider: true
-            entity_match_header: true
-            label: match ALL
-            header_button: {}
-      - type: custom:cb-lcars-multimeter-card
-        cblcars_card_config:
-          variables:
-            entity_match_slider_end: true
-            entity_match_slider_start: true
-            entity_match_header: true
-            label: match ALL
-            panel:
-              mode: slider
-  - type: grid
-    cards:
-      - type: heading
-        heading: CB-LCARS Horizontal Slider/Gauge
-      - type: custom:cb-lcars-slider-card
-        cblcars_card_config: null
-      - type: custom:cb-lcars-slider-card
-        cblcars_card_config:
-          variables:
-            meter:
-              variables:
-                gradient_start_color: var(--picard-dark-blue)
-                gradient_end_color: var(--picard-lightest-blue)
-                button:
-                  template: cb-lcars-button-lozenge
-            slider:
-              variables:
-                mask_color: rgba(0,255,0,0.7)
-      - type: custom:cb-lcars-slider-card
-        cblcars_card_config:
-          variables:
-            card:
-              height: 20px
-            meter:
-              variables:
-                gradient_start_color: var(--picard-dark-blue)
-                gradient_end_color: var(--picard-orange)
-                _gradient:
-                  gap: 10px
-                  X: 8
-                button:
-                  variables:
-                    card:
-                      width: 30px
-                      height: 20px
-                  template:
-                    - cb-lcars-button-lozenge
-            slider:
-              variables:
-                mask_color: rgba(0,0,0,0.7)
-      - type: custom:cb-lcars-slider-card
-        cblcars_card_type: cb-lcars-slider-horizontal-gauge
-        variables:
-          gauge:
-            show_sub_meter: true
-      - type: custom:cb-lcars-slider-card
-        cblcars_card_type: cb-lcars-slider-horizontal-gauge
-        cblcars_card_config:
-          variables:
+            _mode: gauge
             gauge:
-              show_sub_meter: false
-            entity_match_slider: true
+              sub_meter:
+                show_sub_meter: true
+        layout_options:
+          grid_columns: 5
+          grid_rows: 1
+      - &ref_0
+        type: custom:gap-card
+        layout_options:
+          grid_columns: 3
+          grid_rows: 1
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_header: false
+            entity_match_slider: false
+            entity_match_gauge: false
+            entity_match_slider_start: false
+            entity_match_slider_end: false
+            _mode: slider
+            _vertical: false
+            card:
+              border:
+                left:
+                  size: 120
+                top:
+                  size: 10
+            gauge:
+              sub_meter:
+                show_sub_meter: true
+          tap_action:
+            action: toggle
+          double_tap_action:
+            action: none
+          hold_action:
+            action: none
+          show_label: false
+        layout_options:
+          grid_columns: 5
+          grid_rows: 1
+      - *ref_0
+      - &ref_1
+        type: custom:gap-card
+        layout_options:
+          grid_columns: 1
+          grid_rows: 5
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_header: false
+            entity_match_slider: false
+            entity_match_gauge: false
+            entity_match_slider_start: false
+            entity_match_slider_end: false
+            _mode: gauge
+            _vertical: true
+            card:
+              border:
+                left:
+                  size: 25
+                top:
+                  size: 0
+            gauge:
+              sub_meter:
+                show_sub_meter: true
+          tap_action:
+            action: toggle
+          double_tap_action:
+            action: none
+          hold_action:
+            action: none
+          show_label: false
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - *ref_1
+      - type: custom:cb-lcars-multimeter-card
+        cblcars_card_config:
+          variables:
+            entity_match_header: false
+            entity_match_slider: false
+            entity_match_gauge: false
+            entity_match_slider_start: false
+            entity_match_slider_end: false
+            _mode: slider
+            _vertical: true
+            card:
+              border:
+                left:
+                  size: 0
+                top:
+                  size: 0
+            gauge:
+              sub_meter:
+                show_sub_meter: true
+          tap_action:
+            action: toggle
+          double_tap_action:
+            action: none
+          hold_action:
+            action: none
+          show_label: false
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+    column_span: 2
+  - type: grid
+    cards:
+      - type: heading
+        heading_style: title
+        heading: DPAD
+      - type: custom:cb-lcars-dpad-card
+        cblcars_card_config:
+          variables:
+            dpad:
+              up: {}
+              down: {}
+              left: {}
+              right: {}
+              center: {}
+              up_left: {}
+              up_right: {}
+              down_left: {}
+              down_right: {}
+        layout_options:
+          grid_columns: 1
+          grid_rows: 3
+      - type: custom:cb-lcars-dpad-card
+        cblcars_card_config:
+          variables:
+            dpad:
+              up_left:
+                color:
+                  background:
+                    inactive: var(--lcars-alert-blue)
+              down_right:
+                color:
+                  background:
+                    inactive: var(--lcars-alert-red)
+              down_left:
+                color:
+                  background:
+                    inactive: var(--picard-yellow)
+              up_right:
+                color:
+                  background:
+                    inactive: var(--picard-green)
+              center: {}
+              up: {}
+              down: {}
+              left: {}
+              right: {}
+            card:
+              size: 240
+            __defs_dpad:
+              color:
+                background:
+                  active: var(--picard-darkest-gray)
+                  inactive: var(--picard-dark-gray)
+        layout_options:
+          grid_columns: 1
+          grid_rows: 4
+    column_span: 1
 max_columns: 3
 subview: true
 cards: []

@@ -20,23 +20,32 @@ sections:
               label:
                 padding:
                   left: 56
-                  top: 35
-                font_size: '18'
+                  top: 10
+                font_size: '16'
           label: |2-
                   <elt>
                       <h1>GREETINGS CAPTAIN</h1>
-                      <h4>Welcome aboard to <strong>CB-LCARS</strong> for Home Assistant</h4>
-                      <p><strong>CB-LCARS</strong> is a framework of card templates for building LCARS interfaces in Home Assistant - based on <a href="https://github.com/custom-cards/button-card" style="color:#37a6d1 !important;">custom-button-card</a>.</p>
-                      <p>Please enjoy using CB-LCARS to create, personalize, and tinker with your LCARS interface.</p>
-                      <p>For more information see the <a href="https://github.com/snootched/cb-lcars" style="color: var(--picard-blue);">CB-LCARS Repository</a></p>
+                      <p>Welcome aboard <strong>CB-LCARS</strong> for Home Assistant
+                      <p><strong>CB-LCARS</strong> is a collection of highly customizable cards for
+                      building LCARS interfaces in Home Assistant.</p>
+                      <p>Please enjoy creating and tinkering with your LCARS interface!
+                      <br>For more information see the <a href="https://cb-lcars.unimatrix01.ca" style="color:#37a6d1 !important;">CB-LCARS Repository</a></p>
                   </elt>
+          styles:
+            label:
+              - z-index: 1
+          tap_action:
+            action: none
+          double_tap_action:
+            action: none
+          hold_action:
+            action: none
         cblcars_card_type: cb-lcars-header
         layout_options:
           grid_columns: 9
           grid_rows: 5
       - type: custom:cb-lcars-label-card
         cblcars_card_config:
-          label: CB-LCARS AIRLOCK
           show_label: true
           variables:
             text:
@@ -57,13 +66,16 @@ sections:
                 right:
                   size: 65
                 color: '#2f3749'
+            label: LCARS AIRLOCK
         layout_options:
           grid_columns: 3
           grid_rows: 1
     column_span: 3
   - type: grid
     cards:
-      - type: custom:button-card
+      - layout_options:
+          grid_columns: 9
+        type: custom:button-card
         template:
           - cb-lcars-functions
           - cb-lcars-card-base
@@ -159,12 +171,12 @@ sections:
           custom_fields:
             helpers:
               - position: absolute
-              - top: 75px
+              - top: 155px
               - left: 300px
               - z-index: 1
             helpers_header:
               - position: absolute
-              - top: 0
+              - top: 80px
               - left: 300px
             helpers_sidebar1:
               - position: absolute
@@ -180,7 +192,7 @@ sections:
               - left: 0px
             helpers_footer:
               - position: absolute
-              - top: 405px
+              - top: 320px
               - left: 300px
             custom_cards:
               - position: absolute
@@ -208,13 +220,13 @@ sections:
               - top: 550px
             theme_set_default:
               - position: absolute
-              - left: 1055px
-              - top: 350px
+              - left: 575px
+              - top: 320px
               - z-index: 10
             theme_set_user:
               - position: absolute
-              - left: 1225px
-              - top: 350px
+              - left: 745px
+              - top: 320px
               - z-index: 10
         custom_fields:
           log_reqs: '[[[ variables.__cblcarsLog("debug",variables.reqs_status); ]]]'
@@ -314,192 +326,8 @@ sections:
                   template_columns: 220px 410px 150px
                   gap: 10px
                   X: 3
-                  'Y': 6
+                  'Y': 3
                   buttons:
-                    - label: cb-lcars alert
-                      template: cb-lcars-button-picard-filled
-                      variables:
-                        card:
-                          width: 200px
-                          color:
-                            background:
-                              inactive: var(--picard-medium-light-gray)
-                    - label: >-
-                        [[[ return
-                        variables.___reqs.helpers.cb_lcars.alert_condition
-                        ]]]
-                      variables:
-                        card:
-                          width: 400px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 28px
-                            justify: left
-                    - label: >-
-                        [[[ return
-                        (variables.reqs_status.helpers.cb_lcars.alert_condition)
-                        ? "online" : "offline" ]]]
-                      variables:
-                        card:
-                          width: 240px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 30px
-                            justify: left
-                            color:
-                              default: >
-                                [[[ return
-                                (variables.reqs_status.helpers.cb_lcars.alert_condition)
-                                ? 'var(--picard-medium-light-blue)' :
-                                'var(--picard-medium-light-orange)' ]]]
-                    - template: cb-lcars-button-picard-filled
-                      label: cb-lcars debug
-                      entity: >-
-                        [[[ return
-                        variables.___reqs.helpers.cb_lcars.lcars_ui_debug
-                        ]]]
-                      variables:
-                        card:
-                          width: 200px
-                          color:
-                            background:
-                              inactive: var(--picard-blue)
-                    - label: >-
-                        [[[ return
-                        variables.___reqs.helpers.cb_lcars.lcars_ui_debug
-                        ]]]
-                      variables:
-                        card:
-                          width: 400px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 28px
-                            justify: left
-                    - label: >-
-                        [[[ return
-                        (variables.reqs_status.helpers.cb_lcars.lcars_ui_debug)
-                        ? "online" : "offline" ]]]
-                      variables:
-                        card:
-                          width: 240px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 30px
-                            justify: left
-                            color:
-                              default: >
-                                [[[ return
-                                (variables.reqs_status.helpers.cb_lcars.lcars_ui_debug)
-                                ? 'var(--picard-medium-light-blue)' :
-                                'var(--picard-medium-light-orange)' ]]]
-                    - template: cb-lcars-button-picard-filled
-                      label: ha-lcars sound
-                      entity: >-
-                        [[[ return
-                        variables.___reqs.helpers.ha_lcars.lcars_sound ]]]
-                      variables:
-                        card:
-                          width: 200px
-                          color:
-                            background:
-                              inactive: var(--picard-medium-dark-gray)
-                    - label: >-
-                        [[[ return
-                        variables.___reqs.helpers.ha_lcars.lcars_sound ]]]
-                      variables:
-                        card:
-                          width: 400px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 28px
-                            justify: left
-                    - label: >-
-                        [[[ return
-                        (variables.reqs_status.helpers.ha_lcars.lcars_sound)
-                        ? "online" : "offline" ]]]
-                      variables:
-                        card:
-                          width: 240px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 30px
-                            justify: left
-                            color:
-                              default: >
-                                [[[ return
-                                (variables.reqs_status.helpers.ha_lcars.lcars_sound)
-                                ? 'var(--picard-medium-light-blue)' :
-                                'var(--picard-medium-light-orange)' ]]]
-                    - template: cb-lcars-button-picard-filled
-                      label: ha-lcars text.
-                      entity: >-
-                        [[[ return
-                        variables.___reqs.helpers.ha_lcars.lcars_texture ]]]
-                      variables:
-                        card:
-                          width: 200px
-                          color:
-                            background:
-                              inactive: var(--picard-medium-dark-blue)
-                    - label: >-
-                        [[[ return
-                        variables.___reqs.helpers.ha_lcars.lcars_texture ]]]
-                      variables:
-                        card:
-                          width: 400px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 28px
-                            justify: left
-                    - label: >-
-                        [[[ return
-                        (variables.reqs_status.helpers.ha_lcars.lcars_texture)
-                        ? "online" : "offline" ]]]
-                      variables:
-                        card:
-                          width: 240px
-                          color:
-                            background:
-                              inactive: null
-                        text:
-                          label:
-                            font_weight: 300
-                            font_size: 30px
-                            justify: left
-                            color:
-                              default: >
-                                [[[ return
-                                (variables.reqs_status.helpers.ha_lcars.lcars_texture)
-                                ? 'var(--picard-medium-light-blue)' :
-                                'var(--picard-medium-light-orange)' ]]]
                     - template: cb-lcars-button-picard-filled
                       label: ha-lcars theme
                       variables:
@@ -580,6 +408,50 @@ sections:
                                 (variables.reqs_status.themes.cb_lcars) ?
                                 'var(--picard-medium-light-blue)' :
                                 'var(--picard-medium-light-orange)' ]]]
+                    - label: cb-lcars alert
+                      template: cb-lcars-button-picard-filled
+                      variables:
+                        card:
+                          width: 200px
+                          color:
+                            background:
+                              inactive: var(--picard-medium-light-gray)
+                    - label: >-
+                        [[[ return
+                        variables.___reqs.helpers.cb_lcars.alert_condition
+                        ]]]
+                      variables:
+                        card:
+                          width: 400px
+                          color:
+                            background:
+                              inactive: null
+                        text:
+                          label:
+                            font_weight: 300
+                            font_size: 28px
+                            justify: left
+                    - label: >-
+                        [[[ return
+                        (variables.reqs_status.helpers.cb_lcars.alert_condition)
+                        ? "online" : "offline" ]]]
+                      variables:
+                        card:
+                          width: 240px
+                          color:
+                            background:
+                              inactive: null
+                        text:
+                          label:
+                            font_weight: 300
+                            font_size: 30px
+                            justify: left
+                            color:
+                              default: >
+                                [[[ return
+                                (variables.reqs_status.helpers.cb_lcars.alert_condition)
+                                ? 'var(--picard-medium-light-blue)' :
+                                'var(--picard-medium-light-orange)' ]]]
           helpers_header:
             card:
               type: custom:button-card
@@ -642,7 +514,7 @@ sections:
               template: cb-lcars-footer-callout
               variables:
                 card:
-                  height: 45px
+                  height: 85px
                   width: calc(75vw)
                   border:
                     color: var(--picard-dark-blue)
@@ -963,9 +835,6 @@ sections:
         template: cb-lcars-theme
         variables:
           ___debug: false
-  - type: grid
-    cards: []
-  - type: grid
-    cards: []
+    column_span: 3
 icon: ''
 cards: []

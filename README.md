@@ -29,6 +29,7 @@ Note: This project is under reconstruction.  The goal is to move towards consumi
       - [Font](#font)
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
+      - [3a. Create Input Helpers](#3a-create-input-helpers)
     - [4. Boldly Go...](#4-boldly-go)
       - [New Dashboard w/Strategy](#new-dashboard-wstrategy)
       - [Engage!](#engage)
@@ -121,6 +122,7 @@ In no particular ordeer:
 >   - Add CB-LCARS custom style to HA-LCARS theme
 > - Bring Warp Core Online, Engines to Full Power
 >   - Install CB-LCARS from HACS
+>   - Create CB-LCARS input helper(s)
 > - Plot Course
 >   - Create new dashboard and jumpstart with strategy
 >   - Take Control and...
@@ -142,7 +144,7 @@ The following should be installed and working in your Home Assistant instance - 
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
 | [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | Required    | Provides slider function which is used in the slider/gauge controls. |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Recommended | Not strictly needed for CB-LCARS, but is used by HA-LCARS at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
 
 
@@ -179,6 +181,15 @@ These are the colors used for the ha-lcars defined variables.
 
 1. Add CB-LCARS git repository as a custom repo in HACS.
 2. Install CB-LCARS from HACS like any other project.
+
+#### 3a. Create Input Helpers
+
+Create the following input helpers in your Home Asstant.
+<br>Names are configurable, but Entity ID is required to match.
+
+| Name              | Entity ID                               | Type                    | Values |
+|-------------------|-----------------------------------------|-------------------------|-------------------------------------------------|
+| ALERT CONDITION   | `input_select.lcars_ui_alert_condition` | Dropdown (input select) | GREEN<br>RED<br>YELLOW<br>BLUE<br>BLACK<br>GRAY |
 
 <br>
 
@@ -315,6 +326,10 @@ TODOs:
 | [`cb-lcars-label`](cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
 | [`cb-lcars-label-picard`](cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
 | [`cb-lcars-cascade`](cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
+
+TODOs:
+- add presets/expose options for cascade animation settings
+- add alternative text sources (sensors?)
 
 <br>
 
