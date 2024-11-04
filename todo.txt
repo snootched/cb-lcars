@@ -1,0 +1,24 @@
+rework sliders/meters/gauges....
+
+-rework slider mode meter to elt instead of buttons
+
+
+
+
+
+Editors:
+-dbl elbow: finish sizing/colors for dbl
+-add slider radius/width options to bars
+
+-wrapper card
+-- hui-card-picker
+
+-fix up all the colors (move to --cblcars-?)
+
+
+-update formbuiler doc with controltypes
+
+
+Parking Lot
+-offer to write customizations to lcars theme yaml?
+-make a preferences yaml and store on dash?

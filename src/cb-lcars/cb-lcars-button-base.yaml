@@ -23,10 +23,12 @@ cb-lcars-button-base:
       color:
         active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
         inactive: "var(--lcars-card-button-off, var(--picard-gray))"
+        unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
         background:
           default: null
           active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
           inactive: "var(--lcars-card-button-off, var(--picard-gray))"
+          unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
     text:
       label:
         padding:
@@ -44,6 +46,7 @@ cb-lcars-button-base:
           'off': black
           zero: black
           non_zero: black
+          unavailable: black
       state:
         padding:
           top: 5px
@@ -60,6 +63,7 @@ cb-lcars-button-base:
           'off': black
           zero: black
           non_zero: black
+          unavailable: black
       name:
         padding:
           top: 5px
@@ -76,6 +80,7 @@ cb-lcars-button-base:
           'off': black
           zero: black
           non_zero: black
+          unavailable: black
     icon:
       size: 24px
       color:

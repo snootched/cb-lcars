@@ -13,6 +13,7 @@ cb-lcars-button-picard:
           default: '[[[ return variables.lcars_color ]]]'
           'on': '[[[ return variables.card.color.active ]]]'
           'off': '[[[ return variables.card.color.inactive ]]]'
+          unavailable: '[[[ return variables.card.color.unavailable ]]]'
           zero: '[[[ return variables.card.color.active ]]]'
           non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
@@ -28,6 +29,7 @@ cb-lcars-button-picard:
           default: '[[[ return variables.lcars_color ]]]'
           'on': '[[[ return variables.card.color.active ]]]'
           'off': '[[[ return variables.card.color.inactive ]]]'
+          unavailable: '[[[ return variables.card.color.unavailable ]]]'
           zero: '[[[ return variables.card.color.active ]]]'
           non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
@@ -43,6 +45,7 @@ cb-lcars-button-picard:
           default: '[[[ return variables.lcars_color ]]]'
           'on': '[[[ return variables.card.color.active ]]]'
           'off': '[[[ return variables.card.color.inactive ]]]'
+          unavailable: '[[[ return variables.card.color.unavailable ]]]'
           zero: '[[[ return variables.card.color.active ]]]'
           non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
@@ -55,6 +58,7 @@ cb-lcars-button-picard:
         default: null
         active: '[[[ return variables.card.color.active ]]]'
         inactive: '[[[ return variables.card.color.inactive ]]]'
+        unavailable: '[[[ return variables.card.color.unavailable ]]]'
     card:
       border:
         top:
@@ -70,6 +74,7 @@ cb-lcars-button-picard:
           default: transparent
           active: transparent
           inactive: transparent
+          unavailable: transparent
 cb-lcars-button-picard-dense:
   template: cb-lcars-button-picard
   variables:

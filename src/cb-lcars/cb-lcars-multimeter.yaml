@@ -551,51 +551,47 @@ cb-lcars-multimeter:
         const entityState = entity.state;
         const entityType = entity.entity_id.split('.')[0]; // Extract entity type
 
-        let progressPercentage = 0;
-
+        let progress = 0;
         switch(entityType) {
           case 'light':
-
-            progressPercentage = ((parseFloat(entity.attributes.brightness) / 256) * 100)/ variables.slider.max *100;
+            progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
             break;
           case 'fan':
-            progressPercentage = (parseFloat(entity.attributes.percentage) / variables.slider.max) *100;
+            progress = (parseFloat(entity.attributes.percentage));
             break;
           default:
-            progressPercentage = (parseFloat(entityState) / variables.slider.max) *100;
+            progress = (parseFloat(entityState));
             break;
         }
 
-        const isVertical = variables._vertical;
-        const width = variables.slider.width;
-        const height = variables.slider.height;
+        const progressPercentage = ((progress / variables.slider.max) * 100) + '%';
 
-        const borderRadius = 0;
+        const isVertical = variables._vertical;
+        const width = isVertical ? variables.slider.height : progressPercentage;
+        const height = isVertical ? progressPercentage : variables.slider.height;
+
+        //match myslider-v2 styling options
+        const borderRadius = variables.slider.border_radius;
         const borderWidth = variables.slider.border_width;
         const borderColor = variables.slider.border_color;
         const backgroundColor = variables.slider.color;
 
         return `
-          <div class="progress-bar-container" style="width: ${width}; height: ${height};">
-            <div class="progress-bar-card" style="position: relative; width: 100%; height: 100%;">
-              <div class="progress-bar" style="
-                position: absolute;
-                ${isVertical ? 'bottom: 0;' : 'left: 0;'}
-                width: ${isVertical ? '100' : progressPercentage}%;
-                height: ${isVertical ? progressPercentage : '100'}%;
-                border-radius: ${borderRadius};
-                border: ${borderWidth} solid ${borderColor};
-                background-color: ${backgroundColor};
-              "></div>
-            </div>
-          </div>
+          <div class="progress-bar" style="
+            position: absolute;
+            ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+            width: ${width};
+            height: ${height};
+            border-radius: ${borderRadius};
+            border: ${borderWidth} solid ${borderColor};
+            background-color: ${backgroundColor};
+          "></div>
         `;
       ]]]
     gauge: |
       [[[
         let minVal = variables.gauge.min;
         let maxVal = variables.gauge.max;
-        //let increment = (variables.slider.mode === 'temperature') ? 30 : variables.gauge.increment || 10;
         let increment = variables.gauge.increment;
 
         const orientation = variables._vertical ? 'vertical' : 'horizontal';
@@ -758,7 +754,6 @@ cb-lcars-multimeter:
               ]]]
             height: |
               [[[
-
                 return (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom))+"px";
               ]]]
           entity: "[[[ return variables.entity ]]]"
