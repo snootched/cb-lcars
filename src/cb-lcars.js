@@ -4,7 +4,7 @@ import "./cblcars-button-card.js";
 
 // Function to wait for button-card to be defined
 async function waitForButtonCard() {
-    await customElements.whenDefined('button-card');
+    await customElements.whenDefined('cblcars-button-card');
 }
 // Call the function to wait for button-card to be defined
 await waitForButtonCard();
