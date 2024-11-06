@@ -222,7 +222,6 @@ class CBLCARSBaseCard extends HTMLElement {
         //this.attachShadow({ mode: 'open' });
 
         this.resizeObserver = null; // Define resizeObserver as a class property
-        this.resizeObserver2 = null; // Define resizeObserver as a class property
 
         this.isResizing = false;
 
@@ -522,21 +521,21 @@ class CBLCARSBaseCard extends HTMLElement {
 
             if (this._config) {
                 // Ensure the _card element is defined and initialized
-                customElements.whenDefined('button-card').then(() => {
+                customElements.whenDefined('cblcars-button-card').then(() => {
                     if (this._card) {
                         // Set the config on the button-card after it's attached to the DOM
                         this._card.addEventListener('hass-card-element', () => {
                             try {
                                 this._card.setConfig(this._config.cblcars_card_config);
                             } catch (error) {
-                                cblcarsLog('error','Error setting config on button-card:', error);
+                                cblcarsLog('error','Error setting config on cblcars-button-card:', error);
                             }
                         });
                     } else {
                         cblcarsLog('error','Error: _card element is not initialized.');
                     }
                 }).catch(error => {
-                    cblcarsLog('error','Error: button-card custom element is not defined.', error);
+                    cblcarsLog('error','Error: cblcars-button-card custom element is not defined.', error);
                 });
             }
 
