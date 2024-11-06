@@ -332,6 +332,48 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                 ]]]
+    - operator: template
+      id: state_unavailable
+      value: |
+        [[[
+          return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
+        ]]]
+      styles:
+        custom_fields:
+          gauge:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+          slider_track:
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                ]]]
   styles:
     card:
       - width: "[[[ return variables.card.width ]]]"

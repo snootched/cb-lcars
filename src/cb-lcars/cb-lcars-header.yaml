@@ -26,6 +26,8 @@ cb-lcars-header-base:
           default: transparent
           active: transparent
           inactive: transparent
+          unavailable: transparent
+
 cb-lcars-header:
   template:
     - cb-lcars-header-base

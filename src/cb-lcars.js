@@ -14,6 +14,7 @@ import semver from 'semver';
 
 //import { ButtonCard } from 'button-card';
 //import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
+import "./cblcars-button-card.js";
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
@@ -30,9 +31,11 @@ console.groupEnd();
 */
 
 // Check for custom element dependencies
-if (!customElements.get('button-card')) {
-    cblcarsLog('error',`Custom Button Card [button-card] was not found!  Please install from HACS.`);
+if (!customElements.get('cblcars-button-card')) {
+    cblcarsLog('error',`Custom Button Card for LCARS [cblcars-button-card] was not found!`);
 }
+
+// check for installation of my-slider-v2 and if not registerd, include it from local file?
 // Check for custom element dependencies
 if (!customElements.get('my-slider-v2')) {
     cblcarsLog('error',`MySliderV2 Custom Card [my-slider-v2] was not found!  Please install from HACS.`);
@@ -303,7 +306,7 @@ class CBLCARSBaseCard extends HTMLElement {
     /*
     loadDefaultConfig() {
         const defaultConfig = {
-            type: 'custom:button-card',
+            type: 'custom:cblcars-button-card',
             template: ['cb-lcars-base'],
             // Add other default configurations as needed
         };
@@ -331,7 +334,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         // Create a new object to avoid modifying the original config
         const buttonCardConfig = {
-            type: 'custom:button-card',
+            type: 'custom:cblcars-button-card',
             template: mergedTemplates,
             ...config.cblcars_card_config,
         };
@@ -388,7 +391,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         // Create a new object to avoid modifying the original config
         const buttonCardConfig = {
-            type: 'custom:button-card',
+            type: 'custom:cblcars-button-card',
             template: mergedTemplates,
             ...config.cblcars_card_config,
         };
