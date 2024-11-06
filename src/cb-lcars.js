@@ -373,9 +373,9 @@ class CBLCARSBaseCard extends HTMLElement {
         //this._card.setConfig(this._config.cblcars_card_config);
 
         // Set the config on the button-card after it's attached to the DOM
-        //this._card.addEventListener('hass-card-element', () => {
-        //    this._card.setConfig(this._config.cblcars_card_config);
-        //});
+        this._card.addEventListener('hass-card-element', () => {
+            this._card.setConfig(this._config.cblcars_card_config);
+        });
     }
 
     /*  this one is messed up trying to pre-merge templates
@@ -505,7 +505,7 @@ class CBLCARSBaseCard extends HTMLElement {
             // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
             if (!this._card) {
             //    //cblcarsLog('debug','creating new button-card element');
-                this._card = document.createElement('button-card');
+                this._card = document.createElement('cblcars-button-card');
                 this.appendChild(this._card);
             }
 
