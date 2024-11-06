@@ -1,3 +1,15 @@
+//import { ButtonCard } from 'button-card';
+//import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
+import "./cblcars-button-card.js";
+
+// Function to wait for button-card to be defined
+async function waitForButtonCard() {
+    await customElements.whenDefined('button-card');
+}
+// Call the function to wait for button-card to be defined
+await waitForButtonCard();
+
+
 import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsLog, logImportStatus, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { fetchYAML, readYamlFile } from './utils/cb-lcars-fileutils.js';
@@ -12,9 +24,6 @@ import { html, css } from 'lit';
 import { fireEvent } from "custom-card-helpers";
 import semver from 'semver';
 
-//import { ButtonCard } from 'button-card';
-//import { mergeDeep, mergeStatesById,} from './custom-button-card/button-card.js';
-import "./cblcars-button-card.js";
 
 // Call log banner function immediately when the script loads
 cblcarsLogBanner();
