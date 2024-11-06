@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.1-beta.2
+  version: 
   manage_config: true
 button_card_templates:
   cb-lcars-defs:
@@ -287,715 +287,6 @@ button_card_templates:
                 return 'transparent';
               }
             ]]]
-  cb-lcars-slider-gauge:
-    type: custom:button-card
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    entity: "[[[ return variables.entity ]]]"
-    triggers_update: "[[[ return variables.entity ]]]"
-    variables:
-      vertical: true
-      locked: false
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px', {height: 400, width: 80});
-          ]]]
-      entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
-      entity_match_slider: false
-      meter:
-        template:
-          - cb-lcars-button-grid
-        variables:
-          card:
-            height: "[[[ return variables.card.height ]]]"
-          grid:
-            X: 1
-            "Y": 10
-            gap: 0px
-            buttons:
-              - label: "100"
-              - label: "90"
-              - label: "80"
-              - label: "70"
-              - label: "60"
-              - label: "50"
-              - label: "40"
-              - label: "30"
-              - label: "20"
-              - label: "10"
-          button:
-            show_label: true
-            entity: "[[[ return variables.entity ]]]"
-            triggers_update: "[[[ return variables.entity ]]]"
-            template:
-              - cb-lcars-button-picard
-              - cb-lcars-button-picard-label-ne
-            variables:
-              card:
-                height: |
-                  [[[
-                      return variables.__calculcate_grid_cell_dimension(variables.card.height, 10, 0, "20px")
-                  ]]]
-                width: "[[[ return variables.card.width ]]]"
-                border:
-                  right:
-                    size: 0
-                  left:
-                    size: 0
-                  top:
-                    size: 2px
-                  bottom:
-                    size: 0
-                color:
-                  background:
-                    inactive: transparent
-                    active: transparent
-                    default: transparent
-              text:
-                label:
-                  font_size: 14px
-                  padding:
-                    right: 0px
-                    top: 2px
-                  color:
-                    "off": var(--lcars-ui-primary)
-                    "on": var(--lcars-ui-secondary)
-      slider:
-        variables:
-          color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-lightest-blue)" ]]]
-          color_alpha: 0.95
-          border_color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-blue)" ]]]
-          border_alpha: 0.5
-          border_width: 2px
-          height: "[[[ return variables.card.height ]]]"
-          width: 15px
-          left_padding: 5px
-          step: 1
-          mode: brightness
-    show_label: true
-    styles:
-      card:
-        - width: "[[[ return variables.card.width ]]]"
-        - height: "[[[ return variables.card.height ]]]"
-        - border-radius: 0 !important
-        - background: none
-      custom_fields:
-        meter:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-        slider:
-          - visibility: "[[[ return (variables.locked) ? 'hidden' : 'visible' ]]]"
-          - position: absolute
-          - left: 0px
-          - top: 0px
-          - z-index: 1
-          - width: "[[[ return variables.card.width ]]]"
-          - height: "[[[ return variables.card.height ]]]"
-        locked_bar:
-          - position: absolute
-          - z-index: 1
-          - left: 0px
-          - padding-left: 5px
-          - width: "[[[ return variables.card.width ]]]"
-          - height: "[[[ return variables.card.height ]]]"
-          - visibility: "[[[ return (variables.locked) ? 'visible' : 'hidden' ]]]"
-    custom_fields:
-      meter:
-        card:
-          type: custom:button-card
-          template: "[[[ return variables.meter.template ]]]"
-          variables: "[[[ return variables.meter.variables ]]]"
-      slider:
-        card:
-          type: custom:my-slider-v2
-          entity: "[[[ return variables.entity ]]]"
-          mode: "[[[ return variables.slider.variables.mode ]]]"
-          flipped: false
-          inverse: false
-          vertical: true
-          step: "[[[ return variables.slider.variables.step; ]]]"
-          styles:
-            card:
-              - width: "[[[ return variables.card.width ]]]"
-              - height: "[[[ return variables.card.height ]]]"
-              - background: none
-              - border-radius: 0
-            progress:
-              - background-color: >-
-                  [[[ return
-                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
-                  ]]]
-              - border: >-
-                  [[[ return variables.slider.variables.border_width + " solid " +
-                  variables.__hex_to_rgba(variables.slider.variables.border_color,
-                  variables.slider.variables.border_alpha)  ]]]
-              - width: "[[[ return variables.slider.variables.width ]]]"
-              - height: "[[[ return variables.slider.variables.height ]]]"
-              - left: "[[[ return variables.slider.variables.left_padding ]]]"
-            container:
-              - border-radius: 0
-            track:
-              - background: none
-            thumb:
-              - background: none
-      locked_bar: |
-        [[[
-          const entityState = entity.state;
-          console.log(entity);
-          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
-          let progressPercentage;
-          if (entityType === 'light') {
-            // For light entities, scale the brightness to a percentage
-            progressPercentage = (parseFloat(entity.attributes.brightness) / 255) * 100;
-          } else {
-            // For other entities, assume a 0-100 scale
-            progressPercentage = parseFloat(entityState);
-          }
-          const isVertical = variables.vertical;
-          const width = isVertical ? variables.slider.variables.width : variables.card.width;
-          const height = isVertical ? variables.card.height : variables.slider.variables.width;
-          const borderRadius = 0;
-          const borderWidth = variables.slider.variables.border_width;
-          const borderColor = variables.slider.variables.border_color;
-          const backgroundColor = variables.slider.variables.color;
-          return `
-            <div class="progress-bar-container" style="width: ${width}; height: ${height};">
-              <div class="progress-bar-card" style="position: relative; width: 100%; height: 100%;">
-                <div class="progress-bar" style="
-                  position: absolute;
-                  ${isVertical ? 'bottom: 0;' : 'left: 0;'}
-                  width: ${isVertical ? '100' : progressPercentage}%;
-                  height: ${isVertical ? progressPercentage : '100'}%;
-                  border-radius: ${borderRadius};
-                  border: ${borderWidth} solid ${borderColor};
-                  background-color: ${backgroundColor};
-                "></div>
-              </div>
-            </div>
-          `;
-        ]]]
-  cb-lcars-slider-gauge-old:
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    triggers_update: '[[[ return variables.entity ]]]'
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px', {height: 400, width: 80});
-          ]]]
-      entity: '[[[ return entity.entity_id ]]]'
-      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
-      entity_match_slider: false
-      meter:
-        template:
-          - cb-lcars-button-grid
-        variables:
-          card:
-            height: '[[[ return variables.card.height ]]]'
-          grid:
-            X: 1
-            'Y': 10
-            gap: 0px
-            buttons:
-              - label: '100'
-              - label: '90'
-              - label: '80'
-              - label: '70'
-              - label: '60'
-              - label: '50'
-              - label: '40'
-              - label: '30'
-              - label: '20'
-              - label: '10'
-          button:
-            show_label: true
-            entity: '[[[ return variables.entity ]]]'
-            triggers_update: '[[[ return variables.entity ]]]'
-            template:
-              - cb-lcars-button-picard
-              - cb-lcars-button-picard-label-ne
-            variables:
-              card:
-                height: |
-                  [[[
-                      return variables.__calculcate_grid_cell_dimension(variables.card.height, 10, 0, "20px")
-                  ]]]
-                width: '[[[ return variables.card.width ]]]'
-                border:
-                  right:
-                    size: 0
-                  left:
-                    size: 0
-                  top:
-                    size: 2px
-                  bottom:
-                    size: 0
-                color:
-                  background:
-                    inactive: transparent
-                    active: transparent
-                    default: transparent
-              text:
-                label:
-                  font_size: 14px
-                  padding:
-                    right: 0px
-                    top: 2px
-                  color:
-                    'off': var(--lcars-ui-primary)
-                    'on': var(--lcars-ui-secondary)
-      slider:
-        variables:
-          color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-lightest-blue)" ]]]
-          color_alpha: 0.95
-          border_color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-blue)" ]]]
-          border_alpha: 0.5
-          border_width: 2px
-          height: '[[[ return variables.card.height ]]]'
-          width: 15px
-          left_padding: 5px
-          step: 1
-          mode: brightness
-    styles:
-      card:
-        - width: '[[[ return variables.card.width ]]]'
-        - height: '[[[ return variables.card.height ]]]'
-        - border-radius: 0 !important
-        - background: none
-      custom_fields:
-        meter:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-        slider:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-          - z-index: 1
-          - width: '[[[ return variables.card.width ]]]'
-          - height: '[[[ return variables.card.height ]]]'
-    custom_fields:
-      meter:
-        card:
-          type: custom:button-card
-          template: '[[[ return variables.meter.template ]]]'
-          variables: '[[[ return variables.meter.variables ]]]'
-      slider:
-        card:
-          type: custom:my-slider-v2
-          entity: '[[[ return variables.entity ]]]'
-          mode: '[[[ return variables.slider.variables.mode ]]]'
-          flipped: false
-          inverse: false
-          vertical: true
-          step: '[[[ return variables.slider.variables.step; ]]]'
-          styles:
-            card:
-              - width: '[[[ return variables.card.width ]]]'
-              - height: '[[[ return variables.card.height ]]]'
-              - background: none
-              - border-radius: 0
-            progress:
-              - background-color: >-
-                  [[[ return
-                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
-                  ]]]
-              - border: >-
-                  [[[ return variables.slider.variables.border_width + " solid "
-                  +
-                  variables.__hex_to_rgba(variables.slider.variables.border_color,
-                  variables.slider.variables.border_alpha)  ]]]
-              - width: '[[[ return variables.slider.variables.width ]]]'
-              - height: '[[[ return variables.slider.variables.height ]]]'
-              - left: '[[[ return variables.slider.variables.left_padding ]]]'
-            container:
-              - border-radius: 0
-            track:
-              - background: none
-            thumb:
-              - background: none
-  cb-lcars-slider-horizontal-gauge-orig:
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    template:
-      - cb-lcars-functions
-      - cb-lcars-slider-horizontal
-    triggers_update: '[[[ return variables.entity ]]]'
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
-          ]]]
-      entity: '[[[ return entity.entity_id ]]]'
-      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
-      entity_match_slider: false
-      slider:
-        variables:
-          color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-lightest-blue)" ]]]
-          color_alpha: 0.95
-          border_color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-blue)" ]]]
-          border_alpha: 0.5
-          border_width: 2px
-          height: 10px
-          width: '[[[ return variables.card_width ]]]'
-          top_padding: 10px
-          step: 5
-      gauge:
-        show_sub_meter: true
-        meter:
-          template:
-            - cb-lcars-button-grid
-          variables:
-            card:
-              height: '[[[ return variables.card.height ]]]'
-            grid:
-              X: 10
-              'Y': 1
-              gap: 0px
-              buttons:
-                - label: '10'
-                - label: '20'
-                - label: '30'
-                - label: '40'
-                - label: '50'
-                - label: '60'
-                - label: '70'
-                - label: '80'
-                - label: '90'
-                - label: '100'
-            button:
-              show_label: true
-              entity: '[[[ return variables.entity ]]]'
-              triggers_update: '[[[ return variables.entity ]]]'
-              template:
-                - cb-lcars-button-picard
-                - cb-lcars-button-picard-label-se
-              variables:
-                card:
-                  width: |
-                    [[[
-                        return variables.__calculcate_grid_cell_dimension(variables.card.width, 10, 0, "5px")
-                    ]]]
-                  height: '[[[ return variables.card.height ]]]'
-                  border:
-                    right:
-                      size: 2px
-                    left:
-                      size: 0
-                    top:
-                      size: 0
-                    bottom:
-                      size: 0
-                  color:
-                    background:
-                      inactive: transparent
-                      active: transparent
-                      default: transparent
-                text:
-                  label:
-                    font_size: 14px
-                    padding:
-                      right: 3px
-                      top: 2px
-                      bottom: 0px
-                    color:
-                      'off': var(--lcars-ui-primary)
-                      'on': var(--lcars-ui-secondary)
-        sub_meter:
-          variables:
-            card:
-              height: 10px
-            grid:
-              X: 50
-              'Y': 1
-              gap: 0px
-            gradient_start_color: none
-            gradient_end_color: none
-            button:
-              entity: '[[[ return variables.entity ]]]'
-              triggers_update: '[[[ return variables.entity ]]]'
-              template:
-                - cb-lcars-button-picard
-                - cb-lcars-button-picard-label-se
-              variables:
-                card:
-                  height: 10px
-                  min_height: 10px
-                  width: |
-                    [[[
-                        return variables.__calculcate_grid_cell_dimension(variables.card.width, 50, 0, "20px")
-                    ]]]
-                  border:
-                    right:
-                      size: 2px
-                    left:
-                      size: 0
-                    top:
-                      size: 2px
-                    bottom:
-                      size: 0
-                  color:
-                    background:
-                      inactive: transparent
-                      active: transparent
-                      default: transparent
-              show_label: false
-      meter: '[[[ return variables.gauge.meter ]]]'
-    styles:
-      custom_fields:
-        slider:
-          - position: absolute
-          - top: 0
-          - left: >-
-              [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
-        sub_meter:
-          - position: absolute
-          - top: 0px
-          - left: 0px
-          - visibility: >-
-              [[[ return variables.gauge.show_sub_meter ? "visible" : "hidden"
-              ]]]
-    custom_fields:
-      slider:
-        card:
-          flipped: false
-          vertical: false
-          inverse: false
-          styles:
-            card:
-              - height: '[[[ return variables.card.height ]]]'
-              - width: '[[[ return variables.card.width ]]]'
-              - background: none
-            progress:
-              - background-color: >-
-                  [[[ return
-                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
-                  ]]]
-              - border: >-
-                  [[[ return variables.slider.variables.border_width + " solid "
-                  +
-                  variables.__hex_to_rgba(variables.slider.variables.border_color,
-                  variables.slider.variables.border_alpha)  ]]]
-              - border-radius: 2px
-              - height: '[[[ return variables.slider.variables.height ]]]'
-              - width: '[[[ return variables.slider.variables.width ]]]'
-              - top: '[[[ return variables.slider.variables.top_padding ]]]'
-      sub_meter:
-        card:
-          type: custom:button-card
-          template: cb-lcars-meter-horizontal
-          variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
-  cb-lcars-slider-horizontal-gauge:
-    entity: "[[[ return variables.entity ]]]"
-    template:
-      - cb-lcars-functions
-      - cb-lcars-slider-horizontal
-    triggers_update: "[[[ return variables.entity ]]]"
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
-          ]]]
-      entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
-      entity_match_slider: false
-      entity_match_gauge: false
-      slider:
-        variables:
-          color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-lightest-blue)" ]]]
-          color_alpha: 0.95
-          border_color: |
-            [[[ return  variables.entity_match_slider ? variables.entity_color :
-            "var(--picard-blue)" ]]]
-          border_alpha: 0.5
-          border_width: 2px
-          height: 10px
-          width: "[[[ return variables.card_width ]]]"
-          top_padding: 10px
-          step: 5
-      gauge:
-        show_sub_meter: true
-        meter: {}
-        color:
-          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
-          inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
-          background:
-            active: transparent
-            inactive: transparent
-        sub_meter:
-          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
-          inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
-          background:
-            active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
-            inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
-        label:
-          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
-          inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
-      meter: "[[[ return variables.gauge.meter ]]]"
-    styles:
-      custom_fields:
-        slider:
-          - position: absolute
-          - top: 0
-          - left: >-
-              [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
-    custom_fields:
-      slider:
-        card:
-          flipped: false
-          vertical: false
-          inverse: false
-          styles:
-            card:
-              - height: "[[[ return variables.card.height ]]]"
-              - width: "[[[ return variables.card.width ]]]"
-              - background: none
-            progress:
-              - background-color: >-
-                  [[[ return
-                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
-                  ]]]
-              - border: >-
-                  [[[ return variables.slider.variables.border_width + " solid " +
-                  variables.__hex_to_rgba(variables.slider.variables.border_color,
-                  variables.slider.variables.border_alpha)  ]]]
-              - border-radius: 2px
-              - height: "[[[ return variables.slider.variables.height ]]]"
-              - width: "[[[ return variables.slider.variables.width ]]]"
-              - top: "[[[ return variables.slider.variables.top_padding ]]]"
-      gauge: |
-        [[[
-          const bg_fill_value = variables.gauge.bg_fill_value || 0;  //bg_fill_value of bg fill
-          const bg_fill_color = variables.gauge.bg_fill_color || 'transparent';  //bg fill color
-          const showSubticks = variables.gauge.show_sub_meter;
-          const entityState = entity.state;
-          //console.debug('entityState', entityState);
-          const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
-          const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
-          const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
-          const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
-          const width = (parseInt(variables.card.width) - 2)+"px";
-          const height = variables.card.height;
-          const meterTicks = [];
-          for (let i = 0; i <= 100; i += 10) {
-            if (i <= 100) {
-              meterTicks.push(`<div class="meter-tick" style="left: ${i === 100 ? 100 : i}%"></div>`);
-              meterTicks.push(`<span class="meter-tick-label" style="left: ${i === 100 ? 100 : i}%">${i}</span>`);
-            }
-            if (showSubticks && i < 100) {
-              for (let j = 1; j <= 4; j++) {  // Ensure 4 sub-ticks
-                meterTicks.push(`<div class="meter-subtick" style="left: ${i + (j / 5) * 10}%"></div>`);
-              }
-            }
-          }
-          return `
-            <elt class="meter-card">
-              <style>
-                .meter-card {
-                  display: block;
-                  width: ${width};
-                  height: ${height};
-                  position: relative;
-                  grid-template-columns: repeat(10, 1fr);
-                  grid-template-rows: 1fr;
-                  gap: 0;
-                  margin-right: 5px
-                }
-                .meter-bar {
-                  grid-column: 1 / span 10;
-                  grid-row: 1;
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: 100%;
-                  height: 100%;
-                  background-color: ${meter_bg_color};
-                  border-radius: 0px;
-                }
-                .meter-inner {
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  height: 100%;
-                  background-color: ${bg_fill_color};
-                }
-                .meter-ticks {
-                  grid-column: 1 / span 10;
-                  grid-row: 1;
-                  display: grid;
-                  grid-template-columns: repeat(10, 1fr);
-                  grid-template-rows: 1fr;
-                  gap: 0;
-                }
-                .meter-tick {
-                  position: absolute;
-                  width: 2px;
-                  height: 100%; /* Adjust height to match card height */
-                  background-color: ${meter_tick_color};
-                }
-                .meter-subtick {
-                  position: absolute;
-                  width: 1px;
-                  height: 10px; /* Adjust height as needed */
-                  background-color: ${meter_subtick_color};
-                }
-                .meter-tick-label {
-                  position: absolute;
-                  bottom: 0; /* Align label at the bottom of the tick */
-                  font-size: 14px; /* Adjust font size */
-                  text-align: right;
-                  transform: translateX(-100%); /* Center the label */
-                  padding-right: 5px;
-                  color: ${meter_label_color};
-                }
-              </style>
-              <div class="meter-bar">
-                <div class="meter-inner" style="width: ${bg_fill_value}%; background-color: ${bg_fill_color};"></div>
-              </div>
-              <div class="meter-ticks">
-                ${meterTicks.join('')}
-              </div>
-            </elt>
-          `;
-        ]]]
   cb-lcars-label-picard:
     template:
       - cb-lcars-label
@@ -1019,43 +310,77 @@ button_card_templates:
           right:
             size: 40
           color: '#52596e'
-  cb-lcars-state-blink-old:
+  cb-lcars-state-on-blink:
     variables:
-      blink_card_background_color: var(--error-color)
-      blink_seconds: 2s
-      color: var(--error-color)
-      blink_state_mode: 'on'
-    state:
-      - value: '[[[ return variables.blink_state_mode; ]]]'
-        color: '[[[ return variables.color; ]]]'
-        styles:
-          card:
-            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
-            - animation-timing-function: ease-out
-            - animation-name: blink
-            - animation-iteration-count: infinite
-            - animation-delay: 1s
-            - background-color: '[[[ return variables.blink_card_background_color; ]]]'
-  cb-lcars-state-blink:
-    variables:
-      blink_card_background_color: var(--error-color)
       blink_seconds: 3s
     extra_styles: |
       [[[ return `
           @keyframes blink2 {
-            0% { 
+            0% {
               opacity: 1;
             }
-            50% { 
-              opacity: 0.3; 
-            } 
-            100% { 
-              opacity: 1; 
+            50% {
+              opacity: 0.3;
+            }
+            100% {
+              opacity: 1;
             }
           }
-        `]]]    
+        `]]]
     state:
       - id: state_on
+        styles:
+          card:
+            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+            - animation-timing-function: ease-out
+            - animation-name: blink2
+            - animation-iteration-count: infinite
+            - animation-delay: 1s
+  cb-lcars-state-off-blink:
+    variables:
+      blink_seconds: 3s
+    extra_styles: |
+      [[[ return `
+          @keyframes blink2 {
+            0% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.3;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
+        `]]]
+    state:
+      - id: state_off
+        styles:
+          card:
+            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+            - animation-timing-function: ease-out
+            - animation-name: blink2
+            - animation-iteration-count: infinite
+            - animation-delay: 1s
+  cb-lcars-state-unavailable-blink:
+    variables:
+      blink_seconds: 3s
+    extra_styles: |
+      [[[ return `
+          @keyframes blink2 {
+            0% {
+              opacity: 1;
+            }
+            50% {
+              opacity: 0.3;
+            }
+            100% {
+              opacity: 1;
+            }
+          }
+        `]]]
+    state:
+      - id: state_unavailable
         styles:
           card:
             - animation-duration: '[[[ return variables.blink_seconds; ]]]'
@@ -1853,6 +1178,7 @@ button_card_templates:
             default: transparent
             active: transparent
             inactive: transparent
+            unavailable: transparent
   cb-lcars-header:
     template:
       - cb-lcars-header-base
@@ -2145,6 +1471,976 @@ button_card_templates:
               }
               return resultArray;
             ]]]
+  cb-lcars-slider-gauge:
+    type: custom:button-card
+    template:
+      - cb-lcars-card-base
+      - cb-lcars-functions
+    entity: "[[[ return variables.entity ]]]"
+    triggers_update: "[[[ return variables.entity ]]]"
+    variables:
+      vertical: true
+      locked: false
+      card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px', {height: 400, width: 80});
+          ]]]
+      entity: '[[[ return variables.__get_random_entity("light"); ]]]'
+      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+      entity_match_slider: false
+      meter:
+        template:
+          - cb-lcars-button-grid
+        variables:
+          card:
+            height: "[[[ return variables.card.height ]]]"
+          grid:
+            X: 1
+            "Y": 10
+            gap: 0px
+            buttons:
+              - label: "100"
+              - label: "90"
+              - label: "80"
+              - label: "70"
+              - label: "60"
+              - label: "50"
+              - label: "40"
+              - label: "30"
+              - label: "20"
+              - label: "10"
+          button:
+            show_label: true
+            entity: "[[[ return variables.entity ]]]"
+            triggers_update: "[[[ return variables.entity ]]]"
+            template:
+              - cb-lcars-button-picard
+              - cb-lcars-button-picard-label-ne
+            variables:
+              card:
+                height: |
+                  [[[
+                      return variables.__calculcate_grid_cell_dimension(variables.card.height, 10, 0, "20px")
+                  ]]]
+                width: "[[[ return variables.card.width ]]]"
+                border:
+                  right:
+                    size: 0
+                  left:
+                    size: 0
+                  top:
+                    size: 2px
+                  bottom:
+                    size: 0
+                color:
+                  background:
+                    inactive: transparent
+                    active: transparent
+                    default: transparent
+              text:
+                label:
+                  font_size: 14px
+                  padding:
+                    right: 0px
+                    top: 2px
+                  color:
+                    "off": var(--lcars-ui-primary)
+                    "on": var(--lcars-ui-secondary)
+      slider:
+        variables:
+          color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-lightest-blue)" ]]]
+          color_alpha: 0.95
+          border_color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-blue)" ]]]
+          border_alpha: 0.5
+          border_width: 2px
+          height: "[[[ return variables.card.height ]]]"
+          width: 15px
+          left_padding: 5px
+          step: 1
+          mode: brightness
+    show_label: true
+    styles:
+      card:
+        - width: "[[[ return variables.card.width ]]]"
+        - height: "[[[ return variables.card.height ]]]"
+        - border-radius: 0 !important
+        - background: none
+      custom_fields:
+        meter:
+          - position: absolute
+          - left: 0px
+          - top: 0px
+        slider:
+          - visibility: "[[[ return (variables.locked) ? 'hidden' : 'visible' ]]]"
+          - position: absolute
+          - left: 0px
+          - top: 0px
+          - z-index: 1
+          - width: "[[[ return variables.card.width ]]]"
+          - height: "[[[ return variables.card.height ]]]"
+        locked_bar:
+          - position: absolute
+          - z-index: 1
+          - left: 0px
+          - padding-left: 5px
+          - width: "[[[ return variables.card.width ]]]"
+          - height: "[[[ return variables.card.height ]]]"
+          - visibility: "[[[ return (variables.locked) ? 'visible' : 'hidden' ]]]"
+    custom_fields:
+      meter:
+        card:
+          type: custom:button-card
+          template: "[[[ return variables.meter.template ]]]"
+          variables: "[[[ return variables.meter.variables ]]]"
+      slider:
+        card:
+          type: custom:my-slider-v2
+          entity: "[[[ return variables.entity ]]]"
+          mode: "[[[ return variables.slider.variables.mode ]]]"
+          flipped: false
+          inverse: false
+          vertical: true
+          step: "[[[ return variables.slider.variables.step; ]]]"
+          styles:
+            card:
+              - width: "[[[ return variables.card.width ]]]"
+              - height: "[[[ return variables.card.height ]]]"
+              - background: none
+              - border-radius: 0
+            progress:
+              - background-color: >-
+                  [[[ return
+                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                  ]]]
+              - border: >-
+                  [[[ return variables.slider.variables.border_width + " solid " +
+                  variables.__hex_to_rgba(variables.slider.variables.border_color,
+                  variables.slider.variables.border_alpha)  ]]]
+              - width: "[[[ return variables.slider.variables.width ]]]"
+              - height: "[[[ return variables.slider.variables.height ]]]"
+              - left: "[[[ return variables.slider.variables.left_padding ]]]"
+            container:
+              - border-radius: 0
+            track:
+              - background: none
+            thumb:
+              - background: none
+      locked_bar: |
+        [[[
+          const entityState = entity.state;
+          console.log(entity);
+          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
+          let progressPercentage;
+          if (entityType === 'light') {
+            // For light entities, scale the brightness to a percentage
+            progressPercentage = (parseFloat(entity.attributes.brightness) / 255) * 100;
+          } else {
+            // For other entities, assume a 0-100 scale
+            progressPercentage = parseFloat(entityState);
+          }
+          const isVertical = variables.vertical;
+          const width = isVertical ? variables.slider.variables.width : variables.card.width;
+          const height = isVertical ? variables.card.height : variables.slider.variables.width;
+          const borderRadius = 0;
+          const borderWidth = variables.slider.variables.border_width;
+          const borderColor = variables.slider.variables.border_color;
+          const backgroundColor = variables.slider.variables.color;
+          return `
+            <div class="progress-bar-container" style="width: ${width}; height: ${height};">
+              <div class="progress-bar-card" style="position: relative; width: 100%; height: 100%;">
+                <div class="progress-bar" style="
+                  position: absolute;
+                  ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+                  width: ${isVertical ? '100' : progressPercentage}%;
+                  height: ${isVertical ? progressPercentage : '100'}%;
+                  border-radius: ${borderRadius};
+                  border: ${borderWidth} solid ${borderColor};
+                  background-color: ${backgroundColor};
+                "></div>
+              </div>
+            </div>
+          `;
+        ]]]
+  cb-lcars-slider-gauge-old:
+    template:
+      - cb-lcars-card-base
+      - cb-lcars-functions
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
+    triggers_update: '[[[ return variables.entity ]]]'
+    variables:
+      card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 400, width: 80 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px', {height: 400, width: 80});
+          ]]]
+      entity: '[[[ return entity.entity_id ]]]'
+      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
+      entity_match_slider: false
+      meter:
+        template:
+          - cb-lcars-button-grid
+        variables:
+          card:
+            height: '[[[ return variables.card.height ]]]'
+          grid:
+            X: 1
+            'Y': 10
+            gap: 0px
+            buttons:
+              - label: '100'
+              - label: '90'
+              - label: '80'
+              - label: '70'
+              - label: '60'
+              - label: '50'
+              - label: '40'
+              - label: '30'
+              - label: '20'
+              - label: '10'
+          button:
+            show_label: true
+            entity: '[[[ return variables.entity ]]]'
+            triggers_update: '[[[ return variables.entity ]]]'
+            template:
+              - cb-lcars-button-picard
+              - cb-lcars-button-picard-label-ne
+            variables:
+              card:
+                height: |
+                  [[[
+                      return variables.__calculcate_grid_cell_dimension(variables.card.height, 10, 0, "20px")
+                  ]]]
+                width: '[[[ return variables.card.width ]]]'
+                border:
+                  right:
+                    size: 0
+                  left:
+                    size: 0
+                  top:
+                    size: 2px
+                  bottom:
+                    size: 0
+                color:
+                  background:
+                    inactive: transparent
+                    active: transparent
+                    default: transparent
+              text:
+                label:
+                  font_size: 14px
+                  padding:
+                    right: 0px
+                    top: 2px
+                  color:
+                    'off': var(--lcars-ui-primary)
+                    'on': var(--lcars-ui-secondary)
+      slider:
+        variables:
+          color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-lightest-blue)" ]]]
+          color_alpha: 0.95
+          border_color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-blue)" ]]]
+          border_alpha: 0.5
+          border_width: 2px
+          height: '[[[ return variables.card.height ]]]'
+          width: 15px
+          left_padding: 5px
+          step: 1
+          mode: brightness
+    styles:
+      card:
+        - width: '[[[ return variables.card.width ]]]'
+        - height: '[[[ return variables.card.height ]]]'
+        - border-radius: 0 !important
+        - background: none
+      custom_fields:
+        meter:
+          - position: absolute
+          - left: 0px
+          - top: 0px
+        slider:
+          - position: absolute
+          - left: 0px
+          - top: 0px
+          - z-index: 1
+          - width: '[[[ return variables.card.width ]]]'
+          - height: '[[[ return variables.card.height ]]]'
+    custom_fields:
+      meter:
+        card:
+          type: custom:button-card
+          template: '[[[ return variables.meter.template ]]]'
+          variables: '[[[ return variables.meter.variables ]]]'
+      slider:
+        card:
+          type: custom:my-slider-v2
+          entity: '[[[ return variables.entity ]]]'
+          mode: '[[[ return variables.slider.variables.mode ]]]'
+          flipped: false
+          inverse: false
+          vertical: true
+          step: '[[[ return variables.slider.variables.step; ]]]'
+          styles:
+            card:
+              - width: '[[[ return variables.card.width ]]]'
+              - height: '[[[ return variables.card.height ]]]'
+              - background: none
+              - border-radius: 0
+            progress:
+              - background-color: >-
+                  [[[ return
+                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                  ]]]
+              - border: >-
+                  [[[ return variables.slider.variables.border_width + " solid "
+                  +
+                  variables.__hex_to_rgba(variables.slider.variables.border_color,
+                  variables.slider.variables.border_alpha)  ]]]
+              - width: '[[[ return variables.slider.variables.width ]]]'
+              - height: '[[[ return variables.slider.variables.height ]]]'
+              - left: '[[[ return variables.slider.variables.left_padding ]]]'
+            container:
+              - border-radius: 0
+            track:
+              - background: none
+            thumb:
+              - background: none
+  cb-lcars-slider-horizontal-gauge-orig:
+    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
+    template:
+      - cb-lcars-functions
+      - cb-lcars-slider-horizontal
+    triggers_update: '[[[ return variables.entity ]]]'
+    variables:
+      card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
+          ]]]
+      entity: '[[[ return entity.entity_id ]]]'
+      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
+      entity_match_slider: false
+      slider:
+        variables:
+          color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-lightest-blue)" ]]]
+          color_alpha: 0.95
+          border_color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-blue)" ]]]
+          border_alpha: 0.5
+          border_width: 2px
+          height: 10px
+          width: '[[[ return variables.card_width ]]]'
+          top_padding: 10px
+          step: 5
+      gauge:
+        show_sub_meter: true
+        meter:
+          template:
+            - cb-lcars-button-grid
+          variables:
+            card:
+              height: '[[[ return variables.card.height ]]]'
+            grid:
+              X: 10
+              'Y': 1
+              gap: 0px
+              buttons:
+                - label: '10'
+                - label: '20'
+                - label: '30'
+                - label: '40'
+                - label: '50'
+                - label: '60'
+                - label: '70'
+                - label: '80'
+                - label: '90'
+                - label: '100'
+            button:
+              show_label: true
+              entity: '[[[ return variables.entity ]]]'
+              triggers_update: '[[[ return variables.entity ]]]'
+              template:
+                - cb-lcars-button-picard
+                - cb-lcars-button-picard-label-se
+              variables:
+                card:
+                  width: |
+                    [[[
+                        return variables.__calculcate_grid_cell_dimension(variables.card.width, 10, 0, "5px")
+                    ]]]
+                  height: '[[[ return variables.card.height ]]]'
+                  border:
+                    right:
+                      size: 2px
+                    left:
+                      size: 0
+                    top:
+                      size: 0
+                    bottom:
+                      size: 0
+                  color:
+                    background:
+                      inactive: transparent
+                      active: transparent
+                      default: transparent
+                text:
+                  label:
+                    font_size: 14px
+                    padding:
+                      right: 3px
+                      top: 2px
+                      bottom: 0px
+                    color:
+                      'off': var(--lcars-ui-primary)
+                      'on': var(--lcars-ui-secondary)
+        sub_meter:
+          variables:
+            card:
+              height: 10px
+            grid:
+              X: 50
+              'Y': 1
+              gap: 0px
+            gradient_start_color: none
+            gradient_end_color: none
+            button:
+              entity: '[[[ return variables.entity ]]]'
+              triggers_update: '[[[ return variables.entity ]]]'
+              template:
+                - cb-lcars-button-picard
+                - cb-lcars-button-picard-label-se
+              variables:
+                card:
+                  height: 10px
+                  min_height: 10px
+                  width: |
+                    [[[
+                        return variables.__calculcate_grid_cell_dimension(variables.card.width, 50, 0, "20px")
+                    ]]]
+                  border:
+                    right:
+                      size: 2px
+                    left:
+                      size: 0
+                    top:
+                      size: 2px
+                    bottom:
+                      size: 0
+                  color:
+                    background:
+                      inactive: transparent
+                      active: transparent
+                      default: transparent
+              show_label: false
+      meter: '[[[ return variables.gauge.meter ]]]'
+    styles:
+      custom_fields:
+        slider:
+          - position: absolute
+          - top: 0
+          - left: >-
+              [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
+        sub_meter:
+          - position: absolute
+          - top: 0px
+          - left: 0px
+          - visibility: >-
+              [[[ return variables.gauge.show_sub_meter ? "visible" : "hidden"
+              ]]]
+    custom_fields:
+      slider:
+        card:
+          flipped: false
+          vertical: false
+          inverse: false
+          styles:
+            card:
+              - height: '[[[ return variables.card.height ]]]'
+              - width: '[[[ return variables.card.width ]]]'
+              - background: none
+            progress:
+              - background-color: >-
+                  [[[ return
+                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                  ]]]
+              - border: >-
+                  [[[ return variables.slider.variables.border_width + " solid "
+                  +
+                  variables.__hex_to_rgba(variables.slider.variables.border_color,
+                  variables.slider.variables.border_alpha)  ]]]
+              - border-radius: 2px
+              - height: '[[[ return variables.slider.variables.height ]]]'
+              - width: '[[[ return variables.slider.variables.width ]]]'
+              - top: '[[[ return variables.slider.variables.top_padding ]]]'
+      sub_meter:
+        card:
+          type: custom:button-card
+          template: cb-lcars-meter-horizontal
+          variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
+  cb-lcars-slider-horizontal-gauge:
+    entity: "[[[ return variables.entity ]]]"
+    template:
+      - cb-lcars-functions
+      - cb-lcars-slider-horizontal
+    triggers_update: "[[[ return variables.entity ]]]"
+    variables:
+      card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px', { height: 45, width: 500 });
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px', {height: 45, width: 500});
+          ]]]
+      entity: '[[[ return variables.__get_random_entity("light"); ]]]'
+      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+      entity_match_slider: false
+      entity_match_gauge: false
+      slider:
+        variables:
+          color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-lightest-blue)" ]]]
+          color_alpha: 0.95
+          border_color: |
+            [[[ return  variables.entity_match_slider ? variables.entity_color :
+            "var(--picard-blue)" ]]]
+          border_alpha: 0.5
+          border_width: 2px
+          height: 10px
+          width: "[[[ return variables.card_width ]]]"
+          top_padding: 10px
+          step: 5
+      gauge:
+        show_sub_meter: true
+        meter: {}
+        color:
+          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+          inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+          background:
+            active: transparent
+            inactive: transparent
+        sub_meter:
+          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+          inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+          background:
+            active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+            inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+        label:
+          active: '[[[ return variables.entity_match_gauge ? variables.entity_color : "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]'
+          inactive: "var(--lcars-card-button-off, var(--picard-darkest-gray))"
+      meter: "[[[ return variables.gauge.meter ]]]"
+    styles:
+      custom_fields:
+        slider:
+          - position: absolute
+          - top: 0
+          - left: >-
+              [[[ return "calc(" + variables.slider.variables.border_width + " * -1)" ]]]
+    custom_fields:
+      slider:
+        card:
+          flipped: false
+          vertical: false
+          inverse: false
+          styles:
+            card:
+              - height: "[[[ return variables.card.height ]]]"
+              - width: "[[[ return variables.card.width ]]]"
+              - background: none
+            progress:
+              - background-color: >-
+                  [[[ return
+                  variables.__hex_to_rgba(variables.slider.variables.color,variables.slider.variables.color_alpha)
+                  ]]]
+              - border: >-
+                  [[[ return variables.slider.variables.border_width + " solid " +
+                  variables.__hex_to_rgba(variables.slider.variables.border_color,
+                  variables.slider.variables.border_alpha)  ]]]
+              - border-radius: 2px
+              - height: "[[[ return variables.slider.variables.height ]]]"
+              - width: "[[[ return variables.slider.variables.width ]]]"
+              - top: "[[[ return variables.slider.variables.top_padding ]]]"
+      gauge: |
+        [[[
+          const bg_fill_value = variables.gauge.bg_fill_value || 0;  //bg_fill_value of bg fill
+          const bg_fill_color = variables.gauge.bg_fill_color || 'transparent';  //bg fill color
+          const showSubticks = variables.gauge.show_sub_meter;
+          const entityState = entity.state;
+          //console.debug('entityState', entityState);
+          const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
+          const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
+          const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
+          const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
+          const width = (parseInt(variables.card.width) - 2)+"px";
+          const height = variables.card.height;
+          const meterTicks = [];
+          for (let i = 0; i <= 100; i += 10) {
+            if (i <= 100) {
+              meterTicks.push(`<div class="meter-tick" style="left: ${i === 100 ? 100 : i}%"></div>`);
+              meterTicks.push(`<span class="meter-tick-label" style="left: ${i === 100 ? 100 : i}%">${i}</span>`);
+            }
+            if (showSubticks && i < 100) {
+              for (let j = 1; j <= 4; j++) {  // Ensure 4 sub-ticks
+                meterTicks.push(`<div class="meter-subtick" style="left: ${i + (j / 5) * 10}%"></div>`);
+              }
+            }
+          }
+          return `
+            <elt class="meter-card">
+              <style>
+                .meter-card {
+                  display: block;
+                  width: ${width};
+                  height: ${height};
+                  position: relative;
+                  grid-template-columns: repeat(10, 1fr);
+                  grid-template-rows: 1fr;
+                  gap: 0;
+                  margin-right: 5px
+                }
+                .meter-bar {
+                  grid-column: 1 / span 10;
+                  grid-row: 1;
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  background-color: ${meter_bg_color};
+                  border-radius: 0px;
+                }
+                .meter-inner {
+                  position: absolute;
+                  top: 0;
+                  left: 0;
+                  height: 100%;
+                  background-color: ${bg_fill_color};
+                }
+                .meter-ticks {
+                  grid-column: 1 / span 10;
+                  grid-row: 1;
+                  display: grid;
+                  grid-template-columns: repeat(10, 1fr);
+                  grid-template-rows: 1fr;
+                  gap: 0;
+                }
+                .meter-tick {
+                  position: absolute;
+                  width: 2px;
+                  height: 100%; /* Adjust height to match card height */
+                  background-color: ${meter_tick_color};
+                }
+                .meter-subtick {
+                  position: absolute;
+                  width: 1px;
+                  height: 10px; /* Adjust height as needed */
+                  background-color: ${meter_subtick_color};
+                }
+                .meter-tick-label {
+                  position: absolute;
+                  bottom: 0; /* Align label at the bottom of the tick */
+                  font-size: 14px; /* Adjust font size */
+                  text-align: right;
+                  transform: translateX(-100%); /* Center the label */
+                  padding-right: 5px;
+                  color: ${meter_label_color};
+                }
+              </style>
+              <div class="meter-bar">
+                <div class="meter-inner" style="width: ${bg_fill_value}%; background-color: ${bg_fill_color};"></div>
+              </div>
+              <div class="meter-ticks">
+                ${meterTicks.join('')}
+              </div>
+            </elt>
+          `;
+        ]]]
+  cb-lcars-multimeter-old:
+    type: custom:button-card
+    template:
+      - cb-lcars-functions
+      - cb-lcars-card-base
+    entity: "[[[ return variables.entity ]]]"
+    triggers_update: "[[[ return variables.entity ]]]"
+    variables:
+      card:
+        width: |
+          [[[
+            return variables.__getParentDimension(this,'width','px');
+          ]]]
+        height: |
+          [[[
+            return variables.__getParentDimension(this,'height','px');
+          ]]]
+      text:
+        label:
+          font_size: 24px
+        state:
+          font_size: 24px
+        name:
+          font_size: 24px
+      panel:
+        width: |
+          [[[
+            //console.log("card_width: ",variables.card.width);
+            let card_width = parseFloat(variables.card.width);
+            let panel_width = (card_width * 0.76);
+            //console.log("panel_width: ",panel_width);
+            return panel_width+"px"
+          ]]]
+        height: |
+          [[[
+            //console.log("card_height: ",variables.card.height);
+            let card_height = parseFloat(variables.card.height);
+            let panel_height = (card_height * 0.83);
+            //console.log("panel_height: ",panel_height)
+            return panel_height+"px"
+          ]]]
+        mode: gauge
+        padding:
+          top: 5px
+          left: 5px
+          right: 0px
+          bottom: 0px
+        meter: {}
+        slider: {}
+        gauge: {}
+        icon_grid: null
+      entity: light.tv
+      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+      entity_match_gauge: false
+      entity_match_slider: false
+      entity_match_header: false
+      entity_match_slider_start: false
+      entity_match_slider_end: false
+      label: null
+      header_button:
+        variables:
+          text:
+            label:
+              font_size: 24px
+            state:
+              font_size: 24px
+            name:
+              font_size: 24px
+          card:
+            color:
+              active: |
+                [[[ return  variables.entity_match_header ? variables.entity_color :
+                "var(--lcars-ui-secondary)" ]]]
+              inactive: var(--lcars-ui-primary)
+              background:
+                active: >
+                  [[[ return  variables.entity_match_header ? variables.entity_color
+                  : "var(--lcars-ui-secondary)" ]]]
+                inactive: var(--lcars-ui-primary)
+              border: null
+          icon:
+            color:
+              active: null
+              inactive: null
+              background:
+                active: null
+                inactive: null
+      y_panel_width_padded: >-
+        [[[ return  (parseInt(variables.panel.width) -
+        parseInt(variables.panel.padding.left) -
+        parseInt(variables.panel.padding.right))+"px" ]]]
+      y_panel_height_padded: >-
+        [[[ return  (parseInt(variables.panel.height) -
+        parseInt(variables.panel.padding.top) -
+        parseInt(variables.panel.padding.bottom))+"px" ]]]
+      y_trim_height: >-
+        [[[ return "calc(" + variables.card.height + " - " + variables.panel.height
+        + ")" ]]]
+      y_trim_width: "[[[ return variables.panel.width ]]]"
+      y_header_height: "[[[ return variables.card.height ]]]"
+      y_header_width: >-
+        [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
+        ")" ]]]
+      z_button_card:
+        type: custom:button-card
+        template:
+          - cb-lcars-button-grid
+        variables:
+          card:
+            width: "[[[ return variables.card.width ]]]"
+            height: "[[[ return variables.card.height ]]]"
+          button: "[[[ return variables.header_button ]]]"
+          grid:
+            auto_calc_X: false
+            auto_calc_Y: false
+            X: 2
+            "Y": 1
+            buttons:
+              - variables:
+                  card:
+                    width: "[[[ return variables.y_header_width ]]]"
+                    height: "[[[ return variables.y_header_height ]]]"
+                  text: "[[[ return variables.text ]]]"
+                show_label: true
+                label: "[[[ return variables.label ]]]"
+                template:
+                  - cb-lcars-button-picard-filled
+                entity: "[[[ return variables.entity ]]]"
+              - variables:
+                  card:
+                    width: "[[[ return variables.y_trim_width ]]]"
+                    height: "[[[ return variables.y_trim_height ]]]"
+                    min_height: "[[[ return variables.y_trim_height ]]]"
+                show_label: false
+                entity: "[[[ return variables.entity ]]]"
+            template_columns: >-
+              [[[ return  variables.y_header_width + " " + variables.y_trim_width
+              ]]]
+            gap: 0px
+      z_gauge_card:
+        type: custom:button-card
+        template:
+          - cb-lcars-slider-horizontal-gauge
+        triggers_update: "[[[ return variables.entity ]]]"
+        variables:
+          card:
+            height: "[[[ return variables.panel.height ]]]"
+            width: "[[[ return variables.panel.width ]]]"
+          entity: "[[[ return variables.entity ]]]"
+          entity_match_slider: "[[[ return variables.entity_match_slider ]]]"
+          entity_match_gauge: "[[[ return variables.entity_match_gauge ]]]"
+          gauge: "[[[ return variables.panel.gauge ]]]"
+          slider: "[[[ return variables.panel.slider ]]]"
+      z_slider_card:
+        type: custom:button-card
+        template:
+          - cb-lcars-functions
+          - cb-lcars-slider-horizontal
+        variables:
+          card:
+            height: "[[[ return variables.y_panel_height_padded ]]]"
+            width: "[[[ return variables.y_panel_width_padded ]]]"
+          entity: "[[[ return variables.entity ]]]"
+          entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
+          entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
+          meter: |
+            [[[
+            let meterObject = (variables.panel && variables.panel.meter) ?
+            variables.panel.meter : {};
+            let defaultVariables = {
+              variables: {
+                button: {
+                  template: "cb-lcars-button-picard-filled",
+                  variables: {
+                    card: {
+                      height: variables.y_panel_height_padded,
+                      },
+                    },
+                }
+              }
+            };
+            //meterObject = {...defaultVariables, ...meterObject};
+            meterObject = variables.__deepMerge(defaultVariables,meterObject);
+            return meterObject;
+            ]]]
+          slider: |
+            [[[
+            let sliderObject = (variables.panel && variables.panel.slider) ?
+            variables.panel.slider : {};
+            let defaultVariables = {
+              variables: {
+                step: 1
+              }
+            };
+            //meterObject = {...defaultVariables, ...meterObject};
+            sliderObject = variables.__deepMerge(defaultVariables,sliderObject);
+            return sliderObject;
+            ]]]
+      z_icon_grid:
+        type: custom:button-card
+        template:
+          - cb-lcars-button-grid-icons
+        variables: >
+          [[[ let iconObject = (variables.panel.icon_grid &&
+          variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables
+          : {}; let defaultVariables = {
+            card: {
+              height: variables.y_panel_height_padded,
+              width: variables.y_panel_width_padded,
+              },
+            grid: {
+              gap: "9px",
+            },
+              button: {
+              variables: {
+                card: {
+                  width: "45px",
+                  height: "45px"
+                }
+              }
+            }
+          }; iconObject = variables.__deepMerge(defaultVariables,iconObject); return
+          iconObject; ]]]
+    styles:
+      card:
+        - background: none
+        - width: "[[[ return variables.card.width; ]]]"
+        - height: "[[[  return variables.card.height; ]]]"
+        - border-radius: 0 !important
+      custom_fields:
+        panel:
+          - position: absolute
+          - right: 0px
+          - bottom: 0px
+        button:
+          - position: absolute
+          - left: 0px
+          - top: 0px
+    custom_fields:
+      button:
+        card: "[[[ return variables.z_button_card ]]]"
+      panel:
+        card: |
+          [[[
+          let panel_card;
+          switch (variables.panel.mode) {
+            case 'icons':
+            case 'icon_grid':
+              panel_card = variables.z_icon_grid;
+              break;
+            case 'slider':
+              panel_card = variables.z_slider_card;
+              break;
+            case 'gauge':
+              panel_card = variables.z_gauge_card;
+              break;
+            default:
+              panel_card = null;
+          }
+          return panel_card;
+          ]]]
   cb-lcars-header-picard:
     template:
       - cb-lcars-functions
@@ -2984,6 +3280,48 @@ button_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                   ]]]
+      - operator: template
+        id: state_unavailable
+        value: |
+          [[[
+            return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
     styles:
       card:
         - width: "[[[ return variables.card.width ]]]"
@@ -3202,46 +3540,43 @@ button_card_templates:
         [[[
           const entityState = entity.state;
           const entityType = entity.entity_id.split('.')[0]; // Extract entity type
-          let progressPercentage = 0;
+          let progress = 0;
           switch(entityType) {
             case 'light':
-              progressPercentage = ((parseFloat(entity.attributes.brightness) / 256) * 100)/ variables.slider.max *100;
+              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
               break;
             case 'fan':
-              progressPercentage = (parseFloat(entity.attributes.percentage) / variables.slider.max) *100;
+              progress = (parseFloat(entity.attributes.percentage));
               break;
             default:
-              progressPercentage = (parseFloat(entityState) / variables.slider.max) *100;
+              progress = (parseFloat(entityState));
               break;
           }
+          const progressPercentage = ((progress / variables.slider.max) * 100) + '%';
           const isVertical = variables._vertical;
-          const width = variables.slider.width;
-          const height = variables.slider.height;
-          const borderRadius = 0;
+          const width = isVertical ? variables.slider.height : progressPercentage;
+          const height = isVertical ? progressPercentage : variables.slider.height;
+          //match myslider-v2 styling options
+          const borderRadius = variables.slider.border_radius;
           const borderWidth = variables.slider.border_width;
           const borderColor = variables.slider.border_color;
           const backgroundColor = variables.slider.color;
           return `
-            <div class="progress-bar-container" style="width: ${width}; height: ${height};">
-              <div class="progress-bar-card" style="position: relative; width: 100%; height: 100%;">
-                <div class="progress-bar" style="
-                  position: absolute;
-                  ${isVertical ? 'bottom: 0;' : 'left: 0;'}
-                  width: ${isVertical ? '100' : progressPercentage}%;
-                  height: ${isVertical ? progressPercentage : '100'}%;
-                  border-radius: ${borderRadius};
-                  border: ${borderWidth} solid ${borderColor};
-                  background-color: ${backgroundColor};
-                "></div>
-              </div>
-            </div>
+            <div class="progress-bar" style="
+              position: absolute;
+              ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+              width: ${width};
+              height: ${height};
+              border-radius: ${borderRadius};
+              border: ${borderWidth} solid ${borderColor};
+              background-color: ${backgroundColor};
+            "></div>
           `;
         ]]]
       gauge: |
         [[[
           let minVal = variables.gauge.min;
           let maxVal = variables.gauge.max;
-          //let increment = (variables.slider.mode === 'temperature') ? 30 : variables.gauge.increment || 10;
           let increment = variables.gauge.increment;
           const orientation = variables._vertical ? 'vertical' : 'horizontal';
           const bg_fill_value = variables.gauge.bg_fill_value || 0;
@@ -3408,6 +3743,7 @@ button_card_templates:
             default: '[[[ return variables.lcars_color ]]]'
             'on': '[[[ return variables.card.color.active ]]]'
             'off': '[[[ return variables.card.color.inactive ]]]'
+            unavailable: '[[[ return variables.card.color.unavailable ]]]'
             zero: '[[[ return variables.card.color.active ]]]'
             non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
@@ -3423,6 +3759,7 @@ button_card_templates:
             default: '[[[ return variables.lcars_color ]]]'
             'on': '[[[ return variables.card.color.active ]]]'
             'off': '[[[ return variables.card.color.inactive ]]]'
+            unavailable: '[[[ return variables.card.color.unavailable ]]]'
             zero: '[[[ return variables.card.color.active ]]]'
             non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
@@ -3438,6 +3775,7 @@ button_card_templates:
             default: '[[[ return variables.lcars_color ]]]'
             'on': '[[[ return variables.card.color.active ]]]'
             'off': '[[[ return variables.card.color.inactive ]]]'
+            unavailable: '[[[ return variables.card.color.unavailable ]]]'
             zero: '[[[ return variables.card.color.active ]]]'
             non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
@@ -3450,6 +3788,7 @@ button_card_templates:
           default: null
           active: '[[[ return variables.card.color.active ]]]'
           inactive: '[[[ return variables.card.color.inactive ]]]'
+          unavailable: '[[[ return variables.card.color.unavailable ]]]'
       card:
         border:
           top:
@@ -3465,6 +3804,7 @@ button_card_templates:
             default: transparent
             active: transparent
             inactive: transparent
+            unavailable: transparent
   cb-lcars-button-picard-dense:
     template: cb-lcars-button-picard
     variables:
@@ -4745,6 +5085,7 @@ button_card_templates:
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
             hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
         name:
           font_size: 20px
           font_weight: normal
@@ -4766,6 +5107,7 @@ button_card_templates:
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
             hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
         state:
           font_size: 20px
           font_weight: normal
@@ -4787,6 +5129,7 @@ button_card_templates:
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
             hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
       card:
         height: null
         min_height: 10px
@@ -4794,10 +5137,12 @@ button_card_templates:
         color:
           active: var(--lcars-ui-secondary)
           inactive: var(--lcars-ui-tertiary)
+          unavailable: var(--lcars-card-button-unavailable)
           background:
             default: none
             active: transparent
             inactive: transparent
+            unavailable: transparent
         border:
           top:
             left_radius: 0px
@@ -4824,6 +5169,7 @@ button_card_templates:
           default: black
           active: null
           inactive: null
+          unavailable: null
           background:
             active: null
             inactive: null
@@ -5092,6 +5438,48 @@ button_card_templates:
           name:
             - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
       - operator: template
+        id: state_unavailable
+        value: |
+          [[[
+            return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          card:
+            - background-color: '[[[ return variables.card.color.background.unavailable ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.unavailable;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.unavailable;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.unavailable;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.unavailable;
+                ]]]
+          state:
+            - color: '[[[ return variables.text.state.color.unavailable ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+          label:
+            - color: '[[[ return variables.text.label.color.unavailable ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+          name:
+            - color: '[[[ return variables.text.name.color.unavailable ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+          icon:
+            - color: >-
+                [[[ return variables.icon.color.unavailable || variables.icon.color.inactive || variables.icon.color.default ]]]
+            - background: >-
+                [[[ return variables.icon.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+      - operator: template
         value: |
           [[[
             return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
@@ -5217,6 +5605,7 @@ button_card_templates:
             default: transparent
             active: transparent
             inactive: transparent
+            unavailable: transparent
         border:
           color: var(--lcars-card-bottom-color)
   cb-lcars-footer:
@@ -5395,10 +5784,12 @@ button_card_templates:
         color:
           active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
           inactive: "var(--lcars-card-button-off, var(--picard-gray))"
+          unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
           background:
             default: null
             active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
             inactive: "var(--lcars-card-button-off, var(--picard-gray))"
+            unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
       text:
         label:
           padding:
@@ -5416,6 +5807,7 @@ button_card_templates:
             'off': black
             zero: black
             non_zero: black
+            unavailable: black
         state:
           padding:
             top: 5px
@@ -5432,6 +5824,7 @@ button_card_templates:
             'off': black
             zero: black
             non_zero: black
+            unavailable: black
         name:
           padding:
             top: 5px
@@ -5448,6 +5841,7 @@ button_card_templates:
             'off': black
             zero: black
             non_zero: black
+            unavailable: black
       icon:
         size: 24px
         color:
@@ -6017,264 +6411,3 @@ button_card_templates:
             left_radius: 0px
           bottom:
             left_radius: 0px
-  cb-lcars-multimeter-old:
-    type: custom:button-card
-    template:
-      - cb-lcars-functions
-      - cb-lcars-card-base
-    entity: "[[[ return variables.entity ]]]"
-    triggers_update: "[[[ return variables.entity ]]]"
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
-      text:
-        label:
-          font_size: 24px
-        state:
-          font_size: 24px
-        name:
-          font_size: 24px
-      panel:
-        width: |
-          [[[
-            //console.log("card_width: ",variables.card.width);
-            let card_width = parseFloat(variables.card.width);
-            let panel_width = (card_width * 0.76);
-            //console.log("panel_width: ",panel_width);
-            return panel_width+"px"
-          ]]]
-        height: |
-          [[[
-            //console.log("card_height: ",variables.card.height);
-            let card_height = parseFloat(variables.card.height);
-            let panel_height = (card_height * 0.83);
-            //console.log("panel_height: ",panel_height)
-            return panel_height+"px"
-          ]]]
-        mode: gauge
-        padding:
-          top: 5px
-          left: 5px
-          right: 0px
-          bottom: 0px
-        meter: {}
-        slider: {}
-        gauge: {}
-        icon_grid: null
-      entity: light.tv
-      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
-      entity_match_gauge: false
-      entity_match_slider: false
-      entity_match_header: false
-      entity_match_slider_start: false
-      entity_match_slider_end: false
-      label: null
-      header_button:
-        variables:
-          text:
-            label:
-              font_size: 24px
-            state:
-              font_size: 24px
-            name:
-              font_size: 24px
-          card:
-            color:
-              active: |
-                [[[ return  variables.entity_match_header ? variables.entity_color :
-                "var(--lcars-ui-secondary)" ]]]
-              inactive: var(--lcars-ui-primary)
-              background:
-                active: >
-                  [[[ return  variables.entity_match_header ? variables.entity_color
-                  : "var(--lcars-ui-secondary)" ]]]
-                inactive: var(--lcars-ui-primary)
-              border: null
-          icon:
-            color:
-              active: null
-              inactive: null
-              background:
-                active: null
-                inactive: null
-      y_panel_width_padded: >-
-        [[[ return  (parseInt(variables.panel.width) -
-        parseInt(variables.panel.padding.left) -
-        parseInt(variables.panel.padding.right))+"px" ]]]
-      y_panel_height_padded: >-
-        [[[ return  (parseInt(variables.panel.height) -
-        parseInt(variables.panel.padding.top) -
-        parseInt(variables.panel.padding.bottom))+"px" ]]]
-      y_trim_height: >-
-        [[[ return "calc(" + variables.card.height + " - " + variables.panel.height
-        + ")" ]]]
-      y_trim_width: "[[[ return variables.panel.width ]]]"
-      y_header_height: "[[[ return variables.card.height ]]]"
-      y_header_width: >-
-        [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
-        ")" ]]]
-      z_button_card:
-        type: custom:button-card
-        template:
-          - cb-lcars-button-grid
-        variables:
-          card:
-            width: "[[[ return variables.card.width ]]]"
-            height: "[[[ return variables.card.height ]]]"
-          button: "[[[ return variables.header_button ]]]"
-          grid:
-            auto_calc_X: false
-            auto_calc_Y: false
-            X: 2
-            "Y": 1
-            buttons:
-              - variables:
-                  card:
-                    width: "[[[ return variables.y_header_width ]]]"
-                    height: "[[[ return variables.y_header_height ]]]"
-                  text: "[[[ return variables.text ]]]"
-                show_label: true
-                label: "[[[ return variables.label ]]]"
-                template:
-                  - cb-lcars-button-picard-filled
-                entity: "[[[ return variables.entity ]]]"
-              - variables:
-                  card:
-                    width: "[[[ return variables.y_trim_width ]]]"
-                    height: "[[[ return variables.y_trim_height ]]]"
-                    min_height: "[[[ return variables.y_trim_height ]]]"
-                show_label: false
-                entity: "[[[ return variables.entity ]]]"
-            template_columns: >-
-              [[[ return  variables.y_header_width + " " + variables.y_trim_width
-              ]]]
-            gap: 0px
-      z_gauge_card:
-        type: custom:button-card
-        template:
-          - cb-lcars-slider-horizontal-gauge
-        triggers_update: "[[[ return variables.entity ]]]"
-        variables:
-          card:
-            height: "[[[ return variables.panel.height ]]]"
-            width: "[[[ return variables.panel.width ]]]"
-          entity: "[[[ return variables.entity ]]]"
-          entity_match_slider: "[[[ return variables.entity_match_slider ]]]"
-          entity_match_gauge: "[[[ return variables.entity_match_gauge ]]]"
-          gauge: "[[[ return variables.panel.gauge ]]]"
-          slider: "[[[ return variables.panel.slider ]]]"
-      z_slider_card:
-        type: custom:button-card
-        template:
-          - cb-lcars-functions
-          - cb-lcars-slider-horizontal
-        variables:
-          card:
-            height: "[[[ return variables.y_panel_height_padded ]]]"
-            width: "[[[ return variables.y_panel_width_padded ]]]"
-          entity: "[[[ return variables.entity ]]]"
-          entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
-          entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
-          meter: |
-            [[[
-            let meterObject = (variables.panel && variables.panel.meter) ?
-            variables.panel.meter : {};
-            let defaultVariables = {
-              variables: {
-                button: {
-                  template: "cb-lcars-button-picard-filled",
-                  variables: {
-                    card: {
-                      height: variables.y_panel_height_padded,
-                      },
-                    },
-                }
-              }
-            };
-            //meterObject = {...defaultVariables, ...meterObject};
-            meterObject = variables.__deepMerge(defaultVariables,meterObject);
-            return meterObject;
-            ]]]
-          slider: |
-            [[[
-            let sliderObject = (variables.panel && variables.panel.slider) ?
-            variables.panel.slider : {};
-            let defaultVariables = {
-              variables: {
-                step: 1
-              }
-            };
-            //meterObject = {...defaultVariables, ...meterObject};
-            sliderObject = variables.__deepMerge(defaultVariables,sliderObject);
-            return sliderObject;
-            ]]]
-      z_icon_grid:
-        type: custom:button-card
-        template:
-          - cb-lcars-button-grid-icons
-        variables: >
-          [[[ let iconObject = (variables.panel.icon_grid &&
-          variables.panel.icon_grid.variables) ? variables.panel.icon_grid.variables
-          : {}; let defaultVariables = {
-            card: {
-              height: variables.y_panel_height_padded,
-              width: variables.y_panel_width_padded,
-              },
-            grid: {
-              gap: "9px",
-            },
-              button: {
-              variables: {
-                card: {
-                  width: "45px",
-                  height: "45px"
-                }
-              }
-            }
-          }; iconObject = variables.__deepMerge(defaultVariables,iconObject); return
-          iconObject; ]]]
-    styles:
-      card:
-        - background: none
-        - width: "[[[ return variables.card.width; ]]]"
-        - height: "[[[  return variables.card.height; ]]]"
-        - border-radius: 0 !important
-      custom_fields:
-        panel:
-          - position: absolute
-          - right: 0px
-          - bottom: 0px
-        button:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-    custom_fields:
-      button:
-        card: "[[[ return variables.z_button_card ]]]"
-      panel:
-        card: |
-          [[[
-          let panel_card;
-          switch (variables.panel.mode) {
-            case 'icons':
-            case 'icon_grid':
-              panel_card = variables.z_icon_grid;
-              break;
-            case 'slider':
-              panel_card = variables.z_slider_card;
-              break;
-            case 'gauge':
-              panel_card = variables.z_gauge_card;
-              break;
-            default:
-              panel_card = null;
-          }
-          return panel_card;
-          ]]]
