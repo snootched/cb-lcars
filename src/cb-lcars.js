@@ -66,12 +66,18 @@ let templates = {};
 async function loadTemplates(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
-        //templates = yamlContent.button_card_templates || {};
+
+        // Store the YAML content in window.cblcars_card_templates
+        if (!window.cblcars_card_templates) {
+            window.cblcars_card_templates = [];
+        }
+        window.cblcars_card_templates.push(yamlContent);
+
         templates = yamlContent || {};
         templatesLoaded = true;
-        cblcarsLog('debug',`CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`,templates);
+        cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`, templates);
     } catch (error) {
-        cblcarsLog('error','Failed to get the CB-LCARS lovelace templates from source file.',error);
+        cblcarsLog('error', 'Failed to get the CB-LCARS lovelace templates from source file.', error);
     }
 }
 const templatesPromise = loadTemplates(CBLCARS.templates_uri);
