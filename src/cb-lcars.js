@@ -364,7 +364,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         //instantiate the button-card
         if (!this._card) {
-            this._card = document.createElement('button-card');
+            this._card = document.createElement('cblcars-button-card');
             this.appendChild(this._card);
         }
 
