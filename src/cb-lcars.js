@@ -71,7 +71,7 @@ async function loadTemplates(filePath) {
         if (!window.cblcars_card_templates) {
             window.cblcars_card_templates = [];
         }
-        window.cblcars_card_templates.push(yamlContent);
+        window.cblcars_card_templates.push(yamlContent.cblcars_card_templates);
 
         templates = yamlContent || {};
         templatesLoaded = true;
