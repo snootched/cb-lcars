@@ -68,10 +68,7 @@ async function loadTemplates(filePath) {
         const yamlContent = await readYamlFile(filePath);
 
         // Store the YAML content in window.cblcars_card_templates
-        if (!window.cblcars_card_templates) {
-            window.cblcars_card_templates = [];
-        }
-        window.cblcars_card_templates.push(yamlContent.cblcars_card_templates);
+        window.cblcars_card_templates = yamlContent.cblcars_card_templates;
 
         templates = yamlContent || {};
         templatesLoaded = true;
