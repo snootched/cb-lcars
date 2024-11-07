@@ -1,5 +1,5 @@
 cb-lcars-multimeter:
-  type: custom:button-card
+  type: custom:cblcars-button-card
   entity: "[[[ return variables.entity ]]]"
   template:
     - cb-lcars-functions
@@ -779,7 +779,7 @@ cb-lcars-multimeter:
       ]]]
     slider_track:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template: |
           [[[
             if(variables._vertical) {

@@ -426,7 +426,7 @@ sections:
       - type: heading
         heading_style: title
         heading: Composite card example and CSS transforms
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-card-base
         styles:
           card:
@@ -445,7 +445,7 @@ sections:
         custom_fields:
           inner_elbow:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-footer-picard-right
               variables:
@@ -482,7 +482,7 @@ sections:
                         factor: 1
           elbow:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-footer-picard-right
               variables:
@@ -516,7 +516,7 @@ sections:
                         size: 205px
                       inner:
                         factor: 1
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-card-base
         styles:
           card:
@@ -536,7 +536,7 @@ sections:
         custom_fields:
           inner_elbow:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-footer-picard-right
               variables:
@@ -573,7 +573,7 @@ sections:
                         factor: 1
           elbow:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-footer-picard-right
               variables:

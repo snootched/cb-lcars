@@ -1,5 +1,5 @@
 cb-lcars-slider-gauge:
-  type: custom:button-card
+  type: custom:cblcars-button-card
   template:
     - cb-lcars-card-base
     - cb-lcars-functions
@@ -125,7 +125,7 @@ cb-lcars-slider-gauge:
   custom_fields:
     meter:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template: "[[[ return variables.meter.template ]]]"
         variables: "[[[ return variables.meter.variables ]]]"
     slider:
@@ -315,7 +315,7 @@ cb-lcars-slider-gauge-old:
   custom_fields:
     meter:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
@@ -529,7 +529,7 @@ cb-lcars-slider-horizontal-gauge-orig:
             - top: '[[[ return variables.slider.variables.top_padding ]]]'
     sub_meter:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template: cb-lcars-meter-horizontal
         variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
 
