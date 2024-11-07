@@ -799,7 +799,7 @@ button_card_templates:
     custom_fields:
       dpad_center_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.center.entity; ]]]'
           label: '[[[ return variables.dpad.center.label ]]]'
           template:
@@ -826,7 +826,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.center.hold_action ]]]'
       dpad_up_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.up.entity; ]]]'
           label: '[[[ return variables.dpad.up.label ]]]'
           template:
@@ -854,7 +854,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.up.hold_action ]]]'
       dpad_down_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.down.entity; ]]]'
           label: '[[[ return variables.dpad.down.label ]]]'
           template:
@@ -882,7 +882,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.down.hold_action ]]]'
       dpad_left_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.left.entity; ]]]'
           label: '[[[ return variables.dpad.left.label ]]]'
           template:
@@ -910,7 +910,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.left.hold_action ]]]'
       dpad_right_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.right.entity; ]]]'
           label: '[[[ return variables.dpad.right.label ]]]'
           template:
@@ -938,7 +938,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.right.hold_action ]]]'
       dpad_up_left_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.up_left.entity; ]]]'
           template:
             - cb-lcars-animate-press
@@ -971,7 +971,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.up_left.hold_action ]]]'
       dpad_up_right_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.up_right.entity; ]]]'
           template:
             - cb-lcars-animate-press
@@ -1006,7 +1006,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.up_right.hold_action ]]]'
       dpad_down_left_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.down_left.entity; ]]]'
           template:
             - cb-lcars-animate-press
@@ -1043,7 +1043,7 @@ button_card_templates:
           hold_action: '[[[ return variables.dpad.down_left.hold_action ]]]'
       dpad_down_right_button:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           entity: '[[[ return variables.dpad.down_right.entity; ]]]'
           template:
             - cb-lcars-animate-press
@@ -1393,7 +1393,7 @@ button_card_templates:
         auto_rows: null
         gap: 5px
       button:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         variables:
           card:
             width: 180px
@@ -1472,7 +1472,7 @@ button_card_templates:
               return resultArray;
             ]]]
   cb-lcars-slider-gauge:
-    type: custom:button-card
+    type: custom:cblcars-button-card
     template:
       - cb-lcars-card-base
       - cb-lcars-functions
@@ -1598,7 +1598,7 @@ button_card_templates:
     custom_fields:
       meter:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template: "[[[ return variables.meter.template ]]]"
           variables: "[[[ return variables.meter.variables ]]]"
       slider:
@@ -1784,7 +1784,7 @@ button_card_templates:
     custom_fields:
       meter:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template: '[[[ return variables.meter.template ]]]'
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
@@ -1997,7 +1997,7 @@ button_card_templates:
               - top: '[[[ return variables.slider.variables.top_padding ]]]'
       sub_meter:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template: cb-lcars-meter-horizontal
           variables: '[[[ return variables.gauge.sub_meter.variables ]]]'
   cb-lcars-slider-horizontal-gauge:
@@ -2181,7 +2181,7 @@ button_card_templates:
           `;
         ]]]
   cb-lcars-multimeter-old:
-    type: custom:button-card
+    type: custom:cblcars-button-card
     template:
       - cb-lcars-functions
       - cb-lcars-card-base
@@ -2284,7 +2284,7 @@ button_card_templates:
         [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
         ")" ]]]
       z_button_card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid
         variables:
@@ -2320,7 +2320,7 @@ button_card_templates:
               ]]]
             gap: 0px
       z_gauge_card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template:
           - cb-lcars-slider-horizontal-gauge
         triggers_update: "[[[ return variables.entity ]]]"
@@ -2334,7 +2334,7 @@ button_card_templates:
           gauge: "[[[ return variables.panel.gauge ]]]"
           slider: "[[[ return variables.panel.slider ]]]"
       z_slider_card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template:
           - cb-lcars-functions
           - cb-lcars-slider-horizontal
@@ -2379,7 +2379,7 @@ button_card_templates:
             return sliderObject;
             ]]]
       z_icon_grid:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid-icons
         variables: >
@@ -2559,7 +2559,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-header
           entity: '[[[ return variables.entity; ]]]'
@@ -2598,7 +2598,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-header
           entity: '[[[ return variables.entity; ]]]'
@@ -2754,7 +2754,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-header-right
           entity: '[[[ return variables.entity; ]]]'
@@ -2795,7 +2795,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-header-right
           entity: '[[[ return variables.entity; ]]]'
@@ -2850,7 +2850,7 @@ button_card_templates:
         auto_rows: null
         gap: 5px
       button:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         variables:
           card:
             width: 180px
@@ -2950,7 +2950,7 @@ button_card_templates:
           - width: 0
           - visibility: hidden 
   cb-lcars-multimeter:
-    type: custom:button-card
+    type: custom:cblcars-button-card
     entity: "[[[ return variables.entity ]]]"
     template:
       - cb-lcars-functions
@@ -3702,7 +3702,7 @@ button_card_templates:
         ]]]
       slider_track:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template: |
             [[[
               if(variables._vertical) {
@@ -3950,7 +3950,7 @@ button_card_templates:
     custom_fields:
       meter:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template: '[[[ return variables.meter.template ]]]'
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
@@ -4783,7 +4783,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-footer
           variables:
@@ -4822,7 +4822,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-footer
           entity: '[[[ return variables.entity; ]]]'
@@ -4978,7 +4978,7 @@ button_card_templates:
     custom_fields:
       lcars_outer:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-footer-right
           entity: '[[[ return variables.entity; ]]]'
@@ -5017,7 +5017,7 @@ button_card_templates:
                 color: '[[[ return variables.lcars_outer.card.color ]]]'
       lcars_inner:
         card:
-          type: custom:button-card
+          type: custom:cblcars-button-card
           template:
             - cb-lcars-footer-right
           entity: '[[[ return variables.entity; ]]]'
@@ -5743,7 +5743,7 @@ button_card_templates:
                 return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
             ]]]
   cb-lcars-button-grid-icons:
-    type: custom:button-card
+    type: custom:cblcars-button-card
     template:
       - cb-lcars-button-grid
     variables:
