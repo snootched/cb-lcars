@@ -1,7 +1,7 @@
 cb-lcars:
   version: 2024.99.1-beta.3
   manage_config: true
-button_card_templates:
+cblcars_card_templates:
   cb-lcars-defs:
     template:
         - cb-lcars-functions
