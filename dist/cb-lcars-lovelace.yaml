@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.99.1-beta.3
+  version: 2024.99.1-beta.4
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
