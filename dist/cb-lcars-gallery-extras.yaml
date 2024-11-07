@@ -10,10 +10,10 @@ sections:
       - type: heading
         heading: CB-LCARS Button Grids
         heading_style: title
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid
         variables:
@@ -71,7 +71,7 @@ sections:
     cards:
       - type: heading
         heading: New section
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid
         variables:
@@ -114,7 +114,7 @@ sections:
     cards:
       - type: heading
         heading: New section
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid
         variables:
@@ -135,10 +135,10 @@ sections:
     cards:
       - type: heading
         heading: New section
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-button-picard-icon
         icon: mdi:debug-step-over
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-button-picard-icon
         icon: mdi:space-invaders
         variables:
@@ -154,10 +154,10 @@ sections:
               background:
                 active: var(--picard-dark-blue)
                 inactive: var(--picard-dark-blue)
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid-icons
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-button-grid-icons
         variables:
@@ -194,7 +194,7 @@ sections:
                     inactive: var(--picard-blue)
                     active: var(--picard-blue)
                 icon: none
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-functions
           - cb-lcars-button-grid-icons
@@ -243,7 +243,7 @@ sections:
                     color:
                       background:
                         inactive: '[[[ return variables.__get_random_css_color() ]]]'
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-functions
           - cb-lcars-button-grid-icons
