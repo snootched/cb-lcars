@@ -54,7 +54,7 @@ if [ ${#paths[@]} -eq 0 ]; then
 fi
 
 # Concatenate yaml files
-echo 'button_card_templates:' > $output_filename
+echo 'cblcars_card_templates:' > $output_filename
 for dir in "${paths[@]}"
 do
     find ./$dir -type f \( -name '*.yaml' -o -name '*.yml' \) -exec cat {} \; | grep -v '^ *#' | grep -v '^ *$' | sed 's/^/  /' >> $output_filename
