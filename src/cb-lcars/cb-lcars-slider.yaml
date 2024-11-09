@@ -71,7 +71,7 @@ cb-lcars-slider:
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
       card:
-        type: custom:my-slider-v2
+        type: custom:cblcars-my-slider-v2
         entity: '[[[ return variables.entity ]]]'
         mode: '[[[ return variables.slider.variables.mode ]]]'
         flipped: true

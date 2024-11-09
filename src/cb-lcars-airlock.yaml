@@ -118,7 +118,7 @@ sections:
             custom_cards:
               button_card: cblcars-button-card
               card_mod: card-mod
-              my_slider_v2: my-slider-v2
+              my_slider_v2: cblcars-my-slider-v2
               layout_card: layout-card
               grid_layout: grid-layout
               hue_like_light_card: hue-like-light-card
