@@ -1603,7 +1603,7 @@ cblcars_card_templates:
           variables: "[[[ return variables.meter.variables ]]]"
       slider:
         card:
-          type: custom:my-slider-v2
+          type: custom:cblcars-my-slider-v2
           entity: "[[[ return variables.entity ]]]"
           mode: "[[[ return variables.slider.variables.mode ]]]"
           flipped: false
@@ -1789,7 +1789,7 @@ cblcars_card_templates:
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
         card:
-          type: custom:my-slider-v2
+          type: custom:cblcars-my-slider-v2
           entity: '[[[ return variables.entity ]]]'
           mode: '[[[ return variables.slider.variables.mode ]]]'
           flipped: false
@@ -3478,7 +3478,7 @@ cblcars_card_templates:
     custom_fields:
       slider:
         card:
-          type: custom:my-slider-v2
+          type: custom:cblcars-my-slider-v2
           entity: "[[[ return variables.entity ]]]"
           mode: "[[[ return variables.slider.mode ]]]"
           vertical: "[[[ return variables._vertical ]]]"
@@ -3955,7 +3955,7 @@ cblcars_card_templates:
           variables: '[[[ return variables.meter.variables ]]]'
       slider:
         card:
-          type: custom:my-slider-v2
+          type: custom:cblcars-my-slider-v2
           entity: '[[[ return variables.entity ]]]'
           mode: '[[[ return variables.slider.variables.mode ]]]'
           flipped: true
