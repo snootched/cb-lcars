@@ -140,7 +140,7 @@ The following should be installed and working in your Home Assistant instance - 
 
 | Custom Card                                                                 |  Required?  | Function    |
 |-----------------------------------------------------------------------------|-------------|-------------|
-| [custom-button-card](https://github.com/custom-cards/button-card)           | Required    | Base Framework |
+| [custom-button-card](https://github.com/custom-cards/button-card)           | *Now Included*   | Base Framework<br><br>**Additional install no longer required.** |
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
 | [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | Required    | Provides slider function which is used in the slider/gauge controls. |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
