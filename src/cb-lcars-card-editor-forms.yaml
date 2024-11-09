@@ -779,6 +779,33 @@ cb-lcars-base-controls:
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "cblcars_card_config.variables.card.color.inactive"
+                    - type: Section
+                      label: "Unavailable/Unknown"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Unavailable/Unknown</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+                            - label: "Text Color (state: on)"
+                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+                              type: Selector
+                              selector:
+                                text:
+                                  type: color
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+
             - type: Section
               label: "Background"
               outlined: true
@@ -857,6 +884,32 @@ cb-lcars-base-controls:
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "cblcars_card_config.variables.card.color.background.inactive"
+                    - type: Section
+                      label: "Unavailable/Unknown"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Unavailable/Unknown</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
+                            - label: "Text Color (state: on)"
+                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
+                              type: Selector
+                              selector:
+                                text:
+                                  type: color
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
 
         - &cardBorderSection
           type: Section
@@ -3799,52 +3852,7 @@ cb-lcars-multimeter-card:
                     boolean:
             - <<: *cardBorderSection
             - <<: *cardCornerSection
-            - type: Section
-              label: "Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_header === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette"
-              noCollapse: false
-              expanded: false
-              rows:
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: ON</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.card.color.active"
-                    - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.card.color.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.card.color.active"
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: OFF</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.card.color.inactive"
-                    - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.card.color.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.card.color.inactive"
+            - <<: *cardColorSection
             - type: ControlRow
               controls:
                 - label: "Show Label"
@@ -3947,7 +3955,6 @@ cb-lcars-multimeter-card:
                   type: Selector
                   selector:
                     number:
-                      min: 0
                       step: 1
                       mode: box
                 - label: "Gauge: Max"
@@ -3955,7 +3962,6 @@ cb-lcars-multimeter-card:
                   type: Selector
                   selector:
                     number:
-                      min: 0
                       step: 1
                       mode: box
                 - label: "Gauge: Increment"
@@ -4361,6 +4367,3 @@ cb-lcars-multimeter-card:
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "cblcars_card_config.variables.slider_track.meter.gradient_end_color"
-
-
-

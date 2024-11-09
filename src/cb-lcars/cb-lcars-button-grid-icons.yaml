@@ -1,5 +1,5 @@
 cb-lcars-button-grid-icons:
-  type: custom:button-card
+  type: custom:cblcars-button-card
   template:
     - cb-lcars-button-grid
   variables:

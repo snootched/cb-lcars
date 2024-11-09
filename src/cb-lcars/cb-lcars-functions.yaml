@@ -263,7 +263,7 @@ cb-lcars-functions:
             return color;
           }
       ]]]
-    __get_light_css_color: |
+    __get_light_css_color_old: |
       [[[
         return function get_light_css_color(entity) {
           let css_color = 'var(--lcars-ui-secondary)';
@@ -275,25 +275,22 @@ cb-lcars-functions:
           return css_color;
         }
       ]]]
-    __get_light_css_color_string: |
+    __get_light_css_color: |
       [[[
-        return function get_light_css_color_string(entity) {
-          const entityString = `'${entity}'`; // This will give you the entity variable with single quotes around it
-          const lightEntity2 = states[entity];
-          const lightEntity = states[entityString];
-          console.debug("entity: " + entity);
-          console.debug("entityString: " + entityString);
-          console.debug("lightEntity: " + lightEntity);
-          console.debug("lightEntity2: " + lightEntity2);
-          console.debug("states: " + states);
-          console.debug("states[living]: " + states['light.living_room_ambient'].attributes.rgb_color);
-          console.debug("lightEntity2.attributes.rgb_color: " + lightEntity2.attributes.rgb_color);
-          let cssColor = 'var(--lcars-ui-secondary)'; // default color
-          if (lightEntity && lightEntity.attributes.rgb_color) {
-            const lightColor = lightEntity.attributes.rgb_color;
-            cssColor = `rgb(${lightColor.join(', ')})`;
+        return function get_light_css_color(entity) {
+          let css_color = 'var(--lcars-ui-secondary)';
+          const buttonCardLightColor = getComputedStyle(document.documentElement).getPropertyValue('--button-card-light-color').trim();
+
+          if (buttonCardLightColor.startsWith('rgb')) {
+            return buttonCardLightColor;
           }
-          return cssColor;
+
+          let lightEntity = states[entity];
+          if (lightEntity && lightEntity.attributes.rgb_color) {
+            const light_color = lightEntity.attributes.rgb_color;
+            css_color = `rgb(${light_color.join(', ')})`;
+          }
+          return css_color;
         }
       ]]]
     __hex_to_rgba: |
@@ -350,26 +347,6 @@ cb-lcars-functions:
               return undefined;
             }
             // Return the decimal value of the specified color channel
-            return numbers[channels[channel]];
-          } else {
-            throw new Error('Invalid color channel. Please specify "r", "g", "b", or "a".');
-          }
-        }
-      ]]]
-    __extract_color_channel2: |
-      [[[
-        return function extract_color_channel2(rgba, channel) {
-          // Convert the channel to lowercase
-          channel = channel.toLowerCase();
-          // Split the rgba string into an array of numbers
-          let numbers = rgba.slice(5, -1).split(',').map(Number);
-          // Define the color channels
-          let channels = {r: 0, g: 1, b: 2, a: 3};
-          // Check if the specified channel exists
-          if (channel in channels) {
-            // Return the decimal value of the specified color channel
-            //console.log("....numbers = " + numbers);
-            //console.log("....channels[channel] = " + numbers[channels[channel]]);
             return numbers[channels[channel]];
           } else {
             throw new Error('Invalid color channel. Please specify "r", "g", "b", or "a".');

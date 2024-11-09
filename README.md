@@ -140,12 +140,12 @@ The following should be installed and working in your Home Assistant instance - 
 
 | Custom Card                                                                 |  Required?  | Function    |
 |-----------------------------------------------------------------------------|-------------|-------------|
-| [custom-button-card](https://github.com/custom-cards/button-card)           | Required    | Base Framework |
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
-| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | Required    | Provides slider function which is used in the slider/gauge controls. |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
 | [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
+| [custom-button-card](https://github.com/custom-cards/button-card)           | *Now Included*   | Base Framework<br><br>**Additional install no longer required.** |
+| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | *Now Included*    | Provides slider function which is used in the slider/gauge controls.<br><br>**Additional install no longer required.** |
 
 
 <br>

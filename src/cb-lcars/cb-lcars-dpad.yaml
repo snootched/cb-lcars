@@ -415,7 +415,7 @@ cb-lcars-dpad:
   custom_fields:
     dpad_center_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.center.entity; ]]]'
         label: '[[[ return variables.dpad.center.label ]]]'
         template:
@@ -443,7 +443,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.center.hold_action ]]]'
     dpad_up_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.up.entity; ]]]'
         label: '[[[ return variables.dpad.up.label ]]]'
         template:
@@ -472,7 +472,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.up.hold_action ]]]'
     dpad_down_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.down.entity; ]]]'
         label: '[[[ return variables.dpad.down.label ]]]'
         template:
@@ -501,7 +501,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.down.hold_action ]]]'
     dpad_left_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.left.entity; ]]]'
         label: '[[[ return variables.dpad.left.label ]]]'
         template:
@@ -530,7 +530,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.left.hold_action ]]]'
     dpad_right_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.right.entity; ]]]'
         label: '[[[ return variables.dpad.right.label ]]]'
         template:
@@ -559,7 +559,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.right.hold_action ]]]'
     dpad_up_left_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.up_left.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -592,7 +592,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.up_left.hold_action ]]]'
     dpad_up_right_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.up_right.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -627,7 +627,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.up_right.hold_action ]]]'
     dpad_down_left_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.down_left.entity; ]]]'
         template:
           - cb-lcars-animate-press
@@ -664,7 +664,7 @@ cb-lcars-dpad:
         hold_action: '[[[ return variables.dpad.down_left.hold_action ]]]'
     dpad_down_right_button:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         entity: '[[[ return variables.dpad.down_right.entity; ]]]'
         template:
           - cb-lcars-animate-press

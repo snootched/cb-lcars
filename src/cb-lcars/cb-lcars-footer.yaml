@@ -26,6 +26,7 @@ cb-lcars-footer-base:
           default: transparent
           active: transparent
           inactive: transparent
+          unavailable: transparent
       border:
         color: var(--lcars-card-bottom-color)
 cb-lcars-footer:

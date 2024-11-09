@@ -1,5 +1,5 @@
 cb-lcars-multimeter-old:
-  type: custom:button-card
+  type: custom:cblcars-button-card
   template:
     - cb-lcars-functions
     - cb-lcars-card-base
@@ -102,7 +102,7 @@ cb-lcars-multimeter-old:
       [[[ return "calc(" + variables.card.width + " - " + variables.panel.width +
       ")" ]]]
     z_button_card:
-      type: custom:button-card
+      type: custom:cblcars-button-card
       template:
         - cb-lcars-button-grid
       variables:
@@ -138,7 +138,7 @@ cb-lcars-multimeter-old:
             ]]]
           gap: 0px
     z_gauge_card:
-      type: custom:button-card
+      type: custom:cblcars-button-card
       template:
         - cb-lcars-slider-horizontal-gauge
       triggers_update: "[[[ return variables.entity ]]]"
@@ -152,7 +152,7 @@ cb-lcars-multimeter-old:
         gauge: "[[[ return variables.panel.gauge ]]]"
         slider: "[[[ return variables.panel.slider ]]]"
     z_slider_card:
-      type: custom:button-card
+      type: custom:cblcars-button-card
       template:
         - cb-lcars-functions
         - cb-lcars-slider-horizontal
@@ -197,7 +197,7 @@ cb-lcars-multimeter-old:
           return sliderObject;
           ]]]
     z_icon_grid:
-      type: custom:button-card
+      type: custom:cblcars-button-card
       template:
         - cb-lcars-button-grid-icons
       variables: >

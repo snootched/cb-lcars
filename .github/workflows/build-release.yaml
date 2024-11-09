@@ -33,6 +33,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Get version from package.json
         id: get_version
@@ -112,8 +114,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: main
-          
+          ref: ${{ github.event.inputs.branch || 'main' }}
+           
       - name: Get git sha
         id: get_sha
         run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV

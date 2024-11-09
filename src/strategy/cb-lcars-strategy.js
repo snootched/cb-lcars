@@ -20,7 +20,7 @@ export class CBLCARSDashboardStrategy {
             cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
 
             // Load the main CB-LCARS button card templates
-            const buttonTemplates = await readYamlFile(CBLCARS.templates_uri);
+            //const buttonTemplates = await readYamlFile(CBLCARS.templates_uri);
 
             // Array of file paths for gallery views
             const galleryPaths = CBLCARS.gallery_views_uris || [];
@@ -39,12 +39,13 @@ export class CBLCARSDashboardStrategy {
             }));
 
             return {
-                'cb-lcars': {
-                    manage_config: true
-                },
-                title: 'CB-LCARS',
-                ...buttonTemplates,
 
+                //'cb-lcars': {
+                //    manage_config: true
+                //},
+                //...buttonTemplates,
+
+                title: 'CB-LCARS',
                 views: [
                     {
                         title: 'CB-LCARS Airlock',

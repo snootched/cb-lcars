@@ -61,7 +61,7 @@ sections:
       - type: heading
         heading: CB-LCARS Slider
         heading_style: title
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-slider
         variables:
           entity: light.desk
@@ -122,13 +122,13 @@ sections:
       - type: heading
         heading: CB-LCARS Meter [no slider control]
         heading_style: title
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-meter
         layout_options:
           grid_columns: 1
           grid_rows: 6
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter
         variables:
           gradient_start_color: var(--picard-lightest-blue)
@@ -136,7 +136,7 @@ sections:
         layout_options:
           grid_columns: 1
           grid_rows: 6
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter
         variables:
           gradient_start_color: var(--picard-lightest-blue)
@@ -155,7 +155,7 @@ sections:
       - type: heading
         heading: CB-LCARS Meter (custom color/button shape)
         heading_style: title
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter
         variables:
           gradient_start_color: var(--warning-color)
@@ -172,7 +172,7 @@ sections:
         layout_options:
           grid_columns: 1
           grid_rows: 6
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-meter
         variables:
@@ -188,7 +188,7 @@ sections:
         layout_options:
           grid_columns: 1
           grid_rows: 6
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template:
           - cb-lcars-meter
         variables:
@@ -210,14 +210,14 @@ sections:
       - type: heading
         heading: CB-LCARS Meter Horizontal
         heading_style: title
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter-horizontal
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter-horizontal
         variables:
           gradient_start_color: var(--lcars-blue)
           gradient_end_color: var(--lcars-gray)
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-meter-horizontal
         variables:
           _gradient:

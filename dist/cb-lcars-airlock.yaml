@@ -97,7 +97,7 @@ sections:
     cards:
       - layout_options:
           grid_columns: 9
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template:
           - cb-lcars-functions
           - cb-lcars-card-base
@@ -116,9 +116,9 @@ sections:
                 lcars_sound: '[[[ return variables.___helpers.ha_lcars.lcars_sound ]]]'
                 lcars_texture: '[[[ return variables.___helpers.ha_lcars.lcars_texture ]]]'
             custom_cards:
-              button_card: button-card
+              button_card: cblcars-button-card
               card_mod: card-mod
-              my_slider_v2: my-slider-v2
+              my_slider_v2: cblcars-my-slider-v2
               layout_card: layout-card
               grid_layout: grid-layout
               hue_like_light_card: hue-like-light-card
@@ -254,7 +254,7 @@ sections:
           log_reqs: '[[[ variables.__cblcarsLog("debug",variables.reqs_status); ]]]'
           theme_set_default:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               triggers_update: all
               template:
                 - cb-lcars-button-lozenge
@@ -282,7 +282,7 @@ sections:
                     "] as the system default theme?" ]]]
           theme_set_user:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               triggers_update: all
               template:
                 - cb-lcars-button-lozenge
@@ -334,7 +334,7 @@ sections:
                 instructions.
           helpers:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-button-grid
               variables:
@@ -476,7 +476,7 @@ sections:
                                 'var(--picard-medium-light-orange)' ]]]
           helpers_header:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-header-callout
               variables:
                 card:
@@ -490,7 +490,7 @@ sections:
                       size: 45px
           helpers_sidebar1:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-header-callout
               variables:
                 card:
@@ -504,7 +504,7 @@ sections:
                       size: 50px
           helpers_sidebar2:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-footer-callout
               variables:
                 card:
@@ -518,7 +518,7 @@ sections:
                       size: 100px
           helpers_sidebar3:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-footer-callout
               variables:
                 card:
@@ -532,7 +532,7 @@ sections:
                       size: 50px
           helpers_footer:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-footer-callout
               variables:
                 card:
@@ -546,7 +546,7 @@ sections:
                       size: 25px
           custom_cards:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template:
                 - cb-lcars-button-grid
               variables:
@@ -827,7 +827,7 @@ sections:
                                 'var(--picard-medium-dark-yellow)' ]]]
           custom_cards_header:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-header-callout
               variables:
                 card:
@@ -841,7 +841,7 @@ sections:
                       size: 45px
           custom_cards_footer:
             card:
-              type: custom:button-card
+              type: custom:cblcars-button-card
               template: cb-lcars-footer-callout
               variables:
                 card:
@@ -853,7 +853,7 @@ sections:
                       size: 200px
                     bottom:
                       size: 25px
-      - type: custom:button-card
+      - type: custom:cblcars-button-card
         template: cb-lcars-theme
         variables:
           ___debug: false

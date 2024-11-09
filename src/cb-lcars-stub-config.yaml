@@ -1,10 +1,21 @@
 cb-lcars-label-card:
   cblcars_card_type: cb-lcars-label-picard
+  cblcars_card_config:
+    show_label: true
+    variables:
+      label: "LCARS Label"
+  tap_action:
+    action: none
+  double_tap_action:
+    action: none
+  hold_action:
+    action: none
 cb-lcars-button-card:
   cblcars_card_type: cb-lcars-button-picard
   cblcars_card_config:
-    label: "LCARS Button"
     show_label: true
+    variables:
+      label: "LCARS Button"
 cb-lcars-elbow-card:
   cblcars_card_type: cb-lcars-header
   tap_action:
@@ -39,9 +50,4 @@ cb-lcars-multimeter-card:
     hold_action:
       action: none
     show_label: false
-cb-lcars-slider-card:
-  cblcars_card_type: cb-lcars-slider-horizontal
-  cblcars_card_config:
-      variables:
-        entity_match_slider_start: false
-        entity_match_slider_end: false
+

@@ -1,40 +1,74 @@
-cb-lcars-state-blink-old:
+cb-lcars-state-on-blink:
   variables:
-    blink_card_background_color: var(--error-color)
-    blink_seconds: 2s
-    color: var(--error-color)
-    blink_state_mode: 'on'
-  state:
-    - value: '[[[ return variables.blink_state_mode; ]]]'
-      color: '[[[ return variables.color; ]]]'
-      styles:
-        card:
-          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
-          - animation-timing-function: ease-out
-          - animation-name: blink
-          - animation-iteration-count: infinite
-          - animation-delay: 1s
-          - background-color: '[[[ return variables.blink_card_background_color; ]]]'
-cb-lcars-state-blink:
-  variables:
-    blink_card_background_color: var(--error-color)
     blink_seconds: 3s
   extra_styles: |
     [[[ return `
         @keyframes blink2 {
-          0% { 
+          0% {
             opacity: 1;
           }
-          50% { 
-            opacity: 0.3; 
-          } 
-          100% { 
-            opacity: 1; 
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 1;
           }
         }
-      `]]]    
+      `]]]
   state:
     - id: state_on
+      styles:
+        card:
+          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-timing-function: ease-out
+          - animation-name: blink2
+          - animation-iteration-count: infinite
+          - animation-delay: 1s
+cb-lcars-state-off-blink:
+  variables:
+    blink_seconds: 3s
+  extra_styles: |
+    [[[ return `
+        @keyframes blink2 {
+          0% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+      `]]]
+  state:
+    - id: state_off
+      styles:
+        card:
+          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-timing-function: ease-out
+          - animation-name: blink2
+          - animation-iteration-count: infinite
+          - animation-delay: 1s
+cb-lcars-state-unavailable-blink:
+  variables:
+    blink_seconds: 3s
+  extra_styles: |
+    [[[ return `
+        @keyframes blink2 {
+          0% {
+            opacity: 1;
+          }
+          50% {
+            opacity: 0.3;
+          }
+          100% {
+            opacity: 1;
+          }
+        }
+      `]]]
+  state:
+    - id: state_unavailable
       styles:
         card:
           - animation-duration: '[[[ return variables.blink_seconds; ]]]'

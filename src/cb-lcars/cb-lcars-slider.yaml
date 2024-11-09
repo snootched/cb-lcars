@@ -66,12 +66,12 @@ cb-lcars-slider:
   custom_fields:
     meter:
       card:
-        type: custom:button-card
+        type: custom:cblcars-button-card
         template: '[[[ return variables.meter.template ]]]'
         variables: '[[[ return variables.meter.variables ]]]'
     slider:
       card:
-        type: custom:my-slider-v2
+        type: custom:cblcars-my-slider-v2
         entity: '[[[ return variables.entity ]]]'
         mode: '[[[ return variables.slider.variables.mode ]]]'
         flipped: true
