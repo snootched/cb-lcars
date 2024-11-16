@@ -114,7 +114,7 @@ cb-lcars-multimeter:
           left: 0
           right: |
             [[[
-              return "calc(" + variables.card.width + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
             ]]]
           bottom: 5
         color:
@@ -179,12 +179,12 @@ cb-lcars-multimeter:
       border_radius: 2px
       flipped: "[[[ return (variables._vertical) ? true : false ]]]"
       height: >-
-        [[[ return (variables._vertical) ? variables.card.height :
+        [[[ return (variables._vertical) ? variables.__get_num_with_unit(variables.card.height) :
         variables.__get_num_with_unit(variables._slider_thickness) ]]]
       width: >-
         [[[ return (variables._vertical) ?
         variables.__get_num_with_unit(variables._slider_thickness) :
-        variables.card.width ]]]
+        variables.__get_num_with_unit(variables.card.width) ]]]
       left_padding: 1px
       top_padding: "[[[ return variables.gauge.sub_meter.tick_size ]]]"
       step: |
@@ -376,8 +376,8 @@ cb-lcars-multimeter:
                 ]]]
   styles:
     card:
-      - width: "[[[ return variables.card.width ]]]"
-      - height: "[[[ return variables.card.height ]]]"
+      - width: "[[[ return variables.__get_num_with_unit(variables.card.width) ]]]"
+      - height: "[[[ return variables.__get_num_with_unit(variables.card.height) ]]]"
       - border-radius: 0 !important
       - background: none
       - border: none
@@ -487,12 +487,12 @@ cb-lcars-multimeter:
             ]]]
         - z-index: 1
         - width: >-
-            [[[ return "calc(" + variables.card.width + " - " +
+            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
             variables.__get_num_with_unit(variables.card.border.left.size)  + " -
             " + variables.__get_num_with_unit(variables.card.border.right.size) +
             ")" ]]]
         - height: >-
-            [[[ return "calc(" + variables.card.height + " - " +
+            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
             variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
             + variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
@@ -518,12 +518,12 @@ cb-lcars-multimeter:
                 }
             ]]]
         - width: >-
-            [[[ return "calc(" + variables.card.width + " - " +
+            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
             variables.__get_num_with_unit(variables.card.border.left.size)  + " -
             " + variables.__get_num_with_unit(variables.card.border.right.size) +
             ")" ]]]
         - height: >-
-            [[[ return "calc(" + variables.card.height + " - " +
+            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
             variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
             + variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
@@ -556,13 +556,13 @@ cb-lcars-multimeter:
         styles:
           card:
             - width: >-
-                [[[ return "calc(" + variables.card.width + " - " +
+                [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
                 variables.__get_num_with_unit(variables.card.border.left.size)  +
                 " - " +
                 variables.__get_num_with_unit(variables.card.border.right.size) +
                 ")" ]]]
             - height: >-
-                [[[ return "calc(" + variables.card.height + " - " +
+                [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
                 variables.__get_num_with_unit(variables.card.border.top.size)  + "
                 - " +
                 variables.__get_num_with_unit(variables.card.border.bottom.size) +
