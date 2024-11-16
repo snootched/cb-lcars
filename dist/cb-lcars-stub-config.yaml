@@ -34,6 +34,7 @@ cb-lcars-multimeter-card:
       entity_match_slider_end: false
       _mode: gauge
       _vertical: false
+      _slider_mode: brightness
       card:
         border:
           left:
