@@ -241,16 +241,21 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        // Ensure the card is instantiated
-        if (!this._card) {
-            this._card = document.createElement('cblcars-button-card');
-            this.appendChild(this._card);
-        }
+        // Ensure dependencies are loaded before proceeding
+        this.ensureDependenciesLoaded().then(() => {
+            // Ensure the card is instantiated
+            if (!this._card) {
+                this._card = document.createElement('cblcars-button-card');
+                this.appendChild(this._card);
+            }
 
-        // If the card is already initialized, update its config
-        if (this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        }
+            // If the card is already initialized, update its config
+            if (this._card) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            }
+        }).catch(error => {
+            cblcarsLog('error', 'Error loading dependencies:', error);
+        });
     }
 
     set hass(hass) {
