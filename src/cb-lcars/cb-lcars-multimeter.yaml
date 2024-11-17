@@ -497,7 +497,6 @@ cb-lcars-multimeter:
                 return variables.__get_num_with_unit(variables.card.border.left.size);
               }
             ]]]
-        - z-index: 1
         - width: >-
             [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
             variables.__get_num_with_unit(variables.card.border.left.size)  + " -
