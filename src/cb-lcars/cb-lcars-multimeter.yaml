@@ -8,7 +8,7 @@ cb-lcars-multimeter:
   triggers_update: "[[[ return variables.entity ]]]"
   show_icon: false
   show_label: true
-  label: '[[[ return variables.label ]]]'
+  label: "[[[ return variables.label ]]]"
   show_name: false
   show_state: false
   variables:
@@ -416,6 +416,18 @@ cb-lcars-multimeter:
             [[[
               return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
             ]]]
+        - width: >-
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
+            " + variables.__get_num_with_unit(variables.card.border.right.size) +
+            " )"
+            ]]]
+        - height: >-
+            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
+            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            ")" ]]]
       slider_track:
         - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
         - border-top: |
@@ -630,8 +642,10 @@ cb-lcars-multimeter:
           "></div>
         `;
       ]]]
+
     gauge: |
       [[[
+
         let minVal = variables.gauge.min;
         let maxVal = variables.gauge.max;
         let increment = variables.gauge.increment;
@@ -650,133 +664,42 @@ cb-lcars-multimeter:
         const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
         const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
 
-        const width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) -2 )+"px";
-        const height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) )+"px";
-        const meter_subtick_size = variables.gauge.sub_meter.tick_size || '10px';
+        const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
+        const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
+        const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
 
         const numSubticks = variables.gauge.sub_meter.tick_count;
         const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
-        const subTickIncrement = 100 / numSegments / (numSubticks+1)
+        const subTickIncrement = 100 / numSegments / (numSubticks + 1);
         const decimal_places = variables.gauge.label.decimal_places || 0;
 
         const meterTicks = [];
         for (let i = minVal; i <= maxVal; i += increment) {
-          // Calculate percentage based on the full range and reversed for vertical mode
           const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+          const position = percent + '%';
+          const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
 
-          //console.log("tick percent: ",percent);
+          meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : position}" y1="${orientation === 'vertical' ? position : '0'}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+          meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
 
-          meterTicks.push(`<div class="meter-tick ${orientation === 'vertical' ? 'vertical-tick' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${percent}%"></div>`);
-          meterTicks.push(`<span class="meter-tick-label ${orientation === 'vertical' ? 'vertical-label' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${percent}%; ${orientation === 'vertical' ? 'right' : 'bottom'}: 0;">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</span>`);
-
-          if (showSubticks && i <= maxVal) {
+          if (showSubticks && i < maxVal) {
             for (let j = 1; j <= numSubticks; j++) {
-              const subTickPercent = percent + (j * subTickIncrement);
-              meterTicks.push(`<div class="meter-subtick ${orientation === 'vertical' ? 'vertical-subtick' : ''}" style="${orientation === 'vertical' ? 'top' : 'left'}: ${subTickPercent}%; ${orientation === 'vertical' ? 'left' : 'right'}: 0;"></div>`);
+              const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+              const subTickPosition = subTickPercent + '%';
+              meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : '0'}" x2="${orientation === 'vertical' ? meter_subtick_size : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
             }
           }
         }
 
         return `
-          <elt class="meter-card">
-            <style>
-              .meter-card {
-                display: block;
-                width: ${width};
-                height: ${height};
-                position: relative;
-                /* Adjust grid layout for vertical orientation */
-                grid-template-columns: ${orientation === 'vertical' ? '1fr' : 'repeat(10, 1fr)'};
-                grid-template-rows: ${orientation === 'vertical' ? `repeat(${maxVal / increment + 1}, 1fr)` : '1fr'};
-                gap: 0;
-                margin-right: 5px;
-              }
-
-              .meter-bar {
-                grid-column: 1 / span 10;
-                grid-row: 1;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: ${meter_bg_color};
-                border-radius: 0px;
-              }
-
-              .meter-inner {
-                position: absolute;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background-color: ${bg_fill_color};
-                ${orientation === 'vertical' ? 'height' : 'width'}: ${bg_fill_value}%;
-              }
-
-              .meter-ticks {
-                grid-column: 1 / span 10;
-                grid-row: 1;
-                display: grid;
-                grid-template-columns: ${orientation === 'vertical' ? '1fr' : 'repeat(10, 1fr)'};
-                grid-template-rows: ${orientation === 'vertical' ? `repeat(${maxVal / increment + 1}, 1fr)` : '1fr'};
-                gap: 0;
-              }
-
-              .meter-tick {
-                position: absolute;
-                width: 2px;
-                height: 100%; /* Adjust height to match card height */
-                background-color: ${meter_tick_color};
-              }
-
-              .meter-subtick {
-                position: absolute;
-                width: 1px;
-                height: ${meter_subtick_size}; /* Adjust height as needed */
-                background-color: ${meter_subtick_color};
-              }
-
-              .meter-tick-label {
-                position: absolute;
-                bottom: 0;
-                font-size: ${meter_label_font_size};
-                text-align: right;
-                transform: translateX(-100%);
-                padding-right: 2px;
-                color: ${meter_label_color};
-                white-space: nowrap; /* Prevent text from wrapping */
-              }
-
-              /* Vertical Orientation Styles */
-              .vertical-tick {
-                width: 100%;
-                height: 2px;
-              }
-
-              .vertical-label {
-                padding-top: 3px;
-                padding-right: 3px;
-                text-align: right;
-                transform: translateX(0%);
-                white-space: nowrap;
-              }
-
-              .vertical-subtick {
-                width: ${meter_subtick_size};
-                height: 1px;
-              }
-            </style>
-            <div class="meter-bar">
-                <div class="meter-inner ${orientation === 'vertical' ? 'vertical' : ''}">
-                </div>
-              </div>
-              <div class="meter-ticks ${orientation === 'vertical' ? 'vertical' : ''}">
-                ${meterTicks.join('')}
-              </div>
-          </elt>
+          <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+            <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+            <rect x="0" y="0" width="${orientation === 'vertical' ? '100%' : bg_fill_value + '%'}" height="${orientation === 'vertical' ? bg_fill_value + '%' : '100%'}" fill="${bg_fill_color}"/>
+            ${meterTicks.join('')}
+          </svg>
         `;
       ]]]
+
     slider_track:
       card:
         type: custom:cblcars-button-card
