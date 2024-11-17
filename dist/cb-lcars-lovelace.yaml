@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.4-alpha.3
+  version: 2024.11.4-alpha.4
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3445,7 +3445,6 @@ cblcars_card_templates:
                   return variables.__get_num_with_unit(variables.card.border.left.size);
                 }
               ]]]
-          - z-index: 1
           - width: >-
               [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
               variables.__get_num_with_unit(variables.card.border.left.size)  + " -
