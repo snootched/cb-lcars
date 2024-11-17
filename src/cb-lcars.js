@@ -241,6 +241,12 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
+        // Ensure the card is instantiated
+        if (!this._card) {
+            this._card = document.createElement('cblcars-button-card');
+            this.appendChild(this._card);
+        }
+
         // If the card is already initialized, update its config
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
@@ -342,20 +348,20 @@ class CBLCARSBaseCard extends HTMLElement {
     }).catch(error => {
         cblcarsLog('error', 'Error loading dependencies:', error);
     });
-}
-
-ensureDependenciesLoaded() {
-    const promises = [];
-    if (!templatesLoaded) {
-        promises.push(templatesPromise);
     }
 
-    if (!stubConfigLoaded) {
-        promises.push(stubConfigPromise);
-    }
+    ensureDependenciesLoaded() {
+        const promises = [];
+        if (!templatesLoaded) {
+            promises.push(templatesPromise);
+        }
 
-    return Promise.all(promises);
-}
+        if (!stubConfigLoaded) {
+            promises.push(stubConfigPromise);
+        }
+
+        return Promise.all(promises);
+    }
 
     initializeCard() {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
