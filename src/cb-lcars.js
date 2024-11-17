@@ -307,6 +307,7 @@ class CBLCARSBaseCard extends HTMLElement {
         };
       }
 
+    /*
     async connectedCallback() {
 
         await this.ensureDependenciesLoaded();
@@ -324,6 +325,37 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver = new ResizeObserver(() => this.handleResize());
         this.resizeObserver.observe(this);
     }
+    */
+   connectedCallback() {
+    // Ensure dependencies are loaded before proceeding
+    this.ensureDependenciesLoaded().then(() => {
+        // Initialize the card
+        this.initializeCard();
+
+        // Add event listeners
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('load', this.handleLoad.bind(this));
+
+        // Create a ResizeObserver to handle resizing of the card
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
+    }).catch(error => {
+        cblcarsLog('error', 'Error loading dependencies:', error);
+    });
+}
+
+ensureDependenciesLoaded() {
+    const promises = [];
+    if (!templatesLoaded) {
+        promises.push(templatesPromise);
+    }
+
+    if (!stubConfigLoaded) {
+        promises.push(stubConfigPromise);
+    }
+
+    return Promise.all(promises);
+}
 
     initializeCard() {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
