@@ -393,7 +393,7 @@ class CBLCARSBaseCard extends HTMLElement {
     debounce(func, wait) {
         let timeout;
         return function(...args) {
-            learTimeout(timeout);
+            clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
     }
