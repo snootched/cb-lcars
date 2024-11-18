@@ -196,6 +196,9 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this._config = null;
         this._card = null;
+
+        this.dependenciesLoaded = false;
+        this.ensureDependenciesLoaded();
     }
 
     // Function to initialize the configuration update
@@ -204,10 +207,15 @@ class CBLCARSBaseCard extends HTMLElement {
         if (!templatesLoaded) promises.push(templatesPromise);
         if (!stubConfigLoaded) promises.push(stubConfigPromise);
         await Promise.all(promises);
+
+        this.dependenciesLoaded = true;
+        if (this._config && this._card) {
+            this._card.setConfig(this._config.cblcars_card_config);
+        }
     }
 
 
-    async setConfig(config) {
+    setConfig(config) {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
@@ -237,9 +245,6 @@ class CBLCARSBaseCard extends HTMLElement {
         if (this._config.label && !this._config.cblcars_card_config.label) {
             this._config.cblcars_card_config.label = this._config.label;
         }
-
-        // Wait for _card to exist
-        await this.waitForCard();
 
         // If the card is already initialized, update its config
         if (this._card) {
@@ -325,15 +330,15 @@ class CBLCARSBaseCard extends HTMLElement {
 
     connectedCallback() {
         // Ensure dependencies are loaded before proceeding
-        this.ensureDependenciesLoaded().then(() => {
+        if (this.dependenciesLoaded) {
             this.initializeCard();
-            window.addEventListener('resize', this.handleResize);
-            window.addEventListener('load', this.handleLoad);
-            this.resizeObserver = new ResizeObserver(() => this.handleResize());
-            this.resizeObserver.observe(this);
-        }).catch(error => {
-            cblcarsLog('error', 'Error loading dependencies:', error);
-        });
+        } else {
+            this.ensureDependenciesLoaded().then(() => this.initializeCard());
+        }
+        window.addEventListener('resize', this.handleResize);
+        window.addEventListener('load', this.handleLoad);
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
     }
 
 
