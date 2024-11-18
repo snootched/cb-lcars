@@ -254,11 +254,14 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
+
     waitForCard() {
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
             const checkCard = () => {
                 if (this._card && this._card.setConfig) {
                     resolve();
+                } else if (!this._card) {
+                    reject(new Error('Child card element not found.'));
                 } else {
                     setTimeout(checkCard, 100); // Check every 100ms
                 }
@@ -349,12 +352,15 @@ class CBLCARSBaseCard extends HTMLElement {
             this.appendChild(this._card);
         }
 
-        // Ensure the configuration is loaded and set it on the card
-        if (this._config && this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            cblcarsLog('error', 'Error: _card element or configuration is not initialized.');
-        }
+        this.waitForCard().then(() => {
+            if (this._config && this._card) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                cblcarsLog('error', 'Error: _card element or configuration is not initialized.');
+            }
+        }).catch(error => {
+            cblcarsLog('error', 'Error initializing card:', error);
+        });
 
         // Force a redraw on the first instantiation
         this.redrawChildCard();
