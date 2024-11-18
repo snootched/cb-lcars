@@ -196,7 +196,6 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this._config = null;
         this._card = null;
-        this._initialized = false;
     }
 
     // Function to initialize the configuration update
@@ -209,7 +208,6 @@ class CBLCARSBaseCard extends HTMLElement {
             await stubConfigPromise;
         }
     }
-
 
 
     setConfig(config) {
@@ -243,74 +241,10 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        // Ensure dependencies are loaded before proceeding
-        this.ensureDependenciesLoaded().then(() => {
-            // Ensure the card is instantiated
-            if (!this._card) {
-                this._card = document.createElement('cblcars-button-card');
-                this.appendChild(this._card);
-            }
-
-            // If the card is already initialized, update its config
-            if (this._card) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            }
-
-            // If the element is not yet initialized, call connectedCallback logic
-            if (!this._initialized) {
-                this.connectedCallback();
-            }
-        }).catch(error => {
-            cblcarsLog('error', 'Error loading dependencies:', error);
-        });
-    }
-
-    setConfigOld(config) {
-        if (!config) {
-            throw new Error("'cblcars_card_config:' section is required");
+        // If the card is already initialized, update its config
+        if (this._card) {
+            this._card.setConfig(this._config.cblcars_card_config);
         }
-
-        // Handle merging of templates array
-        const defaultTemplates = ['cb-lcars-base'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
-        const mergedTemplates = [...defaultTemplates, ...userTemplates];
-
-        // Create a new object to avoid modifying the original config
-        const buttonCardConfig = {
-            type: 'custom:cblcars-button-card',
-            template: mergedTemplates,
-            ...config.cblcars_card_config,
-        };
-
-        // Merge the button_card_config into config
-        this._config = {
-            ...config,
-            cblcars_card_config: buttonCardConfig
-        };
-
-        // If the entity or label is defined in the parent config, pass it to the child config
-        if (this._config.entity && !this._config.cblcars_card_config.entity) {
-            this._config.cblcars_card_config.entity = this._config.entity;
-        }
-        if (this._config.label && !this._config.cblcars_card_config.label) {
-            this._config.cblcars_card_config.label = this._config.label;
-        }
-
-        // Ensure dependencies are loaded before proceeding
-        this.ensureDependenciesLoaded().then(() => {
-            // Ensure the card is instantiated
-            if (!this._card) {
-                this._card = document.createElement('cblcars-button-card');
-                this.appendChild(this._card);
-            }
-
-            // If the card is already initialized, update its config
-            if (this._card) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            }
-        }).catch(error => {
-            cblcarsLog('error', 'Error loading dependencies:', error);
-        });
     }
 
     set hass(hass) {
@@ -392,40 +326,36 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver.observe(this);
     }
     */
-    connectedCallback() {
-        if (!this._initialized) {
-            // Ensure dependencies are loaded before proceeding
-            this.ensureDependenciesLoaded().then(() => {
-                // Initialize the card
-                this.initializeCard();
+   connectedCallback() {
+    // Ensure dependencies are loaded before proceeding
+    this.ensureDependenciesLoaded().then(() => {
+        // Initialize the card
+        this.initializeCard();
 
-                // Add event listeners
-                window.addEventListener('resize', this.handleResize.bind(this));
-                window.addEventListener('load', this.handleLoad.bind(this));
+        // Add event listeners
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('load', this.handleLoad.bind(this));
 
-                // Create a ResizeObserver to handle resizing of the card
-                this.resizeObserver = new ResizeObserver(() => this.handleResize());
-                this.resizeObserver.observe(this);
+        // Create a ResizeObserver to handle resizing of the card
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
+    }).catch(error => {
+        cblcarsLog('error', 'Error loading dependencies:', error);
+    });
+}
 
-                this._initialized = true; // Mark the element as initialized
-            }).catch(error => {
-                cblcarsLog('error', 'Error loading dependencies:', error);
-            });
-        }
+ensureDependenciesLoaded() {
+    const promises = [];
+    if (!templatesLoaded) {
+        promises.push(templatesPromise);
     }
 
-    ensureDependenciesLoaded() {
-        const promises = [];
-        if (!templatesLoaded) {
-            promises.push(templatesPromise);
-        }
-
-        if (!stubConfigLoaded) {
-            promises.push(stubConfigPromise);
-        }
-
-        return Promise.all(promises);
+    if (!stubConfigLoaded) {
+        promises.push(stubConfigPromise);
     }
+
+    return Promise.all(promises);
+}
 
     initializeCard() {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
@@ -926,5 +856,3 @@ const CBLCARSCardClasses = [
 ];
 
 window.customCards.push(...CBLCARSCardClasses);
-
-
