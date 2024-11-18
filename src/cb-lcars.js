@@ -101,6 +101,7 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card = null;
     }
 
+    /*
     // Function to initialize the configuration update
     async ensureDependenciesLoaded() {
         if(!templatesLoaded) {
@@ -111,8 +112,8 @@ class CBLCARSBaseCard extends HTMLElement {
             await stubConfigPromise;
         }
     }
+    */
 
-    /*
     ensureDependenciesLoaded() {
         const promises = [];
         if (!templatesLoaded) {
@@ -125,7 +126,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         return Promise.all(promises);
     }
-    */
+
 
     setConfig(config) {
         if (!config) {
