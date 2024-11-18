@@ -154,7 +154,8 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        this.updateCard();
+        //this.updateCard();
+        this.initializeCard();
     }
 
     async updateCard() {
