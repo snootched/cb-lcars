@@ -90,7 +90,6 @@ async function loadStubConfig(filePath) {
     }
 }
 
-
 class CBLCARSBaseCard extends HTMLElement {
     constructor() {
         super();
@@ -104,10 +103,12 @@ class CBLCARSBaseCard extends HTMLElement {
 
     // Function to check if global dependencies are loaded
     checkDependencies() {
+        cblcarsLog('debug', 'Checking dependencies...');
         const checkInterval = setInterval(() => {
             if (templatesLoaded && stubConfigLoaded) {
                 this.dependenciesLoaded = true;
                 clearInterval(checkInterval);
+                cblcarsLog('debug', 'Dependencies loaded.');
                 if (this._config) {
                     this.initializeCard();
                 }
@@ -116,6 +117,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     setConfig(config) {
+        cblcarsLog('debug', 'setConfig called with config:', config);
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
@@ -144,6 +146,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
         // Poll for dependencies to be loaded
         this.pollForDependencies(() => {
+            cblcarsLog('debug', 'Dependencies confirmed. Proceeding with card initialization.');
             if (this._card) {
                 this._card.setConfig(this._config.cblcars_card_config);
             } else {
@@ -153,6 +156,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     pollForDependencies(callback) {
+        cblcarsLog('debug', 'Polling for dependencies...');
         const checkDependencies = () => {
             if (templatesLoaded && stubConfigLoaded) {
                 this.dependenciesLoaded = true;
@@ -165,6 +169,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     initializeCard() {
+        cblcarsLog('debug', 'Initializing card...');
         if (!this._card) {
             this._card = document.createElement('cblcars-button-card');
             this.appendChild(this._card);
@@ -180,6 +185,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     updateCard() {
+        cblcarsLog('debug', 'Updating card...');
         this.waitForCard().then(() => {
             if (this._card && this._card.setConfig) {
                 this._card.setConfig(this._config.cblcars_card_config);
@@ -201,6 +207,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     connectedCallback() {
+        cblcarsLog('debug', 'connectedCallback called.');
         this.checkDependencies();
         window.addEventListener('resize', this.handleResize);
         window.addEventListener('load', this.handleLoad);
@@ -209,6 +216,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     disconnectedCallback() {
+        cblcarsLog('debug', 'disconnectedCallback called.');
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
         if (this.resizeObserver) {
@@ -218,6 +226,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     update() {
+        cblcarsLog('debug', 'update called.');
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
         }
@@ -233,6 +242,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     redrawChildCard() {
+        cblcarsLog('debug', 'redrawChildCard called.');
         if (this._config) {
             if (this._card && this._card.setConfig) {
                 this._card.setConfig(this._config.cblcars_card_config);
