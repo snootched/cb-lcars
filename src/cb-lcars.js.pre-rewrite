@@ -200,10 +200,13 @@ class CBLCARSBaseCard extends HTMLElement {
 
     // Function to initialize the configuration update
     async ensureDependenciesLoaded() {
-        const promises = [];
-        if (!templatesLoaded) promises.push(templatesPromise);
-        if (!stubConfigLoaded) promises.push(stubConfigPromise);
-        await Promise.all(promises);
+        if(!templatesLoaded) {
+        await templatesPromise;
+       }
+
+        if(!stubConfigLoaded) {
+            await stubConfigPromise;
+        }
     }
 
 
@@ -241,8 +244,6 @@ class CBLCARSBaseCard extends HTMLElement {
         // If the card is already initialized, update its config
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            this.initializeCard();
         }
     }
 
@@ -306,13 +307,36 @@ class CBLCARSBaseCard extends HTMLElement {
         };
       }
 
+    /*
+    async connectedCallback() {
 
+        await this.ensureDependenciesLoaded();
+
+        //cblcarsLog('debug','connectedcallback called');
+
+        // Initialize the card
+        this.initializeCard();
+
+        // Add event listeners
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('load', this.handleLoad.bind(this));
+
+        // Create a ResizeObserver to handle resizing of the card
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
+    }
+    */
     connectedCallback() {
         // Ensure dependencies are loaded before proceeding
         this.ensureDependenciesLoaded().then(() => {
+            // Initialize the card
             this.initializeCard();
-            window.addEventListener('resize', this.handleResize);
-            window.addEventListener('load', this.handleLoad);
+
+            // Add event listeners
+            window.addEventListener('resize', this.handleResize.bind(this));
+            window.addEventListener('load', this.handleLoad.bind(this));
+
+            // Create a ResizeObserver to handle resizing of the card
             this.resizeObserver = new ResizeObserver(() => this.handleResize());
             this.resizeObserver.observe(this);
         }).catch(error => {
@@ -320,6 +344,18 @@ class CBLCARSBaseCard extends HTMLElement {
         });
     }
 
+    ensureDependenciesLoaded() {
+        const promises = [];
+        if (!templatesLoaded) {
+            promises.push(templatesPromise);
+        }
+
+        if (!stubConfigLoaded) {
+            promises.push(stubConfigPromise);
+        }
+
+        return Promise.all(promises);
+    }
 
     initializeCard() {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
@@ -350,36 +386,35 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
-
-    update() {
-        if (this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
+    handleResize() {
+        //cblcarsLog('debug','Window resized, updating child card...');
+        if (this.isResizing) {
+            return;
+        } else {
+            this.isResizing = true;
+            this.redrawChildCard();
+            this.isResizing = false;
         }
     }
 
-    handleResize = this.debounce(() => {
-        this.redrawChildCard();
-     }, 200);
-
-    handleLoad = () => {
+    handleLoad() {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.redrawChildCard();
     }
 
     redrawChildCard() {
+        // Re-read the configuration and re-render the card
         if (this._config) {
+            //cblcarsLog('debug', "doing a this._card.setConfig() on the child");
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
             console.error('No configuration found for the child card.');
         }
-    }
-
-    debounce(func, wait) {
-        let timeout;
-        return function(...args) { c
-            learTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
+        // If the child card uses LitElement, this will schedule an update
+        //if (this._card.requestUpdate) {
+            //cblcarsLog('debug', "doing this._card.requestUpdate()");
+        //    this._card.requestUpdate();
+        //}
     }
 }
 
