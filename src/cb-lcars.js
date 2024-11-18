@@ -207,7 +207,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
 
-    setConfig(config) {
+    async setConfig(config) {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
@@ -238,12 +238,28 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
+        // Wait for _card to exist
+        await this.waitForCard();
+
         // If the card is already initialized, update its config
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
             this.initializeCard();
         }
+    }
+
+    waitForCard() {
+        return new Promise(resolve => {
+            const checkCard = () => {
+                if (this._card && this._card.setConfig) {
+                    resolve();
+                } else {
+                    setTimeout(checkCard, 100); // Check every 100ms
+                }
+            };
+            checkCard();
+        });
     }
 
     set hass(hass) {
