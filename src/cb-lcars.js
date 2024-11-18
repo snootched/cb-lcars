@@ -142,20 +142,26 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        // Block until dependencies are loaded
-        if (!this.dependenciesLoaded) {
-            while (!templatesLoaded || !stubConfigLoaded) {
-                // Busy-wait loop to block execution until dependencies are loaded
+        // Poll for dependencies to be loaded
+        this.pollForDependencies(() => {
+            if (this._card) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                this.initializeCard();
             }
-            this.dependenciesLoaded = true;
-        }
+        });
+    }
 
-        // Initialize or update the card
-        if (this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            this.initializeCard();
-        }
+    pollForDependencies(callback) {
+        const checkDependencies = () => {
+            if (templatesLoaded && stubConfigLoaded) {
+                this.dependenciesLoaded = true;
+                callback();
+            } else {
+                setTimeout(checkDependencies, 100); // Check every 100ms
+            }
+        };
+        checkDependencies();
     }
 
     initializeCard() {
