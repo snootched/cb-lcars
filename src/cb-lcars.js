@@ -158,21 +158,17 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     async updateCard() {
-        if (this._config) {
-            await this.waitForCard();
-            if (this._card && this._card.setConfig) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            }
+        await this.waitForCard();
+        if (this._card && this._card.setConfig) {
+            this._card.setConfig(this._config.cblcars_card_config);
         }
     }
 
-    waitForCard() {
-        return new Promise((resolve, reject) => {
+    async waitForCard() {
+        return new Promise(resolve => {
             const checkCard = () => {
                 if (this._card && this._card.setConfig) {
                     resolve();
-                } else if (!this._card) {
-                    reject(new Error('Child card element not found.'));
                 } else {
                     setTimeout(checkCard, 100); // Check every 100ms
                 }
