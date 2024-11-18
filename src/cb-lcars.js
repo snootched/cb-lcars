@@ -90,100 +90,6 @@ async function loadStubConfig(filePath) {
     }
 }
 
-/*
-// Function to get the Lovelace configuration
-function getLovelace() {
-        let root = document.querySelector('home-assistant');
-        root = root && root.shadowRoot;
-        root = root && root.querySelector('home-assistant-main');
-        root = root && root.shadowRoot;
-        root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-        root = (root && root.shadowRoot) || root;
-        root = root && root.querySelector('ha-panel-lovelace');
-        root = root && root.shadowRoot;
-        root = root && root.querySelector('hui-root');
-    if (root) {
-        const ll = root.lovelace;
-        ll.current_view = root.___curView;
-        return ll;
-    }
-    return null;
-}
-*/
-/*
-// Function to update the Lovelace configuration
-async function updateLovelaceConfig(filePath) {
-
-    let newConfig;
-    if(!templatesLoaded) {
-        cblcarsLog('debug','Templates not loaded yet - attempting to load from source file.');
-        try {
-            //newConfig = await readYamlFile(filePath);
-            await loadTemplates(filePath);
-            newConfig = templates;
-        } catch (error) {
-            cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
-            //throw error;
-        }
-    } else {
-        newConfig = templates;
-    }
-
-    //cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
-
-    if (newConfig === undefined || newConfig === null || newConfig === 'undefined') {
-        cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.');
-        //throw error;
-    } else {
-        const lovelaceConfig = getLovelace();
-
-        if (lovelaceConfig) {
-            const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
-            const newCbLcarsConfig = newConfig['cb-lcars'] || {};
-
-            // Check if the cb-lcars.manage_config flag is set
-            if (cbLcarsConfig.manage_config) {
-                // Check if the new configuration version is different
-                const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
-                const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
-
-                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
-                    // Merge the cb-lcars configurations
-                    const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
-
-                    // Create a new configuration object by copying the existing one and updating cb-lcars
-                    const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
-
-                    cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
-                    cblcarsLog('debug','new lovelace config: ',newConfig);
-
-
-                    // Apply the updated configuration
-                    await lovelaceConfig.saveConfig(updatedConfig);
-                    cblcarsLog('info', `CB-LCARS dashboard templates updated (v${currentLovelaceVersion} --> v${newLovelaceVersion})`);
-                    isConfigMerged = true;
-
-                } else if (newLovelaceVersion === 0) {
-                    cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
-                } else {
-                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion})`);
-                    isConfigMerged = true;
-                }
-            } else {
-            cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
-            //lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
-            //cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
-            }
-        } else {
-            cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
-        }
-    }
-}
-*/
-
-
-
-
 
 class CBLCARSBaseCard extends HTMLElement {
 
@@ -198,7 +104,14 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card = null;
 
         this.dependenciesLoaded = false;
-        this.ensureDependenciesLoaded();
+        this.initialize();
+    }
+
+
+    async initialize() {
+        await this.ensureDependenciesLoaded();
+        this.dependenciesLoaded = true;
+        this.initializeCard();
     }
 
     // Function to initialize the configuration update
@@ -207,11 +120,6 @@ class CBLCARSBaseCard extends HTMLElement {
         if (!templatesLoaded) promises.push(templatesPromise);
         if (!stubConfigLoaded) promises.push(stubConfigPromise);
         await Promise.all(promises);
-
-        this.dependenciesLoaded = true;
-        if (this._config && this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        }
     }
 
 
@@ -246,14 +154,17 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        // If the card is already initialized, update its config
-        if (this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            this.initializeCard();
-        }
+        this.updateCard();
     }
 
+    async updateCard() {
+        if (this._config) {
+            await this.waitForCard();
+            if (this._card && this._card.setConfig) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            }
+        }
+    }
 
     waitForCard() {
         return new Promise((resolve, reject) => {
@@ -344,28 +255,6 @@ class CBLCARSBaseCard extends HTMLElement {
         this.resizeObserver.observe(this);
     }
 
-
-    initializeCard() {
-        // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
-        if (!this._card) {
-            this._card = document.createElement('cblcars-button-card');
-            this.appendChild(this._card);
-        }
-
-        this.waitForCard().then(() => {
-            if (this._config && this._card) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            } else {
-                cblcarsLog('error', 'Error: _card element or configuration is not initialized.');
-            }
-        }).catch(error => {
-            cblcarsLog('error', 'Error initializing card:', error);
-        });
-
-        // Force a redraw on the first instantiation
-        this.redrawChildCard();
-    }
-
     disconnectedCallback() {
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
@@ -377,6 +266,14 @@ class CBLCARSBaseCard extends HTMLElement {
         }
     }
 
+    initializeCard() {
+        if (!this._card) {
+            this._card = document.createElement('cblcars-button-card');
+            this.appendChild(this._card);
+        }
+        this.updateCard();
+        this.redrawChildCard();
+    }
 
     update() {
         if (this._card) {
