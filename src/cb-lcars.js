@@ -25,16 +25,13 @@ let templates = {};
 let stubConfig = {};
 
 
-
 async function initializeCustomCard() {
-
     // Call log banner function immediately when the script loads
     cblcarsLogBanner();
 
-    ///load yaml configs
+    // Load yaml configs
     templatesPromise = loadTemplates(CBLCARS.templates_uri);
     stubConfigPromise = loadStubConfig(CBLCARS.stub_config_uri);
-
 
     // Import and wait for 3rd party card dependencies
     const cardImports = [
@@ -47,28 +44,23 @@ async function initializeCustomCard() {
 
     // Checks that custom element dependencies are defined for use in the cards
     if (!customElements.get('cblcars-button-card')) {
-        cblcarsLog('error',`Custom Button Card for LCARS [cblcars-button-card] was not found!`);
+        cblcarsLog('error', `Custom Button Card for LCARS [cblcars-button-card] was not found!`);
     }
     if (!customElements.get('cblcars-my-slider-v2')) {
-        cblcarsLog('error',`MySliderV2 for LCARS Custom Card [cblcars-my-slider-v2] was not found!`);
+        cblcarsLog('error', `MySliderV2 for LCARS Custom Card [cblcars-my-slider-v2] was not found!`);
     }
 }
 
-
 // Initialize the custom card
 initializeCustomCard().catch(error => {
-    cblcarsLog('error','Error initializing custom card:', error);
+    cblcarsLog('error', 'Error initializing custom card:', error);
 });
-
-
 
 async function loadTemplates(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
-
         // Store the YAML content in window.cblcars_card_templates
         window.cblcars_card_templates = yamlContent.cblcars_card_templates;
-
         templates = yamlContent || {};
         templatesLoaded = true;
         cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`, templates);
@@ -77,23 +69,20 @@ async function loadTemplates(filePath) {
     }
 }
 
-
-// Load the stub configuration from our yaml file
 async function loadStubConfig(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
         stubConfig = yamlContent || {};
         stubConfigLoaded = true;
-        cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`,stubConfig);
+        cblcarsLog('debug', `CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`, stubConfig);
     } catch (error) {
-        cblcarsLog('error','Failed to get the CB-LCARS stub configuration from source file.',error);
+        cblcarsLog('error', 'Failed to get the CB-LCARS stub configuration from source file.', error);
     }
 }
 
-
 class CBLCARSBaseCard extends HTMLElement {
 
-    constructor () {
+    constructor() {
         super();
         //this.attachShadow({ mode: 'open' });
 
@@ -107,46 +96,38 @@ class CBLCARSBaseCard extends HTMLElement {
         this.initialize();
     }
 
-
     async initialize() {
         await this.ensureDependenciesLoaded();
         this.dependenciesLoaded = true;
-        this.initializeCard();
+        if (this._config) {
+            this.initializeCard();
+        }
     }
 
-    // Function to initialize the configuration update
     async ensureDependenciesLoaded() {
-        const promises = [];
-        if (!templatesLoaded) promises.push(templatesPromise);
-        if (!stubConfigLoaded) promises.push(stubConfigPromise);
-        await Promise.all(promises);
+        await Promise.all([templatesPromise, stubConfigPromise]);
     }
-
 
     setConfig(config) {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
 
-        // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
         const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
-        // Create a new object to avoid modifying the original config
         const buttonCardConfig = {
             type: 'custom:cblcars-button-card',
             template: mergedTemplates,
             ...config.cblcars_card_config,
         };
 
-        // Merge the button_card_config into config
         this._config = {
             ...config,
             cblcars_card_config: buttonCardConfig
         };
 
-        // If the entity or label is defined in the parent config, pass it to the child config
         if (this._config.entity && !this._config.cblcars_card_config.entity) {
             this._config.cblcars_card_config.entity = this._config.entity;
         }
@@ -154,8 +135,11 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        //this.updateCard();
-        this.initializeCard();
+        if (this.dependenciesLoaded) {
+            this.initializeCard();
+        } else {
+            this.ensureDependenciesLoaded().then(() => this.initializeCard());
+        }
     }
 
     async updateCard() {
@@ -180,13 +164,14 @@ class CBLCARSBaseCard extends HTMLElement {
 
     set hass(hass) {
         if (this._card) {
-        this._card.hass = hass;
+            this._card.hass = hass;
         }
     }
 
     static get editorType() {
         return 'cb-lcars-base-card-editor';
     }
+
     static get cardType() {
         return 'cb-lcars-base-card';
     }
@@ -201,19 +186,16 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     static getConfigElement() {
-
         const editorType = this.editorType;
-
         try {
             if (!customElements.get(editorType)) {
-                cblcarsLog('error',`Graphical editor element [${editorType}] is not defined defined in Home Assistant!`);
+                cblcarsLog('error', `Graphical editor element [${editorType}] is not defined in Home Assistant!`);
                 return null;
             }
             const element = document.createElement(editorType);
-            //console.log('Element created:', element);
             return element;
         } catch (error) {
-            cblcarsLog('error',`Error creating element ${editorType}: `,error);
+            cblcarsLog('error', `Error creating element ${editorType}: `, error);
             return null;
         }
     }
@@ -233,14 +215,12 @@ class CBLCARSBaseCard extends HTMLElement {
 
     getLayoutOptions() {
         return {
-          grid_rows: 1,
-          grid_columns: 4
+            grid_rows: 1,
+            grid_columns: 4
         };
-      }
-
+    }
 
     connectedCallback() {
-        // Ensure dependencies are loaded before proceeding
         if (this.dependenciesLoaded) {
             this.initializeCard();
         } else {
@@ -253,10 +233,8 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     disconnectedCallback() {
-        // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
         window.removeEventListener('load', this.handleLoad.bind(this));
-
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
@@ -268,7 +246,12 @@ class CBLCARSBaseCard extends HTMLElement {
             this._card = document.createElement('cblcars-button-card');
             this.appendChild(this._card);
         }
-        this.updateCard();
+
+        if (this._config && this._card && this._card.setConfig) {
+            this._card.setConfig(this._config.cblcars_card_config);
+        } else if (this._config) {
+            this.updateCard();
+        }
         this.redrawChildCard();
     }
 
@@ -280,7 +263,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
     handleResize = this.debounce(() => {
         this.redrawChildCard();
-     }, 200);
+    }, 200);
 
     handleLoad = () => {
         cblcarsLog('debug', 'Page loaded, updating child card...');
@@ -289,7 +272,11 @@ class CBLCARSBaseCard extends HTMLElement {
 
     redrawChildCard() {
         if (this._config) {
-            this._card.setConfig(this._config.cblcars_card_config);
+            if (this._card && this._card.setConfig) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                this.updateCard();
+            }
         } else {
             console.error('No configuration found for the child card.');
         }
@@ -303,6 +290,7 @@ class CBLCARSBaseCard extends HTMLElement {
         };
     }
 }
+
 
 class CBLCARSLabelCard extends CBLCARSBaseCard {
     static get editorType() {
