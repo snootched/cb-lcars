@@ -206,8 +206,8 @@ class CBLCARSBaseCard extends HTMLElement {
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
         //window.addEventListener('load', this.handleLoad);
-        //this.resizeObserver = new ResizeObserver(() => this.handleResize());
-        //this.resizeObserver.observe(this);
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
     }
 
 
@@ -216,8 +216,8 @@ class CBLCARSBaseCard extends HTMLElement {
         if (!this._card) {
             this._card = document.createElement('cblcars-button-card');
 
-            this._card.style.width = '100%';
-            this._card.style.height = '100%';
+            //this._card.style.width = '100%';
+            //this._card.style.height = '100%';
             this._card.style.display = 'block';
 
             this.appendChild(this._card);
@@ -234,7 +234,7 @@ class CBLCARSBaseCard extends HTMLElement {
         this.style.width = '100%';
         this.style.height = '100%';
         // Force a redraw on the first instantiation
-        this.update();
+        this.updateCardSize();
     }
 
     disconnectedCallback() {
@@ -242,13 +242,25 @@ class CBLCARSBaseCard extends HTMLElement {
         window.removeEventListener('resize', this.handleResize.bind(this));
         //window.removeEventListener('load', this.handleLoad.bind(this));
 
-        //if (this.resizeObserver) {
-        //    this.resizeObserver.disconnect();
-        //    this.resizeObserver = null;
-        //}
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
+        }
     }
 
+    updateCardSize() {
+        const parentWidth = this.offsetWidth;
+        const parentHeight = this.offsetHeight;
 
+        // Set CSS variables for the child card's dimensions
+        this.style.setProperty('--button-card-width', `${parentWidth}px`);
+        this.style.setProperty('--button-card-height', `${parentHeight}px`);
+
+        // Trigger an update if necessary
+        if (this._card) {
+          this._card.requestUpdate();
+        }
+      }
     update() {
         if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
@@ -258,9 +270,9 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     handleResize = this.debounce(() => {
-        this.update();
+        this.updateCardSize();
     //}, 100);
-    }, 300);
+    }, 200);
 
      /*
     handleLoad = () => {
