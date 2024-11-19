@@ -259,8 +259,8 @@ class CBLCARSBaseCard extends HTMLElement {
 
     handleResize = this.debounce(() => {
         this.update();
-    }, 100);
-    //}, 200);
+    //}, 100);
+    }, 200);
 
      /*
     handleLoad = () => {
