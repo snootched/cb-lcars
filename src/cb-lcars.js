@@ -215,6 +215,11 @@ class CBLCARSBaseCard extends HTMLElement {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
         if (!this._card) {
             this._card = document.createElement('cblcars-button-card');
+
+            this._card.style.width = '100%';
+            this._card.style.height = '100%';
+            this._card.style.display = 'block';
+
             this.appendChild(this._card);
         }
 
@@ -225,6 +230,9 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('error', 'Error: _card element or configuration is not initialized.');
         }
 
+        this.style.display = 'block';
+        this.style.width = '100%';
+        this.style.height = '100%';
         // Force a redraw on the first instantiation
         this.update();
     }
