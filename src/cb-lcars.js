@@ -242,16 +242,10 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
     update() {
-        if (this._card && this._card.requestUpdate) {
-            this._card.requestUpdate();
-        }  else {
-            cblcarsLog('error','Button card requestUpdate not found - try fallback to setConfig.');
-
-            if (this._config && this._card && this._card.setConfig) {
-                this._card.setConfig(this._config.cblcars_card_config);
-            } else {
-                cblcarsLog('error','Unable to run setConfig on child button card.');
-            }
+        if (this._config && this._card && this._card.setConfig) {
+            this._card.setConfig(this._config.cblcars_card_config);
+        } else {
+            console.error('No configuration found for the child card.');
         }
     }
 
