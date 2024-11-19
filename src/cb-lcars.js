@@ -113,7 +113,7 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
 
-    async setConfig(config) {
+    setConfig(config) {
         if (!config) {
             throw new Error("'cblcars_card_config:' section is required");
         }
@@ -145,7 +145,7 @@ class CBLCARSBaseCard extends HTMLElement {
         }
 
         // Wait for _card to exist
-        await this.waitForCard();
+        //await this.waitForCard();
 
         // If the card is already initialized, update its config
         if (this._card) {
@@ -230,16 +230,10 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
     connectedCallback() {
-        // Ensure dependencies are loaded before proceeding
-        this.ensureDependenciesLoaded().then(() => {
-            this.initializeCard();
-            window.addEventListener('resize', this.handleResize);
-            window.addEventListener('load', this.handleLoad);
-            this.resizeObserver = new ResizeObserver(() => this.handleResize());
-            this.resizeObserver.observe(this);
-        }).catch(error => {
-            cblcarsLog('error', 'Error loading dependencies:', error);
-        });
+        window.addEventListener('resize', this.handleResize);
+        window.addEventListener('load', this.handleLoad);
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
     }
 
 
@@ -258,7 +252,8 @@ class CBLCARSBaseCard extends HTMLElement {
         }
 
         // Force a redraw on the first instantiation
-        this.redrawChildCard();
+        //this.redrawChildCard();
+        this.update();
     }
 
     disconnectedCallback() {
@@ -274,28 +269,30 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
     update() {
-        if (this._card) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        }
-    }
-
-    handleResize = this.debounce(() => {
-        this.redrawChildCard();
-     }, 200);
-
-    handleLoad = () => {
-        cblcarsLog('debug', 'Page loaded, updating child card...');
-        this.redrawChildCard();
-    }
-
-    redrawChildCard() {
-        if (this._config) {
+        if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
             console.error('No configuration found for the child card.');
         }
     }
 
+    handleResize = this.debounce(() => {
+        this.update();
+     }, 200);
+
+    handleLoad = () => {
+        cblcarsLog('debug', 'Page loaded, updating child card...');
+        this.update();
+    }
+/*
+    redrawChildCard() {
+        if (this._config && this._card && this._card.setConfig) {
+            this._card.setConfig(this._config.cblcars_card_config);
+        } else {
+            console.error('No configuration found for the child card.');
+        }
+    }
+*/
     debounce(func, wait) {
         let timeout;
         return function(...args) {
