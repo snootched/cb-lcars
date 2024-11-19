@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.8-alpha.2
+  version: 2024.11.8-alpha.3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3966,6 +3966,39 @@ cblcars_card_templates:
           }
         ]]]
       __getParentDimension: |
+        [[[
+          return function(thisObj, dimension, units, fallbackDimensions) {
+            // Get parent element's dimension
+            let parentDimension = 0;
+            if (dimension === 'width') {
+              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetWidth : 0;
+            } else if (dimension === 'height') {
+              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetHeight : 0;
+            } else {
+              console.error("Invalid dimension specified. Use 'width' or 'height'.");
+              return null;
+            }
+            // Function to check if the dimension is reasonable
+            function isReasonableSize(size) {
+              return size > 0; // Adjust this condition based on what's 'reasonable'
+            }
+            // If dimension is not reasonable, use fallback
+            if (!isReasonableSize(parentDimension)) {
+              if (fallbackDimensions && fallbackDimensions[dimension]) {
+                parentDimension = parseFloat(fallbackDimensions[dimension]);
+              } else {
+                parentDimension = dimension === 'width' ? window.innerWidth : window.innerHeight;
+              }
+            }
+            // Return the dimension with units if provided
+            if (units) {
+              return parentDimension + units;
+            } else {
+              return parentDimension;
+            }
+          }
+        ]]]
+      __getParentDimensionOld: |
         [[[
           // new take on things - just try to traverse up the DOM tree until a reasonable size is found
           return function(thisObj, dimension, units, fallbackDimensions) {
