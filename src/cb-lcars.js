@@ -7,9 +7,6 @@ import { loadFont } from './utils/cb-lcars-theme.js';
 
 import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
 
-import semver from 'semver';
-
-
 // Promises for loading the templates and stub configuration
 let templatesPromise;
 let stubConfigPromise;
@@ -95,7 +92,6 @@ class CBLCARSBaseCard extends HTMLElement {
 
     constructor () {
         super();
-        //this.attachShadow({ mode: 'open' });
 
         this.resizeObserver = null; // Define resizeObserver as a class property
         this.isResizing = false;
@@ -136,9 +132,6 @@ class CBLCARSBaseCard extends HTMLElement {
             this._config.cblcars_card_config.label = this._config.label;
         }
 
-        // Wait for _card to exist
-        //await this.waitForCard();
-
         // If the card is already initialized, update its config
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
@@ -147,19 +140,6 @@ class CBLCARSBaseCard extends HTMLElement {
         }
 
         this.update();
-    }
-
-    waitForCard() {
-        return new Promise(resolve => {
-            const checkCard = () => {
-                if (this._card && this._card.setConfig) {
-                    resolve();
-                } else {
-                    setTimeout(checkCard, 100); // Check every 100ms
-                }
-            };
-            checkCard();
-        });
     }
 
     set hass(hass) {
@@ -225,7 +205,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
-        window.addEventListener('load', this.handleLoad);
+        //window.addEventListener('load', this.handleLoad);
         this.resizeObserver = new ResizeObserver(() => this.handleResize());
         this.resizeObserver.observe(this);
     }
@@ -246,14 +226,13 @@ class CBLCARSBaseCard extends HTMLElement {
         }
 
         // Force a redraw on the first instantiation
-        //this.redrawChildCard();
         this.update();
     }
 
     disconnectedCallback() {
         // Remove event listeners
         window.removeEventListener('resize', this.handleResize.bind(this));
-        window.removeEventListener('load', this.handleLoad.bind(this));
+        //window.removeEventListener('load', this.handleLoad.bind(this));
 
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
@@ -263,30 +242,31 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
     update() {
-        if (this._config && this._card && this._card.setConfig) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            console.error('No configuration found for the child card.');
+        if (this._card && this._card.requestUpdate) {
+            this._card.requesteUpdate();
+        }  else {
+            cblcarsLog('error','Button card requestUpdate not found - try fallback to setConfig.');
+
+            if (this._config && this._card && this._card.setConfig) {
+                this._card.setConfig(this._config.cblcars_card_config);
+            } else {
+                cblcarsLog('error','Unable to run setConfig on child button card.');
+            }
         }
     }
 
     handleResize = this.debounce(() => {
         this.update();
-     }, 200);
+    }, 100);
+    //}, 200);
 
+     /*
     handleLoad = () => {
         cblcarsLog('debug', 'Page loaded, updating child card...');
         this.update();
     }
-/*
-    redrawChildCard() {
-        if (this._config && this._card && this._card.setConfig) {
-            this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            console.error('No configuration found for the child card.');
-        }
-    }
-*/
+    */
+
     debounce(func, wait) {
         let timeout;
         return function(...args) {
@@ -605,7 +585,6 @@ customElements.define("cb-lcars-panel", CBLCARSPanel);
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
 customElements.define('ll-strategy-view-cb-lcars-view', CBLCARSViewStrategy);
 customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
-
 
 
 // Helper function to define custom elements and their editors
