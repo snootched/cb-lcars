@@ -206,8 +206,8 @@ class CBLCARSBaseCard extends HTMLElement {
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
         //window.addEventListener('load', this.handleLoad);
-        this.resizeObserver = new ResizeObserver(() => this.handleResize());
-        this.resizeObserver.observe(this);
+        //this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        //this.resizeObserver.observe(this);
     }
 
 
@@ -242,23 +242,14 @@ class CBLCARSBaseCard extends HTMLElement {
         window.removeEventListener('resize', this.handleResize.bind(this));
         //window.removeEventListener('load', this.handleLoad.bind(this));
 
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-            this.resizeObserver = null;
-        }
+        //if (this.resizeObserver) {
+        //    this.resizeObserver.disconnect();
+        //    this.resizeObserver = null;
+        //}
     }
 
 
     update() {
-
-        const parentWidth = this.offsetWidth;
-        const parentHeight = this.offsetHeight;
-
-        // Adjust the child card's size
-        this._card.style.width = `${parentWidth}px`;
-        this._card.style.height = `${parentHeight}px`;
-        console.debug("in update(): Parent width: ", parentWidth, "Parent height: ", parentHeight);
-
         if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
