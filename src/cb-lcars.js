@@ -243,7 +243,7 @@ class CBLCARSBaseCard extends HTMLElement {
 
     update() {
         if (this._card && this._card.requestUpdate) {
-            this._card.requesteUpdate();
+            this._card.requestUpdate();
         }  else {
             cblcarsLog('error','Button card requestUpdate not found - try fallback to setConfig.');
 
