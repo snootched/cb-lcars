@@ -257,10 +257,13 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
 
         // Trigger an update if necessary
-        if (this._card) {
-          this._card.requestUpdate();
-        }
+        //if (this._card) {
+        //  this._card.requestUpdate();
+        //}
+
+        this.update();
       }
+
     update() {
         if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
