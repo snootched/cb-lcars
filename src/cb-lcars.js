@@ -104,14 +104,6 @@ class CBLCARSBaseCard extends HTMLElement {
         this._card = null;
     }
 
-    // Function to initialize the configuration update
-    async ensureDependenciesLoaded() {
-        const promises = [];
-        if (!templatesLoaded) promises.push(templatesPromise);
-        if (!stubConfigLoaded) promises.push(stubConfigPromise);
-        await Promise.all(promises);
-    }
-
 
     setConfig(config) {
         if (!config) {
@@ -153,6 +145,8 @@ class CBLCARSBaseCard extends HTMLElement {
         } else {
             this.initializeCard();
         }
+
+        this.update();
     }
 
     waitForCard() {
