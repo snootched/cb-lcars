@@ -223,6 +223,11 @@ class CBLCARSBaseCard extends HTMLElement {
             this.appendChild(this._card);
         }
 
+
+        this.style.display = 'block';
+        this.style.width = '100%';
+        this.style.height = '100%';
+
         // Ensure the configuration is loaded and set it on the card
         if (this._config && this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
@@ -230,9 +235,6 @@ class CBLCARSBaseCard extends HTMLElement {
             cblcarsLog('error', 'Error: _card element or configuration is not initialized.');
         }
 
-        this.style.display = 'block';
-        this.style.width = '100%';
-        this.style.height = '100%';
         // Force a redraw on the first instantiation
         this.updateCardSize();
     }
@@ -260,6 +262,11 @@ class CBLCARSBaseCard extends HTMLElement {
         //if (this._card) {
         //  this._card.requestUpdate();
         //}
+        if (!this._card.variables) {
+            this._card.variables = { card: {} };
+          }
+        this._card.variables.card.width = `${parentWidth}px`;
+        this._card.variables.card.height = `${parentHeight}px`;
 
         this.update();
       }
