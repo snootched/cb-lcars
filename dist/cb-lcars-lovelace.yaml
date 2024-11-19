@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.8-alpha.9
+  version: 2024.11.8-alpha.10
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3966,6 +3966,53 @@ cblcars_card_templates:
           }
         ]]]
       __getParentDimension: |
+        [[[
+          return function(thisObj, dimension, units, fallbackDimensions) {
+            // Function to get the CSS variable value
+            function getCSSVariableValue(variable) {
+              return getComputedStyle(thisObj).getPropertyValue(variable).trim();
+            }
+            // Determine the CSS variable based on the dimension
+            let cssVariable;
+            if (dimension === 'width') {
+              cssVariable = '--button-card-width';
+            } else if (dimension === 'height') {
+              cssVariable = '--button-card-height';
+            } else {
+              console.error("Invalid dimension specified. Use 'width' or 'height'.");
+              return null;
+            }
+            // Try to get the value from the CSS variable
+            let parentDimension = parseFloat(getCSSVariableValue(cssVariable));
+            // If the CSS variable is not defined or not reasonable, fall back to parent element's dimension
+            if (isNaN(parentDimension) || parentDimension <= 0) {
+              if (dimension === 'width') {
+                parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetWidth : 0;
+              } else if (dimension === 'height') {
+                parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetHeight : 0;
+              }
+            }
+            // Function to check if the dimension is reasonable
+            function isReasonableSize(size) {
+              return size > 0; // Adjust this condition based on what's 'reasonable'
+            }
+            // If dimension is not reasonable, use fallback
+            if (!isReasonableSize(parentDimension)) {
+              if (fallbackDimensions && fallbackDimensions[dimension]) {
+                parentDimension = parseFloat(fallbackDimensions[dimension]);
+              } else {
+                parentDimension = dimension === 'width' ? window.innerWidth : window.innerHeight;
+              }
+            }
+            // Return the dimension with units if provided
+            if (units) {
+              return parentDimension + units;
+            } else {
+              return parentDimension;
+            }
+          }
+        ]]]
+      __getParentDimension2: |
         [[[
           return function(thisObj, dimension, units, fallbackDimensions) {
             // Get parent element's dimension
