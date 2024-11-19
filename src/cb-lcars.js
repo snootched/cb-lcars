@@ -253,8 +253,8 @@ class CBLCARSBaseCard extends HTMLElement {
         const parentHeight = this.offsetHeight;
 
         // Set CSS variables for the child card's dimensions
-        this.style.setProperty('--button-card-width', `${parentWidth}px`);
-        this.style.setProperty('--button-card-height', `${parentHeight}px`);
+        this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
+        this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
 
         // Trigger an update if necessary
         if (this._card) {
