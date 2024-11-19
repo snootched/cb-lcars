@@ -250,6 +250,15 @@ class CBLCARSBaseCard extends HTMLElement {
 
 
     update() {
+
+        const parentWidth = this.offsetWidth;
+        const parentHeight = this.offsetHeight;
+
+        // Adjust the child card's size
+        this._card.style.width = `${parentWidth}px`;
+        this._card.style.height = `${parentHeight}px`;
+        console.debug("in update(): Parent width: ", parentWidth, "Parent height: ", parentHeight);
+
         if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
@@ -260,7 +269,7 @@ class CBLCARSBaseCard extends HTMLElement {
     handleResize = this.debounce(() => {
         this.update();
     //}, 100);
-    }, 200);
+    }, 300);
 
      /*
     handleLoad = () => {
