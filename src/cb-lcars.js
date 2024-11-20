@@ -93,11 +93,14 @@ class CBLCARSBaseCard extends HTMLElement {
     constructor () {
         super();
 
-        this.resizeObserver = null; // Define resizeObserver as a class property
-        this.isResizing = false;
+        this._resizeObserver = null;
+        this._resizeTimeout = null;
 
         this._config = null;
         this._card = null;
+
+        this._lastWidth = 0;
+        this._lastHeight = 0;
     }
 
 
@@ -205,11 +208,32 @@ class CBLCARSBaseCard extends HTMLElement {
 
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
-        //window.addEventListener('load', this.handleLoad);
-        this.resizeObserver = new ResizeObserver(() => this.handleResize());
-        this.resizeObserver.observe(this);
-    }
 
+        this._resizeObserver = new ResizeObserver(() => {
+            if (this._resizeTimeout) {
+              clearTimeout(this._resizeTimeout);
+            }
+            this._resizeTimeout = setTimeout(() => {
+              this.handleResize();
+            }, 200); // Adjust the timeout as needed
+          });
+          this._resizeObserver.observe(this);
+     }
+
+
+    disconnectedCallback() {
+        // Remove event listeners
+        window.removeEventListener('resize', this.handleResize.bind(this));
+        //window.removeEventListener('load', this.handleLoad.bind(this));
+
+        if (this._resizeObserver) {
+            this._resizeObserver.disconnect();
+            this._resizeObserver = null;
+          }
+          if (this._resizeTimeout) {
+            clearTimeout(this._resizeTimeout);
+          }
+    }
 
     initializeCard() {
         // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
@@ -239,37 +263,33 @@ class CBLCARSBaseCard extends HTMLElement {
         this.updateCardSize();
     }
 
-    disconnectedCallback() {
-        // Remove event listeners
-        window.removeEventListener('resize', this.handleResize.bind(this));
-        //window.removeEventListener('load', this.handleLoad.bind(this));
-
-        if (this.resizeObserver) {
-            this.resizeObserver.disconnect();
-            this.resizeObserver = null;
-        }
-    }
-
     updateCardSize() {
         const parentWidth = this.offsetWidth;
         const parentHeight = this.offsetHeight;
 
-        // Set CSS variables for the child card's dimensions
-        this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
-        this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
+        // Only update if there is a significant change
+        if (Math.abs(parentWidth - this._lastWidth) > 10 || Math.abs(parentHeight - this._lastHeight) > 10) {
+          this._lastWidth = parentWidth;
+          this._lastHeight = parentHeight;
 
-        // Trigger an update if necessary
-        //if (this._card) {
-        //  this._card.requestUpdate();
-        //}
-        if (!this._card.variables) {
-            this._card.variables = { card: {} };
+          // Set CSS variables for the child card's dimensions
+          if (this._card) {
+            this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
+            this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
+
+            // Store the dimensions in the child card's config
+            if (!this._card.variables) {
+              this._card.variables = { card: {} };
+            }
+            this._card.variables.card.width = `${parentWidth}px`;
+            this._card.variables.card.height = `${parentHeight}px`;
+
+            // Trigger an update if necessary
+            this._card.update();
           }
-        this._card.variables.card.width = `${parentWidth}px`;
-        this._card.variables.card.height = `${parentHeight}px`;
+        }
+    }
 
-        this.update();
-      }
 
     update() {
         if (this._config && this._card && this._card.setConfig) {
