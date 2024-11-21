@@ -381,8 +381,13 @@ cb-lcars-multimeter:
       - border-radius: 0 !important
       - background: none
       - border: none
+    label:
+      - z-index: 1
     custom_fields:
       gauge:
+        - position: absolute
+        - top: 0
+        - left: 0
         - visibility: "[[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden' ]]]"
         - border-top: |
             [[[
@@ -429,6 +434,9 @@ cb-lcars-multimeter:
             + variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
       slider_track:
+        - position: absolute
+        - top: 0
+        - left: 0
         - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
         - border-top: |
             [[[

@@ -209,7 +209,7 @@ class CBLCARSBaseCard extends HTMLElement {
         };
       }
 
-    /*
+    //timout method
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
 
@@ -223,8 +223,9 @@ class CBLCARSBaseCard extends HTMLElement {
           });
           this._resizeObserver.observe(this);
      }
-    */
 
+
+     /* //check against last content rect
      connectedCallback() {
         window.addEventListener('resize', this.handleResize);
 
@@ -242,6 +243,9 @@ class CBLCARSBaseCard extends HTMLElement {
         });
         this._resizeObserver.observe(this);
     }
+    */
+
+
 
     disconnectedCallback() {
         // Remove event listeners
@@ -258,12 +262,8 @@ class CBLCARSBaseCard extends HTMLElement {
     }
 
     initializeCard() {
-        // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
         if (!this._card) {
             this._card = document.createElement('cblcars-button-card');
-
-            //this._card.style.width = '100%';
-            //this._card.style.height = '100%';
             this._card.style.display = 'block';
 
             this.appendChild(this._card);
@@ -288,7 +288,7 @@ class CBLCARSBaseCard extends HTMLElement {
     updateCardSize() {
         const parentWidth = this.offsetWidth;
         const parentHeight = this.offsetHeight;
-        const significantChange = 10;
+        const significantChange = 5;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
         //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
