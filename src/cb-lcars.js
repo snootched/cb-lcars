@@ -101,6 +101,10 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this._lastWidth = 0;
         this._lastHeight = 0;
+
+
+        this._lastContentWidth = 0;
+        this._lastContentHeight = 0;
     }
 
 
@@ -205,7 +209,7 @@ class CBLCARSBaseCard extends HTMLElement {
         };
       }
 
-
+    /*
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
 
@@ -219,7 +223,25 @@ class CBLCARSBaseCard extends HTMLElement {
           });
           this._resizeObserver.observe(this);
      }
+    */
 
+     connectedCallback() {
+        window.addEventListener('resize', this.handleResize);
+
+        this._resizeObserver = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                // Check for significant contentRect changes
+                if (Math.abs(entry.contentRect.width - this._lastContentWidth) > 5 ||
+                    Math.abs(entry.contentRect.height - this._lastContentHeight) > 5) {
+                    this._lastContentWidth = entry.contentRect.width;
+                    this._lastContentHeight = entry.contentRect.height;
+
+                    this.handleResize();
+                }
+            }
+        });
+        this._resizeObserver.observe(this);
+    }
 
     disconnectedCallback() {
         // Remove event listeners
@@ -262,7 +284,7 @@ class CBLCARSBaseCard extends HTMLElement {
         // Force a redraw on the first instantiation
         this.updateCardSize();
     }
-
+    /*
     updateCardSize() {
         const rect = this.getBoundingClientRect();
         const parentWidth = rect.width;
@@ -292,7 +314,38 @@ class CBLCARSBaseCard extends HTMLElement {
           }
         }
     }
+    */
 
+    updateCardSize() {
+        const rect = this.getBoundingClientRect();
+        const parentWidth = rect.width;
+        const parentHeight = rect.height;
+        const significantChange = 5;
+
+        // Check for valid dimensions and significant change
+        if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
+            this._lastWidth = parentWidth;
+            this._lastHeight = parentHeight;
+
+            // Debounce the actual update
+            clearTimeout(this._updateTimeout); // Clear any previous timeout
+            this._updateTimeout = setTimeout(() => {
+                // Update child card dimensions
+                this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
+                this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
+
+                // Store the dimensions in the child card's config
+                if (!this._card.variables) {
+                    this._card.variables = { card: {} };
+                }
+                this._card.variables.card.width = `${parentWidth}px`;
+                this._card.variables.card.height = `${parentHeight}px`;
+
+                // Trigger an update if necessary
+                this._card.update();
+            }, 100); // Adjust the timeout as needed
+        }
+    }
 
     update() {
         if (this._config && this._card && this._card.setConfig) {
@@ -304,15 +357,9 @@ class CBLCARSBaseCard extends HTMLElement {
 
     handleResize = this.debounce(() => {
         this.updateCardSize();
-    //}, 100);
-    }, 200);
+    }, 50);
+    //}, 200);
 
-     /*
-    handleLoad = () => {
-        cblcarsLog('debug', 'Page loaded, updating child card...');
-        this.update();
-    }
-    */
 
     debounce(func, wait) {
         let timeout;
