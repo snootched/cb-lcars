@@ -101,10 +101,6 @@ class CBLCARSBaseCard extends HTMLElement {
 
         this._lastWidth = 0;
         this._lastHeight = 0;
-
-
-        this._lastContentWidth = 0;
-        this._lastContentHeight = 0;
     }
 
 
@@ -209,7 +205,8 @@ class CBLCARSBaseCard extends HTMLElement {
         };
       }
 
-    //timout method
+    /*
+    //timout method -- WORKING
     connectedCallback() {
         window.addEventListener('resize', this.handleResize);
 
@@ -223,33 +220,29 @@ class CBLCARSBaseCard extends HTMLElement {
           });
           this._resizeObserver.observe(this);
      }
+    */
 
+    connectedCallback() {
+        const debouncedResize = this.debounce(() => {
+          this.updateCardSize();
+        }, 200); // Debounce with a 200ms delay
 
-     /* //check against last content rect
-     connectedCallback() {
-        window.addEventListener('resize', this.handleResize);
+        this._resizeListener = () => {
+            requestAnimationFrame(debouncedResize);
+          };
 
-        this._resizeObserver = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                // Check for significant contentRect changes
-                if (Math.abs(entry.contentRect.width - this._lastContentWidth) > 5 ||
-                    Math.abs(entry.contentRect.height - this._lastContentHeight) > 5) {
-                    this._lastContentWidth = entry.contentRect.width;
-                    this._lastContentHeight = entry.contentRect.height;
+        window.addEventListener('resize', this._resizeListener);
 
-                    this.handleResize();
-                }
-            }
+        this._resizeObserver = new ResizeObserver(() => {
+          requestAnimationFrame(debouncedResize);
         });
         this._resizeObserver.observe(this);
     }
-    */
-
-
 
     disconnectedCallback() {
         // Remove event listeners
-        window.removeEventListener('resize', this.handleResize.bind(this));
+        window.removeEventListener('resize', this._resizeListener);
+        //window.removeEventListener('resize', this.handleResize.bind(this));
         //window.removeEventListener('load', this.handleLoad.bind(this));
 
         if (this._resizeObserver) {
@@ -753,7 +746,7 @@ const CBLCARSCardClasses = [
     },
     {
         type: 'cb-lcars-button-card',
-        name: 'CB-LCARS Buttons',
+        name: 'CB-LCARS Button',
         preview: true,
         description: 'CB-LCARS Buttons [various styles]',
         documentationURL: "https://cb-lcars.unimatrix01.ca",

@@ -116,7 +116,7 @@ cb-lcars-multimeter:
             [[[
               return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
             ]]]
-          bottom: 5
+          bottom: 0
         color:
           default: black
           "on": black
@@ -124,12 +124,31 @@ cb-lcars-multimeter:
       name:
         font_size: 22px
         align_items: center
-        justify: left
+        justify: right
         padding:
-          top: 0px
-          left: 10px
-          right: 0px
-          bottom: 5px
+          top: 0
+          left: 0
+          right: |
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
+            ]]]
+          bottom: 0
+        color:
+          default: black
+          "on": black
+          "off": black
+      state:
+        font_size: 22px
+        align_items: center
+        justify: right
+        padding:
+          top: 0
+          left: 0
+          right: |
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
+            ]]]
+          bottom: 0
         color:
           default: black
           "on": black
@@ -383,6 +402,11 @@ cb-lcars-multimeter:
       - border: none
     label:
       - z-index: 1
+      - height: 100%
+      - width: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.border.left.size);
+          ]]]
     custom_fields:
       gauge:
         - position: absolute
