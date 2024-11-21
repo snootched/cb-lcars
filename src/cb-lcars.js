@@ -284,16 +284,14 @@ class CBLCARSBaseCard extends HTMLElement {
         // Force a redraw on the first instantiation
         this.updateCardSize();
     }
-    /*
+
     updateCardSize() {
-        const rect = this.getBoundingClientRect();
-        const parentWidth = rect.width;
-        const parentHeight = rect.height;
-        //const parentWidth = this.offsetWidth;
-        //const parentHeight = this.offsetHeight;
+        const parentWidth = this.offsetWidth;
+        const parentHeight = this.offsetHeight;
         const significantChange = 10;
         // Only update if there is a significant change
-        if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
+        if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
+        //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
           this._lastWidth = parentWidth;
           this._lastHeight = parentHeight;
 
@@ -314,8 +312,8 @@ class CBLCARSBaseCard extends HTMLElement {
           }
         }
     }
-    */
 
+    /*
     updateCardSize() {
         const rect = this.getBoundingClientRect();
         const parentWidth = rect.width;
@@ -346,7 +344,7 @@ class CBLCARSBaseCard extends HTMLElement {
             }, 100); // Adjust the timeout as needed
         }
     }
-
+    */
     update() {
         if (this._config && this._card && this._card.setConfig) {
             this._card.setConfig(this._config.cblcars_card_config);
