@@ -112,10 +112,7 @@ cb-lcars-multimeter:
         padding:
           top: 0
           left: 0
-          right: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-            ]]]
+          right: 5
           bottom: 0
         color:
           default: black
@@ -128,10 +125,7 @@ cb-lcars-multimeter:
         padding:
           top: 0
           left: 0
-          right: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-            ]]]
+          right: 5
           bottom: 0
         color:
           default: black
@@ -144,10 +138,7 @@ cb-lcars-multimeter:
         padding:
           top: 0
           left: 0
-          right: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-            ]]]
+          right: 5
           bottom: 0
         color:
           default: black
@@ -163,6 +154,8 @@ cb-lcars-multimeter:
           size: 120
         right:
           size: 0
+        inner:
+          width: 0
     slider:
       locked: |
         [[[
@@ -405,8 +398,9 @@ cb-lcars-multimeter:
       - height: 100%
       - width: |
           [[[
-            return variables.__get_num_with_unit(variables.card.border.left.size);
+            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
           ]]]
+
     custom_fields:
       gauge:
         - position: absolute

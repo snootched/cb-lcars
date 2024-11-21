@@ -281,7 +281,7 @@ class CBLCARSBaseCard extends HTMLElement {
     updateCardSize() {
         const parentWidth = this.offsetWidth;
         const parentHeight = this.offsetHeight;
-        const significantChange = 5;
+        const significantChange = 10;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
         //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
