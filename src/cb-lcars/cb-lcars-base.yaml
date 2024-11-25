@@ -262,6 +262,7 @@ cb-lcars-base:
       id: state_on
       styles:
         card:
+          - transition: all 0.4s ease-in
           - background-color: '[[[ return variables.card.color.background.active ]]]'
           - border-top: |
               [[[
@@ -300,6 +301,7 @@ cb-lcars-base:
       id: state_off
       styles:
         card:
+          - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.inactive ]]]'
           - border-top: |
               [[[

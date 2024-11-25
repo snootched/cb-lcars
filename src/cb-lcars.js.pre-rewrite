@@ -7,6 +7,9 @@ import { loadFont } from './utils/cb-lcars-theme.js';
 
 import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
 
+import semver from 'semver';
+
+
 // Promises for loading the templates and stub configuration
 let templatesPromise;
 let stubConfigPromise;
@@ -87,20 +90,123 @@ async function loadStubConfig(filePath) {
     }
 }
 
+/*
+// Function to get the Lovelace configuration
+function getLovelace() {
+        let root = document.querySelector('home-assistant');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('home-assistant-main');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
+        root = (root && root.shadowRoot) || root;
+        root = root && root.querySelector('ha-panel-lovelace');
+        root = root && root.shadowRoot;
+        root = root && root.querySelector('hui-root');
+    if (root) {
+        const ll = root.lovelace;
+        ll.current_view = root.___curView;
+        return ll;
+    }
+    return null;
+}
+*/
+/*
+// Function to update the Lovelace configuration
+async function updateLovelaceConfig(filePath) {
+
+    let newConfig;
+    if(!templatesLoaded) {
+        cblcarsLog('debug','Templates not loaded yet - attempting to load from source file.');
+        try {
+            //newConfig = await readYamlFile(filePath);
+            await loadTemplates(filePath);
+            newConfig = templates;
+        } catch (error) {
+            cblcarsLog('error','Failed to get the CB-LCARS lovelace template source file.',error);
+            //throw error;
+        }
+    } else {
+        newConfig = templates;
+    }
+
+    //cblcarsLog('debug','updateLoveLaceConfig.newConfig: ',newConfig);
+
+    if (newConfig === undefined || newConfig === null || newConfig === 'undefined') {
+        cblcarsLog('error','The CB-LCARS lovelace template failed and is not availalbe for processing.');
+        //throw error;
+    } else {
+        const lovelaceConfig = getLovelace();
+
+        if (lovelaceConfig) {
+            const cbLcarsConfig = lovelaceConfig.config['cb-lcars'] || {};
+            const newCbLcarsConfig = newConfig['cb-lcars'] || {};
+
+            // Check if the cb-lcars.manage_config flag is set
+            if (cbLcarsConfig.manage_config) {
+                // Check if the new configuration version is different
+                const currentLovelaceVersion = cbLcarsConfig.version || '0.0.0';
+                const newLovelaceVersion = newCbLcarsConfig.version || '0.0.0';
+
+                if (semver.gt(newLovelaceVersion, currentLovelaceVersion)) {
+                    // Merge the cb-lcars configurations
+                    const updatedCbLcarsConfig = { ...cbLcarsConfig, ...newCbLcarsConfig };
+
+                    // Create a new configuration object by copying the existing one and updating cb-lcars
+                    const updatedConfig = { ...lovelaceConfig.config, ...newConfig, 'cb-lcars': updatedCbLcarsConfig };
+
+                    cblcarsLog('debug','original lovelace config: ',lovelaceConfig.config);
+                    cblcarsLog('debug','new lovelace config: ',newConfig);
+
+
+                    // Apply the updated configuration
+                    await lovelaceConfig.saveConfig(updatedConfig);
+                    cblcarsLog('info', `CB-LCARS dashboard templates updated (v${currentLovelaceVersion} --> v${newLovelaceVersion})`);
+                    isConfigMerged = true;
+
+                } else if (newLovelaceVersion === 0) {
+                    cblcarsLog('warn', 'CB-LCARS templates version is not defined - please set a version in the source YAML file.');
+                } else {
+                    cblcarsLog('info', `CB-LCARS dashboard templates are up to date (v${currentLovelaceVersion})`);
+                    isConfigMerged = true;
+                }
+            } else {
+            cblcarsLog('warn', 'CB-LCARS automatic dashboard management of templates is disabled. Set [cb-lcars.manage_config: true] in your Lovelace dashboard YAML to enable it.');
+            //lovelaceConfig.config = { ...lovelaceConfig.config, ...newConfig };
+            //cblcarsLog('info', 'CB-LCARS dashboard templates loaded into running Lovelace configuration only - changes will not be saved.',lovelaceConfig);
+            }
+        } else {
+            cblcarsLog('error', 'Failed to retrieve the current Lovelace dashboard configuration');
+        }
+    }
+}
+*/
+
+
+
+
 
 class CBLCARSBaseCard extends HTMLElement {
 
     constructor () {
         super();
+        //this.attachShadow({ mode: 'open' });
 
-        this._resizeObserver = null;
-        this._resizeTimeout = null;
+        this.resizeObserver = null; // Define resizeObserver as a class property
+        this.isResizing = false;
 
         this._config = null;
         this._card = null;
+    }
 
-        this._lastWidth = 0;
-        this._lastHeight = 0;
+    // Function to initialize the configuration update
+    async ensureDependenciesLoaded() {
+        if(!templatesLoaded) {
+        await templatesPromise;
+       }
+
+        if(!stubConfigLoaded) {
+            await stubConfigPromise;
+        }
     }
 
 
@@ -138,11 +244,7 @@ class CBLCARSBaseCard extends HTMLElement {
         // If the card is already initialized, update its config
         if (this._card) {
             this._card.setConfig(this._config.cblcars_card_config);
-        } else {
-            this.initializeCard();
         }
-
-        this.update();
     }
 
     set hass(hass) {
@@ -206,66 +308,61 @@ class CBLCARSBaseCard extends HTMLElement {
       }
 
     /*
-    //timout method -- WORKING
-    connectedCallback() {
-        window.addEventListener('resize', this.handleResize);
+    async connectedCallback() {
 
-        this._resizeObserver = new ResizeObserver(() => {
-            if (this._resizeTimeout) {
-              clearTimeout(this._resizeTimeout);
-            }
-            this._resizeTimeout = setTimeout(() => {
-              this.handleResize();
-            }, 200); // Adjust the timeout as needed
-          });
-          this._resizeObserver.observe(this);
-     }
+        await this.ensureDependenciesLoaded();
+
+        //cblcarsLog('debug','connectedcallback called');
+
+        // Initialize the card
+        this.initializeCard();
+
+        // Add event listeners
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('load', this.handleLoad.bind(this));
+
+        // Create a ResizeObserver to handle resizing of the card
+        this.resizeObserver = new ResizeObserver(() => this.handleResize());
+        this.resizeObserver.observe(this);
+    }
     */
-
     connectedCallback() {
-        const debouncedResize = this.debounce(() => {
-          this.updateCardSize();
-        }, 200); // Debounce with a 200ms delay
+        // Ensure dependencies are loaded before proceeding
+        this.ensureDependenciesLoaded().then(() => {
+            // Initialize the card
+            this.initializeCard();
 
-        this._resizeListener = () => {
-            requestAnimationFrame(debouncedResize);
-          };
+            // Add event listeners
+            window.addEventListener('resize', this.handleResize.bind(this));
+            window.addEventListener('load', this.handleLoad.bind(this));
 
-        window.addEventListener('resize', this._resizeListener);
-
-        this._resizeObserver = new ResizeObserver(() => {
-          requestAnimationFrame(debouncedResize);
+            // Create a ResizeObserver to handle resizing of the card
+            this.resizeObserver = new ResizeObserver(() => this.handleResize());
+            this.resizeObserver.observe(this);
+        }).catch(error => {
+            cblcarsLog('error', 'Error loading dependencies:', error);
         });
-        this._resizeObserver.observe(this);
     }
 
-    disconnectedCallback() {
-        // Remove event listeners
-        window.removeEventListener('resize', this._resizeListener);
-        //window.removeEventListener('resize', this.handleResize.bind(this));
-        //window.removeEventListener('load', this.handleLoad.bind(this));
+    ensureDependenciesLoaded() {
+        const promises = [];
+        if (!templatesLoaded) {
+            promises.push(templatesPromise);
+        }
 
-        if (this._resizeObserver) {
-            this._resizeObserver.disconnect();
-            this._resizeObserver = null;
-          }
-          if (this._resizeTimeout) {
-            clearTimeout(this._resizeTimeout);
-          }
+        if (!stubConfigLoaded) {
+            promises.push(stubConfigPromise);
+        }
+
+        return Promise.all(promises);
     }
 
     initializeCard() {
+        // Attempt to render the card - the templates may not be loaded into lovelace yet, so we'll have to try initialize if this fails
         if (!this._card) {
             this._card = document.createElement('cblcars-button-card');
-            this._card.style.display = 'block';
-
             this.appendChild(this._card);
         }
-
-
-        this.style.display = 'block';
-        this.style.width = '100%';
-        this.style.height = '100%';
 
         // Ensure the configuration is loaded and set it on the card
         if (this._config && this._card) {
@@ -275,89 +372,49 @@ class CBLCARSBaseCard extends HTMLElement {
         }
 
         // Force a redraw on the first instantiation
-        this.updateCardSize();
+        this.redrawChildCard();
     }
 
-    updateCardSize() {
-        const parentWidth = this.offsetWidth;
-        const parentHeight = this.offsetHeight;
-        const significantChange = 10;
-        // Only update if there is a significant change
-        if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
-        //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
-          this._lastWidth = parentWidth;
-          this._lastHeight = parentHeight;
+    disconnectedCallback() {
+        // Remove event listeners
+        window.removeEventListener('resize', this.handleResize.bind(this));
+        window.removeEventListener('load', this.handleLoad.bind(this));
 
-          // Set CSS variables for the child card's dimensions
-          if (this._card) {
-            this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
-            this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
-
-            // Store the dimensions in the child card's config
-            if (!this._card.variables) {
-              this._card.variables = { card: {} };
-            }
-            this._card.variables.card.width = `${parentWidth}px`;
-            this._card.variables.card.height = `${parentHeight}px`;
-
-            // Trigger an update if necessary
-            this._card.update();
-          }
+        if (this.resizeObserver) {
+            this.resizeObserver.disconnect();
+            this.resizeObserver = null;
         }
     }
 
-    /*
-    updateCardSize() {
-        const rect = this.getBoundingClientRect();
-        const parentWidth = rect.width;
-        const parentHeight = rect.height;
-        const significantChange = 5;
-
-        // Check for valid dimensions and significant change
-        if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
-            this._lastWidth = parentWidth;
-            this._lastHeight = parentHeight;
-
-            // Debounce the actual update
-            clearTimeout(this._updateTimeout); // Clear any previous timeout
-            this._updateTimeout = setTimeout(() => {
-                // Update child card dimensions
-                this._card.style.setProperty('--button-card-width', `${parentWidth}px`);
-                this._card.style.setProperty('--button-card-height', `${parentHeight}px`);
-
-                // Store the dimensions in the child card's config
-                if (!this._card.variables) {
-                    this._card.variables = { card: {} };
-                }
-                this._card.variables.card.width = `${parentWidth}px`;
-                this._card.variables.card.height = `${parentHeight}px`;
-
-                // Trigger an update if necessary
-                this._card.update();
-            }, 100); // Adjust the timeout as needed
+    handleResize() {
+        //cblcarsLog('debug','Window resized, updating child card...');
+        if (this.isResizing) {
+            return;
+        } else {
+            this.isResizing = true;
+            this.redrawChildCard();
+            this.isResizing = false;
         }
     }
-    */
-    update() {
-        if (this._config && this._card && this._card.setConfig) {
+
+    handleLoad() {
+        cblcarsLog('debug', 'Page loaded, updating child card...');
+        this.redrawChildCard();
+    }
+
+    redrawChildCard() {
+        // Re-read the configuration and re-render the card
+        if (this._config) {
+            //cblcarsLog('debug', "doing a this._card.setConfig() on the child");
             this._card.setConfig(this._config.cblcars_card_config);
         } else {
             console.error('No configuration found for the child card.');
         }
-    }
-
-    handleResize = this.debounce(() => {
-        this.updateCardSize();
-    }, 50);
-    //}, 200);
-
-
-    debounce(func, wait) {
-        let timeout;
-        return function(...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
+        // If the child card uses LitElement, this will schedule an update
+        //if (this._card.requestUpdate) {
+            //cblcarsLog('debug', "doing this._card.requestUpdate()");
+        //    this._card.requestUpdate();
+        //}
     }
 }
 
@@ -672,6 +729,7 @@ customElements.define('ll-strategy-view-cb-lcars-view', CBLCARSViewStrategy);
 customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
 
 
+
 // Helper function to define custom elements and their editors
 function defineCustomElement(cardType, cardClass, editorType, editorClass) {
     customElements.define(cardType, cardClass);
@@ -682,23 +740,67 @@ function defineCustomElement(cardType, cardClass, editorType, editorClass) {
     });
 }
 
+// Define custom elements and their editors
+defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-elbow-card', CBLCARSElbowCard, 'cb-lcars-elbow-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-double-elbow-card', CBLCARSDoubleElbowCard, 'cb-lcars-double-elbow-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-multimeter-card', CBLCARSMultimeterCard, 'cb-lcars-multimeter-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-dpad-card', CBLCARSDPADCard, 'cb-lcars-dpad-card-editor', CBLCARSCardEditor);
+defineCustomElement('cb-lcars-button-card', CBLCARSButtonCard, 'cb-lcars-button-card-editor', CBLCARSCardEditor);
 
-// delay registration of custom elements until the templates and stub configuration are loaded
-Promise.all([templatesPromise, stubConfigPromise])
-  .then(() => {
-    defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-elbow-card', CBLCARSElbowCard, 'cb-lcars-elbow-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-double-elbow-card', CBLCARSDoubleElbowCard, 'cb-lcars-double-elbow-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-multimeter-card', CBLCARSMultimeterCard, 'cb-lcars-multimeter-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-dpad-card', CBLCARSDPADCard, 'cb-lcars-dpad-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-button-card', CBLCARSButtonCard, 'cb-lcars-button-card-editor', CBLCARSCardEditor);
-  })
-  .catch(error => {
-    cblcarsLog('error', 'Error loading YAML configuration:', error);
-  });
+/*
+//Define the cards for Home Assistant usage
+customElements.define('cb-lcars-base-card',CBLCARSBaseCard);
+customElements.define('cb-lcars-label-card',CBLCARSLabelCard);
+customElements.define('cb-lcars-elbow-card',CBLCARSElbowCard);
+customElements.define('cb-lcars-double-elbow-card',CBLCARSDoubleElbowCard);
+customElements.define('cb-lcars-multimeter-card',CBLCARSMultimeterCard);
+customElements.define('cb-lcars-dpad-card',CBLCARSDPADCard);
+customElements.define('cb-lcars-button-card',CBLCARSButtonCard);
 
+customElements.define('cb-lcars-base-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-base-card');
+    }
+});
 
+customElements.define('cb-lcars-label-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-label-card');
+    }
+});
+
+customElements.define('cb-lcars-elbow-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-elbow-card');
+    }
+});
+
+customElements.define('cb-lcars-double-elbow-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-double-elbow-card');
+    }
+});
+
+customElements.define('cb-lcars-multimeter-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-multimeter-card');
+    }
+});
+
+customElements.define('cb-lcars-dpad-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-dpad-card');
+    }
+});
+
+customElements.define('cb-lcars-button-card-editor', class extends CBLCARSCardEditor {
+    constructor() {
+        super('cb-lcars-button-card');
+    }
+});
+*/
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];
@@ -746,7 +848,7 @@ const CBLCARSCardClasses = [
     },
     {
         type: 'cb-lcars-button-card',
-        name: 'CB-LCARS Button',
+        name: 'CB-LCARS Buttons',
         preview: true,
         description: 'CB-LCARS Buttons [various styles]',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
