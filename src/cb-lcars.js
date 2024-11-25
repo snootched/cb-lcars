@@ -149,7 +149,7 @@ class CBLCARSBaseCard extends LitElement {
                 console.log('Setting hass on child card:', this.hass);
                 buttonCard.hass = this.hass;
             } else {
-                console.log('buttonCard not found:',buttonCard);
+                console.log('changedProps hass - buttonCard not found:',buttonCard);
             }
         }
 
@@ -159,6 +159,9 @@ class CBLCARSBaseCard extends LitElement {
             if (buttonCard) {
                 console.log('Setting config on child card:', this._config.cblcars_card_config);
                 buttonCard.setConfig(this._config.cblcars_card_config);
+           } else {
+                console.log('changedProps _config - buttonCard not found:',buttonCard);
+            }
            }
         }
     }
