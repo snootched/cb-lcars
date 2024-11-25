@@ -273,6 +273,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
+            - transition: all 0.7s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
@@ -290,6 +291,7 @@ cb-lcars-multimeter:
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
           slider_track:
+            - transition: all 0.7s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
@@ -311,6 +313,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
+            - transition: all 0.7s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -328,6 +331,7 @@ cb-lcars-multimeter:
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                 ]]]
           slider_track:
+            - transition: all 0.7s ease-out
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
