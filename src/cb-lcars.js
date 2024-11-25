@@ -159,10 +159,9 @@ class CBLCARSBaseCard extends LitElement {
             if (buttonCard) {
                 console.log('Setting config on child card:', this._config.cblcars_card_config);
                 buttonCard.setConfig(this._config.cblcars_card_config);
-           } else {
+            } else {
                 console.log('changedProps _config - buttonCard not found:',buttonCard);
             }
-           }
         }
     }
 
