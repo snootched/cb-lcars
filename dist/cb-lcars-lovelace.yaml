@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.9-alpha.2
+  version: 2024.11.9-alpha.3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3061,10 +3061,7 @@ cblcars_card_templates:
           padding:
             top: 0
             left: 0
-            right: |
-              [[[
-                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-              ]]]
+            right: 5
             bottom: 0
           color:
             default: black
@@ -3077,10 +3074,7 @@ cblcars_card_templates:
           padding:
             top: 0
             left: 0
-            right: |
-              [[[
-                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-              ]]]
+            right: 5
             bottom: 0
           color:
             default: black
@@ -3093,10 +3087,7 @@ cblcars_card_templates:
           padding:
             top: 0
             left: 0
-            right: |
-              [[[
-                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size) + " + 5px)"
-              ]]]
+            right: 5
             bottom: 0
           color:
             default: black
@@ -3112,6 +3103,8 @@ cblcars_card_templates:
             size: 120
           right:
             size: 0
+          inner:
+            width: 0
       slider:
         locked: |
           [[[
@@ -3353,7 +3346,7 @@ cblcars_card_templates:
         - height: 100%
         - width: |
             [[[
-              return variables.__get_num_with_unit(variables.card.border.left.size);
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
             ]]]
       custom_fields:
         gauge:
