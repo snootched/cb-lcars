@@ -126,14 +126,14 @@ class CBLCARSBaseCard extends LitElement {
         if (config.entity && !buttonCardConfig.entity) {
             buttonCardConfig.entity = config.entity;
           }
-          if (config.label && !buttonCardConfig.label) {
+        if (config.label && !buttonCardConfig.label) {
             buttonCardConfig.label = config.label;
-          }
+        }
 
-          this._config = {
+        this._config = {
             ...config,
             cblcars_card_config: buttonCardConfig,
-          };
+        };
 
         console.log('CBLCARSBaseCard setConfig called with:', this._config);
 
@@ -272,24 +272,32 @@ class CBLCARSBaseCard extends LitElement {
             this.style.setProperty('--button-card-height', `${height}px`);
 
             if (this._config && this._config.cblcars_card_config) {
-              const newConfig = {
-                ...this._config,
-                cblcars_card_config: {
-                  ...this._config.cblcars_card_config,
-                  variables: {
-                    ...this._config.cblcars_card_config.variables,
-                    card: {
-                      ...this._config.cblcars_card_config.variables?.card,
-                      width: `${width}px`,
-                      height: `${height}px`,
+                const newConfig = {
+                    ...this._config,
+                    cblcars_card_config: {
+                        ...this._config.cblcars_card_config,
+                        variables: {
+                            ...this._config.cblcars_card_config.variables,
+                        card: {
+                            ...this._config.cblcars_card_config.variables?.card,
+                            width: `${width}px`,
+                            height: `${height}px`,
+                            },
+                        },
                     },
-                  },
-                },
-              };
-              console.log('in _updateCardSize Setting new config:', newConfig);
-              this._config = newConfig;
-            }
+                };
+                console.log('in _updateCardSize Setting new config:', newConfig);
+                this._config = newConfig;
 
+                // Call setConfig on the child card with the updated configuration
+                const buttonCard = this.querySelector('cblcars-button-card');
+                if (buttonCard) {
+                    console.log('Updating config on child card in _updateCardSize:', newConfig.cblcars_card_config);
+                    buttonCard.setConfig(newConfig.cblcars_card_config);
+                } else {
+                    console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
+                }
+            }
             this.requestUpdate();
         }
     }
