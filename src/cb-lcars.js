@@ -280,7 +280,7 @@ class CBLCARSBaseCard extends LitElement {
           return;
         }
 
-        const significantChange = 10;
+        const significantChange = 5;
 
         if (
             Math.abs(width - this._lastWidth) > significantChange ||
