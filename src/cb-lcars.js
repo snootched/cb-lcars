@@ -103,6 +103,10 @@ class CBLCARSBaseCard extends LitElement {
 
     constructor () {
         super();
+
+        this.style.display = 'block';
+        this.style.width = '100%';
+        this.style.height = '100%';
     }
 
 
@@ -268,8 +272,8 @@ class CBLCARSBaseCard extends LitElement {
             this._lastWidth = width;
             this._lastHeight = height;
 
-            this.style.setProperty('--button-card-width', `${width}px`);
-            this.style.setProperty('--button-card-height', `${height}px`);
+            //this.style.setProperty('--button-card-width', `${width}px`);
+            //this.style.setProperty('--button-card-height', `${height}px`);
 
             if (this._config && this._config.cblcars_card_config) {
                 const newConfig = {
@@ -293,6 +297,8 @@ class CBLCARSBaseCard extends LitElement {
                 const buttonCard = this.querySelector('cblcars-button-card');
                 if (buttonCard) {
                     console.log('Updating config on child card in _updateCardSize:', newConfig.cblcars_card_config);
+                    buttonCard.style.setProperty('--button-card-width', `${width}px`);
+                    buttonCard.style.setProperty('--button-card-height', `${height}px`);
                     buttonCard.setConfig(newConfig.cblcars_card_config);
                 } else {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
@@ -372,12 +378,7 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
             .hass="${this.hass}"
             .config="${this._config.cblcars_card_config}"
-            style="
-                display: block;
-                width: 100%;
-                height: 100%;
-                --button-card-width: ${this._lastWidth}px;
-                --button-card-height: ${this._lastHeight}px;
+            style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px;
             "
             ></cblcars-button-card>
         `;
