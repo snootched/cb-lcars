@@ -143,21 +143,23 @@ class CBLCARSBaseCard extends LitElement {
 
     updated(changedProps) {
         if (changedProps.has('hass')) {
-          const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
-          if (buttonCard) {
-            console.log('Setting hass on child card:', this.hass);
-            buttonCard.hass = this.hass;
-          } else {
-            console.log('buttonCard not found:',buttonCard);
-          }
+            const buttonCard = this.querySelector('cblcars-button-card');
+
+            if (buttonCard) {
+                console.log('Setting hass on child card:', this.hass);
+                buttonCard.hass = this.hass;
+            } else {
+                console.log('buttonCard not found:',buttonCard);
+            }
         }
 
         if (changedProps.has('_config')) {
-          const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
-          if (buttonCard) {
-            console.log('Setting config on child card:', this._config.cblcars_card_config);
-            buttonCard.setConfig(this._config.cblcars_card_config);
-          }
+            const buttonCard = this.querySelector('cblcars-button-card');
+
+            if (buttonCard) {
+                console.log('Setting config on child card:', this._config.cblcars_card_config);
+                buttonCard.setConfig(this._config.cblcars_card_config);
+           }
         }
     }
 
@@ -282,6 +284,7 @@ class CBLCARSBaseCard extends LitElement {
                   },
                 },
               };
+              console.log('in _updateCardSize Setting new config:', newConfig);
               this._config = newConfig;
             }
 
@@ -342,6 +345,7 @@ class CBLCARSBaseCard extends LitElement {
 
 
     createRenderRoot() {
+        console.log('createRenderRoot called');
         return this;
       }
 
