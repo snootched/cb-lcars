@@ -104,9 +104,9 @@ class CBLCARSBaseCard extends LitElement {
     constructor () {
         super();
 
-        this.style.display = 'block';
-        this.style.width = '100%';
-        this.style.height = '100%';
+        //this.style.display = 'block';
+        //this.style.width = '100%';
+        //this.style.height = '100%';
     }
 
 
@@ -297,8 +297,8 @@ class CBLCARSBaseCard extends LitElement {
                 const buttonCard = this.querySelector('cblcars-button-card');
                 if (buttonCard) {
                     console.log('Updating config on child card in _updateCardSize:', newConfig.cblcars_card_config);
-                    //buttonCard.style.setProperty('--button-card-width', `${width}px`);
-                    //buttonCard.style.setProperty('--button-card-height', `${height}px`);
+                    buttonCard.style.setProperty('--button-card-width', `${width}px`);
+                    buttonCard.style.setProperty('--button-card-height', `${height}px`);
                     buttonCard.setConfig(newConfig.cblcars_card_config);
                 } else {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
