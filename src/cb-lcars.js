@@ -244,6 +244,10 @@ class CBLCARSBaseCard extends LitElement {
         this._debouncedResizeHandler();
         });
         this._resizeObserver.observe(this);
+
+        // Force an update when the layout changes
+        window.addEventListener('resize', this._debouncedResizeHandler);
+
     }
 
     disconnectedCallback() {
@@ -253,6 +257,8 @@ class CBLCARSBaseCard extends LitElement {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
           }
+        // Force an update when the layout changes
+        window.addEventListener('resize', this._debouncedResizeHandler);
     }
 
     firstUpdated() {
@@ -280,7 +286,7 @@ class CBLCARSBaseCard extends LitElement {
           return;
         }
 
-        const significantChange = 5;
+        const significantChange = 10;
 
         if (
             Math.abs(width - this._lastWidth) > significantChange ||
@@ -288,9 +294,6 @@ class CBLCARSBaseCard extends LitElement {
           ) {
             this._lastWidth = width;
             this._lastHeight = height;
-
-            //this.style.setProperty('--button-card-width', `${width}px`);
-            //this.style.setProperty('--button-card-height', `${height}px`);
 
             if (this._config && this._config.cblcars_card_config) {
                 const newConfig = {
