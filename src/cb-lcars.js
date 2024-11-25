@@ -291,6 +291,7 @@ class CBLCARSBaseCard extends LitElement {
             //this.style.setProperty('--button-card-width', `${width}px`);
             //this.style.setProperty('--button-card-height', `${height}px`);
 
+            /*
             if (this._config && this._config.cblcars_card_config) {
                 const newConfig = {
                     ...this._config,
@@ -320,62 +321,17 @@ class CBLCARSBaseCard extends LitElement {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                 }
             }
+            */
+
+            // Update the configuration directly
+            this._config.cblcars_card_config.variables.card.width = `${width}px`;
+            this._config.cblcars_card_config.variables.card.height = `${height}px`;
+
             this.requestUpdate();
         } else {
             console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
         }
     }
-
-
-    /*
-    _updateCardSize() {
-        const width = this.offsetWidth;
-        const height = this.offsetHeight;
-        const significantChange = 10;
-
-        if (width === 0 || height === 0) {
-            // Skip updating if dimensions are zero
-            return;
-          }
-
-        if (
-            Math.abs(width - this._lastWidth) > significantChange ||
-            Math.abs(height - this._lastHeight) > significantChange
-          ) {
-            this._lastWidth = width;
-            this._lastHeight = height;
-
-            // Set CSS variables
-            this.style.setProperty('--button-card-width', `${width}px`);
-            this.style.setProperty('--button-card-height', `${height}px`);
-
-            // Update variables in the child card's config
-            if (this._config && this._config.cblcars_card_config) {
-                if (!this._config.cblcars_card_config.variables) {
-                this._config.cblcars_card_config.variables = { card: {} };
-                }
-                this._config = {
-                ...this._config,
-                cblcars_card_config: {
-                    ...this._config.cblcars_card_config,
-                    variables: {
-                    ...this._config.cblcars_card_config.variables,
-                    card: {
-                        ...this._config.cblcars_card_config.variables.card,
-                        width: `${width}px`,
-                        height: `${height}px`,
-                    },
-                    },
-                },
-                };
-            }
-
-            // Request an update for re-rendering
-            this.requestUpdate();
-          }
-
-    }
-        */
 
 
     createRenderRoot() {
@@ -394,10 +350,10 @@ class CBLCARSBaseCard extends LitElement {
 
         return html`
             <cblcars-button-card
-            .hass="${this.hass}"
-            .config="${this._config.cblcars_card_config}"
-            style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px;
-            "
+                .hass="${this.hass}"
+                .config="${this._config.cblcars_card_config}"
+                style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px;
+                "
             ></cblcars-button-card>
         `;
     }
