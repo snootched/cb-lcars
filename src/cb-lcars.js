@@ -123,6 +123,12 @@ class CBLCARSBaseCard extends LitElement {
             ...config.cblcars_card_config,
         };
 
+        // Merge the button_card_config into config
+        this._config = {
+            ...config,
+            cblcars_card_config: buttonCardConfig
+        };
+
         // If the entity or label is defined in the parent config, pass it to the child config
         if (this._config.entity && !this._config.cblcars_card_config.entity) {
             this._config.cblcars_card_config.entity = this._config.entity;
@@ -130,12 +136,6 @@ class CBLCARSBaseCard extends LitElement {
         if (this._config.label && !this._config.cblcars_card_config.label) {
             this._config.cblcars_card_config.label = this._config.label;
         }
-
-        // Merge the button_card_config into config
-        this._config = {
-            ...config,
-            cblcars_card_config: buttonCardConfig
-        };
 
         this.requestUpdate();
     }
