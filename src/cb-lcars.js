@@ -103,10 +103,6 @@ class CBLCARSBaseCard extends LitElement {
 
     constructor () {
         super();
-
-        //this.style.display = 'block';
-        //this.style.width = '100%';
-        //this.style.height = '100%';
     }
 
 
@@ -144,6 +140,14 @@ class CBLCARSBaseCard extends LitElement {
         this.requestUpdate();
     }
 
+    requestUpdate(name, oldValue) {
+        super.requestUpdate(name, oldValue);
+        const buttonCard = this.querySelector('cblcars-button-card');
+        if (buttonCard && this._config) {
+            console.log('Forcing child card to update with setConfig:', this._config.cblcars_card_config);
+            buttonCard.setConfig(this._config.cblcars_card_config);
+        }
+    }
 
     updated(changedProps) {
 
