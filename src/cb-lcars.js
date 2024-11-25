@@ -373,6 +373,9 @@ class CBLCARSBaseCard extends LitElement {
             .hass="${this.hass}"
             .config="${this._config.cblcars_card_config}"
             style="
+                display: block;
+                width: 100%;
+                height: 100%;
                 --button-card-width: ${this._lastWidth}px;
                 --button-card-height: ${this._lastHeight}px;
             "
