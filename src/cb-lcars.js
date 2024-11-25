@@ -227,6 +227,55 @@ class CBLCARSBaseCard extends LitElement {
       this._updateCardSize();
     }
 
+
+
+    _updateCardSize() {
+        const width = this.offsetWidth;
+        const height = this.offsetHeight;
+
+        console.log('Updating card size:', width, height);
+
+        if (width === 0 || height === 0) {
+            return;
+        }
+
+        const significantChange = 10;
+
+        if (
+            Math.abs(width - this._lastWidth) > significantChange ||
+            Math.abs(height - this._lastHeight) > significantChange
+        ) {
+            this._lastWidth = width;
+            this._lastHeight = height;
+
+            this.style.setProperty('--button-card-width', `${width}px`);
+            this.style.setProperty('--button-card-height', `${height}px`);
+
+            if (this._config && this._config.cblcars_card_config) {
+            const newConfig = {
+                ...this._config,
+                cblcars_card_config: {
+                ...this._config.cblcars_card_config,
+                variables: {
+                    ...this._config.cblcars_card_config.variables,
+                    card: {
+                    ...this._config.cblcars_card_config.variables?.card,
+                    width: `${width}px`,
+                    height: `${height}px`,
+                    },
+                },
+                },
+            };
+            this._config = newConfig;
+            }
+
+            this.requestUpdate();
+        }
+    }
+
+
+
+    /*
     _updateCardSize() {
         const width = this.offsetWidth;
         const height = this.offsetHeight;
@@ -274,6 +323,7 @@ class CBLCARSBaseCard extends LitElement {
           }
 
     }
+        */
 
 
     createRenderRoot() {
