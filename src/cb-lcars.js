@@ -123,31 +123,37 @@ class CBLCARSBaseCard extends LitElement {
             ...config.cblcars_card_config,
         };
 
-        // Merge the button_card_config into config
-        this._config = {
-            ...config,
-            cblcars_card_config: buttonCardConfig
-        };
+        if (config.entity && !buttonCardConfig.entity) {
+            buttonCardConfig.entity = config.entity;
+          }
+          if (config.label && !buttonCardConfig.label) {
+            buttonCardConfig.label = config.label;
+          }
 
-        // If the entity or label is defined in the parent config, pass it to the child config
-        if (this._config.entity && !this._config.cblcars_card_config.entity) {
-            this._config.cblcars_card_config.entity = this._config.entity;
-        }
-        if (this._config.label && !this._config.cblcars_card_config.label) {
-            this._config.cblcars_card_config.label = this._config.label;
-        }
+          this._config = {
+            ...config,
+            cblcars_card_config: buttonCardConfig,
+          };
 
         this.requestUpdate();
     }
 
 
     updated(changedProps) {
-      if (changedProps.has('hass')) {
-        const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
-        if (buttonCard) {
-          buttonCard.hass = this.hass;
+        if (changedProps.has('hass')) {
+          const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
+          if (buttonCard) {
+            buttonCard.hass = this.hass;
+          }
         }
-      }
+
+        if (changedProps.has('_config')) {
+          const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
+          if (buttonCard) {
+            console.log('Setting config on child card:', this._config.cblcars_card_config);
+            buttonCard.setConfig(this._config.cblcars_card_config);
+          }
+        }
     }
 
     static get editorType() {
@@ -247,34 +253,34 @@ class CBLCARSBaseCard extends LitElement {
         const significantChange = 0;
 
         if (
-          Math.abs(width - this._lastWidth) > significantChange ||
-          Math.abs(height - this._lastHeight) > significantChange
-        ) {
-          this._lastWidth = width;
-          this._lastHeight = height;
+            Math.abs(width - this._lastWidth) > significantChange ||
+            Math.abs(height - this._lastHeight) > significantChange
+          ) {
+            this._lastWidth = width;
+            this._lastHeight = height;
 
-          this.style.setProperty('--button-card-width', `${width}px`);
-          this.style.setProperty('--button-card-height', `${height}px`);
+            this.style.setProperty('--button-card-width', `${width}px`);
+            this.style.setProperty('--button-card-height', `${height}px`);
 
-          if (this._config && this._config.cblcars_card_config) {
-            const newConfig = {
-              ...this._config,
-              cblcars_card_config: {
-                ...this._config.cblcars_card_config,
-                variables: {
-                  ...this._config.cblcars_card_config.variables,
-                  card: {
-                    ...this._config.cblcars_card_config.variables?.card,
-                    width: `${width}px`,
-                    height: `${height}px`,
+            if (this._config && this._config.cblcars_card_config) {
+              const newConfig = {
+                ...this._config,
+                cblcars_card_config: {
+                  ...this._config.cblcars_card_config,
+                  variables: {
+                    ...this._config.cblcars_card_config.variables,
+                    card: {
+                      ...this._config.cblcars_card_config.variables?.card,
+                      width: `${width}px`,
+                      height: `${height}px`,
+                    },
                   },
                 },
-              },
-            };
-            this._config = newConfig;
-          }
+              };
+              this._config = newConfig;
+            }
 
-          this.requestUpdate();
+            this.requestUpdate();
         }
     }
 
@@ -336,6 +342,7 @@ class CBLCARSBaseCard extends LitElement {
 
     render() {
         if (!this._config) {
+            console.log('in render() No config found');
             // Show a placeholder or nothing if config is not set
             return html``;
         }
