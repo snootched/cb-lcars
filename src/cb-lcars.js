@@ -228,51 +228,55 @@ class CBLCARSBaseCard extends LitElement {
     }
 
 
-
     _updateCardSize() {
-        const width = this.offsetWidth;
-        const height = this.offsetHeight;
+        const parent = this.offsetParent;
+        if (!parent) {
+          return;
+        }
+
+        const width = parent.clientWidth;
+        const height = parent.clientHeight;
 
         console.log('Updating card size:', width, height);
 
         if (width === 0 || height === 0) {
-            return;
+            console.log("returning because width or height is 0");
+          return;
         }
 
-        const significantChange = 10;
+        const significantChange = 0;
 
         if (
-            Math.abs(width - this._lastWidth) > significantChange ||
-            Math.abs(height - this._lastHeight) > significantChange
+          Math.abs(width - this._lastWidth) > significantChange ||
+          Math.abs(height - this._lastHeight) > significantChange
         ) {
-            this._lastWidth = width;
-            this._lastHeight = height;
+          this._lastWidth = width;
+          this._lastHeight = height;
 
-            this.style.setProperty('--button-card-width', `${width}px`);
-            this.style.setProperty('--button-card-height', `${height}px`);
+          this.style.setProperty('--button-card-width', `${width}px`);
+          this.style.setProperty('--button-card-height', `${height}px`);
 
-            if (this._config && this._config.cblcars_card_config) {
+          if (this._config && this._config.cblcars_card_config) {
             const newConfig = {
-                ...this._config,
-                cblcars_card_config: {
+              ...this._config,
+              cblcars_card_config: {
                 ...this._config.cblcars_card_config,
                 variables: {
-                    ...this._config.cblcars_card_config.variables,
-                    card: {
+                  ...this._config.cblcars_card_config.variables,
+                  card: {
                     ...this._config.cblcars_card_config.variables?.card,
                     width: `${width}px`,
                     height: `${height}px`,
-                    },
+                  },
                 },
-                },
+              },
             };
             this._config = newConfig;
-            }
+          }
 
-            this.requestUpdate();
+          this.requestUpdate();
         }
     }
-
 
 
     /*
