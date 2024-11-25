@@ -17,7 +17,7 @@ on:
         description: 'Branch to build'
         required: true
         default: 'main'
-        
+
 jobs:
   build:
     name: Build for Release
@@ -61,12 +61,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-  
+
       - name: Build
         run: |
           npm install
           npx webpack
-       
+
       - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
         run: |
           mkdir -p ./dist
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch || 'main' }}
-           
+
       - name: Get git sha
         id: get_sha
         run: echo "CURRENT_SHA=$(git log -1 --format='%H')" >> $GITHUB_ENV
@@ -134,7 +134,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         if: steps.check_tag.outputs.exists == 'true'
-  
+
       - name: "Get previous release version"
         id: last_release
         uses: InsonusK/get-latest-release@v1.1.0
@@ -142,7 +142,7 @@ jobs:
           myToken: ${{ secrets.GITHUB_TOKEN }}
           #exclude_types: "draft|prerelease"
           exclude_types: "draft"
-          
+
       - name: Create new tag
         uses: rickstaa/action-create-tag@v1.7.2
         id: tag_create
@@ -168,11 +168,11 @@ jobs:
 #          sinceTag: ${{ steps.last_release.outputs.tag_name }}
 #          headerLabel: "# Notable changes since ${{ steps.last_release.outputs.tag_name }}"
 #          stripGeneratorNotice: true
-  
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          prerelease: ${{ contains(needs.build.outputs.version, 'beta') }}
+          prerelease: ${{ contains(needs.build.outputs.version, 'alpha') || contains(needs.build.outputs.version, 'beta') }}
           #body: "${{ steps.changelog.outputs.changelog }}"
           name: "Version ${{ needs.build.outputs.version }}"
           tag_name: "v${{ needs.build.outputs.version }}"
