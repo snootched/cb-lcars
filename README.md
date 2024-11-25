@@ -132,7 +132,6 @@ In no particular ordeer:
 
 ---
 
-
 ### 1. Dependencies and Extras
 
 The following should be installed and working in your Home Assistant instance - these are available in HACS
@@ -187,9 +186,11 @@ These are the colors used for the ha-lcars defined variables.
 Create the following input helpers in your Home Asstant.
 <br>Names are configurable, but Entity ID is required to match.
 
+Click on the Entity ID in the table to launch the add helper dialog in your Home Assistant.
+
 | Name              | Entity ID                               | Type                    | Values |
 |-------------------|-----------------------------------------|-------------------------|-------------------------------------------------|
-| ALERT CONDITION   | `input_select.lcars_ui_alert_condition` | Dropdown (input select) | GREEN<br>RED<br>YELLOW<br>BLUE<br>BLACK<br>GRAY |
+| ALERT CONDITION   | [`input_select.lcars_ui_alert_condition`](https://my.home-assistant.io/redirect/config_flow_start/?domain=input_select)| Dropdown (input select) | GREEN<br>RED<br>YELLOW<br>BLUE<br>BLACK<br>GRAY |
 
 <br>
 
