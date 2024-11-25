@@ -135,6 +135,8 @@ class CBLCARSBaseCard extends LitElement {
             cblcars_card_config: buttonCardConfig,
           };
 
+        console.log('CBLCARSBaseCard setConfig called with:', this._config);
+
         this.requestUpdate();
     }
 
@@ -143,7 +145,10 @@ class CBLCARSBaseCard extends LitElement {
         if (changedProps.has('hass')) {
           const buttonCard = this.shadowRoot?.querySelector('cblcars-button-card');
           if (buttonCard) {
+            console.log('Setting hass on child card:', this.hass);
             buttonCard.hass = this.hass;
+          } else {
+            console.log('buttonCard not found:',buttonCard);
           }
         }
 
@@ -346,6 +351,8 @@ class CBLCARSBaseCard extends LitElement {
             // Show a placeholder or nothing if config is not set
             return html``;
         }
+
+        console.log('CBLCARSBaseCard render called with config:', this._config);
 
         return html`
             <cblcars-button-card
