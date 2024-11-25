@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.11.9-alpha.3
+  version: 2024.0.1-alpha.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3221,6 +3221,7 @@ cblcars_card_templates:
         styles:
           custom_fields:
             gauge:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
@@ -3238,6 +3239,7 @@ cblcars_card_templates:
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                   ]]]
             slider_track:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
@@ -3259,6 +3261,7 @@ cblcars_card_templates:
         styles:
           custom_fields:
             gauge:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -3276,6 +3279,7 @@ cblcars_card_templates:
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                   ]]]
             slider_track:
+              - transition: all 0.7s ease-out
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -5328,6 +5332,7 @@ cblcars_card_templates:
         id: state_on
         styles:
           card:
+            - transition: all 0.4s ease-in
             - background-color: '[[[ return variables.card.color.background.active ]]]'
             - border-top: |
                 [[[
@@ -5366,6 +5371,7 @@ cblcars_card_templates:
         id: state_off
         styles:
           card:
+            - transition: all 0.4s ease-out
             - background-color: '[[[ return variables.card.color.background.inactive ]]]'
             - border-top: |
                 [[[
