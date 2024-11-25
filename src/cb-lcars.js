@@ -146,6 +146,9 @@ class CBLCARSBaseCard extends LitElement {
 
 
     updated(changedProps) {
+
+        console.debug('CBLCARSBaseCard updated called with changedProps:', changedProps);
+
         if (changedProps.has('hass')) {
             const buttonCard = this.querySelector('cblcars-button-card');
 
@@ -225,6 +228,11 @@ class CBLCARSBaseCard extends LitElement {
 
     connectedCallback() {
         super.connectedCallback();
+
+        this.style.display = 'block';
+        this.style.width = '100%';
+        this.style.height = '100%';
+
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
 
         this._resizeObserver = new ResizeObserver(() => {
