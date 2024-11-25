@@ -256,13 +256,17 @@ class CBLCARSBaseCard extends LitElement {
 
 
     _updateCardSize() {
-        const parent = this.offsetParent;
-        if (!parent) {
-          return;
-        }
 
-        const width = parent.clientWidth;
-        const height = parent.clientHeight;
+        //const parent = this.offsetParent;
+        //if (!parent) {
+        //  return;
+        //}
+
+        //const width = parent.clientWidth;
+        //const height = parent.clientHeight;
+
+        const width = this.offsetWidth;
+        const height = this.offsetHeight;
 
         console.log('Updating card size:', width, height);
 
@@ -271,7 +275,7 @@ class CBLCARSBaseCard extends LitElement {
           return;
         }
 
-        const significantChange = 0;
+        const significantChange = 10;
 
         if (
             Math.abs(width - this._lastWidth) > significantChange ||
@@ -313,6 +317,8 @@ class CBLCARSBaseCard extends LitElement {
                 }
             }
             this.requestUpdate();
+        } else {
+            console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
         }
     }
 
