@@ -236,6 +236,7 @@ class CBLCARSBaseCard extends LitElement {
         this.style.display = 'block';
         this.style.width = '100%';
         this.style.height = '100%';
+        this.style.minHeight = '50px';
 
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
 
@@ -291,7 +292,6 @@ class CBLCARSBaseCard extends LitElement {
             //this.style.setProperty('--button-card-width', `${width}px`);
             //this.style.setProperty('--button-card-height', `${height}px`);
 
-            /*
             if (this._config && this._config.cblcars_card_config) {
                 const newConfig = {
                     ...this._config,
@@ -321,11 +321,6 @@ class CBLCARSBaseCard extends LitElement {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                 }
             }
-            */
-
-            // Update the configuration directly
-            this._config.cblcars_card_config.variables.card.width = `${width}px`;
-            this._config.cblcars_card_config.variables.card.height = `${height}px`;
 
             this.requestUpdate();
         } else {
