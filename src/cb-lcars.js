@@ -267,7 +267,6 @@ class CBLCARSBaseCard extends LitElement {
 
 
     _updateCardSize() {
-
         const parentClientWidth = this.parentElement.clientWidth;
         const parentClientHeight = this.parentElement.clientHeight;
         const offsetWidth = this.offsetWidth;
@@ -277,22 +276,67 @@ class CBLCARSBaseCard extends LitElement {
         console.log("Offset width:", offsetWidth, " Offset height:", offsetHeight);
 
         let width, height;
+        const significantChange = 10;
 
-        // Determine which set of dimensions to use
-        if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
-          width = parentClientWidth;
-          height = parentClientHeight;
-        } else if (offsetWidth > 0 && offsetHeight > 0) {
-          width = offsetWidth;
-          height = offsetHeight;
-        } else {
+        // Disqualify any set with a 0 dimension
+        const parentValid = parentClientWidth > 0 && parentClientHeight > 0;
+        const offsetValid = offsetWidth > 0 && offsetHeight > 0;
+
+        if (!parentValid && !offsetValid) {
           console.log("Returning because both dimension sets are invalid");
           return;
         }
 
-        console.log('Updating card size:', width, height);
+        if (!parentValid) {
+          width = offsetWidth;
+          height = offsetHeight;
+        } else if (!offsetValid) {
+          width = parentClientWidth;
+          height = parentClientHeight;
+        } else {
+          // Both sets are valid, compare dimensions
+          const widthDifference = Math.abs(parentClientWidth - offsetWidth);
+          const heightDifference = Math.abs(parentClientHeight - offsetHeight);
 
-        const significantChange = 10;
+          const widthClose = widthDifference <= significantChange;
+          const heightClose = heightDifference <= significantChange;
+
+          if (widthClose && heightClose) {
+            // Both dimensions are close, use offset dimensions
+            width = offsetWidth;
+            height = offsetHeight;
+          } else if (widthClose) {
+            // Width is close, compare heights
+            if (parentClientHeight < offsetHeight) {
+              width = parentClientWidth;
+              height = parentClientHeight;
+            } else {
+              width = offsetWidth;
+              height = offsetHeight;
+            }
+          } else if (heightClose) {
+            // Height is close, compare widths
+            if (parentClientWidth < offsetWidth) {
+              width = parentClientWidth;
+              height = parentClientHeight;
+            } else {
+              width = offsetWidth;
+              height = offsetHeight;
+            }
+          } else {
+            // Neither dimension is close, use the smaller set
+            if (parentClientWidth < offsetWidth && parentClientHeight < offsetHeight) {
+              width = parentClientWidth;
+              height = parentClientHeight;
+            } else {
+              width = offsetWidth;
+              height = offsetHeight;
+            }
+          }
+        }
+
+
+        console.log('Updating card size:', width, height);
 
         if (
             Math.abs(width - this._lastWidth) > significantChange ||
