@@ -273,8 +273,8 @@ class CBLCARSBaseCard extends LitElement {
         //  return;
         //}
 
-        const parentClientWidth = parent.clientWidth;
-        const parentClientHeight = parent.clientHeight;
+        const parentClientWidth = this.parentElement.clientWidth;
+        const parentClientHeight = this.parentElement.clientHeight;
         console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
 
         const width = this.offsetWidth;
