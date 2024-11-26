@@ -268,24 +268,29 @@ class CBLCARSBaseCard extends LitElement {
 
     _updateCardSize() {
 
-        //const parent = this.offsetParent;
-        //if (!parent) {
-        //  return;
-        //}
-
         const parentClientWidth = this.parentElement.clientWidth;
         const parentClientHeight = this.parentElement.clientHeight;
+        const offsetWidth = this.offsetWidth;
+        const offsetHeight = this.offsetHeight;
+
         console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
+        console.log("Offset width:", offsetWidth, " Offset height:", offsetHeight);
 
-        const width = this.offsetWidth;
-        const height = this.offsetHeight;
+        let width, height;
 
-        console.log('Updating card size:', width, height);
-
-        if (width === 0 || height === 0) {
-            console.log("returning because width or height is 0");
+        // Determine which set of dimensions to use
+        if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
+          width = parentClientWidth;
+          height = parentClientHeight;
+        } else if (offsetWidth > 0 && offsetHeight > 0) {
+          width = offsetWidth;
+          height = offsetHeight;
+        } else {
+          console.log("Returning because both dimension sets are invalid");
           return;
         }
+
+        console.log('Updating card size:', width, height);
 
         const significantChange = 10;
 
