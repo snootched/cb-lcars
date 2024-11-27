@@ -100,12 +100,13 @@ class CBLCARSBaseCard extends LitElement {
     @state() _lastWidth = 0;
     @state() _lastHeight = 0;
     _resizeObserver = null;
+    _isRebuilding = false;
 
     constructor () {
         super();
     }
 
-
+    /*
     _dispatchLLRebuildToChild() {
         const buttonCard = this.querySelector('cblcars-button-card');
         if (buttonCard) {
@@ -114,6 +115,23 @@ class CBLCARSBaseCard extends LitElement {
                 composed: true
             });
             buttonCard.dispatchEvent(event);
+        }
+    }
+    */
+
+    async _dispatchLLRebuildToChild() {
+        if (this._isRebuilding) return;
+
+        const buttonCard = this.querySelector('cblcars-button-card');
+        if (buttonCard) {
+            this._isRebuilding = true;
+            const event = new Event('ll-rebuild', {
+                bubbles: true,
+                composed: true
+            });
+            buttonCard.dispatchEvent(event);
+            await new Promise(resolve => setTimeout(resolve, 0)); // Wait for the event to be processed
+            this._isRebuilding = false;
         }
     }
 
@@ -251,7 +269,6 @@ class CBLCARSBaseCard extends LitElement {
 
         this._debouncedResizeHandler = this._debounce(() => {
             this._updateCardSize();
-            this._dispatchLLRebuildToChild();
         }, 200);
 
         this._resizeObserver = new ResizeObserver(() => {
