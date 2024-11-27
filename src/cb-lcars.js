@@ -101,6 +101,7 @@ class CBLCARSBaseCard extends LitElement {
     @state() _lastHeight = 0;
     _resizeObserver = null;
     _isRebuilding = false;
+    _needsRebuild = false;
 
     constructor () {
         super();
@@ -199,9 +200,15 @@ class CBLCARSBaseCard extends LitElement {
             if (buttonCard) {
                 console.log('Setting config on child card:', this._config.cblcars_card_config);
                 buttonCard.setConfig(this._config.cblcars_card_config);
+                this._needsRebuild = true;
             } else {
                 console.log('changedProps _config - buttonCard not found:',buttonCard);
             }
+        }
+
+        if (this._needsRebuild) {
+            this._dispatchLLRebuildToChild();
+            this._needsRebuild = false;
         }
     }
 
@@ -295,7 +302,7 @@ class CBLCARSBaseCard extends LitElement {
 
     firstUpdated() {
       this._updateCardSize();
-//      this._dispatchLLRebuildToChild();
+      this._dispatchLLRebuildToChild();
     }
 
 
@@ -360,6 +367,7 @@ class CBLCARSBaseCard extends LitElement {
                     buttonCard.style.setProperty('--button-card-width', `${width}px`);
                     buttonCard.style.setProperty('--button-card-height', `${height}px`);
                     buttonCard.setConfig(newConfig.cblcars_card_config);
+                    this._needsRebuild = true;
                 } else {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                 }
