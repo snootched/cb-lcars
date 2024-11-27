@@ -392,12 +392,12 @@ class CBLCARSBaseCard extends LitElement {
     }
     */
 
-    /*
+
     createRenderRoot() {
         console.log('createRenderRoot called');
         return this;
       }
-    */
+
 
     render() {
         if (!this._config) {
