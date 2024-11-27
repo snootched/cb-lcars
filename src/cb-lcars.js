@@ -412,7 +412,7 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
                 .hass="${this.hass}"
                 .config="${this._config.cblcars_card_config}"
-                style="--button-card-width: ${this.parentElement.offsetWidth}; --button-card-height: ${this.parentElement.offsetHeight}; minHeight: 50px;"
+                style="display: block; --button-card-width: ${this.parentElement.offsetWidth}px; --button-card-height: ${this.parentElement.offsetHeight}px; min-height: 50px;"
             ></cblcars-button-card>
         `;
     }
