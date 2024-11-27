@@ -148,11 +148,6 @@ class CBLCARSBaseCard extends LitElement {
 
         console.log('CBLCARSBaseCard setConfig called with:', this._config);
 
-        super.setConfig({
-            ...config,
-            cblcars_card_config: buttonCardConfig,
-        });
-
         this.requestUpdate();
     }
 
