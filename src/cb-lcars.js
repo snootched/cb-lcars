@@ -230,7 +230,6 @@ class CBLCARSBaseCard extends LitElement {
         };
       }
 
-    /*
     connectedCallback() {
         super.connectedCallback();
 
@@ -244,47 +243,14 @@ class CBLCARSBaseCard extends LitElement {
         this._resizeObserver = new ResizeObserver(() => {
         this._debouncedResizeHandler();
         });
-        this._resizeObserver.observe(this);
+        //this._resizeObserver.observe(this);
+        this._resizeObserver.observe(this.parentElement);
 
         // Force an update when the layout changes
         window.addEventListener('resize', this._debouncedResizeHandler);
 
     }
-    */
 
-    connectedCallback() {
-        super.connectedCallback();
-
-        this.style.display = 'contents'; // Updated to make the parent transparent
-
-        this._debouncedResizeHandler = this._debounce(() => this.requestUpdate(), 200);
-
-        // Attach ResizeObserver to the child card
-        this._resizeObserver = new ResizeObserver(() => {
-          this._debouncedResizeHandler();
-        });
-
-        // Observe the child card when it is available
-        const observeChildCard = () => {
-          const buttonCard = this.querySelector('cblcars-button-card');
-          if (buttonCard) {
-            this._resizeObserver.observe(buttonCard);
-            console.log('ResizeObserver attached to child card');
-          } else {
-            console.log('Child card not found, retrying...');
-            setTimeout(observeChildCard, 100); // Retry after a short delay
-          }
-        };
-
-        observeChildCard();
-
-        // Force an update when the layout changes
-        window.addEventListener('resize', this._debouncedResizeHandler);
-      }
-
-
-
-    /*
     disconnectedCallback() {
         super.disconnectedCallback();
 
@@ -295,26 +261,14 @@ class CBLCARSBaseCard extends LitElement {
         // Force an update when the layout changes
         window.addEventListener('resize', this._debouncedResizeHandler);
     }
-    */
 
     firstUpdated() {
-      //this._updateCardSize();
-      this.requestUpdate();
+      this._updateCardSize();
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
 
-        if (this._resizeObserver) {
-          this._resizeObserver.disconnect();
-          this._resizeObserver = null;
-        }
-
-        window.removeEventListener('resize', this._debouncedResizeHandler);
-      }
-
-    /*
     _updateCardSize() {
+
         const parentClientWidth = this.parentElement.clientWidth;
         const parentClientHeight = this.parentElement.clientHeight;
         const offsetWidth = this.offsetWidth;
@@ -324,67 +278,23 @@ class CBLCARSBaseCard extends LitElement {
         console.log("Offset width:", offsetWidth, " Offset height:", offsetHeight);
 
         let width, height;
-        const significantChange = 10;
 
-        // Disqualify any set with a 0 dimension
-        const parentValid = parentClientWidth > 0 && parentClientHeight > 0;
-        const offsetValid = offsetWidth > 0 && offsetHeight > 0;
+        // Determine which set of dimensions to use
+        if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
+          width = parentClientWidth;
+          height = parentClientHeight;
+        } else if (offsetWidth > 0 && offsetHeight > 0) {
+          width = offsetWidth;
+          height = offsetHeight;
+        } else {
 
-        if (!parentValid && !offsetValid) {
           console.log("Returning because both dimension sets are invalid");
           return;
         }
 
-        if (!parentValid) {
-          width = offsetWidth;
-          height = offsetHeight;
-        } else if (!offsetValid) {
-          width = parentClientWidth;
-          height = parentClientHeight;
-        } else {
-          // Both sets are valid, compare dimensions
-          const widthDifference = Math.abs(parentClientWidth - offsetWidth);
-          const heightDifference = Math.abs(parentClientHeight - offsetHeight);
-
-          const widthClose = widthDifference <= significantChange;
-          const heightClose = heightDifference <= significantChange;
-
-          if (widthClose && heightClose) {
-            // Both dimensions are close, use offset dimensions
-            width = offsetWidth;
-            height = offsetHeight;
-          } else if (widthClose) {
-            // Width is close, compare heights
-            if (parentClientHeight < offsetHeight) {
-              width = parentClientWidth;
-              height = parentClientHeight;
-            } else {
-              width = offsetWidth;
-              height = offsetHeight;
-            }
-          } else if (heightClose) {
-            // Height is close, compare widths
-            if (parentClientWidth < offsetWidth) {
-              width = parentClientWidth;
-              height = parentClientHeight;
-            } else {
-              width = offsetWidth;
-              height = offsetHeight;
-            }
-          } else {
-            // Neither dimension is close, use the smaller set
-            if (parentClientWidth < offsetWidth && parentClientHeight < offsetHeight) {
-              width = parentClientWidth;
-              height = parentClientHeight;
-            } else {
-              width = offsetWidth;
-              height = offsetHeight;
-            }
-          }
-        }
-
-
         console.log('Updating card size:', width, height);
+
+        const significantChange = 10;
 
         if (
             Math.abs(width - this._lastWidth) > significantChange ||
@@ -428,7 +338,7 @@ class CBLCARSBaseCard extends LitElement {
             console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
         }
     }
-    */
+
 
     createRenderRoot() {
         console.log('createRenderRoot called');
@@ -448,6 +358,8 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
                 .hass="${this.hass}"
                 .config="${this._config.cblcars_card_config}"
+                style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px;
+                "
             ></cblcars-button-card>
         `;
     }
@@ -462,7 +374,9 @@ class CBLCARSBaseCard extends LitElement {
 
     static styles = css`
         :host {
-            display: contents
+            display: block;
+            width: 100%;
+            height: 100%;
         }
         `;
 }
