@@ -268,10 +268,10 @@ class CBLCARSBaseCard extends LitElement {
         this._updateCardSize();
         // Delay the dispatch of the 'll-rebuild' event to ensure the card has settled
         setTimeout(() => {
-            if (!this._initialSetupComplete && !this._rebuildDispatched) { // Check if the initial setup is not complete and the call has not been made
+            if (!this._initialSetupComplete && !this._rebuildDispatched && !window.llRebuildFired) { // Check if the initial setup is not complete and the call has not been made
                 this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
                 this._rebuildDispatched = true; // Set the flag to true to indicate that the call has been made
-                //this.requestUpdateOnChildCard(); // Call requestUpdate on the child card
+                window.llRebuildFired = true; // Set the global flag to indicate that the event has been fired
                 this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the 'll-rebuild' event to the child card
             }
         }, 1000);
