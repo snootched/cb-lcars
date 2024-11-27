@@ -147,11 +147,14 @@ class CBLCARSBaseCard extends LitElement {
 
         console.log('CBLCARSBaseCard setConfig called with:', this._config);
 
-        this.requestUpdate();
+        //this.requestUpdate();
+        this._updateCardSize();
     }
 
     requestUpdate(name, oldValue) {
         super.requestUpdate(name, oldValue);
+
+        /*
         const buttonCard = this.querySelector('cblcars-button-card');
         if (buttonCard) {
             if (this._config) {
@@ -161,6 +164,7 @@ class CBLCARSBaseCard extends LitElement {
             console.log('going to dispatch ll-rebuild to child');
             this._dispatchLLRebuildToChild();
         }
+        */
     }
 
     updated(changedProps) {
@@ -350,6 +354,7 @@ class CBLCARSBaseCard extends LitElement {
                 } else {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                 }
+                this._dispatchLLRebuildToChild();
             }
 
             this.requestUpdate();
