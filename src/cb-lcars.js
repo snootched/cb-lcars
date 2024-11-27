@@ -262,7 +262,7 @@ class CBLCARSBaseCard extends LitElement {
         this._debouncedResizeHandler();
         });
         //this._resizeObserver.observe(this);
-        this._resizeObserver.observe(this.parentElement);
+        //this._resizeObserver.observe(this.parentElement);
 
         // Force an update when the layout changes
         window.addEventListener('resize', this._debouncedResizeHandler);
