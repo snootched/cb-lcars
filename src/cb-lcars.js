@@ -100,41 +100,12 @@ class CBLCARSBaseCard extends LitElement {
     @state() _lastWidth = 0;
     @state() _lastHeight = 0;
     _resizeObserver = null;
-    _isRebuilding = false;
-    _needsRebuild = false;
+    _initialSetupComplete = false;
 
     constructor () {
         super();
     }
 
-    /*
-    _dispatchLLRebuildToChild() {
-        const buttonCard = this.querySelector('cblcars-button-card');
-        if (buttonCard) {
-            const event = new Event('ll-rebuild', {
-                bubbles: true,
-                composed: true
-            });
-            buttonCard.dispatchEvent(event);
-        }
-    }
-    */
-
-    async _dispatchLLRebuildToChild() {
-        if (this._isRebuilding) return;
-
-        const buttonCard = this.querySelector('cblcars-button-card');
-        if (buttonCard) {
-            this._isRebuilding = true;
-            const event = new Event('ll-rebuild', {
-                bubbles: true,
-                composed: true
-            });
-            buttonCard.dispatchEvent(event);
-            await new Promise(resolve => setTimeout(resolve, 0)); // Wait for the event to be processed
-            this._isRebuilding = false;
-        }
-    }
 
     setConfig(config) {
         if (!config || !config.cblcars_card_config) {
@@ -200,15 +171,9 @@ class CBLCARSBaseCard extends LitElement {
             if (buttonCard) {
                 console.log('Setting config on child card:', this._config.cblcars_card_config);
                 buttonCard.setConfig(this._config.cblcars_card_config);
-                this._needsRebuild = true;
             } else {
                 console.log('changedProps _config - buttonCard not found:',buttonCard);
             }
-        }
-
-        if (this._needsRebuild) {
-            this._dispatchLLRebuildToChild();
-            this._needsRebuild = false;
         }
     }
 
@@ -274,18 +239,16 @@ class CBLCARSBaseCard extends LitElement {
         this.style.height = '100%';
         this.style.minHeight = '50px';
 
-        this._debouncedResizeHandler = this._debounce(() => {
-            this._updateCardSize();
-        }, 200);
+        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
 
         this._resizeObserver = new ResizeObserver(() => {
-            this._debouncedResizeHandler();
+        this._debouncedResizeHandler();
         });
         //this._resizeObserver.observe(this);
-        //this._resizeObserver.observe(this.parentElement);
+        this._resizeObserver.observe(this.parentElement);
 
         // Force an update when the layout changes
-        //window.addEventListener('resize', this._debouncedResizeHandler);
+        window.addEventListener('resize', this._debouncedResizeHandler);
 
     }
 
@@ -297,32 +260,34 @@ class CBLCARSBaseCard extends LitElement {
             this._resizeObserver = null;
           }
         // Force an update when the layout changes
-       // window.removeEventListener('resize', this._debouncedResizeHandler);
+        window.removeEventListener('resize', this._debouncedResizeHandler);
     }
 
     firstUpdated() {
-      this._updateCardSize();
-      this._dispatchLLRebuildToChild();
+        this._updateCardSize();
+        this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
+        this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the event to the child card
     }
 
 
     _updateCardSize() {
 
-        const parentClientWidth = this.parentElement.clientWidth;
-        const parentClientHeight = this.parentElement.clientHeight;
+        //const parentClientWidth = this.parentElement.clientWidth;
+        //const parentClientHeight = this.parentElement.clientHeight;
         const offsetWidth = this.offsetWidth;
         const offsetHeight = this.offsetHeight;
 
-        console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
-        console.log("Offset width:", offsetWidth, " Offset height:", offsetHeight);
+        //console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
+        console.log("_updateCardSize: Offset width:", offsetWidth, " Offset height:", offsetHeight);
 
         let width, height;
 
         // Determine which set of dimensions to use
-        if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
-          width = parentClientWidth;
-          height = parentClientHeight;
-        } else if (offsetWidth > 0 && offsetHeight > 0) {
+        //if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
+        //  width = parentClientWidth;
+        //  height = parentClientHeight;
+        //} else
+        if (offsetWidth > 0 && offsetHeight > 0) {
           width = offsetWidth;
           height = offsetHeight;
         } else {
@@ -367,7 +332,6 @@ class CBLCARSBaseCard extends LitElement {
                     buttonCard.style.setProperty('--button-card-width', `${width}px`);
                     buttonCard.style.setProperty('--button-card-height', `${height}px`);
                     buttonCard.setConfig(newConfig.cblcars_card_config);
-                    this._needsRebuild = true;
                 } else {
                     console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                 }
@@ -379,6 +343,19 @@ class CBLCARSBaseCard extends LitElement {
         }
     }
 
+    dispatchEventToChildCard(eventName) {
+        const buttonCard = this.querySelector('cblcars-button-card');
+        if (buttonCard) {
+            const event = new CustomEvent(eventName, {
+                bubbles: true,
+                composed: true,
+            });
+            buttonCard.dispatchEvent(event);
+            console.log(`Dispatched ${eventName} event to child card`);
+        } else {
+            console.log(`Child card not found to dispatch ${eventName} event`);
+        }
+    }
 
     createRenderRoot() {
         console.log('createRenderRoot called');
