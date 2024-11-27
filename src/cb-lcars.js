@@ -295,7 +295,7 @@ class CBLCARSBaseCard extends LitElement {
 
     firstUpdated() {
       this._updateCardSize();
-      this._dispatchLLRebuildToChild();
+//      this._dispatchLLRebuildToChild();
     }
 
 
