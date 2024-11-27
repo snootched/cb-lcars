@@ -105,6 +105,16 @@ class CBLCARSBaseCard extends LitElement {
         super();
     }
 
+    _dispatchLLRebuildToChild() {
+        const buttonCard = this.querySelector('cblcars-button-card');
+        if (buttonCard) {
+            const event = new Event('ll-rebuild', {
+                bubbles: true,
+                composed: true
+            });
+            buttonCard.dispatchEvent(event);
+        }
+    }
 
     setConfig(config) {
         if (!config || !config.cblcars_card_config) {
@@ -143,9 +153,13 @@ class CBLCARSBaseCard extends LitElement {
     requestUpdate(name, oldValue) {
         super.requestUpdate(name, oldValue);
         const buttonCard = this.querySelector('cblcars-button-card');
-        if (buttonCard && this._config) {
-            console.log('Forcing child card to update with setConfig:', this._config.cblcars_card_config);
-            buttonCard.setConfig(this._config.cblcars_card_config);
+        if (buttonCard) {
+            if (this._config) {
+                console.log('Forcing child card to update with setConfig:', this._config.cblcars_card_config);
+                buttonCard.setConfig(this._config.cblcars_card_config);
+            }
+            console.log('going to dispatch ll-rebuild to child');
+            this._dispatchLLRebuildToChild();
         }
     }
 
@@ -164,16 +178,20 @@ class CBLCARSBaseCard extends LitElement {
             }
         }
 
+        /*
         if (changedProps.has('_config')) {
             const buttonCard = this.querySelector('cblcars-button-card');
 
             if (buttonCard) {
                 console.log('Setting config on child card:', this._config.cblcars_card_config);
                 buttonCard.setConfig(this._config.cblcars_card_config);
+
             } else {
                 console.log('changedProps _config - buttonCard not found:',buttonCard);
             }
+
         }
+        */
     }
 
     static get editorType() {
@@ -280,12 +298,13 @@ class CBLCARSBaseCard extends LitElement {
         let width, height;
 
         // Determine which set of dimensions to use
-        if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
-          width = parentClientWidth;
-          height = parentClientHeight;
-        } else if (offsetWidth > 0 && offsetHeight > 0) {
-          width = offsetWidth;
-          height = offsetHeight;
+        //if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
+        //  width = parentClientWidth;
+        //  height = parentClientHeight;
+        //} else
+        if (offsetWidth > 0 && offsetHeight > 0) {
+            width = offsetWidth;
+            height = offsetHeight;
         } else {
 
           console.log("Returning because both dimension sets are invalid");
