@@ -245,7 +245,7 @@ class CBLCARSBaseCard extends LitElement {
     connectedCallback() {
         super.connectedCallback();
 
-        this.style.display = 'content';
+        this.style.display = 'contents';
         this.style.minHeight = '50px';
 
         /*
@@ -428,7 +428,7 @@ class CBLCARSBaseCard extends LitElement {
 
     static styles = css`
         :host {
-            display: content;
+            display: contents;
         }
         `;
 }
