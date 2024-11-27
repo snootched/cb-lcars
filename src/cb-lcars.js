@@ -258,10 +258,10 @@ class CBLCARSBaseCard extends LitElement {
             this._debouncedResizeHandler();
         });
         //this._resizeObserver.observe(this);
-        this._resizeObserver.observe(this.parentElement);
+        //this._resizeObserver.observe(this.parentElement);
 
         // Force an update when the layout changes
-        window.addEventListener('resize', this._debouncedResizeHandler);
+        //window.addEventListener('resize', this._debouncedResizeHandler);
 
     }
 
@@ -273,7 +273,7 @@ class CBLCARSBaseCard extends LitElement {
             this._resizeObserver = null;
           }
         // Force an update when the layout changes
-        window.removeEventListener('resize', this._debouncedResizeHandler);
+       // window.removeEventListener('resize', this._debouncedResizeHandler);
     }
 
     firstUpdated() {
