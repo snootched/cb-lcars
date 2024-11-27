@@ -266,9 +266,11 @@ class CBLCARSBaseCard extends LitElement {
     firstUpdated() {
         this._updateCardSize();
         setTimeout(() => {
-            this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
-            this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the event to the child card
-        }, 1000); // Adjust the delay as needed
+            if (!this._initialSetupComplete) { // Check if the initial setup is not complete
+                this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
+                this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the event to the child card
+            }
+        }, 1000);
     }
 
 
