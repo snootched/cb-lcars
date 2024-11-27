@@ -271,7 +271,8 @@ class CBLCARSBaseCard extends LitElement {
             if (!this._initialSetupComplete && !this._rebuildDispatched) { // Check if the initial setup is not complete and the call has not been made
                 this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
                 this._rebuildDispatched = true; // Set the flag to true to indicate that the call has been made
-                this.requestUpdateOnChildCard(); // Call requestUpdate on the child card
+                //this.requestUpdateOnChildCard(); // Call requestUpdate on the child card
+                this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the 'll-rebuild' event to the child card
             }
         }, 1000);
     }
@@ -362,7 +363,7 @@ class CBLCARSBaseCard extends LitElement {
         const buttonCard = this.querySelector('cblcars-button-card');
         if (buttonCard) {
             const event = new CustomEvent(eventName, {
-                bubbles: true,
+                bubbles: false,
                 composed: true,
             });
             buttonCard.dispatchEvent(event);
