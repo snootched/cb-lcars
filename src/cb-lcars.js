@@ -268,14 +268,22 @@ class CBLCARSBaseCard extends LitElement {
         this._updateCardSize();
         // Delay the dispatch of the 'll-rebuild' event to ensure the card has settled
         setTimeout(() => {
-            if (!this._initialSetupComplete && !this._rebuildDispatched) { // Check if the initial setup is not complete and the event has not been dispatched
+            if (!this._initialSetupComplete && !this._rebuildDispatched) { // Check if the initial setup is not complete and the call has not been made
                 this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
-                this._rebuildDispatched = true; // Set the flag to true to indicate that the event has been dispatched
-                this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the event to the child card
+                this._rebuildDispatched = true; // Set the flag to true to indicate that the call has been made
+                this.requestUpdateOnChildCard(); // Call requestUpdate on the child card
             }
         }, 1000);
     }
-
+    requestUpdateOnChildCard() {
+        const buttonCard = this.querySelector('cblcars-button-card');
+        if (buttonCard) {
+            buttonCard.requestUpdate();
+            console.log('Called requestUpdate on child card');
+        } else {
+            console.log('Child card not found to call requestUpdate');
+        }
+    }
 
     _updateCardSize() {
 
