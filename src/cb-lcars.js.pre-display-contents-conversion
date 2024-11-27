@@ -230,7 +230,6 @@ class CBLCARSBaseCard extends LitElement {
         };
       }
 
-    /*
     connectedCallback() {
         super.connectedCallback();
 
@@ -250,41 +249,7 @@ class CBLCARSBaseCard extends LitElement {
         window.addEventListener('resize', this._debouncedResizeHandler);
 
     }
-    */
 
-    connectedCallback() {
-        super.connectedCallback();
-
-        this.style.display = 'contents'; // Updated to make the parent transparent
-
-        this._debouncedResizeHandler = this._debounce(() => this.requestUpdate(), 200);
-
-        // Attach ResizeObserver to the child card
-        this._resizeObserver = new ResizeObserver(() => {
-          this._debouncedResizeHandler();
-        });
-
-        // Observe the child card when it is available
-        const observeChildCard = () => {
-          const buttonCard = this.querySelector('cblcars-button-card');
-          if (buttonCard) {
-            this._resizeObserver.observe(buttonCard);
-            console.log('ResizeObserver attached to child card');
-          } else {
-            console.log('Child card not found, retrying...');
-            setTimeout(observeChildCard, 100); // Retry after a short delay
-          }
-        };
-
-        observeChildCard();
-
-        // Force an update when the layout changes
-        window.addEventListener('resize', this._debouncedResizeHandler);
-      }
-
-
-
-    /*
     disconnectedCallback() {
         super.disconnectedCallback();
 
@@ -295,25 +260,12 @@ class CBLCARSBaseCard extends LitElement {
         // Force an update when the layout changes
         window.addEventListener('resize', this._debouncedResizeHandler);
     }
-    */
 
     firstUpdated() {
-      //this._updateCardSize();
-      this.requestUpdate();
+      this._updateCardSize();
     }
 
-    disconnectedCallback() {
-        super.disconnectedCallback();
 
-        if (this._resizeObserver) {
-          this._resizeObserver.disconnect();
-          this._resizeObserver = null;
-        }
-
-        window.removeEventListener('resize', this._debouncedResizeHandler);
-      }
-
-    /*
     _updateCardSize() {
         const parentClientWidth = this.parentElement.clientWidth;
         const parentClientHeight = this.parentElement.clientHeight;
@@ -428,7 +380,7 @@ class CBLCARSBaseCard extends LitElement {
             console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
         }
     }
-    */
+
 
     createRenderRoot() {
         console.log('createRenderRoot called');
@@ -448,6 +400,8 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
                 .hass="${this.hass}"
                 .config="${this._config.cblcars_card_config}"
+                style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px;
+                "
             ></cblcars-button-card>
         `;
     }
@@ -462,7 +416,9 @@ class CBLCARSBaseCard extends LitElement {
 
     static styles = css`
         :host {
-            display: contents
+            display: block;
+            width: 100%;
+            height: 100%;
         }
         `;
 }
