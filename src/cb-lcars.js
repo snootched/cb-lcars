@@ -254,7 +254,7 @@ class CBLCARSBaseCard extends LitElement {
         this.style.display = 'block';
         this.style.minHeight = '50px';
 
-        /*
+
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
 
         this._resizeObserver = new ResizeObserver(() => {
@@ -265,25 +265,25 @@ class CBLCARSBaseCard extends LitElement {
 
         // Force an update when the layout changes
         window.addEventListener('resize', this._debouncedResizeHandler);
-        */
+
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
 
-        /*
+
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
             this._resizeObserver = null;
           }
         // Force an update when the layout changes
         window.removeEventListener('resize', this._debouncedResizeHandler);
-        */
+
     }
 
 
     firstUpdated() {
-        //this._updateCardSize();
+        this._updateCardSize();
         console.log('firstUpdated called');
     }
 
@@ -489,7 +489,7 @@ class CBLCARSBaseCard extends LitElement {
         `;
     }
 
-    /*
+
     _debounce(func, wait) {
         let timeout;
         return function(...args) {
@@ -497,7 +497,7 @@ class CBLCARSBaseCard extends LitElement {
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
     }
-    */
+
 
     static styles = css`
         :host {
