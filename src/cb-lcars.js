@@ -143,7 +143,10 @@ class CBLCARSBaseCard extends LitElement {
 
         console.log('CBLCARSBaseCard setConfig called with:', this._config);
 
-        this.requestUpdate();
+        //this.requestUpdate();
+
+        this._updateCardSize();
+
         //const buttonCard = this.querySelector('cblcars-button-card');
         //if (buttonCard && this._config && this._config.cblcars_card_config) {
         //    console.log('Forcing child card to update with setConfig:', this._config.cblcars_card_config);
@@ -316,11 +319,6 @@ class CBLCARSBaseCard extends LitElement {
 
         let width, height;
 
-        // Determine which set of dimensions to use
-        //if (parentClientWidth > 0 && parentClientHeight > 0 && (parentClientWidth < offsetWidth || parentClientHeight < offsetHeight)) {
-        //  width = parentClientWidth;
-        //  height = parentClientHeight;
-        //} else
         if (offsetWidth > 0 && offsetHeight > 0) {
           width = offsetWidth;
           height = offsetHeight;
@@ -506,7 +504,7 @@ class CBLCARSBaseCard extends LitElement {
 
     static styles = css`
         :host {
-            display: contents;
+            display: block;
         }
         `;
 }
