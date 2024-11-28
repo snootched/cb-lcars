@@ -386,26 +386,20 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
 
     static get defaultConfig() {
         return {
-            cblcars_card_config: {
-                label: "CB-LCARS Label",
-                show_label: true
-            }
+            label: "CB-LCARS Label",
+            show_label: true
         };
     }
 
     setConfig(config) {
-
         const defaultCardType = 'cb-lcars-label';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
         super.setConfig(specialConfig);
     }
@@ -422,13 +416,11 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
 
     static get defaultConfig() {
         return {
-            cblcars_card_config: {
-                variables: {
-                    card: {
-                        border: {
-                            left: { size: 90 },
-                            top: { size: 20 }
-                        }
+            variables: {
+                card: {
+                    border: {
+                        left: { size: 90 },
+                        top: { size: 20 }
                     }
                 }
             }
@@ -439,16 +431,12 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
 
         const defaultCardType = 'cb-lcars-header';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        //const defaultTemplates = ['cb-lcars-header'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
         super.setConfig(specialConfig);
     }
@@ -479,16 +467,12 @@ class CBLCARSDoubleElbowCard extends CBLCARSBaseCard {
 
         const defaultCardType = 'cb-lcars-header-picard';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        //const defaultTemplates = ['cb-lcars-header'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
         super.setConfig(specialConfig);
     }
@@ -512,10 +496,8 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 
     static get defaultConfig() {
         return {
-            cblcars_card_config: {
-                variables: {
-                    _mode: 'gauge'
-                }
+            variables: {
+                _mode: 'gauge'
             }
         };
     }
@@ -523,15 +505,12 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
     setConfig(config) {
 
         const defaultTemplates = ['cb-lcars-multimeter'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
         super.setConfig(specialConfig);
     }
@@ -560,15 +539,12 @@ class CBLCARSDPADCard extends CBLCARSBaseCard {
     setConfig(config) {
 
         const defaultTemplates = ['cb-lcars-dpad'];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
         super.setConfig(specialConfig);
     }
@@ -592,10 +568,8 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 
     static get defaultConfig() {
         return {
-            cblcars_card_config: {
-                label: "CB-LCARS Button",
-                show_label: true
-            }
+            label: "CB-LCARS Button",
+            show_label: true
         };
     }
 
@@ -603,20 +577,15 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 
         const defaultCardType = 'cb-lcars-button-lozenge';
         const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
+        const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
         const specialConfig = {
             ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
+            template: mergedTemplates,
         };
-
-        //cblcarsLog('debug','button card specialConfig: ',specialConfig);
-
         super.setConfig(specialConfig);
+
     }
 
     getLayoutOptions() {
@@ -627,53 +596,6 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
             grid_min_columns: 1
         };
       }
-}
-
-class CBLCARSSliderCard extends CBLCARSBaseCard {
-    static get editorType() {
-        return 'cb-lcars-slider-card-editor';
-    }
-
-    static get cardType() {
-        return 'cb-lcars-slider-card';
-    }
-
-    static get defaultConfig() {
-        return {
-            cblcars_card_type: 'cb-lcars-slider-horizontal'
-        };
-    }
-
-    setConfig(config) {
-
-        const defaultCardType = 'cb-lcars-slider-horizontal';
-        const defaultTemplates = [config.cblcars_card_type ? config.cblcars_card_type : defaultCardType];
-        const userTemplates = (config.cblcars_card_config && config.cblcars_card_config.template) ? [...config.cblcars_card_config.template] : [];
-        const mergedTemplates = [...defaultTemplates, ...userTemplates];
-
-        const specialConfig = {
-            ...config,
-            cblcars_card_config: {
-                ...config.cblcars_card_config,
-                template: mergedTemplates,
-            }
-        };
-        super.setConfig(specialConfig);
-    }
-
-    getLayoutOptions() {
-        if (this._config.cblcars_card_type && this._config.cblcars_card_type.includes('horizontal')) {
-            return {
-                grid_rows: 1,
-                grid_columns: 4
-            };
-        } else {
-            return {
-                grid_rows: 1,
-                grid_columns: 4
-            };
-        }
-    }
 }
 
 
