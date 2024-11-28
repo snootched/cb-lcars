@@ -305,8 +305,10 @@ class CBLCARSBaseCard extends LitElement {
         //const parentClientWidth = this.parentElement.clientWidth;
         //const parentClientHeight = this.parentElement.clientHeight;
         if(this.parentElement){
-            const offsetWidth = this.parentElement.offsetWidth;
-            const offsetHeight = this.parentElement.offsetHeight;
+            //const offsetWidth = this.parentElement.offsetWidth;
+            //const offsetHeight = this.parentElement.offsetHeight;
+            const offsetWidth = this.offsetWidth;
+            const offsetHeight = this.offsetHeight;
 
             //console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
             console.log("_updateCardSize: Offset width:", offsetWidth, " Offset height:", offsetHeight);
@@ -486,7 +488,7 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
                 .hass="${this.hass}"
                 .config="${this._config.cblcars_card_config}"
-                style="min-height: 50px;"
+                style="display: block; --button-card-width: ${this.parentElement.offsetWidth}px; --button-card-height: ${this.parentElement.offsetHeight}px; min-height: 50px;"
             ></cblcars-button-card>
         `;
                 //style="display: block; --button-card-width: ${this.parentElement.offsetWidth}px; --button-card-height: ${this.parentElement.offsetHeight}px; min-height: 50px;"
