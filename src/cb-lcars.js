@@ -280,20 +280,12 @@ class CBLCARSBaseCard extends LitElement {
         */
     }
 
-    /*
+
     firstUpdated() {
-        this._updateCardSize();
-        // Delay the dispatch of the 'll-rebuild' event to ensure the card has settled
-        setTimeout(() => {
-            if (!this._initialSetupComplete && !this._rebuildDispatched && !window.llRebuildFired) { // Check if the initial setup is not complete and the call has not been made
-                this._initialSetupComplete = true; // Set the flag to true after the initial setup is complete
-                this._rebuildDispatched = true; // Set the flag to true to indicate that the call has been made
-                window.llRebuildFired = true; // Set the global flag to indicate that the event has been fired
-                this.dispatchEventToChildCard('ll-rebuild'); // Dispatch the 'll-rebuild' event to the child card
-            }
-        }, 1000);
+        //this._updateCardSize();
+        console.log('firstUpdated called');
     }
-    */
+
     /*
     requestUpdateOnChildCard() {
         const buttonCard = this.querySelector('cblcars-button-card');
@@ -311,67 +303,71 @@ class CBLCARSBaseCard extends LitElement {
 
         //const parentClientWidth = this.parentElement.clientWidth;
         //const parentClientHeight = this.parentElement.clientHeight;
-        const offsetWidth = this.parentElement.offsetWidth;
-        const offsetHeight = this.parentElement.offsetHeight;
+        if(this.parentElement){
+            const offsetWidth = this.parentElement.offsetWidth;
+            const offsetHeight = this.parentElement.offsetHeight;
 
-        //console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
-        console.log("_updateCardSize: Offset width:", offsetWidth, " Offset height:", offsetHeight);
+            //console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
+            console.log("_updateCardSize: Offset width:", offsetWidth, " Offset height:", offsetHeight);
 
-        let width, height;
+            let width, height;
 
-        if (offsetWidth > 0 && offsetHeight > 0) {
-          width = offsetWidth;
-          height = offsetHeight;
-        } else {
+            if (offsetWidth > 0 && offsetHeight > 0) {
+            width = offsetWidth;
+            height = offsetHeight;
+            } else {
 
-          console.log("Returning because both dimension sets are invalid");
-          return;
-        }
-
-        console.log('Updating card size:', width, height);
-
-        const significantChange = 10;
-
-        if (
-            Math.abs(width - this._lastWidth) > significantChange ||
-            Math.abs(height - this._lastHeight) > significantChange
-          ) {
-            this._lastWidth = width;
-            this._lastHeight = height;
-
-            if (this._config && this._config.cblcars_card_config) {
-                const newConfig = {
-                    ...this._config,
-                    cblcars_card_config: {
-                        ...this._config.cblcars_card_config,
-                        variables: {
-                            ...this._config.cblcars_card_config.variables,
-                        card: {
-                            ...this._config.cblcars_card_config.variables?.card,
-                            width: `${width}px`,
-                            height: `${height}px`,
-                            },
-                        },
-                    },
-                };
-                console.log('in _updateCardSize Setting new config:', newConfig);
-                this._config = newConfig;
-
-                // Call setConfig on the child card with the updated configuration
-                const buttonCard = this.querySelector('cblcars-button-card');
-                if (buttonCard) {
-                    console.log('Updating config on child card in _updateCardSize:', newConfig.cblcars_card_config);
-                    buttonCard.style.setProperty('--button-card-width', `${width}px`);
-                    buttonCard.style.setProperty('--button-card-height', `${height}px`);
-                    buttonCard.setConfig(newConfig.cblcars_card_config);
-                } else {
-                    console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
-                }
+            console.log("Returning because both dimension sets are invalid");
+            return;
             }
 
-            this.requestUpdate();
+            console.log('Updating card size:', width, height);
+
+            const significantChange = 10;
+
+            if (
+                Math.abs(width - this._lastWidth) > significantChange ||
+                Math.abs(height - this._lastHeight) > significantChange
+            ) {
+                this._lastWidth = width;
+                this._lastHeight = height;
+
+                if (this._config && this._config.cblcars_card_config) {
+                    const newConfig = {
+                        ...this._config,
+                        cblcars_card_config: {
+                            ...this._config.cblcars_card_config,
+                            variables: {
+                                ...this._config.cblcars_card_config.variables,
+                            card: {
+                                ...this._config.cblcars_card_config.variables?.card,
+                                width: `${width}px`,
+                                height: `${height}px`,
+                                },
+                            },
+                        },
+                    };
+                    console.log('in _updateCardSize Setting new config:', newConfig);
+                    this._config = newConfig;
+
+                    // Call setConfig on the child card with the updated configuration
+                    const buttonCard = this.querySelector('cblcars-button-card');
+                    if (buttonCard) {
+                        console.log('Updating config on child card in _updateCardSize:', newConfig.cblcars_card_config);
+                        buttonCard.style.setProperty('--button-card-width', `${width}px`);
+                        buttonCard.style.setProperty('--button-card-height', `${height}px`);
+                        buttonCard.setConfig(newConfig.cblcars_card_config);
+                    } else {
+                        console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
+                    }
+                }
+
+                this.requestUpdate();
+            } else {
+                console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
+            }
         } else {
-            console.log('in _updateCardSize - no significant change: width:', width, ' height:', height, ' lastWidth:', this._lastWidth, ' lastHeight:',this._lastHeight);
+            console.log('Parent element not found in _updateCardSize');
         }
     }
 
