@@ -488,7 +488,7 @@ class CBLCARSBaseCard extends LitElement {
             <cblcars-button-card
                 .hass="${this.hass}"
                 .config="${this._config.cblcars_card_config}"
-                style="display: block; --button-card-width: ${this.parentElement.offsetWidth}px; --button-card-height: ${this.parentElement.offsetHeight}px; min-height: 50px;"
+                style="display: block; --button-card-width: ${this._lastWidth}px; --button-card-height: ${this._lastHeight}px; min-height: 50px;"
             ></cblcars-button-card>
         `;
                 //style="display: block; --button-card-width: ${this.parentElement.offsetWidth}px; --button-card-height: ${this.parentElement.offsetHeight}px; min-height: 50px;"
