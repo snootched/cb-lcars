@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.6.1-alpha.1
+  version: 2024.6.1-alpha.2
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -5051,9 +5051,24 @@ cblcars_card_templates:
       img_cell:
         - justify-content: '[[[ return variables.icon.justify ]]]'
       card:
-        - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
-        - min-height: '[[[ return variables.__get_num_with_unit(variables.card.min_height); ]]]'
-        - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+        - height: |
+            [[[
+              if (variables.card.height) {
+                return variables.__get_num_with_unit(variables.card.height);
+              }
+            ]]]
+        - min-height: |
+            [[[
+              if (variables.card.min_height) {
+                  return variables.__get_num_with_unit(variables.card.min_height);
+              }
+            ]]]
+        - width: |
+            [[[
+              if (variables.card.width) {
+                return variables.__get_num_with_unit(variables.card.width);
+              }
+            ]]]
         - border-top: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);

@@ -1,9 +1,8 @@
 cb-lcars-label-card:
   cblcars_card_type: cb-lcars-label-picard
-  cblcars_card_config:
-    show_label: true
-    variables:
-      label: "LCARS Label"
+  show_label: true
+  variables:
+    label: "LCARS Label"
   tap_action:
     action: none
   double_tap_action:
@@ -12,10 +11,9 @@ cb-lcars-label-card:
     action: none
 cb-lcars-button-card:
   cblcars_card_type: cb-lcars-button-picard
-  cblcars_card_config:
-    show_label: true
-    variables:
-      label: "LCARS Button"
+  show_label: true
+  variables:
+    label: "LCARS Button"
 cb-lcars-elbow-card:
   cblcars_card_type: cb-lcars-header
   tap_action:
@@ -25,30 +23,29 @@ cb-lcars-elbow-card:
   hold_action:
     action: none
 cb-lcars-multimeter-card:
-  cblcars_card_config:
-    variables:
-      entity_match_header: false
-      entity_match_slider: false
-      entity_match_gauge: false
-      entity_match_slider_start: false
-      entity_match_slider_end: false
-      _mode: gauge
-      _vertical: false
-      _slider_mode: brightness
-      card:
-        border:
-          left:
-            size: 120
-          top:
-            size: 10
-      gauge:
-        sub_meter:
-          show_sub_meter: true
-    tap_action:
-      action: toggle
-    double_tap_action:
-      action: none
-    hold_action:
-      action: none
-    show_label: false
+  variables:
+    entity_match_header: false
+    entity_match_slider: false
+    entity_match_gauge: false
+    entity_match_slider_start: false
+    entity_match_slider_end: false
+    _mode: gauge
+    _vertical: false
+    _slider_mode: brightness
+    card:
+      border:
+        left:
+          size: 120
+        top:
+          size: 10
+    gauge:
+      sub_meter:
+        show_sub_meter: true
+  tap_action:
+    action: toggle
+  double_tap_action:
+    action: none
+  hold_action:
+    action: none
+  show_label: false
 
