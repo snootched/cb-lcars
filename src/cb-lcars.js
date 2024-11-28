@@ -104,6 +104,9 @@ class CBLCARSBaseCard extends ButtonCard {
 
     constructor () {
         super();
+
+        this.style.height = '100%';
+        this.style.width = '100%';
     }
 
 
