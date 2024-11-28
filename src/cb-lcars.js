@@ -104,9 +104,6 @@ class CBLCARSBaseCard extends ButtonCard {
 
     constructor () {
         super();
-
-        this.style.height = '100%';
-        this.style.width = '100%';
     }
 
 
@@ -215,6 +212,9 @@ class CBLCARSBaseCard extends ButtonCard {
 
     connectedCallback() {
         super.connectedCallback();
+
+        this.style.height = '100%';
+        this.style.width = '100%';
 
         /*
         this.style.display = 'block';
