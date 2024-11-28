@@ -351,6 +351,7 @@ class CBLCARSBaseCard extends LitElement {
                     console.log('in _updateCardSize Setting new config:', newConfig);
                     this._config = newConfig;
 
+                    /*
                     // Call setConfig on the child card with the updated configuration
                     const buttonCard = this.querySelector('cblcars-button-card');
                     if (buttonCard) {
@@ -361,6 +362,7 @@ class CBLCARSBaseCard extends LitElement {
                     } else {
                         console.log('in _updateCardSize trying to run setConfig on button card - buttonCard not found in _updateCardSize');
                     }
+                    */
                 }
 
                 this.requestUpdate();
