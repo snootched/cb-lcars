@@ -305,10 +305,10 @@ class CBLCARSBaseCard extends LitElement {
         //const parentClientWidth = this.parentElement.clientWidth;
         //const parentClientHeight = this.parentElement.clientHeight;
         if(this.parentElement){
-            //const offsetWidth = this.parentElement.offsetWidth;
-            //const offsetHeight = this.parentElement.offsetHeight;
-            const offsetWidth = this.offsetWidth;
-            const offsetHeight = this.offsetHeight;
+            const offsetWidth = this.parentElement.offsetWidth;
+            const offsetHeight = this.parentElement.offsetHeight;
+            //const offsetWidth = this.offsetWidth;
+            //const offsetHeight = this.offsetHeight;
 
             //console.log("Parent client width:", parentClientWidth, " Parent client height:", parentClientHeight);
             console.log("_updateCardSize: Offset width:", offsetWidth, " Offset height:", offsetHeight);
