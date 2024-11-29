@@ -183,12 +183,15 @@ class CBLCARSBaseCard extends ButtonCard {
     connectedCallback() {
         super.connectedCallback();
 
-        this.style.height = '100%';
-
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
-            this.style.maxHeight = '150px'; // Set your desired max-height value
+            this.style.height = '150px'; // Set your desired max-height value
+        } else {
+            this.style.height = '100%';
         }
+
+
+
         /*
 
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
