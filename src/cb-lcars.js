@@ -104,6 +104,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
     @property({ type: Boolean }) _enableResizeObserver = false;
     @property({ type: String }) _logLevel = cblcarsGetGlobalLogLevel();
+    @property({ type: String }) _resizeObserverTarget = 'this';
 
     constructor () {
         super();
@@ -131,14 +132,24 @@ class CBLCARSBaseCard extends ButtonCard {
             template: mergedTemplates,
         };
 
+        // Set the _logLevel property from the config
+        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
+
+        // Set the _resizeObserverTarget property from the config
+        this._resizeObserverTarget = config.resize_observer_target || 'this';
         // Set the _enableResizeObserver property from the config
         this._enableResizeObserver = config.enable_resize_observer || false;
 
-        // Set the _logLevel property from the config
-        this._logLevel = config.cblcars_log_level || 'info';
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
+
+        // Enable or disable the resize observer based on the config
+        if (this._enableResizeObserver) {
+            this.enableResizeObserver();
+        } else {
+            this.disableResizeObserver();
+        }
     }
 
     static get editorType() {
@@ -204,7 +215,9 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.height = '100%';
         }
 
-        this.enableResizeObserver();
+        if (this._enableResizeObserver) {
+            this.enableResizeObserver();
+        }
     }
 
     disconnectedCallback() {
@@ -213,22 +226,40 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     enableResizeObserver() {
-        if (this._enableResizeObserver) {
-            if (this.isConnected) {
-                this._resizeObserver.observe(this);
-                cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled`, this, this._logLevel);
-            }
+        const targetElement = this.resolveTargetElement(this._resizeObserverTarget);
+
+        if (targetElement && this.isConnected) {
+            this._resizeObserver.observe(targetElement);
+            cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled on [${targetElement}]`, this, this._logLevel);
         }
     }
 
     disableResizeObserver() {
-        this._enableResizeObserver = false;
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
         cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this, this._logLevel);
     }
 
+    // Method to update the _enableResizeObserver property and trigger the observer
+    updateResizeObserver(enable) {
+        this._enableResizeObserver = enable;
+        if (enable) {
+            this.enableResizeObserver();
+        } else {
+            this.disableResizeObserver();
+        }
+    }
+    resolveTargetElement(target) {
+        const targetMapping = {
+            'this': () => this,
+            'this.parentElement': () => this.parentElement,
+            'this.offsetParent': () => this.offsetParent,
+            // Add more mappings as needed
+        };
+
+        return targetMapping[target] ? targetMapping[target]() : this;
+    }
     _debounce(func, wait) {
         let timeout;
         return function(...args) {
