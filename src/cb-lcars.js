@@ -95,15 +95,14 @@ async function loadStubConfig(filePath) {
 
 class CBLCARSBaseCard extends ButtonCard {
 
-
-//    @state() _lastWidth = 0;
-//    @state() _lastHeight = 0;
-//    _resizeObserver = null;
-//    _initialSetupComplete = false;
-//    _rebuildDispatched = false;
+    @property({ type: Boolean }) _isResizeObserverEnabled = false;
 
     constructor () {
         super();
+        this._resizeObserver = new ResizeObserver(() => {
+            this._debouncedResizeHandler();
+        });
+        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this.config), 100);
     }
 
 
@@ -190,34 +189,36 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.height = '100%';
         }
 
-
-
-        /*
-
-        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 200);
-
-        this._resizeObserver = new ResizeObserver(() => {
-        this._debouncedResizeHandler();
-        });
-        //this._resizeObserver.observe(this);
-        this._resizeObserver.observe(this.parentElement);
-
-        // Force an update when the layout changes
-        window.addEventListener('resize', this._debouncedResizeHandler);
-        */
+        this.enableResizeObserver();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        this.disableResizeObserver();
+    }
 
-        /*
-        if (this._resizeObserver) {
+    enableResizeObserver() {
+        if (!this._isResizeObserverEnabled) {
+            this._isResizeObserverEnabled = true;
+            if (this.isConnected) {
+                this._resizeObserver.observe(this);
+            }
+        }
+    }
+
+    disableResizeObserver() {
+        if (this._isResizeObserverEnabled) {
+            this._isResizeObserverEnabled = false;
             this._resizeObserver.disconnect();
-            this._resizeObserver = null;
-          }
-        // Force an update when the layout changes
-        window.removeEventListener('resize', this._debouncedResizeHandler);
-        */
+        }
+    }
+
+    _debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
 }
 
@@ -346,6 +347,11 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
                 _mode: 'gauge'
             }
         };
+    }
+
+    constructor() {
+        super();
+        this._isResizeObserverEnabled = true;
     }
 
     setConfig(config) {
