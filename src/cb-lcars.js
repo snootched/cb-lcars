@@ -100,6 +100,9 @@ class CBLCARSBaseCard extends ButtonCard {
     constructor () {
         super();
         this._resizeObserver = new ResizeObserver(() => {
+            console.log('Resize observer fired');
+            console.log('this:', this);
+            console.log('this.parentElement:', this.parentElement);
             this._debouncedResizeHandler();
         });
         this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 100);
