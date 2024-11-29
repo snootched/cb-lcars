@@ -145,6 +145,8 @@ cb-lcars-multimeter:
           "on": black
           "off": black
     card:
+      height: '[[[ return this.offsetHeight; ]]]'
+      width: '[[[ return this.offsetWidth; ]]]'
       border:
         top:
           size: 10

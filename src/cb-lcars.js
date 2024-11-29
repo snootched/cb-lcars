@@ -95,14 +95,14 @@ async function loadStubConfig(filePath) {
 
 class CBLCARSBaseCard extends ButtonCard {
 
-    @property({ type: Boolean }) _isResizeObserverEnabled = false;
+    @property({ type: Boolean }) _enableResizeObserver = false;
 
     constructor () {
         super();
         this._resizeObserver = new ResizeObserver(() => {
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this.config), 100);
+        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 100);
     }
 
 
@@ -198,8 +198,7 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     enableResizeObserver() {
-        if (!this._isResizeObserverEnabled) {
-            this._isResizeObserverEnabled = true;
+        if (this._enableResizeObserver) {
             if (this.isConnected) {
                 this._resizeObserver.observe(this);
             }
@@ -207,8 +206,8 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     disableResizeObserver() {
-        if (this._isResizeObserverEnabled) {
-            this._isResizeObserverEnabled = false;
+        this._enableResizeObserver = false;
+        if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
     }
@@ -351,7 +350,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 
     constructor() {
         super();
-        this._isResizeObserverEnabled = true;
+        this._enableResizeObserver = true;
     }
 
     setConfig(config) {
