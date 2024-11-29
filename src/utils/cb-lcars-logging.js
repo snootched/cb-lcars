@@ -4,7 +4,7 @@ let cblcarsGlobalLogLevel = 'info';
 
 export function cblcarsSetGlobalLogLevel(level) {
   cblcarsGlobalLogLevel = level;
-  cblcarsLog('info',`Settging CBLCARS global log level set to: ${level}`);
+  cblcarsLog('info',`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
 }
 export function cblcarsGetGlobalLogLevel() {
   return cblcarsGlobalLogLevel;

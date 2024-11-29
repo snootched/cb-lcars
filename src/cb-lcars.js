@@ -5,12 +5,11 @@ import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlo
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
-import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
-
-import { LitElement, html, css } from 'lit';
 import { property, customElement, state } from 'lit/decorators.js';
-
 import { ButtonCard } from "./cblcars-button-card.js"
+
+// WIP - do we want to make a panel for this?
+import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
@@ -136,7 +135,7 @@ class CBLCARSBaseCard extends ButtonCard {
         this._enableResizeObserver = config.enable_resize_observer || false;
 
         // Set the _logLevel property from the config
-        this._logLevel = config.log_level || 'info';
+        this._logLevel = config.cblcars_log_level || 'info';
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
@@ -200,7 +199,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
-            this.style.height = 'minmax(45px,120px)';
+            this.style.height = '60px';
         } else {
             this.style.height = '100%';
         }

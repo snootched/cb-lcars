@@ -71,7 +71,7 @@ jobs:
         run: |
           mkdir -p ./dist
           ./create_full_yaml.sh --output ./dist/cb-lcars-lovelace.yaml --path ./src/cb-lcars
-          echo "cb-lcars:" > ./dist/temp.yaml
+          echo "cblcars:" > ./dist/temp.yaml
           echo "  version: ${{ steps.get_version.outputs.version }}" >> ./dist/temp.yaml
           echo "  manage_config: true" >> ./dist/temp.yaml
           cat ./dist/cb-lcars-lovelace.yaml >> ./dist/temp.yaml

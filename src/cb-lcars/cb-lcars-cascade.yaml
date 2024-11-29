@@ -4,6 +4,9 @@ cb-lcars-cascade:
     - cb-lcars-label
   show_label: true
   variables:
+    card:
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
     text:
       label:
         font_size: 24
