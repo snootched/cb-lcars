@@ -240,10 +240,24 @@ cb-lcars-functions:
     __hex_to_rgba: |
       [[[
         return function hex_to_rgba(input, alpha = 1) {
-          if (input.startsWith('rgb')) {
+
+          // Ensure alpha is between 0 and 1, or convert if between 1 and 255
+          if (alpha > 1 && alpha <= 255) {
+            alpha = alpha / 255;
+          } else if (alpha < 0 || alpha > 1) {
+            alpha = 1;
+          }
+
+          if (input.startsWith('rgba')) {
             // If the input starts with 'rgb', return the input as is
             return input;
-          }     let hex;
+          }
+          if (input.startsWith('rgb(')) {
+            // If the input starts with 'rgb(', add the alpha channel and return
+            return input.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
+          }
+
+          let hex;
           if (input.startsWith('var(--')) {
               // If the input is a CSS variable in the format "var(--color)", extract the color variable
               hex = getComputedStyle(document.documentElement)
@@ -258,19 +272,24 @@ cb-lcars-functions:
               hex = input;
           }
 
-          let r, g, b;
-          if (hex.length === 7) {
+          let r, g, b, a = alpha;
+          if (hex.length === 9) { // #RRGGBBAA
               r = parseInt(hex.slice(1, 3), 16);
               g = parseInt(hex.slice(3, 5), 16);
               b = parseInt(hex.slice(5, 7), 16);
-          } else if (hex.length === 4) {
+              a = parseInt(hex.slice(7, 9), 16) / 255;
+          } else if (hex.length === 7) {  // #RRGGBB
+              r = parseInt(hex.slice(1, 3), 16);
+              g = parseInt(hex.slice(3, 5), 16);
+              b = parseInt(hex.slice(5, 7), 16);
+          } else if (hex.length === 4) {  // #RGB
               r = parseInt(hex[1] + hex[1], 16);
               g = parseInt(hex[2] + hex[2], 16);
               b = parseInt(hex[3] + hex[3], 16);
           } else {
               throw new Error(`Invalid HEX color: ${input}`);
           }
-          return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          return `rgba(${r}, ${g}, ${b}, ${a})`;
         }
       ]]]
     __extract_color_channel: |

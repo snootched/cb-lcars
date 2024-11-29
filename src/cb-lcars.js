@@ -1,5 +1,5 @@
 import * as CBLCARS from './cb-lcars-vars.js'
-import { cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
+import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
@@ -71,6 +71,14 @@ async function loadTemplates(filePath) {
         // Store the YAML content in window.cblcars_card_templates
         window.cblcars_card_templates = yamlContent.cblcars_card_templates;
 
+        // Merge the cblcars stanza with the existing window.cblcars object
+        if (yamlContent.cblcars) {
+            window.cblcars = {
+                ...window.cblcars,
+                ...yamlContent.cblcars
+            };
+        }
+
         templates = yamlContent || {};
         templatesLoaded = true;
         cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`, templates);
@@ -96,13 +104,12 @@ async function loadStubConfig(filePath) {
 class CBLCARSBaseCard extends ButtonCard {
 
     @property({ type: Boolean }) _enableResizeObserver = false;
+    @property({ type: String }) _logLevel = cblcarsGetGlobalLogLevel();
 
     constructor () {
         super();
         this._resizeObserver = new ResizeObserver(() => {
-            console.log('Resize observer fired');
-            console.log('this:', this);
-            console.log('this.parentElement:', this.parentElement);
+            cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
         this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 100);
@@ -125,8 +132,14 @@ class CBLCARSBaseCard extends ButtonCard {
             template: mergedTemplates,
         };
 
-        console.log('CBLCARSBaseCard setConfig called with:', this._config);
+        // Set the _enableResizeObserver property from the config
+        this._enableResizeObserver = config.enable_resize_observer || false;
+
+        // Set the _logLevel property from the config
+        this._logLevel = config.log_level || 'info';
+
         super.setConfig(this._config);
+        cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
     }
 
     static get editorType() {
@@ -149,14 +162,14 @@ class CBLCARSBaseCard extends ButtonCard {
 
         try {
             if (!customElements.get(editorType)) {
-                cblcarsLog('error',`Graphical editor element [${editorType}] is not defined defined in Home Assistant!`);
+                cblcarsLog('error',`${this.constructor.name}.getConfigElement() Graphical editor element [${editorType}] is not defined defined in Home Assistant!`,null ,this._logLevel);
                 return null;
             }
             const element = document.createElement(editorType);
             //console.log('Element created:', element);
             return element;
         } catch (error) {
-            cblcarsLog('error',`Error creating element ${editorType}: `,error);
+            cblcarsLog('error',`${this.constructor.name}.getConfigElement() Error creating element ${editorType}: `,error, this._logLevel);
             return null;
         }
     }
@@ -187,7 +200,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
-            this.style.height = '150px'; // Set your desired max-height value
+            this.style.height = 'minmax(45px,120px)';
         } else {
             this.style.height = '100%';
         }
@@ -204,6 +217,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._enableResizeObserver) {
             if (this.isConnected) {
                 this._resizeObserver.observe(this);
+                cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled`, this, this._logLevel);
             }
         }
     }
@@ -213,6 +227,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
+        cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this, this._logLevel);
     }
 
     _debounce(func, wait) {
