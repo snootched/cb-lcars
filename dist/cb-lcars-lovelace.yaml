@@ -1,5 +1,5 @@
 cb-lcars:
-  version: 2024.6.1-alpha.5
+  version: 2024.6.1-alpha.6
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -3340,8 +3340,6 @@ cblcars_card_templates:
                   ]]]
     styles:
       card:
-        - width: "[[[ return variables.__get_num_with_unit(variables.card.width) ]]]"
-        - height: "[[[ return variables.__get_num_with_unit(variables.card.height) ]]]"
         - border-radius: 0 !important
         - background: none
         - border: none
@@ -5055,6 +5053,8 @@ cblcars_card_templates:
             [[[
               if (variables.card.height) {
                 return variables.__get_num_with_unit(variables.card.height);
+              } else {
+                return "100%";
               }
             ]]]
         - min-height: |
@@ -5659,14 +5659,6 @@ cblcars_card_templates:
           return (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0'))))
         ]]]
       card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px',{ height: 56, width: 200 });
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px',{ height: 56, width: 200 });
-          ]]]
         min_height: 45px
         color:
           active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
