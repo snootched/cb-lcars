@@ -392,8 +392,6 @@ cb-lcars-multimeter:
                 ]]]
   styles:
     card:
-      - width: "[[[ return variables.__get_num_with_unit(variables.card.width) ]]]"
-      - height: "[[[ return variables.__get_num_with_unit(variables.card.height) ]]]"
       - border-radius: 0 !important
       - background: none
       - border: none

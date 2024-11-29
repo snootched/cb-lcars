@@ -11,14 +11,6 @@ cb-lcars-button-base:
         return (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0'))))
       ]]]
     card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px',{ height: 56, width: 200 });
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px',{ height: 56, width: 200 });
-        ]]]
       min_height: 45px
       color:
         active: "var(--lcars-card-button, var(--picard-medium-light-gray))"

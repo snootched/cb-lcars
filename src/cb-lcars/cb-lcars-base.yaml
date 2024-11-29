@@ -128,6 +128,8 @@ cb-lcars-base:
           [[[
             if (variables.card.height) {
               return variables.__get_num_with_unit(variables.card.height);
+            } else {
+              return "100%";
             }
           ]]]
       - min-height: |
