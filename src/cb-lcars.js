@@ -230,7 +230,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         if (targetElement && this.isConnected) {
             this._resizeObserver.observe(targetElement);
-            cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled on [${targetElement}]`, this, this._logLevel);
+            cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled on [${this._resizeObserverTarget}]`, this, this._logLevel);
         }
     }
 

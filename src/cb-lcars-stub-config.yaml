@@ -23,6 +23,7 @@ cb-lcars-elbow-card:
   hold_action:
     action: none
 cb-lcars-multimeter-card:
+  enable_resize_observer: true
   variables:
     entity_match_header: false
     entity_match_slider: false
