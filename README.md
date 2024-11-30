@@ -1,5 +1,11 @@
 ***
-**Note:** This project is active development.  Functionality and configurations may change over time.  Things may break - so you may not want to use this on your primary dashboard just yet.
+**Note:**
+
+This project is active development.
+
+Upcoming version will act like native custom button card, so existing configs will change slightly.
+
+Functionality and configurations may change over time until stabilized.  Things may break - so you may not want to use this on your primary dashboard just yet.
 ***
 
 <p align="center">
@@ -61,7 +67,11 @@
 
 ### What is this?
 This is a set of custom cards to build yourself an LCARS-inspired Home Assistant dashboard.
+
+These cards are built upon `custom-button-card` with some enhancements to base function and internal template management.
+
 <br>
+
 - Inspired by, and meant to be used side-by-side with the amazing [ha-lcars-theme](https://github.com/th3jesta/ha-lcars)
 - Provides a (growing) library of elements found in LCARS interfaces like:
   - Buttons
@@ -143,8 +153,7 @@ The following should be installed and working in your Home Assistant instance - 
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
 | [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
-| [custom-button-card](https://github.com/custom-cards/button-card)           | *Now Included*   | Base Framework<br><br>**Additional install no longer required.** |
-| [my-cards/my-slider-v2](https://github.com/AnthonMS/my-cards)               | *Now Included*    | Provides slider function which is used in the slider/gauge controls.<br><br>**Additional install no longer required.** |
+
 
 
 <br>
@@ -195,6 +204,14 @@ Click on the Entity ID in the table to launch the add helper dialog in your Home
 <br>
 
 ### 4. Boldly Go...
+
+---
+***Next version will not require the templates loaded on the dashboard.
+<br>
+The below instructions will only be needed if you wish to view a sample dashboard with a gallery of all the controls.***
+
+---
+
 
 CB-LCARS (currently) requires the `custom-button-card` templates to be added do the dashboard config.
 
