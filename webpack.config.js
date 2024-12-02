@@ -29,6 +29,7 @@ module.exports = {
                         plugins: [
                             // Add necessary plugins like @babel/plugin-proposal-decorators
                             ['@babel/plugin-proposal-decorators', { legacy: true }],
+                            ['@babel/plugin-transform-classes'],
                         ],
                     },
                 },
