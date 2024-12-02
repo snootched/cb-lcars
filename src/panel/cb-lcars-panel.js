@@ -39,3 +39,6 @@ export class CBLCARSPanel extends LitElement {
     `;
   }
 }
+
+// define test panel
+//customElements.define("cb-lcars-panel", CBLCARSPanel);

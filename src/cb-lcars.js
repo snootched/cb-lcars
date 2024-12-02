@@ -5,11 +5,11 @@ import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlo
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
-import { property, customElement, state } from 'lit/decorators.js';
+import { property } from 'lit/decorators.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 
 // WIP - do we want to make a panel for this?
-import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
+//import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
@@ -499,7 +499,7 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 
 
 // define test panel
-customElements.define("cb-lcars-panel", CBLCARSPanel);
+//customElements.define("cb-lcars-panel", CBLCARSPanel);
 
 // define the strategies in HA
 customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);

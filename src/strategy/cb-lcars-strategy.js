@@ -98,3 +98,9 @@ export class CBLCARSViewStrategy {
         }
     }
 }
+
+
+// define the strategies in HA
+customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
+customElements.define('ll-strategy-view-cb-lcars-view', CBLCARSViewStrategy);
+customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
