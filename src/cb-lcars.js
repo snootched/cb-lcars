@@ -1,7 +1,7 @@
 import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
-import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
+//import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
@@ -497,14 +497,6 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
       }
 }
 
-
-// define test panel
-//customElements.define("cb-lcars-panel", CBLCARSPanel);
-
-// define the strategies in HA
-customElements.define('ll-strategy-view-cb-lcars-airlock', CBLCARSViewStrategyAirlock);
-customElements.define('ll-strategy-view-cb-lcars-view', CBLCARSViewStrategy);
-customElements.define('ll-strategy-dashboard-cb-lcars', CBLCARSDashboardStrategy);
 
 
 // Helper function to define custom elements and their editors
