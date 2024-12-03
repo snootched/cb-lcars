@@ -102,9 +102,10 @@ async function loadStubConfig(filePath) {
 
 class CBLCARSBaseCard extends ButtonCard {
 
-    @property({ type: Boolean }) _enableResizeObserver = false;
-    @property({ type: String }) _logLevel = cblcarsGetGlobalLogLevel();
-    @property({ type: String }) _resizeObserverTarget = 'this';
+    _enableResizeObserver = false;
+    _resizeObserver;
+    _logLevel = cblcarsGetGlobalLogLevel();
+    _resizeObserverTarget = 'this';
 
     constructor () {
         super();
@@ -139,17 +140,10 @@ class CBLCARSBaseCard extends ButtonCard {
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         // Set the _enableResizeObserver property from the config
         this._enableResizeObserver = config.enable_resize_observer || false;
-
+        this.updateResizeObserver();
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
-
-        // Enable or disable the resize observer based on the config
-        if (this._enableResizeObserver) {
-            this.enableResizeObserver();
-        } else {
-            this.disableResizeObserver();
-        }
     }
 
     static get editorType() {
@@ -215,14 +209,21 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.height = '100%';
         }
 
-        if (this._enableResizeObserver) {
-            this.enableResizeObserver();
-        }
+        this._updateResizeObserver();
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.disableResizeObserver();
+    }
+
+    _updateResizeObserver() {
+        if (this._enableResizeObserver) {
+            this.enableResizeObserver();
+        } else {
+            this.disableResizeObserver();
+        }
+        this.requestUpdate();
     }
 
     enableResizeObserver() {
@@ -241,15 +242,11 @@ class CBLCARSBaseCard extends ButtonCard {
         cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this, this._logLevel);
     }
 
-    // Method to update the _enableResizeObserver property and trigger the observer
-    updateResizeObserver(enable) {
-        this._enableResizeObserver = enable;
-        if (enable) {
-            this.enableResizeObserver();
-        } else {
-            this.disableResizeObserver();
-        }
+    toggleResizeObserver() {
+        this._enableResizeObserver = !this._enableResizeObserver;
+        this._updateResizeObserver();
     }
+
     resolveTargetElement(target) {
         const targetMapping = {
             'this': () => this,

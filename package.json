@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2024.7.2-alpha.2",
+  "version": "2024.7.3-alpha.1",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -21,11 +21,6 @@
     "build": "webpack --mode production"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@babel/plugin-proposal-class-properties": "^7.18.6",
-    "@babel/plugin-proposal-decorators": "^7.25.9",
-    "@babel/preset-env": "^7.25.4",
-    "babel-loader": "^9.1.3",
     "rimraf": "^6.0.1",
     "webpack": "^5.94.0",
     "webpack-bundle-analyzer": "^4.10.2",
