@@ -102,7 +102,7 @@ async function loadStubConfig(filePath) {
 
 class CBLCARSBaseCard extends ButtonCard {
 
-    _enableResizeObserver = false;
+    _isResizeObserverEnabled = false;
     _resizeObserver;
     _logLevel = cblcarsGetGlobalLogLevel();
     _resizeObserverTarget = 'this';
@@ -139,8 +139,8 @@ class CBLCARSBaseCard extends ButtonCard {
         // Set the _resizeObserverTarget property from the config
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         // Set the _enableResizeObserver property from the config
-        this._enableResizeObserver = config.enable_resize_observer || false;
-        this.updateResizeObserver();
+        this._isResizeObserverEnabled = config.enable_resize_observer || false;
+        this._updateResizeObserver();
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
@@ -218,7 +218,7 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     _updateResizeObserver() {
-        if (this._enableResizeObserver) {
+        if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
         } else {
             this.disableResizeObserver();
@@ -243,7 +243,7 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     toggleResizeObserver() {
-        this._enableResizeObserver = !this._enableResizeObserver;
+        this._isResizeObserverEnabled = !this._isResizeObserverEnabled;
         this._updateResizeObserver();
     }
 
