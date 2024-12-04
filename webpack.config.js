@@ -1,9 +1,14 @@
 const path = require('path');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 module.exports = {
-    entry: './src/cb-lcars.js',
+    entry: {
+        'cb-lcars': './src/cb-lcars.js',
+    },
     output: {
-        filename: 'cb-lcars.js',
+        filename: '[name].js',
         path: path.resolve(__dirname, 'dist'),
     },
     module: {
@@ -19,5 +24,16 @@ module.exports = {
     },
     devtool: 'source-map',
     cache: false,
+    optimization: {
+        minimize: true,
+        minimizer: [new TerserPlugin()],
+        splitChunks: {
+            chunks: 'all',
+        },
+    },
+    plugins: [
+        new CleanWebpackPlugin(),
+        new BundleAnalyzerPlugin(),
+    ],
 };
 

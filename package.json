@@ -21,6 +21,7 @@
     "build": "webpack --mode production"
   },
   "devDependencies": {
+    "clean-webpack-plugin": "^4.0.0",
     "rimraf": "^6.0.1",
     "webpack": "^5.94.0",
     "webpack-bundle-analyzer": "^4.10.2",
@@ -28,9 +29,7 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
-    "@material/web": "^2.2.0",
     "ha-card-formbuilder": "github:snootched/ha-card-formbuilder",
-    "js-yaml": "^4.1.0",
-    "lit": "^3.2.0"
+    "js-yaml": "^4.1.0"
   }
 }

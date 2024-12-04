@@ -5,21 +5,11 @@ import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
-import { property } from 'lit/decorators.js';
 import { ButtonCard } from "./cblcars-button-card.js"
-
-// WIP - do we want to make a panel for this?
-//import { CBLCARSPanel } from './panel/cb-lcars-panel.js';
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
 let stubConfigPromise;
-
-// Flag to check if the templates have been loaded
-let templatesLoaded = false;
-
-// Flag to check if the stub configuration has been loaded
-let stubConfigLoaded = false;
 
 // Load the templates from our yaml file
 let templates = {};
@@ -79,7 +69,6 @@ async function loadTemplates(filePath) {
         }
 
         templates = yamlContent || {};
-        templatesLoaded = true;
         cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`, templates);
     } catch (error) {
         cblcarsLog('error', 'Failed to get the CB-LCARS lovelace templates from source file.', error);
@@ -92,7 +81,6 @@ async function loadStubConfig(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
         stubConfig = yamlContent || {};
-        stubConfigLoaded = true;
         cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`,stubConfig);
     } catch (error) {
         cblcarsLog('error','Failed to get the CB-LCARS stub configuration from source file.',error);
