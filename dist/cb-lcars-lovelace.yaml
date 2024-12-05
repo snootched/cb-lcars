@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.7.3-alpha.9
+  version: 2024.7.4-alpha.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -2540,7 +2540,7 @@ cblcars_card_templates:
     custom_fields:
       slider:
         card:
-          type: custom:my-slider-v2
+          type: custom:cblcars-my-slider-v2
           entity: "[[[ return variables.entity ]]]"
           mode: "[[[ return variables.slider.mode ]]]"
           vertical: "[[[ return variables._vertical ]]]"
