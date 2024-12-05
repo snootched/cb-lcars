@@ -40,8 +40,8 @@ async function initializeCustomCard() {
     if (!customElements.get('cblcars-button-card')) {
         cblcarsLog('error',`Custom Button Card for LCARS [cblcars-button-card] was not found!`);
     }
-    if (!customElements.get('cblcars-my-slider-v2')) {
-        cblcarsLog('error',`MySliderV2 for LCARS Custom Card [cblcars-my-slider-v2] was not found!`);
+    if (!customElements.get('my-slider-v2')) {
+        cblcarsLog('error',`'My Cards' MySliderV2 Custom Card [my-slider-v2] was not found!`);
     }
 }
 
