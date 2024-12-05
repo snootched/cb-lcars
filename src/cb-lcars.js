@@ -30,7 +30,7 @@ async function initializeCustomCard() {
     // Import and wait for 3rd party card dependencies
     const cardImports = [
         customElements.whenDefined('cblcars-button-card'),
-        customElements.whenDefined('my-slider-v2')
+        import("./cblcars-my-slider-v2.js").then(() => customElements.whenDefined('cblcars-my-slider-v2'))
     ];
     await Promise.all(cardImports);
 
@@ -40,8 +40,8 @@ async function initializeCustomCard() {
     if (!customElements.get('cblcars-button-card')) {
         cblcarsLog('error',`Custom Button Card for LCARS [cblcars-button-card] was not found!`);
     }
-    if (!customElements.get('my-slider-v2')) {
-        cblcarsLog('error',`MyCards SliderV2 Custom Card [my-slider-v2] was not found!`);
+    if (!customElements.get('cblcars-my-slider-v2')) {
+        cblcarsLog('error',`MySliderV2 for LCARS Custom Card [cblcars-my-slider-v2] was not found!`);
     }
 }
 
