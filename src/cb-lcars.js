@@ -30,7 +30,7 @@ async function initializeCustomCard() {
     // Import and wait for 3rd party card dependencies
     const cardImports = [
         customElements.whenDefined('cblcars-button-card'),
-        import("./cblcars-my-slider-v2.js").then(() => customElements.whenDefined('cblcars-my-slider-v2'))
+        customElements.whenDefined('my-slider-v2')
     ];
     await Promise.all(cardImports);
 
