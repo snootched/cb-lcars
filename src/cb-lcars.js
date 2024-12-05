@@ -101,7 +101,7 @@ class CBLCARSBaseCard extends ButtonCard {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 100);
+        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 50);
     }
 
 
@@ -128,7 +128,11 @@ class CBLCARSBaseCard extends ButtonCard {
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         // Set the _enableResizeObserver property from the config
         this._isResizeObserverEnabled = config.enable_resize_observer || false;
-        this._updateResizeObserver();
+
+        // Enable the resize observer if the configuration option is enabled
+        if (this._isResizeObserverEnabled) {
+            this.enableResizeObserver();
+        }
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
@@ -197,12 +201,18 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.height = '100%';
         }
 
-        this._updateResizeObserver();
+        // Enable the resize observer when the card is connected to the DOM
+        if (this._isResizeObserverEnabled) {
+            this.enableResizeObserver();
+        }
+
+        window.addEventListener('resize', this._debouncedResizeHandler);
     }
 
     disconnectedCallback() {
         super.disconnectedCallback();
         this.disableResizeObserver();
+        window.removeEventListener('resize', this._debouncedResizeHandler)
     }
 
     _updateResizeObserver() {
@@ -211,7 +221,6 @@ class CBLCARSBaseCard extends ButtonCard {
         } else {
             this.disableResizeObserver();
         }
-        this.requestUpdate();
     }
 
     enableResizeObserver() {
