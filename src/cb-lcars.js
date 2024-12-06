@@ -232,11 +232,11 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.setProperty('--button-card-height', `${parentHeight}px`);
 
             // Store the dimensions in the child card's config
-            if (!this.variables) {
-                this.variables = { card: {} };
+            if (!this._config.variables) {
+                this._config.variables = { card: {} };
             }
-            this.variables.card.width = `${parentWidth}px`;
-            this.variables.card.height = `${parentHeight}px`;
+            this._config.variables.card.width = `${parentWidth}px`;
+            this._config.variables.card.height = `${parentHeight}px`;
 
             // Trigger an update if necessary
             this.setConfig();
