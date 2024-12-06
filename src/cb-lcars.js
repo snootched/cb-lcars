@@ -218,8 +218,8 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     _updateCardSize() {
-        const parentWidth = this.offsetWidth;
-        const parentHeight = this.offsetHeight;
+        const parentWidth = this.offsetParent.offsetWidth;
+        const parentHeight = this.offsetParent.offsetHeight;
         const significantChange = 10;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
