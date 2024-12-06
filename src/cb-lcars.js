@@ -231,6 +231,11 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.setProperty('--button-card-width', `${parentWidth}px`);
             this.style.setProperty('--button-card-height', `${parentHeight}px`);
 
+            if (!this._config) {
+                cblcarsLog('debug','Config is not defined. Skipping resize handling.', this, this._logLevel);
+                return;
+            }
+
             // Store the dimensions in the child card's config
             if (!this._config.variables) {
                 this._config.variables = { card: {} };
@@ -239,7 +244,7 @@ class CBLCARSBaseCard extends ButtonCard {
             this._config.variables.card.height = `${parentHeight}px`;
 
             // Trigger an update if necessary
-            this.setConfig();
+            this.setConfig(this._config);
         }
     }
 
