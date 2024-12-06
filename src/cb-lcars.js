@@ -94,6 +94,8 @@ class CBLCARSBaseCard extends ButtonCard {
     _resizeObserver;
     _logLevel = cblcarsGetGlobalLogLevel();
     _resizeObserverTarget = 'this';
+    _lastWidth = 0;
+    _lastHeight = 0;
 
     constructor () {
         super();
@@ -101,7 +103,7 @@ class CBLCARSBaseCard extends ButtonCard {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this.setConfig(this._config), 50);
+        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 100);
     }
 
 
@@ -213,6 +215,32 @@ class CBLCARSBaseCard extends ButtonCard {
         super.disconnectedCallback();
         this.disableResizeObserver();
         window.removeEventListener('resize', this._debouncedResizeHandler)
+    }
+
+    _updateCardSize() {
+        const parentWidth = this.offsetWidth;
+        const parentHeight = this.offsetHeight;
+        const significantChange = 10;
+        // Only update if there is a significant change
+        if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
+            //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
+            this._lastWidth = parentWidth;
+            this._lastHeight = parentHeight;
+
+            // Set CSS variables for the child card's dimensions
+            this.style.setProperty('--button-card-width', `${parentWidth}px`);
+            this.style.setProperty('--button-card-height', `${parentHeight}px`);
+
+            // Store the dimensions in the child card's config
+            if (!this.variables) {
+                this.variables = { card: {} };
+            }
+            this.variables.card.width = `${parentWidth}px`;
+            this.variables.card.height = `${parentHeight}px`;
+
+            // Trigger an update if necessary
+            this.setConfig();
+        }
     }
 
     _updateResizeObserver() {
