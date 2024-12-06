@@ -209,6 +209,8 @@ class CBLCARSBaseCard extends ButtonCard {
         }
 
         window.addEventListener('resize', this._debouncedResizeHandler);
+
+        this._updateCardSize();
     }
 
     disconnectedCallback() {
