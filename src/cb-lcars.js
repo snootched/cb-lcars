@@ -236,7 +236,7 @@ class CBLCARSBaseCard extends ButtonCard {
                 return;
             }
 
-            // Store the dimensions in the child card's config
+            // Store the dimensions in the card's config
             if (!this._config.variables) {
                 this._config.variables = { card: {} };
             }
