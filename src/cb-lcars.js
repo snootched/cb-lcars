@@ -220,6 +220,11 @@ class CBLCARSBaseCard extends ButtonCard {
     }
 
     _updateCardSize() {
+
+        cblcarsLog('debug',`this.offset* dimensions: ${this.offsetWidth} x ${this.offsetHeight}`, this, this._logLevel);
+        cblcarsLog('debug',`this.offsetParent.offset* dimensions: ${this.offsetParent.offsetWidth} x ${this.offsetParent.offsetHeight}`, this, this._logLevel);
+        cblcarsLog('debug',`this.parentElement.offset* dimensions: ${this.parentElement.offsetWidth} x ${this.parentElement.offsetHeight}`, this, this._logLevel);
+
         const parentWidth = this.offsetWidth;
         const parentHeight = this.offsetHeight;
         const significantChange = 10;
