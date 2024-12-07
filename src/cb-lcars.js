@@ -225,8 +225,9 @@ class CBLCARSBaseCard extends ButtonCard {
         cblcarsLog('debug',`this.offsetParent.offset* dimensions: ${this.offsetParent.offsetWidth} x ${this.offsetParent.offsetHeight}`, this, this._logLevel);
         cblcarsLog('debug',`this.parentElement.offset* dimensions: ${this.parentElement.offsetWidth} x ${this.parentElement.offsetHeight}`, this, this._logLevel);
 
-        const parentWidth = this.offsetWidth;
-        const parentHeight = this.offsetHeight;
+        const parentWidth = this.parentElement.offsetWidth;
+        const parentHeight = this.parentElement.offsetHeight;
+        cblcarsLog('debug',`Going with dimensions: ${parentWidth} x ${parentHeight}`, this, this._logLevel);
         const significantChange = 10;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
