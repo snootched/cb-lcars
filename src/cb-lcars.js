@@ -206,9 +206,9 @@ class CBLCARSBaseCard extends ButtonCard {
         // Enable the resize observer when the card is connected to the DOM
         if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
+            window.addEventListener('resize', this._debouncedResizeHandler);
         }
 
-        window.addEventListener('resize', this._debouncedResizeHandler);
 
     }
 
