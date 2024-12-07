@@ -103,7 +103,7 @@ class CBLCARSBaseCard extends ButtonCard {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 100);
+        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 50);
     }
 
 
@@ -210,7 +210,6 @@ class CBLCARSBaseCard extends ButtonCard {
 
         window.addEventListener('resize', this._debouncedResizeHandler);
 
-        this._updateCardSize();
     }
 
     disconnectedCallback() {
