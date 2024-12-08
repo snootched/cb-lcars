@@ -104,7 +104,7 @@ function setThemeColors(themes, alertCondition = 'green') {
 
     const colors = selectedTheme.colors;
 
-    for (const [colorValues] of Object.entries(colors)) {
+    for (const [colorGroup, colorValues] of Object.entries(colors)) {
         for (const [colorName, colorValue] of Object.entries(colorValues)) {
             const cssVarName = `--${colorName}`;
             const existingValue = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
