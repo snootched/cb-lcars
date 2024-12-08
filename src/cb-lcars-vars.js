@@ -9,6 +9,7 @@ export const font_url = 'https://fonts.googleapis.com/css2?family=Antonio:wght@1
 //CB-LARS yaml configuration files (templates, strategies, editor forms, etc.)
 export const templates_uri = '/hacsfiles/cb-lcars/cb-lcars-lovelace.yaml';
 export const stub_config_uri = '/hacsfiles/cb-lcars/cb-lcars-stub-config.yaml';
+export const theme_colors_uri = '/hacsfiles/cb-lcars/cb-lcars-themes.yaml';
 export const airlock_uri = '/hacsfiles/cb-lcars/cb-lcars-airlock.yaml';
 export const gallery_uri = '/hacsfiles/cb-lcars/cb-lcars-gallery.yaml';
 export const card_editor_uri = '/hacsfiles/cb-lcars/cb-lcars-card-editor-forms.yaml'

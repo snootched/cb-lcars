@@ -11,6 +11,7 @@ import { html } from 'lit';
 // Promises for loading the templates and stub configuration
 let templatesPromise;
 let stubConfigPromise;
+let themeColorsPromise;
 
 // Load the templates from our yaml file
 let templates = {};
@@ -26,7 +27,7 @@ async function initializeCustomCard() {
     ///load yaml configs
     templatesPromise = loadTemplates(CBLCARS.templates_uri);
     stubConfigPromise = loadStubConfig(CBLCARS.stub_config_uri);
-
+    themeColorsPromise = loadThemeColors(CBLCARS.theme_colors_uri);
 
     // Import and wait for 3rd party card dependencies
     const cardImports = [
@@ -70,12 +71,53 @@ async function loadTemplates(filePath) {
         }
 
         templates = yamlContent || {};
-        cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${CBLCARS.templates_uri}]`, templates);
+        cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${filePath}]`, templates);
     } catch (error) {
         cblcarsLog('error', 'Failed to get the CB-LCARS lovelace templates from source file.', error);
     }
 }
 
+async function loadThemeColors(filePath) {
+    try {
+        const yamlContent = await readYamlFile(filePath);
+
+        // Merge the cblcars stanza with the existing window.cblcars object
+        if (yamlContent.cblcars) {
+            window.cblcars = {
+                ...window.cblcars,
+                ...yamlContent.cblcars
+            };
+        }
+        cblcarsLog('debug', `CB-LCARS theme colors loaded from source file [${filePath}]`, yamlContent);
+        setThemeColors(window.cblcars.themes, 'green');
+    } catch (error) {
+        cblcarsLog('error', 'Failed to get the CB-LCARS theme colors from source file.', error);
+    }
+}
+
+function setThemeColors(themes, alertCondition = 'green') {
+    const selectedTheme = themes[`${alertCondition}_alert`];
+    if (!selectedTheme) {
+        cblcarsLog('error',`Theme for alert condition ${alertCondition} is not defined.`,'',cblcarsGetGlobalLogLevel());
+        return;
+    }
+
+    const colors = selectedTheme.colors;
+
+    for (const [colorValues] of Object.entries(colors)) {
+        for (const [colorName, colorValue] of Object.entries(colorValues)) {
+            const cssVarName = `--${colorName}`;
+            const existingValue = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
+
+            if (!existingValue) {
+                cblcarsLog('debug', `Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
+                document.documentElement.style.setProperty(cssVarName, colorValue);
+            } else {
+                cblcarsLog('debug', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
+            }
+        }
+    }
+}
 
 // Load the stub configuration from our yaml file
 async function loadStubConfig(filePath) {
@@ -460,7 +502,7 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
 
     render() {
         if (!customElements.get('my-slider-v2')) {
-            return html`<ha-alert alert-type="error" title="Error">Custom element 'my-slider-v2' is not available.  Please install from HACS.</ha-alert>`;
+            return html`<ha-alert alert-type="error" title="CB-LCARS - Dependency Error">Required 'my-slider-v2' card is not available - Please refer to the documentation.</ha-alert>`;
         }
 
         // Render the card normally
@@ -557,7 +599,7 @@ function defineCustomElement(cardType, cardClass, editorType, editorClass) {
 
 
 // delay registration of custom elements until the templates and stub configuration are loaded
-Promise.all([templatesPromise, stubConfigPromise])
+Promise.all([templatesPromise, , stubConfigPromise, themeColorsPromise])
   .then(() => {
     defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
     defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);
