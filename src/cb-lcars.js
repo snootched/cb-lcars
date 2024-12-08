@@ -88,7 +88,7 @@ async function loadThemeColors(filePath) {
                 ...yamlContent.cblcars
             };
         }
-        cblcarsLog('debug', `CB-LCARS theme colors loaded from source file [${filePath}]`, yamlContent);
+        cblcarsLog('info', `CB-LCARS theme colors loaded from source file [${filePath}]`, yamlContent);
         setThemeColors(window.cblcars.themes, 'green');
     } catch (error) {
         cblcarsLog('error', 'Failed to get the CB-LCARS theme colors from source file.', error);
@@ -110,10 +110,10 @@ function setThemeColors(themes, alertCondition = 'green') {
             const existingValue = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
 
             if (!existingValue) {
-                cblcarsLog('debug', `Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
+                cblcarsLog('info', `Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
                 document.documentElement.style.setProperty(cssVarName, colorValue);
             } else {
-                cblcarsLog('debug', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
+                cblcarsLog('info', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
             }
         }
     }

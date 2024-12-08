@@ -1,10 +1,9 @@
 import * as CBLCARS from '../cb-lcars-vars.js';
 
-let cblcarsGlobalLogLevel = window.cblcars.globalLogLevel || 'info';
+let cblcarsGlobalLogLevel = 'info';
 
 export function cblcarsSetGlobalLogLevel(level) {
   cblcarsGlobalLogLevel = level;
-  window.cblcars.globalLogLevel = level;
   cblcarsLog('info',`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
 }
 export function cblcarsGetGlobalLogLevel() {
