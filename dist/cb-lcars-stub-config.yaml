@@ -14,6 +14,12 @@ cb-lcars-button-card:
   show_label: true
   variables:
     label: "LCARS Button"
+  tap_action:
+    action: toggle
+  double_tap_action:
+    action: none
+  hold_action:
+    action: more-info
 cb-lcars-elbow-card:
   cblcars_card_type: cb-lcars-header
   tap_action:
