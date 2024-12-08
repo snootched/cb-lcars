@@ -17,6 +17,9 @@ let themeColorsPromise;
 let templates = {};
 let stubConfig = {};
 
+// Ensure the cblcars object exists on the window object
+window.cblcars = window.cblcars || {};
+
 
 
 async function initializeCustomCard() {
@@ -95,10 +98,10 @@ async function loadThemeColors(filePath) {
     }
 }
 
-function setThemeColors(themes, alertCondition = 'green') {
+function setThemeColors(themes, alertCondition = 'green', clobber = false) {
     const selectedTheme = themes[`${alertCondition}_alert`];
     if (!selectedTheme) {
-        cblcarsLog('error',`Theme for alert condition ${alertCondition} is not defined.`,'',cblcarsGetGlobalLogLevel());
+        cblcarsLog('error', `Theme for alert condition ${alertCondition} is not defined.`, '', cblcarsGetGlobalLogLevel());
         return;
     }
 
@@ -109,15 +112,19 @@ function setThemeColors(themes, alertCondition = 'green') {
             const cssVarName = `--${colorName}`;
             const existingValue = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
 
-            if (!existingValue) {
-                cblcarsLog('info', `Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
+            if (clobber || !existingValue) {
+                cblcarsLog('warn', `Color undefined or overridden - Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
                 document.documentElement.style.setProperty(cssVarName, colorValue);
             } else {
-                cblcarsLog('info', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
+                cblcarsLog('debug', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
             }
         }
     }
 }
+function setAlertCondition(alertCondition) {
+    setThemeColors(window.cblcars.themes, alertCondition,true);
+}
+window.cblcars.setAlertCondition = setAlertCondition;
 
 // Load the stub configuration from our yaml file
 async function loadStubConfig(filePath) {
