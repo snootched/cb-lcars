@@ -455,6 +455,15 @@ class CBLCARSMultimeterCard extends CBLCARSBaseCard {
             grid_columns: 4
         };
       }
+
+    render() {
+        if (!customElements.get('my-slider-v2')) {
+            return html`<ha-alert alert-type="error" title="Error">Custom element 'my-slider-v2' is not available.  Please install from HACS.</ha-alert>`;
+        }
+
+        // Render the card normally
+        return super.render();
+    }
 }
 
 class CBLCARSDPADCard extends CBLCARSBaseCard {
