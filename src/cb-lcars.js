@@ -6,6 +6,7 @@ import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
 
 import { ButtonCard } from "./cblcars-button-card.js"
+import { html } from 'lit';
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
@@ -199,6 +200,7 @@ class CBLCARSBaseCard extends ButtonCard {
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
             this.style.height = '60px';
+            this.style.minHeight = '60px';
         } else {
             this.style.height = '100%';
         }
