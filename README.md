@@ -3,7 +3,6 @@
 
 This project is active development.
 
-Upcoming version will act like native custom button card, so existing configs will change slightly.
 
 Functionality and configurations may change over time until stabilized.  Things may break - so you may not want to use this on your primary dashboard just yet.
 ***
@@ -36,9 +35,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
       - [3a. Create Input Helpers](#3a-create-input-helpers)
-    - [4. Boldly Go...](#4-boldly-go)
-      - [New Dashboard w/Strategy](#new-dashboard-wstrategy)
-      - [Engage!](#engage)
+      - [4. Engage!](#4-engage)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -133,9 +130,6 @@ In no particular ordeer:
 > - Bring Warp Core Online, Engines to Full Power
 >   - Install CB-LCARS from HACS
 >   - Create CB-LCARS input helper(s)
-> - Plot Course
->   - Create new dashboard and jumpstart with strategy
->   - Take Control and...
 > - Engage!
 >
 
@@ -150,6 +144,7 @@ The following should be installed and working in your Home Assistant instance - 
 | Custom Card                                                                 |  Required?  | Function    |
 |-----------------------------------------------------------------------------|-------------|-------------|
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
+| [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
 | [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
@@ -168,6 +163,8 @@ Simply substitute the following resource string when setting up ha-lcars:
 `https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
 
 #### Customized *CB-LCARS* Color Scheme
+
+ *Ideally, add this cb-lcars version theme into your HA-LCARS.  If not, the color definitions will be made available to use anyway.*
 
  Copy the custom `LCARS Picard [cb-lcars]` definition from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your HA-LCARS `lcars.yaml` file in Home Assistant (per instructions for [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
 
@@ -203,41 +200,9 @@ Click on the Entity ID in the table to launch the add helper dialog in your Home
 
 <br>
 
-### 4. Boldly Go...
+#### 4. Engage!
 
----
-***Next version will not require the templates loaded on the dashboard.
-<br>
-The below instructions will only be needed if you wish to view a sample dashboard with a gallery of all the controls.***
-
----
-
-
-CB-LCARS (currently) requires the `custom-button-card` templates to be added do the dashboard config.
-
-The easiest way to begin is to start with a new dashboard, and activate the **CB-LCARS Dashboard Strategy**
-After this, simply take control and go wild.
-
-#### New Dashboard w/Strategy
-1.  Create a new empty dashboard in Home Assistant (`New Dashboard From Scratch`)
-2.  Navigate to the new dashboard - enter *edit mode -> Raw Configuration Editor* (from menu at top right)
-3.  Clear the existing default yaml code, and replace with the strategy:
-```yaml
-strategy:
-  type: custom:cb-lcars
-```
-1.  Save the configuration and exit the yaml editor.
-2.  The new dashboard configuarion elements should begin to load.
-3.  Before editing, click "Done" at the top to exit edit mode and refresh page if necessary.
-
-The base dashboard configuration is now available on this dashboard via the strategy.
-You can now "Take Control" and begin your LCARS adventure!
-
-#### Engage!
-1. Click on the pencil at the top right to entire edit mode.
-2. A dialog will pop up with information on the strategy.
-3. Click the 3 dots in the top right and choose *Take Control*
-4. On the next dialog just click **Take Control**  *(do not choose to start with an empty dashboard!)*
+Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
@@ -245,7 +210,13 @@ You can now "Take Control" and begin your LCARS adventure!
 
 # CB-LCARS Cards
 
-These are the cards found in CB-LCARS.  These are highly configurable - some default styles are shown.  Additional style possibilities can be found in the screenshots section.
+For referenct - these are the cards found in CB-LCARS.
+They are highly configurable - and some default styles are shown.
+
+Additional style possibilities can be found in the screenshots section.
+
+Settings are available in the UI editor.
+
 
 <br>
 
