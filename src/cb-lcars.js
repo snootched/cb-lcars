@@ -381,6 +381,12 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             ...config,
             template: mergedTemplates,
         };
+
+        // Check if the card type is 'cb-lcars-cascade' and set the enable_resize_observer flag to true
+        if (config.cblcars_card_type === 'cb-lcars-cascade') {
+            specialConfig.enable_resize_observer = true;
+        }
+
         super.setConfig(specialConfig);
     }
 }
