@@ -1,4 +1,4 @@
-import * as CBLCARS from '../cb-lcars-vars.js';
+//import * as CBLCARS from '../cb-lcars-vars.js';
 import { cblcarsLog } from './cb-lcars-logging.js';
 import jsyaml from 'js-yaml';
 

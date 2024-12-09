@@ -9,7 +9,7 @@ cb-lcars-label-picard:
         font_size: 52
         font_weight: 100
         color:
-          default: '#f9ef97'
+          default: var(--picard-yellow)
         justify: right
         padding:
           right: 15
@@ -20,4 +20,4 @@ cb-lcars-label-picard:
           size: 60
         right:
           size: 40
-        color: '#52596e'
+        color: var(--picard-medium-dark-gray)

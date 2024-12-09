@@ -145,6 +145,8 @@ cb-lcars-multimeter:
           "on": black
           "off": black
     card:
+      height: '[[[ return this.offsetHeight; ]]]'
+      width: '[[[ return this.offsetWidth; ]]]'
       border:
         top:
           size: 10
@@ -392,8 +394,6 @@ cb-lcars-multimeter:
                 ]]]
   styles:
     card:
-      - width: "[[[ return variables.__get_num_with_unit(variables.card.width) ]]]"
-      - height: "[[[ return variables.__get_num_with_unit(variables.card.height) ]]]"
       - border-radius: 0 !important
       - background: none
       - border: none
@@ -571,7 +571,7 @@ cb-lcars-multimeter:
   custom_fields:
     slider:
       card:
-        type: custom:cblcars-my-slider-v2
+        type: custom:my-slider-v2
         entity: "[[[ return variables.entity ]]]"
         mode: "[[[ return variables.slider.mode ]]]"
         vertical: "[[[ return variables._vertical ]]]"

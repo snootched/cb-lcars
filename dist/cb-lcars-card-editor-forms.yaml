@@ -273,7 +273,7 @@ cb-lcars-base-controls:
       controls:
         - &colorLCARSListControl
           label: "LCARS Color"
-          configValue: "cblcars_card_config.variables.card.background.color.default"
+          configValue: "variables.card.background.color.default"
           type: Selector
           selector:
             select:
@@ -295,7 +295,7 @@ cb-lcars-base-controls:
                   })()
         - &colorControl
           label: "Default Color"
-          configValue: "cblcars_card_config.variables.background.color.default"
+          configValue: "variables.background.color.default"
           type: Selector
           selector:
             text:
@@ -303,7 +303,7 @@ cb-lcars-base-controls:
     - controls:
         - &colorPreviewControl
           type: ColorPreview
-          configValue: "cblcars_card_config.variables.card.border.color"
+          configValue: "variables.card.border.color"
     - &actionsSection
       type: Section
       label: "Actions"
@@ -322,7 +322,7 @@ cb-lcars-base-controls:
             - type: ControlRow
               controls:
                 - label: "Tap Action"
-                  configValue: "cblcars_card_config.tap_action"
+                  configValue: "tap_action"
                   type: Selector
                   selector:
                     ui_action:
@@ -334,7 +334,7 @@ cb-lcars-base-controls:
           rows:
             - controls:
                 - label: "Double-tap Action"
-                  configValue: "cblcars_card_config.double_tap_action"
+                  configValue: "double_tap_action"
                   type: Selector
                   selector:
                     ui_action:
@@ -346,7 +346,7 @@ cb-lcars-base-controls:
           rows:
             - controls:
                 - label: "Hold Action"
-                  configValue: "cblcars_card_config.hold_action"
+                  configValue: "hold_action"
                   type: Selector
                   selector:
                     ui_action:
@@ -363,7 +363,7 @@ cb-lcars-base-controls:
         - type: ControlRow
           controls:
             - label: "Show Label"
-              configValue: "cblcars_card_config.show_label"
+              configValue: "show_label"
               type: Selector
               selector:
                 boolean:
@@ -380,7 +380,7 @@ cb-lcars-base-controls:
               controls:
                 - label: "Text Content"
                   helper: "Text content (basic string - or - get fancy with <elt></elt> elements!"
-                  configValue: "cblcars_card_config.variables.label"
+                  configValue: "variables.label"
                   required: false
                   type: Selector
                   selector:
@@ -392,14 +392,14 @@ cb-lcars-base-controls:
               controls:
                 - &fontSizeControl
                   label: "Font Size"
-                  configValue: "cblcars_card_config.variables.text.label.font_size"
+                  configValue: "variables.text.label.font_size"
                   type: Selector
                   selector:
                     text:
                       type: number
                 - &fontWeightControl
                   label: "Font Weight"
-                  configValue: "cblcars_card_config.variables.text.label.font_weight"
+                  configValue: "variables.text.label.font_weight"
                   type: Selector
                   selector:
                     select:
@@ -438,7 +438,7 @@ cb-lcars-base-controls:
                 - &justifyControl
                   label: "Justify"
                   helper: "Horizonal justification within the container"
-                  configValue: "cblcars_card_config.variables.text.label.justify"
+                  configValue: "variables.text.label.justify"
                   type: Selector
                   selector:
                     select:
@@ -459,7 +459,7 @@ cb-lcars-base-controls:
                 - &alignItemsControl
                   label: "Align Items"
                   helper: "Vertial alignment within the container"
-                  configValue: "cblcars_card_config.variables.text.label.align_items"
+                  configValue: "variables.text.label.align_items"
                   type: Selector
                   selector:
                     select:
@@ -478,7 +478,7 @@ cb-lcars-base-controls:
                 - &alignControl
                   label: "Align"
                   helper: "text-align property"
-                  configValue: "cblcars_card_config.variables.text.label.align"
+                  configValue: "variables.text.label.align"
                   type: Selector
                   selector:
                     select:
@@ -495,7 +495,7 @@ cb-lcars-base-controls:
                 - &transformControl
                   label: "Transform"
                   helper: "CSS transform (eg. 'uppercase')"
-                  configValue: "cblcars_card_config.variables.text.label.transform"
+                  configValue: "variables.text.label.transform"
                   type: Selector
                   selector:
                     text:
@@ -514,7 +514,7 @@ cb-lcars-base-controls:
               controls:
                 - &textPaddingTopControl
                   label: "Padding Top"
-                  configValue: "cblcars_card_config.variables.text.label.padding.top"
+                  configValue: "variables.text.label.padding.top"
                   type: Selector
                   selector:
                     number:
@@ -526,7 +526,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - &textPaddingRightControl
                   label: "Padding Right"
-                  configValue: "cblcars_card_config.variables.text.label.padding.right"
+                  configValue: "variables.text.label.padding.right"
                   type: Selector
                   selector:
                     number:
@@ -538,7 +538,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - &textPaddingBottomControl
                   label: "Padding Bottom"
-                  configValue: "cblcars_card_config.variables.text.label.padding.bottom"
+                  configValue: "variables.text.label.padding.bottom"
                   type: Selector
                   selector:
                     number:
@@ -550,7 +550,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - &textPaddingLeftControl
                   label: "Padding Left"
-                  configValue: "cblcars_card_config.variables.text.label.padding.left"
+                  configValue: "variables.text.label.padding.left"
                   type: Selector
                   selector:
                     number:
@@ -581,12 +581,12 @@ cb-lcars-base-controls:
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.text.label.color.default"
+                      configValue: "variables.text.label.color.default"
                     - <<: *colorControl
-                      configValue: "cblcars_card_config.variables.text.label.color.default"
+                      configValue: "variables.text.label.color.default"
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.text.label.color.default"
+                      configValue: "variables.text.label.color.default"
             - type: Section
               label: "State Colors"
               outlined: true
@@ -611,16 +611,16 @@ cb-lcars-base-controls:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.text.label.color.on"
+                          configValue: "variables.text.label.color.on"
                         - label: "Text Color (state: on)"
-                          configValue: "cblcars_card_config.variables.text.label.color.on"
+                          configValue: "variables.text.label.color.on"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.text.label.color.on"
+                          configValue: "variables.text.label.color.on"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -629,16 +629,16 @@ cb-lcars-base-controls:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.text.label.color.off"
+                          configValue: "variables.text.label.color.off"
                         - label: "Text Color (state: off)"
-                          configValue: "cblcars_card_config.variables.text.label.color.off"
+                          configValue: "variables.text.label.color.off"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.text.label.color.off"
+                          configValue: "variables.text.label.color.off"
                 - type: Section
                   label: "Zero/Non-Zero"
                   outlined: true
@@ -655,16 +655,16 @@ cb-lcars-base-controls:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.text.label.color.zero"
+                          configValue: "variables.text.label.color.zero"
                         - label: "Text Color (number: zero)"
-                          configValue: "cblcars_card_config.variables.text.label.color.zero"
+                          configValue: "variables.text.label.color.zero"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.text.label.color.zero"
+                          configValue: "variables.text.label.color.zero"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -673,16 +673,16 @@ cb-lcars-base-controls:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.text.label.color.non_zero"
+                          configValue: "variables.text.label.color.non_zero"
                         - label: "Text Color (number: non-zero)"
-                          configValue: "cblcars_card_config.variables.text.label.color.non_zero"
+                          configValue: "variables.text.label.color.non_zero"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.text.label.color.non_zero"
+                          configValue: "variables.text.label.color.non_zero"
     - &cardSection
       type: Section
       label: "Card"
@@ -721,12 +721,12 @@ cb-lcars-base-controls:
                     - cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.card.border.color"
+                          configValue: "variables.card.border.color"
                         - <<: *colorControl
-                          configValue: "cblcars_card_config.variables.card.border.color"
+                          configValue: "variables.card.border.color"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.card.border.color"
+                          configValue: "variables.card.border.color"
                 - type: Section
                   label: "State Colors"
                   outlined: true
@@ -751,16 +751,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.active"
+                              configValue: "variables.card.color.active"
                             - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.card.color.active"
+                              configValue: "variables.card.color.active"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.active"
+                              configValue: "variables.card.color.active"
                         - controls:
                             - type: RawHTML
                               html: |
@@ -769,16 +769,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.inactive"
+                              configValue: "variables.card.color.inactive"
                             - label: "Text Color (state: off)"
-                              configValue: "cblcars_card_config.variables.card.color.inactive"
+                              configValue: "variables.card.color.inactive"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.inactive"
+                              configValue: "variables.card.color.inactive"
                     - type: Section
                       label: "Unavailable/Unknown"
                       outlined: true
@@ -795,16 +795,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+                              configValue: "variables.card.color.unavailable"
                             - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+                              configValue: "variables.card.color.unavailable"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.unavailable"
+                              configValue: "variables.card.color.unavailable"
 
             - type: Section
               label: "Background"
@@ -826,12 +826,12 @@ cb-lcars-base-controls:
                     - cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.card.color.background.default"
+                          configValue: "variables.card.color.background.default"
                         - <<: *colorControl
-                          configValue: "cblcars_card_config.variables.card.color.background.default"
+                          configValue: "variables.card.color.background.default"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.card.color.background.default"
+                          configValue: "variables.card.color.background.default"
                 - type: Section
                   label: "State Colors"
                   outlined: true
@@ -856,16 +856,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.background.active"
+                              configValue: "variables.card.color.background.active"
                             - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.card.color.background.active"
+                              configValue: "variables.card.color.background.active"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.background.active"
+                              configValue: "variables.card.color.background.active"
                         - controls:
                             - type: RawHTML
                               html: |
@@ -874,16 +874,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.background.inactive"
+                              configValue: "variables.card.color.background.inactive"
                             - label: "Text Color (state: off)"
-                              configValue: "cblcars_card_config.variables.card.color.background.inactive"
+                              configValue: "variables.card.color.background.inactive"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.background.inactive"
+                              configValue: "variables.card.color.background.inactive"
                     - type: Section
                       label: "Unavailable/Unknown"
                       outlined: true
@@ -900,16 +900,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
+                              configValue: "variables.card.color.background.unavailable"
                             - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
+                              configValue: "variables.card.color.background.unavailable"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.background.unavailable"
+                              configValue: "variables.card.color.background.unavailable"
 
         - &cardBorderSection
           type: Section
@@ -924,7 +924,7 @@ cb-lcars-base-controls:
               controls:
                 - label: "Left Border Size"
                   helper: "The width of the left side of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.left.size"
+                  configValue: "variables.card.border.left.size"
                   disabled: false
                   required: true
                   type: Selector
@@ -938,7 +938,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Top Border Size"
                   helper: "The height of the top side of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.top.size"
+                  configValue: "variables.card.border.top.size"
                   disabled: false
                   required: true
                   type: Selector
@@ -952,7 +952,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Right Border Size"
                   helper: "The width of the right side of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.right.size"
+                  configValue: "variables.card.border.right.size"
                   disabled: false
                   required: true
                   type: Selector
@@ -966,7 +966,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Bottom Border Size"
                   helper: "The height of the bottom side of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.bottom.size"
+                  configValue: "variables.card.border.bottom.size"
                   disabled: false
                   required: true
                   type: Selector
@@ -992,7 +992,7 @@ cb-lcars-base-controls:
                     - type: Selector
                       label: Scaling Factor
                       helper: This values affects the inner radius in relation to the outer radius.
-                      configValue: "cblcars_card_config.variables.card.border.inner.factor"
+                      configValue: "variables.card.border.inner.factor"
                       selector:
                         number:
                           min: 0
@@ -1003,7 +1003,7 @@ cb-lcars-base-controls:
                     - type: Selector
                       label: Inner Border Width
                       helper: The width of the inner border.
-                      configValue: "cblcars_card_config.variables.card.border.inner.width"
+                      configValue: "variables.card.border.inner.width"
                       selector:
                         number:
                           min: 0
@@ -1025,7 +1025,7 @@ cb-lcars-base-controls:
               controls:
                 - label: "Top Left Radius"
                   helper: "The top left curve of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.top.left_radius"
+                  configValue: "variables.card.border.top.left_radius"
                   disabled: false
                   required: true
                   type: Selector
@@ -1039,7 +1039,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Top Right Radius"
                   helper: "The top right curve of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.top.right_radius"
+                  configValue: "variables.card.border.top.right_radius"
                   disabled: false
                   required: true
                   type: Selector
@@ -1053,7 +1053,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Bottom Left Radius"
                   helper: "The bottom left curve of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.bottom.left_radius"
+                  configValue: "variables.card.border.bottom.left_radius"
                   disabled: false
                   required: true
                   type: Selector
@@ -1067,7 +1067,7 @@ cb-lcars-base-controls:
                       slider_ticks: false
                 - label: "Bottom Right Radius"
                   helper: "The bottom right curve of LCARS"
-                  configValue: "cblcars_card_config.variables.card.border.bottom.right_radius"
+                  configValue: "variables.card.border.bottom.right_radius"
                   disabled: false
                   required: true
                   type: Selector
@@ -1091,13 +1091,13 @@ cb-lcars-base-controls:
         - type: ControlRow
           controls:
             - label: "Show Icon"
-              configValue: "cblcars_card_config.show_icon"
+              configValue: "show_icon"
               disabled: false
               type: Selector
               selector:
                 boolean:
         - type: Section
-          visibilityCondition: "this._config.cblcars_card_config.show_icon === true"
+          visibilityCondition: "this._config.show_icon === true"
           label: "Icon Style"
           outlined: true
           leftChevron: false
@@ -1109,7 +1109,7 @@ cb-lcars-base-controls:
             - type: ControlRow
               controls:
                 - label: "Icon"
-                  configValue: "cblcars_card_config.icon"
+                  configValue: "icon"
                   disabled: false
                   type: Selector
                   selector:
@@ -1119,7 +1119,7 @@ cb-lcars-base-controls:
               rows:
               controls:
                 - label: "Size"
-                  configValue: "cblcars_card_config.variables.icon.size"
+                  configValue: "variables.icon.size"
                   disabled: false
                   required: true
                   type: Selector
@@ -1127,7 +1127,7 @@ cb-lcars-base-controls:
                     text:
                       type: number
                 - label: "Justify"
-                  configValue: "cblcars_card_config.variables.icon.justify"
+                  configValue: "variables.icon.justify"
                   type: Selector
                   selector:
                     select:
@@ -1147,7 +1147,7 @@ cb-lcars-base-controls:
                           label: Space Evenly
         - &iconColorSection
           type: Section
-          visibilityCondition: "this._config.cblcars_card_config.show_icon === true"
+          visibilityCondition: "this._config.show_icon === true"
           label: "Colors"
           outlined: true
           leftChevron: false
@@ -1167,12 +1167,12 @@ cb-lcars-base-controls:
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.icon.color.default"
+                      configValue: "variables.icon.color.default"
                     - <<: *colorControl
-                      configValue: "cblcars_card_config.variables.icon.color.default"
+                      configValue: "variables.icon.color.default"
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.icon.color.default"
+                      configValue: "variables.icon.color.default"
             - type: Section
               label: "State Colors"
               outlined: true
@@ -1206,16 +1206,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.icon.color.active"
+                              configValue: "variables.icon.color.active"
                             - label: "Icon Color (state: on)"
-                              configValue: "cblcars_card_config.variables.icon.color.active"
+                              configValue: "variables.icon.color.active"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.icon.color.active"
+                              configValue: "variables.icon.color.active"
                         - controls:
                             - type: RawHTML
                               html: |
@@ -1224,16 +1224,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.icon.color.inactive"
+                              configValue: "variables.icon.color.inactive"
                             - label: "Icon Color (state: off)"
-                              configValue: "cblcars_card_config.variables.icon.color.inactive"
+                              configValue: "variables.icon.color.inactive"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.inactive"
+                              configValue: "variables.card.color.inactive"
                     - type: Section
                       label: "Background"
                       outlined: true
@@ -1251,16 +1251,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.icon.color.background.active"
+                              configValue: "variables.icon.color.background.active"
                             - label: "Icon BG Color (state: on)"
-                              configValue: "cblcars_card_config.variables.icon.color.background.active"
+                              configValue: "variables.icon.color.background.active"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.icon.color.background.active"
+                              configValue: "variables.icon.color.background.active"
                         - controls:
                             - type: RawHTML
                               html: |
@@ -1269,16 +1269,16 @@ cb-lcars-base-controls:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.icon.color.background.inactive"
+                              configValue: "variables.icon.color.background.inactive"
                             - label: "Icon BG Color (state: off)"
-                              configValue: "cblcars_card_config.variables.icon.color.background.inactive"
+                              configValue: "variables.icon.color.background.inactive"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.card.color.background.inactive"
+                              configValue: "variables.card.color.background.inactive"
 cb-lcars-label-card2:
   render_form:
     - type: Section
@@ -1307,7 +1307,7 @@ cb-lcars-label-card2:
               alertType: info
               message: "Optional: Select an entity to enable state-specific colors."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.variables.entity"
+              configValue: "variables.entity"
               type: Selector
               selector:
                 entity:
@@ -1346,14 +1346,14 @@ cb-lcars-label-card2:
                   controls:
                     - &fontSizeControl
                       label: "Font Size"
-                      configValue: "cblcars_card_config.variables.text.label.font_size"
+                      configValue: "variables.text.label.font_size"
                       type: Selector
                       selector:
                         text:
                           type: number
                     - &fontWeightControl
                       label: "Font Weight"
-                      configValue: "cblcars_card_config.variables.text.label.font_weight"
+                      configValue: "variables.text.label.font_weight"
                       type: Selector
                       selector:
                         select:
@@ -1393,12 +1393,12 @@ cb-lcars-label-card2:
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                      configValue: "variables.cascade.colors.text"
                     - <<: *colorControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                      configValue: "variables.cascade.colors.text"
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.text"
+                      configValue: "variables.cascade.colors.text"
 
                 - controls:
                     - type: RawHTML
@@ -1408,16 +1408,16 @@ cb-lcars-label-card2:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                      configValue: "variables.cascade.colors.animation_start"
                     - label: "Text Color (state: on)"
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                      configValue: "variables.cascade.colors.animation_start"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                      configValue: "variables.cascade.colors.animation_start"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -1426,16 +1426,16 @@ cb-lcars-label-card2:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                      configValue: "variables.cascade.colors.animation_end"
                     - label: "Text Color (state: off)"
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                      configValue: "variables.cascade.colors.animation_end"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                      configValue: "variables.cascade.colors.animation_end"
 
 
 
@@ -1487,7 +1487,7 @@ cb-lcars-elbow-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.variables.entity"
+              configValue: "variables.entity"
               type: Selector
               selector:
                 entity:
@@ -1526,558 +1526,13 @@ cb-lcars-double-elbow-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.variables.entity"
+              configValue: "variables.entity"
               type: Selector
               selector:
                 entity:
     - <<: *textLabelSection
     - <<: *cardSection
     - <<: *actionsSection
-
-cb-lcars-multimeter-card2:
-  render_form:
-    - type: Section
-      label: "LCARS Preset"
-      outlined: true
-      leftChevron: false
-      expanded: true
-      headerLevel: 4
-      icon: "mdi:palette-advanced"
-      rows:
-        - controls:
-            - label: LCARS Control Mode
-              helper: "Choose the mode for the control panel"
-              configValue: cblcars_card_config.variables.panel.mode
-              required: true
-              type: Selector
-              selector:
-                select:
-                  mode: dropdowm
-                  options:
-                    - value: 'gauge'
-                      label: 'Gauge'
-                    - value: 'slider'
-                      label: 'Slider'
-                    - value: 'icon_grid'
-                      label: 'Icons (coming soon)'
-                      disabled: true
-            - type: Message
-              alertType: info
-              message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
-            - label: "Entity"
-              configValue: "cblcars_card_config.variables.entity"
-              required: true
-              type: Selector
-              selector:
-                entity:
-    - type: Section
-      label: "Look & Feel"
-      outlined: true
-      leftChevron: false
-      headerLevel: 4
-      icon: "mdi:palette-advanced"
-      rows:
-        - type: Section
-          label: "Header Button"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:button-pointer"
-          rows:
-            - type: ControlRow
-              controls:
-                - label: "Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_header"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_header === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette"
-              noCollapse: false
-              expanded: false
-              rows:
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: ON</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                    - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: OFF</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-                    - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-            - type: Section
-              label: "Button Text"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:format-textbox"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  controls:
-                    - label: "Button Label"
-                      configValue: "cblcars_card_config.variables.label"
-                      type: Selector
-                      selector:
-                        text:
-                          type: text
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *fontSizeControl
-                    - <<: *fontWeightControl
-                - <<: *textAlignmentSection
-                - <<: *textPaddingSection
-                - type: Section
-                  label: "Colors"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:palette"
-                  noCollapse: false
-                  rows:
-                    - type: Section
-                      label: "On/Off"
-                      outlined: true
-                      leftChevron: false
-                      headerLevel: 4
-                      icon: "mdi:palette-advanced"
-                      noCollapse: false
-                      rows:
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: ON</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                            - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: OFF</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-                            - label: "Text Color (state: off)"
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-        - type: Section
-          label: "Gauge Mode"
-          visibilityCondition: "this._config.cblcars_card_config.variables.panel.mode === 'gauge'"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:view-grid-compact"
-          rows:
-            - controls:
-                - label: "Gauge: Show Minor Ticks"
-                  configValue: "cblcars_card_config.variables.panel.gauge.show_sub_meter"
-                  type: Selector
-                  selector:
-                    boolean:
-                - label: "Gauge: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_gauge"
-                  type: Selector
-                  selector:
-                    boolean:
-                - label: "Slider: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Gauge Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_gauge === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette"
-              noCollapse: false
-              expanded: true
-              rows:
-                - type: Section
-                  label: "Gauge Background"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:wallpaper"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.background.inactive"
-
-                - type: Section
-                  label: "Gauge Text"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:format-textbox"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-
-                - type: Section
-                  label: "Gauge Major Ticks"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:tally-mark-4"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-
-                - type: Section
-                  label: "Gauge Minor Ticks"
-                  visibilityCondition: "this._config.cblcars_card_config.variables.panel.gauge.show_sub_meter === true"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:tally-mark-3"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-
-            - type: Section
-              label: "Slider Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:tune-variant"
-              noCollapse: false
-              expanded: true
-              rows:
-                - type: Section
-                  label: "Slider"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:border-right-variant"
-                  noCollapse: false
-                  rows:
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-
-                - type: Section
-                  label: "Slider Border"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:border-none-variant"
-                  noCollapse: false
-                  rows:
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-
-
-        - &sliderSection
-          type: Section
-          label: "Slider Mode"
-          visibilityCondition: "this._config.cblcars_card_config.variables.panel.mode === 'slider'"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:tune-variant"
-          rows:
-            - controls:
-                - label: "Gradient: Match [Left/Top] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_start"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Gradient - Left/Top"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:gradient-horizontal"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-                    - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-            - controls:
-                - label: "Gradient: Match [Right/Bottom] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_end"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Slider - Right/Bottom"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:gradient-vertical"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
-                    - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
-    - <<: *actionsSection
-      rows:
-        - <<: *tapActionSection
-          rows:
-            - controls:
-              - label: "Tap Action"
-                configValue: "cblcars_card_config.variables.header_button.tap_action"
-                type: Selector
-                selector:
-                  ui_action:
-        - <<: *doubleTapActionSection
-          rows:
-            - controls:
-              - label: "Double-tap Action"
-                configValue: "cblcars_card_config.variables.header_button.double_tap_action"
-                type: Selector
-                selector:
-                  ui_action:
-        - <<: *holdActionSection
-          rows:
-            - type: ControlRow
-              controls:
-                - label: "Hold Action"
-                  configValue: "cblcars_card_config.variables.header_button.hold_action"
-                  type: Selector
-                  selector:
-                    ui_action:
 
 cb-lcars-button-card:
   render_form:
@@ -2114,7 +1569,7 @@ cb-lcars-button-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity [optional]"
-              configValue: "cblcars_card_config.variables.entity"
+              configValue: "variables.entity"
               type: Selector
               selector:
                 entity:
@@ -2150,7 +1605,7 @@ cb-lcars-slider-card:
               alertType: info
               message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
             - label: "Entity"
-              configValue: "cblcars_card_config.variables.entity"
+              configValue: "variables.entity"
               required: true
               type: Selector
               selector:
@@ -2164,13 +1619,13 @@ cb-lcars-slider-card:
       rows:
         - controls:
             - label: "Gradient: Match [Left/Top] to Entity Color"
-              configValue: "cblcars_card_config.variables.entity_match_slider_start"
+              configValue: "variables.entity_match_slider_start"
               type: Selector
               selector:
                 boolean:
         - type: Section
           label: "Gradient - Left/Top"
-          visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
+          visibilityCondition: "this._config.variables.entity_match_slider_start === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
@@ -2181,25 +1636,25 @@ cb-lcars-slider-card:
               cssClass: "form-row two-controls"
               controls:
                 - <<: *colorLCARSListControl
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_start_color"
+                  configValue: "variables.meter.variables.gradient_start_color"
                 - label: "Color (state: on)"
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_start_color"
+                  configValue: "variables.meter.variables.gradient_start_color"
                   type: Selector
                   selector:
                     text:
                       type: color
             - controls:
                 - <<: *colorPreviewControl
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_start_color"
+                  configValue: "variables.meter.variables.gradient_start_color"
         - controls:
             - label: "Gradient: Match [Right/Bottom] to Entity Color"
-              configValue: "cblcars_card_config.variables.entity_match_slider_end"
+              configValue: "variables.entity_match_slider_end"
               type: Selector
               selector:
                 boolean:
         - type: Section
           label: "Gradient - Right/Bottom"
-          visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
+          visibilityCondition: "this._config.variables.entity_match_slider_end === false"
           outlined: true
           leftChevron: false
           headerLevel: 4
@@ -2210,16 +1665,16 @@ cb-lcars-slider-card:
               cssClass: "form-row two-controls"
               controls:
                 - <<: *colorLCARSListControl
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_end_color"
+                  configValue: "variables.meter.variables.gradient_end_color"
                 - label: "Color (state: off)"
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_end_color"
+                  configValue: "variables.meter.variables.gradient_end_color"
                   type: Selector
                   selector:
                     text:
                       type: color
             - controls:
                 - <<: *colorPreviewControl
-                  configValue: "cblcars_card_config.variables.meter.variables.gradient_end_color"
+                  configValue: "variables.meter.variables.gradient_end_color"
 
 cb-lcars-dpad-card:
   tabs:
@@ -2253,16 +1708,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                      configValue: "variables.__defs_dpad.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                      configValue: "variables.__defs_dpad.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.active"
+                      configValue: "variables.__defs_dpad.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2271,16 +1726,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                      configValue: "variables.__defs_dpad.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                      configValue: "variables.__defs_dpad.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.__defs_dpad.color.background.inactive"
+                      configValue: "variables.__defs_dpad.color.background.inactive"
             - type: Section
               label: "Size"
               outlined: true
@@ -2295,7 +1750,7 @@ cb-lcars-dpad-card:
                       alertType: info
                       message: "By default the DPAD will autosize to fit the card dimensions.\nYou can override this behavior by setting a fixed size here."
                     - label: "DPAD Size"
-                      configValue: "cblcars_card_config.variables.card.size"
+                      configValue: "variables.card.size"
                       disabled: false
                       required: false
                       type: Selector
@@ -2327,7 +1782,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.up.entity"
+                      configValue: "variables.dpad.up.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2339,16 +1794,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                      configValue: "variables.dpad.up.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                      configValue: "variables.dpad.up.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.active"
+                      configValue: "variables.dpad.up.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2357,23 +1812,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                      configValue: "variables.dpad.up.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                      configValue: "variables.dpad.up.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up.color.background.inactive"
+                      configValue: "variables.dpad.up.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up.tap_action"
+                            configValue: "variables.dpad.up.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2381,7 +1836,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up.double_tap_action"
+                            configValue: "variables.dpad.up.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2390,7 +1845,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.up.hold_action"
+                              configValue: "variables.dpad.up.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2404,7 +1859,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.down.entity"
+                      configValue: "variables.dpad.down.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2416,16 +1871,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                      configValue: "variables.dpad.down.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                      configValue: "variables.dpad.down.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.active"
+                      configValue: "variables.dpad.down.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2434,23 +1889,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                      configValue: "variables.dpad.down.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                      configValue: "variables.dpad.down.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down.color.background.inactive"
+                      configValue: "variables.dpad.down.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down.tap_action"
+                            configValue: "variables.dpad.down.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2458,7 +1913,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down.double_tap_action"
+                            configValue: "variables.dpad.down.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2467,7 +1922,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.down.hold_action"
+                              configValue: "variables.dpad.down.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2481,7 +1936,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.left.entity"
+                      configValue: "variables.dpad.left.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2493,16 +1948,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                      configValue: "variables.dpad.left.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                      configValue: "variables.dpad.left.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.active"
+                      configValue: "variables.dpad.left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2511,23 +1966,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                      configValue: "variables.dpad.left.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                      configValue: "variables.dpad.left.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.left.color.background.inactive"
+                      configValue: "variables.dpad.left.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.left.tap_action"
+                            configValue: "variables.dpad.left.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2535,7 +1990,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.left.double_tap_action"
+                            configValue: "variables.dpad.left.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2544,7 +1999,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.left.hold_action"
+                              configValue: "variables.dpad.left.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2558,7 +2013,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.right.entity"
+                      configValue: "variables.dpad.right.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2570,16 +2025,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                      configValue: "variables.dpad.right.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                      configValue: "variables.dpad.right.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.active"
+                      configValue: "variables.dpad.right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2588,23 +2043,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                      configValue: "variables.dpad.right.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                      configValue: "variables.dpad.right.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.right.color.background.inactive"
+                      configValue: "variables.dpad.right.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.right.tap_action"
+                            configValue: "variables.dpad.right.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2612,7 +2067,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.right.double_tap_action"
+                            configValue: "variables.dpad.right.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2621,7 +2076,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.right.hold_action"
+                              configValue: "variables.dpad.right.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2635,7 +2090,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.center.entity"
+                      configValue: "variables.dpad.center.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2647,16 +2102,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                      configValue: "variables.dpad.center.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                      configValue: "variables.dpad.center.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.active"
+                      configValue: "variables.dpad.center.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2665,23 +2120,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                      configValue: "variables.dpad.center.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                      configValue: "variables.dpad.center.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.center.color.background.inactive"
+                      configValue: "variables.dpad.center.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.center.tap_action"
+                            configValue: "variables.dpad.center.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2689,7 +2144,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.center.double_tap_action"
+                            configValue: "variables.dpad.center.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2698,7 +2153,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.center.hold_action"
+                              configValue: "variables.dpad.center.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2712,7 +2167,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.up_left.entity"
+                      configValue: "variables.dpad.up_left.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2724,16 +2179,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                      configValue: "variables.dpad.up_left.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                      configValue: "variables.dpad.up_left.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.active"
+                      configValue: "variables.dpad.up_left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2742,23 +2197,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                      configValue: "variables.dpad.up_left.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                      configValue: "variables.dpad.up_left.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up_left.color.background.inactive"
+                      configValue: "variables.dpad.up_left.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up_left.tap_action"
+                            configValue: "variables.dpad.up_left.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2766,7 +2221,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up_left.double_tap_action"
+                            configValue: "variables.dpad.up_left.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2775,7 +2230,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.up_left.hold_action"
+                              configValue: "variables.dpad.up_left.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2789,7 +2244,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.up_right.entity"
+                      configValue: "variables.dpad.up_right.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2801,16 +2256,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                      configValue: "variables.dpad.up_right.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                      configValue: "variables.dpad.up_right.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.active"
+                      configValue: "variables.dpad.up_right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2819,23 +2274,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                      configValue: "variables.dpad.up_right.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                      configValue: "variables.dpad.up_right.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.up_right.color.background.inactive"
+                      configValue: "variables.dpad.up_right.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up_right.tap_action"
+                            configValue: "variables.dpad.up_right.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2843,7 +2298,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.up_right.double_tap_action"
+                            configValue: "variables.dpad.up_right.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2852,7 +2307,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.up_right.hold_action"
+                              configValue: "variables.dpad.up_right.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2866,7 +2321,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.down_left.entity"
+                      configValue: "variables.dpad.down_left.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2878,16 +2333,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                      configValue: "variables.dpad.down_left.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                      configValue: "variables.dpad.down_left.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.active"
+                      configValue: "variables.dpad.down_left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2896,23 +2351,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                      configValue: "variables.dpad.down_left.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                      configValue: "variables.dpad.down_left.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down_left.color.background.inactive"
+                      configValue: "variables.dpad.down_left.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down_left.tap_action"
+                            configValue: "variables.dpad.down_left.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2920,7 +2375,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down_left.double_tap_action"
+                            configValue: "variables.dpad.down_left.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2929,7 +2384,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.down_left.hold_action"
+                              configValue: "variables.dpad.down_left.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -2943,7 +2398,7 @@ cb-lcars-dpad-card:
               rows:
                 - controls:
                     - label: "Entity"
-                      configValue: "cblcars_card_config.variables.dpad.down_right.entity"
+                      configValue: "variables.dpad.down_right.entity"
                       required: true
                       type: Selector
                       selector:
@@ -2955,16 +2410,16 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                      configValue: "variables.dpad.down_right.color.background.active"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                      configValue: "variables.dpad.down_right.color.background.active"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.active"
+                      configValue: "variables.dpad.down_right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2973,23 +2428,23 @@ cb-lcars-dpad-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                      configValue: "variables.dpad.down_right.color.background.inactive"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                      configValue: "variables.dpad.down_right.color.background.inactive"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.dpad.down_right.color.background.inactive"
+                      configValue: "variables.dpad.down_right.color.background.inactive"
                 - <<: *actionsSection
                   rows:
                     - <<: *tapActionSection
                       rows:
                         - controls:
                           - label: "Tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down_right.tap_action"
+                            configValue: "variables.dpad.down_right.tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -2997,7 +2452,7 @@ cb-lcars-dpad-card:
                       rows:
                         - controls:
                           - label: "Double-tap Action"
-                            configValue: "cblcars_card_config.variables.dpad.down_right.double_tap_action"
+                            configValue: "variables.dpad.down_right.double_tap_action"
                             type: Selector
                             selector:
                               ui_action:
@@ -3006,7 +2461,7 @@ cb-lcars-dpad-card:
                         - type: ControlRow
                           controls:
                             - label: "Hold Action"
-                              configValue: "cblcars_card_config.variables.dpad.down_right.hold_action"
+                              configValue: "variables.dpad.down_right.hold_action"
                               type: Selector
                               selector:
                                 ui_action:
@@ -3042,7 +2497,7 @@ cb-lcars-label-card:
                   alertType: info
                   message: "Optional: Select an entity to enable state specific colors."
                 - label: "Entity [optional]"
-                  configValue: "cblcars_card_config.variables.entity"
+                  configValue: "variables.entity"
                   type: Selector
                   selector:
                     entity:
@@ -3087,14 +2542,14 @@ cb-lcars-label-card:
                       controls:
                         - &fontSizeControl
                           label: "Font Size"
-                          configValue: "cblcars_card_config.variables.text.label.font_size"
+                          configValue: "variables.text.label.font_size"
                           type: Selector
                           selector:
                             text:
                               type: number
                         - &fontWeightControl
                           label: "Font Weight"
-                          configValue: "cblcars_card_config.variables.text.label.font_weight"
+                          configValue: "variables.text.label.font_weight"
                           type: Selector
                           selector:
                             select:
@@ -3133,12 +2588,12 @@ cb-lcars-label-card:
                     - cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.text"
+                          configValue: "variables.cascade.colors.text"
                         - <<: *colorControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.text"
+                          configValue: "variables.cascade.colors.text"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.text"
+                          configValue: "variables.cascade.colors.text"
 
                     - controls:
                         - type: RawHTML
@@ -3148,16 +2603,16 @@ cb-lcars-label-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                          configValue: "variables.cascade.colors.animation_start"
                         - label: "Text Color (state: on)"
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                          configValue: "variables.cascade.colors.animation_start"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_start"
+                          configValue: "variables.cascade.colors.animation_start"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -3166,564 +2621,16 @@ cb-lcars-label-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                          configValue: "variables.cascade.colors.animation_end"
                         - label: "Text Color (state: off)"
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
+                          configValue: "variables.cascade.colors.animation_end"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.cascade.colors.animation_end"
-
-cb-lcars-multimeter-card-old:
-  tabs:
-    - label: "LCARS"
-      content:
-        - type: Section
-          label: "LCARS Preset"
-          outlined: true
-          leftChevron: false
-          expanded: true
-          headerLevel: 4
-          icon: "mdi:palette-advanced"
-          rows:
-            - controls:
-                - label: LCARS Control Mode
-                  helper: "Choose the mode for the control panel"
-                  configValue: cblcars_card_config.variables.panel.mode
-                  required: true
-                  type: Selector
-                  selector:
-                    select:
-                      mode: dropdowm
-                      options:
-                        - value: 'gauge'
-                          label: 'Gauge'
-                        - value: 'slider'
-                          label: 'Slider'
-                        - value: 'icon_grid'
-                          label: 'Icons (coming soon)'
-                          disabled: true
-                - type: Message
-                  alertType: info
-                  message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
-                - label: "Entity"
-                  configValue: "cblcars_card_config.variables.entity"
-                  required: true
-                  type: Selector
-                  selector:
-                    entity:
-    - label: "Header Button"
-      content:
-        - type: Section
-          label: "Header Button"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          expanded: true
-          icon: "mdi:button-pointer"
-          rows:
-            - type: ControlRow
-              controls:
-                - label: "Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_header"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_header === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette"
-              noCollapse: false
-              expanded: false
-              rows:
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: ON</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                    - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.active"
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>State: OFF</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-                    - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.header_button.variables.card.color.background.inactive"
-            - type: Section
-              label: "Button Text"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:format-textbox"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  controls:
-                    - label: "Button Label"
-                      configValue: "cblcars_card_config.variables.label"
-                      type: Selector
-                      selector:
-                        text:
-                          type: text
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *fontSizeControl
-                    - <<: *fontWeightControl
-                - <<: *textAlignmentSection
-                - <<: *textPaddingSection
-                - type: Section
-                  label: "Colors"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:palette"
-                  noCollapse: false
-                  rows:
-                    - type: Section
-                      label: "On/Off"
-                      outlined: true
-                      leftChevron: false
-                      headerLevel: 4
-                      icon: "mdi:palette-advanced"
-                      noCollapse: false
-                      rows:
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: ON</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                            - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: OFF</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-                            - label: "Text Color (state: off)"
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
-        - <<: *actionsSection
-          rows:
-            - <<: *tapActionSection
-              rows:
-                - controls:
-                  - label: "Tap Action"
-                    configValue: "cblcars_card_config.variables.header_button.tap_action"
-                    type: Selector
-                    selector:
-                      ui_action:
-            - <<: *doubleTapActionSection
-              rows:
-                - controls:
-                  - label: "Double-tap Action"
-                    configValue: "cblcars_card_config.variables.header_button.double_tap_action"
-                    type: Selector
-                    selector:
-                      ui_action:
-            - <<: *holdActionSection
-              rows:
-                - type: ControlRow
-                  controls:
-                    - label: "Hold Action"
-                      configValue: "cblcars_card_config.variables.header_button.hold_action"
-                      type: Selector
-                      selector:
-                        ui_action:
-
-    - label: "Gauge"
-      visibilityCondition: "this._config.cblcars_card_config.variables.panel.mode === 'gauge'"
-      content:
-        - type: Section
-          label: "Gauge Mode"
-          outlined: true
-          leftChevron: false
-          expanded: true
-          headerLevel: 4
-          icon: "mdi:view-grid-compact"
-          rows:
-            - controls:
-                - label: "Gauge: Show Minor Ticks"
-                  configValue: "cblcars_card_config.variables.panel.gauge.show_sub_meter"
-                  type: Selector
-                  selector:
-                    boolean:
-                - label: "Gauge: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_gauge"
-                  type: Selector
-                  selector:
-                    boolean:
-                - label: "Slider: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Gauge Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_gauge === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette"
-              noCollapse: false
-              expanded: true
-              rows:
-                - type: Section
-                  label: "Gauge Background"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:wallpaper"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.background.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.background.inactive"
-
-                - type: Section
-                  label: "Gauge Text"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:format-textbox"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.label.inactive"
-
-                - type: Section
-                  label: "Gauge Major Ticks"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:tally-mark-4"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.color.inactive"
-
-                - type: Section
-                  label: "Gauge Minor Ticks"
-                  visibilityCondition: "this._config.cblcars_card_config.variables.panel.gauge.show_sub_meter === true"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:tally-mark-3"
-                  noCollapse: false
-                  rows:
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: ON</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.active"
-                    - controls:
-                        - type: RawHTML
-                          html: |
-                              <label>State: OFF</label>
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.gauge.sub_meter.inactive"
-
-            - type: Section
-              label: "Slider Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:slider-horizontal"
-              noCollapse: false
-              expanded: true
-              rows:
-                - type: Section
-                  label: "Slider"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:border-right-variant"
-                  noCollapse: false
-                  rows:
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-                        - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.color"
-
-                - type: Section
-                  label: "Slider Border"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:border-none-variant"
-                  noCollapse: false
-                  rows:
-                    - type: ControlRow
-                      cssClass: "form-row two-controls"
-                      controls:
-                        - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-                        - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
-                    - controls:
-                        - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.panel.slider.variables.border_color"
-    - label: "Slider"
-      visibilityCondition: "this._config.cblcars_card_config.variables.panel.mode === 'slider'"
-      content:
-        - &sliderSection
-          type: Section
-          label: "Slider Mode"
-          outlined: true
-          leftChevron: false
-          expanded: true
-          headerLevel: 4
-          icon: "mdi:tune-variant"
-          rows:
-            - controls:
-                - label: "Gradient: Match [Left/Top] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_start"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Gradient - Left/Top"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:gradient-horizontal"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-                    - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_start_color"
-            - controls:
-                - label: "Gradient: Match [Right/Bottom] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_end"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Slider - Right/Bottom"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:gradient-vertical"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
-                    - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.panel.meter.variables.gradient_end_color"
+                          configValue: "variables.cascade.colors.animation_end"
 
 cb-lcars-multimeter-card:
   tabs:
@@ -3739,7 +2646,7 @@ cb-lcars-multimeter-card:
           rows:
             - controls:
                 - label: "Slider Control Mode"
-                  configValue: cblcars_card_config.variables._mode
+                  configValue: variables._mode
                   required: true
                   type: Selector
                   selector:
@@ -3752,7 +2659,7 @@ cb-lcars-multimeter-card:
                           label: 'Slider'
                 - label: "Orientation"
                   helper: "Adjust the dimensions of the card in the 'Layout' tab to the desired aspect ratio."
-                  configValue: cblcars_card_config.variables._vertical
+                  configValue: variables._vertical
                   required: true
                   type: Selector
                   selector:
@@ -3776,14 +2683,14 @@ cb-lcars-multimeter-card:
           rows:
             - controls:
                 - label: "Entity"
-                  configValue: "cblcars_card_config.variables.entity"
+                  configValue: "variables.entity"
                   required: true
                   type: Selector
                   selector:
                     entity:
                 - label: "Light Control Mode"
-                  configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'light'"
+                  configValue: variables._slider_mode
+                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'light'"
                   required: true
                   type: Selector
                   selector:
@@ -3799,8 +2706,8 @@ cb-lcars-multimeter-card:
                         - value: 'hue'
                           label: 'Hue'
                 - label: "Cover Control Mode"
-                  configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'cover'"
+                  configValue: variables._slider_mode
+                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'cover'"
                   required: true
                   type: Selector
                   selector:
@@ -3812,8 +2719,8 @@ cb-lcars-multimeter-card:
                         - value: 'tilt'
                           label: 'Tilt'
                 - label: "Media Player Control Mode"
-                  configValue: cblcars_card_config.variables._slider_mode
-                  visibilityCondition: "this._config.cblcars_card_config.variables.entity && this._config.cblcars_card_config.variables.entity.split('.')[0] === 'media_player'"
+                  configValue: variables._slider_mode
+                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'media_player'"
                   required: true
                   type: Selector
                   selector:
@@ -3825,7 +2732,7 @@ cb-lcars-multimeter-card:
                         - value: 'seekbar'
                           label: 'Seekbar'
             - type: ControlRow
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.cblcars_card_config.variables.entity.split('.')[0])"
+              visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
               controls:
                 - type: Message
                   alertType: warning
@@ -3846,7 +2753,7 @@ cb-lcars-multimeter-card:
             - type: ControlRow
               controls:
                 - label: "Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_header"
+                  configValue: "variables.entity_match_header"
                   type: Selector
                   selector:
                     boolean:
@@ -3856,13 +2763,13 @@ cb-lcars-multimeter-card:
             - type: ControlRow
               controls:
                 - label: "Show Label"
-                  configValue: "cblcars_card_config.show_label"
+                  configValue: "show_label"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
               label: "Label Text"
-              visibilityCondition: "this._config.cblcars_card_config.show_label === true"
+              visibilityCondition: "this._config.show_label === true"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -3872,7 +2779,7 @@ cb-lcars-multimeter-card:
                 - type: ControlRow
                   controls:
                     - label: "Label"
-                      configValue: "cblcars_card_config.variables.label"
+                      configValue: "variables.label"
                       type: Selector
                       selector:
                         text:
@@ -3908,16 +2815,16 @@ cb-lcars-multimeter-card:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
+                              configValue: "variables.text.label.color.on"
                             - label: "Text Color (state: on)"
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
+                              configValue: "variables.text.label.color.on"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.on"
+                              configValue: "variables.text.label.color.on"
                         - controls:
                             - type: RawHTML
                               html: |
@@ -3926,18 +2833,18 @@ cb-lcars-multimeter-card:
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
+                              configValue: "variables.text.label.color.off"
                             - label: "Text Color (state: off)"
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
+                              configValue: "variables.text.label.color.off"
                               type: Selector
                               selector:
                                 text:
                                   type: color
                         - controls:
                             - <<: *colorPreviewControl
-                              configValue: "cblcars_card_config.variables.text.label.color.off"
+                              configValue: "variables.text.label.color.off"
     - label: "Gauge Mode"
-      visibilityCondition: "this._config.cblcars_card_config.variables._mode === 'gauge'"
+      visibilityCondition: "this._config.variables._mode === 'gauge'"
       content:
         - type: Section
           label: "Gauge Options"
@@ -3951,21 +2858,21 @@ cb-lcars-multimeter-card:
               cssClass: "form-row two-controls"
               controls:
                 - label: "Gauge: Min"
-                  configValue: "cblcars_card_config.variables._min"
+                  configValue: "variables._min"
                   type: Selector
                   selector:
                     number:
                       step: 1
                       mode: box
                 - label: "Gauge: Max"
-                  configValue: "cblcars_card_config.variables._max"
+                  configValue: "variables._max"
                   type: Selector
                   selector:
                     number:
                       step: 1
                       mode: box
                 - label: "Gauge: Increment"
-                  configValue: "cblcars_card_config.variables._increment"
+                  configValue: "variables._increment"
                   type: Selector
                   selector:
                     number:
@@ -3976,28 +2883,28 @@ cb-lcars-multimeter-card:
               cssClass: "form-row two-controls"
               controls:
                 - label: "Gauge: Show Units"
-                  configValue: "cblcars_card_config.variables._show_unit_of_measurement"
+                  configValue: "variables._show_unit_of_measurement"
                   type: Selector
                   selector:
                     boolean:
                 - label: "Gauge: Unit"
-                  configValue: "cblcars_card_config.variables._unit_of_measurement"
+                  configValue: "variables._unit_of_measurement"
                   type: Selector
                   selector:
                     text:
                       type: text
             - controls:
                 - label: "Gauge: Show Minor Ticks"
-                  configValue: "cblcars_card_config.variables.gauge.sub_meter.show_sub_meter"
+                  configValue: "variables.gauge.sub_meter.show_sub_meter"
                   type: Selector
                   selector:
                     boolean:
             - type: ControlRow
               cssClass: "form-row two-controls"
-              visibilityCondition: "this._config.cblcars_card_config.variables.gauge.sub_meter.show_sub_meter === true"
+              visibilityCondition: "this._config.variables.gauge.sub_meter.show_sub_meter === true"
               controls:
                 - label: "Subtick Count"
-                  configValue: "cblcars_card_config.variables.gauge.sub_meter.tick_count"
+                  configValue: "variables.gauge.sub_meter.tick_count"
                   type: Selector
                   selector:
                     number:
@@ -4005,7 +2912,7 @@ cb-lcars-multimeter-card:
                       max: 25
                       mode: box
                 - label: "Subtick Size"
-                  configValue: "cblcars_card_config.variables.gauge.sub_meter.tick_size"
+                  configValue: "variables.gauge.sub_meter.tick_size"
                   type: Selector
                   selector:
                     number:
@@ -4013,13 +2920,13 @@ cb-lcars-multimeter-card:
                       mode: box
             - controls:
                 - label: "Gauge: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_gauge"
+                  configValue: "variables.entity_match_gauge"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
               label: "Gauge Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_gauge === false"
+              visibilityCondition: "this._config.variables.entity_match_gauge === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -4043,16 +2950,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.color.background.active"
+                          configValue: "variables.gauge.color.background.active"
                         - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.gauge.color.background.active"
+                          configValue: "variables.gauge.color.background.active"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.color.background.active"
+                          configValue: "variables.gauge.color.background.active"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -4061,16 +2968,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.color.background.inactive"
+                          configValue: "variables.gauge.color.background.inactive"
                         - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.gauge.color.background.inactive"
+                          configValue: "variables.gauge.color.background.inactive"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.color.background.inactive"
+                          configValue: "variables.gauge.color.background.inactive"
 
                 - type: Section
                   label: "Gauge Text"
@@ -4088,16 +2995,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.label.active"
+                          configValue: "variables.gauge.label.active"
                         - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.gauge.label.active"
+                          configValue: "variables.gauge.label.active"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.label.active"
+                          configValue: "variables.gauge.label.active"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -4106,16 +3013,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.label.inactive"
+                          configValue: "variables.gauge.label.inactive"
                         - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.gauge.label.inactive"
+                          configValue: "variables.gauge.label.inactive"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.label.inactive"
+                          configValue: "variables.gauge.label.inactive"
 
                 - type: Section
                   label: "Gauge Major Ticks"
@@ -4133,16 +3040,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.color.active"
+                          configValue: "variables.gauge.color.active"
                         - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.gauge.color.active"
+                          configValue: "variables.gauge.color.active"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.color.active"
+                          configValue: "variables.gauge.color.active"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -4151,20 +3058,20 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.color.inactive"
+                          configValue: "variables.gauge.color.inactive"
                         - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.gauge.color.inactive"
+                          configValue: "variables.gauge.color.inactive"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.color.inactive"
+                          configValue: "variables.gauge.color.inactive"
 
                 - type: Section
                   label: "Gauge Minor Ticks"
-                  visibilityCondition: "this._config.cblcars_card_config.variables.gauge.sub_meter.show_sub_meter === true"
+                  visibilityCondition: "this._config.variables.gauge.sub_meter.show_sub_meter === true"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -4179,16 +3086,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.active"
+                          configValue: "variables.gauge.sub_meter.active"
                         - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.active"
+                          configValue: "variables.gauge.sub_meter.active"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.active"
+                          configValue: "variables.gauge.sub_meter.active"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -4197,16 +3104,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.inactive"
+                          configValue: "variables.gauge.sub_meter.inactive"
                         - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.inactive"
+                          configValue: "variables.gauge.sub_meter.inactive"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.gauge.sub_meter.inactive"
+                          configValue: "variables.gauge.sub_meter.inactive"
         - type: Section
           label: "Slider Options"
           outlined: true
@@ -4219,7 +3126,7 @@ cb-lcars-multimeter-card:
               cssClass: "form-row two-controls"
               controls:
                 - label: "Slider: Thickness"
-                  configValue: "cblcars_card_config.variables._slider_thickness"
+                  configValue: "variables._slider_thickness"
                   type: Selector
                   selector:
                     number:
@@ -4228,7 +3135,7 @@ cb-lcars-multimeter-card:
                       step: 1
                       mode: box
                 - label: "Slider: Step"
-                  configValue: "cblcars_card_config.variables._slider_step"
+                  configValue: "variables._slider_step"
                   type: Selector
                   selector:
                     number:
@@ -4238,13 +3145,13 @@ cb-lcars-multimeter-card:
                       mode: box
             - controls:
                 - label: "Slider: Match Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider"
+                  configValue: "variables.entity_match_slider"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
               label: "Slider Colors"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider === false"
+              visibilityCondition: "this._config.variables.entity_match_slider === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -4264,16 +3171,16 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.slider.color"
+                          configValue: "variables.slider.color"
                         - label: "Color (state: on)"
-                          configValue: "cblcars_card_config.variables.slider.color"
+                          configValue: "variables.slider.color"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.slider.color"
+                          configValue: "variables.slider.color"
 
                 - type: Section
                   label: "Slider Border"
@@ -4287,18 +3194,18 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "cblcars_card_config.variables.slider.border_color"
+                          configValue: "variables.slider.border_color"
                         - label: "Color (state: off)"
-                          configValue: "cblcars_card_config.variables.slider.border_color"
+                          configValue: "variables.slider.border_color"
                           type: Selector
                           selector:
                             text:
                               type: color
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "cblcars_card_config.variables.slider.border_color"
+                          configValue: "variables.slider.border_color"
     - label: "Slider Mode"
-      visibilityCondition: "this._config.cblcars_card_config.variables._mode === 'slider'"
+      visibilityCondition: "this._config.variables._mode === 'slider'"
       content:
         - &sliderSection
           type: Section
@@ -4311,13 +3218,13 @@ cb-lcars-multimeter-card:
           rows:
             - controls:
                 - label: "Gradient: Match [Left/Top] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_start"
+                  configValue: "variables.entity_match_slider_start"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
               label: "Gradient - Left/Top"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_start === false"
+              visibilityCondition: "this._config.variables.entity_match_slider_start === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -4328,25 +3235,25 @@ cb-lcars-multimeter-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_start_color"
+                      configValue: "variables.slider_track.meter.gradient_start_color"
                     - label: "Color (state: on)"
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_start_color"
+                      configValue: "variables.slider_track.meter.gradient_start_color"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_start_color"
+                      configValue: "variables.slider_track.meter.gradient_start_color"
             - controls:
                 - label: "Gradient: Match [Right/Bottom] to Entity Color"
-                  configValue: "cblcars_card_config.variables.entity_match_slider_end"
+                  configValue: "variables.entity_match_slider_end"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
               label: "Slider - Right/Bottom"
-              visibilityCondition: "this._config.cblcars_card_config.variables.entity_match_slider_end === false"
+              visibilityCondition: "this._config.variables.entity_match_slider_end === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -4357,13 +3264,13 @@ cb-lcars-multimeter-card:
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_end_color"
+                      configValue: "variables.slider_track.meter.gradient_end_color"
                     - label: "Color (state: off)"
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_end_color"
+                      configValue: "variables.slider_track.meter.gradient_end_color"
                       type: Selector
                       selector:
                         text:
                           type: color
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "cblcars_card_config.variables.slider_track.meter.gradient_end_color"
+                      configValue: "variables.slider_track.meter.gradient_end_color"

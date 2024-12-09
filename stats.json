@@ -1,0 +1,113 @@
+PublicPath: auto
+asset cb-lcars.js 192 KiB {792} [compared for emit] [minimized] (name: main)
+  sourceMap cb-lcars.js.map 535 KiB ({792}) [compared for emit] [dev] (auxiliary name: main)
+  license cb-lcars.js.LICENSE.txt 341 bytes [compared for emit]
+asset 870.cb-lcars.js 43.5 KiB {870} [compared for emit] [minimized]
+  sourceMap 870.cb-lcars.js.map 108 KiB ({870}) [compared for emit] [dev]
+  license 870.cb-lcars.js.LICENSE.txt 2.36 KiB [compared for emit]
+Entrypoint main 192 KiB (535 KiB) = cb-lcars.js 1 auxiliary asset
+chunk {792} (runtime: main) cb-lcars.js (main) 286 KiB (javascript) 6.81 KiB (runtime) >{870}< [entry] [rendered]
+  > ./src/cb-lcars.js main
+chunk {870} (runtime: main) 870.cb-lcars.js 54.3 KiB <{792}> [rendered]
+  > ./cblcars-my-slider-v2.js ./src/cb-lcars.js 33:8-43
+orphan modules 248 KiB [orphan] 24 modules
+code generated modules 340 KiB (javascript) 6.81 KiB (runtime) [code generated]
+  cacheable modules 340 KiB
+    modules by path ./node_modules/ 59.7 KiB
+      modules by path ./node_modules/ha-card-formbuilder/dist/*.js 21.9 KiB
+        ./node_modules/ha-card-formbuilder/dist/index.js [448] 12.2 KiB {792} [depth 2] [built] [code generated]
+          [exports: __esModule, default]
+          [only some exports used: default]
+          Statement (ExpressionStatement) with side effects in source code at 2:0-62
+          ModuleConcatenation bailout: Module is not an ECMAScript module
+        ./node_modules/ha-card-formbuilder/dist/interfaces.js [898] 277 bytes {792} [depth 3] [built] [code generated]
+          [exports: __esModule, isControlRow, isSection]
+          Statement (ExpressionStatement) with side effects in source code at 2:0-62
+          ModuleConcatenation bailout: Module is not an ECMAScript module
+        ./node_modules/ha-card-formbuilder/dist/controls.js [372] 9.46 KiB {792} [depth 3] [built] [code generated]
+          [exports: __esModule, deepMerge, generateControl, getNestedProperty, isObject]
+          Statement (ExpressionStatement) with side effects in source code at 2:0-62
+          ModuleConcatenation bailout: Module is not an ECMAScript module
+      modules by path ./node_modules/lit/ 10.1 KiB
+        ./node_modules/lit/index.js + 4 modules [243] 8.77 KiB {792} [depth 2] [built] [code generated]
+          [exports: CSSResult, LitElement, ReactiveElement, _$LE, _$LH, adoptStyles, css, defaultConverter, getCompatibleStyle, html, isServer, mathml, noChange, notEqual, nothing, render, supportsAdoptingStyleSheets, svg, unsafeCSS]
+          ModuleConcatenation bailout: Cannot concat with ./node_modules/lit-html/lit-html.js: Module ./node_modules/lit/directives/unsafe-html.js is referenced from these modules with unsupported syntax: ./node_modules/ha-card-formbuilder/dist/controls.js (referenced with cjs require), ./node_modules/ha-card-formbuilder/dist/index.js (referenced with cjs require)
+        ./node_modules/lit/directives/unsafe-html.js + 2 modules [534] 1.38 KiB {792} [depth 3] [built] [code generated]
+          [exports: UnsafeHTMLDirective, unsafeHTML]
+          ModuleConcatenation bailout: Cannot concat with ./node_modules/lit-html/lit-html.js: Module ./node_modules/lit/index.js is referenced from these modules with unsupported syntax: ./node_modules/ha-card-formbuilder/dist/controls.js (referenced with cjs require), ./node_modules/ha-card-formbuilder/dist/index.js (referenced with cjs require)
+      ./node_modules/lit-html/lit-html.js [752] 7.13 KiB {792} [depth 3] [built] [code generated]
+        [exports: _$LH, html, mathml, noChange, nothing, render, svg]
+        [all exports used]
+        Statement (VariableDeclaration) with side effects in source code at 6:0-725
+      ./node_modules/custom-card-helpers/dist/index.m.js + 1 modules [356] 20.5 KiB {792} [depth 3] [built] [code generated]
+        [exports: DEFAULT_DOMAIN_ICON, DEFAULT_PANEL, DEFAULT_VIEW_ENTITY_ID, DOMAINS_HIDE_MORE_INFO, DOMAINS_MORE_INFO_NO_HISTORY, DOMAINS_TOGGLE, DOMAINS_WITH_CARD, DOMAINS_WITH_MORE_INFO, NumberFormat, STATES_OFF, TimeFormat, UNIT_C, UNIT_F, applyThemesOnElement, computeCardSize, computeDomain, computeEntity, computeRTL, computeRTLDirection, computeStateDisplay, computeStateDomain, createThing, debounce, domainIcon, evaluateFilter, fireEvent, fixedIcons, formatDate, formatDateMonth, formatDateMonthYear, formatDateNumeric, formatDateShort, formatDateTime, formatDateTimeNumeric, formatDateTimeWithSeconds, formatDateWeekday, formatDateYear, formatNumber, formatTime, formatTimeWeekday, formatTimeWithSeconds, forwardHaptic, getLovelace, handleAction, handleActionConfig, handleClick, hasAction, hasConfigOrEntityChanged, hasDoubleClick, isNumericState, navigate, numberFormatToLocale, relativeTime, round, stateIcon, timerTimeRemaining, toggleEntity, turnOnOffEntities, turnOnOffEntity]
+    modules by path ./src/*.js 280 KiB
+      ./src/cb-lcars.js + 7 modules [992] 225 KiB {792} [depth 0] [built] [code generated]
+        [no exports]
+        [no exports used]
+        ModuleConcatenation bailout: Cannot concat with ./node_modules/ha-card-formbuilder/dist/index.js: Module is not an ECMAScript module
+        ModuleConcatenation bailout: Cannot concat with ./node_modules/lit/index.js: Module ./node_modules/lit/index.js is referenced from these modules with unsupported syntax: ./node_modules/ha-card-formbuilder/dist/controls.js (referenced with cjs require), ./node_modules/ha-card-formbuilder/dist/index.js (referenced with cjs require)
+      ./src/cblcars-my-slider-v2.js [870] 54.3 KiB {870} [depth 1] [built] [code generated]
+        [exports: MySliderV2]
+        Statement (VariableDeclaration) with side effects in source code at 28:4-295
+    ./package.json [330] 651 bytes {792} [depth 2] [built] [code generated]
+      [exports: author, dependencies, description, devDependencies, directories, homepage, keywords, license, main, name, scripts, version]
+  runtime modules 6.81 KiB
+    webpack/runtime/define property getters 308 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/ensure chunk 326 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/get javascript chunk filename 176 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/global 221 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/hasOwnProperty shorthand 88 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/jsonp chunk loading 2.98 KiB {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/load script 1.47 KiB {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/make namespace object 274 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+    webpack/runtime/publicPath 1020 bytes {792} [code generated]
+      [no exports]
+      [used exports unknown]
+
+LOG from webpack.Compilation
+    10 modules hashed, 0 from cache (0.29 variants per module in average)
+    100% code generated (10 generated, 0 from cache)
+    100% code generated (9 generated, 0 from cache)
++ 24 hidden lines
+
+LOG from webpack.FlagDependencyExportsPlugin
+    85% of exports of modules have been determined (5 no declared exports, 29 not cached, 0 flagged uncacheable, 0 from cache, 0 from mem cache, 11 additional calculations due to dependencies)
++ 3 hidden lines
+
+LOG from webpack.buildChunkGraph
+    49 queue items processed (25 blocks)
+    1 chunk groups connected
+    1 chunk groups processed for merging (1 module sets, 0 forked, 0 + 0 modules forked, 0 + 0 modules merged into fork, 0 resulting modules)
+    1 chunk group info updated (0 already connected chunk groups reconnected)
++ 10 hidden lines
+
+LOG from webpack.FileSystemInfo
+    34 new snapshots created
+    0% root snapshot uncached (0 / 0)
+    0% children snapshot uncached (0 / 0)
+    0 entries tested
+    File info in cache: 9 timestamps 9 hashes 9 timestamp hash combinations
+    File timestamp hash combination snapshot optimization: 0% (0/9) entries shared via 0 shared snapshots (0 times referenced)
+    Directory info in cache: 0 timestamps 0 hashes 0 timestamp hash combinations
+    Managed items info in cache: 8 items
+    Managed items snapshot optimization: 0% (0/25) entries shared via 0 shared snapshots (0 times referenced)
+    Managed files snapshot optimization: 0% (0/50) entries shared via 0 shared snapshots (0 times referenced)
+
+2024-12-03 17:36:57: webpack 5.97.0 compiled successfully in 1239 ms (9a0e4922679b6a12cdfa)

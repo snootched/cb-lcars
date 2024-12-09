@@ -1,6 +1,33 @@
 import * as CBLCARS from '../cb-lcars-vars.js';
-export function cblcarsLog(level, message, obj = {}) {
-    
+
+let cblcarsGlobalLogLevel = 'info';
+
+export function cblcarsSetGlobalLogLevel(level) {
+  cblcarsGlobalLogLevel = level;
+  cblcarsLog('info',`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
+}
+export function cblcarsGetGlobalLogLevel() {
+  return cblcarsGlobalLogLevel;
+}
+
+// Ensure the cblcars object exists on the window object
+window.cblcars = window.cblcars || {};
+// Attach the functions to the cblcars object
+window.cblcars.setGlobalLogLevel = cblcarsSetGlobalLogLevel;
+window.cblcars.getGlobalLogLevel = cblcarsGetGlobalLogLevel;
+
+
+
+export function cblcarsLog(level, message, obj = {}, currentLogLevel = cblcarsGlobalLogLevel) {
+
+    const levels = ['error', 'warn', 'info', 'debug'];
+    const currentLevelIndex = levels.indexOf(currentLogLevel);
+    const messageLevelIndex = levels.indexOf(level);
+
+    if (messageLevelIndex > currentLevelIndex) {
+        return; // Do not log the message if its level is lower than the current log level
+    }
+
     const commonStyles = 'color: white; padding: 1px 4px; border-radius: 15px;';
     const levelStyles = {
       info: 'background-color: #37a6d1', // Blue
@@ -9,7 +36,7 @@ export function cblcarsLog(level, message, obj = {}) {
       debug: 'background-color: #8e44ad', // Purple
       default: 'background-color: #6d748c', // Gray for unknown levels
     };
-  
+
     // Capture the stack trace for caller information
     //const stack = new Error().stack;
     //const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
@@ -18,11 +45,10 @@ export function cblcarsLog(level, message, obj = {}) {
 
     //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
     const logMessage = `%c    CB-LCARS | ${level} `;
-    
+
     // Choose the appropriate style based on the level
-    //const style = levelStyles[level] || levelStyles.default;
     const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
-  
+
     // Log the message using the chosen style and console method
     switch (level) {
       case 'info':
