@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.7.8-alpha.5
+  version: 2024.7.8-alpha.6
   manage_config: true
 cblcars_card_templates:
   cb-lcars-defs:
@@ -298,7 +298,7 @@ cblcars_card_templates:
           font_size: 52
           font_weight: 100
           color:
-            default: '#f9ef97'
+            default: var(--picard-yellow)
           justify: right
           padding:
             right: 15
@@ -309,7 +309,7 @@ cblcars_card_templates:
             size: 60
           right:
             size: 40
-          color: '#52596e'
+          color: var(--picard-medium-dark-gray)
   cb-lcars-state-on-blink:
     variables:
       blink_seconds: 3s
