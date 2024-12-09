@@ -383,7 +383,7 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
         };
 
         // Check if the card type is 'cb-lcars-cascade' and set the enable_resize_observer flag to true
-        if (config.cblcars_card_type === 'cb-lcars-cascade') {
+        if (config.cblcars_card_type === 'cb-lcars-cascade' && config.enable_resize_observer === undefined) {
             specialConfig.enable_resize_observer = true;
         }
 
