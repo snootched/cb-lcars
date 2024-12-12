@@ -228,25 +228,25 @@ Settings are available in the UI editor.
 
 | `cblcars_card_type:`                                            | Default Style          |
 | --------------------------------------------------------------- | ---------------------- |
-| [`cb-lcars-header`](cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
-| [`cb-lcars-header-right`](cb-lcars/cb-lcars-header.yaml)        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
-| [`cb-lcars-header-contained`](cb-lcars/cb-lcars-header.yaml)    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
-| [`cb-lcars-header-open`](cb-lcars/cb-lcars-header.yaml)         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
+| [`cb-lcars-header`](src/cb-lcars/cb-lcars-header.yaml)              | ![cb-lcars-header](images/button_samples/cb-lcars-header.png)              |
+| [`cb-lcars-header-right`](src/cb-lcars/cb-lcars-header.yaml)        | ![cb-lcars-header-right](images/button_samples/cb-lcars-header-right.png)        |
+| [`cb-lcars-header-contained`](src/cb-lcars/cb-lcars-header.yaml)    | ![cb-lcars-header-contained](images/button_samples/cb-lcars-header-contained.png)    |
+| [`cb-lcars-header-open`](src/cb-lcars/cb-lcars-header.yaml)         | ![cb-lcars-header-open](images/button_samples/cb-lcars-header-open.png)         |
 
 
 | `cblcars_card_type:`                                            | Default Style          |
 | --------------------------------------------------------------- | ---------------------- |
-| [`cb-lcars-footer`](cb-lcars/cb-lcars-footer.yaml)              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
-| [`cb-lcars-footer-right`](cb-lcars/cb-lcars-footer.yaml)        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png) |
-| [`cb-lcars-footer-contained`](cb-lcars/cb-lcars-footer.yaml)    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
-| [`cb-lcars-footer-open`](cb-lcars/cb-lcars-footer.yaml)         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
+| [`cb-lcars-footer`](src/cb-lcars/cb-lcars-footer.yaml)              | ![cb-lcars-footer](images/button_samples/cb-lcars-footer.png)              |
+| [`cb-lcars-footer-right`](src/cb-lcars/cb-lcars-footer.yaml)        | ![cb-lcars-footer-right](images/button_samples/cb-lcars-footer-right.png) |
+| [`cb-lcars-footer-contained`](src/cb-lcars/cb-lcars-footer.yaml)    | ![cb-lcars-footer-contained](images/button_samples/cb-lcars-footer-contained.png)    |
+| [`cb-lcars-footer-open`](src/cb-lcars/cb-lcars-footer.yaml)         | ![cb-lcars-footer-open](images/button_samples/cb-lcars-footer-open.png)         |
 
 | `cblcars_card_type:`                                              | Default Style          |
 | ----------------------------------------------------------------- | ---------------------- |
-| [`cb-lcars-header-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
-| [`cb-lcars-header-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
-| [`cb-lcars-footer-callout`](cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
-| [`cb-lcars-footer-callout-right`](cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
+| [`cb-lcars-header-callout`](src/cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-header-callout](images/button_samples/cb-lcars-header-callout.png)       |
+| [`cb-lcars-header-callout-right`](src/cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-header-callout-right](images/button_samples/cb-lcars-header-callout-right.png) |
+| [`cb-lcars-footer-callout`](src/cb-lcars/cb-lcars-callout.yaml)       | ![cb-lcars-footer-callout](images/button_samples/cb-lcars-footer-callout.png)       |
+| [`cb-lcars-footer-callout-right`](src/cb-lcars/cb-lcars-callout.yaml) | ![cb-lcars-footer-callout-right](images/button_samples/cb-lcars-footer-callout-right.png) |
 
 <br>
 
@@ -254,10 +254,10 @@ Settings are available in the UI editor.
 
 | `cblcars_card_type:`                                                   | Default Style          |
 | ---------------------------------------------------------------------- | ---------------------- |
-| [`cb-lcars-header-picard`](cb-lcars/cb-lcars-header-picard.yaml)       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
-| [`cb-lcars-header-picard-right`](cb-lcars/cb-lcars-header-picard.yaml) | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
-| [`cb-lcars-footer-picard`](cb-lcars/cb-lcars-footer-picard.yaml)       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
-| [`cb-lcars-footer-picard-right`](cb-lcars/cb-lcars-footer-picard.yaml) | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
+| [`cb-lcars-header-picard`](src/cb-lcars/cb-lcars-header-picard.yaml)       | ![cb-lcars-header-picard](images/button_samples/cb-lcars-header-picard.png)       |
+| [`cb-lcars-header-picard-right`](src/cb-lcars/cb-lcars-header-picard.yaml) | ![cb-lcars-header-picard-right](images/button_samples/cb-lcars-header-picard-right.png) |
+| [`cb-lcars-footer-picard`](src/cb-lcars/cb-lcars-footer-picard.yaml)       | ![cb-lcars-footer-picard](images/button_samples/cb-lcars-footer-picard.png)       |
+| [`cb-lcars-footer-picard-right`](src/cb-lcars/cb-lcars-footer-picard.yaml) | ![cb-lcars-footer-picard-right](images/button_samples/cb-lcars-footer-picard-right.png) |
 
 <br>
 
@@ -267,14 +267,14 @@ Settings are available in the UI editor.
 
 | `cblcars_card_type:`                                                                 | Default Style          |
 | ------------------------------------------------------------------------------------ | ---------------------- |
-| [`cb-lcars-button-lozenge`](cb-lcars/cb-lcars-button-lozenge.yaml)                   | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
-| [`cb-lcars-button-bullet`](cb-lcars/cb-lcars-button-bullet.yaml)                     | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
-| [`cb-lcars-button-capped`](cb-lcars/cb-lcars-button-capped.yaml)                     | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
-| [`cb-lcars-button-picard`](cb-lcars/cb-lcars-button-picard.yaml)                     | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
-| [`cb-lcars-button-picard-dense`](cb-lcars/cb-lcars-button-picard.yaml)               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
-| [`cb-lcars-button-picard-filled`](cb-lcars/cb-lcars-button-picard-filled.yaml)       | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
-| [`cb-lcars-button-picard-filled-dense`](cb-lcars/cb-lcars-button-picard-filled.yaml) | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
-| [`cb-lcars-button-picard-icon`](cb-lcars/cb-lcars-button-picard-icon.yaml)           | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
+| [`cb-lcars-button-lozenge`](src/cb-lcars/cb-lcars-button-lozenge.yaml)                   | ![cb-lcars-button-lozenge](images/button_samples/cb-lcars-button-lozenge.png) |
+| [`cb-lcars-button-bullet`](src/cb-lcars/cb-lcars-button-bullet.yaml)                     | ![cb-lcars-button-bullet](images/button_samples/cb-lcars-button-bullet.png)  |
+| [`cb-lcars-button-capped`](src/cb-lcars/cb-lcars-button-capped.yaml)                     | ![cb-lcars-button-capped](images/button_samples/cb-lcars-button-capped.png)  |
+| [`cb-lcars-button-picard`](src/cb-lcars/cb-lcars-button-picard.yaml)                     | ![cb-lcars-button-picard](images/button_samples/cb-lcars-button-picard.png)              |
+| [`cb-lcars-button-picard-dense`](src/cb-lcars/cb-lcars-button-picard.yaml)               | ![cb-lcars-button-picard-dense](images/button_samples/cb-lcars-button-picard-dense.png)        |
+| [`cb-lcars-button-picard-filled`](src/cb-lcars/cb-lcars-button-picard-filled.yaml)       | ![cb-lcars-button-picard-filled](images/button_samples/cb-lcars-button-picard-filled.png)       |
+| [`cb-lcars-button-picard-filled-dense`](src/cb-lcars/cb-lcars-button-picard-filled.yaml) | ![cb-lcars-button-picard-filled-dense](images/button_samples/cb-lcars-button-picard-filled-dense.png) |
+| [`cb-lcars-button-picard-icon`](src/cb-lcars/cb-lcars-button-picard-icon.yaml)           | ![cb-lcars-button-picard-icon](images/button_samples/cb-lcars-button-picard-icon.png)         |
 
 <br>
 
@@ -312,9 +312,9 @@ TODOs:
 
 | `cblcars_card_type:`        | Styles          |
 | -------------- | ---------------------- |
-| [`cb-lcars-label`](cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
-| [`cb-lcars-label-picard`](cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
-| [`cb-lcars-cascade`](cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
+| [`cb-lcars-label`](src/cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
+| [`cb-lcars-label-picard`](src/cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
+| [`cb-lcars-cascade`](src/cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 
 TODOs:
 - add presets/expose options for cascade animation settings
