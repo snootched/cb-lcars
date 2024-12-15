@@ -146,9 +146,11 @@ class CBLCARSBaseCard extends ButtonCard {
     _resizeObserverTarget = 'this';
     _lastWidth = 0;
     _lastHeight = 0;
+    _resizeObserverTolerance = 10;
 
     constructor () {
         super();
+        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || 10;
         this._resizeObserver = new ResizeObserver(() => {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
@@ -180,6 +182,8 @@ class CBLCARSBaseCard extends ButtonCard {
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         // Set the _enableResizeObserver property from the config
         this._isResizeObserverEnabled = config.enable_resize_observer || false;
+        // Set the _resizeObserverTolerance property from the config
+        this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
 
         // Enable the resize observer if the configuration option is enabled
         if (this._isResizeObserverEnabled) {
@@ -279,7 +283,7 @@ class CBLCARSBaseCard extends ButtonCard {
         const parentHeight = this.parentElement.offsetHeight;
         cblcarsLog('debug',`Going with dimensions: ${parentWidth} x ${parentHeight}`, this, this._logLevel);
 
-        const significantChange = 10;
+        const significantChange = this._resizeObserverTolerance;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
             //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {
