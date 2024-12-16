@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.1-alpha.2
+  version: 2024.12.1-alpha.3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -681,14 +681,8 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
+        height: "[[[ return this.offsetHeight; ]]]"
+        width: "[[[ return this.offsetWidth; ]]]"
         border:
           top:
             left_radius: var(--ha-card-border-radius)
@@ -699,7 +693,7 @@ cblcars_card_templates:
           inner:
             factor: 1
             width: 35px
-      label: ' '
+      label: " "
       lcars:
         border:
           gap: 4px
@@ -714,7 +708,7 @@ cblcars_card_templates:
             size: 0
       lcars_outer:
         card:
-          color: var(--lcars-card-top-color)
+          color: var(--lcars-card-top-color, var(--picard-dark-gray))
           border:
             left:
               size: |
@@ -730,9 +724,9 @@ cblcars_card_templates:
                   variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
                 ]]]
       lcars_inner:
-        text: '[[[ return variables.text ? variables.text : {} ]]]'
+        text: "[[[ return variables.text ? variables.text : {} ]]]"
         card:
-          color: var(--lcars-card-top-color)
+          color: var(--lcars-card-top-color, var(--picard-dark-gray))
           border:
             left:
               size: |
@@ -755,8 +749,9 @@ cblcars_card_templates:
     styles:
       card:
         - background-color: transparent
-        - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
-        - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+        - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
+        - width: "[[[ return variables.__get_num_with_unit(variables.card.width); ]]]"
+        - border: 0
         - border-top-left-radius: >-
             [[[ return
             variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -796,7 +791,7 @@ cblcars_card_templates:
           type: custom:cblcars-button-card
           template:
             - cb-lcars-header
-          entity: '[[[ return variables.entity; ]]]'
+          entity: "[[[ return variables.entity; ]]]"
           variables:
             card:
               width: |
@@ -824,21 +819,21 @@ cblcars_card_templates:
                     ]]]
                   right_radius: 0px
                 inner:
-                  factor: '[[[ return variables.card.border.inner.factor; ]]]'
+                  factor: "[[[ return variables.card.border.inner.factor; ]]]"
                   width: |
                     [[[
                       return variables.__get_num_with_unit(variables.card.border.inner.width);
                     ]]]
-                color: '[[[ return variables.lcars_outer.card.color ]]]'
+                color: "[[[ return variables.lcars_outer.card.color ]]]"
       lcars_inner:
         card:
           type: custom:cblcars-button-card
           template:
             - cb-lcars-header
-          entity: '[[[ return variables.entity; ]]]'
-          label: '[[[ return variables.label]]]'
+          entity: "[[[ return variables.entity; ]]]"
+          label: "[[[ return variables.label]]]"
           variables:
-            text: '[[[ return variables.text ? variables.text : {} ]]]'
+            text: "[[[ return variables.text ? variables.text : {} ]]]"
             card:
               width: |
                 [[[
@@ -849,7 +844,7 @@ cblcars_card_templates:
                   return variables.__get_num_with_unit(variables.card.height);
                 ]]]
               border:
-                color: '[[[ return variables.lcars_inner.card.color ]]]'
+                color: "[[[ return variables.lcars_inner.card.color ]]]"
                 left:
                   size: |
                     [[[
@@ -876,14 +871,8 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
+        height: "[[[ return this.offsetHeight; ]]]"
+        width: "[[[ return this.offsetWidth; ]]]"
         border:
           top:
             left_radius: 0px !important
@@ -909,7 +898,7 @@ cblcars_card_templates:
             size: 180px
       lcars_outer:
         card:
-          color: var(--lcars-card-top-color)
+          color: var(--lcars-card-top-color, var(--picard-dark-gray))
           border:
             right:
               size: |
@@ -927,7 +916,7 @@ cblcars_card_templates:
       lcars_inner:
         text: '[[[ return variables.text ? variables.text : {} ]]]'
         card:
-          color: var(--lcars-card-top-color)
+          color: var(--lcars-card-top-color, var(--picard-dark-gray))
           border:
             right:
               size: |
@@ -952,6 +941,7 @@ cblcars_card_templates:
         - background-color: transparent
         - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
         - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+        - border: 0
         - border-top-left-radius: >-
             [[[ return
             variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -1341,8 +1331,16 @@ cblcars_card_templates:
       __defs_dpad:
         color:
           background:
-            active: var(--lcars-ui-tertiary)
-            inactive: var(--lcars-ui-secondary)
+            active: |
+              [[[
+                const lcarsColor = getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-tertiary').trim();
+                return lcarsColor ? lcarsColor : 'var(--picard-medium-dark-orange)';
+              ]]]
+            inactive: |
+              [[[
+                const lcarsColor = getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-secondary').trim();
+                return lcarsColor ? lcarsColor : 'var(--picard-medium-light-gray)';
+              ]]]
       card:
         size: |
           [[[
@@ -3070,14 +3068,8 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
+        height: "[[[ return this.offsetHeight; ]]]"
+        width: "[[[ return this.offsetWidth; ]]]"
         border:
           top:
             left_radius: 0px !important
@@ -3103,7 +3095,7 @@ cblcars_card_templates:
             size: 0
       lcars_outer:
         card:
-          color: var(--lcars-card-bottom-color)
+          color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
           border:
             left:
               size: |
@@ -3121,7 +3113,7 @@ cblcars_card_templates:
       lcars_inner:
         text: '[[[ return variables.text ? variables.text : {} ]]]'
         card:
-          color: var(--lcars-card-bottom-color)
+          color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
           border:
             left:
               size: |
@@ -3146,6 +3138,7 @@ cblcars_card_templates:
         - background-color: transparent
         - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
         - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+        - border: 0
         - border-top-left-radius: >-
             [[[ return
             variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -3265,14 +3258,8 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
+        height: "[[[ return this.offsetHeight; ]]]"
+        width: "[[[ return this.offsetWidth; ]]]"
         border:
           top:
             left_radius: 0px !important
@@ -3298,7 +3285,7 @@ cblcars_card_templates:
             size: 180px
       lcars_outer:
         card:
-          color: var(--lcars-card-bottom-color)
+          color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
           border:
             right:
               size: |
@@ -3316,7 +3303,7 @@ cblcars_card_templates:
       lcars_inner:
         text: '[[[ return variables.text ? variables.text : {} ]]]'
         card:
-          color: var(--lcars-card-bottom-color)
+          color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
           border:
             right:
               size: |
@@ -3341,6 +3328,7 @@ cblcars_card_templates:
         - background-color: transparent
         - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
         - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+        - border: 0
         - border-top-left-radius: >-
             [[[ return
             variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -3681,7 +3669,7 @@ cblcars_card_templates:
             factor: 2
             min_radius: 30px
             width: 35px
-          color: var(--lcars-card-top-color)
+          color: var(--lcars-card-top-color, var(--picard-dark-gray))
       icon:
         box_size: 35px
         size: 24px
@@ -4523,7 +4511,7 @@ cblcars_card_templates:
     entity: "[[[ return variables.entity ]]]"
     template:
       - cb-lcars-functions
-      - cb-lcars-header-base
+      - cb-lcars-base
       - cb-lcars-actions-disable
     triggers_update: "[[[ return variables.entity ]]]"
     show_icon: false
@@ -4614,7 +4602,7 @@ cblcars_card_templates:
         ]]]
       entity_unit_of_measurement: |
         [[[
-          return entity.attributes.unit_of_measurement || variables._unit_of_measurement
+          return variables._unit_of_measurement || entity.attributes.unit_of_measurement
         ]]]
       entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
       entity_match_slider: false
@@ -4744,8 +4732,6 @@ cblcars_card_templates:
                     increment = variables._increment || 10;
                 }
                 break;
-              default:
-                increment = 10;
             }
             return parseInt(increment);
           ]]]
@@ -4914,6 +4900,8 @@ cblcars_card_templates:
         - border-radius: 0 !important
         - background: none
         - border: none
+        - height: 100%
+        - max-width: none
       label:
         - z-index: 1
         - height: 100%
@@ -5187,6 +5175,7 @@ cblcars_card_templates:
           let minVal = variables.gauge.min;
           let maxVal = variables.gauge.max;
           let increment = variables.gauge.increment;
+          //console.warn(minVal, maxVal, increment);
           const orientation = variables._vertical ? 'vertical' : 'horizontal';
           const bg_fill_value = variables.gauge.bg_fill_value || 0;
           const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
@@ -5204,6 +5193,19 @@ cblcars_card_templates:
           const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
           const subTickIncrement = 100 / numSegments / (numSubticks + 1);
           const decimal_places = variables.gauge.label.decimal_places || 0;
+          /*
+          console.warn('subTickIncrement', subTickIncrement);
+          console.warn('numSegments', numSegments);
+          console.warn('numSubticks', numSubticks);
+          console.warn('increment', increment);
+          console.warn('maxVal', maxVal);
+          console.warn('minVal', minVal);
+          console.warn('decimal_places', decimal_places);
+          console.warn('orientation', orientation);
+          console.warn('width', width);
+          console.warn('height', height);
+          console.warn('meter_subtick_size', meter_subtick_size);
+          */
           const meterTicks = [];
           for (let i = minVal; i <= maxVal; i += increment) {
             const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
