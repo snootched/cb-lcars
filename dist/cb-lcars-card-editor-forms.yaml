@@ -2690,7 +2690,7 @@ cb-lcars-multimeter-card:
                     entity:
                 - label: "Light Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'light'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'light'"
                   required: true
                   type: Selector
                   selector:
@@ -2707,7 +2707,7 @@ cb-lcars-multimeter-card:
                           label: 'Hue'
                 - label: "Cover Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'cover'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'cover'"
                   required: true
                   type: Selector
                   selector:
@@ -2720,7 +2720,7 @@ cb-lcars-multimeter-card:
                           label: 'Tilt'
                 - label: "Media Player Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'media_player'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'media_player'"
                   required: true
                   type: Selector
                   selector:
