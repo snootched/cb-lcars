@@ -4529,7 +4529,7 @@ cblcars_card_templates:
       _max: 100
       _increment: 10
       _show_unit_of_measurement: false
-      _unit_of_measurement: "%"
+      _unit_of_measurement: null
       entity: |
         [[[
           return variables.__get_random_entity('light');
@@ -4602,7 +4602,7 @@ cblcars_card_templates:
         ]]]
       entity_unit_of_measurement: |
         [[[
-          return variables._unit_of_measurement || entity.attributes.unit_of_measurement
+          return variables._unit_of_measurement || entity.attributes.unit_of_measurement || '%';
         ]]]
       entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
       entity_match_slider: false
