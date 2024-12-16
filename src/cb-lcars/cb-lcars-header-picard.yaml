@@ -4,14 +4,8 @@ cb-lcars-header-picard:
     - cb-lcars-card-base
   variables:
     card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
       border:
         top:
           left_radius: var(--ha-card-border-radius)
@@ -22,7 +16,7 @@ cb-lcars-header-picard:
         inner:
           factor: 1
           width: 35px
-    label: ' '
+    label: " "
     lcars:
       border:
         gap: 4px
@@ -37,7 +31,7 @@ cb-lcars-header-picard:
           size: 0
     lcars_outer:
       card:
-        color: var(--lcars-card-top-color)
+        color: var(--lcars-card-top-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -53,9 +47,9 @@ cb-lcars-header-picard:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
     lcars_inner:
-      text: '[[[ return variables.text ? variables.text : {} ]]]'
+      text: "[[[ return variables.text ? variables.text : {} ]]]"
       card:
-        color: var(--lcars-card-top-color)
+        color: var(--lcars-card-top-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -78,8 +72,9 @@ cb-lcars-header-picard:
   styles:
     card:
       - background-color: transparent
-      - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
-      - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
+      - width: "[[[ return variables.__get_num_with_unit(variables.card.width); ]]]"
+      - border: 0
       - border-top-left-radius: >-
           [[[ return
           variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -119,7 +114,7 @@ cb-lcars-header-picard:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-header
-        entity: '[[[ return variables.entity; ]]]'
+        entity: "[[[ return variables.entity; ]]]"
         variables:
           card:
             width: |
@@ -147,21 +142,21 @@ cb-lcars-header-picard:
                   ]]]
                 right_radius: 0px
               inner:
-                factor: '[[[ return variables.card.border.inner.factor; ]]]'
+                factor: "[[[ return variables.card.border.inner.factor; ]]]"
                 width: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.inner.width);
                   ]]]
-              color: '[[[ return variables.lcars_outer.card.color ]]]'
+              color: "[[[ return variables.lcars_outer.card.color ]]]"
     lcars_inner:
       card:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-header
-        entity: '[[[ return variables.entity; ]]]'
-        label: '[[[ return variables.label]]]'
+        entity: "[[[ return variables.entity; ]]]"
+        label: "[[[ return variables.label]]]"
         variables:
-          text: '[[[ return variables.text ? variables.text : {} ]]]'
+          text: "[[[ return variables.text ? variables.text : {} ]]]"
           card:
             width: |
               [[[
@@ -172,7 +167,7 @@ cb-lcars-header-picard:
                 return variables.__get_num_with_unit(variables.card.height);
               ]]]
             border:
-              color: '[[[ return variables.lcars_inner.card.color ]]]'
+              color: "[[[ return variables.lcars_inner.card.color ]]]"
               left:
                 size: |
                   [[[
@@ -199,14 +194,8 @@ cb-lcars-header-picard-right:
     - cb-lcars-card-base
   variables:
     card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
       border:
         top:
           left_radius: 0px !important
@@ -232,7 +221,7 @@ cb-lcars-header-picard-right:
           size: 180px
     lcars_outer:
       card:
-        color: var(--lcars-card-top-color)
+        color: var(--lcars-card-top-color, var(--picard-dark-gray))
         border:
           right:
             size: |
@@ -250,7 +239,7 @@ cb-lcars-header-picard-right:
     lcars_inner:
       text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
-        color: var(--lcars-card-top-color)
+        color: var(--lcars-card-top-color, var(--picard-dark-gray))
         border:
           right:
             size: |
@@ -275,6 +264,7 @@ cb-lcars-header-picard-right:
       - background-color: transparent
       - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
       - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - border: 0
       - border-top-left-radius: >-
           [[[ return
           variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -390,4 +380,3 @@ cb-lcars-header-picard-right:
                   [[[
                     return variables.lcars_inner.card.border.inner.factor;
                   ]]]
-

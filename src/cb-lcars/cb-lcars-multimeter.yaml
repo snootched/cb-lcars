@@ -3,7 +3,7 @@ cb-lcars-multimeter:
   entity: "[[[ return variables.entity ]]]"
   template:
     - cb-lcars-functions
-    - cb-lcars-header-base
+    - cb-lcars-base
     - cb-lcars-actions-disable
   triggers_update: "[[[ return variables.entity ]]]"
   show_icon: false
@@ -96,7 +96,7 @@ cb-lcars-multimeter:
       ]]]
     entity_unit_of_measurement: |
       [[[
-        return entity.attributes.unit_of_measurement || variables._unit_of_measurement
+        return variables._unit_of_measurement || entity.attributes.unit_of_measurement
       ]]]
     entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
     entity_match_slider: false
@@ -227,8 +227,7 @@ cb-lcars-multimeter:
                   increment = variables._increment || 10;
               }
               break;
-            default:
-              increment = 10;
+
           }
           return parseInt(increment);
         ]]]
@@ -397,6 +396,9 @@ cb-lcars-multimeter:
       - border-radius: 0 !important
       - background: none
       - border: none
+      - height: 100%
+      - max-width: none
+
     label:
       - z-index: 1
       - height: 100%
@@ -404,7 +406,6 @@ cb-lcars-multimeter:
           [[[
             return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
           ]]]
-
     custom_fields:
       gauge:
         - position: absolute
@@ -678,6 +679,7 @@ cb-lcars-multimeter:
         let minVal = variables.gauge.min;
         let maxVal = variables.gauge.max;
         let increment = variables.gauge.increment;
+        //console.warn(minVal, maxVal, increment);
 
         const orientation = variables._vertical ? 'vertical' : 'horizontal';
 
@@ -701,6 +703,20 @@ cb-lcars-multimeter:
         const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
         const subTickIncrement = 100 / numSegments / (numSubticks + 1);
         const decimal_places = variables.gauge.label.decimal_places || 0;
+
+        /*
+        console.warn('subTickIncrement', subTickIncrement);
+        console.warn('numSegments', numSegments);
+        console.warn('numSubticks', numSubticks);
+        console.warn('increment', increment);
+        console.warn('maxVal', maxVal);
+        console.warn('minVal', minVal);
+        console.warn('decimal_places', decimal_places);
+        console.warn('orientation', orientation);
+        console.warn('width', width);
+        console.warn('height', height);
+        console.warn('meter_subtick_size', meter_subtick_size);
+        */
 
         const meterTicks = [];
         for (let i = minVal; i <= maxVal; i += increment) {

@@ -256,15 +256,14 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.minHeight = '60px';
         } else {
             this.style.height = '100%';
+
+            // Enable the resize observer when the card is connected to the DOM
+            // but only if not in preview mode
+            if (this._isResizeObserverEnabled) {
+                this.enableResizeObserver();
+                window.addEventListener('resize', this._debouncedResizeHandler);
+            }
         }
-
-        // Enable the resize observer when the card is connected to the DOM
-        if (this._isResizeObserverEnabled) {
-            this.enableResizeObserver();
-            window.addEventListener('resize', this._debouncedResizeHandler);
-        }
-
-
     }
 
     disconnectedCallback() {

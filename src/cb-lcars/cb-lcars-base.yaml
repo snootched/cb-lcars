@@ -103,7 +103,7 @@ cb-lcars-base:
           factor: 2
           min_radius: 30px
           width: 35px
-        color: var(--lcars-card-top-color)
+        color: var(--lcars-card-top-color, var(--picard-dark-gray))
     icon:
       box_size: 35px
       size: 24px

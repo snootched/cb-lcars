@@ -4,14 +4,8 @@ cb-lcars-footer-picard:
     - cb-lcars-card-base
   variables:
     card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
       border:
         top:
           left_radius: 0px !important
@@ -37,7 +31,7 @@ cb-lcars-footer-picard:
           size: 0
     lcars_outer:
       card:
-        color: var(--lcars-card-bottom-color)
+        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -55,7 +49,7 @@ cb-lcars-footer-picard:
     lcars_inner:
       text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
-        color: var(--lcars-card-bottom-color)
+        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -80,6 +74,7 @@ cb-lcars-footer-picard:
       - background-color: transparent
       - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
       - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - border: 0
       - border-top-left-radius: >-
           [[[ return
           variables.__get_num_with_unit(variables.card.border.top.left_radius);
@@ -199,14 +194,8 @@ cb-lcars-footer-picard-right:
     - cb-lcars-card-base
   variables:
     card:
-      width: |
-        [[[
-          return variables.__getParentDimension(this,'width','px');
-        ]]]
-      height: |
-        [[[
-          return variables.__getParentDimension(this,'height','px');
-        ]]]
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
       border:
         top:
           left_radius: 0px !important
@@ -232,7 +221,7 @@ cb-lcars-footer-picard-right:
           size: 180px
     lcars_outer:
       card:
-        color: var(--lcars-card-bottom-color)
+        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           right:
             size: |
@@ -250,7 +239,7 @@ cb-lcars-footer-picard-right:
     lcars_inner:
       text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
-        color: var(--lcars-card-bottom-color)
+        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           right:
             size: |
@@ -275,6 +264,7 @@ cb-lcars-footer-picard-right:
       - background-color: transparent
       - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
       - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - border: 0
       - border-top-left-radius: >-
           [[[ return
           variables.__get_num_with_unit(variables.card.border.top.left_radius);
