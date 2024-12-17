@@ -147,6 +147,8 @@ class CBLCARSBaseCard extends ButtonCard {
     _lastWidth = 0;
     _lastHeight = 0;
     _resizeObserverTolerance = 10;
+    _isUsingLoveLaceTemplates = false;
+
 
     constructor () {
         super();
@@ -189,6 +191,21 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
         }
+
+        // Check if the template exists in Lovelace configuration
+        const ll = getLovelace();
+        const lovelaceTemplates = ll && ll.config && ll.config.templates ? ll.config.templates : {};
+        let isUsingLovelaceTemplate = false;
+
+        for (const template of mergedTemplates) {
+            if (lovelaceTemplates.hasOwnProperty(template)) {
+                isUsingLovelaceTemplate = true;
+                break;
+            }
+        }
+
+        // Set the flag indicating if using Lovelace template
+        this._isUsingLovelaceTemplate = isUsingLovelaceTemplate;
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
