@@ -137,7 +137,7 @@ async function loadStubConfig(filePath) {
     }
 }
 
-function getLovelace() {
+export function getLovelace() {
     let root = document.querySelector('home-assistant');
     root = root && root.shadowRoot;
     root = root && root.querySelector('home-assistant-main');
