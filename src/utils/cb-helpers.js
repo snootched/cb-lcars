@@ -22,7 +22,7 @@ export function getLovelace() {
     let isUsingLovelaceTemplate = false;
     let overriddenTemplates = [];
 
-    let templates = config.templates || [];
+    let templates = config.template || [];
 
     for (const template of templates) {
         if (lovelaceTemplates.hasOwnProperty(template)) {

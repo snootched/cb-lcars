@@ -148,7 +148,7 @@ class CBLCARSBaseCard extends ButtonCard {
     _lastWidth = 0;
     _lastHeight = 0;
     _resizeObserverTolerance = 10;
-    _isUsingLoveLaceTemplate = false;
+    _isUsingLovelaceTemplate = false;
     _overrideTemplates = [];
 
 
