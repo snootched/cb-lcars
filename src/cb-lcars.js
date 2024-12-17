@@ -4,7 +4,7 @@ import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
-
+import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
 
@@ -137,23 +137,6 @@ async function loadStubConfig(filePath) {
     }
 }
 
-export function getLovelace() {
-    let root = document.querySelector('home-assistant');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('home-assistant-main');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('app-drawer-layout partial-panel-resolver, ha-drawer partial-panel-resolver');
-    root = (root && root.shadowRoot) || root;
-    root = root && root.querySelector('ha-panel-lovelace');
-    root = root && root.shadowRoot;
-    root = root && root.querySelector('hui-root');
-    if (root) {
-      const ll = root.lovelace;
-      ll.current_view = root.___curView;
-      return ll;
-    }
-    return null;
-  }
 
 
 class CBLCARSBaseCard extends ButtonCard {
@@ -166,6 +149,7 @@ class CBLCARSBaseCard extends ButtonCard {
     _lastHeight = 0;
     _resizeObserverTolerance = 10;
     _isUsingLoveLaceTemplate = false;
+    _overrideTemplates = [];
 
 
     constructor () {
@@ -184,6 +168,7 @@ class CBLCARSBaseCard extends ButtonCard {
             throw new Error("The 'cblcars_card_config' section is required in the configuration.");
         }
 
+
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
         const userTemplates = (config.template) ? [...config.template] : [];
@@ -194,6 +179,18 @@ class CBLCARSBaseCard extends ButtonCard {
             ...config,
             template: mergedTemplates,
         };
+
+        const { isUsingLovelaceTemplate, overriddenTemplates } = checkLovelaceTemplates(this._config);
+        this._isUsingLovelaceTemplate = isUsingLovelaceTemplate;
+        this._overrideTemplates = overriddenTemplates;
+
+        if(isUsingLovelaceTemplate) {
+            cblcarsLog('debug',`Using override template(s) from Lovelace dashboard yaml: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
+            // Add the flag to the card configuration - used by editors to display a warning
+            this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
+            this._config.overriddenTemplates = overriddenTemplates;
+        }
+
 
         // Set the _logLevel property from the config
         this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
@@ -209,33 +206,6 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
         }
-
-
-        // Check if the template exists in Lovelace configuration
-        const ll = getLovelace();
-        const lovelaceTemplates = ll && ll.config && ll.config.cblcars_card_templates ? ll.config.cblcars_card_templates : {};
-        let isUsingLovelaceTemplate = false;
-        let overriddenTemplates = [];
-
-        for (const template of mergedTemplates) {
-            if (lovelaceTemplates.hasOwnProperty(template)) {
-                isUsingLovelaceTemplate = true;
-                overriddenTemplates.push(template);
-            }
-        }
-        // Remove duplicates and sort the array
-        overriddenTemplates = [...new Set(overriddenTemplates)].sort();
-
-        // Set the flag indicating if using Lovelace template
-        this._isUsingLovelaceTemplate = isUsingLovelaceTemplate;
-
-        if(isUsingLovelaceTemplate) {
-            cblcarsLog('debug',`Using override template(s) from Lovelace dashboard yaml: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
-            // Add the flag to the card configuration - used by editors to display a warning
-            this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
-            this._config.overriddenTemplates = overriddenTemplates;
-        }
-
 
         super.setConfig(this._config);
         cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
