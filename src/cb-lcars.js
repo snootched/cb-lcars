@@ -212,7 +212,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // Check if the template exists in Lovelace configuration
         const ll = getLovelace();
-        const lovelaceTemplates = ll && ll.config && ll.config.templates ? ll.config.templates : {};
+        const lovelaceTemplates = ll && ll.config && ll.config.cblcars_card_template ? ll.config.cblcars_card_template : {};
         let isUsingLovelaceTemplate = false;
 
         for (const template of mergedTemplates) {
