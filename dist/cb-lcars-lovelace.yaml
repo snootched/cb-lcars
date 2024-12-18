@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.2-alpha.10
+  version: 2024.12.2-alpha.11
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
