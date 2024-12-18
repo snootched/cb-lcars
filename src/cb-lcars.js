@@ -174,6 +174,10 @@ class CBLCARSBaseCard extends ButtonCard {
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
+
+        // Set the _logLevel property from the config
+        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
+
         // Create a new object to avoid modifying the original config
         this._config = {
             ...config,
@@ -185,15 +189,12 @@ class CBLCARSBaseCard extends ButtonCard {
         this._overrideTemplates = overriddenTemplates;
 
         if(isUsingLovelaceTemplate) {
-            cblcarsLog('debug',`Using override template(s) from Lovelace dashboard yaml: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
+            cblcarsLog('warn',`Using override template(s) from Lovelace dashboard yaml: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
             // Add the flag to the card configuration - used by editors to display a warning
-            this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
-            this._config.overriddenTemplates = overriddenTemplates;
+            //this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
+            //this._config.overriddenTemplates = overriddenTemplates;
         }
 
-
-        // Set the _logLevel property from the config
-        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
 
         // Set the _resizeObserverTarget property from the config
         this._resizeObserverTarget = config.resize_observer_target || 'this';

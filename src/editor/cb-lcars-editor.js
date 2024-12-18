@@ -1,7 +1,6 @@
 import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import { readYamlFile } from '../utils/cb-lcars-fileutils.js';
-import { checkLovelaceTemplates } from '../utils/cb-helpers.js';
 
 import { html, css, unsafeCSS } from 'lit';
 
@@ -52,17 +51,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
         await this._initializationPromise;
 
-        this._config = {
-            ...config,
-        };
-
-        const { isUsingLovelaceTemplate, overriddenTemplates } = checkLovelaceTemplates(this._config);
-
-        // Add the flag and overridden templates to the card configuration
-        this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
-        this._config.overriddenTemplates = overriddenTemplates;
-
-        super.setConfig(this._config);
+        super.setConfig(config);
         this.requestUpdate();
 
     }
