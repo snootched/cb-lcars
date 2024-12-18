@@ -197,15 +197,13 @@ class CBLCARSBaseCard extends ButtonCard {
         if(isUsingLovelaceTemplate) {
             cblcarsLog('warn',`Card configuration templates are being overridden with local dashboard YAML configuration.  Templates: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
             window.cblcars.taintedCards = window.cblcars.taintedCards || [];
-            window.cblcars.taintedCards.push(this);
+            window.cblcars.taintedCards.push({card: this, templates: overriddenTemplates});
         }
 
 
-        // Set the _resizeObserverTarget property from the config
+        // Set up the resizeObserver properties
         this._resizeObserverTarget = config.resize_observer_target || 'this';
-        // Set the _enableResizeObserver property from the config
         this._isResizeObserverEnabled = config.enable_resize_observer || false;
-        // Set the _resizeObserverTolerance property from the config
         this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
 
         // Enable the resize observer if the configuration option is enabled
