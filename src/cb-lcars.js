@@ -184,15 +184,20 @@ class CBLCARSBaseCard extends ButtonCard {
             template: mergedTemplates,
         };
 
+
+        // Check if the card is using a template from the dashboard's yaml.
+        // this will override the card's configuration
+        // this could be on purpose for testing/customization - but more likely holdovers from the original version that used that method
         const { isUsingLovelaceTemplate, overriddenTemplates } = checkLovelaceTemplates(this._config);
         this._isUsingLovelaceTemplate = isUsingLovelaceTemplate;
         this._overrideTemplates = overriddenTemplates;
 
+        // Log a warning if the card is using a template from the dashboard's yaml
+        // add the card to a list of tainted cards
         if(isUsingLovelaceTemplate) {
-            cblcarsLog('warn',`Using override template(s) from Lovelace dashboard yaml: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
-            // Add the flag to the card configuration - used by editors to display a warning
-            //this._config.isUsingLovelaceTemplate = isUsingLovelaceTemplate;
-            //this._config.overriddenTemplates = overriddenTemplates;
+            cblcarsLog('warn',`Card configuration templates are being overridden with local dashboard YAML configuration.  Templates: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
+            window.cblcars.taintedCards = window.cblcars.taintedCards || [];
+            window.cblcars.taintedCards.push(this);
         }
 
 
