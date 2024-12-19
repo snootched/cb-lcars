@@ -209,7 +209,6 @@ cb-lcars-multimeter:
       min: "[[[ return variables.entity_min ]]]"
       max: "[[[ return variables.entity_max ]]]"
     gauge:
-      bg_fill_value: 0
       min: "[[[ return variables.entity_min ]]]"
       max: "[[[ return variables.entity_max ]]]"
       increment: |
@@ -683,8 +682,7 @@ cb-lcars-multimeter:
 
         const orientation = variables._vertical ? 'vertical' : 'horizontal';
 
-        const bg_fill_value = variables.gauge.bg_fill_value || 0;
-        const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
+        //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
         const showSubticks = variables.gauge.sub_meter.show_sub_meter;
 
         const entityState = entity.state;
@@ -736,10 +734,25 @@ cb-lcars-multimeter:
           }
         }
 
+        const ranges = variables.gauge.ranges || [];
+        let rangeBackgrounds = '';
+
+        ranges.forEach(range => {
+          const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+          const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+          const rangeWidth = toPercent - fromPercent;
+
+          rangeBackgrounds += `
+            <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                  width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                  fill="${range.color}" />
+          `;
+        });
+
         return `
           <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
             <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-            <rect x="0" y="0" width="${orientation === 'vertical' ? '100%' : bg_fill_value + '%'}" height="${orientation === 'vertical' ? bg_fill_value + '%' : '100%'}" fill="${bg_fill_color}"/>
+            ${rangeBackgrounds}
             ${meterTicks.join('')}
           </svg>
         `;
