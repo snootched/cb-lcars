@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.2-alpha.11
+  version: 2024.12.3-alpha.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -2269,8 +2269,7 @@ cblcars_card_templates:
             padding: 0.5%
             margin: null
     state:
-      - value: open
-        id: state_open
+      - id: state_open
         styles:
           card:
             - background-color: '[[[ return variables.card.color.background.active ]]]'
@@ -2281,8 +2280,7 @@ cblcars_card_templates:
             - color: '[[[ return variables.text.label.color.on ]]]'
           name:
             - color: '[[[ return variables.text.name.color.on ]]]'
-      - value: closed
-        id: state_closed
+      - id: state_closed
         styles:
           card:
             - background-color: '[[[ return variables.card.color.background.inactive ]]]'
@@ -2345,84 +2343,6 @@ cblcars_card_templates:
             - color: '[[[ return variables.text.label.color.on ]]]'
           name:
             - color: '[[[ return variables.text.name.color.on ]]]'
-      - value: 'on'
-        id: state_on
-        styles:
-          card:
-            - background-color: '[[[ return variables.card.color.background.active ]]]'
-            - border-top: >-
-                [[[ return variables.card.border.top.size + " solid " +
-                variables.card.color.active ]]]
-            - border-left: >-
-                [[[ return variables.card.border.left.size + " solid " +
-                variables.card.color.active ]]]
-            - border-right: >-
-                [[[ return variables.card.border.right.size + " solid " +
-                variables.card.color.active ]]]
-            - border-bottom: >-
-                [[[ return variables.card.border.bottom.size + " solid " +
-                variables.card.color.active ]]]
-          state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
-          label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
-          name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
-          icon:
-            - color: >-
-                [[[ return variables.icon.color.active ||
-                variables.icon.color.default ]]]
-            - background: >-
-                [[[ return variables.icon.color.background.active ||
-                variables.card.color.background.active ]]]
-      - value: 'off'
-        id: state_off
-        styles:
-          card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
-            - border-top: >-
-                [[[ return variables.card.border.top.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-left: >-
-                [[[ return variables.card.border.left.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-right: >-
-                [[[ return variables.card.border.right.size + " solid " +
-                variables.card.color.inactive ]]]
-            - border-bottom: >-
-                [[[ return variables.card.border.bottom.size + " solid " +
-                variables.card.color.inactive ]]]          
-          state:
-            - color: '[[[ return variables.text.state.color.off ]]]'
-          label:
-            - color: '[[[ return variables.text.label.color.off ]]]'
-          name:
-            - color: '[[[ return variables.text.name.color.off ]]]'
-          icon:
-            - color: >-
-                [[[ return variables.icon.color.inactive ||
-                variables.icon.color.default ]]]
-            - background: >-
-                [[[ return variables.icon.color.background.inactive ||
-                variables.card.color.background.inactive ]]]
-      - operator: default
-        id: state_default
-        styles:
-          card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
-          state:
-            - color: '[[[ return variables.text.state.color.default ]]]'
-          label:
-            - color: '[[[ return variables.text.label.color.default ]]]'
-          name:
-            - color: '[[[ return variables.text.name.color.default ]]]'
-          icon:
-            - color: >-
-                [[[ return variables.icon.color.inactive ||
-                variables.icon.color.default ]]]
-            - background: >-
-                [[[ return variables.icon.color.background.inactive ||
-                variables.card.color.background.inactive ]]]  
   cb-lcars-button-picard-filled-dense:
     template: cb-lcars-button-picard-filled
     variables:
@@ -3841,8 +3761,11 @@ cblcars_card_templates:
         - outline: >-
             [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
     state:
-      - value: 'on'
-        id: state_on
+      - id: state_on
+        value: |
+          [[[
+            return entity !== undefined && ['on', 'locked','closed'].includes(states[entity.entity_id].state)
+          ]]]
         styles:
           card:
             - transition: all 0.4s ease-in
@@ -3880,8 +3803,11 @@ cblcars_card_templates:
                 [[[ return variables.icon.color.active || variables.icon.color.default ]]]
             - background: >-
                 [[[ return variables.icon.color.background.active || variables.card.color.background.active ]]]
-      - value: 'off'
-        id: state_off
+      - id: state_off
+        value: |
+          [[[
+            return entity !== undefined && ['of', 'locked','closed'].includes(states[entity.entity_id].state)
+          ]]]
         styles:
           card:
             - transition: all 0.4s ease-out
@@ -3919,30 +3845,6 @@ cblcars_card_templates:
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
                 [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
-      - value: open
-        id: state_open
-        styles:
-          card:
-            - background-color: '[[[ return variables.card.color.background.active ]]]'
-            - color: '[[[ return variables.card.color.active ]]]'
-          state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
-          label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
-          name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
-      - value: closed
-        id: state_closed
-        styles:
-          card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
-            - color: '[[[ return variables.card.color.inactive ]]]'
-          state:
-            - color: '[[[ return variables.text.state.color.off ]]]'
-          label:
-            - color: '[[[ return variables.text.label.color.off ]]]'
-          name:
-            - color: '[[[ return variables.text.name.color.off ]]]'
       - value: heat
         id: state_heat
         styles:
@@ -4715,7 +4617,6 @@ cblcars_card_templates:
         min: "[[[ return variables.entity_min ]]]"
         max: "[[[ return variables.entity_max ]]]"
       gauge:
-        bg_fill_value: 0
         min: "[[[ return variables.entity_min ]]]"
         max: "[[[ return variables.entity_max ]]]"
         increment: |
@@ -5177,8 +5078,7 @@ cblcars_card_templates:
           let increment = variables.gauge.increment;
           //console.warn(minVal, maxVal, increment);
           const orientation = variables._vertical ? 'vertical' : 'horizontal';
-          const bg_fill_value = variables.gauge.bg_fill_value || 0;
-          const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
+          //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
           const showSubticks = variables.gauge.sub_meter.show_sub_meter;
           const entityState = entity.state;
           const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
@@ -5221,10 +5121,22 @@ cblcars_card_templates:
               }
             }
           }
+          const ranges = variables.gauge.ranges || [];
+          let rangeBackgrounds = '';
+          ranges.forEach(range => {
+            const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+            const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+            const rangeWidth = toPercent - fromPercent;
+            rangeBackgrounds += `
+              <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                    width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                    fill="${range.color}" />
+            `;
+          });
           return `
             <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
               <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-              <rect x="0" y="0" width="${orientation === 'vertical' ? '100%' : bg_fill_value + '%'}" height="${orientation === 'vertical' ? bg_fill_value + '%' : '100%'}" fill="${bg_fill_color}"/>
+              ${rangeBackgrounds}
               ${meterTicks.join('')}
             </svg>
           `;
