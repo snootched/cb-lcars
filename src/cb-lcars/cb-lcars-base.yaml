@@ -275,11 +275,8 @@ cb-lcars-base:
       - outline: >-
           [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
   state:
-    - id: state_on
-      value: |
-        [[[
-          return entity !== undefined && ['on', 'locked','closed'].includes(states[entity.entity_id].state)
-        ]]]
+    - value: 'on'
+      id: state_on
       styles:
         card:
           - transition: all 0.4s ease-in
@@ -317,11 +314,8 @@ cb-lcars-base:
               [[[ return variables.icon.color.active || variables.icon.color.default ]]]
           - background: >-
               [[[ return variables.icon.color.background.active || variables.card.color.background.active ]]]
-    - id: state_off
-      value: |
-        [[[
-          return entity !== undefined && ['of', 'locked','closed'].includes(states[entity.entity_id].state)
-        ]]]
+    - value: 'off'
+      id: state_off
       styles:
         card:
           - transition: all 0.4s ease-out
@@ -359,6 +353,30 @@ cb-lcars-base:
               [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
           - background: >-
               [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+    - value: open
+      id: state_open
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.active ]]]'
+          - color: '[[[ return variables.card.color.active ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - value: closed
+      id: state_closed
+      styles:
+        card:
+          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - color: '[[[ return variables.card.color.inactive ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.off ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.off ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.off ]]]'
     - value: heat
       id: state_heat
       styles:
