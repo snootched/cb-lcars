@@ -78,84 +78,12 @@ cb-lcars-button-picard-filled:
           padding: 0.5%
           margin: null
   state:
-    - value: open
-      id: state_open
-      styles:
-        card:
-          - background-color: '[[[ return variables.card.color.background.active ]]]'
-          - color: '[[[ return variables.card.color.active ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.on ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.on ]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.on ]]]'
-    - value: closed
-      id: state_closed
-      styles:
-        card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
-          - color: '[[[ return variables.card.color.inactive ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.off ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.off ]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.off ]]]'
-    - value: heat
-      id: state_heat
-      styles:
-        card:
-          - background-color: '[[[ return variables.text.state.color.hvac_heat ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.on ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.on ]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.on ]]]'
-    - value: cool
-      id: state_cool
-      styles:
-        card:
-          - background-color: '[[[ return variables.text.state.color.hvac_cool ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.on ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.on]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.on ]]]'
-    - operator: template
+    - id: state_on
+      operator: template
       value: |
         [[[
-          return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
+          return entity !== undefined && ['on', 'open', 'unlocked'].includes(states[entity.entity_id].state)
         ]]]
-      id: state_zero
-      styles:
-        card:
-          - background-color: '[[[ return variables.text.state.color.zero ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.off ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.off ]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.off ]]]'
-    - operator: template
-      value: |
-        [[[
-          return entity !== undefined && states[entity.entity_id].state !== '0';
-        ]]]
-      id: state_nonzero
-      styles:
-        card:
-          - background-color: '[[[ return variables.text.state.color.non_zero ]]]'
-        state:
-          - color: '[[[ return variables.text.state.color.on ]]]'
-        label:
-          - color: '[[[ return variables.text.label.color.on ]]]'
-        name:
-          - color: '[[[ return variables.text.name.color.on ]]]'
-    - value: 'on'
-      id: state_on
       styles:
         card:
           - background-color: '[[[ return variables.card.color.background.active ]]]'
@@ -184,8 +112,12 @@ cb-lcars-button-picard-filled:
           - background: >-
               [[[ return variables.icon.color.background.active ||
               variables.card.color.background.active ]]]
-    - value: 'off'
-      id: state_off
+    - id: state_off
+      operator: template
+      value: |
+        [[[
+          return entity !== undefined && ['off', 'closed', 'locked'].includes(states[entity.entity_id].state)
+        ]]]
       styles:
         card:
           - background-color: '[[[ return variables.card.color.background.inactive ]]]'
@@ -214,6 +146,62 @@ cb-lcars-button-picard-filled:
           - background: >-
               [[[ return variables.icon.color.background.inactive ||
               variables.card.color.background.inactive ]]]
+    - value: heat
+      id: state_heat
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - value: cool
+      id: state_cool
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
+    - operator: template
+      value: |
+        [[[
+          if (entity === undefined) return false;
+          const stateValue = Number(states[entity.entity_id].state);
+          return entity !== undefined && stateValue === 0;
+        ]]]
+      id: state_zero
+      styles:
+        card:
+          - background-color: '[[[ return variables.text.state.color.zero ]]]'
+        state:
+          - color: '[[[ return variables.text.state.color.off ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.off ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.off ]]]'
+    - operator: template
+      value: |
+        [[[
+          if (entity === undefined) return false;
+          const stateValue = Number(states[entity.entity_id].state);
+          return entity !== undefined && stateValue !== 0;
+        ]]]
+      id: state_nonzero
+      styles:
+        card:
+          - background-color: '#ffffff'
+        state:
+          - color: '[[[ return variables.text.state.color.on ]]]'
+        label:
+          - color: '[[[ return variables.text.label.color.on ]]]'
+        name:
+          - color: '[[[ return variables.text.name.color.on ]]]'
     - operator: default
       id: state_default
       styles:
