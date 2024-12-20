@@ -2273,7 +2273,7 @@ cblcars_card_templates:
         operator: template
         value: |
           [[[
-            return entity !== undefined && ['on', 'open', 'unlocked'].includes(states[entity.entity_id].state)
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
           ]]]
         styles:
           card:
@@ -2307,7 +2307,7 @@ cblcars_card_templates:
         operator: template
         value: |
           [[[
-            return entity !== undefined && ['off', 'closed', 'locked'].includes(states[entity.entity_id].state)
+            return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
           ]]]
         styles:
           card:
@@ -3833,7 +3833,7 @@ cblcars_card_templates:
         operator: template
         value: |
           [[[
-            return entity !== undefined && ['on', 'open', 'unlocked'].includes(states[entity.entity_id].state)
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
           ]]]
         styles:
           card:
@@ -3876,7 +3876,7 @@ cblcars_card_templates:
         operator: template
         value: |
           [[[
-            return entity !== undefined && ['off', 'closed', 'locked'].includes(states[entity.entity_id].state)
+            return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
           ]]]
         styles:
           card:
