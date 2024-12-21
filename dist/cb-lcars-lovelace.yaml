@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.3-alpha.4
+  version: 2024.12.4-alpha.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -681,6 +681,9 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
+        color:
+          background:
+            default: transparent
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
         border:
@@ -871,6 +874,9 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
+        color:
+          background:
+            default: transparent
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
         border:
@@ -2039,13 +2045,48 @@ cblcars_card_templates:
           justify: flex-start
           color:
             default: var(--primary-text-color)
-            'on': var(--primary-text-color)
-            'off': var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
             zero: var(--lcars-green)
             non_zero: var(--lcars-blue)
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
             hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
+      state:
+        label:
+          font_size: 20px
+          font_weight: normal
+          align: left
+          align_items: flex-start
+          justify: flex-start
+          color:
+            default: var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
+      name:
+        label:
+          font_size: 20px
+          font_weight: normal
+          align: left
+          align_items: flex-start
+          justify: flex-start
+          color:
+            default: var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
       card:
         color:
           background:
@@ -2204,13 +2245,13 @@ cblcars_card_templates:
             bottom: 5px
           color:
             default: black
-            'on': black
-            'off': black
-            zero: var(--picard-green)
-            non_zero: var(--picard-blue)
-            hvac_heat: var(--picard-light-orange)
-            hvac_cool: var(--picard-blue)
-            hvac_other: var(--picard-black-cherry)
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            hvac_other: black
         state:
           font_weight: normal
           font_size: 22px
@@ -2222,13 +2263,13 @@ cblcars_card_templates:
             bottom: 5px
           color:
             default: black
-            'on': black
-            'off': black
-            zero: var(--picard-green)
-            non_zero: var(--picard-blue)
-            hvac_heat: var(--picard-light-orange)
-            hvac_cool: var(--picard-blue)
-            hvac_other: var(--picard-black-cherry)
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            hvac_other: black
         name:
           font_weight: normal
           font_size: 22px
@@ -2240,13 +2281,13 @@ cblcars_card_templates:
             bottom: 5px
           color:
             default: black
-            'on': black
-            'off': black
-            zero: var(--picard-green)
-            non_zero: var(--picard-blue)
-            hvac_heat: var(--picard-light-orange)
-            hvac_cool: var(--picard-blue)
-            hvac_other: var(--picard-black-cherry)
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            hvac_other: black
       icon:
         color:
           default: black
@@ -2291,11 +2332,11 @@ cblcars_card_templates:
                 [[[ return variables.card.border.bottom.size + " solid " +
                 variables.card.color.active ]]]
           state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
+            - color: '[[[ return variables.text.state.color.active ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
+            - color: '[[[ return variables.text.label.color.active ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
+            - color: '[[[ return variables.text.name.color.active ]]]'
           icon:
             - color: >-
                 [[[ return variables.icon.color.active ||
@@ -2325,11 +2366,11 @@ cblcars_card_templates:
                 [[[ return variables.card.border.bottom.size + " solid " +
                 variables.card.color.inactive ]]]
           state:
-            - color: '[[[ return variables.text.state.color.off ]]]'
+            - color: '[[[ return variables.text.state.color.inactive ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.off ]]]'
+            - color: '[[[ return variables.text.label.color.inactive ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.off ]]]'
+            - color: '[[[ return variables.text.name.color.inactive ]]]'
           icon:
             - color: >-
                 [[[ return variables.icon.color.inactive ||
@@ -2341,63 +2382,61 @@ cblcars_card_templates:
         id: state_heat
         styles:
           card:
-            - background-color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+            - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
           state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
+            - color: '[[[ return variables.text.state.color.hvac_heat ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
+            - color: '[[[ return variables.text.label.color.hvac_heat ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
+            - color: '[[[ return variables.text.name.color.hvac_heat ]]]'
       - value: cool
         id: state_cool
         styles:
           card:
-            - background-color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+            - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
           state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
+            - color: '[[[ return variables.text.state.color.hvac_cool ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.on]]]'
+            - color: '[[[ return variables.text.label.color.hvac_cool ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
+            - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
       - operator: template
         value: |
           [[[
             if (entity === undefined) return false;
-            const stateValue = Number(states[entity.entity_id].state);
-            return entity !== undefined && stateValue === 0;
+            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
           ]]]
         id: state_zero
         styles:
           card:
-            - background-color: '[[[ return variables.text.state.color.zero ]]]'
+            - background-color: '[[[ return variables.card.color.background.zero ]]]'
           state:
-            - color: '[[[ return variables.text.state.color.off ]]]'
+            - color: '[[[ return variables.text.state.color.zero ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.off ]]]'
+            - color: '[[[ return variables.text.label.color.zero ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.off ]]]'
+            - color: '[[[ return variables.text.name.color.zero ]]]'
       - operator: template
         value: |
           [[[
             if (entity === undefined) return false;
-            const stateValue = Number(states[entity.entity_id].state);
-            return entity !== undefined && stateValue !== 0;
+            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
           ]]]
         id: state_nonzero
         styles:
           card:
-            - background-color: '#ffffff'
+            - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
           state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
+            - color: '[[[ return variables.text.state.color.non_zero ]]]'
           label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
+            - color: '[[[ return variables.text.label.color.non_zero ]]]'
           name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
+            - color: '[[[ return variables.text.name.color.non_zero ]]]'
       - operator: default
         id: state_default
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - background-color: '[[[ return variables.card.color.background.default ]]]'
           state:
             - color: '[[[ return variables.text.state.color.default ]]]'
           label:
@@ -2786,19 +2825,56 @@ cblcars_card_templates:
           justify: flex-start
           color:
             default: var(--primary-text-color)
-            'on': var(--primary-text-color)
-            'off': var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
             zero: var(--lcars-green)
             non_zero: var(--lcars-blue)
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
             hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
+        state:
+          font_size: 20px
+          font_weight: normal
+          align: left
+          align_items: flex-start
+          justify: flex-start
+          color:
+            default: var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
+        name:
+          font_size: 20px
+          font_weight: normal
+          align: left
+          align_items: flex-start
+          justify: flex-start
+          color:
+            default: var(--primary-text-color)
+            active: var(--primary-text-color)
+            inactive: var(--primary-text-color)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            hvac_other: var(--lcars-purple)
+            unavailable: var(--lcars-card-button-unavailable)
       card:
         color:
           background:
             default: transparent
             active: transparent
             inactive: transparent
+            zero: transparent
+            non_zero: transparent
+            hvac_heat: transparent
+            hvac_cool: transparent
             unavailable: transparent
   cb-lcars-header:
     template:
@@ -2973,7 +3049,14 @@ cblcars_card_templates:
         min_height: 40px
         color:
           background:
+            default: transparent
+            active: transparent
             inactive: transparent
+            zero: transparent
+            non_zero: transparent
+            hvac_heat: transparent
+            hvac_cool: transparent
+            unavailable: transparent
       text:
         label:
           font_size: 40px
@@ -2984,14 +3067,6 @@ cblcars_card_templates:
           transform: uppercase
           align: center
           justify: center
-          color:
-            'on': var(--lcars-green)
-            'off': var(--lcars-blue)
-            zero: var(--lcars-green)
-            non_zero: var(--lcars-blue)
-            hvac_heat: var(--lcars-orange)
-            hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
         state:
           font_size: 40px
           font_weight: bold
@@ -3001,14 +3076,6 @@ cblcars_card_templates:
           transform: uppercase
           align: center
           justify: center
-          color:
-            'on': var(--lcars-green)
-            'off': var(--lcars-blue)
-            zero: var(--lcars-green)
-            non_zero: var(--lcars-blue)
-            hvac_heat: var(--lcars-orange)
-            hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
         name:
           font_size: 40px
           font_weight: bold
@@ -3018,14 +3085,6 @@ cblcars_card_templates:
           transform: uppercase
           align: center
           justify: center
-          color:
-            'on': var(--lcars-green)
-            'off': var(--lcars-blue)
-            zero: var(--lcars-green)
-            non_zero: var(--lcars-blue)
-            hvac_heat: var(--lcars-orange)
-            hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
   cb-lcars-button-grid-icons:
     type: custom:cblcars-button-card
     template:
@@ -3056,6 +3115,9 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
+        color:
+          background:
+            default: transparent
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
         border:
@@ -3246,6 +3308,9 @@ cblcars_card_templates:
       - cb-lcars-card-base
     variables:
       card:
+        color:
+          background:
+            default: transparent
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
         border:
@@ -3460,12 +3525,14 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           color:
-            default: '[[[ return variables.lcars_color ]]]'
-            'on': '[[[ return variables.card.color.active ]]]'
-            'off': '[[[ return variables.card.color.inactive ]]]'
+            default: '[[[ return variables.card.color.default ]]]'
+            active: '[[[ return variables.card.color.active ]]]'
+            inactive: '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.zero ]]]'
+            non_zero: '[[[ return variables.card.color.non_zero ]]]'
+            hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+            hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
-            zero: '[[[ return variables.card.color.active ]]]'
-            non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
             top: 0px
             left: 10px
@@ -3476,12 +3543,14 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           color:
-            default: '[[[ return variables.lcars_color ]]]'
-            'on': '[[[ return variables.card.color.active ]]]'
-            'off': '[[[ return variables.card.color.inactive ]]]'
+            default: '[[[ return variables.card.color.default ]]]'
+            active: '[[[ return variables.card.color.active ]]]'
+            inactive: '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.zero ]]]'
+            non_zero: '[[[ return variables.card.color.non_zero ]]]'
+            hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+            hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
-            zero: '[[[ return variables.card.color.active ]]]'
-            non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
             top: 0px
             left: 10px
@@ -3492,12 +3561,14 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           color:
-            default: '[[[ return variables.lcars_color ]]]'
-            'on': '[[[ return variables.card.color.active ]]]'
-            'off': '[[[ return variables.card.color.inactive ]]]'
+            default: '[[[ return variables.card.color.default ]]]'
+            active: '[[[ return variables.card.color.active ]]]'
+            inactive: '[[[ return variables.card.color.inactive ]]]'
+            zero: '[[[ return variables.card.color.zero ]]]'
+            non_zero: '[[[ return variables.card.color.non_zero ]]]'
+            hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+            hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
-            zero: '[[[ return variables.card.color.active ]]]'
-            non_zero: '[[[ return variables.card.color.inactive ]]]'
           padding:
             top: 0px
             left: 10px
@@ -3523,6 +3594,10 @@ cblcars_card_templates:
           background:
             default: transparent
             active: transparent
+            zero: transparent
+            non_zero: transparent
+            hvac_heat: transparent
+            hvac_cool: transparent
             inactive: transparent
             unavailable: transparent
   cb-lcars-button-picard-dense:
@@ -3575,13 +3650,12 @@ cblcars_card_templates:
             bottom: 10px
           color:
             default: var(--primary-text-color)
-            'on': var(--primary-text-color)
-            'off': var(--primary-text-color)
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-tertiary)
             zero: var(--lcars-green)
             non_zero: var(--lcars-blue)
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
             unavailable: var(--lcars-card-button-unavailable)
         name:
           font_size: 20px
@@ -3597,13 +3671,12 @@ cblcars_card_templates:
             bottom: 10px
           color:
             default: var(--primary-text-color)
-            'on': var(--primary-text-color)
-            'off': var(--primary-text-color)
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-tertiary)
             zero: var(--lcars-green)
             non_zero: var(--lcars-blue)
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
             unavailable: var(--lcars-card-button-unavailable)
         state:
           font_size: 20px
@@ -3619,27 +3692,35 @@ cblcars_card_templates:
             bottom: 10px
           color:
             default: var(--primary-text-color)
-            'on': var(--primary-text-color)
-            'off': var(--primary-text-color)
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-tertiary)
             zero: var(--lcars-green)
             non_zero: var(--lcars-blue)
             hvac_heat: var(--lcars-orange)
             hvac_cool: var(--lcars-blue)
-            hvac_other: var(--lcars-purple)
             unavailable: var(--lcars-card-button-unavailable)
       card:
         height: null
         min_height: 10px
         width: null
         color:
+          default: var(--lcars-card-top-color, var(--picard-dark-gray))
           active: var(--lcars-ui-secondary)
           inactive: var(--lcars-ui-tertiary)
+          zero: var(--lcars-green)
+          non_zero: var(--lcars-blue)
+          hvac_heat: var(--lcars-orange)
+          hvac_cool: var(--lcars-blue)
           unavailable: var(--lcars-card-button-unavailable)
           background:
-            default: none
-            active: transparent
-            inactive: transparent
-            unavailable: transparent
+            default: var(--lcars-card-top-color, var(--picard-dark-gray))
+            active: var(--lcars-ui-secondary)
+            inactive: var(--lcars-ui-tertiary)
+            zero: var(--lcars-green)
+            non_zero: var(--lcars-blue)
+            hvac_heat: var(--lcars-orange)
+            hvac_cool: var(--lcars-blue)
+            unavailable: var(--lcars-card-button-unavailable)
         border:
           top:
             left_radius: 0px
@@ -3657,7 +3738,6 @@ cblcars_card_templates:
             factor: 2
             min_radius: 30px
             width: 35px
-          color: var(--lcars-card-top-color, var(--picard-dark-gray))
       icon:
         box_size: 35px
         size: 24px
@@ -3700,21 +3780,21 @@ cblcars_card_templates:
             ]]]
         - border-top: |
             [[[
-              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color || variables.card.color.default);
             ]]]
         - border-left: |
             [[[
-              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.border.left.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.border.left.color || variables.card.border.color || variables.card.color.default);
             ]]]
         - border-right: |
             [[[
-              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.border.right.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.border.right.color || variables.card.border.color || variables.card.color.default);
             ]]]
         - border-bottom: |
             [[[
-              return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
+              return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.border.bottom.color || variables.card.border.color || variables.card.color.default);
             ]]]
-        - background: '[[[ return variables.card.color.background.default ]]]'
+        - background-color: '[[[ return variables.card.color.background.default ]]]'
         - border-top-left-radius: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
@@ -3763,7 +3843,7 @@ cblcars_card_templates:
         - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
         - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
       state:
         - display: flex
         - justify-content: '[[[ return variables.text.state.justify ]]]'
@@ -3795,7 +3875,7 @@ cblcars_card_templates:
         - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
         - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
       name:
         - display: flex
         - justify-content: '[[[ return variables.text.name.justify ]]]'
@@ -3827,7 +3907,7 @@ cblcars_card_templates:
         - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
         - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
     state:
       - id: state_on
         operator: template
@@ -3856,15 +3936,15 @@ cblcars_card_templates:
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.active;
                 ]]]
           state:
-            - color: '[[[ return variables.text.state.color.on ]]]'
+            - color: '[[[ return variables.text.state.color.active ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
           label:
-            - color: '[[[ return variables.text.label.color.on ]]]'
+            - color: '[[[ return variables.text.label.color.active ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
           name:
-            - color: '[[[ return variables.text.name.color.on ]]]'
+            - color: '[[[ return variables.text.name.color.active ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
           icon:
@@ -3899,15 +3979,15 @@ cblcars_card_templates:
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.inactive;
                 ]]]
           state:
-            - color: '[[[ return variables.text.state.color.off ]]]'
+            - color: '[[[ return variables.text.state.color.inactive ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
           label:
-            - color: '[[[ return variables.text.label.color.off ]]]'
+            - color: '[[[ return variables.text.label.color.inactive ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
           name:
-            - color: '[[[ return variables.text.name.color.off ]]]'
+            - color: '[[[ return variables.text.name.color.inactive ]]]'
             - outline: >-
                 [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
           icon:
@@ -3915,30 +3995,76 @@ cblcars_card_templates:
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
                 [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
-      - value: heat
-        id: state_heat
+      - id: state_heat
+        value: heat
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - transition: all 0.4s ease-out
+            - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.hvac_heat;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.hvac_heat;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.hvac_heat;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.hvac_heat;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_heat ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_heat ]]]'
-      - value: cool
-        id: state_cool
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+      - id: state_cool
+        value: cool
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - transition: all 0.4s ease-out
+            - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.hvac_cool;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.hvac_cool;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.hvac_cool;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.hvac_cool;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_cool ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
-      - operator: template
-        id: state_unavailable
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+      - id: state_unavailable
+        operator: template
         value: |
           [[[
             return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
@@ -3978,53 +4104,121 @@ cblcars_card_templates:
             - color: >-
                 [[[ return variables.icon.color.unavailable || variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
-      - operator: template
+                [[[ return variables.icon.color.background.unavailable || variables.card.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+      - id: state_zero
+        operator: template
         value: |
           [[[
-            return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
           ]]]
-        id: state_zero
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - background-color: '[[[ return variables.card.color.background.zero ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.zero;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.zero;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.zero;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.zero;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.zero ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.zero ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.zero ]]]'
-      - operator: template
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+      - id: state_nonzero
+        operator: template
         value: |
           [[[
-            return entity !== undefined && states[entity.entity_id].state !== '0';
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
           ]]]
-        id: state_nonzero
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.non_zero;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.non_zero;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.non_zero;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.non_zero;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.non_zero ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.non_zero ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.non_zero ]]]'
-      - operator: default
-        id: state_default
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+      - id: state_default
+        operator: default
         styles:
           card:
-            - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+            - background-color: '[[[ return variables.card.color.background.default ]]]'
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.default;
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.default;
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.default;
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.default;
+                ]]]
           state:
             - color: '[[[ return variables.text.state.color.default ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
           label:
             - color: '[[[ return variables.text.label.color.default ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
           name:
             - color: '[[[ return variables.text.name.color.default ]]]'
+            - outline: >-
+                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
           icon:
             - color: >-
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
   cb-lcars-button-grid:
     template:
       - cb-lcars-grid
@@ -4091,13 +4285,18 @@ cblcars_card_templates:
       card:
         min_height: 45px
         color:
+          default: var(--lcars-card-button, var(--picard-medium-light-gray))
           active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
           inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+          zero: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+          non_zero: "var(--lcars-card-button-off, var(--picard-dark-gray))"
           unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
           background:
             default: null
             active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
             inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+            zero: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+            non_zero: "var(--lcars-card-button-off, var(--picard-dark-gray))"
             unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
       text:
         label:
@@ -4112,10 +4311,12 @@ cblcars_card_templates:
           align_items: end
           color:
             default: black
-            'on': black
-            'off': black
+            active: black
+            inactive: black
             zero: black
             non_zero: black
+            hvac_heat: black
+            hvac_cool: black
             unavailable: black
         state:
           padding:
@@ -4129,10 +4330,12 @@ cblcars_card_templates:
           align_items: end
           color:
             default: black
-            'on': black
-            'off': black
+            active: black
+            inactive: black
             zero: black
             non_zero: black
+            hvac_heat: black
+            hvac_cool: black
             unavailable: black
         name:
           padding:
@@ -4146,10 +4349,12 @@ cblcars_card_templates:
           align_items: end
           color:
             default: black
-            'on': black
-            'off': black
+            active: black
+            inactive: black
             zero: black
             non_zero: black
+            hvac_heat: black
+            hvac_cool: black
             unavailable: black
       icon:
         size: 24px
@@ -4744,15 +4949,19 @@ cblcars_card_templates:
           _gradient:
             gap: 5px
     state:
-      - value: "on"
-        id: state_on
+      - id: state_on
+        operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+          ]]]
         styles:
           custom_fields:
             gauge:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                   ]]]
               - border-bottom: |
                   [[[
@@ -4784,8 +4993,12 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                   ]]]
-      - value: "off"
-        id: state_off
+      - id: state_off
+        operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
+          ]]]
         styles:
           custom_fields:
             gauge:
@@ -4824,8 +5037,8 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                   ]]]
-      - operator: template
-        id: state_unavailable
+      - id: state_unavailable
+        operator: template
         value: |
           [[[
             return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
@@ -4833,6 +5046,7 @@ cblcars_card_templates:
         styles:
           custom_fields:
             gauge:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
@@ -4865,6 +5079,220 @@ cblcars_card_templates:
               - border-right: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+      - id: state_heat
+        value: heat
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+      - id: state_cool
+        value: cool
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+      - id: state_zero
+        operator: template
+        value: |
+          [[[
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+      - id: state_nonzero
+        operator: template
+        value: |
+          [[[
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+      - id: state_default
+        operator: default
+        value: |
+          [[[
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+            slider_track:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default|| variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
                   ]]]
     styles:
       card:
