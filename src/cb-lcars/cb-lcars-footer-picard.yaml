@@ -4,6 +4,9 @@ cb-lcars-footer-picard:
     - cb-lcars-card-base
   variables:
     card:
+      color:
+        background:
+          default: transparent
       height: "[[[ return this.offsetHeight; ]]]"
       width: "[[[ return this.offsetWidth; ]]]"
       border:
@@ -194,6 +197,9 @@ cb-lcars-footer-picard-right:
     - cb-lcars-card-base
   variables:
     card:
+      color:
+        background:
+          default: transparent
       height: "[[[ return this.offsetHeight; ]]]"
       width: "[[[ return this.offsetWidth; ]]]"
       border:

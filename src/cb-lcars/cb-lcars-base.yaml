@@ -21,13 +21,12 @@ cb-lcars-base:
           bottom: 10px
         color:
           default: var(--primary-text-color)
-          'on': var(--primary-text-color)
-          'off': var(--primary-text-color)
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
           zero: var(--lcars-green)
           non_zero: var(--lcars-blue)
           hvac_heat: var(--lcars-orange)
           hvac_cool: var(--lcars-blue)
-          hvac_other: var(--lcars-purple)
           unavailable: var(--lcars-card-button-unavailable)
       name:
         font_size: 20px
@@ -43,13 +42,12 @@ cb-lcars-base:
           bottom: 10px
         color:
           default: var(--primary-text-color)
-          'on': var(--primary-text-color)
-          'off': var(--primary-text-color)
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
           zero: var(--lcars-green)
           non_zero: var(--lcars-blue)
           hvac_heat: var(--lcars-orange)
           hvac_cool: var(--lcars-blue)
-          hvac_other: var(--lcars-purple)
           unavailable: var(--lcars-card-button-unavailable)
       state:
         font_size: 20px
@@ -65,27 +63,35 @@ cb-lcars-base:
           bottom: 10px
         color:
           default: var(--primary-text-color)
-          'on': var(--primary-text-color)
-          'off': var(--primary-text-color)
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
           zero: var(--lcars-green)
           non_zero: var(--lcars-blue)
           hvac_heat: var(--lcars-orange)
           hvac_cool: var(--lcars-blue)
-          hvac_other: var(--lcars-purple)
           unavailable: var(--lcars-card-button-unavailable)
     card:
       height: null
       min_height: 10px
       width: null
       color:
+        default: var(--lcars-card-top-color, var(--picard-dark-gray))
         active: var(--lcars-ui-secondary)
         inactive: var(--lcars-ui-tertiary)
+        zero: var(--lcars-green)
+        non_zero: var(--lcars-blue)
+        hvac_heat: var(--lcars-orange)
+        hvac_cool: var(--lcars-blue)
         unavailable: var(--lcars-card-button-unavailable)
         background:
-          default: none
-          active: transparent
-          inactive: transparent
-          unavailable: transparent
+          default: var(--lcars-card-top-color, var(--picard-dark-gray))
+          active: var(--lcars-ui-secondary)
+          inactive: var(--lcars-ui-tertiary)
+          zero: var(--lcars-green)
+          non_zero: var(--lcars-blue)
+          hvac_heat: var(--lcars-orange)
+          hvac_cool: var(--lcars-blue)
+          unavailable: var(--lcars-card-button-unavailable)
       border:
         top:
           left_radius: 0px
@@ -103,7 +109,6 @@ cb-lcars-base:
           factor: 2
           min_radius: 30px
           width: 35px
-        color: var(--lcars-card-top-color, var(--picard-dark-gray))
     icon:
       box_size: 35px
       size: 24px
@@ -146,21 +151,21 @@ cb-lcars-base:
           ]]]
       - border-top: |
           [[[
-            return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color);
+            return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.border.top.color || variables.card.border.color || variables.card.color.default);
           ]]]
       - border-left: |
           [[[
-            return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.border.left.color || variables.card.border.color);
+            return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.border.left.color || variables.card.border.color || variables.card.color.default);
           ]]]
       - border-right: |
           [[[
-            return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.border.right.color || variables.card.border.color);
+            return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.border.right.color || variables.card.border.color || variables.card.color.default);
           ]]]
       - border-bottom: |
           [[[
-            return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.border.bottom.color || variables.card.border.color);
+            return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.border.bottom.color || variables.card.border.color || variables.card.color.default);
           ]]]
-      - background: '[[[ return variables.card.color.background.default ]]]'
+      - background-color: '[[[ return variables.card.color.background.default ]]]'
       - border-top-left-radius: |
           [[[
             return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
@@ -209,7 +214,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
     state:
       - display: flex
       - justify-content: '[[[ return variables.text.state.justify ]]]'
@@ -241,7 +246,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
     name:
       - display: flex
       - justify-content: '[[[ return variables.text.name.justify ]]]'
@@ -273,7 +278,7 @@ cb-lcars-base:
       - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
       - outline: >-
-          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.border.color; ]]]
+          [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
   state:
     - id: state_on
       operator: template
@@ -302,15 +307,15 @@ cb-lcars-base:
                 return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.active;
               ]]]
         state:
-          - color: '[[[ return variables.text.state.color.on ]]]'
+          - color: '[[[ return variables.text.state.color.active ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         label:
-          - color: '[[[ return variables.text.label.color.on ]]]'
+          - color: '[[[ return variables.text.label.color.active ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         name:
-          - color: '[[[ return variables.text.name.color.on ]]]'
+          - color: '[[[ return variables.text.name.color.active ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
         icon:
@@ -345,15 +350,15 @@ cb-lcars-base:
                 return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.inactive;
               ]]]
         state:
-          - color: '[[[ return variables.text.state.color.off ]]]'
+          - color: '[[[ return variables.text.state.color.inactive ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         label:
-          - color: '[[[ return variables.text.label.color.off ]]]'
+          - color: '[[[ return variables.text.label.color.inactive ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         name:
-          - color: '[[[ return variables.text.name.color.off ]]]'
+          - color: '[[[ return variables.text.name.color.inactive ]]]'
           - outline: >-
               [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
         icon:
@@ -361,30 +366,76 @@ cb-lcars-base:
               [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
           - background: >-
               [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
-    - value: heat
-      id: state_heat
+    - id: state_heat
+      value: heat
       styles:
         card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - transition: all 0.4s ease-out
+          - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.hvac_heat;
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.hvac_heat;
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.hvac_heat;
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.hvac_heat;
+              ]]]
         state:
           - color: '[[[ return variables.text.state.color.hvac_heat ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
         label:
           - color: '[[[ return variables.text.label.color.hvac_heat ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
         name:
           - color: '[[[ return variables.text.name.color.hvac_heat ]]]'
-    - value: cool
-      id: state_cool
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+    - id: state_cool
+      value: cool
       styles:
         card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - transition: all 0.4s ease-out
+          - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.hvac_cool;
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.hvac_cool;
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.hvac_cool;
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.hvac_cool;
+              ]]]
         state:
           - color: '[[[ return variables.text.state.color.hvac_cool ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
         label:
           - color: '[[[ return variables.text.label.color.hvac_cool ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
         name:
           - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
-    - operator: template
-      id: state_unavailable
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+    - id: state_unavailable
+      operator: template
       value: |
         [[[
           return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
@@ -424,50 +475,118 @@ cb-lcars-base:
           - color: >-
               [[[ return variables.icon.color.unavailable || variables.icon.color.inactive || variables.icon.color.default ]]]
           - background: >-
-              [[[ return variables.icon.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
-    - operator: template
+              [[[ return variables.icon.color.background.unavailable || variables.card.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+    - id: state_zero
+      operator: template
       value: |
         [[[
-          return entity !== undefined && ['00', '0'].includes(states[entity.entity_id].state);
+          if (entity === undefined) return false;
+          return entity !== undefined && Number(states[entity.entity_id].state) === 0;
         ]]]
-      id: state_zero
       styles:
         card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - background-color: '[[[ return variables.card.color.background.zero ]]]'
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.zero;
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.zero;
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.zero;
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.zero;
+              ]]]
         state:
           - color: '[[[ return variables.text.state.color.zero ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
         label:
           - color: '[[[ return variables.text.label.color.zero ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
         name:
           - color: '[[[ return variables.text.name.color.zero ]]]'
-    - operator: template
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+    - id: state_nonzero
+      operator: template
       value: |
         [[[
-          return entity !== undefined && states[entity.entity_id].state !== '0';
+          if (entity === undefined) return false;
+          return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
         ]]]
-      id: state_nonzero
       styles:
         card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.non_zero;
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.non_zero;
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.non_zero;
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.non_zero;
+              ]]]
         state:
           - color: '[[[ return variables.text.state.color.non_zero ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
         label:
           - color: '[[[ return variables.text.label.color.non_zero ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
         name:
           - color: '[[[ return variables.text.name.color.non_zero ]]]'
-    - operator: default
-      id: state_default
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+    - id: state_default
+      operator: default
       styles:
         card:
-          - background-color: '[[[ return variables.card.color.background.inactive ]]]'
+          - background-color: '[[[ return variables.card.color.background.default ]]]'
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.card.color.default;
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + variables.card.color.default;
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.card.color.default;
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.card.color.default;
+              ]]]
         state:
           - color: '[[[ return variables.text.state.color.default ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
         label:
           - color: '[[[ return variables.text.label.color.default ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
         name:
           - color: '[[[ return variables.text.name.color.default ]]]'
+          - outline: >-
+              [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
         icon:
           - color: >-
               [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
           - background: >-
-              [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+              [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
