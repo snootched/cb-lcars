@@ -1,25 +1,21 @@
 cb-lcars-footer-picard:
   template:
-    - cb-lcars-functions
-    - cb-lcars-card-base
+    - cb-lcars-header-picard-base
   variables:
     card:
-      color:
-        background:
-          default: transparent
       height: "[[[ return this.offsetHeight; ]]]"
       width: "[[[ return this.offsetWidth; ]]]"
       border:
-        top:
-          left_radius: 0px !important
-          right_radius: 0px !important
         bottom:
           left_radius: var(--ha-card-border-radius)
+          right_radius: 0px !important
+        top:
+          left_radius: 0px !important
           right_radius: 0px !important
         inner:
           factor: 1
           width: 35px
-    label: ' '
+    label: " "
     lcars:
       border:
         gap: 4px
@@ -27,14 +23,13 @@ cb-lcars-footer-picard:
         top:
           size: 0
         left:
-          size: 180px
+          size: 180
         bottom:
-          size: 20px
+          size: 20
         right:
           size: 0
     lcars_outer:
       card:
-        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -43,16 +38,27 @@ cb-lcars-footer-picard:
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / " + variables.lcars.border.factor + ") * (" +
                 variables.lcars.border.factor + " - 1)" + ")";
               ]]]
+          top:
+            size: |
+              [[[
+                return "calc((" + variables.__get_num_with_unit(variables.lcars.border.top.size) + " - " +
+                variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
+              ]]]
           bottom:
             size: |
               [[[
                 return "calc((" + variables.__get_num_with_unit(variables.lcars.border.bottom.size) + " - " +
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
+          right:
+            size: |
+              [[[
+                return "calc( ((" + variables.__get_num_with_unit(variables.lcars.border.right.size) + " - " +
+                variables.__get_num_with_unit(variables.lcars.border.gap) + ") / " + variables.lcars.border.factor + ") * (" +
+                variables.lcars.border.factor + " - 1)" + ")";
+              ]]]
     lcars_inner:
-      text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
-        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           left:
             size: |
@@ -75,8 +81,8 @@ cb-lcars-footer-picard:
   styles:
     card:
       - background-color: transparent
-      - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
-      - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
+      - width: "[[[ return variables.__get_num_with_unit(variables.card.width); ]]]"
       - border: 0
       - border-top-left-radius: >-
           [[[ return
@@ -97,7 +103,7 @@ cb-lcars-footer-picard:
     custom_fields:
       lcars_outer:
         - position: absolute
-        - bottom: 0
+        - top: 0
         - left: 0
       lcars_inner:
         - position: absolute
@@ -117,9 +123,10 @@ cb-lcars-footer-picard:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-footer
+        entity: "[[[ return variables.entity; ]]]"
         variables:
-          entity: '[[[ return variables.entity; ]]]'
           card:
+            color: "[[[ return variables.__deepMerge(variables.card.color,variables.lcars_outer.card.color||{}) ]]]"
             width: |
               [[[
                 return variables.__get_num_with_unit(variables.card.width);
@@ -138,29 +145,27 @@ cb-lcars-footer-picard:
                   [[[
                     return variables.__get_num_with_unit(variables.lcars_outer.card.border.bottom.size);
                   ]]]
+                right_radius: 0px
               left:
                 size: |
                   [[[
                     return variables.__get_num_with_unit(variables.lcars_outer.card.border.left.size);
                   ]]]
-                right_radius: 0px
               inner:
-                factor: '[[[ return variables.card.border.inner.factor; ]]]'
+                factor: "[[[ return variables.card.border.inner.factor; ]]]"
                 width: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.inner.width);
                   ]]]
-              color: '[[[ return variables.lcars_outer.card.color ]]]'
     lcars_inner:
       card:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-footer
-        entity: '[[[ return variables.entity; ]]]'
-        label: '[[[ return variables.label; ]]]'
+        entity: "[[[ return variables.entity; ]]]"
         variables:
-          text: '[[[ return variables.text ? variables.text : {} ]]]'
           card:
+            color: "[[[ return variables.__deepMerge(variables.card.color,variables.lcars_inner.card.color||{}) ]]]"
             width: |
               [[[
                 return variables.__get_num_with_unit(variables.card.width);
@@ -170,7 +175,6 @@ cb-lcars-footer-picard:
                 return variables.__get_num_with_unit(variables.card.height);
               ]]]
             border:
-              color: '[[[ return variables.lcars_inner.card.color ]]]'
               left:
                 size: |
                   [[[
@@ -193,26 +197,22 @@ cb-lcars-footer-picard:
                   ]]]
 cb-lcars-footer-picard-right:
   template:
-    - cb-lcars-functions
-    - cb-lcars-card-base
+    - cb-lcars-header-picard-base
   variables:
     card:
-      color:
-        background:
-          default: transparent
       height: "[[[ return this.offsetHeight; ]]]"
       width: "[[[ return this.offsetWidth; ]]]"
       border:
-        top:
-          left_radius: 0px !important
-          right_radius: 0px !important
         bottom:
           left_radius: 0px !important
           right_radius: var(--ha-card-border-radius)
+        top:
+          left_radius: 0px !important
+          right_radius: 0px !important
         inner:
           factor: 1
           width: 35px
-    label: ' '
+    label: " "
     lcars:
       border:
         gap: 4px
@@ -222,19 +222,24 @@ cb-lcars-footer-picard-right:
         left:
           size: 0
         bottom:
-          size: 20px
+          size: 20
         right:
-          size: 180px
+          size: 180
     lcars_outer:
       card:
-        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
-          right:
+          left:
             size: |
               [[[
-                return "calc( ((" + variables.__get_num_with_unit(variables.lcars.border.right.size) + " - " +
+                return "calc( ((" + variables.__get_num_with_unit(variables.lcars.border.left.size) + " - " +
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / " + variables.lcars.border.factor + ") * (" +
                 variables.lcars.border.factor + " - 1)" + ")";
+              ]]]
+          top:
+            size: |
+              [[[
+                return "calc((" + variables.__get_num_with_unit(variables.lcars.border.top.size) + " - " +
+                variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
           bottom:
             size: |
@@ -242,10 +247,15 @@ cb-lcars-footer-picard-right:
                 return "calc((" + variables.__get_num_with_unit(variables.lcars.border.bottom.size) + " - " +
                 variables.__get_num_with_unit(variables.lcars.border.gap) + ") / 2)";
               ]]]
+          right:
+            size: |
+              [[[
+                return "calc( ((" + variables.__get_num_with_unit(variables.lcars.border.right.size) + " - " +
+                variables.__get_num_with_unit(variables.lcars.border.gap) + ") / " + variables.lcars.border.factor + ") * (" +
+                variables.lcars.border.factor + " - 1)" + ")";
+              ]]]
     lcars_inner:
-      text: '[[[ return variables.text ? variables.text : {} ]]]'
       card:
-        color: var(--lcars-card-bottom-color, var(--picard-dark-gray))
         border:
           right:
             size: |
@@ -268,8 +278,8 @@ cb-lcars-footer-picard-right:
   styles:
     card:
       - background-color: transparent
-      - height: '[[[ return variables.__get_num_with_unit(variables.card.height); ]]]'
-      - width: '[[[ return variables.__get_num_with_unit(variables.card.width); ]]]'
+      - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
+      - width: "[[[ return variables.__get_num_with_unit(variables.card.width); ]]]"
       - border: 0
       - border-top-left-radius: >-
           [[[ return
@@ -290,8 +300,8 @@ cb-lcars-footer-picard-right:
     custom_fields:
       lcars_outer:
         - position: absolute
-        - bottom: 0
-        - right: 0
+        - top: 0
+        - left: 0
       lcars_inner:
         - position: absolute
         - bottom: |
@@ -310,9 +320,10 @@ cb-lcars-footer-picard-right:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-footer-right
-        entity: '[[[ return variables.entity; ]]]'
+        entity: "[[[ return variables.entity; ]]]"
         variables:
           card:
+            color: "[[[ return variables.__deepMerge(variables.card.color,variables.lcars_outer.card.color||{}) ]]]"
             width: |
               [[[
                 return variables.__get_num_with_unit(variables.card.width);
@@ -331,29 +342,27 @@ cb-lcars-footer-picard-right:
                   [[[
                     return variables.__get_num_with_unit(variables.lcars_outer.card.border.bottom.size);
                   ]]]
+                left_radius: 0px
               right:
                 size: |
                   [[[
                     return variables.__get_num_with_unit(variables.lcars_outer.card.border.right.size);
                   ]]]
-                left_radius: 0px
               inner:
-                factor: '[[[ return variables.card.border.inner.factor; ]]]'
+                factor: "[[[ return variables.card.border.inner.factor; ]]]"
                 width: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.inner.width);
                   ]]]
-              color: '[[[ return variables.lcars_outer.card.color ]]]'
     lcars_inner:
       card:
         type: custom:cblcars-button-card
         template:
           - cb-lcars-footer-right
-        entity: '[[[ return variables.entity; ]]]'
-        label: '[[[ return variables.label; ]]]'
+        entity: "[[[ return variables.entity; ]]]"
         variables:
-          text: '[[[ return variables.text ? variables.text : {} ]]]'
           card:
+            color: "[[[ return variables.__deepMerge(variables.card.color,variables.lcars_inner.card.color||{}) ]]]"
             width: |
               [[[
                 return variables.__get_num_with_unit(variables.card.width);
@@ -363,7 +372,6 @@ cb-lcars-footer-picard-right:
                 return variables.__get_num_with_unit(variables.card.height);
               ]]]
             border:
-              color: '[[[ return variables.lcars_inner.card.color ]]]'
               right:
                 size: |
                   [[[
