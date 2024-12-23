@@ -114,8 +114,13 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
       name:
         font_size: 22px
         align_items: center
@@ -127,8 +132,13 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
       state:
         font_size: 22px
         align_items: center
@@ -140,8 +150,13 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
     card:
       height: '[[[ return this.offsetHeight; ]]]'
       width: '[[[ return this.offsetWidth; ]]]'
