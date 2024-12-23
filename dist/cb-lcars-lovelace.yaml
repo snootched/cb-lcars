@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.4-alpha.6
+  version: 2024.12.4-alpha.7
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -4851,8 +4851,13 @@ cblcars_card_templates:
             bottom: 0
           color:
             default: black
-            "on": black
-            "off": black
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            unavailable: black
         name:
           font_size: 22px
           align_items: center
@@ -4864,8 +4869,13 @@ cblcars_card_templates:
             bottom: 0
           color:
             default: black
-            "on": black
-            "off": black
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            unavailable: black
         state:
           font_size: 22px
           align_items: center
@@ -4877,8 +4887,13 @@ cblcars_card_templates:
             bottom: 0
           color:
             default: black
-            "on": black
-            "off": black
+            active: black
+            inactive: black
+            zero: black
+            non_zero: black
+            hvac_heat: black
+            hvac_cool: black
+            unavailable: black
       card:
         height: '[[[ return this.offsetHeight; ]]]'
         width: '[[[ return this.offsetWidth; ]]]'
