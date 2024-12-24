@@ -13,13 +13,18 @@ cb-lcars-button-base:
     card:
       min_height: 45px
       color:
+        default: var(--lcars-card-button, var(--picard-medium-light-gray))
         active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
         inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+        zero: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+        non_zero: "var(--lcars-card-button-off, var(--picard-dark-gray))"
         unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
         background:
           default: null
           active: "var(--lcars-card-button, var(--picard-medium-light-gray))"
           inactive: "var(--lcars-card-button-off, var(--picard-dark-gray))"
+          zero: "var(--lcars-card-button, var(--picard-medium-light-gray))"
+          non_zero: "var(--lcars-card-button-off, var(--picard-dark-gray))"
           unavailable: "var(--lcars-card-button-unavailable, var(--picard-darkest-gray))"
     text:
       label:
@@ -34,10 +39,12 @@ cb-lcars-button-base:
         align_items: end
         color:
           default: black
-          'on': black
-          'off': black
+          active: black
+          inactive: black
           zero: black
           non_zero: black
+          hvac_heat: black
+          hvac_cool: black
           unavailable: black
       state:
         padding:
@@ -51,10 +58,12 @@ cb-lcars-button-base:
         align_items: end
         color:
           default: black
-          'on': black
-          'off': black
+          active: black
+          inactive: black
           zero: black
           non_zero: black
+          hvac_heat: black
+          hvac_cool: black
           unavailable: black
       name:
         padding:
@@ -68,10 +77,12 @@ cb-lcars-button-base:
         align_items: end
         color:
           default: black
-          'on': black
-          'off': black
+          active: black
+          inactive: black
           zero: black
           non_zero: black
+          hvac_heat: black
+          hvac_cool: black
           unavailable: black
     icon:
       size: 24px

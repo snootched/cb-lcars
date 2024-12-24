@@ -24,18 +24,18 @@ Functionality and configurations may change over time until stabilized.  Things 
 </p>
 
 
-- [Overview](#overview)
-    - [What is this?](#what-is-this)
-    - [What it isn't...](#what-it-isnt)
-    - [What can be done...](#what-can-be-done)
-- [Make it so!](#make-it-so)
+- [Breaking Changes](#breaking-changes)
+- [Installation - Make it so!](#installation---make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
     - [2. HA-LCARS Theme - Setup and Customizations](#2-ha-lcars-theme---setup-and-customizations)
       - [Font](#font)
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
-      - [3a. Create Input Helpers](#3a-create-input-helpers)
       - [4. Engage!](#4-engage)
+- [Overview](#overview)
+    - [What is this?](#what-is-this)
+    - [What it isn't...](#what-it-isnt)
+    - [What can be done...](#what-can-be-done)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -59,6 +59,128 @@ Functionality and configurations may change over time until stabilized.  Things 
 
 
 <br>
+
+---
+
+# Breaking Changes
+
+If you have used the previous version whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
+
+If you can - it's advisable to start with a fresh dashboard.
+
+<br>
+
+To retrofit:
+
+It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
+
+The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
+
+```yaml
+cblcars_card_templates:      <-- this section should be removed
+  template_name:
+```
+
+Card config structure also changed slightly from original.
+Everything that was in `cblcars_card_config:` section, has been moved up one level.
+
+```yaml
+cblcars_card_config:
+  variables:
+    label: "my label"
+
+would become:
+
+variables:
+  label: "my label"
+```
+If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
+
+---
+
+<br>
+
+# Installation - Make it so!
+
+
+> :dizzy: tl;dr: Express Startup Sequence
+>
+> - _Clear All Moorings and Open Starbase Doors_
+>   - Install 'required' dependencies from HACS
+> - _Thrusters Ahead, Take Us Out_
+>   - Setup HA-LCARS theme (notes below)
+>   - Add font (customized URL)
+>   - Add CB-LCARS custom style to HA-LCARS theme
+> - _Bring Warp Core Online, Engines to Full Power_
+>   - Install CB-LCARS from HACS
+> - _Engage!_
+>
+
+
+---
+
+### 1. Dependencies and Extras
+
+The following should be installed and working in your Home Assistant instance - these are available in HACS
+<br><b>Please follow the instructions in the respective project documentation for installation details. </b>
+
+| Custom Card                                                                 |  Required?  | Function    |
+|-----------------------------------------------------------------------------|-------------|-------------|
+| [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
+| [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
+| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+|  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
+
+
+
+<br>
+
+### 2. HA-LCARS Theme - Setup and Customizations
+
+#### Font
+When adding the font resource, use a slightly updated Antonio font resouce string.<br>
+
+This will include weights 100-700 allowing for more thinner/lighter text as seen in Picard (some displays use really thin font, 100 or 200)
+
+Substitute the following resource string when setting up font in HA-LCARS theme:
+`https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
+
+_(Note: if the font is missing, the card will attempt to load it dynamically from the above URL.)_
+
+
+#### Customized *CB-LCARS* Color Scheme
+
+ *Ideally, add and use this cb-lcars profile into your HA-LCARS theme.  If not, the additional color definitions will be made available to use on runtime by the cards.*
+
+ Copy the custom `LCARS Picard [cb-lcars]` definition from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your HA-LCARS `lcars.yaml` file in Home Assistant (per instructions for [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
+
+Set `LCARS Picard [cb-lcars]` as the active theme.
+
+<details closed><summary>Picard [cb-lcars]</summary>
+Grays, Blues, and Oranges are the core colours.  Greens and Yellows added for additional options.
+
+![Picard theme](images/themes/lcars_picard_ii_colors.png)
+
+These are the colors used for the ha-lcars defined variables.
+
+![Picard ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
+</details>
+
+<br>
+
+### 3. Install CB-LCARS from HACS
+
+1. Add CB-LCARS git repository as a custom repo in HACS.
+2. Install CB-LCARS from HACS like any other project.
+
+
+#### 4. Engage!
+
+Add CB-LCARS cards to your dashboard just like any other card.
+
+<br>
+
 
 #  Overview
 
@@ -114,97 +236,6 @@ In no particular ordeer:
 
 ---
 
-
-# Make it so!
-
----
-
-> :dizzy: tl;dr: Express Startup Sequence
->
-> - Clear All Moorings and Open Starbase Doors
->   - Install 'required' dependencies from HACS
-> - Thrusters Ahead, Take Us Out
->   - Setup HA-LCARS theme (notes below)
->   - Add font (customized URL)
->   - Add CB-LCARS custom style to HA-LCARS theme
-> - Bring Warp Core Online, Engines to Full Power
->   - Install CB-LCARS from HACS
->   - Create CB-LCARS input helper(s)
-> - Engage!
->
-
-
----
-
-### 1. Dependencies and Extras
-
-The following should be installed and working in your Home Assistant instance - these are available in HACS
-<br><b>Please follow the instructions in the respective project documentation for installation details. </b>
-
-| Custom Card                                                                 |  Required?  | Function    |
-|-----------------------------------------------------------------------------|-------------|-------------|
-| [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
-| [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
-| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
-|  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
-
-
-
-<br>
-
-### 2. HA-LCARS Theme - Setup and Customizations
-
-#### Font
-When setting up the font resource, we use a slightly updated Antonio font resouce string.<br>
-This includes weights 100-700 allowing for more fine-grained control of the text as seen in Picard (some displays use really thin font, 100 or 200)
-
-Simply substitute the following resource string when setting up ha-lcars:
-`https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
-
-#### Customized *CB-LCARS* Color Scheme
-
- *Ideally, add this cb-lcars version theme into your HA-LCARS.  If not, the color definitions will be made available to use anyway.*
-
- Copy the custom `LCARS Picard [cb-lcars]` definition from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your HA-LCARS `lcars.yaml` file in Home Assistant (per instructions for [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
-
-Set `LCARS Picard [cb-lcars]` as the active theme.
-
-<details closed><summary>Picard [cb-lcars]</summary>
-Grays, Blues, and Oranges are the core colours.  Greens and Yellows added for additional options.
-
-![Picard theme](images/themes/lcars_picard_ii_colors.png)
-
-These are the colors used for the ha-lcars defined variables.
-
-![Picard ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
-</details>
-
-<br>
-
-### 3. Install CB-LCARS from HACS
-
-1. Add CB-LCARS git repository as a custom repo in HACS.
-2. Install CB-LCARS from HACS like any other project.
-
-#### 3a. Create Input Helpers
-
-Create the following input helpers in your Home Asstant.
-<br>Names are configurable, but Entity ID is required to match.
-
-Click on the Entity ID in the table to launch the add helper dialog in your Home Assistant.
-
-| Name              | Entity ID                               | Type                    | Values |
-|-------------------|-----------------------------------------|-------------------------|-------------------------------------------------|
-| ALERT CONDITION   | [`input_select.lcars_ui_alert_condition`](https://my.home-assistant.io/redirect/config_flow_start/?domain=input_select)| Dropdown (input select) | GREEN<br>RED<br>YELLOW<br>BLUE<br>BLACK<br>GRAY |
-
-<br>
-
-#### 4. Engage!
-
-Add CB-LCARS cards to your dashboard just like any other card.
-
-<br>
 
 ---
 

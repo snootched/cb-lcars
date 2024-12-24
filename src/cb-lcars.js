@@ -4,7 +4,7 @@ import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont } from './utils/cb-lcars-theme.js';
-
+import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
 
@@ -138,6 +138,7 @@ async function loadStubConfig(filePath) {
 }
 
 
+
 class CBLCARSBaseCard extends ButtonCard {
 
     _isResizeObserverEnabled = false;
@@ -146,9 +147,14 @@ class CBLCARSBaseCard extends ButtonCard {
     _resizeObserverTarget = 'this';
     _lastWidth = 0;
     _lastHeight = 0;
+    _resizeObserverTolerance = 10;
+    _isUsingLovelaceTemplate = false;
+    _overrideTemplates = [];
+
 
     constructor () {
         super();
+        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || 10;
         this._resizeObserver = new ResizeObserver(() => {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
@@ -162,10 +168,15 @@ class CBLCARSBaseCard extends ButtonCard {
             throw new Error("The 'cblcars_card_config' section is required in the configuration.");
         }
 
+
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+
+        // Set the _logLevel property from the config
+        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
 
         // Create a new object to avoid modifying the original config
         this._config = {
@@ -173,13 +184,27 @@ class CBLCARSBaseCard extends ButtonCard {
             template: mergedTemplates,
         };
 
-        // Set the _logLevel property from the config
-        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
 
-        // Set the _resizeObserverTarget property from the config
+        // Check if the card is using a template from the dashboard's yaml.
+        // this will override the card's configuration
+        // this could be on purpose for testing/customization - but more likely holdovers from the original version that used that method
+        const { isUsingLovelaceTemplate, overriddenTemplates } = checkLovelaceTemplates(this._config);
+        this._isUsingLovelaceTemplate = isUsingLovelaceTemplate;
+        this._overrideTemplates = overriddenTemplates;
+
+        // Log a warning if the card is using a template from the dashboard's yaml
+        // add the card to a list of tainted cards
+        if(isUsingLovelaceTemplate) {
+            cblcarsLog('warn',`Card configuration templates are being overridden with local dashboard YAML configuration.  Templates: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
+            window.cblcars.taintedCards = window.cblcars.taintedCards || [];
+            window.cblcars.taintedCards.push({card: this, templates: overriddenTemplates});
+        }
+
+
+        // Set up the resizeObserver properties
         this._resizeObserverTarget = config.resize_observer_target || 'this';
-        // Set the _enableResizeObserver property from the config
         this._isResizeObserverEnabled = config.enable_resize_observer || false;
+        this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
 
         // Enable the resize observer if the configuration option is enabled
         if (this._isResizeObserverEnabled) {
@@ -252,15 +277,14 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.minHeight = '60px';
         } else {
             this.style.height = '100%';
+
+            // Enable the resize observer when the card is connected to the DOM
+            // but only if not in preview mode
+            if (this._isResizeObserverEnabled) {
+                this.enableResizeObserver();
+                window.addEventListener('resize', this._debouncedResizeHandler);
+            }
         }
-
-        // Enable the resize observer when the card is connected to the DOM
-        if (this._isResizeObserverEnabled) {
-            this.enableResizeObserver();
-            window.addEventListener('resize', this._debouncedResizeHandler);
-        }
-
-
     }
 
     disconnectedCallback() {
@@ -279,7 +303,7 @@ class CBLCARSBaseCard extends ButtonCard {
         const parentHeight = this.parentElement.offsetHeight;
         cblcarsLog('debug',`Going with dimensions: ${parentWidth} x ${parentHeight}`, this, this._logLevel);
 
-        const significantChange = 10;
+        const significantChange = this._resizeObserverTolerance;
         // Only update if there is a significant change
         if (parentWidth > 0 && parentHeight > 0 && (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange)) {
             //if (Math.abs(parentWidth - this._lastWidth) > significantChange || Math.abs(parentHeight - this._lastHeight) > significantChange) {

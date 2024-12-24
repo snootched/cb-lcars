@@ -5,8 +5,16 @@ cb-lcars-dpad:
     __defs_dpad:
       color:
         background:
-          active: var(--lcars-ui-tertiary)
-          inactive: var(--lcars-ui-secondary)
+          active: |
+            [[[
+              const lcarsColor = getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-tertiary').trim();
+              return lcarsColor ? lcarsColor : 'var(--picard-medium-dark-orange)';
+            ]]]
+          inactive: |
+            [[[
+              const lcarsColor = getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-secondary').trim();
+              return lcarsColor ? lcarsColor : 'var(--picard-medium-light-gray)';
+            ]]]
     card:
       size: |
         [[[

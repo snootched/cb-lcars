@@ -10,12 +10,14 @@ cb-lcars-button-picard:
         font_size: 22px
         align_items: center
         color:
-          default: '[[[ return variables.lcars_color ]]]'
-          'on': '[[[ return variables.card.color.active ]]]'
-          'off': '[[[ return variables.card.color.inactive ]]]'
+          default: '[[[ return variables.card.color.default ]]]'
+          active: '[[[ return variables.card.color.active ]]]'
+          inactive: '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.zero ]]]'
+          non_zero: '[[[ return variables.card.color.non_zero ]]]'
+          hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+          hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
           unavailable: '[[[ return variables.card.color.unavailable ]]]'
-          zero: '[[[ return variables.card.color.active ]]]'
-          non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
           top: 0px
           left: 10px
@@ -26,12 +28,14 @@ cb-lcars-button-picard:
         font_size: 22px
         align_items: center
         color:
-          default: '[[[ return variables.lcars_color ]]]'
-          'on': '[[[ return variables.card.color.active ]]]'
-          'off': '[[[ return variables.card.color.inactive ]]]'
+          default: '[[[ return variables.card.color.default ]]]'
+          active: '[[[ return variables.card.color.active ]]]'
+          inactive: '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.zero ]]]'
+          non_zero: '[[[ return variables.card.color.non_zero ]]]'
+          hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+          hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
           unavailable: '[[[ return variables.card.color.unavailable ]]]'
-          zero: '[[[ return variables.card.color.active ]]]'
-          non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
           top: 0px
           left: 10px
@@ -42,12 +46,14 @@ cb-lcars-button-picard:
         font_size: 22px
         align_items: center
         color:
-          default: '[[[ return variables.lcars_color ]]]'
-          'on': '[[[ return variables.card.color.active ]]]'
-          'off': '[[[ return variables.card.color.inactive ]]]'
+          default: '[[[ return variables.card.color.default ]]]'
+          active: '[[[ return variables.card.color.active ]]]'
+          inactive: '[[[ return variables.card.color.inactive ]]]'
+          zero: '[[[ return variables.card.color.zero ]]]'
+          non_zero: '[[[ return variables.card.color.non_zero ]]]'
+          hvac_heat: '[[[ return variables.card.color.hvac_heat ]]]'
+          hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
           unavailable: '[[[ return variables.card.color.unavailable ]]]'
-          zero: '[[[ return variables.card.color.active ]]]'
-          non_zero: '[[[ return variables.card.color.inactive ]]]'
         padding:
           top: 0px
           left: 10px
@@ -73,8 +79,14 @@ cb-lcars-button-picard:
         background:
           default: transparent
           active: transparent
+          zero: transparent
+          non_zero: transparent
+          hvac_heat: transparent
+          hvac_cool: transparent
           inactive: transparent
           unavailable: transparent
+
+
 cb-lcars-button-picard-dense:
   template: cb-lcars-button-picard
   variables:

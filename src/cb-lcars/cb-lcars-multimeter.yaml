@@ -3,7 +3,7 @@ cb-lcars-multimeter:
   entity: "[[[ return variables.entity ]]]"
   template:
     - cb-lcars-functions
-    - cb-lcars-header-base
+    - cb-lcars-base
     - cb-lcars-actions-disable
   triggers_update: "[[[ return variables.entity ]]]"
   show_icon: false
@@ -21,7 +21,7 @@ cb-lcars-multimeter:
     _max: 100
     _increment: 10
     _show_unit_of_measurement: false
-    _unit_of_measurement: "%"
+    _unit_of_measurement: null
     entity: |
       [[[
         return variables.__get_random_entity('light');
@@ -30,7 +30,6 @@ cb-lcars-multimeter:
       [[[
         const entityDomain = entity.entity_id.split('.')[0];
         let minValue = variables._min || 0;
-
         switch (entityDomain) {
           case 'light':
             switch (variables._slider_mode) {
@@ -64,7 +63,6 @@ cb-lcars-multimeter:
       [[[
         const entityDomain = entity.entity_id.split('.')[0];
         let maxValue = variables._max || 100;
-
         switch (entityDomain) {
           case 'light':
             switch (variables._slider_mode) {
@@ -96,7 +94,7 @@ cb-lcars-multimeter:
       ]]]
     entity_unit_of_measurement: |
       [[[
-        return entity.attributes.unit_of_measurement || variables._unit_of_measurement
+        return variables._unit_of_measurement || entity.attributes.unit_of_measurement || '%';
       ]]]
     entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
     entity_match_slider: false
@@ -109,6 +107,7 @@ cb-lcars-multimeter:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -116,12 +115,18 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
       name:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -129,12 +134,18 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
       state:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -142,10 +153,16 @@ cb-lcars-multimeter:
           bottom: 0
         color:
           default: black
-          "on": black
-          "off": black
+          active: black
+          inactive: black
+          zero: black
+          non_zero: black
+          hvac_heat: black
+          hvac_cool: black
+          unavailable: black
     card:
       height: '[[[ return this.offsetHeight; ]]]'
+      min_height: '[[[ return this.offsetHeight; ]]]'
       width: '[[[ return this.offsetWidth; ]]]'
       border:
         top:
@@ -209,14 +226,12 @@ cb-lcars-multimeter:
       min: "[[[ return variables.entity_min ]]]"
       max: "[[[ return variables.entity_max ]]]"
     gauge:
-      bg_fill_value: 0
       min: "[[[ return variables.entity_min ]]]"
       max: "[[[ return variables.entity_max ]]]"
       increment: |
         [[[
           const entityDomain = entity.entity_id.split('.')[0];
           let increment = variables._increment || 10;
-
           switch (entityDomain) {
             case 'light':
               switch (variables._slider_mode) {
@@ -227,8 +242,6 @@ cb-lcars-multimeter:
                   increment = variables._increment || 10;
               }
               break;
-            default:
-              increment = 10;
           }
           return parseInt(increment);
         ]]]
@@ -270,15 +283,19 @@ cb-lcars-multimeter:
         _gradient:
           gap: 5px
   state:
-    - value: "on"
-      id: state_on
+    - id: state_on
+      operator: template
+      value: |
+        [[[
+          return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+        ]]]
       styles:
         custom_fields:
           gauge:
             - transition: all 0.7s ease-in
             - border-top: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
             - border-bottom: |
                 [[[
@@ -310,8 +327,12 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
-    - value: "off"
-      id: state_off
+    - id: state_off
+      operator: template
+      value: |
+        [[[
+          return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
+        ]]]
       styles:
         custom_fields:
           gauge:
@@ -350,8 +371,8 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                 ]]]
-    - operator: template
-      id: state_unavailable
+    - id: state_unavailable
+      operator: template
       value: |
         [[[
           return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
@@ -359,6 +380,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
+            - transition: all 0.7s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
@@ -392,11 +414,227 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
                 ]]]
+    - id: state_heat
+      value: heat
+      styles:
+        custom_fields:
+          gauge:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+          slider_track:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                ]]]
+    - id: state_cool
+      value: cool
+      styles:
+        custom_fields:
+          gauge:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+          slider_track:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                ]]]
+    - id: state_zero
+      operator: template
+      value: |
+        [[[
+          if (entity === undefined) return false;
+          return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+        ]]]
+      styles:
+        custom_fields:
+          gauge:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+          slider_track:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                ]]]
+    - id: state_nonzero
+      operator: template
+      value: |
+        [[[
+          if (entity === undefined) return false;
+          return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+        ]]]
+      styles:
+        custom_fields:
+          gauge:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+          slider_track:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                ]]]
+    - id: state_default
+      operator: default
+      value: |
+        [[[
+          return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+        ]]]
+      styles:
+        custom_fields:
+          gauge:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+          slider_track:
+            - transition: all 0.7s ease-in
+            - border-top: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default|| variables.card.border.color);
+                ]]]
+            - border-bottom: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+            - border-left: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
+            - border-right: |
+                [[[
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                ]]]
   styles:
     card:
       - border-radius: 0 !important
       - background: none
       - border: none
+      - height: 100%
+      - max-width: none
     label:
       - z-index: 1
       - height: 100%
@@ -404,7 +642,6 @@ cb-lcars-multimeter:
           [[[
             return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
           ]]]
-
     custom_fields:
       gauge:
         - position: absolute
@@ -633,7 +870,6 @@ cb-lcars-multimeter:
       [[[
         const entityState = entity.state;
         const entityType = entity.entity_id.split('.')[0]; // Extract entity type
-
         let progress = 0;
         switch(entityType) {
           case 'light':
@@ -646,19 +882,15 @@ cb-lcars-multimeter:
             progress = (parseFloat(entityState));
             break;
         }
-
         const progressPercentage = ((progress / variables.slider.max) * 100) + '%';
-
         const isVertical = variables._vertical;
         const width = isVertical ? variables.slider.height : progressPercentage;
         const height = isVertical ? progressPercentage : variables.slider.height;
-
         //match myslider-v2 styling options
         const borderRadius = variables.slider.border_radius;
         const borderWidth = variables.slider.border_width;
         const borderColor = variables.slider.border_color;
         const backgroundColor = variables.slider.color;
-
         return `
           <div class="progress-bar" style="
             position: absolute;
@@ -671,46 +903,48 @@ cb-lcars-multimeter:
           "></div>
         `;
       ]]]
-
     gauge: |
       [[[
-
         let minVal = variables.gauge.min;
         let maxVal = variables.gauge.max;
         let increment = variables.gauge.increment;
-
+        //console.warn(minVal, maxVal, increment);
         const orientation = variables._vertical ? 'vertical' : 'horizontal';
-
-        const bg_fill_value = variables.gauge.bg_fill_value || 0;
-        const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
+        //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
         const showSubticks = variables.gauge.sub_meter.show_sub_meter;
-
         const entityState = entity.state;
-
         const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
         const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
         const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
         const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
         const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
-
         const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
         const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
         const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
-
         const numSubticks = variables.gauge.sub_meter.tick_count;
         const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
         const subTickIncrement = 100 / numSegments / (numSubticks + 1);
         const decimal_places = variables.gauge.label.decimal_places || 0;
-
+        /*
+        console.warn('subTickIncrement', subTickIncrement);
+        console.warn('numSegments', numSegments);
+        console.warn('numSubticks', numSubticks);
+        console.warn('increment', increment);
+        console.warn('maxVal', maxVal);
+        console.warn('minVal', minVal);
+        console.warn('decimal_places', decimal_places);
+        console.warn('orientation', orientation);
+        console.warn('width', width);
+        console.warn('height', height);
+        console.warn('meter_subtick_size', meter_subtick_size);
+        */
         const meterTicks = [];
         for (let i = minVal; i <= maxVal; i += increment) {
           const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
           const position = percent + '%';
           const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-
           meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : position}" y1="${orientation === 'vertical' ? position : '0'}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
           meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
-
           if (showSubticks && i < maxVal) {
             for (let j = 1; j <= numSubticks; j++) {
               const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
@@ -719,16 +953,26 @@ cb-lcars-multimeter:
             }
           }
         }
-
+        const ranges = variables.gauge.ranges || [];
+        let rangeBackgrounds = '';
+        ranges.forEach(range => {
+          const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+          const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+          const rangeWidth = toPercent - fromPercent;
+          rangeBackgrounds += `
+            <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                  width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                  fill="${range.color}" />
+          `;
+        });
         return `
           <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
             <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-            <rect x="0" y="0" width="${orientation === 'vertical' ? '100%' : bg_fill_value + '%'}" height="${orientation === 'vertical' ? bg_fill_value + '%' : '100%'}" fill="${bg_fill_color}"/>
+            ${rangeBackgrounds}
             ${meterTicks.join('')}
           </svg>
         `;
       ]]]
-
     slider_track:
       card:
         type: custom:cblcars-button-card

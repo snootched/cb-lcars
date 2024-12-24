@@ -1,11 +1,11 @@
-cb-lcars-base-card:
+cb-lcars-base-card2:
   render_form:
     - type: ControlRow
       controls:
         - type: Message
           alertType: info
           message: "This is a base card for advanced use.  Visual Editor is not available for this card."
-cb-lcars-base-controls:
+cb-lcars-base-card:
   render_form:
     - type: ControlRow
       controls:
@@ -294,7 +294,7 @@ cb-lcars-base-controls:
                     return options;
                   })()
         - &colorControl
-          label: "Default Color"
+          label: "Custom Color"
           configValue: "variables.background.color.default"
           type: Selector
           selector:
@@ -570,7 +570,7 @@ cb-lcars-base-controls:
           noCollapse: false
           rows:
             - type: Section
-              label: "Default (no state)"
+              label: "Default (no entity/state)"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -596,7 +596,8 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: Section
-                  label: "On/Off"
+                  label: "Active/Inactive"
+                  secondary: "[state: on/off, open/closed, locked/unlocked]"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -606,41 +607,34 @@ cb-lcars-base-controls:
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: ON</label>
+                              <label>State: Active</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.text.label.color.on"
-                        - label: "Text Color (state: on)"
-                          configValue: "variables.text.label.color.on"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
+                          configValue: "variables.text.label.color.active"
+                        - <<: *colorControl
+                          configValue: "variables.text.label.color.active"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.text.label.color.on"
+                          configValue: "variables.text.label.color.active"
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: OFF</label>
+                              <label>State: Inactive</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.text.label.color.off"
-                        - label: "Text Color (state: off)"
-                          configValue: "variables.text.label.color.off"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
+                          configValue: "variables.text.label.color.inactive"
+                        - <<: *colorControl
+                          configValue: "variables.text.label.color.inactive"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.text.label.color.off"
+                          configValue: "variables.text.label.color.inactive"
                 - type: Section
                   label: "Zero/Non-Zero"
+                  secondary: "[state: numeric 0 or not 0]"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -656,12 +650,8 @@ cb-lcars-base-controls:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.text.label.color.zero"
-                        - label: "Text Color (number: zero)"
+                        - <<: *colorControl
                           configValue: "variables.text.label.color.zero"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.text.label.color.zero"
@@ -674,15 +664,125 @@ cb-lcars-base-controls:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.text.label.color.non_zero"
-                        - label: "Text Color (number: non-zero)"
+                        - <<: *colorControl
                           configValue: "variables.text.label.color.non_zero"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.text.label.color.non_zero"
+                - type: Section
+                  label: "HVAC Heat/Cool"
+                  secondary: "[state: heat/cool ]"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>State: Heat</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.text.label.color.hvac_heat"
+                        - <<: *colorControl
+                          configValue: "variables.text.label.color.hvac_heat"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.text.label.color.hvac_heat"
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>State: Cool</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.text.label.color.hvac_cool"
+                        - <<: *colorControl
+                          configValue: "variables.text.label.color.hvac_cool"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.text.label.color.hvac_cool"
+                - type: Section
+                  label: "Unavailable/Unknown"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>State: Unavailable/Unknown</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.text.label.color.unavailable"
+                        - <<: *colorControl
+                          configValue: "variables.text.label.color.unavailable"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.text.label.color.unavailable"
+    - &advancedSettingsToggle
+      type: ControlRow
+      controls:
+        - label: "Show Advanced Settings"
+          configValue: "show_advanced"
+          disabled: false
+          type: Selector
+          selector:
+            boolean:
+    - &advancedSettingsSection
+      type: Section
+      label: "Advanced Settings"
+      outlined: false
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:wrench-cog-outline"
+      noCollapse: false
+      visibilityCondition: "this._config.show_advanced === true"
+      rows:
+        - type: Section
+          label: "Card Size"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:resize"
+          noCollapse: true
+          expanded: true
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Height"
+                  configValue: "variables.card.height"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Width"
+                  configValue: "variables.card.width"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - type: Message
+                  alertType: info
+                  message: "Enable/Disable helper that watches for resize events and adjusts card size accordingly.  Only needed for some cards.  Disable if there are undesired effects like infinite resizing loops."
+            - type: ControlRow
+              controls:
+                - label: "Auto Resize Helper"
+                  helper: "Enable Resize Observer for dynamic card resizing"
+                  configValue: "enable_resize_observer"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    boolean:
+
     - &cardSection
       type: Section
       label: "Card"
@@ -692,6 +792,82 @@ cb-lcars-base-controls:
       icon: "mdi:card-multiple-outline"
       noCollapse: false
       rows:
+        - &advCardSizeSection
+          type: Section
+          label: "Card Size"
+          secondary: "[Advanced]"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:resize"
+          noCollapse: false
+          expanded: false
+          visibilityCondition: "this._config.show_advanced === true"
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Height"
+                  configValue: "variables.card.height"
+                  helper: "Sets static height of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Width"
+                  configValue: "variables.card.width"
+                  helper: "Sets static width of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Minimum Height"
+                  configValue: "variables.card.min_height"
+                  helper: "Sets minimum height of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - type: Message
+                  alertType: info
+                  message: "Enable/Disable helper that watches for resize events and adjusts card size accordingly.  Only needed for some cards.  Disable if there are undesired effects like infinite resizing loops."
+            - type: ControlRow
+              controls:
+                - label: "Auto Resize Helper"
+                  helper: "Enable Resize Observer for dynamic card resizing"
+                  configValue: "enable_resize_observer"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    boolean:
+        - &cardTemplateSection
+          type: Section
+          label: "Effects"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:card-multiple-outline"
+          noCollapse: false
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Effect Templates"
+                  configValue: "template"
+                  disabled: false
+                  required: false
+                  type: Selector
+                  selector:
+                    select:
+                      mode: list
+                      multiple: true
+                      options:
+                        - value: "cb-lcars-state-on-blink"
+                          label: "Blink [Active]"
+                        - value: "cb-lcars-state-off-blink"
+                          label: "Blink [Inactive]"
+                        - value: "cb-lcars-state-unavailable-blink"
+                          label: "Blink [Unavailable]"
+                        - value: "cb-lcars-animate-press"
+                          label: "Rippled Press"
         - &cardColorSection
           type: Section
           label: "Colors"
@@ -710,7 +886,7 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: Section
-                  label: "Default Color (no state)"
+                  label: "Default Color (no entity/state)"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -721,12 +897,12 @@ cb-lcars-base-controls:
                     - cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.card.border.color"
+                          configValue: "variables.card.color.default"
                         - <<: *colorControl
-                          configValue: "variables.card.border.color"
+                          configValue: "variables.card.color.default"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.card.border.color"
+                          configValue: "variables.card.color.default"
                 - type: Section
                   label: "State Colors"
                   outlined: true
@@ -736,7 +912,8 @@ cb-lcars-base-controls:
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "On/Off"
+                      label: "Active/Inactive"
+                      secondary: "[state: on/off, open/closed, locked/unlocked]"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
@@ -746,39 +923,105 @@ cb-lcars-base-controls:
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: ON</label>
+                                  <label>State: Active</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.active"
-                            - label: "Text Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.active"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.active"
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: OFF</label>
+                                  <label>State: Inactive</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.inactive"
-                            - label: "Text Color (state: off)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.inactive"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.inactive"
+                    - type: Section
+                      label: "Zero/Non-Zero"
+                      secondary: "[state: numeric 0 or not 0]"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State Number Value: Zero</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.zero"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.zero"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.zero"
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State Number Value: Non-Zero</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.non_zero"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.non_zero"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.non_zero"
+                    - type: Section
+                      label: "HVAC Heat/Cool"
+                      secondary: "[state: heat/cool ]"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Heat</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.hvac_heat"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.hvac_heat"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.hvac_heat"
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Cool</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.hvac_cool"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.hvac_cool"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.hvac_cool"
                     - type: Section
                       label: "Unavailable/Unknown"
                       outlined: true
@@ -796,16 +1039,11 @@ cb-lcars-base-controls:
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.unavailable"
-                            - label: "Text Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.unavailable"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.unavailable"
-
             - type: Section
               label: "Background"
               outlined: true
@@ -815,7 +1053,7 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: Section
-                  label: "Default Color (no state)"
+                  label: "Default Color (no entity/state)"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -841,7 +1079,8 @@ cb-lcars-base-controls:
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "On/Off"
+                      label: "Active/Inactive"
+                      secondary: "[state: on/off, open/closed, locked/unlocked]"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
@@ -851,39 +1090,105 @@ cb-lcars-base-controls:
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: ON</label>
+                                  <label>State: Active</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.background.active"
-                            - label: "Text Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.background.active"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.active"
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: OFF</label>
+                                  <label>State: Inactive</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.background.inactive"
-                            - label: "Text Color (state: off)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.background.inactive"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.inactive"
+                    - type: Section
+                      label: "Zero/Non-Zero"
+                      secondary: "[state: numeric 0 or not 0]"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State Number Value: Zero</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.background.zero"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.background.zero"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.background.zero"
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State Number Value: Non-Zero</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.background.non_zero"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.background.non_zero"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.background.non_zero"
+                    - type: Section
+                      label: "HVAC Heat/Cool"
+                      secondary: "[state: heat/cool ]"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Heat</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.background.hvac_heat"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.background.hvac_heat"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.background.hvac_heat"
+                        - controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>State: Cool</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.background.hvac_cool"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.background.hvac_cool"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.background.hvac_cool"
                     - type: Section
                       label: "Unavailable/Unknown"
                       outlined: true
@@ -901,16 +1206,11 @@ cb-lcars-base-controls:
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.card.color.background.unavailable"
-                            - label: "Text Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.card.color.background.unavailable"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.unavailable"
-
         - &cardBorderSection
           type: Section
           label: Borders
@@ -1182,7 +1482,8 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: Section
-                  label: "On/Off"
+                  label: "Active/Inactive"
+                  secondary: "[state: on/off, open/closed, locked/unlocked]"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -1201,36 +1502,28 @@ cb-lcars-base-controls:
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: ON</label>
+                                  <label>State: Active</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.icon.color.active"
-                            - label: "Icon Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.icon.color.active"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.icon.color.active"
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: OFF</label>
+                                  <label>State: Inactive</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.icon.color.inactive"
-                            - label: "Icon Color (state: off)"
+                            - <<: *colorControl
                               configValue: "variables.icon.color.inactive"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.inactive"
@@ -1246,201 +1539,31 @@ cb-lcars-base-controls:
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: ON</label>
+                                  <label>State: Active</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.icon.color.background.active"
-                            - label: "Icon BG Color (state: on)"
+                            - <<: *colorControl
                               configValue: "variables.icon.color.background.active"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.icon.color.background.active"
                         - controls:
                             - type: RawHTML
                               html: |
-                                  <label>State: OFF</label>
+                                  <label>State: Inactive</label>
                         - type: ControlRow
                           cssClass: "form-row two-controls"
                           controls:
                             - <<: *colorLCARSListControl
                               configValue: "variables.icon.color.background.inactive"
-                            - label: "Icon BG Color (state: off)"
+                            - <<: *colorControl
                               configValue: "variables.icon.color.background.inactive"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
                         - controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.inactive"
-cb-lcars-label-card2:
-  render_form:
-    - type: Section
-      label: "LCARS Preset"
-      outlined: true
-      leftChevron: false
-      expanded: true
-      headerLevel: 4
-      icon: "mdi:palette-advanced"
-      rows:
-        - controls:
-            - label: "LCARS Label Preset"
-              configValue: cblcars_card_type
-              type: Selector
-              selector:
-                select:
-                  mode: dropdown
-                  options:
-                    - value: 'cb-lcars-label'
-                      label: 'Standard Label'
-                    - value: 'cb-lcars-label-picard'
-                      label: 'Picard Label'
-                    - value: 'cb-lcars-cascade'
-                      label: 'Data Cascade'
-            - type: Message
-              alertType: info
-              message: "Optional: Select an entity to enable state-specific colors."
-            - label: "Entity [optional]"
-              configValue: "variables.entity"
-              type: Selector
-              selector:
-                entity:
-    - <<: *textLabelSection
-      expanded: true
-      visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
-    - type: Section
-      label: "Cascade"
-      outlined: true
-      leftChevron: false
-      headerLevel: 4
-      icon: "mdi:matrix"
-      noCollapse: false
-      visibilityCondition: "this._config.cblcars_card_type === 'cb-lcars-cascade'"
-      rows:
-        - &cascadeTextSection
-          type: Section
-          label: "Text"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:format-textbox"
-          noCollapse: false
-          rows:
-            - type: Section
-              label: "Label"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:format-textbox"
-              noCollapse: true
-              expanded: true
-              rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - &fontSizeControl
-                      label: "Font Size"
-                      configValue: "variables.text.label.font_size"
-                      type: Selector
-                      selector:
-                        text:
-                          type: number
-                    - &fontWeightControl
-                      label: "Font Weight"
-                      configValue: "variables.text.label.font_weight"
-                      type: Selector
-                      selector:
-                        select:
-                          mode: dropdown
-                          options:
-                            - value: 100
-                              label: Thin (100)
-                            - value: 200
-                              label: Extra Light (200)
-                            - value: 300
-                              label: Light (300)
-                            - value: 400
-                              label: Normal (400)
-                            - value: 500
-                              label: Medium (500)
-                            - value: 600
-                              label: Semi Bold (600)
-                            - value: 700
-                              label: Bold (700)
-                            - value: 800
-                              label: Extra Bold (800)
-                            - value: 900
-                              label: Black (900)
-
-            - type: Section
-              label: "Colors"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:palette-advanced"
-              noCollapse: false
-              rows:
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Base Color</label>
-                - cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.cascade.colors.text"
-                    - <<: *colorControl
-                      configValue: "variables.cascade.colors.text"
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.cascade.colors.text"
-
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Animation Start Color</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.cascade.colors.animation_start"
-                    - label: "Text Color (state: on)"
-                      configValue: "variables.cascade.colors.animation_start"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.cascade.colors.animation_start"
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Animation End Color</label>
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.cascade.colors.animation_end"
-                    - label: "Text Color (state: off)"
-                      configValue: "variables.cascade.colors.animation_end"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.cascade.colors.animation_end"
-
-
-
-    - <<: *cardSection
-    - <<: *actionsSection
 cb-lcars-elbow-card:
   render_form:
     - type: Section
@@ -1491,49 +1614,1544 @@ cb-lcars-elbow-card:
               type: Selector
               selector:
                 entity:
+    - <<: *advancedSettingsToggle
     - <<: *cardSection
     - <<: *textLabelSection
     - <<: *actionsSection
-
 cb-lcars-double-elbow-card:
-  render_form:
-    - type: Section
-      label: "LCARS Preset"
-      outlined: true
-      leftChevron: false
-      expanded: true
-      headerLevel: 4
-      icon: "mdi:palette-advanced"
-      rows:
-        - controls:
-            - label: "LCARS Elbow Type"
-              configValue: cblcars_card_type
-              helper: "Presets LCARS Elbow templates for common header and footer styles"
-              type: Selector
-              selector:
-                select:
-                  mode: dropdown
-                  options:
-                    - value: 'cb-lcars-header-picard'
-                      label: 'Header'
-                    - value: 'cb-lcars-header-picard-right'
-                      label: 'Header [Right]'
-                    - value: 'cb-lcars-footer-picard'
-                      label: 'Footer'
-                    - value: 'cb-lcars-footer-picard-right'
-                      label: 'Footer [Right]'
-            - type: Message
-              alertType: info
-              message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
-            - label: "Entity [optional]"
-              configValue: "variables.entity"
-              type: Selector
-              selector:
-                entity:
-    - <<: *textLabelSection
-    - <<: *cardSection
-    - <<: *actionsSection
-
+  tabs:
+    - label: LCARS Mode
+      content:
+        - type: Section
+          label: "LCARS Preset"
+          outlined: true
+          leftChevron: false
+          expanded: true
+          headerLevel: 4
+          icon: "mdi:palette-advanced"
+          rows:
+            - controls:
+                - label: "LCARS Elbow Type"
+                  configValue: cblcars_card_type
+                  helper: "Presets LCARS Elbow templates for common header and footer styles"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      options:
+                        - value: 'cb-lcars-header-picard'
+                          label: 'Header'
+                        - value: 'cb-lcars-header-picard-right'
+                          label: 'Header [Right]'
+                        - value: 'cb-lcars-footer-picard'
+                          label: 'Footer'
+                        - value: 'cb-lcars-footer-picard-right'
+                          label: 'Footer [Right]'
+                - type: Message
+                  alertType: info
+                  message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
+                - label: "Entity [optional]"
+                  configValue: "variables.entity"
+                  type: Selector
+                  selector:
+                    entity:
+        - <<: *advancedSettingsToggle
+        - <<: *textLabelSection
+        - <<: *actionsSection
+    - label: "Elbow [Common]"
+      content:
+        - type: Section
+          label: "Common Settings"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          expanded: true
+          icon: "mdi:card-multiple-outline"
+          noCollapse: false
+          rows:
+            - controls:
+                - type: Message
+                  alertType: info
+                  message: "These common settings apply to both inner and outer elbows.  For individual settings, please use the respective tab."
+            - <<: *advCardSizeSection
+            - type: Section
+              label: Borders
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:border-style"
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Gap Between Elbows"
+                      helper: "The size of the gap between inner/outer elbows."
+                      configValue: "variables.lcars.border.gap"
+                      disabled: false
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 50
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Outer to Inner Ratio"
+                      helper: "Autosize factor of outer to inner elbow size"
+                      configValue: "variables.lcars.border.factor"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 10
+                          step: 0.1
+                          mode: slider
+                          slider_ticks: false
+                    - label: "Left Border Size"
+                      helper: "The width of the left side of LCARS"
+                      configValue: "variables.lcars.border.left.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Border Size"
+                      helper: "The height of the top side of LCARS"
+                      configValue: "variables.lcars.border.top.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Right Border Size"
+                      helper: "The width of the right side of LCARS"
+                      configValue: "variables.lcars.border.right.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Border Size"
+                      helper: "The height of the bottom side of LCARS"
+                      configValue: "variables.lcars.border.bottom.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                - type: Section
+                  label: Inner Border
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:border-style"
+                  visibilityCondition: "this._config.type != 'custom:cb-lcars-multimeter-card'"
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - type: Selector
+                          label: Scaling Factor
+                          helper: This values affects the inner radius in relation to the outer radius.
+                          configValue: "variables.card.border.inner.factor"
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.5
+                              mode: slider
+                              slider_ticks: false
+                        - type: Selector
+                          label: Inner Border Width
+                          helper: The width of the inner border.
+                          configValue: "variables.card.border.inner.width"
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+            - type: Section
+              label: Corners
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:rounded-corner"
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Top Left Radius"
+                      helper: "The top left curve of LCARS"
+                      configValue: "variables.card.border.top.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Right Radius"
+                      helper: "The top right curve of LCARS"
+                      configValue: "variables.card.border.top.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Left Radius"
+                      helper: "The bottom left curve of LCARS"
+                      configValue: "variables.card.border.bottom.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Right Radius"
+                      helper: "The bottom right curve of LCARS"
+                      configValue: "variables.card.border.bottom.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+            - type: Section
+              label: "Effects"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:card-multiple-outline"
+              noCollapse: false
+              rows:
+                - type: ControlRow
+                  controls:
+                    - label: "Effect Templates"
+                      configValue: "template"
+                      disabled: false
+                      required: false
+                      type: Selector
+                      selector:
+                        select:
+                          mode: list
+                          multiple: true
+                          options:
+                            - value: "cb-lcars-state-on-blink"
+                              label: "Blink [Active]"
+                            - value: "cb-lcars-state-off-blink"
+                              label: "Blink [Inactive]"
+                            - value: "cb-lcars-state-unavailable-blink"
+                              label: "Blink [Unavailable]"
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - type: Section
+                  label: "Border"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.default"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.active"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.unavailable"
+                - type: Section
+                  label: "Background"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.card.color.background.default"
+                            - <<: *colorControl
+                              configValue: "variables.card.color.background.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.card.color.background.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.active"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.card.color.background.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.card.color.background.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.card.color.background.unavailable"
+    - label: "Outer Elbow"
+      content:
+        - type: Section
+          label: "Outer Elbow Settings"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          expanded: true
+          icon: "mdi:card-multiple-outline"
+          noCollapse: false
+          rows:
+            - type: Section
+              label: Borders
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:border-style"
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Left Border Size"
+                      helper: "The width of the left side of LCARS"
+                      configValue: "variables.lcars_outer.card.border.left.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Border Size"
+                      helper: "The height of the top side of LCARS"
+                      configValue: "variables.lcars_outer.card.border.top.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Right Border Size"
+                      helper: "The width of the right side of LCARS"
+                      configValue: "variables.lcars_outer.card.border.right.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Border Size"
+                      helper: "The height of the bottom side of LCARS"
+                      configValue: "variables.lcars_outer.card.border.bottom.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                - type: Section
+                  label: Inner Border
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:border-style"
+                  visibilityCondition: "this._config.type != 'custom:cb-lcars-multimeter-card'"
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - type: Selector
+                          label: Scaling Factor
+                          helper: This values affects the inner radius in relation to the outer radius.
+                          configValue: "variables.card.border.inner.factor"
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.5
+                              mode: slider
+                              slider_ticks: false
+                        - type: Selector
+                          label: Inner Border Width
+                          helper: The width of the inner border.
+                          configValue: "variables.card.border.inner.width"
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - type: Section
+                  label: "Border"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.lcars_outer.card.color.default"
+                            - <<: *colorControl
+                              configValue: "variables.lcars_outer.card.color.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.lcars_outer.card.color.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.active"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.unavailable"
+                - type: Section
+                  label: "Background"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.lcars_outer.card.color.background.default"
+                            - <<: *colorControl
+                              configValue: "variables.lcars_outer.card.color.background.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.lcars_outer.card.color.background.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.active"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_outer.card.color.background.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_outer.card.color.background.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_outer.card.color.background.unavailable"
+    - label: "Inner Elbow"
+      content:
+        - type: Section
+          label: "Inner Elbow Settings"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          expanded: true
+          icon: "mdi:card-multiple-outline"
+          noCollapse: false
+          rows:
+            - type: Section
+              label: Borders
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:border-style"
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Left Border Size"
+                      helper: "The width of the left side of LCARS"
+                      configValue: "variables.lcars_inner.card.border.left.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Border Size"
+                      helper: "The height of the top side of LCARS"
+                      configValue: "variables.lcars_inner.card.border.top.size"
+                      visibilityCondition: "this._config.cblcars_card_type && !this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Right Border Size"
+                      helper: "The width of the right side of LCARS"
+                      configValue: "variables.lcars_inner.card.border.right.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('right')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 300
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Border Size"
+                      helper: "The height of the bottom side of LCARS"
+                      configValue: "variables.lcars_inner.card.border.bottom.size"
+                      visibilityCondition: "this._config.cblcars_card_type && this._config.cblcars_card_type.includes('footer')"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                - type: Section
+                  label: Inner Border
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:border-style"
+                  visibilityCondition: "this._config.type != 'custom:cb-lcars-multimeter-card'"
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - type: Selector
+                          label: Scaling Factor
+                          helper: This values affects the inner radius in relation to the outer radius.
+                          configValue: "variables.lcars_inner.card.border.inner.factor"
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.5
+                              mode: slider
+                              slider_ticks: false
+                        - type: Selector
+                          label: Inner Border Width
+                          helper: The width of the inner border.
+                          configValue: "variables.lcars_inner.card.border.inner.width"
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - type: Section
+                  label: "Border"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.lcars_inner.card.color.default"
+                            - <<: *colorControl
+                              configValue: "variables.lcars_inner.card.color.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.lcars_inner.card.color.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.active"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.unavailable"
+                - type: Section
+                  label: "Background"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:palette-advanced"
+                  noCollapse: false
+                  rows:
+                    - type: Section
+                      label: "Default Color (no entity/state)"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.lcars_inner.card.color.background.default"
+                            - <<: *colorControl
+                              configValue: "variables.lcars_inner.card.color.background.default"
+                        - controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.lcars_inner.card.color.background.default"
+                    - type: Section
+                      label: "State Colors"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:palette-advanced"
+                      noCollapse: false
+                      rows:
+                        - type: Section
+                          label: "Active/Inactive"
+                          secondary: "[state: on/off, open/closed, locked/unlocked]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Active</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.active"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.active"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.active"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Inactive</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.inactive"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.inactive"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.inactive"
+                        - type: Section
+                          label: "Zero/Non-Zero"
+                          secondary: "[state: numeric 0 or not 0]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.zero"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State Number Value: Non-Zero</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.non_zero"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.non_zero"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.non_zero"
+                        - type: Section
+                          label: "HVAC Heat/Cool"
+                          secondary: "[state: heat/cool ]"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Heat</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_heat"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_heat"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_heat"
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Cool</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_cool"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_cool"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.hvac_cool"
+                        - type: Section
+                          label: "Unavailable/Unknown"
+                          outlined: true
+                          leftChevron: false
+                          headerLevel: 4
+                          icon: "mdi:palette-advanced"
+                          noCollapse: false
+                          rows:
+                            - controls:
+                                - type: RawHTML
+                                  html: |
+                                      <label>State: Unavailable/Unknown</label>
+                            - type: ControlRow
+                              cssClass: "form-row two-controls"
+                              controls:
+                                - <<: *colorLCARSListControl
+                                  configValue: "variables.lcars_inner.card.color.background.unavailable"
+                                - <<: *colorControl
+                                  configValue: "variables.lcars_inner.card.color.background.unavailable"
+                            - controls:
+                                - <<: *colorPreviewControl
+                                  configValue: "variables.lcars_inner.card.color.background.unavailable"
 cb-lcars-button-card:
   render_form:
     - type: Section
@@ -1573,109 +3191,11 @@ cb-lcars-button-card:
               type: Selector
               selector:
                 entity:
+    - <<: *advancedSettingsToggle
     - <<: *cardSection
     - <<: *iconSection
     - <<: *textLabelSection
     - <<: *actionsSection
-
-cb-lcars-slider-card:
-  render_form:
-    - type: Section
-      label: "LCARS Preset"
-      outlined: true
-      leftChevron: false
-      expanded: true
-      headerLevel: 4
-      icon: "mdi:palette-advanced"
-      rows:
-        - controls:
-            - label: "LCARS Slider Type"
-              configValue: cblcars_card_type
-              type: Selector
-              required: true
-              selector:
-                select:
-                  mode: dropdown
-                  options:
-                    - value: 'cb-lcars-slider-horizontal'
-                      label: 'Slider [Horizontal]'
-                    - value: 'cb-lcars-slider'
-                      label: 'Slider [Vertical]'
-            - type: Message
-              alertType: info
-              message: "If changing the preset after customizing settings below - please manually remove the variables in yaml to correctly reset the card."
-            - label: "Entity"
-              configValue: "variables.entity"
-              required: true
-              type: Selector
-              selector:
-                entity:
-    - type: Section
-      label: "Slider"
-      outlined: true
-      leftChevron: false
-      headerLevel: 4
-      icon: "mdi:tune-variant"
-      rows:
-        - controls:
-            - label: "Gradient: Match [Left/Top] to Entity Color"
-              configValue: "variables.entity_match_slider_start"
-              type: Selector
-              selector:
-                boolean:
-        - type: Section
-          label: "Gradient - Left/Top"
-          visibilityCondition: "this._config.variables.entity_match_slider_start === false"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:gradient-horizontal"
-          noCollapse: false
-          rows:
-            - type: ControlRow
-              cssClass: "form-row two-controls"
-              controls:
-                - <<: *colorLCARSListControl
-                  configValue: "variables.meter.variables.gradient_start_color"
-                - label: "Color (state: on)"
-                  configValue: "variables.meter.variables.gradient_start_color"
-                  type: Selector
-                  selector:
-                    text:
-                      type: color
-            - controls:
-                - <<: *colorPreviewControl
-                  configValue: "variables.meter.variables.gradient_start_color"
-        - controls:
-            - label: "Gradient: Match [Right/Bottom] to Entity Color"
-              configValue: "variables.entity_match_slider_end"
-              type: Selector
-              selector:
-                boolean:
-        - type: Section
-          label: "Gradient - Right/Bottom"
-          visibilityCondition: "this._config.variables.entity_match_slider_end === false"
-          outlined: true
-          leftChevron: false
-          headerLevel: 4
-          icon: "mdi:gradient-vertical"
-          noCollapse: false
-          rows:
-            - type: ControlRow
-              cssClass: "form-row two-controls"
-              controls:
-                - <<: *colorLCARSListControl
-                  configValue: "variables.meter.variables.gradient_end_color"
-                - label: "Color (state: off)"
-                  configValue: "variables.meter.variables.gradient_end_color"
-                  type: Selector
-                  selector:
-                    text:
-                      type: color
-            - controls:
-                - <<: *colorPreviewControl
-                  configValue: "variables.meter.variables.gradient_end_color"
-
 cb-lcars-dpad-card:
   tabs:
     - label: "DPAD Defaults"
@@ -1703,36 +3223,28 @@ cb-lcars-dpad-card:
                       message: "These colors are used as defaults for the DPAD buttons.\nYou can override these colors for each button individually.\n\nQuandrant colors are inverted from DPAD button colors by default."
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.__defs_dpad.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.__defs_dpad.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.__defs_dpad.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.__defs_dpad.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.__defs_dpad.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.__defs_dpad.color.background.inactive"
@@ -1789,36 +3301,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up.color.background.inactive"
@@ -1866,36 +3370,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down.color.background.inactive"
@@ -1943,36 +3439,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.left.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.left.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.left.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.left.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.left.color.background.inactive"
@@ -2020,36 +3508,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.right.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.right.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.right.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.right.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.right.color.background.inactive"
@@ -2097,36 +3577,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.center.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.center.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.center.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.center.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.center.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.center.color.background.inactive"
@@ -2174,36 +3646,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up_left.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up_left.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up_left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up_left.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up_left.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up_left.color.background.inactive"
@@ -2251,36 +3715,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up_right.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up_right.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up_right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.up_right.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.up_right.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.up_right.color.background.inactive"
@@ -2328,36 +3784,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down_left.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down_left.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down_left.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down_left.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down_left.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down_left.color.background.inactive"
@@ -2405,36 +3853,28 @@ cb-lcars-dpad-card:
                         entity:
                     - type: RawHTML
                       html: |
-                          <label>State: ON</label>
+                          <label>State: Active</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down_right.color.background.active"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down_right.color.background.active"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down_right.color.background.active"
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>State: OFF</label>
+                          <label>State: Inctive</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.dpad.down_right.color.background.inactive"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.dpad.down_right.color.background.inactive"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.dpad.down_right.color.background.inactive"
@@ -2465,7 +3905,6 @@ cb-lcars-dpad-card:
                               type: Selector
                               selector:
                                 ui_action:
-
 cb-lcars-label-card:
   tabs:
     - label: "LCARS"
@@ -2504,6 +3943,7 @@ cb-lcars-label-card:
         - <<: *textLabelSection
           expanded: true
           visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
+        - <<: *advancedSettingsToggle
         - <<: *cardSection
         - <<: *actionsSection
     - label: "Data Cascade"
@@ -2604,12 +4044,8 @@ cb-lcars-label-card:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.cascade.colors.animation_start"
-                        - label: "Text Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.cascade.colors.animation_start"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.cascade.colors.animation_start"
@@ -2622,16 +4058,11 @@ cb-lcars-label-card:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.cascade.colors.animation_end"
-                        - label: "Text Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.cascade.colors.animation_end"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.cascade.colors.animation_end"
-
 cb-lcars-multimeter-card:
   tabs:
     - label: "LCARS Mode"
@@ -2672,6 +4103,7 @@ cb-lcars-multimeter-card:
                 - type: Message
                   alertType: info
                   message: "If changing the presets after customizing settings - you may need to manually remove/reset those variables in yaml code editor to correctly reset the card."
+        - <<: *advancedSettingsToggle
         - type: Section
           label: "Entity Options"
           outlined: true
@@ -2690,7 +4122,7 @@ cb-lcars-multimeter-card:
                     entity:
                 - label: "Light Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'light'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'light'"
                   required: true
                   type: Selector
                   selector:
@@ -2707,7 +4139,7 @@ cb-lcars-multimeter-card:
                           label: 'Hue'
                 - label: "Cover Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'cover'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'cover'"
                   required: true
                   type: Selector
                   selector:
@@ -2720,7 +4152,7 @@ cb-lcars-multimeter-card:
                           label: 'Tilt'
                 - label: "Media Player Control Mode"
                   configValue: variables._slider_mode
-                  visibilityCondition: "this._config.variables.entity && this._config.variables.entity.split('.')[0] === 'media_player'"
+                  visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'media_player'"
                   required: true
                   type: Selector
                   selector:
@@ -2737,7 +4169,6 @@ cb-lcars-multimeter-card:
                 - type: Message
                   alertType: warning
                   message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
-
             - <<: *actionsSection
     - label: "LCARS Border"
       content:
@@ -2757,6 +4188,7 @@ cb-lcars-multimeter-card:
                   type: Selector
                   selector:
                     boolean:
+            - <<: *advCardSizeSection
             - <<: *cardBorderSection
             - <<: *cardCornerSection
             - <<: *cardColorSection
@@ -2791,58 +4223,7 @@ cb-lcars-multimeter-card:
                     - <<: *fontWeightControl
                 - <<: *textAlignmentSection
                 - <<: *textPaddingSection
-                - type: Section
-                  label: "Colors"
-                  outlined: true
-                  leftChevron: false
-                  headerLevel: 4
-                  icon: "mdi:palette"
-                  noCollapse: false
-                  rows:
-                    - type: Section
-                      label: "On/Off"
-                      outlined: true
-                      leftChevron: false
-                      headerLevel: 4
-                      icon: "mdi:palette-advanced"
-                      noCollapse: false
-                      rows:
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: ON</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "variables.text.label.color.on"
-                            - label: "Text Color (state: on)"
-                              configValue: "variables.text.label.color.on"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "variables.text.label.color.on"
-                        - controls:
-                            - type: RawHTML
-                              html: |
-                                  <label>State: OFF</label>
-                        - type: ControlRow
-                          cssClass: "form-row two-controls"
-                          controls:
-                            - <<: *colorLCARSListControl
-                              configValue: "variables.text.label.color.off"
-                            - label: "Text Color (state: off)"
-                              configValue: "variables.text.label.color.off"
-                              type: Selector
-                              selector:
-                                text:
-                                  type: color
-                        - controls:
-                            - <<: *colorPreviewControl
-                              configValue: "variables.text.label.color.off"
+                - <<: *textColorSection
     - label: "Gauge Mode"
       visibilityCondition: "this._config.variables._mode === 'gauge'"
       content:
@@ -2945,36 +4326,28 @@ cb-lcars-multimeter-card:
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: ON</label>
+                              <label>State: Active</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.color.background.active"
-                        - label: "Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.color.background.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.color.background.active"
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: OFF</label>
+                              <label>State: Inctive</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.color.background.inactive"
-                        - label: "Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.color.background.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.color.background.inactive"
@@ -2990,36 +4363,28 @@ cb-lcars-multimeter-card:
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: ON</label>
+                              <label>State: Active</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.label.active"
-                        - label: "Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.label.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.label.active"
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: OFF</label>
+                              <label>State: Inctive</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.label.inactive"
-                        - label: "Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.label.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.label.inactive"
@@ -3035,36 +4400,28 @@ cb-lcars-multimeter-card:
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: ON</label>
+                              <label>State: Active</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.color.active"
-                        - label: "Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.color.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.color.active"
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: OFF</label>
+                              <label>State: Inctive</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.color.inactive"
-                        - label: "Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.color.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.color.inactive"
@@ -3081,36 +4438,28 @@ cb-lcars-multimeter-card:
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: ON</label>
+                              <label>State: Active</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.sub_meter.active"
-                        - label: "Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.sub_meter.active"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.sub_meter.active"
                     - controls:
                         - type: RawHTML
                           html: |
-                              <label>State: OFF</label>
+                              <label>State: Inctive</label>
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.gauge.sub_meter.inactive"
-                        - label: "Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.gauge.sub_meter.inactive"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.gauge.sub_meter.inactive"
@@ -3172,12 +4521,8 @@ cb-lcars-multimeter-card:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.slider.color"
-                        - label: "Color (state: on)"
+                        - <<: *colorControl
                           configValue: "variables.slider.color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider.color"
@@ -3195,12 +4540,8 @@ cb-lcars-multimeter-card:
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.slider.border_color"
-                        - label: "Color (state: off)"
+                        - <<: *colorControl
                           configValue: "variables.slider.border_color"
-                          type: Selector
-                          selector:
-                            text:
-                              type: color
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider.border_color"
@@ -3236,12 +4577,8 @@ cb-lcars-multimeter-card:
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.slider_track.meter.gradient_start_color"
-                    - label: "Color (state: on)"
+                    - <<: *colorControl
                       configValue: "variables.slider_track.meter.gradient_start_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.slider_track.meter.gradient_start_color"
@@ -3265,12 +4602,8 @@ cb-lcars-multimeter-card:
                   controls:
                     - <<: *colorLCARSListControl
                       configValue: "variables.slider_track.meter.gradient_end_color"
-                    - label: "Color (state: off)"
+                    - <<: *colorControl
                       configValue: "variables.slider_track.meter.gradient_end_color"
-                      type: Selector
-                      selector:
-                        text:
-                          type: color
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.slider_track.meter.gradient_end_color"
