@@ -107,6 +107,7 @@ cb-lcars-multimeter:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -125,6 +126,7 @@ cb-lcars-multimeter:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -143,6 +145,7 @@ cb-lcars-multimeter:
         font_size: 22px
         align_items: center
         justify: right
+        transform: uppercase
         padding:
           top: 0
           left: 0
@@ -159,6 +162,7 @@ cb-lcars-multimeter:
           unavailable: black
     card:
       height: '[[[ return this.offsetHeight; ]]]'
+      min_height: '[[[ return this.offsetHeight; ]]]'
       width: '[[[ return this.offsetWidth; ]]]'
       border:
         top:

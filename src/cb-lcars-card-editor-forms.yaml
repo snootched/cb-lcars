@@ -1,11 +1,11 @@
-cb-lcars-base-card:
+cb-lcars-base-card2:
   render_form:
     - type: ControlRow
       controls:
         - type: Message
           alertType: info
           message: "This is a base card for advanced use.  Visual Editor is not available for this card."
-cb-lcars-base-controls:
+cb-lcars-base-card:
   render_form:
     - type: ControlRow
       controls:
@@ -728,6 +728,61 @@ cb-lcars-base-controls:
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.text.label.color.unavailable"
+    - &advancedSettingsToggle
+      type: ControlRow
+      controls:
+        - label: "Show Advanced Settings"
+          configValue: "show_advanced"
+          disabled: false
+          type: Selector
+          selector:
+            boolean:
+    - &advancedSettingsSection
+      type: Section
+      label: "Advanced Settings"
+      outlined: false
+      leftChevron: false
+      headerLevel: 4
+      icon: "mdi:wrench-cog-outline"
+      noCollapse: false
+      visibilityCondition: "this._config.show_advanced === true"
+      rows:
+        - type: Section
+          label: "Card Size"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:resize"
+          noCollapse: true
+          expanded: true
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Height"
+                  configValue: "variables.card.height"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Width"
+                  configValue: "variables.card.width"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - type: Message
+                  alertType: info
+                  message: "Enable/Disable helper that watches for resize events and adjusts card size accordingly.  Only needed for some cards.  Disable if there are undesired effects like infinite resizing loops."
+            - type: ControlRow
+              controls:
+                - label: "Auto Resize Helper"
+                  helper: "Enable Resize Observer for dynamic card resizing"
+                  configValue: "enable_resize_observer"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    boolean:
+
     - &cardSection
       type: Section
       label: "Card"
@@ -737,6 +792,53 @@ cb-lcars-base-controls:
       icon: "mdi:card-multiple-outline"
       noCollapse: false
       rows:
+        - &advCardSizeSection
+          type: Section
+          label: "Card Size"
+          secondary: "[Advanced]"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:resize"
+          noCollapse: false
+          expanded: false
+          visibilityCondition: "this._config.show_advanced === true"
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Height"
+                  configValue: "variables.card.height"
+                  helper: "Sets static height of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Width"
+                  configValue: "variables.card.width"
+                  helper: "Sets static width of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - label: "Minimum Height"
+                  configValue: "variables.card.min_height"
+                  helper: "Sets minimum height of the card"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    text:
+                - type: Message
+                  alertType: info
+                  message: "Enable/Disable helper that watches for resize events and adjusts card size accordingly.  Only needed for some cards.  Disable if there are undesired effects like infinite resizing loops."
+            - type: ControlRow
+              controls:
+                - label: "Auto Resize Helper"
+                  helper: "Enable Resize Observer for dynamic card resizing"
+                  configValue: "enable_resize_observer"
+                  disabled: false
+                  type: Selector
+                  selector:
+                    boolean:
         - &cardTemplateSection
           type: Section
           label: "Effects"
@@ -764,6 +866,8 @@ cb-lcars-base-controls:
                           label: "Blink [Inactive]"
                         - value: "cb-lcars-state-unavailable-blink"
                           label: "Blink [Unavailable]"
+                        - value: "cb-lcars-animate-press"
+                          label: "Rippled Press"
         - &cardColorSection
           type: Section
           label: "Colors"
@@ -1510,6 +1614,7 @@ cb-lcars-elbow-card:
               type: Selector
               selector:
                 entity:
+    - <<: *advancedSettingsToggle
     - <<: *cardSection
     - <<: *textLabelSection
     - <<: *actionsSection
@@ -1550,6 +1655,7 @@ cb-lcars-double-elbow-card:
                   type: Selector
                   selector:
                     entity:
+        - <<: *advancedSettingsToggle
         - <<: *textLabelSection
         - <<: *actionsSection
     - label: "Elbow [Common]"
@@ -1567,6 +1673,7 @@ cb-lcars-double-elbow-card:
                 - type: Message
                   alertType: info
                   message: "These common settings apply to both inner and outer elbows.  For individual settings, please use the respective tab."
+            - <<: *advCardSizeSection
             - type: Section
               label: Borders
               outlined: true
@@ -3084,6 +3191,7 @@ cb-lcars-button-card:
               type: Selector
               selector:
                 entity:
+    - <<: *advancedSettingsToggle
     - <<: *cardSection
     - <<: *iconSection
     - <<: *textLabelSection
@@ -3835,6 +3943,7 @@ cb-lcars-label-card:
         - <<: *textLabelSection
           expanded: true
           visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
+        - <<: *advancedSettingsToggle
         - <<: *cardSection
         - <<: *actionsSection
     - label: "Data Cascade"
@@ -3994,6 +4103,7 @@ cb-lcars-multimeter-card:
                 - type: Message
                   alertType: info
                   message: "If changing the presets after customizing settings - you may need to manually remove/reset those variables in yaml code editor to correctly reset the card."
+        - <<: *advancedSettingsToggle
         - type: Section
           label: "Entity Options"
           outlined: true
@@ -4059,7 +4169,6 @@ cb-lcars-multimeter-card:
                 - type: Message
                   alertType: warning
                   message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
-
             - <<: *actionsSection
     - label: "LCARS Border"
       content:
@@ -4079,6 +4188,7 @@ cb-lcars-multimeter-card:
                   type: Selector
                   selector:
                     boolean:
+            - <<: *advCardSizeSection
             - <<: *cardBorderSection
             - <<: *cardCornerSection
             - <<: *cardColorSection
