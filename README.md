@@ -66,13 +66,33 @@ Functionality and configurations may change over time until stabilized.  Things 
 
 If you have used the previous version whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
 
-It is necessary to remove those templates from your dashboard file (and potentially update any card configs) or start with new dashboard.
+If you can - it's advisable to start with a fresh dashboard.
+
+<br>
+
+To retrofit:
+
+It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
 
 The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
 
 ```yaml
 cblcars_card_templates:      <-- this section should be removed
   template_name:
+```
+
+Card config structure also changed slightly from original.
+Everything that was in `cblcars_card_config:` section, has been moved up one level.
+
+```yaml
+cblcars_card_config:
+  variables:
+    label: "my label"
+
+would become:
+
+variables:
+  label: "my label"
 ```
 If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
 

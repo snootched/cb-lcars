@@ -1,3 +1,10 @@
+
+-picard header form
+
+
+
+
+
 -load themes on startup
 --loaded into window.cblcars
 --added some functions..
@@ -5,9 +12,6 @@
 -hosted persistent config file?
 --frontend can read, not write
 
--blink in form
-
--picard header form
 
 -custom features extension?
 
