@@ -1,11 +1,11 @@
-cb-lcars-base-card:
+cb-lcars-base-card2:
   render_form:
     - type: ControlRow
       controls:
         - type: Message
           alertType: info
           message: "This is a base card for advanced use.  Visual Editor is not available for this card."
-cb-lcars-base-controls:
+cb-lcars-base-card:
   render_form:
     - type: ControlRow
       controls:
