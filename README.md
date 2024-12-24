@@ -36,6 +36,7 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
     - [What can be done...](#what-can-be-done)
+- [States](#states)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -236,12 +237,31 @@ In no particular ordeer:
 
 ---
 
+# States
+
+The cards support the changing styles/colors depending on the current state of the entity.
+
+If no entity is defined, `default` will be used.  If the entity is unavailable or unknown, then `unavailable` will be used.
+
+Each of these is configurable in the UI editor for the cards.
+
+| Entity State Value           |  State Variable Name   |
+|------------------------------|------------------------|
+| N/A - no entity assigned     | `default:`             |
+| `on` `open` `locked`         | `active:`              |
+| `off` `closed` `unlocked`    | `inactive:`            |
+| Number (zero): `0`           | `zero:`                |
+| Number (non-zero)            | `non_zero:`            |
+| `heat` (hvac/climate entity) | `hvac_heat:`           |
+| `cool` (hvac/climate entity) | `hvac_cool:`           |
+| `unavailable` `unkown`       | `unavailable:`         |
+
 
 ---
 
 # CB-LCARS Cards
 
-For referenct - these are the cards found in CB-LCARS.
+For reference - these are the cards found in CB-LCARS.
 They are highly configurable - and some default styles are shown.
 
 Additional style possibilities can be found in the screenshots section.
