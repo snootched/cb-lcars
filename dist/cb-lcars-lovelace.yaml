@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.4-alpha.7
+  version: 2024.12.4-alpha.8
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -4844,6 +4844,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           justify: right
+          transform: uppercase
           padding:
             top: 0
             left: 0
@@ -4862,6 +4863,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           justify: right
+          transform: uppercase
           padding:
             top: 0
             left: 0
@@ -4880,6 +4882,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           justify: right
+          transform: uppercase
           padding:
             top: 0
             left: 0
@@ -4896,6 +4899,7 @@ cblcars_card_templates:
             unavailable: black
       card:
         height: '[[[ return this.offsetHeight; ]]]'
+        min_height: '[[[ return this.offsetHeight; ]]]'
         width: '[[[ return this.offsetWidth; ]]]'
         border:
           top:
