@@ -203,7 +203,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // Set up the resizeObserver properties
         this._resizeObserverTarget = config.resize_observer_target || 'this';
-        this._isResizeObserverEnabled = config.enable_resize_observer || false;
+        this._isResizeObserverEnabled = (config.enable_resize_observer || (config.variables && config.variables.enable_resize_observer)) || false;
         this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
 
         // Enable the resize observer if the configuration option is enabled
@@ -405,11 +405,6 @@ class CBLCARSLabelCard extends CBLCARSBaseCard {
             ...config,
             template: mergedTemplates,
         };
-
-        // Check if the card type is 'cb-lcars-cascade' and set the enable_resize_observer flag to true
-        if (config.cblcars_card_type === 'cb-lcars-cascade' && config.enable_resize_observer === undefined) {
-            specialConfig.enable_resize_observer = true;
-        }
 
         super.setConfig(specialConfig);
     }

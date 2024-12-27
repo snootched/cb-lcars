@@ -1,14 +1,13 @@
 cb-lcars-multimeter:
-  type: custom:cblcars-button-card
-  entity: "[[[ return variables.entity ]]]"
+  entity: '[[[ return variables.entity ]]]'
   template:
     - cb-lcars-functions
     - cb-lcars-base
     - cb-lcars-actions-disable
-  triggers_update: "[[[ return variables.entity ]]]"
+  triggers_update: '[[[ return variables.entity ]]]'
   show_icon: false
   show_label: true
-  label: "[[[ return variables.label ]]]"
+  label: '[[[ return variables.label ]]]'
   show_name: false
   show_state: false
   variables:
@@ -96,12 +95,30 @@ cb-lcars-multimeter:
       [[[
         return variables._unit_of_measurement || entity.attributes.unit_of_measurement || '%';
       ]]]
-    entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+    entity_color: |
+      [[[
+        return variables.__get_light_css_color(variables.entity)
+      ]]]
     entity_match_slider: false
     entity_match_gauge: false
     entity_match_header: false
     entity_match_slider_start: false
     entity_match_slider_end: false
+    card:
+      height: '[[[ return this.offsetHeight; ]]]'
+      min_height: '[[[ return this.offsetHeight; ]]]'
+      width: '[[[ return this.offsetWidth; ]]]'
+      border:
+        top:
+          size: 10
+        bottom:
+          size: 0
+        left:
+          size: 120
+        right:
+          size: 0
+        inner:
+          width: 0
     text:
       label:
         font_size: 22px
@@ -160,21 +177,6 @@ cb-lcars-multimeter:
           hvac_heat: black
           hvac_cool: black
           unavailable: black
-    card:
-      height: '[[[ return this.offsetHeight; ]]]'
-      min_height: '[[[ return this.offsetHeight; ]]]'
-      width: '[[[ return this.offsetWidth; ]]]'
-      border:
-        top:
-          size: 10
-        bottom:
-          size: 0
-        left:
-          size: 120
-        right:
-          size: 0
-        inner:
-          width: 0
     slider:
       locked: |
         [[[
@@ -198,6 +200,14 @@ cb-lcars-multimeter:
           }
           return locked;
         ]]]
+      height: >-
+        [[[ return (variables._vertical) ?
+        variables.__get_num_with_unit(variables.card.height) :
+        variables.__get_num_with_unit(variables._slider_thickness) ]]]
+      width: >-
+        [[[ return (variables._vertical) ?
+        variables.__get_num_with_unit(variables._slider_thickness) :
+        variables.__get_num_with_unit(variables.card.width) ]]]
       color: |
         [[[ return  variables.entity_match_slider ? variables.entity_color :
         "var(--picard-lightest-blue)" ]]]
@@ -208,26 +218,19 @@ cb-lcars-multimeter:
       border_alpha: 0.5
       border_width: 0px
       border_radius: 2px
-      flipped: "[[[ return (variables._vertical) ? true : false ]]]"
-      height: >-
-        [[[ return (variables._vertical) ? variables.__get_num_with_unit(variables.card.height) :
-        variables.__get_num_with_unit(variables._slider_thickness) ]]]
-      width: >-
-        [[[ return (variables._vertical) ?
-        variables.__get_num_with_unit(variables._slider_thickness) :
-        variables.__get_num_with_unit(variables.card.width) ]]]
+      flipped: '[[[ return (variables._vertical) ? true : false ]]]'
       left_padding: 1px
-      top_padding: "[[[ return variables.gauge.sub_meter.tick_size ]]]"
+      top_padding: '[[[ return variables.gauge.sub_meter.tick_size ]]]'
       step: |
         [[[
           return entity.attributes.percentage_step || variables._slider_step;
         ]]]
-      mode: "[[[ return variables._slider_mode ]]]"
-      min: "[[[ return variables.entity_min ]]]"
-      max: "[[[ return variables.entity_max ]]]"
+      mode: '[[[ return variables._slider_mode ]]]'
+      min: '[[[ return variables.entity_min ]]]'
+      max: '[[[ return variables.entity_max ]]]'
     gauge:
-      min: "[[[ return variables.entity_min ]]]"
-      max: "[[[ return variables.entity_max ]]]"
+      min: '[[[ return variables.entity_min ]]]'
+      max: '[[[ return variables.entity_max ]]]'
       increment: |
         [[[
           const entityDomain = entity.entity_id.split('.')[0];
@@ -275,13 +278,138 @@ cb-lcars-multimeter:
         inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
     slider_track:
       padding:
-        left: 5px
-        right: 0px
-        top: 5px
-        bottom: 0px
-      meter:
-        _gradient:
-          gap: 5px
+        left: 5
+        right: 0
+        top: 5
+        bottom: 0
+      mask_color: rgba(0,0,0,0.8)
+      gradient_start_color: >
+        [[[ return  variables.entity_match_slider_start ?
+        variables.entity_color : "var(--error-color)" ]]]
+      gradient_end_color: >
+        [[[ return  variables.entity_match_slider_end ? variables.entity_color
+        : "var(--success-color)" ]]]
+      gap: 5
+      bar_border_radius: 0
+      bar_thickness: 10
+    z_slider: |
+      [[[
+        function parseColor(color) {
+          if (color.startsWith('var(')) {
+            return cssVarToRgb(color);
+          } else if (color.startsWith('#')) {
+            return hexToRgb(color);
+          } else if (color.startsWith('rgb')) {
+            return rgbStringToRgb(color);
+          } else {
+            return cssStringToRgb(color);
+          }
+        }
+
+        function cssVarToRgb(cssVar) {
+          const varName = cssVar.slice(4, -1).trim();
+          const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+          return parseColor(color);
+        }
+
+        function hexToRgb(hex) {
+          const bigint = parseInt(hex.slice(1), 16);
+          return [bigint >> 16 & 255, bigint >> 8 & 255, bigint & 255];
+        }
+
+        function rgbStringToRgb(rgbString) {
+          const rgba = rgbString.match(/\d+/g).map(Number);
+          return rgba.length === 4 ? rgba : rgba.slice(0, 3); // Get only the first three values (R, G, B) or return RGBA
+        }
+        function cssStringToRgb(color) {
+          if (color === 'transparent') {
+            return [0, 0, 0, 0]; // Return RGBA value for transparent
+          }
+
+          const ctx = document.createElement('canvas').getContext('2d');
+          ctx.fillStyle = color;
+          document.body.appendChild(ctx.canvas); // Append to body to apply style
+          const computedColor = getComputedStyle(ctx.canvas).fillStyle;
+          document.body.removeChild(ctx.canvas); // Remove canvas after use
+
+          return rgbStringToRgb(computedColor);
+        }
+
+        try {
+          const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
+          const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
+          let barWidth, barHeight;
+
+          // Defaults and overrides
+          let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
+          let barOrientation = variables._vertical ? "vertical" : "horizontal";
+          let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
+
+          // Set defaults based on orientation
+          if (barOrientation === 'horizontal') {
+            barHeight = height; // Default to height
+            barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+          } else {
+            barWidth = width; // Default to width
+            barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+          }
+
+          // Dynamic variable assignment
+          let startColor = variables.slider_track.gradient_start_color.trim();
+          let endColor = variables.slider_track.gradient_end_color.trim();
+
+          const startRgb = parseColor(startColor);
+          const endRgb = parseColor(endColor);
+
+          function interpolateColor(color1, color2, factor) {
+            const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+            return `rgb(${result.join(',')})`;
+          }
+
+          // Autocalculate numBars
+          const numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('width', '100%');
+          svg.setAttribute('height', '100%');
+          svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          svg.appendChild(g);
+
+          let x = 0;
+          let y = 0;
+
+          for (let i = 0; i < numBars; i++) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', barOrientation === 'horizontal' ? x : 0);
+            rect.setAttribute('y', barOrientation === 'horizontal' ? 0 : y);
+            rect.setAttribute('width', barOrientation === 'horizontal' ? barWidth : barWidth);
+            rect.setAttribute('height', barOrientation === 'horizontal' ? barHeight : barHeight);
+            rect.setAttribute('rx', cornerRadius);
+            rect.setAttribute('ry', cornerRadius);
+
+            const factor = i / (numBars - 1);
+            const color = interpolateColor(startRgb, endRgb, factor);
+            rect.setAttribute('fill', color);
+
+            g.appendChild(rect);
+
+            x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+            y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+          }
+
+          const svgString = new XMLSerializer().serializeToString(svg);
+          const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+          const cssBackgroundImage = `url("${svgDataUrl}")`;
+
+          //console.log(cssBackgroundImage)
+          return cssBackgroundImage;
+        } catch (error) {
+          //console.error(error);
+          return '';
+        }
+      ]]]
   state:
     - id: state_on
       operator: template
@@ -647,7 +775,9 @@ cb-lcars-multimeter:
         - position: absolute
         - top: 0
         - left: 0
-        - visibility: "[[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden' ]]]"
+        - visibility: >-
+            [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
+            ]]]
         - border-top: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
@@ -683,20 +813,46 @@ cb-lcars-multimeter:
         - width: >-
             [[[
               return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-            " + variables.__get_num_with_unit(variables.card.border.right.size) +
-            " )"
-            ]]]
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
+            " )" ]]]
         - height: >-
-            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.height) + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + "
+            - " +
+            variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
       slider_track:
+        - visibility: >-
+            [[[ return (variables._mode === 'slider') ? 'visible' : 'hidden'
+            ]]]
         - position: absolute
         - top: 0
         - left: 0
-        - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
+        - width: >-
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
+            " - " +
+            variables.__get_num_with_unit(variables.slider_track.padding.left) +
+            " - " +
+            variables.__get_num_with_unit(variables.slider_track.padding.right) +
+            " )" ]]]
+        - height: >-
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.height) + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + "
+            - " +
+            variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            " - " +
+            variables.__get_num_with_unit(variables.slider_track.padding.top) +
+            " - " +
+            variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
+            ")" ]]]
         - border-top: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
@@ -731,19 +887,22 @@ cb-lcars-multimeter:
             ]]]
         - padding-left: >-
             [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.left) ]]]
+            variables.__get_num_with_unit(variables.slider_track.padding.left)
+            ]]]
         - padding-right: >-
             [[[ return
             variables.__get_num_with_unit(variables.slider_track.padding.right)
             ]]]
         - padding-top: >-
             [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.top) ]]]
+            variables.__get_num_with_unit(variables.slider_track.padding.top)
+            ]]]
         - padding-bottom: >-
             [[[ return
             variables.__get_num_with_unit(variables.slider_track.padding.bottom)
             ]]]
       slider:
+        - visibility2: hidden
         - visibility: >-
             [[[ return ((variables._mode === 'gauge') &&
             !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
@@ -765,17 +924,21 @@ cb-lcars-multimeter:
               }
             ]]]
         - width: >-
-            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-            " + variables.__get_num_with_unit(variables.card.border.right.size) +
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
             ")" ]]]
         - height: >-
-            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.height) + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + "
+            - " +
+            variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
       locked_bar:
-        - visibility: "[[[ return (variables.slider.locked) ? 'visible' : 'hidden' ]]]"
+        - visibility: '[[[ return (variables.slider.locked) ? ''visible'' : ''hidden'' ]]]'
         - position: absolute
         - z-index: 1
         - left: |
@@ -796,25 +959,29 @@ cb-lcars-multimeter:
                 }
             ]]]
         - width: >-
-            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-            " + variables.__get_num_with_unit(variables.card.border.right.size) +
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
             ")" ]]]
         - height: >-
-            [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-            variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-            + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            [[[ return "calc(" +
+            variables.__get_num_with_unit(variables.card.height) + " - " +
+            variables.__get_num_with_unit(variables.card.border.top.size)  + "
+            - " +
+            variables.__get_num_with_unit(variables.card.border.bottom.size) +
             ")" ]]]
   custom_fields:
     slider:
       card:
         type: custom:my-slider-v2
-        entity: "[[[ return variables.entity ]]]"
-        mode: "[[[ return variables.slider.mode ]]]"
-        vertical: "[[[ return variables._vertical ]]]"
+        entity: '[[[ return variables.entity ]]]'
+        mode: '[[[ return variables.slider.mode ]]]'
+        vertical: '[[[ return variables._vertical ]]]'
         flipped: false
         inverse: false
-        step: "[[[ return variables.slider.step; ]]]"
+        step: '[[[ return variables.slider.step; ]]]'
         min: |
           [[[
           //  if (variables.slider.mode === 'temperature') {
@@ -834,17 +1001,19 @@ cb-lcars-multimeter:
         styles:
           card:
             - width: >-
-                [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-                variables.__get_num_with_unit(variables.card.border.left.size)  +
-                " - " +
-                variables.__get_num_with_unit(variables.card.border.right.size) +
-                ")" ]]]
+                [[[ return "calc(" +
+                variables.__get_num_with_unit(variables.card.width) + " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size)
+                + " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size)
+                + ")" ]]]
             - height: >-
-                [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-                variables.__get_num_with_unit(variables.card.border.top.size)  + "
-                - " +
-                variables.__get_num_with_unit(variables.card.border.bottom.size) +
-                ")" ]]]
+                [[[ return "calc(" +
+                variables.__get_num_with_unit(variables.card.height) + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)
+                + " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size)
+                + ")" ]]]
             - background: none
             - border-radius: 0
           progress:
@@ -856,10 +1025,10 @@ cb-lcars-multimeter:
                 [[[ return variables.slider.border_width + " solid " +
                 variables.__hex_to_rgba(variables.slider.border_color,
                 variables.slider.border_alpha)  ]]]
-            - border-radius: "[[[ return variables.slider.border_radius ]]]"
-            - height: "[[[ return variables.slider.height ]]]"
-            - width: "[[[ return variables.slider.width ]]]"
-            - left: "[[[ return variables.slider.left_padding ]]]"
+            - border-radius: '[[[ return variables.slider.border_radius ]]]'
+            - height: '[[[ return variables.slider.height ]]]'
+            - width: '[[[ return variables.slider.width ]]]'
+            - left: '[[[ return variables.slider.left_padding ]]]'
           container:
             - border-radius: 0
           track:
@@ -975,29 +1144,69 @@ cb-lcars-multimeter:
       ]]]
     slider_track:
       card:
-        type: custom:cblcars-button-card
-        template: |
+        type: custom:my-slider-v2
+        entity: '[[[ return variables.entity ]]]'
+        mode: '[[[ return variables.slider.mode ]]]'
+        vertical: '[[[ return variables._vertical ]]]'
+        flipped: true
+        inverse: true
+        step: '[[[ return variables.slider.step; ]]]'
+        min: |
           [[[
-            if(variables._vertical) {
-              return ['cb-lcars-functions', 'cb-lcars-slider'];
-            } else {
-              return ['cb-lcars-functions', 'cb-lcars-slider-horizontal'];
-            }
+          //  if (variables.slider.mode === 'temperature') {
+          //    return entity.attributes.min_mired
+          //  } else {
+              return variables.slider.min;
+          //  }
           ]]]
-        variables:
+        max: |
+          [[[
+          //  if (variables.slider.mode === 'temperature') {
+          //    return entity.attributes.max_mired
+          //  } else {
+              return variables.slider.max;
+          //  }
+          ]]]
+        styles:
+          progress:
+            - background-color: '[[[ return variables.slider_track.mask_color; ]]]'
+          container:
+            - border-radius: 0
+          track:
+            - background: none
+          thumb:
+            - background: none
           card:
-            width: |
-              [[[
-                  return (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right))+"px";
-              ]]]
-            height: |
-              [[[
-                return (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom))+"px";
-              ]]]
-          entity: "[[[ return variables.entity ]]]"
-          entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
-          entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
-          meter:
-            variables: "[[[ return variables.slider_track.meter ]]]"
-          slider:
-            variables: "[[[ return variables.slider ]]]"
+            - width: >-
+                [[[ return "calc(" +
+                variables.__get_num_with_unit(variables.card.width) + " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size)
+                + " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size)
+                + " - " +
+                variables.__get_num_with_unit(variables.slider_track.padding.left)
+                + " - " +
+                variables.__get_num_with_unit(variables.slider_track.padding.right)
+                + ")" ]]]
+            - height: >-
+                [[[ return "calc(" +
+                variables.__get_num_with_unit(variables.card.height) + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)
+                + " - " +
+                variables.__get_num_with_unit(variables.slider_track.padding.top)
+                + " - " +
+                variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+                + ")" ]]]
+            - border-radius: unset !important
+            - background: |
+                [[[
+
+                  switch(variables._mode) {
+                    case 'gauge':
+                      return 'none';
+                    case 'slider':
+                      return variables.z_slider;
+                    default:
+                      return 'none';
+                  }
+                ]]]
