@@ -206,6 +206,12 @@ class CBLCARSBaseCard extends ButtonCard {
         this._isResizeObserverEnabled = (config.enable_resize_observer || (config.variables && config.variables.enable_resize_observer)) || false;
         this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
 
+        // Enable the resize observer if any merged template contains the word 'animation'
+        // this allows us to enable the observer for added animation templates without needed to explicity add it to the config
+        if (mergedTemplates.some(template => template.includes('animation'))) {
+            this._isResizeObserverEnabled = true;
+        }
+
         // Enable the resize observer if the configuration option is enabled
         if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
