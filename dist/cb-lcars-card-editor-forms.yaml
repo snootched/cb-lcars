@@ -1,11 +1,11 @@
-cb-lcars-base-card2:
+cb-lcars-base-card:
   render_form:
     - type: ControlRow
       controls:
         - type: Message
           alertType: info
           message: "This is a base card for advanced use.  Visual Editor is not available for this card."
-cb-lcars-base-card:
+cb-lcars-base-controls:
   render_form:
     - type: ControlRow
       controls:
@@ -3930,7 +3930,7 @@ cb-lcars-label-card:
                           label: 'Standard Label'
                         - value: 'cb-lcars-label-picard'
                           label: 'Picard Label'
-                        - value: 'cb-lcars-cascade'
+                        - value: 'cb-lcars-animation-cascade'
                           label: 'Data Cascade'
                 - type: Message
                   alertType: info
@@ -3942,12 +3942,12 @@ cb-lcars-label-card:
                     entity:
         - <<: *textLabelSection
           expanded: true
-          visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-cascade'"
+          visibilityCondition: "this._config.cblcars_card_type != 'cb-lcars-animation-cascade'"
         - <<: *advancedSettingsToggle
         - <<: *cardSection
         - <<: *actionsSection
     - label: "Data Cascade"
-      visibilityCondition: "this._config.cblcars_card_type === 'cb-lcars-cascade'"
+      visibilityCondition: "this._config.cblcars_card_type === 'cb-lcars-animation-cascade'"
       content:
         - type: Section
           label: "Cascade"
@@ -4028,12 +4028,12 @@ cb-lcars-label-card:
                     - cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.cascade.colors.text"
+                          configValue: "variables.animation.cascade.colors.text"
                         - <<: *colorControl
-                          configValue: "variables.cascade.colors.text"
+                          configValue: "variables.animation.cascade.colors.text"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.cascade.colors.text"
+                          configValue: "variables.animation.cascade.colors.text"
 
                     - controls:
                         - type: RawHTML
@@ -4043,12 +4043,12 @@ cb-lcars-label-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.cascade.colors.animation_start"
+                          configValue: "variables.animation.cascade.colors.animation_start"
                         - <<: *colorControl
-                          configValue: "variables.cascade.colors.animation_start"
+                          configValue: "variables.animation.cascade.colors.animation_start"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.cascade.colors.animation_start"
+                          configValue: "variables.animatino.cascade.colors.animation_start"
                     - controls:
                         - type: RawHTML
                           html: |
@@ -4057,12 +4057,12 @@ cb-lcars-label-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.cascade.colors.animation_end"
+                          configValue: "variables.animation.cascade.colors.animation_end"
                         - <<: *colorControl
-                          configValue: "variables.cascade.colors.animation_end"
+                          configValue: "variables.animation.cascade.colors.animation_end"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.cascade.colors.animation_end"
+                          configValue: "variables.animation.cascade.colors.animation_end"
 cb-lcars-multimeter-card:
   tabs:
     - label: "LCARS Mode"
