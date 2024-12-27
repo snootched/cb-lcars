@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.4
+  version: 2024.12.5-alpha-1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -20,6 +20,140 @@ cblcars_card_templates:
             left_radius: 0px
           bottom:
             left_radius: 0px
+  cb-lcars-animation-pulse-wave:
+    show_label: false
+    variables:
+      enable_resize_observer: true
+      animation:
+        pulse_wave:
+          line_height: 20
+          line_width: 3
+          line_width_even: 4
+          line_angle: 15
+          color:
+            line_color: black
+            start_color: var(--lcars-ui-tertiary)
+            end_color: black
+    styles:
+      label:
+        - z-index: 1
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: center
+    custom_fields:
+      animation: |
+        [[[
+          const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const line_height = (variables.animation.pulse_wave.line_height !== undefined ) ? parseInt(variables.animation.pulse_wave.line_height) : 20;
+          const line_width = (variables.animation.pulse_wave.line_width !== undefined ) ? parseInt(variables.animation.pulse_wave.line_width) : 3;
+          const line_width_even = (variables.animation.pulse_wave.line_width_even !== undefined ) ? parseInt(variables.animation.pulse_wave.line_width_even) : 4;
+          const line_color = variables.animation.pulse_wave.color.line_color || '#000';
+          const animation_start_color = variables.animation.pulse_wave.color.start_color || 'var(--picard-blue)';
+          const animation_end_color = variables.animation.pulse_wave.color.end_color || '#000';
+          const line_angle = (variables.animation.pulse_wave.line_angle !== undefined) ? variables.animation.pulse_wave.line_angle : 17;
+          let line_transform = variables.animation.pulse_wave.line_transform || `rotate(${line_angle}deg)`
+          //console.info(line_transform)
+          //console.info("line_width: ",line_width)
+          //console.info("line_width_even: ",line_width_even)
+          // Calculate the total width of one cycle of the pattern
+          const pattern_width = line_width + line_width_even;
+          //console.info("pattern_width: ",pattern_width)
+          // Calculate the number of lines needed to fill the card width
+          const num_lines = variables.animation.pulse_wave.num_lines || Math.ceil(card_width / pattern_width) * 2;
+          //console.info("num_lines: ",num_lines)
+          // Original heights and their ratios
+          const originalHeights = [180, 120, 230, 60, 30];
+          const maxOriginalHeight = Math.max(...originalHeights);
+          const heightRatios = originalHeights.map(height => height / maxOriginalHeight);
+          // Calculate new heights based on card_height
+          const newHeights = heightRatios.map(ratio => Math.round(ratio * card_height));
+          const animationSettings = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+          ];
+          let keyframes = '';
+          animationSettings.forEach(({ keyframe, height }) => {
+            keyframes += `
+              @keyframes ${keyframe} {
+                0% { height: ${height}px; }
+                50% { height: ${height / 2}px; }
+                100% { height: ${height}px; }
+              }
+            `;
+          });
+          let lines = '';
+          for (let i = 1; i <= num_lines; i++) {
+            lines += `<div class="line line-${i}"></div>`;
+          }
+          const nthChildAnimations = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite'
+          ];
+          return `
+            <elt>
+              <style>
+                .wrapper {
+                  flex: 1;
+                  display: flex;
+                  flex-grow: 1;
+                  align-items: center;
+                }
+                .line {
+                  height: ${line_height}px;
+                  width: ${line_width}px;
+                  background: linear-gradient( ${line_color}, ${animation_start_color}, ${line_color}, ${animation_end_color});
+                  transform: ${line_transform};
+                }
+                .line:nth-child(even) {
+                  width: ${line_width_even}px;
+                }
+                ${keyframes}
+                ${Array.from({ length: num_lines }, (_, i) => `
+                  .line:nth-child(${i + 1}) { animation: ${nthChildAnimations[i % nthChildAnimations.length]}; }
+                `).join('')}
+              </style>
+              <div class="wrapper">
+                ${lines}
+              </div>
+            </elt>
+          `;
+        ]]]
   cb-lcars-button-lozenge:
     template: cb-lcars-button-base
     variables:
@@ -401,119 +535,6 @@ cblcars_card_templates:
           - height: 0
           - width: 0
           - visibility: hidden
-  cb-lcars-slider:
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    triggers_update: '[[[ return variables.entity ]]]'
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
-      entity: '[[[ return entity.entity_id ]]]'
-      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
-      entity_match_slider_start: false
-      entity_match_slider_end: false
-      meter:
-        template:
-          - cb-lcars-meter
-        variables:
-          gradient_start_color: >
-            [[[ return  variables.entity_match_slider_start ?
-            variables.entity_color :
-            "var(--error-color)" ]]]
-          gradient_end_color: >
-            [[[ return  variables.entity_match_slider_end ?
-            variables.entity_color :
-            "var(--success-color)" ]]]
-          card:
-            height: '[[[ return variables.card.height ]]]'
-            width: '[[[ return variables.card.width ]]]'
-          button:
-            variables:
-              card:
-                height: 15px
-                width: '[[[ return variables.card.width ]]]'
-      slider:
-        variables:
-          mask_color: rgb(0,0,0,0.8)
-          step: 1
-          mode: brightness
-    styles:
-      card:
-        - width: '[[[ return variables.card.width ]]]'
-        - height: '[[[ return variables.card.height ]]]'
-        - border-radius: 0 !important
-        - background: none
-      custom_fields:
-        meter:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-        slider:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-          - z-index: 1
-          - width: '[[[ return variables.card.width ]]]'
-          - height: '[[[ return variables.card.height ]]]'
-    custom_fields:
-      meter:
-        card:
-          type: custom:cblcars-button-card
-          template: '[[[ return variables.meter.template ]]]'
-          variables: '[[[ return variables.meter.variables ]]]'
-      slider:
-        card:
-          type: custom:my-slider-v2
-          entity: '[[[ return variables.entity ]]]'
-          mode: '[[[ return variables.slider.variables.mode ]]]'
-          flipped: true
-          inverse: true
-          vertical: true
-          step: '[[[ return variables.slider.variables.step; ]]]'
-          styles:
-            card:
-              - width: '[[[ return variables.card.width ]]]'
-              - height: '[[[ return variables.card.height ]]]'
-              - background: none
-              - border-radius: 0
-            progress:
-              - background-color: '[[[ return variables.slider.variables.mask_color; ]]]'
-            container:
-              - border-radius: 0
-            track:
-              - background: none
-            thumb:
-              - background: none
-  cb-lcars-slider-horizontal:
-    template:
-      - cb-lcars-slider
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    variables:
-      meter:
-        template: cb-lcars-meter-horizontal
-        variables:
-          _gradient:
-            gap: 5px
-          button:
-            template: cb-lcars-button-picard-filled
-            variables:
-              card:
-                height: '[[[ return variables.card.height ]]]'
-                width: 10px
-    triggers_update: '[[[ return variables.entity  ]]]'
-    custom_fields:
-      slider:
-        card:
-          vertical: false
   cb-lcars-label-picard:
     template:
       - cb-lcars-label
@@ -537,86 +558,6 @@ cblcars_card_templates:
           right:
             size: 40
           color: var(--picard-medium-dark-gray)
-  cb-lcars-meter:
-    template:
-      - cb-lcars-functions
-      - cb-lcars-card-base
-      - cb-lcars-button-grid
-    variables:
-      card:
-        height: null
-        width: null
-      button:
-        variables:
-          card:
-            height: 20px
-            min_height: 5px
-            width: 100px
-        show_label: false
-        template:
-          - cb-lcars-button-lozenge
-      gradient_start_color: var(--error-color)
-      gradient_start_rgb: |
-        [[[ 
-          return variables.__hex_to_rgba(variables.gradient_start_color)
-          ]]]
-      gradient_end_color: var(--lcars-blue)
-      gradient_end_rgb: |
-        [[[ 
-          return variables.__hex_to_rgba(variables.gradient_end_color) 
-        ]]]
-      _gradient:
-        X: 1
-        'Y': 10
-        gap: 5px
-      gradient_X: >-
-        [[[ return variables.__calculate_grid_cells(variables.card.width,
-        variables.button.variables.card.width, variables._gradient.gap,
-        variables._gradient.X) ]]]
-      gradient_Y: >-
-        [[[ return variables.__calculate_grid_cells(variables.card.height,
-        variables.button.variables.card.height, variables._gradient.gap,
-        variables._gradient.Y) ]]]
-      grid:
-        X: '[[[ return variables.gradient_X ]]]'
-        'Y': '[[[ return variables.gradient_Y ]]]'
-        gap: '[[[ return variables._gradient.gap ]]]'
-        buttons: |
-          [[[ 
-            let buttons = [];
-            let total_steps = (variables.gradient_X > variables.gradient_Y) ? variables.gradient_X : variables.gradient_Y;
-            //console.debug("grid_X: " + variables.grid_X);
-            //console.debug("total_steps: " + total_steps);
-            for(let i = 0; i < total_steps ; i++) {
-              buttons.push({
-                variables: {
-                  card: {
-                    color: {
-                      background: {
-                        inactive: variables.__interpolated_rgb(variables.gradient_start_rgb,variables.gradient_end_rgb, i, total_steps)
-                      },
-                    },
-                  },
-                },
-              });
-            }
-            return buttons;
-          ]]]
-  cb-lcars-meter-horizontal:
-    template:
-      - cb-lcars-meter
-    variables:
-      button:
-        variables:
-          card:
-            width: 10px
-            height: 20px
-        template:
-          - cb-lcars-button-picard-filled
-      _gradient:
-        gap: 5px
-        'Y': 1
-        X: 25
   cb-lcars-theme:
     template:
         - cb-lcars-functions
@@ -4271,57 +4212,6 @@ cblcars_card_templates:
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
                 [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
-  cb-lcars-button-grid:
-    template:
-      - cb-lcars-grid
-    variables:
-      card:
-        width: null
-        height: null
-      grid:
-        auto_calc_X: true
-        auto_calc_Y: true
-        buttons: []
-        X: 3
-        'Y': 2
-        template_columns: null
-        auto_rows: null
-        gap: 5px
-      button:
-        type: custom:cblcars-button-card
-        variables:
-          card:
-            width: 180px
-            height: 45px
-            min_height: 10px
-            color:
-              active: var(--lcars-ui-secondary)
-              inactive: var(--lcars-ui-primary)
-              background:
-                active: var(--lcars-ui-secondary)
-                inactive: var(--lcars-ui-primary)
-              default: null
-          icon:
-            border:
-              right:
-                padding: 2%
-            color:
-              active: null
-              inactive: null
-            background:
-              active: null
-              inactive: null
-        template:
-          - cb-lcars-button-picard-filled
-          - cb-lcars-button-picard-label-se
-          - cb-lcars-button-picard-name-nw
-          - cb-lcars-button-picard-state-sw
-          - cb-lcars-actions-disable
-        size: 22px
-        show_name: false
-        show_state: false
-        show_label: true
-        show_icon: false
   cb-lcars-button-base:
     template:
       - cb-lcars-base
@@ -4511,108 +4401,13 @@ cblcars_card_templates:
             size: 10px
           right:
             size: 10px
-  cb-lcars-grid:
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    variables:
-      card:
-        width: null
-        height: null
-      grid:
-        auto_calc_X: true
-        auto_calc_Y: true
-        buttons: []
-        X: 3
-        'Y': 2
-        template_columns: null
-        auto_rows: null
-        gap: 5px
-      button:
-        type: custom:cblcars-button-card
-        variables:
-          card:
-            width: 180px
-            height: 45px
-            min_height: 10px
-        show_name: false
-        show_state: false
-        show_label: false
-        show_icon: false
-      y_grid_X: >
-        [[[ return variables.grid.auto_calc_X ?
-        variables.__calculate_grid_cells(variables.card.width,
-        variables.button.variables.card.width, variables.grid.gap,
-        variables.grid.X) : variables.grid.X ]]]
-      y_grid_Y: >
-        [[[ return variables.grid.auto_calc_Y ?
-        variables.__calculate_grid_cells(variables.card.height,
-        variables.button.variables.card.height, variables.grid.gap,
-        variables.grid.Y) : variables.grid.Y ]]]
-      y_total_cards: '[[[ return variables.y_grid_X * variables.y_grid_Y; ]]]'
-      z_card_width: >
-        [[[ return variables.card.width || "calc( ((" +
-        variables.button.variables.card.width + " + " + variables.grid.gap + " )
-        *" + variables.y_grid_X + ") - " + variables.grid.gap + ")";
-        ]]]
-      z_card_height: >
-        [[[ return variables.card.height || "calc( ((" +
-        variables.button.variables.card.height + " + " + variables.grid.gap + "
-        ) *" + variables.y_grid_Y + ") - " + variables.grid.gap + ")";
-        ]]]
-    styles:
-      card:
-        - height: '[[[ return variables.z_card_height ]]]'
-        - width: '[[[ return variables.z_card_width ]]]'
-        - border-radius: 0 !important
-      custom_fields:
-        button_grid:
-          - position: absolute
-          - top: 0px
-          - left: 0px
-    custom_fields:
-      button_grid:
-        card:
-          type: custom:layout-card
-          layout_type: custom:grid-layout
-          layout:
-            grid-template-columns: >-
-              [[[ return variables.grid.template_columns || "repeat(" +
-              variables.y_grid_X + ", " + variables.button.variables.card.width
-              + ")"; ]]]
-            grid-auto-rows: >-
-              [[[ return variables.grid.auto_rows ||
-              variables.button.variables.card.height; ]]]
-            grid-gap: '[[[ return variables.grid.gap; ]]]'
-            card_margin: 0
-            padding: 0
-            margin: '-4px -4px 0px -4px'
-          cards: |
-            [[[
-              let resultArray = [];
-              for (let x = 1; x <= variables.y_total_cards; x++) {
-                let cardObject = variables.grid.buttons && variables.grid.buttons[x-1] ? variables.grid.buttons[x-1] : {};
-                let defaultVariables = variables.button;
-                //cardObject.variables = {...defaultVariables, ...cardObject.variables};
-                cardObject = variables.__deepMerge(defaultVariables, cardObject);
-                let additionalObject = {
-                  view_layout: {
-                    show: '[[[ return variables.y_total_cards >= x ? "always" : "never"; ]]]'
-                  },
-                  show_label: variables.button.show_label,
-                  label: variables.button.label || (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0')))),
-                };
-                //resultArray.push({...additionalObject, ...cardObject});
-                resultArray.push(variables.__deepMerge({...additionalObject}, cardObject));
-              }
-              return resultArray;
-            ]]]
-  cb-lcars-cascade:
+  cb-lcars-animation-cascade:
     template:
       - cb-lcars-functions
       - cb-lcars-label
     show_label: true
     variables:
+      enable_resize_observer: true
       card:
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
@@ -4620,132 +4415,141 @@ cblcars_card_templates:
         label:
           font_size: 24
           font_weight: 300
-      cascade:
-        grid:
-          num_cols: null
-          gap: 8
-          num_rows: null
-        colors:
-          text: var(--picard-dark-blue)
-          animation_start: var(--picard-blue)
-          animation_end: var(--picard-moonlight)
-    label: |
-      [[[
-        const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-        const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-        //console.debug( `${card_height}`);
-        //console.debug( `${card_width}`);
-        const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
-        const row_height = variables.__get_num_with_unit(variables.cascade.grid.row_height) || font_size;
-        const column_width = variables.__get_num_with_unit(variables.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
-        const grid_gap = variables.__get_num_with_unit(variables.cascade.grid.gap) || '8px';
-        const text_color = variables.cascade.colors.text || '#000';
-        const animation_start_color = variables.cascade.colors.animation_start || '#26f';
-        const animation_end_color = variables.cascade.colors.animation_end || '#def';
-        const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
-        //console.debug(`${auto_num_cols}`);
-        //console.debug("row_height: ",row_height);
-        //console.debug("grid_gap: ",grid_gap);
-        //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
-        const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
-        //console.debug(`${auto_num_rows}`);
-        const num_rows = variables.cascade.grid.num_rows || auto_num_rows;
-        const num_cols = variables.cascade.grid.num_cols || auto_num_cols;
-        // Predefined animation delays and durations for a more random feel
-        const animationSettings = [
-          { duration: 3, delay: 0.1 },
-          { duration: 3, delay: 0.2 },
-          { duration: 4, delay: 0.3 },
-          { duration: 4, delay: 0.4 },
-          { duration: 4, delay: 0.5 },
-          { duration: 2, delay: 0.6 },
-          { duration: 2, delay: 0.7 },
-          { duration: 2, delay: 0.8 }
-        ];
-        // Function to generate random text for cells (digits, floats, or text)
-        function getRandomText() {
-          const types = ['digit', 'float','digit', 'float', 'text'];
-          const type = types[Math.floor(Math.random() * types.length)];
-          switch (type) {
-            case 'digit':
-              return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-            case 'float':
-              return (Math.random() * 100).toFixed(2);
-            case 'text':
-              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-              return chars.charAt(Math.floor(Math.random() * chars.length)) + chars.charAt(Math.floor(Math.random() * chars.length));
-            default:
-              return '00';
+      animation:
+        cascade:
+          grid:
+            num_cols: null
+            gap: 8
+            num_rows: null
+          colors:
+            text: var(--picard-dark-blue)
+            animation_start: var(--picard-blue)
+            animation_end: var(--picard-moonlight)
+    styles:
+      label:
+        - z-index: 1
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: center
+    custom_fields:
+      animation: |
+        [[[
+          const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          //console.debug( `${card_height}`);
+          //console.debug( `${card_width}`);
+          const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
+          const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
+          const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
+          const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
+          const text_color = variables.animation.cascade.colors.text || '#000';
+          const animation_start_color = variables.animation.cascade.colors.animation_start || '#26f';
+          const animation_end_color = variables.animation.cascade.colors.animation_end || '#def';
+          const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
+          //console.debug(`${auto_num_cols}`);
+          //console.debug("row_height: ",row_height);
+          //console.debug("grid_gap: ",grid_gap);
+          //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
+          const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
+          //console.debug(`${auto_num_rows}`);
+          const num_rows = variables.animation.cascade.grid.num_rows || auto_num_rows;
+          const num_cols = variables.animation.cascade.grid.num_cols || auto_num_cols;
+          // Predefined animation delays and durations for a more random feel
+          const animationSettings = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          // Function to generate random text for cells (digits, floats, or text)
+          function getRandomText() {
+            const types = ['digit', 'float','digit', 'float', 'text'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            switch (type) {
+              case 'digit':
+                return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+              case 'float':
+                return (Math.random() * 100).toFixed(2);
+              case 'text':
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                return chars.charAt(Math.floor(Math.random() * chars.length)) + chars.charAt(Math.floor(Math.random() * chars.length));
+              default:
+                return '00';
+            }
           }
-        }
-        let rows = '';
-        for (let i = 1; i <= num_rows; i++) {
-          const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
-          rows += `
-            <div class="row-${i} row">
-              ${Array.from({ length: num_cols }, (_, j) => `
-                <div class="cell dc${j + 1}">${getRandomText()}</div>
-              `).join('')}
-            </div>
-          `;
-        }
-        return `
-          <elt>
-            <style>
-              @keyframes colorchange {
-                0% {color: ${animation_start_color}}
-                25% {color: ${animation_start_color}}
-                50% {color: ${animation_start_color}}
-                75% {color: ${animation_start_color}}
-                80% {color: ${text_color}}
-                90% {color: ${text_color}}
-                100% {color: ${animation_end_color}}
-              }
-              .cascade-wrapper {
-                flex: 1;
-                padding-right: 1px;
-                display: flex;
-                flex-grow: 1;
-              }
-              .data-cascade {
-                font-size: ${font_size};
-                line-height: 1;
-              }
-              ${Array.from({ length: num_rows }, (_, i) => `
-                .row-${i + 1} {
-                  display: grid;
-                  grid-template-columns: repeat(${num_cols}, ${column_width});
-                  gap: ${grid_gap};
-                  color: ${text_color};
-                  animation: colorchange ${animationSettings[i % animationSettings.length].duration}s infinite;
-                  animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
-                  margin-bottom: ${grid_gap}; /* Add spacing between rows */
-                  height: ${row_height}
-                }
-              `).join('')}
-              .cell {
-                text-align: right;
-              }
-            </style>
-            <div class="cascade-wrapper">
-              <div class="data-cascade" id="default">
-                ${rows}
+          let rows = '';
+          for (let i = 1; i <= num_rows; i++) {
+            const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
+            rows += `
+              <div class="row-${i} row">
+                ${Array.from({ length: num_cols }, (_, j) => `
+                  <div class="cell dc${j + 1}">${getRandomText()}</div>
+                `).join('')}
               </div>
-            </div>
-          </elt>
-        `;
-      ]]]
+            `;
+          }
+          return `
+            <elt>
+              <style>
+                @keyframes colorchange {
+                  0% {color: ${animation_start_color}}
+                  25% {color: ${animation_start_color}}
+                  50% {color: ${animation_start_color}}
+                  75% {color: ${animation_start_color}}
+                  80% {color: ${text_color}}
+                  90% {color: ${text_color}}
+                  100% {color: ${animation_end_color}}
+                }
+                .cascade-wrapper {
+                  flex: 1;
+                  padding-right: 1px;
+                  display: flex;
+                  flex-grow: 1;
+                }
+                .data-cascade {
+                  font-size: ${font_size};
+                  line-height: 1;
+                }
+                ${Array.from({ length: num_rows }, (_, i) => `
+                  .row-${i + 1} {
+                    display: grid;
+                    grid-template-columns: repeat(${num_cols}, ${column_width});
+                    gap: ${grid_gap};
+                    color: ${text_color};
+                    animation: colorchange ${animationSettings[i % animationSettings.length].duration}s infinite;
+                    animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
+                    margin-bottom: ${grid_gap}; /* Add spacing between rows */
+                    height: ${row_height}
+                  }
+                `).join('')}
+                .cell {
+                  text-align: right;
+                }
+              </style>
+              <div class="cascade-wrapper">
+                <div class="data-cascade" id="default">
+                  ${rows}
+                </div>
+              </div>
+            </elt>
+          `;
+        ]]]
   cb-lcars-multimeter:
-    type: custom:cblcars-button-card
-    entity: "[[[ return variables.entity ]]]"
+    entity: '[[[ return variables.entity ]]]'
     template:
       - cb-lcars-functions
       - cb-lcars-base
       - cb-lcars-actions-disable
-    triggers_update: "[[[ return variables.entity ]]]"
+    triggers_update: '[[[ return variables.entity ]]]'
     show_icon: false
     show_label: true
-    label: "[[[ return variables.label ]]]"
+    label: '[[[ return variables.label ]]]'
     show_name: false
     show_state: false
     variables:
@@ -4833,12 +4637,30 @@ cblcars_card_templates:
         [[[
           return variables._unit_of_measurement || entity.attributes.unit_of_measurement || '%';
         ]]]
-      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+      entity_color: |
+        [[[
+          return variables.__get_light_css_color(variables.entity)
+        ]]]
       entity_match_slider: false
       entity_match_gauge: false
       entity_match_header: false
       entity_match_slider_start: false
       entity_match_slider_end: false
+      card:
+        height: '[[[ return this.offsetHeight; ]]]'
+        min_height: '[[[ return this.offsetHeight; ]]]'
+        width: '[[[ return this.offsetWidth; ]]]'
+        border:
+          top:
+            size: 10
+          bottom:
+            size: 0
+          left:
+            size: 120
+          right:
+            size: 0
+          inner:
+            width: 0
       text:
         label:
           font_size: 22px
@@ -4897,21 +4719,6 @@ cblcars_card_templates:
             hvac_heat: black
             hvac_cool: black
             unavailable: black
-      card:
-        height: '[[[ return this.offsetHeight; ]]]'
-        min_height: '[[[ return this.offsetHeight; ]]]'
-        width: '[[[ return this.offsetWidth; ]]]'
-        border:
-          top:
-            size: 10
-          bottom:
-            size: 0
-          left:
-            size: 120
-          right:
-            size: 0
-          inner:
-            width: 0
       slider:
         locked: |
           [[[
@@ -4935,6 +4742,14 @@ cblcars_card_templates:
             }
             return locked;
           ]]]
+        height: >-
+          [[[ return (variables._vertical) ?
+          variables.__get_num_with_unit(variables.card.height) :
+          variables.__get_num_with_unit(variables._slider_thickness) ]]]
+        width: >-
+          [[[ return (variables._vertical) ?
+          variables.__get_num_with_unit(variables._slider_thickness) :
+          variables.__get_num_with_unit(variables.card.width) ]]]
         color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
           "var(--picard-lightest-blue)" ]]]
@@ -4945,26 +4760,19 @@ cblcars_card_templates:
         border_alpha: 0.5
         border_width: 0px
         border_radius: 2px
-        flipped: "[[[ return (variables._vertical) ? true : false ]]]"
-        height: >-
-          [[[ return (variables._vertical) ? variables.__get_num_with_unit(variables.card.height) :
-          variables.__get_num_with_unit(variables._slider_thickness) ]]]
-        width: >-
-          [[[ return (variables._vertical) ?
-          variables.__get_num_with_unit(variables._slider_thickness) :
-          variables.__get_num_with_unit(variables.card.width) ]]]
+        flipped: '[[[ return (variables._vertical) ? true : false ]]]'
         left_padding: 1px
-        top_padding: "[[[ return variables.gauge.sub_meter.tick_size ]]]"
+        top_padding: '[[[ return variables.gauge.sub_meter.tick_size ]]]'
         step: |
           [[[
             return entity.attributes.percentage_step || variables._slider_step;
           ]]]
-        mode: "[[[ return variables._slider_mode ]]]"
-        min: "[[[ return variables.entity_min ]]]"
-        max: "[[[ return variables.entity_max ]]]"
+        mode: '[[[ return variables._slider_mode ]]]'
+        min: '[[[ return variables.entity_min ]]]'
+        max: '[[[ return variables.entity_max ]]]'
       gauge:
-        min: "[[[ return variables.entity_min ]]]"
-        max: "[[[ return variables.entity_max ]]]"
+        min: '[[[ return variables.entity_min ]]]'
+        max: '[[[ return variables.entity_max ]]]'
         increment: |
           [[[
             const entityDomain = entity.entity_id.split('.')[0];
@@ -5012,13 +4820,117 @@ cblcars_card_templates:
           inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
       slider_track:
         padding:
-          left: 5px
-          right: 0px
-          top: 5px
-          bottom: 0px
-        meter:
-          _gradient:
-            gap: 5px
+          left: 5
+          right: 0
+          top: 5
+          bottom: 0
+        mask_color: rgba(0,0,0,0.8)
+        gradient_start_color: >
+          [[[ return  variables.entity_match_slider_start ?
+          variables.entity_color : "var(--error-color)" ]]]
+        gradient_end_color: >
+          [[[ return  variables.entity_match_slider_end ? variables.entity_color
+          : "var(--success-color)" ]]]
+        gap: 5
+        bar_border_radius: 0
+        bar_thickness: 10
+      z_slider: |
+        [[[
+          function parseColor(color) {
+            if (color.startsWith('var(')) {
+              return cssVarToRgb(color);
+            } else if (color.startsWith('#')) {
+              return hexToRgb(color);
+            } else if (color.startsWith('rgb')) {
+              return rgbStringToRgb(color);
+            } else {
+              return cssStringToRgb(color);
+            }
+          }
+          function cssVarToRgb(cssVar) {
+            const varName = cssVar.slice(4, -1).trim();
+            const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            return parseColor(color);
+          }
+          function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            return [bigint >> 16 & 255, bigint >> 8 & 255, bigint & 255];
+          }
+          function rgbStringToRgb(rgbString) {
+            const rgba = rgbString.match(/\d+/g).map(Number);
+            return rgba.length === 4 ? rgba : rgba.slice(0, 3); // Get only the first three values (R, G, B) or return RGBA
+          }
+          function cssStringToRgb(color) {
+            if (color === 'transparent') {
+              return [0, 0, 0, 0]; // Return RGBA value for transparent
+            }
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = color;
+            document.body.appendChild(ctx.canvas); // Append to body to apply style
+            const computedColor = getComputedStyle(ctx.canvas).fillStyle;
+            document.body.removeChild(ctx.canvas); // Remove canvas after use
+            return rgbStringToRgb(computedColor);
+          }
+          try {
+            const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
+            const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
+            let barWidth, barHeight;
+            // Defaults and overrides
+            let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
+            let barOrientation = variables._vertical ? "vertical" : "horizontal";
+            let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
+            // Set defaults based on orientation
+            if (barOrientation === 'horizontal') {
+              barHeight = height; // Default to height
+              barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            } else {
+              barWidth = width; // Default to width
+              barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            }
+            // Dynamic variable assignment
+            let startColor = variables.slider_track.gradient_start_color.trim();
+            let endColor = variables.slider_track.gradient_end_color.trim();
+            const startRgb = parseColor(startColor);
+            const endRgb = parseColor(endColor);
+            function interpolateColor(color1, color2, factor) {
+              const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+              return `rgb(${result.join(',')})`;
+            }
+            // Autocalculate numBars
+            const numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(g);
+            let x = 0;
+            let y = 0;
+            for (let i = 0; i < numBars; i++) {
+              const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              rect.setAttribute('x', barOrientation === 'horizontal' ? x : 0);
+              rect.setAttribute('y', barOrientation === 'horizontal' ? 0 : y);
+              rect.setAttribute('width', barOrientation === 'horizontal' ? barWidth : barWidth);
+              rect.setAttribute('height', barOrientation === 'horizontal' ? barHeight : barHeight);
+              rect.setAttribute('rx', cornerRadius);
+              rect.setAttribute('ry', cornerRadius);
+              const factor = i / (numBars - 1);
+              const color = interpolateColor(startRgb, endRgb, factor);
+              rect.setAttribute('fill', color);
+              g.appendChild(rect);
+              x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+              y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+            }
+            const svgString = new XMLSerializer().serializeToString(svg);
+            const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+            const cssBackgroundImage = `url("${svgDataUrl}")`;
+            //console.log(cssBackgroundImage)
+            return cssBackgroundImage;
+          } catch (error) {
+            //console.error(error);
+            return '';
+          }
+        ]]]
     state:
       - id: state_on
         operator: template
@@ -5384,7 +5296,9 @@ cblcars_card_templates:
           - position: absolute
           - top: 0
           - left: 0
-          - visibility: "[[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden' ]]]"
+          - visibility: >-
+              [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
+              ]]]
           - border-top: |
               [[[
                 return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
@@ -5420,20 +5334,46 @@ cblcars_card_templates:
           - width: >-
               [[[
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
-              " )"
-              ]]]
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
+              " )" ]]]
           - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
               ")" ]]]
         slider_track:
+          - visibility: >-
+              [[[ return (variables._mode === 'slider') ? 'visible' : 'hidden'
+              ]]]
           - position: absolute
           - top: 0
           - left: 0
-          - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
+          - width: >-
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.left) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.right) +
+              " )" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.top) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
+              ")" ]]]
           - border-top: |
               [[[
                 return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
@@ -5468,19 +5408,22 @@ cblcars_card_templates:
               ]]]
           - padding-left: >-
               [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.left) ]]]
+              variables.__get_num_with_unit(variables.slider_track.padding.left)
+              ]]]
           - padding-right: >-
               [[[ return
               variables.__get_num_with_unit(variables.slider_track.padding.right)
               ]]]
           - padding-top: >-
               [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.top) ]]]
+              variables.__get_num_with_unit(variables.slider_track.padding.top)
+              ]]]
           - padding-bottom: >-
               [[[ return
               variables.__get_num_with_unit(variables.slider_track.padding.bottom)
               ]]]
         slider:
+          - visibility2: hidden
           - visibility: >-
               [[[ return ((variables._mode === 'gauge') &&
               !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
@@ -5502,17 +5445,21 @@ cblcars_card_templates:
                 }
               ]]]
           - width: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
               ")" ]]]
           - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
               ")" ]]]
         locked_bar:
-          - visibility: "[[[ return (variables.slider.locked) ? 'visible' : 'hidden' ]]]"
+          - visibility: '[[[ return (variables.slider.locked) ? ''visible'' : ''hidden'' ]]]'
           - position: absolute
           - z-index: 1
           - left: |
@@ -5533,25 +5480,29 @@ cblcars_card_templates:
                   }
               ]]]
           - width: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
               ")" ]]]
           - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
               ")" ]]]
     custom_fields:
       slider:
         card:
           type: custom:my-slider-v2
-          entity: "[[[ return variables.entity ]]]"
-          mode: "[[[ return variables.slider.mode ]]]"
-          vertical: "[[[ return variables._vertical ]]]"
+          entity: '[[[ return variables.entity ]]]'
+          mode: '[[[ return variables.slider.mode ]]]'
+          vertical: '[[[ return variables._vertical ]]]'
           flipped: false
           inverse: false
-          step: "[[[ return variables.slider.step; ]]]"
+          step: '[[[ return variables.slider.step; ]]]'
           min: |
             [[[
             //  if (variables.slider.mode === 'temperature') {
@@ -5571,17 +5522,19 @@ cblcars_card_templates:
           styles:
             card:
               - width: >-
-                  [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-                  variables.__get_num_with_unit(variables.card.border.left.size)  +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.right.size) +
-                  ")" ]]]
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.width) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.left.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.right.size)
+                  + ")" ]]]
               - height: >-
-                  [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-                  variables.__get_num_with_unit(variables.card.border.top.size)  + "
-                  - " +
-                  variables.__get_num_with_unit(variables.card.border.bottom.size) +
-                  ")" ]]]
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.height) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.top.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.bottom.size)
+                  + ")" ]]]
               - background: none
               - border-radius: 0
             progress:
@@ -5593,10 +5546,10 @@ cblcars_card_templates:
                   [[[ return variables.slider.border_width + " solid " +
                   variables.__hex_to_rgba(variables.slider.border_color,
                   variables.slider.border_alpha)  ]]]
-              - border-radius: "[[[ return variables.slider.border_radius ]]]"
-              - height: "[[[ return variables.slider.height ]]]"
-              - width: "[[[ return variables.slider.width ]]]"
-              - left: "[[[ return variables.slider.left_padding ]]]"
+              - border-radius: '[[[ return variables.slider.border_radius ]]]'
+              - height: '[[[ return variables.slider.height ]]]'
+              - width: '[[[ return variables.slider.width ]]]'
+              - left: '[[[ return variables.slider.left_padding ]]]'
             container:
               - border-radius: 0
             track:
@@ -5712,32 +5665,71 @@ cblcars_card_templates:
         ]]]
       slider_track:
         card:
-          type: custom:cblcars-button-card
-          template: |
+          type: custom:my-slider-v2
+          entity: '[[[ return variables.entity ]]]'
+          mode: '[[[ return variables.slider.mode ]]]'
+          vertical: '[[[ return variables._vertical ]]]'
+          flipped: true
+          inverse: true
+          step: '[[[ return variables.slider.step; ]]]'
+          min: |
             [[[
-              if(variables._vertical) {
-                return ['cb-lcars-functions', 'cb-lcars-slider'];
-              } else {
-                return ['cb-lcars-functions', 'cb-lcars-slider-horizontal'];
-              }
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.min_mired
+            //  } else {
+                return variables.slider.min;
+            //  }
             ]]]
-          variables:
+          max: |
+            [[[
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.max_mired
+            //  } else {
+                return variables.slider.max;
+            //  }
+            ]]]
+          styles:
+            progress:
+              - background-color: '[[[ return variables.slider_track.mask_color; ]]]'
+            container:
+              - border-radius: 0
+            track:
+              - background: none
+            thumb:
+              - background: none
             card:
-              width: |
-                [[[
-                    return (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right))+"px";
-                ]]]
-              height: |
-                [[[
-                  return (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom))+"px";
-                ]]]
-            entity: "[[[ return variables.entity ]]]"
-            entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
-            entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
-            meter:
-              variables: "[[[ return variables.slider_track.meter ]]]"
-            slider:
-              variables: "[[[ return variables.slider ]]]"
+              - width: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.width) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.left.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.right.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.slider_track.padding.left)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.slider_track.padding.right)
+                  + ")" ]]]
+              - height: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.height) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.top.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.slider_track.padding.top)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+                  + ")" ]]]
+              - border-radius: unset !important
+              - background: |
+                  [[[
+                    switch(variables._mode) {
+                      case 'gauge':
+                        return 'none';
+                      case 'slider':
+                        return variables.z_slider;
+                      default:
+                        return 'none';
+                    }
+                  ]]]
   cb-lcars-state-on-blink:
     variables:
       blink_seconds: 3s
