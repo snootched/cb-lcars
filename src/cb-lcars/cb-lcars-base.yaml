@@ -121,8 +121,12 @@ cb-lcars-base:
         background:
           active: null
           inactive: null
+    animation:
+      justify_content: center
+      align_items: center
   show_label: false
   show_state: false
+  show_units: true
   show_icon: false
   show_name: false
   styles:
@@ -184,6 +188,7 @@ cb-lcars-base:
           ]]]
       - position: relative
     label:
+      - z-index: 1
       - display: flex
       - justify-content: '[[[ return variables.text.label.justify ]]]'
       - align-items: '[[[ return variables.text.label.align_items ]]]'
@@ -279,6 +284,38 @@ cb-lcars-base:
       - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
       - outline: >-
           [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+    custom_fields:
+      animation:
+        - display: flex
+        - position: absolute
+        - align-items: |
+            [[[
+              return variables.animation.align_items || 'center';
+            ]]]
+        - justify-content: |
+            [[[
+              return variables.animation.justify_content || 'center';
+            ]]]
+        - filter: |
+            [[[
+              return variables.animation.filter || 'none';
+            ]]]
+        - height: |
+            [[[
+              return "calc( " + variables.__get_num_with_unit(variables.card.height) +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size)
+            ]]]
+        - width: |
+            [[[
+              return "calc( " + variables.__get_num_with_unit(variables.card.width) +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size)
+            ]]]
   state:
     - id: state_on
       operator: template

@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.4
+  version: 2025.01.1-alpha-1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -401,119 +401,6 @@ cblcars_card_templates:
           - height: 0
           - width: 0
           - visibility: hidden
-  cb-lcars-slider:
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    triggers_update: '[[[ return variables.entity ]]]'
-    variables:
-      card:
-        width: |
-          [[[
-            return variables.__getParentDimension(this,'width','px');
-          ]]]
-        height: |
-          [[[
-            return variables.__getParentDimension(this,'height','px');
-          ]]]
-      entity: '[[[ return entity.entity_id ]]]'
-      entity_color: '[[[ return variables.__get_light_css_color(variables.entity) ]]]'
-      entity_match_slider_start: false
-      entity_match_slider_end: false
-      meter:
-        template:
-          - cb-lcars-meter
-        variables:
-          gradient_start_color: >
-            [[[ return  variables.entity_match_slider_start ?
-            variables.entity_color :
-            "var(--error-color)" ]]]
-          gradient_end_color: >
-            [[[ return  variables.entity_match_slider_end ?
-            variables.entity_color :
-            "var(--success-color)" ]]]
-          card:
-            height: '[[[ return variables.card.height ]]]'
-            width: '[[[ return variables.card.width ]]]'
-          button:
-            variables:
-              card:
-                height: 15px
-                width: '[[[ return variables.card.width ]]]'
-      slider:
-        variables:
-          mask_color: rgb(0,0,0,0.8)
-          step: 1
-          mode: brightness
-    styles:
-      card:
-        - width: '[[[ return variables.card.width ]]]'
-        - height: '[[[ return variables.card.height ]]]'
-        - border-radius: 0 !important
-        - background: none
-      custom_fields:
-        meter:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-        slider:
-          - position: absolute
-          - left: 0px
-          - top: 0px
-          - z-index: 1
-          - width: '[[[ return variables.card.width ]]]'
-          - height: '[[[ return variables.card.height ]]]'
-    custom_fields:
-      meter:
-        card:
-          type: custom:cblcars-button-card
-          template: '[[[ return variables.meter.template ]]]'
-          variables: '[[[ return variables.meter.variables ]]]'
-      slider:
-        card:
-          type: custom:my-slider-v2
-          entity: '[[[ return variables.entity ]]]'
-          mode: '[[[ return variables.slider.variables.mode ]]]'
-          flipped: true
-          inverse: true
-          vertical: true
-          step: '[[[ return variables.slider.variables.step; ]]]'
-          styles:
-            card:
-              - width: '[[[ return variables.card.width ]]]'
-              - height: '[[[ return variables.card.height ]]]'
-              - background: none
-              - border-radius: 0
-            progress:
-              - background-color: '[[[ return variables.slider.variables.mask_color; ]]]'
-            container:
-              - border-radius: 0
-            track:
-              - background: none
-            thumb:
-              - background: none
-  cb-lcars-slider-horizontal:
-    template:
-      - cb-lcars-slider
-    entity: '[[[ return variables.__get_random_entity("light"); ]]]'
-    variables:
-      meter:
-        template: cb-lcars-meter-horizontal
-        variables:
-          _gradient:
-            gap: 5px
-          button:
-            template: cb-lcars-button-picard-filled
-            variables:
-              card:
-                height: '[[[ return variables.card.height ]]]'
-                width: 10px
-    triggers_update: '[[[ return variables.entity  ]]]'
-    custom_fields:
-      slider:
-        card:
-          vertical: false
   cb-lcars-label-picard:
     template:
       - cb-lcars-label
@@ -537,86 +424,334 @@ cblcars_card_templates:
           right:
             size: 40
           color: var(--picard-medium-dark-gray)
-  cb-lcars-meter:
-    template:
-      - cb-lcars-functions
-      - cb-lcars-card-base
-      - cb-lcars-button-grid
+  cb-lcars-animation-pulsewave:
     variables:
-      card:
-        height: null
-        width: null
-      button:
-        variables:
-          card:
-            height: 20px
-            min_height: 5px
-            width: 100px
-        show_label: false
-        template:
-          - cb-lcars-button-lozenge
-      gradient_start_color: var(--error-color)
-      gradient_start_rgb: |
-        [[[ 
-          return variables.__hex_to_rgba(variables.gradient_start_color)
-          ]]]
-      gradient_end_color: var(--lcars-blue)
-      gradient_end_rgb: |
-        [[[ 
-          return variables.__hex_to_rgba(variables.gradient_end_color) 
-        ]]]
-      _gradient:
-        X: 1
-        'Y': 10
-        gap: 5px
-      gradient_X: >-
-        [[[ return variables.__calculate_grid_cells(variables.card.width,
-        variables.button.variables.card.width, variables._gradient.gap,
-        variables._gradient.X) ]]]
-      gradient_Y: >-
-        [[[ return variables.__calculate_grid_cells(variables.card.height,
-        variables.button.variables.card.height, variables._gradient.gap,
-        variables._gradient.Y) ]]]
-      grid:
-        X: '[[[ return variables.gradient_X ]]]'
-        'Y': '[[[ return variables.gradient_Y ]]]'
-        gap: '[[[ return variables._gradient.gap ]]]'
-        buttons: |
-          [[[ 
-            let buttons = [];
-            let total_steps = (variables.gradient_X > variables.gradient_Y) ? variables.gradient_X : variables.gradient_Y;
-            //console.debug("grid_X: " + variables.grid_X);
-            //console.debug("total_steps: " + total_steps);
-            for(let i = 0; i < total_steps ; i++) {
-              buttons.push({
-                variables: {
-                  card: {
-                    color: {
-                      background: {
-                        inactive: variables.__interpolated_rgb(variables.gradient_start_rgb,variables.gradient_end_rgb, i, total_steps)
-                      },
-                    },
-                  },
-                },
-              });
+      enable_resize_observer: true
+      animation:
+        pulsewave:
+          color:
+            line_color: black
+            start_color: var(--lcars-ui-tertiary)
+            end_color: black
+          pattern: default
+          line_height: 20
+          line_width: 3
+          line_width_even: 4
+          line_angle: 15
+          custom_keyframes: null
+          custom_pattern: null
+          line_heights: null
+          scale_line_heights: true
+          align_items: center
+    styles:
+      label:
+        - z-index: 1
+    custom_fields:
+      animation: |
+        [[[
+          // Calculate card dimensions
+          //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          // Get line properties
+          const line_height = (variables.animation.pulsewave.line_height !== undefined ) ? parseInt(variables.animation.pulsewave.line_height) : 20;
+          const line_width = (variables.animation.pulsewave.line_width !== undefined ) ? parseInt(variables.animation.pulsewave.line_width) : 3;
+          const line_width_even = (variables.animation.pulsewave.line_width_even !== undefined ) ? parseInt(variables.animation.pulsewave.line_width_even) : 4;
+          const line_color = variables.animation.pulsewave.color.line_color || '#000';
+          const animation_start_color = variables.animation.pulsewave.color.animation_start || 'var(--picard-blue)';
+          const animation_end_color = variables.animation.pulsewave.color.animation_end || '#000';
+          const line_angle = (variables.animation.pulsewave.line_angle !== undefined) ? variables.animation.pulsewave.line_angle : 17;
+          let line_transform = variables.animation.pulsewave.line_transform || `rotate(${line_angle}deg)`;
+          const align_items = variables.animation.pulsewave.align_items || 'center';
+          const justify_content = variables.animation.pulsewave.justify_content || 'center';
+          // Initialize keyframes
+          let keyframes = '';
+          const pattern_width = line_width + line_width_even;
+          const num_lines = variables.animation.pulsewave.num_lines || Math.ceil(card_width / pattern_width) * 2;
+          // Use custom keyframes if provided
+          const customKeyframes = variables.animation.pulsewave.custom_keyframes;
+          if (customKeyframes) {
+            keyframes = customKeyframes;
+          } else {
+            // Use provided original heights if available
+            const originalHeights = variables.animation.pulsewave.line_heights || [180, 120, 230, 60, 30];
+            const scaleHeights = variables.animation.pulsewave.scale_line_heights ?? true;
+            let newHeights;
+            if (scaleHeights === false) {
+              newHeights = originalHeights;
+            } else {
+              const maxOriginalHeight = Math.max(...originalHeights);
+              const heightRatios = originalHeights.map(height => height / maxOriginalHeight);
+              // Calculate new heights based on card_height
+              newHeights = heightRatios.map(ratio => Math.round(ratio * card_height));
             }
-            return buttons;
-          ]]]
-  cb-lcars-meter-horizontal:
-    template:
-      - cb-lcars-meter
-    variables:
-      button:
-        variables:
-          card:
-            width: 10px
-            height: 20px
-        template:
-          - cb-lcars-button-picard-filled
-      _gradient:
-        gap: 5px
-        'Y': 1
-        X: 25
+            // Define keyframes based on new heights
+            const animationSettingsDefault = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSineWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSquareWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 0.5, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 0.5, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 0.5, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 0.5, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 0.5, delay: 0.6 }
+            ];
+            const animationSettingsTriangleWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSawtoothWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsRandomWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.6 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.8 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 1 }
+            ];
+            const patternName = variables.animation.pulsewave.pattern || 'default';
+            const animationSettingsMap = {
+              default: animationSettingsDefault,
+              sine: animationSettingsSineWave,
+              square: animationSettingsSquareWave,
+              triangle: animationSettingsTriangleWave,
+              sawtooth: animationSettingsSawtoothWave,
+              random: animationSettingsRandomWave,
+              custom: animationSettingsDefault
+            };
+            const animationSettings = animationSettingsMap[patternName] || animationSettingsDefault;
+            keyframes = '';
+            animationSettings.forEach(({ keyframe, height }) => {
+              if (patternName === 'sine') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    25% { height: ${height * 0.75}px; }
+                    50% { height: ${height / 2}px; }
+                    75% { height: ${height * 0.75}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'square') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'triangle') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'sawtooth') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    25% { height: ${height * 0.75}px; }
+                    50% { height: ${height / 2}px; }
+                    75% { height: ${height * 0.25}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'random') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              }
+            });
+          }
+          let lines = '';
+          for (let i = 1; i <= num_lines; i++) {
+            lines += `<div class="line line-${i}"></div>`;
+          }
+          const patternDefault = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite'
+          ];
+          const patternNiagara = [
+            'animateLine6 1s 0.1s infinite',
+            'animateLine5 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine2 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite',
+            'animateLine2 1s 1.1s infinite',
+            'animateLine2 1s 1.2s infinite',
+            'animateLine3 1s 1.3s infinite',
+            'animateLine3 1s 1.4s infinite',
+            'animateLine5 1s 1.5s infinite',
+            'animateLine6 1s 1.6s infinite'
+          ];
+          const patternSineWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine5 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine3 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite'
+          ];
+          const patternSquareWave = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine2 1s 0.4s infinite',
+            'animateLine2 1s 0.4s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.8s infinite'
+          ];
+          const patternTriangleWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine5 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine3 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite'
+          ];
+          const patternSawtoothWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine3 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine5 1s 1s infinite'
+          ];
+          const patternRandomWave = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.6s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine3 1s 0.7s infinite',
+            'animateLine6 1s 0.5s infinite',
+            'animateLine2 1s 0.3s infinite',
+            'animateLine5 1s 0.1s infinite'
+          ];
+          // Determine the pattern to use
+          const patternName = variables.animation.pulsewave.pattern || 'default';
+          const patternMap = {
+            default: patternDefault,
+            niagara: patternNiagara,
+            sine: patternSineWave,
+            square: patternSquareWave,
+            triangle: patternTriangleWave,
+            sawtooth: patternSawtoothWave,
+            random: patternRandomWave,
+            custom: variables.animation.pulsewave.custom_pattern ? JSON.parse(variables.animation.pulsewave.custom_pattern) : patternDefault
+          };
+          const nthChildAnimations = patternMap[patternName] || patternDefault;
+          return `
+            <elt>
+              <style>
+                .wrapper {
+                  flex: 1;
+                  display: flex;
+                  flex-grow: 1;
+                  align-items: ${align_items};
+                  justify-content: ${justify_content};
+                  height: ${card_height}px;
+                  width: ${card_width}px;
+                }
+                .line {
+                  height: ${line_height}px;
+                  width: ${line_width}px;
+                  background: linear-gradient( ${line_color}, ${animation_start_color}, ${line_color}, ${animation_end_color});
+                  transform: ${line_transform};
+                }
+                .line:nth-child(even) {
+                  width: ${line_width_even}px;
+                }
+                ${keyframes}
+                ${Array.from({ length: num_lines }, (_, i) => `
+                  .line:nth-child(${i + 1}) { animation: ${nthChildAnimations[i % nthChildAnimations.length]}; }
+                `).join('')}
+              </style>
+              <div class="wrapper">
+                ${lines}
+              </div>
+            </elt>
+          `;
+        ]]]
   cb-lcars-theme:
     template:
         - cb-lcars-functions
@@ -3802,8 +3937,12 @@ cblcars_card_templates:
           background:
             active: null
             inactive: null
+      animation:
+        justify_content: center
+        align_items: center
     show_label: false
     show_state: false
+    show_units: true
     show_icon: false
     show_name: false
     styles:
@@ -3865,6 +4004,7 @@ cblcars_card_templates:
             ]]]
         - position: relative
       label:
+        - z-index: 1
         - display: flex
         - justify-content: '[[[ return variables.text.label.justify ]]]'
         - align-items: '[[[ return variables.text.label.align_items ]]]'
@@ -3960,6 +4100,38 @@ cblcars_card_templates:
         - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
         - outline: >-
             [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: |
+              [[[
+                return variables.animation.align_items || 'center';
+              ]]]
+          - justify-content: |
+              [[[
+                return variables.animation.justify_content || 'center';
+              ]]]
+          - filter: |
+              [[[
+                return variables.animation.filter || 'none';
+              ]]]
+          - height: |
+              [[[
+                return "calc( " + variables.__get_num_with_unit(variables.card.height) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size)
+              ]]]
+          - width: |
+              [[[
+                return "calc( " + variables.__get_num_with_unit(variables.card.width) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size)
+              ]]]
     state:
       - id: state_on
         operator: template
@@ -4271,57 +4443,6 @@ cblcars_card_templates:
                 [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
             - background: >-
                 [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
-  cb-lcars-button-grid:
-    template:
-      - cb-lcars-grid
-    variables:
-      card:
-        width: null
-        height: null
-      grid:
-        auto_calc_X: true
-        auto_calc_Y: true
-        buttons: []
-        X: 3
-        'Y': 2
-        template_columns: null
-        auto_rows: null
-        gap: 5px
-      button:
-        type: custom:cblcars-button-card
-        variables:
-          card:
-            width: 180px
-            height: 45px
-            min_height: 10px
-            color:
-              active: var(--lcars-ui-secondary)
-              inactive: var(--lcars-ui-primary)
-              background:
-                active: var(--lcars-ui-secondary)
-                inactive: var(--lcars-ui-primary)
-              default: null
-          icon:
-            border:
-              right:
-                padding: 2%
-            color:
-              active: null
-              inactive: null
-            background:
-              active: null
-              inactive: null
-        template:
-          - cb-lcars-button-picard-filled
-          - cb-lcars-button-picard-label-se
-          - cb-lcars-button-picard-name-nw
-          - cb-lcars-button-picard-state-sw
-          - cb-lcars-actions-disable
-        size: 22px
-        show_name: false
-        show_state: false
-        show_label: true
-        show_icon: false
   cb-lcars-button-base:
     template:
       - cb-lcars-base
@@ -4511,241 +4632,237 @@ cblcars_card_templates:
             size: 10px
           right:
             size: 10px
-  cb-lcars-grid:
-    template:
-      - cb-lcars-card-base
-      - cb-lcars-functions
-    variables:
-      card:
-        width: null
-        height: null
-      grid:
-        auto_calc_X: true
-        auto_calc_Y: true
-        buttons: []
-        X: 3
-        'Y': 2
-        template_columns: null
-        auto_rows: null
-        gap: 5px
-      button:
-        type: custom:cblcars-button-card
-        variables:
-          card:
-            width: 180px
-            height: 45px
-            min_height: 10px
-        show_name: false
-        show_state: false
-        show_label: false
-        show_icon: false
-      y_grid_X: >
-        [[[ return variables.grid.auto_calc_X ?
-        variables.__calculate_grid_cells(variables.card.width,
-        variables.button.variables.card.width, variables.grid.gap,
-        variables.grid.X) : variables.grid.X ]]]
-      y_grid_Y: >
-        [[[ return variables.grid.auto_calc_Y ?
-        variables.__calculate_grid_cells(variables.card.height,
-        variables.button.variables.card.height, variables.grid.gap,
-        variables.grid.Y) : variables.grid.Y ]]]
-      y_total_cards: '[[[ return variables.y_grid_X * variables.y_grid_Y; ]]]'
-      z_card_width: >
-        [[[ return variables.card.width || "calc( ((" +
-        variables.button.variables.card.width + " + " + variables.grid.gap + " )
-        *" + variables.y_grid_X + ") - " + variables.grid.gap + ")";
-        ]]]
-      z_card_height: >
-        [[[ return variables.card.height || "calc( ((" +
-        variables.button.variables.card.height + " + " + variables.grid.gap + "
-        ) *" + variables.y_grid_Y + ") - " + variables.grid.gap + ")";
-        ]]]
-    styles:
-      card:
-        - height: '[[[ return variables.z_card_height ]]]'
-        - width: '[[[ return variables.z_card_width ]]]'
-        - border-radius: 0 !important
-      custom_fields:
-        button_grid:
-          - position: absolute
-          - top: 0px
-          - left: 0px
-    custom_fields:
-      button_grid:
-        card:
-          type: custom:layout-card
-          layout_type: custom:grid-layout
-          layout:
-            grid-template-columns: >-
-              [[[ return variables.grid.template_columns || "repeat(" +
-              variables.y_grid_X + ", " + variables.button.variables.card.width
-              + ")"; ]]]
-            grid-auto-rows: >-
-              [[[ return variables.grid.auto_rows ||
-              variables.button.variables.card.height; ]]]
-            grid-gap: '[[[ return variables.grid.gap; ]]]'
-            card_margin: 0
-            padding: 0
-            margin: '-4px -4px 0px -4px'
-          cards: |
-            [[[
-              let resultArray = [];
-              for (let x = 1; x <= variables.y_total_cards; x++) {
-                let cardObject = variables.grid.buttons && variables.grid.buttons[x-1] ? variables.grid.buttons[x-1] : {};
-                let defaultVariables = variables.button;
-                //cardObject.variables = {...defaultVariables, ...cardObject.variables};
-                cardObject = variables.__deepMerge(defaultVariables, cardObject);
-                let additionalObject = {
-                  view_layout: {
-                    show: '[[[ return variables.y_total_cards >= x ? "always" : "never"; ]]]'
-                  },
-                  show_label: variables.button.show_label,
-                  label: variables.button.label || (((Math.floor(Math.random() * 256).toString(16).padStart(2, '0')) + "-" + (Math.floor(Math.random() * 4096).toString(16).padStart(3, '0')))),
-                };
-                //resultArray.push({...additionalObject, ...cardObject});
-                resultArray.push(variables.__deepMerge({...additionalObject}, cardObject));
-              }
-              return resultArray;
-            ]]]
-  cb-lcars-cascade:
+  cb-lcars-animation-cascade:
     template:
       - cb-lcars-functions
-      - cb-lcars-label
-    show_label: true
     variables:
+      enable_resize_observer: true
       card:
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
-      text:
-        label:
-          font_size: 24
-          font_weight: 300
-      cascade:
-        grid:
-          num_cols: null
-          gap: 8
-          num_rows: null
-        colors:
-          text: var(--picard-dark-blue)
-          animation_start: var(--picard-blue)
-          animation_end: var(--picard-moonlight)
-    label: |
-      [[[
-        const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-        const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-        //console.debug( `${card_height}`);
-        //console.debug( `${card_width}`);
-        const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
-        const row_height = variables.__get_num_with_unit(variables.cascade.grid.row_height) || font_size;
-        const column_width = variables.__get_num_with_unit(variables.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
-        const grid_gap = variables.__get_num_with_unit(variables.cascade.grid.gap) || '8px';
-        const text_color = variables.cascade.colors.text || '#000';
-        const animation_start_color = variables.cascade.colors.animation_start || '#26f';
-        const animation_end_color = variables.cascade.colors.animation_end || '#def';
-        const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
-        //console.debug(`${auto_num_cols}`);
-        //console.debug("row_height: ",row_height);
-        //console.debug("grid_gap: ",grid_gap);
-        //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
-        const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
-        //console.debug(`${auto_num_rows}`);
-        const num_rows = variables.cascade.grid.num_rows || auto_num_rows;
-        const num_cols = variables.cascade.grid.num_cols || auto_num_cols;
-        // Predefined animation delays and durations for a more random feel
-        const animationSettings = [
-          { duration: 3, delay: 0.1 },
-          { duration: 3, delay: 0.2 },
-          { duration: 4, delay: 0.3 },
-          { duration: 4, delay: 0.4 },
-          { duration: 4, delay: 0.5 },
-          { duration: 2, delay: 0.6 },
-          { duration: 2, delay: 0.7 },
-          { duration: 2, delay: 0.8 }
-        ];
-        // Function to generate random text for cells (digits, floats, or text)
-        function getRandomText() {
-          const types = ['digit', 'float','digit', 'float', 'text'];
-          const type = types[Math.floor(Math.random() * types.length)];
-          switch (type) {
-            case 'digit':
-              return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-            case 'float':
-              return (Math.random() * 100).toFixed(2);
-            case 'text':
-              const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-              return chars.charAt(Math.floor(Math.random() * chars.length)) + chars.charAt(Math.floor(Math.random() * chars.length));
-            default:
-              return '00';
+      animation:
+        cascade:
+          grid:
+            num_cols: null
+            gap: 8
+            num_rows: null
+          color:
+            text: var(--picard-dark-blue)
+            animation_start: var(--picard-blue)
+            animation_end: var(--picard-moonlight)
+          text:
+            font_size: 24
+            font_weight: 300
+    styles:
+      label:
+        - z-index: 1
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: center
+    custom_fields:
+      animation: |
+        [[[
+          const patternDefault = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          const patternNiagara = [
+            { duration: 2, delay: 0.1 },
+            { duration: 2, delay: 0.2 },
+            { duration: 2, delay: 0.3 },
+            { duration: 2, delay: 0.4 },
+            { duration: 2, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          const patternFrozen = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          //const customPattern = variables.animation.cascade.custom_pattern;
+          const customPatternInput = variables.animation.cascade.custom_pattern;
+          let customPattern;
+          if (typeof customPatternInput === 'string') {
+            try {
+              customPattern = JSON.parse(customPatternInput);
+              console.log('customPattern json parsed:', customPattern);
+            } catch (e) {
+              console.error('Failed to parse custom_pattern as JSON:', e);
+              customPattern = patternDefault;
+            }
+          } else if (Array.isArray(customPatternInput)) {
+            customPattern = customPatternInput;
+          } else {
+            customPattern = patternDefault;
           }
-        }
-        let rows = '';
-        for (let i = 1; i <= num_rows; i++) {
-          const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
-          rows += `
-            <div class="row-${i} row">
-              ${Array.from({ length: num_cols }, (_, j) => `
-                <div class="cell dc${j + 1}">${getRandomText()}</div>
-              `).join('')}
-            </div>
-          `;
-        }
-        return `
-          <elt>
-            <style>
-              @keyframes colorchange {
+          const patternName = variables.animation.cascade.pattern || 'patternDefault';
+          const patternMap = {
+            default: patternDefault,
+            niagara: patternNiagara,
+            frozen: patternFrozen,
+            custom: customPattern
+          };
+          const animationSettings = patternMap[patternName] || patternDefault;
+          //console.debug("animationSettings: ",animationSettings);
+          //console.debug("patternName: ",patternName);
+          //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const align_items = variables.animation.cascade.align_items || 'center';
+          const justify_content = variables.animation.cascade.justify_content || 'center';
+          //console.debug( `${card_height}`);
+          //console.debug( `${card_width}`);
+          const font_size = variables.__get_num_with_unit(variables.animation.cascade.text.font_size) || '24px';
+          const font_weight = variables.animation.cascade.text.font_weight || '300';
+          const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
+          const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((parseInt(variables.animation.cascade.text.font_size * 2.5))) ||'80px';
+          const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
+          const text_color = variables.animation.cascade.color.text || '#000';
+          const animation_start_color = variables.animation.cascade.color.animation_start || '#26f';
+          const animation_end_color = variables.animation.cascade.color.animation_end || '#def';
+          const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
+          //console.debug(`${auto_num_cols}`);
+          //console.debug("row_height: ",row_height);
+          //console.debug("grid_gap: ",grid_gap);
+          //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
+          const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
+          //console.debug(`${auto_num_rows}`);
+          const num_rows = variables.animation.cascade.grid.num_rows || auto_num_rows;
+          const num_cols = variables.animation.cascade.grid.num_cols || auto_num_cols;
+          // Function to get random color variable from our palette
+          function getRandomColor() {
+            const colors = [animation_start_color, animation_end_color, text_color];
+            return colors[Math.floor(Math.random() * colors.length)];
+          }
+          // Function to generate random text for cells (digits, floats, or text)
+          function getRandomText() {
+            const types = ['digit', 'float','digit', 'float', 'text'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            switch (type) {
+              case 'digit':
+                return Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+              case 'float':
+                return (Math.random() * 100).toFixed(2);
+              case 'text':
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+                return chars.charAt(Math.floor(Math.random() * chars.length)) + chars.charAt(Math.floor(Math.random() * chars.length));
+              default:
+                return '00';
+            }
+          }
+          let rows = '';
+          let keyframes = '';
+          for (let i = 1; i <= num_rows; i++) {
+            const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
+            const randomColor = getRandomColor();
+            keyframes += `
+              @keyframes colorchange-frozen-${i} {
                 0% {color: ${animation_start_color}}
                 25% {color: ${animation_start_color}}
                 50% {color: ${animation_start_color}}
                 75% {color: ${animation_start_color}}
                 80% {color: ${text_color}}
                 90% {color: ${text_color}}
-                100% {color: ${animation_end_color}}
+                100% {color: ${randomColor}}
               }
-              .cascade-wrapper {
-                flex: 1;
-                padding-right: 1px;
-                display: flex;
-                flex-grow: 1;
-              }
-              .data-cascade {
-                font-size: ${font_size};
-                line-height: 1;
-              }
-              ${Array.from({ length: num_rows }, (_, i) => `
-                .row-${i + 1} {
-                  display: grid;
-                  grid-template-columns: repeat(${num_cols}, ${column_width});
-                  gap: ${grid_gap};
-                  color: ${text_color};
-                  animation: colorchange ${animationSettings[i % animationSettings.length].duration}s infinite;
-                  animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
-                  margin-bottom: ${grid_gap}; /* Add spacing between rows */
-                  height: ${row_height}
-                }
-              `).join('')}
-              .cell {
-                text-align: right;
-              }
-            </style>
-            <div class="cascade-wrapper">
-              <div class="data-cascade" id="default">
-                ${rows}
+            `;
+            rows += `
+              <div class="row-${i} row">
+                ${Array.from({ length: num_cols }, (_, j) => `
+                  <div class="cell dc${j + 1}">${getRandomText()}</div>
+                `).join('')}
               </div>
-            </div>
-          </elt>
-        `;
-      ]]]
+            `;
+          }
+          const isFrozen = patternName === 'frozen';
+          const animationIterationCount = isFrozen ? '1' : 'infinite';
+          const animationFillMode = isFrozen ? 'forwards' : 'none';
+          const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
+          const defaultKeyframes = `
+            @keyframes colorchange {
+              0% {color: ${animation_start_color}}
+              25% {color: ${animation_start_color}}
+              50% {color: ${animation_start_color}}
+              75% {color: ${animation_start_color}}
+              80% {color: ${text_color}}
+              90% {color: ${text_color}}
+              100% {color: ${animation_end_color}}
+            }
+          `;
+          const customKeyframes = variables.animation.cascade.custom_keyframes || defaultKeyframes;
+          //const elt = `
+          return `
+            <elt>
+              <style>
+                ${customKeyframes}
+                ${keyframes}
+                .cascade-wrapper {
+                  flex: 1;
+                  padding-right: 1px;
+                  display: flex;
+                  flex-grow: 1;
+                  width: ${card_width};
+                  height: ${card_height};
+                  align-items: ${align_items};
+                  justify-content: ${justify_content};
+                }
+                .data-cascade {
+                  font-size: ${font_size};
+                  font-weight: ${font_weight};
+                  line-height: 1;
+                }
+                ${Array.from({ length: num_rows }, (_, i) => `
+                  .row-${i + 1} {
+                    display: grid;
+                    grid-template-columns: repeat(${num_cols}, ${column_width});
+                    gap: ${grid_gap};
+                    color: ${text_color};
+                    animation: ${keyframesName}${isFrozen ? `-${i + 1}` : ''} ${animationSettings[i % animationSettings.length].duration}s ${animationIterationCount};
+                    animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
+                    animation-fill-mode: ${animationFillMode};
+                    margin-bottom: ${grid_gap}; /* Add spacing between rows */
+                    height: ${row_height}
+                  }
+                `).join('')}
+                .cell {
+                  text-align: right;
+                }
+              </style>
+              <div class="cascade-wrapper">
+                <div class="data-cascade" id="default">
+                  ${rows}
+                </div>
+              </div>
+            </elt>
+          `;
+          //return elt;
+        ]]]
   cb-lcars-multimeter:
-    type: custom:cblcars-button-card
-    entity: "[[[ return variables.entity ]]]"
+    entity: '[[[ return variables.entity ]]]'
     template:
       - cb-lcars-functions
       - cb-lcars-base
       - cb-lcars-actions-disable
-    triggers_update: "[[[ return variables.entity ]]]"
+    triggers_update: '[[[ return variables.entity ]]]'
     show_icon: false
     show_label: true
-    label: "[[[ return variables.label ]]]"
+    label: '[[[ return variables.label ]]]'
     show_name: false
     show_state: false
     variables:
@@ -4833,12 +4950,30 @@ cblcars_card_templates:
         [[[
           return variables._unit_of_measurement || entity.attributes.unit_of_measurement || '%';
         ]]]
-      entity_color: "[[[ return variables.__get_light_css_color(variables.entity) ]]]"
+      entity_color: |
+        [[[
+          return variables.__get_light_css_color(variables.entity)
+        ]]]
       entity_match_slider: false
       entity_match_gauge: false
       entity_match_header: false
       entity_match_slider_start: false
       entity_match_slider_end: false
+      card:
+        height: '[[[ return this.offsetHeight; ]]]'
+        min_height: '[[[ return this.offsetHeight; ]]]'
+        width: '[[[ return this.offsetWidth; ]]]'
+        border:
+          top:
+            size: 10
+          bottom:
+            size: 0
+          left:
+            size: 120
+          right:
+            size: 0
+          inner:
+            width: 0
       text:
         label:
           font_size: 22px
@@ -4897,21 +5032,6 @@ cblcars_card_templates:
             hvac_heat: black
             hvac_cool: black
             unavailable: black
-      card:
-        height: '[[[ return this.offsetHeight; ]]]'
-        min_height: '[[[ return this.offsetHeight; ]]]'
-        width: '[[[ return this.offsetWidth; ]]]'
-        border:
-          top:
-            size: 10
-          bottom:
-            size: 0
-          left:
-            size: 120
-          right:
-            size: 0
-          inner:
-            width: 0
       slider:
         locked: |
           [[[
@@ -4935,6 +5055,14 @@ cblcars_card_templates:
             }
             return locked;
           ]]]
+        height: >-
+          [[[ return (variables._vertical) ?
+          variables.__get_num_with_unit(variables.card.height) :
+          variables.__get_num_with_unit(variables._slider_thickness) ]]]
+        width: >-
+          [[[ return (variables._vertical) ?
+          variables.__get_num_with_unit(variables._slider_thickness) :
+          variables.__get_num_with_unit(variables.card.width) ]]]
         color: |
           [[[ return  variables.entity_match_slider ? variables.entity_color :
           "var(--picard-lightest-blue)" ]]]
@@ -4945,26 +5073,22 @@ cblcars_card_templates:
         border_alpha: 0.5
         border_width: 0px
         border_radius: 2px
-        flipped: "[[[ return (variables._vertical) ? true : false ]]]"
-        height: >-
-          [[[ return (variables._vertical) ? variables.__get_num_with_unit(variables.card.height) :
-          variables.__get_num_with_unit(variables._slider_thickness) ]]]
-        width: >-
-          [[[ return (variables._vertical) ?
-          variables.__get_num_with_unit(variables._slider_thickness) :
-          variables.__get_num_with_unit(variables.card.width) ]]]
-        left_padding: 1px
-        top_padding: "[[[ return variables.gauge.sub_meter.tick_size ]]]"
+        flipped: '[[[ return (variables._vertical) ? true : false ]]]'
+        padding:
+          left: 0
+          right: 0
+          bottom: 0
+          top: '[[[ return parseInt(variables.gauge.sub_meter.tick_size) ]]]'
         step: |
           [[[
             return entity.attributes.percentage_step || variables._slider_step;
           ]]]
-        mode: "[[[ return variables._slider_mode ]]]"
-        min: "[[[ return variables.entity_min ]]]"
-        max: "[[[ return variables.entity_max ]]]"
+        mode: '[[[ return variables._slider_mode ]]]'
+        min: '[[[ return variables.entity_min ]]]'
+        max: '[[[ return variables.entity_max ]]]'
       gauge:
-        min: "[[[ return variables.entity_min ]]]"
-        max: "[[[ return variables.entity_max ]]]"
+        min: '[[[ return variables.entity_min ]]]'
+        max: '[[[ return variables.entity_max ]]]'
         increment: |
           [[[
             const entityDomain = entity.entity_id.split('.')[0];
@@ -5012,635 +5136,132 @@ cblcars_card_templates:
           inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
       slider_track:
         padding:
-          left: 5px
-          right: 0px
-          top: 5px
-          bottom: 0px
-        meter:
-          _gradient:
-            gap: 5px
-    state:
-      - id: state_on
-        operator: template
-        value: |
-          [[[
-            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
-                  ]]]
-      - id: state_off
-        operator: template
-        value: |
-          [[[
-            return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-out
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
-                  ]]]
-      - id: state_unavailable
-        operator: template
-        value: |
-          [[[
-            return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
-                  ]]]
-      - id: state_heat
-        value: heat
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
-                  ]]]
-      - id: state_cool
-        value: cool
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
-                  ]]]
-      - id: state_zero
-        operator: template
-        value: |
-          [[[
-            if (entity === undefined) return false;
-            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
-                  ]]]
-      - id: state_nonzero
-        operator: template
-        value: |
-          [[[
-            if (entity === undefined) return false;
-            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
-                  ]]]
-      - id: state_default
-        operator: default
-        value: |
-          [[[
-            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
-          ]]]
-        styles:
-          custom_fields:
-            gauge:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-            slider_track:
-              - transition: all 0.7s ease-in
-              - border-top: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default|| variables.card.border.color);
-                  ]]]
-              - border-bottom: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-              - border-left: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-              - border-right: |
-                  [[[
-                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
-                  ]]]
-    styles:
-      card:
-        - border-radius: 0 !important
-        - background: none
-        - border: none
-        - height: 100%
-        - max-width: none
-      label:
-        - z-index: 1
-        - height: 100%
-        - width: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
-            ]]]
-      custom_fields:
-        gauge:
-          - position: absolute
-          - top: 0
-          - left: 0
-          - visibility: "[[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden' ]]]"
-          - border-top: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-bottom: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-left: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-right: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-top-left-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
-              ]]]
-          - border-top-right-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
-              ]]]
-          - border-bottom-left-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
-              ]]]
-          - border-bottom-right-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
-              ]]]
-          - width: >-
-              [[[
-                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
-              " )"
-              ]]]
-          - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
-              ")" ]]]
-        slider_track:
-          - position: absolute
-          - top: 0
-          - left: 0
-          - visibility: "[[[ return (variables._mode === 'slider') ? 'visible' : 'hidden' ]]]"
-          - border-top: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-bottom: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-left: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-right: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
-              ]]]
-          - border-top-left-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
-              ]]]
-          - border-top-right-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
-              ]]]
-          - border-bottom-left-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
-              ]]]
-          - border-bottom-right-radius: |
-              [[[
-                return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
-              ]]]
-          - padding-left: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.left) ]]]
-          - padding-right: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.right)
-              ]]]
-          - padding-top: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.top) ]]]
-          - padding-bottom: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
-              ]]]
-        slider:
-          - visibility: >-
-              [[[ return ((variables._mode === 'gauge') &&
-              !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
-          - position: absolute
-          - top: |
-              [[[
-                  if (variables._vertical) {
-                    return variables.__get_num_with_unit(variables.card.border.top.size);
-                  } else {
-                    return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
-                  }
-              ]]]
-          - left: |
-              [[[
-                if (variables._vertical) {
-                  return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
-                } else {
-                  return variables.__get_num_with_unit(variables.card.border.left.size);
-                }
-              ]]]
-          - width: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
-              ")" ]]]
-          - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
-              ")" ]]]
-        locked_bar:
-          - visibility: "[[[ return (variables.slider.locked) ? 'visible' : 'hidden' ]]]"
-          - position: absolute
-          - z-index: 1
-          - left: |
-              [[[
-                if (variables._vertical) {
-                  return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
-                } else {
-                  return variables.__get_num_with_unit(variables.card.border.left.size);
-                }
-              ]]]
-          - padding-left: 1px
-          - top: |
-              [[[
-                  if (variables._vertical) {
-                    return variables.__get_num_with_unit(variables.card.border.top.size);
-                  } else {
-                    return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
-                  }
-              ]]]
-          - width: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  + " -
-              " + variables.__get_num_with_unit(variables.card.border.right.size) +
-              ")" ]]]
-          - height: >-
-              [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + " - "
-              + variables.__get_num_with_unit(variables.card.border.bottom.size) +
-              ")" ]]]
-    custom_fields:
-      slider:
-        card:
-          type: custom:my-slider-v2
-          entity: "[[[ return variables.entity ]]]"
-          mode: "[[[ return variables.slider.mode ]]]"
-          vertical: "[[[ return variables._vertical ]]]"
-          flipped: false
-          inverse: false
-          step: "[[[ return variables.slider.step; ]]]"
-          min: |
-            [[[
-            //  if (variables.slider.mode === 'temperature') {
-            //    return entity.attributes.min_mired
-            //  } else {
-                return variables.slider.min;
-            //  }
-            ]]]
-          max: |
-            [[[
-            //  if (variables.slider.mode === 'temperature') {
-            //    return entity.attributes.max_mired
-            //  } else {
-                return variables.slider.max;
-            //  }
-            ]]]
-          styles:
-            card:
-              - width: >-
-                  [[[ return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-                  variables.__get_num_with_unit(variables.card.border.left.size)  +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.right.size) +
-                  ")" ]]]
-              - height: >-
-                  [[[ return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
-                  variables.__get_num_with_unit(variables.card.border.top.size)  + "
-                  - " +
-                  variables.__get_num_with_unit(variables.card.border.bottom.size) +
-                  ")" ]]]
-              - background: none
-              - border-radius: 0
-            progress:
-              - background-color: >-
-                  [[[ return
-                  variables.__hex_to_rgba(variables.slider.color,variables.slider.color_alpha)
-                  ]]]
-              - border: >-
-                  [[[ return variables.slider.border_width + " solid " +
-                  variables.__hex_to_rgba(variables.slider.border_color,
-                  variables.slider.border_alpha)  ]]]
-              - border-radius: "[[[ return variables.slider.border_radius ]]]"
-              - height: "[[[ return variables.slider.height ]]]"
-              - width: "[[[ return variables.slider.width ]]]"
-              - left: "[[[ return variables.slider.left_padding ]]]"
-            container:
-              - border-radius: 0
-            track:
-              - background: none
-            thumb:
-              - background: none
-      locked_bar: |
+          left: 5
+          right: 0
+          top: 5
+          bottom: 0
+        mask_color: rgba(0,0,0,0.8)
+        gradient_start_color: >
+          [[[ return  variables.entity_match_slider_start ?
+          variables.entity_color : "var(--error-color)" ]]]
+        gradient_end_color: >
+          [[[ return  variables.entity_match_slider_end ? variables.entity_color
+          : "var(--success-color)" ]]]
+        gap: 5
+        bar_border_radius: 0
+        bar_thickness: 10
+      z_slider: |
         [[[
-          const entityState = entity.state;
-          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
-          let progress = 0;
-          switch(entityType) {
-            case 'light':
-              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
-              break;
-            case 'fan':
-              progress = (parseFloat(entity.attributes.percentage));
-              break;
-            default:
-              progress = (parseFloat(entityState));
-              break;
+          function parseColor(color) {
+            if (color.startsWith('var(')) {
+              return cssVarToRgb(color);
+            } else if (color.startsWith('#')) {
+              return hexToRgb(color);
+            } else if (color.startsWith('rgb')) {
+              return rgbStringToRgb(color);
+            } else {
+              return cssStringToRgb(color);
+            }
           }
-          const progressPercentage = ((progress / variables.slider.max) * 100) + '%';
-          const isVertical = variables._vertical;
-          const width = isVertical ? variables.slider.height : progressPercentage;
-          const height = isVertical ? progressPercentage : variables.slider.height;
-          //match myslider-v2 styling options
-          const borderRadius = variables.slider.border_radius;
-          const borderWidth = variables.slider.border_width;
-          const borderColor = variables.slider.border_color;
-          const backgroundColor = variables.slider.color;
-          return `
-            <div class="progress-bar" style="
-              position: absolute;
-              ${isVertical ? 'bottom: 0;' : 'left: 0;'}
-              width: ${width};
-              height: ${height};
-              border-radius: ${borderRadius};
-              border: ${borderWidth} solid ${borderColor};
-              background-color: ${backgroundColor};
-            "></div>
-          `;
+          function cssVarToRgb(cssVar) {
+            const varName = cssVar.slice(4, -1).trim();
+            const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+            return parseColor(color);
+          }
+          function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            return [bigint >> 16 & 255, bigint >> 8 & 255, bigint & 255];
+          }
+          function rgbStringToRgb(rgbString) {
+            const rgba = rgbString.match(/\d+/g).map(Number);
+            return rgba.length === 4 ? rgba : rgba.slice(0, 3); // Get only the first three values (R, G, B) or return RGBA
+          }
+          function cssStringToRgb(color) {
+            if (color === 'transparent') {
+              return [0, 0, 0, 0]; // Return RGBA value for transparent
+            }
+            const ctx = document.createElement('canvas').getContext('2d');
+            ctx.fillStyle = color;
+            document.body.appendChild(ctx.canvas); // Append to body to apply style
+            const computedColor = getComputedStyle(ctx.canvas).fillStyle;
+            document.body.removeChild(ctx.canvas); // Remove canvas after use
+            return rgbStringToRgb(computedColor);
+          }
+          try {
+            const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
+            const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
+            let barWidth, barHeight;
+            // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+            if (width <= 0 || height <= 0) {
+              //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+              // Return a placeholder or empty SVG
+              return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+            }
+            // Defaults and overrides
+            let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
+            let barOrientation = variables._vertical ? "vertical" : "horizontal";
+            let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
+            // Set defaults based on orientation
+            if (barOrientation === 'horizontal') {
+              barHeight = height; // Default to height
+              barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            } else {
+              barWidth = width; // Default to width
+              barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            }
+            // Dynamic variable assignment
+            let startColor, endColor;
+            if (variables._vertical) {
+              startColor = variables.slider_track.gradient_end_color.trim();
+              endColor = variables.slider_track.gradient_start_color.trim();
+            } else {
+              startColor = variables.slider_track.gradient_start_color.trim();
+              endColor = variables.slider_track.gradient_end_color.trim();
+            }
+            const startRgb = parseColor(startColor);
+            const endRgb = parseColor(endColor);
+            function interpolateColor(color1, color2, factor) {
+              const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+              return `rgb(${result.join(',')})`;
+            }
+            // Autocalculate numBars
+            let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+            numBars = numBars+1;
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            svg.appendChild(g);
+            let x = 0;
+            let y = 0;
+            for (let i = 0; i < numBars; i++) {
+              const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              rect.setAttribute('x', barOrientation === 'horizontal' ? x : 0);
+              rect.setAttribute('y', barOrientation === 'horizontal' ? 0 : y);
+              rect.setAttribute('width', barOrientation === 'horizontal' ? barWidth : barWidth);
+              rect.setAttribute('height', barOrientation === 'horizontal' ? barHeight : barHeight);
+              rect.setAttribute('rx', cornerRadius);
+              rect.setAttribute('ry', cornerRadius);
+              const factor = i / (numBars - 1);
+              const color = interpolateColor(startRgb, endRgb, factor);
+              rect.setAttribute('fill', color);
+              g.appendChild(rect);
+              x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+              y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+            }
+            const svgString = new XMLSerializer().serializeToString(svg);
+            return svgString;
+            //const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+            //const cssBackgroundImage = `url("${svgDataUrl}")`;
+            //console.log(cssBackgroundImage)
+            //return cssBackgroundImage;
+          } catch (error) {
+            //console.error(error);
+            return '';
+          }
         ]]]
-      gauge: |
+      z_gauge: |
         [[[
           let minVal = variables.gauge.min;
           let maxVal = variables.gauge.max;
@@ -5710,34 +5331,838 @@ cblcars_card_templates:
             </svg>
           `;
         ]]]
-      slider_track:
-        card:
-          type: custom:cblcars-button-card
-          template: |
+    state:
+      - id: state_on
+        operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  ]]]
+      - id: state_off
+        operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['off', 'closed', 'unlocked'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  ]]]
+      - id: state_unavailable
+        operator: template
+        value: |
+          [[[
+            return entity !== undefined && ['unknown', 'unavailable'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
+                  ]]]
+      - id: state_heat
+        value: heat
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
+                  ]]]
+      - id: state_cool
+        value: cool
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
+                  ]]]
+      - id: state_zero
+        operator: template
+        value: |
+          [[[
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
+                  ]]]
+      - id: state_nonzero
+        operator: template
+        value: |
+          [[[
+            if (entity === undefined) return false;
+            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
+                  ]]]
+      - id: state_default
+        operator: default
+        value: |
+          [[[
+            return entity !== undefined && ['on', 'open', 'locked'].includes(states[entity.entity_id].state)
+          ]]]
+        styles:
+          custom_fields:
+            gauge:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+            slider_bg:
+              - transition: all 0.7s ease-in
+              - border-top: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-bottom: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-left: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+              - border-right: |
+                  [[[
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
+                  ]]]
+    styles:
+      card:
+        - border-radius: 0 !important
+        - background: none
+        - border: none
+        - height: 100%
+        - max-width: none
+      label:
+        - z-index: 1
+        - height: 100%
+        - width: |
             [[[
-              if(variables._vertical) {
-                return ['cb-lcars-functions', 'cb-lcars-slider'];
-              } else {
-                return ['cb-lcars-functions', 'cb-lcars-slider-horizontal'];
-              }
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
             ]]]
-          variables:
+      custom_fields:
+        gauge:
+          - position: absolute
+          - top: 0
+          - left: 0
+          - visibility: >-
+              [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
+              ]]]
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-top-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
+              ]]]
+          - border-top-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
+              ]]]
+          - border-bottom-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
+              ]]]
+          - border-bottom-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
+              ]]]
+          - width: >-
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
+              " )" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              ")" ]]]
+        slider_track_control:
+          - visibility: >-
+              [[[ return ((variables._mode === 'slider') &&
+              !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
+          - position: absolute
+          - top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size);
+              ]]]
+          - left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size);
+              ]]]
+          - width: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size) + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.right.size)  +
+              ")" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size) + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size)
+              + ")" ]]]
+          - padding-left2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.left)
+              ]]]
+          - padding-right2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.right)
+              ]]]
+          - padding-top2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.top)
+              ]]]
+          - padding-bottom2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+              ]]]
+        slider_bg:
+          - visibility: >-
+              [[[ return (variables._mode === 'slider') ? 'visible' : 'hidden'
+              ]]]
+          - position: absolute
+          - top: 0px
+          - width: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) +  " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.left)
+              + " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.right)
+              + ")" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) +  " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size) +  "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.top)
+              + " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+              + ")" ]]]
+          - border-top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-bottom: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-right: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              ]]]
+          - border-top-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
+              ]]]
+          - border-top-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
+              ]]]
+          - border-bottom-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
+              ]]]
+          - border-bottom-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
+              ]]]
+          - background: '[[[ return variables.z_slider ]]]'
+          - padding-top2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.top) + ")";
+              ]]]
+          - padding-right2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.right) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.right) + ")";
+              ]]]
+          - padding-bottom2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
+              ]]]
+          - padding-left: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.left) + ")";
+              ]]]
+          - padding-top: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.top) + ")";
+              ]]]
+          - padding-right: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.right) + ")";
+              ]]]
+          - padding-bottom: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
+              ]]]
+        gauge_control:
+          - visibility: >-
+              [[[ return ((variables._mode === 'gauge') &&
+              !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
+          - position: absolute
+          - top: |
+              [[[
+                  if (variables._vertical) {
+                    return variables.__get_num_with_unit(variables.card.border.top.size);
+                  } else {
+                    return "calc(" + variables.__get_num_with_unit(variables.slider.padding.top) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
+                  }
+              ]]]
+          - left: |
+              [[[
+                if (variables._vertical) {
+                  return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
+                } else {
+                  return variables.__get_num_with_unit(variables.card.border.left.size);
+                }
+              ]]]
+          - width: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              " - " +
+              variables.__get_num_with_unit(variables.card.border.right.size) +
+              ")" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              ")" ]]]
+        locked_bar:
+          - visibility: '[[[ return (variables.slider.locked) ? ''visible'' : ''hidden'' ]]]'
+          - position: absolute
+          - z-index: 1
+          - left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size);
+              ]]]
+          - top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size);
+              ]]]
+          - width: |-
+              [[[
+                if (variables._mode === 'slider') {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.width) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.left.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.right.size) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.left) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.right) +
+                    ")";
+                } else {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.width) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.left.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.right.size) +
+                    ")";
+                }
+              ]]]
+          - height: |-
+              [[[
+                if (variables._mode === 'slider') {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.height) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.top.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.top) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
+                    ")";
+                } else {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.height) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.top.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                    ")";
+                }
+              ]]]
+    custom_fields:
+      gauge: |
+        [[[
+          return variables.z_gauge;
+        ]]]
+      slider_bg: |
+        [[[
+          return variables.z_slider;
+        ]]]
+      locked_bar: |
+        [[[
+          const entityState = entity.state;
+          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
+          let progress = 0;
+          switch(entityType) {
+            case 'light':
+              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
+              break;
+            case 'fan':
+              progress = (parseFloat(entity.attributes.percentage));
+              break;
+            default:
+              progress = (parseFloat(entityState));
+              break;
+          }
+          const progressPercentage = ((progress / variables.slider.max) * 100);
+          const remainingPercentage = 100 - progressPercentage;
+          const isVertical = variables._vertical;
+          const borderRadius = variables.slider.border_radius;
+          const borderWidth = variables.slider.border_width;
+          const borderColor = variables.slider.border_color;
+          const maskColor = variables.slider_track.mask_color;
+          const calcWidth = `calc(${variables.__get_num_with_unit(variables.card.width)} - ${variables.__get_num_with_unit(variables.card.border.left.size)} - ${variables.__get_num_with_unit(variables.card.border.right.size)} )`;
+          const calcHeight = `calc(${variables.__get_num_with_unit(variables.card.height)} - ${variables.__get_num_with_unit(variables.card.border.top.size)} - ${variables.__get_num_with_unit(variables.card.border.bottom.size)} )`;
+          const sliderPaddingTop = variables.__get_num_with_unit(variables.slider.padding.top);
+          const sliderPaddingLeft = variables.__get_num_with_unit(variables.slider.padding.left);
+          const sliderHeight = variables.__get_num_with_unit(variables._slider_thickness);
+          if (variables._mode === 'gauge') {
+            return `
+              <div class="progress-bar" style="
+                position: absolute;
+                ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+                top: ${isVertical ? 'unset' : sliderPaddingTop};
+                left: ${isVertical ? sliderPaddingTop : sliderPaddingLeft};
+                width: ${isVertical ? sliderHeight : progressPercentage + '%'};
+                height: ${isVertical ? progressPercentage + '%' : sliderHeight};
+                border-radius: ${borderRadius};
+                border: ${borderWidth} solid ${borderColor};
+                background-color: ${variables.slider.color};
+              "></div>
+            `;
+          } else if (variables._mode === 'slider') {
+            return `
+              <div class="slider-background" style="
+                position: absolute;
+                width: ${calcWidth};
+                height: ${calcHeight};
+                border-radius: unset !important;
+              ">
+                <div class="slider-mask" style="
+                  position: absolute;
+                  ${isVertical ? 'top: 0;' : 'right: 0;'}
+                  width: ${isVertical ? '100%' : remainingPercentage + '%'};
+                  height: ${isVertical ? remainingPercentage + '%' : '100%'};
+                  border-radius: unset !important;
+                  background-color: ${maskColor};
+                "></div>
+              </div>
+            `;
+          }
+        ]]]
+      gauge_control:
+        card:
+          type: custom:my-slider-v2
+          entity: '[[[ return variables.entity ]]]'
+          mode: '[[[ return variables.slider.mode ]]]'
+          vertical: '[[[ return variables._vertical ]]]'
+          flipped: false
+          inverse: false
+          step: '[[[ return variables.slider.step; ]]]'
+          min: |
+            [[[
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.min_mired
+            //  } else {
+                return variables.slider.min;
+            //  }
+            ]]]
+          max: |
+            [[[
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.max_mired
+            //  } else {
+                return variables.slider.max;
+            //  }
+            ]]]
+          styles:
             card:
-              width: |
-                [[[
-                    return (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right))+"px";
-                ]]]
-              height: |
-                [[[
-                  return (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom))+"px";
-                ]]]
-            entity: "[[[ return variables.entity ]]]"
-            entity_match_slider_start: "[[[ return variables.entity_match_slider_start ]]]"
-            entity_match_slider_end: "[[[ return variables.entity_match_slider_end ]]]"
-            meter:
-              variables: "[[[ return variables.slider_track.meter ]]]"
-            slider:
-              variables: "[[[ return variables.slider ]]]"
+              - width: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.width) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.left.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.right.size)
+                  + ")" ]]]
+              - height: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.height) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.top.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.bottom.size)
+                  + ")" ]]]
+              - background: none
+              - border-radius: 0
+            progress:
+              - background-color: >-
+                  [[[ return
+                  variables.__hex_to_rgba(variables.slider.color,variables.slider.color_alpha)
+                  ]]]
+              - border: >-
+                  [[[ return variables.slider.border_width + " solid " +
+                  variables.__hex_to_rgba(variables.slider.border_color,
+                  variables.slider.border_alpha)  ]]]
+              - border-radius: '[[[ return variables.slider.border_radius ]]]'
+              - height: '[[[ return variables.slider.height ]]]'
+              - width: '[[[ return variables.slider.width ]]]'
+              - left: >-
+                  [[[ return
+                  variables.__get_num_with_unit(variables.slider.padding.left)
+                  ]]]
+            container:
+              - border-radius: 0
+            track:
+              - background: none
+            thumb:
+              - background: none
+      slider_track_control:
+        card:
+          type: custom:my-slider-v2
+          entity: '[[[ return variables.entity ]]]'
+          mode: '[[[ return variables.slider.mode ]]]'
+          vertical: '[[[ return variables._vertical ]]]'
+          flipped: true
+          inverse: true
+          step: '[[[ return variables.slider.step; ]]]'
+          min: |
+            [[[
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.min_mired
+            //  } else {
+                return variables.slider.min;
+            //  }
+            ]]]
+          max: |
+            [[[
+            //  if (variables.slider.mode === 'temperature') {
+            //    return entity.attributes.max_mired
+            //  } else {
+                return variables.slider.max;
+            //  }
+            ]]]
+          styles:
+            progress:
+              - background-color: '[[[ return variables.slider_track.mask_color; ]]]'
+            container:
+              - border-radius: 0
+            track:
+              - background: none
+            thumb:
+              - background: none
+            card:
+              - width: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.width) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.left.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.right.size)
+                  + ")" ]]]
+              - height: >-
+                  [[[ return "calc(" +
+                  variables.__get_num_with_unit(variables.card.height) + " - " +
+                  variables.__get_num_with_unit(variables.card.border.top.size)
+                  + " - " +
+                  variables.__get_num_with_unit(variables.card.border.bottom.size)
+                  + ")" ]]]
+              - border-radius: unset !important
+              - background: none
   cb-lcars-state-on-blink:
     variables:
       blink_seconds: 3s
