@@ -1,4 +1,4 @@
-cb-lcars-base-card2:
+cb-lcars-base-card:
   tabs:
     - label: Base Card
       content:
@@ -7,7 +7,7 @@ cb-lcars-base-card2:
             - type: Message
               alertType: info
               message: "This is a base card for advanced use.  Visual Editor is not available for this card."
-cb-lcars-base-card:
+cb-lcars-base-controls:
   tabs:
     - label: Base Controls
       content:
