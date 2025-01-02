@@ -24,7 +24,6 @@ Functionality and configurations may change over time until stabilized.  Things 
 </p>
 
 
-- [Breaking Changes](#breaking-changes)
 - [Installation - Make it so!](#installation---make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
     - [2. HA-LCARS Theme - Setup and Customizations](#2-ha-lcars-theme---setup-and-customizations)
@@ -32,6 +31,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
       - [4. Engage!](#4-engage)
+- [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -49,9 +49,10 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
   - [LCARS DPAD](#lcars-dpad)
     - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
-- [Animations](#animations)
-  - [Data Cascade](#data-cascade)
-  - [Pulse Wave](#pulse-wave)
+- [Animations and Effects](#animations-and-effects)
+  - [Custom Animations](#custom-animations)
+    - [Data Cascade](#data-cascade)
+    - [Pulsewave](#pulsewave)
 - [Screenshots](#screenshots)
       - [Button Samples](#button-samples)
       - [Sliders/Gauges](#slidersgauges)
@@ -66,43 +67,6 @@ Functionality and configurations may change over time until stabilized.  Things 
 
 ---
 
-# Breaking Changes
-
-If you have used the previous version whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
-
-If you can - it's advisable to start with a fresh dashboard.
-
-<br>
-
-<details closed><summary>To Retrofit</summary>
-It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
-
-The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
-
-```yaml
-cblcars_card_templates:      <-- this section should be removed
-  template_name:
-```
-
-Card config structure also changed slightly from original.
-Everything that was in `cblcars_card_config:` section, has been moved up one level.
-
-```yaml
-cblcars_card_config:
-  variables:
-    label: "my label"
-
-would become:
-
-variables:
-  label: "my label"
-```
-If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
-</details>
-
----
-
-<br>
 
 # Installation - Make it so!
 
@@ -186,6 +150,43 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
+# Breaking Changes (Coming from _original_ project)
+
+If you have used the previous version whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
+
+If you can - it's advisable to start with a fresh dashboard.
+
+<br>
+
+<details closed><summary>To Retrofit</summary>
+It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
+
+The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
+
+```yaml
+cblcars_card_templates:      <-- this section should be removed
+  template_name:
+```
+
+Card config structure also changed slightly from original.
+Everything that was in `cblcars_card_config:` section, has been moved up one level.
+
+```yaml
+cblcars_card_config:
+  variables:
+    label: "my label"
+
+would become:
+
+variables:
+  label: "my label"
+```
+If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
+</details>
+
+---
+
+<br>
 
 #  Overview
 
@@ -202,6 +203,7 @@ These cards are built upon `custom-button-card` with some enhancements to base f
   - Sliders/Guages
   - 'Elbows'
   - That d-pad thing
+  - Animations
   - etc.
 - Designed with HA 'Sections' or other grid layouts in mind.  YMMV with other layouts.
 - Collaborative - There are likely way better ways of doing some things - open to any and all suggestions, comments, etc.
@@ -234,7 +236,7 @@ In no particular ordeer:
    - gradients for sliders with automatice step and shade calculations
    - really too much to list - you can customize just about anything you like
 - Matching control colors to the light entity (buttons, sliders, gradients, etc.)
-- Additional 'flare' such as animating button presses, blinking buttons
+- Additional 'flare' such as animations, button presses, blinking buttons
 - Automatic 'random' button labels in LCARS style (hex numbers)
 - Optional: invocation of [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) popups for light and scene controls
 
@@ -243,11 +245,19 @@ In no particular ordeer:
 
 # States
 
-The cards support the changing styles/colors depending on the current state of the entity.
+The cards support changing the styles/colors of independent components based on the state of the entity.
 
-If no entity is defined, `default` will be used.  If the entity is unavailable or unknown, then `unavailable` will be used.
+If no entity is defined (no state), `default` will be used.  If the entity is unavailable or unknown, then `unavailable` will be used.
 
 Each of these is configurable in the UI editor for the cards.
+
+State styles can be applied to components such as:
+- Borders
+- Backgrounds
+- Text
+- Buttons
+- etc.
+
 
 | Entity State Value           |  State Variable Name   |
 |------------------------------|------------------------|
@@ -260,6 +270,41 @@ Each of these is configurable in the UI editor for the cards.
 | `cool` (hvac/climate entity) | `hvac_cool:`           |
 | `unavailable` `unkown`       | `unavailable:`         |
 
+
+Example of configuration (editiable via UI):
+```yaml
+variables:
+  text:
+    label:
+      color:
+        default: var(--primary-text-color)
+        active: var(--lcars-ui-secondary)
+        inactive: var(--lcars-ui-tertiary)
+        zero: var(--lcars-green)
+        non_zero: var(--lcars-blue)
+        hvac_heat: var(--lcars-orange)
+        hvac_cool: var(--lcars-blue)
+        unavailable: var(--lcars-card-button-unavailable)
+  card:
+    color:
+      default: var(--lcars-card-top-color, var(--picard-dark-gray))
+      active: var(--lcars-ui-secondary)
+      inactive: var(--lcars-ui-tertiary)
+      zero: var(--lcars-green)
+      non_zero: var(--lcars-blue)
+      hvac_heat: var(--lcars-orange)
+      hvac_cool: var(--lcars-blue)
+      unavailable: var(--lcars-card-button-unavailable)
+      background:
+        default: var(--lcars-card-top-color, var(--picard-dark-gray))
+        active: var(--lcars-ui-secondary)
+        inactive: var(--lcars-ui-tertiary)
+        zero: var(--lcars-green)
+        non_zero: var(--lcars-blue)
+        hvac_heat: var(--lcars-orange)
+        hvac_cool: var(--lcars-blue)
+        unavailable: var(--lcars-card-button-unavailable)
+```
 
 ---
 
@@ -337,15 +382,18 @@ Settings are available in the UI editor.
 
 ### `type:cb-lcars-multimeter-card`
 
+- Supports interactive (entity) mode, or non-interactive (sensor) mode.
+  - Mode is determined automatically by the assigned entity
 - Run in Slider or Guage mode
 - Horizontal or Vertical orientation
 - Configurable multi-modal slider control:
   - Light: brightness, temperature, hue, saturation
   - Media Player: volume, seek
-  - etc.
+  - (uses my-slider-v2 custom card internally)
 - Fully configurable borders, label/text, slider
 - Color match [border|slider|gauge|gradient start/end etc.] to entity color
 - Configurable min, max, gauge increments, slider step size
+  - Min/Max/Units are automatically obtained from the entity (if supported)
 - Show/Hide Units, Override unit
 - Configurable Subticks
   - Show/Hide
@@ -354,16 +402,17 @@ Settings are available in the UI editor.
 
 ![cb-lcars-multimeter](images/screenshots/multimeter.gif)
 
-TODOs:
-- update slider mode to new code (code that gauge uses - better performance)
-- expose customization parameters for slider (rounded/square, width/height, etc.)
-- add RTL (right-to-left) support (?)
-
 <br>
 
 ## LCARS Label (Stylized Text)
 
 ### `type:cb-lcars-label-card`
+
+
+- Card for creating labels/text
+- Full graphical customization
+- Pre-configured label templates for various looks seen in LCARS
+  - Library is growing...
 
 | `cblcars_card_type:`        | Styles          |
 | -------------- | ---------------------- |
@@ -391,31 +440,35 @@ TODOs:
 
 ---
 
-# Animations
+# Animations and Effects
 
-TODO: background animations section
+The cards support a growing library of animations and effects that can be applied to the card.  Animations can appear as "backgrounds" for a card giving a really fun effect.
+
+Animations are _highly_ customizable and can be edited via UI.  Each animation has a dedicated configuration tab with details.
+
+Just about every option can be configured to create a multitude of looks from the same animation component - please explore!
+
+For those that really want to tinker - see below :)
+
 
 <br>
 
-## Data Cascade
-
 | template ||
 |----------|----------------|
-| [`cb-lcars-cascade`](src/cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
-
-| setting | default |
-|---------|---------|
+| [`cb-lcars-animation-cascade`](src/cb-lcars/cb-lcars-animation-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
+| [`cb-lcars-animation-pulsewave`](src/cb-lcars/cb-lcars-animation-pulsewave.yaml) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
 
 
+## Custom Animations
+
+You can provide custom animation pattern and keyframes definitions to the animation elements should you desire.
+
+Examples are below.  More details to come, but for now know:
+- `custom_pattern` and `custom_keyframes` are provided as text blocks
+- Embedded variables are not currently supported
+
+### Data Cascade
 ```yaml
-type: custom:cb-lcars-base-card
-label: CB-LCARS Base Card
-show_label: true
-configSample:
-  actionSelector: {}
-grid_options:
-  columns: 12
-  rows: 5
 template:
   - cb-lcars-animation-cascade
 variables:
@@ -445,11 +498,60 @@ variables:
         }
 ```
 
-TODOs:
-- add presets/expose options for cascade animation settings
-- add alternative text sources (sensors?)
+### Pulsewave
 
-## Pulse Wave
+```yaml
+template:
+  - cb-lcars-animation-pulsewave
+variables:
+  animation:
+    pulsewave:
+      line_angle: 15
+      scale_line_heights: true
+      pattern: custom
+      custom_pattern: |
+        [
+          "animateLine3 13s 0.2s infinite",
+          "animateLine2 13s 0.3s infinite",
+          "animateLine3 13s 0.4s infinite",
+          "animateLine3 13s 0.5s infinite",
+          "animateLine2 13s 0.6s infinite",
+          "animateLine2 13s 0.7s infinite",
+          "animateLine2 13s 0.8s infinite",
+          "animateLine1 13s 0.9s infinite",
+          "animateLine1 1s 1s infinite",
+          "animateLine2 1s 0.8s infinite",
+          "animateLine2 1s 0.7s infinite",
+          "animateLine2 1s 0.6s infinite",
+          "animateLine3 1s 0.5s infinite",
+          "animateLine3 1s 0.4s infinite",
+          "animateLine2 1s 0.3s infinite",
+          "animateLine2 1s 0.2s infinite"
+        ]
+      custom_keyframes: |
+        @keyframes animateLine1 {
+          0% { height: 50px; }
+          50% { height: 25px; }
+          100% { height: 50px; }
+        }
+        @keyframes animateLine2 {
+          0% { height: 100px; }
+          50% { height: 50px; }
+          100% { height: 100px; }
+        }
+        @keyframes animateLine3 {
+          0% { height: 75px; }
+          50% { height: 37.5px; }
+          100% { height: 75px; }
+        }
+```
+
+
+TODOs:
+- add alternative text data sources (sensors?)
+
+
+
 
 ---
 
@@ -535,7 +637,7 @@ As well, some shout-outs and attributions to these great projects:
 
 [meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and color reference.
 
-[TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference.
+[TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference, and the base reference for Data Cascade and Pulsewave animations.
 
 [wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
 
