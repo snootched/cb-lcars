@@ -30,7 +30,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Font](#font)
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
-      - [4. Engage!](#4-engage)
+    - [4. Engage!](#4-engage)
 - [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
@@ -120,7 +120,7 @@ _(Note: if the font is missing, the card will attempt to load it dynamically fro
 
 #### Customized *CB-LCARS* Color Scheme
 
- *Ideally, add and use this cb-lcars profile into your HA-LCARS theme.  If not, the additional color definitions will be made available to use on runtime by the cards.*
+ *Ideally, add and use this cb-lcars profile into your HA-LCARS theme.  If not, the additional color definitions will be made available to use at runtime by the cards.*
 
  Copy the custom `LCARS Picard [cb-lcars]` definition from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your HA-LCARS `lcars.yaml` file in Home Assistant (per instructions for [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
 
@@ -144,7 +144,7 @@ These are the colors used for the ha-lcars defined variables.
 2. Install CB-LCARS from HACS like any other project.
 
 
-#### 4. Engage!
+### 4. Engage!
 
 Add CB-LCARS cards to your dashboard just like any other card.
 
@@ -152,14 +152,14 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 # Breaking Changes (Coming from _original_ project)
 
-If you have used the previous version whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
+If you have used the original versions of CB-LCARS whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
 
 If you can - it's advisable to start with a fresh dashboard.
 
 <br>
 
 <details closed><summary>To Retrofit</summary>
-It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
+If you choose to retrofit an existing dashboard, it is necessary to remove those old templates from your dashboard file, and update any card configs that are broken by variable changes.
 
 The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
 
