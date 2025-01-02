@@ -1,5 +1,5 @@
 cblcars:
-  version: 2024.12.5-alpha-2
+  version: 2025.01.1-alpha-1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -20,140 +20,6 @@ cblcars_card_templates:
             left_radius: 0px
           bottom:
             left_radius: 0px
-  cb-lcars-animation-pulse-wave:
-    show_label: false
-    variables:
-      enable_resize_observer: true
-      animation:
-        pulse_wave:
-          line_height: 20
-          line_width: 3
-          line_width_even: 4
-          line_angle: 15
-          color:
-            line_color: black
-            start_color: var(--lcars-ui-tertiary)
-            end_color: black
-    styles:
-      label:
-        - z-index: 1
-      custom_fields:
-        animation:
-          - display: flex
-          - position: absolute
-          - align-items: center
-    custom_fields:
-      animation: |
-        [[[
-          const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-          const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-          const line_height = (variables.animation.pulse_wave.line_height !== undefined ) ? parseInt(variables.animation.pulse_wave.line_height) : 20;
-          const line_width = (variables.animation.pulse_wave.line_width !== undefined ) ? parseInt(variables.animation.pulse_wave.line_width) : 3;
-          const line_width_even = (variables.animation.pulse_wave.line_width_even !== undefined ) ? parseInt(variables.animation.pulse_wave.line_width_even) : 4;
-          const line_color = variables.animation.pulse_wave.color.line_color || '#000';
-          const animation_start_color = variables.animation.pulse_wave.color.start_color || 'var(--picard-blue)';
-          const animation_end_color = variables.animation.pulse_wave.color.end_color || '#000';
-          const line_angle = (variables.animation.pulse_wave.line_angle !== undefined) ? variables.animation.pulse_wave.line_angle : 17;
-          let line_transform = variables.animation.pulse_wave.line_transform || `rotate(${line_angle}deg)`
-          //console.info(line_transform)
-          //console.info("line_width: ",line_width)
-          //console.info("line_width_even: ",line_width_even)
-          // Calculate the total width of one cycle of the pattern
-          const pattern_width = line_width + line_width_even;
-          //console.info("pattern_width: ",pattern_width)
-          // Calculate the number of lines needed to fill the card width
-          const num_lines = variables.animation.pulse_wave.num_lines || Math.ceil(card_width / pattern_width) * 2;
-          //console.info("num_lines: ",num_lines)
-          // Original heights and their ratios
-          const originalHeights = [180, 120, 230, 60, 30];
-          const maxOriginalHeight = Math.max(...originalHeights);
-          const heightRatios = originalHeights.map(height => height / maxOriginalHeight);
-          // Calculate new heights based on card_height
-          const newHeights = heightRatios.map(ratio => Math.round(ratio * card_height));
-          const animationSettings = [
-            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
-            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
-            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
-            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
-          ];
-          let keyframes = '';
-          animationSettings.forEach(({ keyframe, height }) => {
-            keyframes += `
-              @keyframes ${keyframe} {
-                0% { height: ${height}px; }
-                50% { height: ${height / 2}px; }
-                100% { height: ${height}px; }
-              }
-            `;
-          });
-          let lines = '';
-          for (let i = 1; i <= num_lines; i++) {
-            lines += `<div class="line line-${i}"></div>`;
-          }
-          const nthChildAnimations = [
-            'animateLine6 1s 0.2s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine4 1s 1s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine6 1s 0.2s infinite',
-            'animateLine6 1s 0.2s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine4 1s 1s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine6 1s 0.2s infinite'
-          ];
-          return `
-            <elt>
-              <style>
-                .wrapper {
-                  flex: 1;
-                  display: flex;
-                  flex-grow: 1;
-                  align-items: center;
-                }
-                .line {
-                  height: ${line_height}px;
-                  width: ${line_width}px;
-                  background: linear-gradient( ${line_color}, ${animation_start_color}, ${line_color}, ${animation_end_color});
-                  transform: ${line_transform};
-                }
-                .line:nth-child(even) {
-                  width: ${line_width_even}px;
-                }
-                ${keyframes}
-                ${Array.from({ length: num_lines }, (_, i) => `
-                  .line:nth-child(${i + 1}) { animation: ${nthChildAnimations[i % nthChildAnimations.length]}; }
-                `).join('')}
-              </style>
-              <div class="wrapper">
-                ${lines}
-              </div>
-            </elt>
-          `;
-        ]]]
   cb-lcars-button-lozenge:
     template: cb-lcars-button-base
     variables:
@@ -558,6 +424,334 @@ cblcars_card_templates:
           right:
             size: 40
           color: var(--picard-medium-dark-gray)
+  cb-lcars-animation-pulsewave:
+    variables:
+      enable_resize_observer: true
+      animation:
+        pulsewave:
+          color:
+            line_color: black
+            start_color: var(--lcars-ui-tertiary)
+            end_color: black
+          pattern: default
+          line_height: 20
+          line_width: 3
+          line_width_even: 4
+          line_angle: 15
+          custom_keyframes: null
+          custom_pattern: null
+          line_heights: null
+          scale_line_heights: true
+          align_items: center
+    styles:
+      label:
+        - z-index: 1
+    custom_fields:
+      animation: |
+        [[[
+          // Calculate card dimensions
+          //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          // Get line properties
+          const line_height = (variables.animation.pulsewave.line_height !== undefined ) ? parseInt(variables.animation.pulsewave.line_height) : 20;
+          const line_width = (variables.animation.pulsewave.line_width !== undefined ) ? parseInt(variables.animation.pulsewave.line_width) : 3;
+          const line_width_even = (variables.animation.pulsewave.line_width_even !== undefined ) ? parseInt(variables.animation.pulsewave.line_width_even) : 4;
+          const line_color = variables.animation.pulsewave.color.line_color || '#000';
+          const animation_start_color = variables.animation.pulsewave.color.animation_start || 'var(--picard-blue)';
+          const animation_end_color = variables.animation.pulsewave.color.animation_end || '#000';
+          const line_angle = (variables.animation.pulsewave.line_angle !== undefined) ? variables.animation.pulsewave.line_angle : 17;
+          let line_transform = variables.animation.pulsewave.line_transform || `rotate(${line_angle}deg)`;
+          const align_items = variables.animation.pulsewave.align_items || 'center';
+          const justify_content = variables.animation.pulsewave.justify_content || 'center';
+          // Initialize keyframes
+          let keyframes = '';
+          const pattern_width = line_width + line_width_even;
+          const num_lines = variables.animation.pulsewave.num_lines || Math.ceil(card_width / pattern_width) * 2;
+          // Use custom keyframes if provided
+          const customKeyframes = variables.animation.pulsewave.custom_keyframes;
+          if (customKeyframes) {
+            keyframes = customKeyframes;
+          } else {
+            // Use provided original heights if available
+            const originalHeights = variables.animation.pulsewave.line_heights || [180, 120, 230, 60, 30];
+            const scaleHeights = variables.animation.pulsewave.scale_line_heights ?? true;
+            let newHeights;
+            if (scaleHeights === false) {
+              newHeights = originalHeights;
+            } else {
+              const maxOriginalHeight = Math.max(...originalHeights);
+              const heightRatios = originalHeights.map(height => height / maxOriginalHeight);
+              // Calculate new heights based on card_height
+              newHeights = heightRatios.map(ratio => Math.round(ratio * card_height));
+            }
+            // Define keyframes based on new heights
+            const animationSettingsDefault = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSineWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSquareWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 0.5, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 0.5, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 0.5, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 0.5, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 0.5, delay: 0.6 }
+            ];
+            const animationSettingsTriangleWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsSawtoothWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+            ];
+            const animationSettingsRandomWave = [
+              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.6 },
+              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.8 },
+              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 1 }
+            ];
+            const patternName = variables.animation.pulsewave.pattern || 'default';
+            const animationSettingsMap = {
+              default: animationSettingsDefault,
+              sine: animationSettingsSineWave,
+              square: animationSettingsSquareWave,
+              triangle: animationSettingsTriangleWave,
+              sawtooth: animationSettingsSawtoothWave,
+              random: animationSettingsRandomWave,
+              custom: animationSettingsDefault
+            };
+            const animationSettings = animationSettingsMap[patternName] || animationSettingsDefault;
+            keyframes = '';
+            animationSettings.forEach(({ keyframe, height }) => {
+              if (patternName === 'sine') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    25% { height: ${height * 0.75}px; }
+                    50% { height: ${height / 2}px; }
+                    75% { height: ${height * 0.75}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'square') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'triangle') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'sawtooth') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    25% { height: ${height * 0.75}px; }
+                    50% { height: ${height / 2}px; }
+                    75% { height: ${height * 0.25}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else if (patternName === 'random') {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              } else {
+                keyframes += `
+                  @keyframes ${keyframe} {
+                    0% { height: ${height}px; }
+                    50% { height: ${height / 2}px; }
+                    100% { height: ${height}px; }
+                  }
+                `;
+              }
+            });
+          }
+          let lines = '';
+          for (let i = 1; i <= num_lines; i++) {
+            lines += `<div class="line line-${i}"></div>`;
+          }
+          const patternDefault = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine3 1s 0.5s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.3s infinite',
+            'animateLine6 1s 0.2s infinite'
+          ];
+          const patternNiagara = [
+            'animateLine6 1s 0.1s infinite',
+            'animateLine5 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine2 1s 0.5s infinite',
+            'animateLine2 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite',
+            'animateLine2 1s 1.1s infinite',
+            'animateLine2 1s 1.2s infinite',
+            'animateLine3 1s 1.3s infinite',
+            'animateLine3 1s 1.4s infinite',
+            'animateLine5 1s 1.5s infinite',
+            'animateLine6 1s 1.6s infinite'
+          ];
+          const patternSineWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine5 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine3 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite'
+          ];
+          const patternSquareWave = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine6 1s 0.2s infinite',
+            'animateLine2 1s 0.4s infinite',
+            'animateLine2 1s 0.4s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine2 1s 0.8s infinite'
+          ];
+          const patternTriangleWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine5 1s 0.7s infinite',
+            'animateLine4 1s 0.8s infinite',
+            'animateLine3 1s 0.9s infinite',
+            'animateLine2 1s 1s infinite'
+          ];
+          const patternSawtoothWave = [
+            'animateLine2 1s 0.2s infinite',
+            'animateLine3 1s 0.3s infinite',
+            'animateLine4 1s 0.4s infinite',
+            'animateLine5 1s 0.5s infinite',
+            'animateLine6 1s 0.6s infinite',
+            'animateLine2 1s 0.7s infinite',
+            'animateLine3 1s 0.8s infinite',
+            'animateLine4 1s 0.9s infinite',
+            'animateLine5 1s 1s infinite'
+          ];
+          const patternRandomWave = [
+            'animateLine6 1s 0.2s infinite',
+            'animateLine3 1s 0.4s infinite',
+            'animateLine5 1s 0.6s infinite',
+            'animateLine2 1s 0.8s infinite',
+            'animateLine4 1s 1s infinite',
+            'animateLine3 1s 0.7s infinite',
+            'animateLine6 1s 0.5s infinite',
+            'animateLine2 1s 0.3s infinite',
+            'animateLine5 1s 0.1s infinite'
+          ];
+          // Determine the pattern to use
+          const patternName = variables.animation.pulsewave.pattern || 'default';
+          const patternMap = {
+            default: patternDefault,
+            niagara: patternNiagara,
+            sine: patternSineWave,
+            square: patternSquareWave,
+            triangle: patternTriangleWave,
+            sawtooth: patternSawtoothWave,
+            random: patternRandomWave,
+            custom: variables.animation.pulsewave.custom_pattern ? JSON.parse(variables.animation.pulsewave.custom_pattern) : patternDefault
+          };
+          const nthChildAnimations = patternMap[patternName] || patternDefault;
+          return `
+            <elt>
+              <style>
+                .wrapper {
+                  flex: 1;
+                  display: flex;
+                  flex-grow: 1;
+                  align-items: ${align_items};
+                  justify-content: ${justify_content};
+                  height: ${card_height}px;
+                  width: ${card_width}px;
+                }
+                .line {
+                  height: ${line_height}px;
+                  width: ${line_width}px;
+                  background: linear-gradient( ${line_color}, ${animation_start_color}, ${line_color}, ${animation_end_color});
+                  transform: ${line_transform};
+                }
+                .line:nth-child(even) {
+                  width: ${line_width_even}px;
+                }
+                ${keyframes}
+                ${Array.from({ length: num_lines }, (_, i) => `
+                  .line:nth-child(${i + 1}) { animation: ${nthChildAnimations[i % nthChildAnimations.length]}; }
+                `).join('')}
+              </style>
+              <div class="wrapper">
+                ${lines}
+              </div>
+            </elt>
+          `;
+        ]]]
   cb-lcars-theme:
     template:
         - cb-lcars-functions
@@ -3743,8 +3937,12 @@ cblcars_card_templates:
           background:
             active: null
             inactive: null
+      animation:
+        justify_content: center
+        align_items: center
     show_label: false
     show_state: false
+    show_units: true
     show_icon: false
     show_name: false
     styles:
@@ -3806,6 +4004,7 @@ cblcars_card_templates:
             ]]]
         - position: relative
       label:
+        - z-index: 1
         - display: flex
         - justify-content: '[[[ return variables.text.label.justify ]]]'
         - align-items: '[[[ return variables.text.label.align_items ]]]'
@@ -3901,6 +4100,38 @@ cblcars_card_templates:
         - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
         - outline: >-
             [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: |
+              [[[
+                return variables.animation.align_items || 'center';
+              ]]]
+          - justify-content: |
+              [[[
+                return variables.animation.justify_content || 'center';
+              ]]]
+          - filter: |
+              [[[
+                return variables.animation.filter || 'none';
+              ]]]
+          - height: |
+              [[[
+                return "calc( " + variables.__get_num_with_unit(variables.card.height) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size)
+              ]]]
+          - width: |
+              [[[
+                return "calc( " + variables.__get_num_with_unit(variables.card.width) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size)
+              ]]]
     state:
       - id: state_on
         operator: template
@@ -4404,27 +4635,24 @@ cblcars_card_templates:
   cb-lcars-animation-cascade:
     template:
       - cb-lcars-functions
-      - cb-lcars-label
-    show_label: true
     variables:
       enable_resize_observer: true
       card:
         height: "[[[ return this.offsetHeight; ]]]"
         width: "[[[ return this.offsetWidth; ]]]"
-      text:
-        label:
-          font_size: 24
-          font_weight: 300
       animation:
         cascade:
           grid:
             num_cols: null
             gap: 8
             num_rows: null
-          colors:
+          color:
             text: var(--picard-dark-blue)
             animation_start: var(--picard-blue)
             animation_end: var(--picard-moonlight)
+          text:
+            font_size: 24
+            font_weight: 300
     styles:
       label:
         - z-index: 1
@@ -4436,28 +4664,7 @@ cblcars_card_templates:
     custom_fields:
       animation: |
         [[[
-          const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-          const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-          //console.debug( `${card_height}`);
-          //console.debug( `${card_width}`);
-          const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
-          const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
-          const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
-          const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
-          const text_color = variables.animation.cascade.colors.text || '#000';
-          const animation_start_color = variables.animation.cascade.colors.animation_start || '#26f';
-          const animation_end_color = variables.animation.cascade.colors.animation_end || '#def';
-          const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
-          //console.debug(`${auto_num_cols}`);
-          //console.debug("row_height: ",row_height);
-          //console.debug("grid_gap: ",grid_gap);
-          //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
-          const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
-          //console.debug(`${auto_num_rows}`);
-          const num_rows = variables.animation.cascade.grid.num_rows || auto_num_rows;
-          const num_cols = variables.animation.cascade.grid.num_cols || auto_num_cols;
-          // Predefined animation delays and durations for a more random feel
-          const animationSettings = [
+          const patternDefault = [
             { duration: 3, delay: 0.1 },
             { duration: 3, delay: 0.2 },
             { duration: 4, delay: 0.3 },
@@ -4467,6 +4674,82 @@ cblcars_card_templates:
             { duration: 2, delay: 0.7 },
             { duration: 2, delay: 0.8 }
           ];
+          const patternNiagara = [
+            { duration: 2, delay: 0.1 },
+            { duration: 2, delay: 0.2 },
+            { duration: 2, delay: 0.3 },
+            { duration: 2, delay: 0.4 },
+            { duration: 2, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          const patternFrozen = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+          //const customPattern = variables.animation.cascade.custom_pattern;
+          const customPatternInput = variables.animation.cascade.custom_pattern;
+          let customPattern;
+          if (typeof customPatternInput === 'string') {
+            try {
+              customPattern = JSON.parse(customPatternInput);
+              console.log('customPattern json parsed:', customPattern);
+            } catch (e) {
+              console.error('Failed to parse custom_pattern as JSON:', e);
+              customPattern = patternDefault;
+            }
+          } else if (Array.isArray(customPatternInput)) {
+            customPattern = customPatternInput;
+          } else {
+            customPattern = patternDefault;
+          }
+          const patternName = variables.animation.cascade.pattern || 'patternDefault';
+          const patternMap = {
+            default: patternDefault,
+            niagara: patternNiagara,
+            frozen: patternFrozen,
+            custom: customPattern
+          };
+          const animationSettings = patternMap[patternName] || patternDefault;
+          //console.debug("animationSettings: ",animationSettings);
+          //console.debug("patternName: ",patternName);
+          //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const align_items = variables.animation.cascade.align_items || 'center';
+          const justify_content = variables.animation.cascade.justify_content || 'center';
+          //console.debug( `${card_height}`);
+          //console.debug( `${card_width}`);
+          const font_size = variables.__get_num_with_unit(variables.animation.cascade.text.font_size) || '24px';
+          const font_weight = variables.animation.cascade.text.font_weight || '300';
+          const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
+          const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((parseInt(variables.animation.cascade.text.font_size * 2.5))) ||'80px';
+          const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
+          const text_color = variables.animation.cascade.color.text || '#000';
+          const animation_start_color = variables.animation.cascade.color.animation_start || '#26f';
+          const animation_end_color = variables.animation.cascade.color.animation_end || '#def';
+          const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
+          //console.debug(`${auto_num_cols}`);
+          //console.debug("row_height: ",row_height);
+          //console.debug("grid_gap: ",grid_gap);
+          //console.debug("card_height - grid_gap: ",(parseInt(card_height) - parseInt(grid_gap)));
+          const auto_num_rows =  variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
+          //console.debug(`${auto_num_rows}`);
+          const num_rows = variables.animation.cascade.grid.num_rows || auto_num_rows;
+          const num_cols = variables.animation.cascade.grid.num_cols || auto_num_cols;
+          // Function to get random color variable from our palette
+          function getRandomColor() {
+            const colors = [animation_start_color, animation_end_color, text_color];
+            return colors[Math.floor(Math.random() * colors.length)];
+          }
           // Function to generate random text for cells (digits, floats, or text)
           function getRandomText() {
             const types = ['digit', 'float','digit', 'float', 'text'];
@@ -4484,8 +4767,21 @@ cblcars_card_templates:
             }
           }
           let rows = '';
+          let keyframes = '';
           for (let i = 1; i <= num_rows; i++) {
             const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
+            const randomColor = getRandomColor();
+            keyframes += `
+              @keyframes colorchange-frozen-${i} {
+                0% {color: ${animation_start_color}}
+                25% {color: ${animation_start_color}}
+                50% {color: ${animation_start_color}}
+                75% {color: ${animation_start_color}}
+                80% {color: ${text_color}}
+                90% {color: ${text_color}}
+                100% {color: ${randomColor}}
+              }
+            `;
             rows += `
               <div class="row-${i} row">
                 ${Array.from({ length: num_cols }, (_, j) => `
@@ -4494,26 +4790,41 @@ cblcars_card_templates:
               </div>
             `;
           }
+          const isFrozen = patternName === 'frozen';
+          const animationIterationCount = isFrozen ? '1' : 'infinite';
+          const animationFillMode = isFrozen ? 'forwards' : 'none';
+          const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
+          const defaultKeyframes = `
+            @keyframes colorchange {
+              0% {color: ${animation_start_color}}
+              25% {color: ${animation_start_color}}
+              50% {color: ${animation_start_color}}
+              75% {color: ${animation_start_color}}
+              80% {color: ${text_color}}
+              90% {color: ${text_color}}
+              100% {color: ${animation_end_color}}
+            }
+          `;
+          const customKeyframes = variables.animation.cascade.custom_keyframes || defaultKeyframes;
+          //const elt = `
           return `
             <elt>
               <style>
-                @keyframes colorchange {
-                  0% {color: ${animation_start_color}}
-                  25% {color: ${animation_start_color}}
-                  50% {color: ${animation_start_color}}
-                  75% {color: ${animation_start_color}}
-                  80% {color: ${text_color}}
-                  90% {color: ${text_color}}
-                  100% {color: ${animation_end_color}}
-                }
+                ${customKeyframes}
+                ${keyframes}
                 .cascade-wrapper {
                   flex: 1;
                   padding-right: 1px;
                   display: flex;
                   flex-grow: 1;
+                  width: ${card_width};
+                  height: ${card_height};
+                  align-items: ${align_items};
+                  justify-content: ${justify_content};
                 }
                 .data-cascade {
                   font-size: ${font_size};
+                  font-weight: ${font_weight};
                   line-height: 1;
                 }
                 ${Array.from({ length: num_rows }, (_, i) => `
@@ -4522,8 +4833,9 @@ cblcars_card_templates:
                     grid-template-columns: repeat(${num_cols}, ${column_width});
                     gap: ${grid_gap};
                     color: ${text_color};
-                    animation: colorchange ${animationSettings[i % animationSettings.length].duration}s infinite;
+                    animation: ${keyframesName}${isFrozen ? `-${i + 1}` : ''} ${animationSettings[i % animationSettings.length].duration}s ${animationIterationCount};
                     animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
+                    animation-fill-mode: ${animationFillMode};
                     margin-bottom: ${grid_gap}; /* Add spacing between rows */
                     height: ${row_height}
                   }
@@ -4539,6 +4851,7 @@ cblcars_card_templates:
               </div>
             </elt>
           `;
+          //return elt;
         ]]]
   cb-lcars-multimeter:
     entity: '[[[ return variables.entity ]]]'
@@ -4761,8 +5074,11 @@ cblcars_card_templates:
         border_width: 0px
         border_radius: 2px
         flipped: '[[[ return (variables._vertical) ? true : false ]]]'
-        left_padding: 1px
-        top_padding: '[[[ return variables.gauge.sub_meter.tick_size ]]]'
+        padding:
+          left: 0
+          right: 0
+          bottom: 0
+          top: '[[[ return parseInt(variables.gauge.sub_meter.tick_size) ]]]'
         step: |
           [[[
             return entity.attributes.percentage_step || variables._slider_step;
@@ -4875,6 +5191,12 @@ cblcars_card_templates:
             const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
             const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
             let barWidth, barHeight;
+            // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+            if (width <= 0 || height <= 0) {
+              //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+              // Return a placeholder or empty SVG
+              return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+            }
             // Defaults and overrides
             let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
             let barOrientation = variables._vertical ? "vertical" : "horizontal";
@@ -4888,8 +5210,14 @@ cblcars_card_templates:
               barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
             }
             // Dynamic variable assignment
-            let startColor = variables.slider_track.gradient_start_color.trim();
-            let endColor = variables.slider_track.gradient_end_color.trim();
+            let startColor, endColor;
+            if (variables._vertical) {
+              startColor = variables.slider_track.gradient_end_color.trim();
+              endColor = variables.slider_track.gradient_start_color.trim();
+            } else {
+              startColor = variables.slider_track.gradient_start_color.trim();
+              endColor = variables.slider_track.gradient_end_color.trim();
+            }
             const startRgb = parseColor(startColor);
             const endRgb = parseColor(endColor);
             function interpolateColor(color1, color2, factor) {
@@ -4897,7 +5225,8 @@ cblcars_card_templates:
               return `rgb(${result.join(',')})`;
             }
             // Autocalculate numBars
-            const numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+            let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+            numBars = numBars+1;
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
@@ -4922,14 +5251,85 @@ cblcars_card_templates:
               y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
             }
             const svgString = new XMLSerializer().serializeToString(svg);
-            const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-            const cssBackgroundImage = `url("${svgDataUrl}")`;
+            return svgString;
+            //const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
+            //const cssBackgroundImage = `url("${svgDataUrl}")`;
             //console.log(cssBackgroundImage)
-            return cssBackgroundImage;
+            //return cssBackgroundImage;
           } catch (error) {
             //console.error(error);
             return '';
           }
+        ]]]
+      z_gauge: |
+        [[[
+          let minVal = variables.gauge.min;
+          let maxVal = variables.gauge.max;
+          let increment = variables.gauge.increment;
+          //console.warn(minVal, maxVal, increment);
+          const orientation = variables._vertical ? 'vertical' : 'horizontal';
+          //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
+          const showSubticks = variables.gauge.sub_meter.show_sub_meter;
+          const entityState = entity.state;
+          const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
+          const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
+          const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
+          const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
+          const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
+          const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
+          const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
+          const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
+          const numSubticks = variables.gauge.sub_meter.tick_count;
+          const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+          const subTickIncrement = 100 / numSegments / (numSubticks + 1);
+          const decimal_places = variables.gauge.label.decimal_places || 0;
+          /*
+          console.warn('subTickIncrement', subTickIncrement);
+          console.warn('numSegments', numSegments);
+          console.warn('numSubticks', numSubticks);
+          console.warn('increment', increment);
+          console.warn('maxVal', maxVal);
+          console.warn('minVal', minVal);
+          console.warn('decimal_places', decimal_places);
+          console.warn('orientation', orientation);
+          console.warn('width', width);
+          console.warn('height', height);
+          console.warn('meter_subtick_size', meter_subtick_size);
+          */
+          const meterTicks = [];
+          for (let i = minVal; i <= maxVal; i += increment) {
+            const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+            const position = percent + '%';
+            const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
+            meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : position}" y1="${orientation === 'vertical' ? position : '0'}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+            meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
+            if (showSubticks && i < maxVal) {
+              for (let j = 1; j <= numSubticks; j++) {
+                const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+                const subTickPosition = subTickPercent + '%';
+                meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : '0'}" x2="${orientation === 'vertical' ? meter_subtick_size : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+              }
+            }
+          }
+          const ranges = variables.gauge.ranges || [];
+          let rangeBackgrounds = '';
+          ranges.forEach(range => {
+            const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+            const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+            const rangeWidth = toPercent - fromPercent;
+            rangeBackgrounds += `
+              <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                    width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                    fill="${range.color}" />
+            `;
+          });
+          return `
+            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+              ${rangeBackgrounds}
+              ${meterTicks.join('')}
+            </svg>
+          `;
         ]]]
     state:
       - id: state_on
@@ -4958,11 +5358,11 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active|| variables.card.border.color);
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                   ]]]
               - border-bottom: |
                   [[[
@@ -5002,8 +5402,8 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                   ]]]
-            slider_track:
-              - transition: all 0.7s ease-out
+            slider_bg:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -5046,7 +5446,8 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
+              - transition: all 0.7s ease-in
               - border-top: |
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
@@ -5085,7 +5486,7 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
@@ -5125,7 +5526,7 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
@@ -5170,7 +5571,7 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
@@ -5215,7 +5616,7 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
@@ -5259,11 +5660,11 @@ cblcars_card_templates:
                   [[[
                     return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
                   ]]]
-            slider_track:
+            slider_bg:
               - transition: all 0.7s ease-in
               - border-top: |
                   [[[
-                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default|| variables.card.border.color);
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
                   ]]]
               - border-bottom: |
                   [[[
@@ -5345,35 +5746,77 @@ cblcars_card_templates:
               - " +
               variables.__get_num_with_unit(variables.card.border.bottom.size) +
               ")" ]]]
-        slider_track:
+        slider_track_control:
+          - visibility: >-
+              [[[ return ((variables._mode === 'slider') &&
+              !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
+          - position: absolute
+          - top: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.top.size);
+              ]]]
+          - left: |
+              [[[
+                return variables.__get_num_with_unit(variables.card.border.left.size);
+              ]]]
+          - width: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) + " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size) + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.right.size)  +
+              ")" ]]]
+          - height: >-
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size) + "
+              - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size)
+              + ")" ]]]
+          - padding-left2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.left)
+              ]]]
+          - padding-right2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.right)
+              ]]]
+          - padding-top2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.top)
+              ]]]
+          - padding-bottom2: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+              ]]]
+        slider_bg:
           - visibility: >-
               [[[ return (variables._mode === 'slider') ? 'visible' : 'hidden'
               ]]]
           - position: absolute
-          - top: 0
-          - left: 0
+          - top: 0px
           - width: >-
-              [[[
-                return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  +
+              [[[ return "calc(" +
+              variables.__get_num_with_unit(variables.card.width) +  " - " +
+              variables.__get_num_with_unit(variables.card.border.left.size) +
               " - " +
               variables.__get_num_with_unit(variables.card.border.right.size) +
               " - " +
-              variables.__get_num_with_unit(variables.slider_track.padding.left) +
-              " - " +
-              variables.__get_num_with_unit(variables.slider_track.padding.right) +
-              " )" ]]]
+              variables.__get_num_with_unit(variables.slider_track.padding.left)
+              + " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.right)
+              + ")" ]]]
           - height: >-
               [[[ return "calc(" +
-              variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + "
+              variables.__get_num_with_unit(variables.card.height) +  " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size) +  "
               - " +
               variables.__get_num_with_unit(variables.card.border.bottom.size) +
               " - " +
-              variables.__get_num_with_unit(variables.slider_track.padding.top) +
-              " - " +
-              variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
-              ")" ]]]
+              variables.__get_num_with_unit(variables.slider_track.padding.top)
+              + " - " +
+              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+              + ")" ]]]
           - border-top: |
               [[[
                 return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
@@ -5406,24 +5849,39 @@ cblcars_card_templates:
               [[[
                 return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
               ]]]
-          - padding-left: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.left)
+          - background: '[[[ return variables.z_slider ]]]'
+          - padding-top2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.top) + ")";
               ]]]
-          - padding-right: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.right)
+          - padding-right2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.right) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.right) + ")";
               ]]]
-          - padding-top: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.top)
+          - padding-bottom2: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + " + " +
+                        variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
               ]]]
-          - padding-bottom: >-
-              [[[ return
-              variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+          - padding-left: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.left) + ")";
               ]]]
-        slider:
-          - visibility2: hidden
+          - padding-top: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.top) + ")";
+              ]]]
+          - padding-right: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.right) + ")";
+              ]]]
+          - padding-bottom: |
+              [[[
+                return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
+              ]]]
+        gauge_control:
           - visibility: >-
               [[[ return ((variables._mode === 'gauge') &&
               !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
@@ -5433,7 +5891,7 @@ cblcars_card_templates:
                   if (variables._vertical) {
                     return variables.__get_num_with_unit(variables.card.border.top.size);
                   } else {
-                    return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
+                    return "calc(" + variables.__get_num_with_unit(variables.slider.padding.top) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
                   }
               ]]]
           - left: |
@@ -5464,37 +5922,132 @@ cblcars_card_templates:
           - z-index: 1
           - left: |
               [[[
-                if (variables._vertical) {
-                  return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
-                } else {
-                  return variables.__get_num_with_unit(variables.card.border.left.size);
-                }
+                return variables.__get_num_with_unit(variables.card.border.left.size);
               ]]]
-          - padding-left: 1px
           - top: |
               [[[
-                  if (variables._vertical) {
-                    return variables.__get_num_with_unit(variables.card.border.top.size);
-                  } else {
-                    return "calc(" + variables.__get_num_with_unit(variables.slider.top_padding) + " + " + variables.__get_num_with_unit(variables.card.border.top.size) + ")"
-                  }
+                return variables.__get_num_with_unit(variables.card.border.top.size);
               ]]]
-          - width: >-
-              [[[ return "calc(" +
-              variables.__get_num_with_unit(variables.card.width) + " - " +
-              variables.__get_num_with_unit(variables.card.border.left.size)  +
-              " - " +
-              variables.__get_num_with_unit(variables.card.border.right.size) +
-              ")" ]]]
-          - height: >-
-              [[[ return "calc(" +
-              variables.__get_num_with_unit(variables.card.height) + " - " +
-              variables.__get_num_with_unit(variables.card.border.top.size)  + "
-              - " +
-              variables.__get_num_with_unit(variables.card.border.bottom.size) +
-              ")" ]]]
+          - width: |-
+              [[[
+                if (variables._mode === 'slider') {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.width) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.left.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.right.size) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.left) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.right) +
+                    ")";
+                } else {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.width) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.left.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.right.size) +
+                    ")";
+                }
+              ]]]
+          - height: |-
+              [[[
+                if (variables._mode === 'slider') {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.height) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.top.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.top) +
+                    " + " +
+                    variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
+                    ")";
+                } else {
+                  return "calc(" +
+                    variables.__get_num_with_unit(variables.card.height) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.top.size) +
+                    " - " +
+                    variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                    ")";
+                }
+              ]]]
     custom_fields:
-      slider:
+      gauge: |
+        [[[
+          return variables.z_gauge;
+        ]]]
+      slider_bg: |
+        [[[
+          return variables.z_slider;
+        ]]]
+      locked_bar: |
+        [[[
+          const entityState = entity.state;
+          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
+          let progress = 0;
+          switch(entityType) {
+            case 'light':
+              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
+              break;
+            case 'fan':
+              progress = (parseFloat(entity.attributes.percentage));
+              break;
+            default:
+              progress = (parseFloat(entityState));
+              break;
+          }
+          const progressPercentage = ((progress / variables.slider.max) * 100);
+          const remainingPercentage = 100 - progressPercentage;
+          const isVertical = variables._vertical;
+          const borderRadius = variables.slider.border_radius;
+          const borderWidth = variables.slider.border_width;
+          const borderColor = variables.slider.border_color;
+          const maskColor = variables.slider_track.mask_color;
+          const calcWidth = `calc(${variables.__get_num_with_unit(variables.card.width)} - ${variables.__get_num_with_unit(variables.card.border.left.size)} - ${variables.__get_num_with_unit(variables.card.border.right.size)} )`;
+          const calcHeight = `calc(${variables.__get_num_with_unit(variables.card.height)} - ${variables.__get_num_with_unit(variables.card.border.top.size)} - ${variables.__get_num_with_unit(variables.card.border.bottom.size)} )`;
+          const sliderPaddingTop = variables.__get_num_with_unit(variables.slider.padding.top);
+          const sliderPaddingLeft = variables.__get_num_with_unit(variables.slider.padding.left);
+          const sliderHeight = variables.__get_num_with_unit(variables._slider_thickness);
+          if (variables._mode === 'gauge') {
+            return `
+              <div class="progress-bar" style="
+                position: absolute;
+                ${isVertical ? 'bottom: 0;' : 'left: 0;'}
+                top: ${isVertical ? 'unset' : sliderPaddingTop};
+                left: ${isVertical ? sliderPaddingTop : sliderPaddingLeft};
+                width: ${isVertical ? sliderHeight : progressPercentage + '%'};
+                height: ${isVertical ? progressPercentage + '%' : sliderHeight};
+                border-radius: ${borderRadius};
+                border: ${borderWidth} solid ${borderColor};
+                background-color: ${variables.slider.color};
+              "></div>
+            `;
+          } else if (variables._mode === 'slider') {
+            return `
+              <div class="slider-background" style="
+                position: absolute;
+                width: ${calcWidth};
+                height: ${calcHeight};
+                border-radius: unset !important;
+              ">
+                <div class="slider-mask" style="
+                  position: absolute;
+                  ${isVertical ? 'top: 0;' : 'right: 0;'}
+                  width: ${isVertical ? '100%' : remainingPercentage + '%'};
+                  height: ${isVertical ? remainingPercentage + '%' : '100%'};
+                  border-radius: unset !important;
+                  background-color: ${maskColor};
+                "></div>
+              </div>
+            `;
+          }
+        ]]]
+      gauge_control:
         card:
           type: custom:my-slider-v2
           entity: '[[[ return variables.entity ]]]'
@@ -5549,121 +6102,17 @@ cblcars_card_templates:
               - border-radius: '[[[ return variables.slider.border_radius ]]]'
               - height: '[[[ return variables.slider.height ]]]'
               - width: '[[[ return variables.slider.width ]]]'
-              - left: '[[[ return variables.slider.left_padding ]]]'
+              - left: >-
+                  [[[ return
+                  variables.__get_num_with_unit(variables.slider.padding.left)
+                  ]]]
             container:
               - border-radius: 0
             track:
               - background: none
             thumb:
               - background: none
-      locked_bar: |
-        [[[
-          const entityState = entity.state;
-          const entityType = entity.entity_id.split('.')[0]; // Extract entity type
-          let progress = 0;
-          switch(entityType) {
-            case 'light':
-              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
-              break;
-            case 'fan':
-              progress = (parseFloat(entity.attributes.percentage));
-              break;
-            default:
-              progress = (parseFloat(entityState));
-              break;
-          }
-          const progressPercentage = ((progress / variables.slider.max) * 100) + '%';
-          const isVertical = variables._vertical;
-          const width = isVertical ? variables.slider.height : progressPercentage;
-          const height = isVertical ? progressPercentage : variables.slider.height;
-          //match myslider-v2 styling options
-          const borderRadius = variables.slider.border_radius;
-          const borderWidth = variables.slider.border_width;
-          const borderColor = variables.slider.border_color;
-          const backgroundColor = variables.slider.color;
-          return `
-            <div class="progress-bar" style="
-              position: absolute;
-              ${isVertical ? 'bottom: 0;' : 'left: 0;'}
-              width: ${width};
-              height: ${height};
-              border-radius: ${borderRadius};
-              border: ${borderWidth} solid ${borderColor};
-              background-color: ${backgroundColor};
-            "></div>
-          `;
-        ]]]
-      gauge: |
-        [[[
-          let minVal = variables.gauge.min;
-          let maxVal = variables.gauge.max;
-          let increment = variables.gauge.increment;
-          //console.warn(minVal, maxVal, increment);
-          const orientation = variables._vertical ? 'vertical' : 'horizontal';
-          //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
-          const showSubticks = variables.gauge.sub_meter.show_sub_meter;
-          const entityState = entity.state;
-          const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
-          const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
-          const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
-          const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
-          const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
-          const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-          const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
-          const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
-          const numSubticks = variables.gauge.sub_meter.tick_count;
-          const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
-          const subTickIncrement = 100 / numSegments / (numSubticks + 1);
-          const decimal_places = variables.gauge.label.decimal_places || 0;
-          /*
-          console.warn('subTickIncrement', subTickIncrement);
-          console.warn('numSegments', numSegments);
-          console.warn('numSubticks', numSubticks);
-          console.warn('increment', increment);
-          console.warn('maxVal', maxVal);
-          console.warn('minVal', minVal);
-          console.warn('decimal_places', decimal_places);
-          console.warn('orientation', orientation);
-          console.warn('width', width);
-          console.warn('height', height);
-          console.warn('meter_subtick_size', meter_subtick_size);
-          */
-          const meterTicks = [];
-          for (let i = minVal; i <= maxVal; i += increment) {
-            const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
-            const position = percent + '%';
-            const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-            meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : position}" y1="${orientation === 'vertical' ? position : '0'}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
-            meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
-            if (showSubticks && i < maxVal) {
-              for (let j = 1; j <= numSubticks; j++) {
-                const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
-                const subTickPosition = subTickPercent + '%';
-                meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : '0'}" x2="${orientation === 'vertical' ? meter_subtick_size : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
-              }
-            }
-          }
-          const ranges = variables.gauge.ranges || [];
-          let rangeBackgrounds = '';
-          ranges.forEach(range => {
-            const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
-            const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
-            const rangeWidth = toPercent - fromPercent;
-            rangeBackgrounds += `
-              <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
-                    width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
-                    fill="${range.color}" />
-            `;
-          });
-          return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-              ${rangeBackgrounds}
-              ${meterTicks.join('')}
-            </svg>
-          `;
-        ]]]
-      slider_track:
+      slider_track_control:
         card:
           type: custom:my-slider-v2
           entity: '[[[ return variables.entity ]]]'
@@ -5704,32 +6153,16 @@ cblcars_card_templates:
                   variables.__get_num_with_unit(variables.card.border.left.size)
                   + " - " +
                   variables.__get_num_with_unit(variables.card.border.right.size)
-                  + " - " +
-                  variables.__get_num_with_unit(variables.slider_track.padding.left)
-                  + " - " +
-                  variables.__get_num_with_unit(variables.slider_track.padding.right)
                   + ")" ]]]
               - height: >-
                   [[[ return "calc(" +
                   variables.__get_num_with_unit(variables.card.height) + " - " +
                   variables.__get_num_with_unit(variables.card.border.top.size)
                   + " - " +
-                  variables.__get_num_with_unit(variables.slider_track.padding.top)
-                  + " - " +
-                  variables.__get_num_with_unit(variables.slider_track.padding.bottom)
+                  variables.__get_num_with_unit(variables.card.border.bottom.size)
                   + ")" ]]]
               - border-radius: unset !important
-              - background: |
-                  [[[
-                    switch(variables._mode) {
-                      case 'gauge':
-                        return 'none';
-                      case 'slider':
-                        return variables.z_slider;
-                      default:
-                        return 'none';
-                    }
-                  ]]]
+              - background: none
   cb-lcars-state-on-blink:
     variables:
       blink_seconds: 3s
