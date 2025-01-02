@@ -382,11 +382,6 @@ cb-lcars-base-card:
               rows:
                 - type: ControlRow
                   controls:
-                    - label: "Show Label"
-                      configValue: "show_label"
-                      type: Selector
-                      selector:
-                        boolean:
                     - label: "Custom Label"
                       helper: "Text content (basic string - or - get fancy with <elt></elt> elements!"
                       configValue: "variables.label"
@@ -764,11 +759,6 @@ cb-lcars-base-card:
               rows:
                 - type: ControlRow
                   controls:
-                    - label: "Show Name"
-                      configValue: "show_name"
-                      type: Selector
-                      selector:
-                        boolean:
                     - label: "Custom Name"
                       helper: "Text content (basic string - or - get fancy with <elt></elt> elements!"
                       configValue: "name"
@@ -1133,11 +1123,6 @@ cb-lcars-base-card:
               rows:
                 - type: ControlRow
                   controls:
-                    - label: "Show State"
-                      configValue: "show_state"
-                      type: Selector
-                      selector:
-                        boolean:
                     - type: Message
                       alertType: "error"
                       message: "Please select an entity in order to display the state"
@@ -2335,7 +2320,7 @@ cb-lcars-base-card:
           headerLevel: 4
           icon: "mdi:card-multiple-outline"
           noCollapse: false
-          expanded: true
+          expanded: false
           rows:
             - type: ControlRow
               controls:
@@ -2360,6 +2345,40 @@ cb-lcars-base-card:
                           label: "Blink [Unavailable]"
                         - value: "cb-lcars-animate-press"
                           label: "Rippled Press"
+            - type: Section
+              label: Ripple
+              visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animate-press')"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Base Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                    - <<: *colorControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                    - label: "Ripple Opacity"
+                      configValue: "variables.animations.ripple.ripple_opacity"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 1
+                          step: 0.1
+                          mode: slider
+                          slider_ticks: true
         - &animationsSection
           type: Section
           label: "Animations"
@@ -2368,7 +2387,7 @@ cb-lcars-base-card:
           headerLevel: 4
           icon: "mdi:card-multiple-outline"
           noCollapse: false
-          expanded: true
+          expanded: false
           rows:
             - type: ControlRow
               controls:
@@ -2790,7 +2809,7 @@ cb-lcars-base-card:
                   headerLevel: 4
                   icon: "mdi:format-list-bulleted"
                   noCollapse: false
-                  visibilityCondition: "this._config.variables.animation.pulsewave.pattern === 'custom'"
+                  visibilityCondition: "this._config.variables.animation.pulsewave && this._config.variables.animation.pulsewave.pattern === 'custom'"
                   rows:
                     - controls:
                         - type: Message
@@ -3300,32 +3319,6 @@ cb-lcars-double-elbow-card:
                           mode: slider
                           unit_of_measurement: "px"
                           slider_ticks: false
-            - type: Section
-              label: "Effects"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:card-multiple-outline"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  controls:
-                    - label: "Effect Templates"
-                      configValue: "template"
-                      disabled: false
-                      required: false
-                      type: Selector
-                      selector:
-                        select:
-                          mode: list
-                          multiple: true
-                          options:
-                            - value: "cb-lcars-state-on-blink"
-                              label: "Blink [Active]"
-                            - value: "cb-lcars-state-off-blink"
-                              label: "Blink [Inactive]"
-                            - value: "cb-lcars-state-unavailable-blink"
-                              label: "Blink [Unavailable]"
             - type: Section
               label: "Colors"
               outlined: true
@@ -5522,38 +5515,8 @@ cb-lcars-multimeter-card:
             - <<: *cardBorderSection
             - <<: *cardCornerSection
             - <<: *cardColorSection
-            - type: ControlRow
-              controls:
-                - label: "Show Label"
-                  configValue: "show_label"
-                  type: Selector
-                  selector:
-                    boolean:
-            - type: Section
-              label: "Label Text"
-              visibilityCondition: "this._config.show_label === true"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:format-textbox"
-              noCollapse: false
-              rows:
-                - type: ControlRow
-                  controls:
-                    - label: "Label"
-                      configValue: "variables.label"
-                      type: Selector
-                      selector:
-                        text:
-                          type: text
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *fontSizeControl
-                    - <<: *fontWeightControl
-                - <<: *textAlignmentSection
-                - <<: *textPaddingSection
-                - <<: *textColorSection
+            - <<: *textSection
+            - <<: *effectsSection
     - label: "Gauge Mode"
       visibilityCondition: "this._config.variables._mode === 'gauge'"
       content:

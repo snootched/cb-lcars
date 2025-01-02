@@ -488,46 +488,46 @@ cblcars_card_templates:
             }
             // Define keyframes based on new heights
             const animationSettingsDefault = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 1, delay: 0.6 }
             ];
             const animationSettingsSineWave = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 1, delay: 0.6 }
             ];
             const animationSettingsSquareWave = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 0.5, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 0.5, delay: 0.3 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 0.5, delay: 0.4 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 0.5, delay: 0.5 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 0.5, delay: 0.6 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 0.5, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 0.5, delay: 0.3 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 0.5, delay: 0.4 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 0.5, delay: 0.5 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 0.5, delay: 0.6 }
             ];
             const animationSettingsTriangleWave = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 1, delay: 0.6 }
             ];
             const animationSettingsSawtoothWave = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 1, delay: 0.3 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 1, delay: 0.5 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 1, delay: 0.6 }
             ];
             const animationSettingsRandomWave = [
-              { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
-              { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.4 },
-              { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.6 },
-              { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.8 },
-              { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 1 }
+              { keyframe: 'animateLine-1', height: newHeights[0], duration: 1, delay: 0.2 },
+              { keyframe: 'animateLine-2', height: newHeights[1], duration: 1, delay: 0.4 },
+              { keyframe: 'animateLine-3', height: newHeights[2], duration: 1, delay: 0.6 },
+              { keyframe: 'animateLine-4', height: newHeights[3], duration: 1, delay: 0.8 },
+              { keyframe: 'animateLine-5', height: newHeights[4], duration: 1, delay: 1 }
             ];
             const patternName = variables.animation.pulsewave.pattern || 'default';
             const animationSettingsMap = {
@@ -602,110 +602,110 @@ cblcars_card_templates:
             lines += `<div class="line line-${i}"></div>`;
           }
           const patternDefault = [
-            'animateLine6 1s 0.2s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine4 1s 1s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine6 1s 0.2s infinite',
-            'animateLine6 1s 0.2s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine4 1s 1s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine3 1s 0.5s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine5 1s 0.3s infinite',
-            'animateLine6 1s 0.2s infinite'
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-4 1s 0.3s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-2 1s 0.5s infinite',
+            'animateLine-1 1s 0.6s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-3 1s 0.9s infinite',
+            'animateLine-3 1s 1s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-1 1s 0.6s infinite',
+            'animateLine-2 1s 0.5s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-4 1s 0.3s infinite',
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-4 1s 0.3s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-2 1s 0.5s infinite',
+            'animateLine-1 1s 0.6s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-3 1s 0.9s infinite',
+            'animateLine-3 1s 1s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-1 1s 0.6s infinite',
+            'animateLine-2 1s 0.5s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-4 1s 0.3s infinite',
+            'animateLine-5 1s 0.2s infinite'
           ];
           const patternNiagara = [
-            'animateLine6 1s 0.1s infinite',
-            'animateLine5 1s 0.2s infinite',
-            'animateLine3 1s 0.3s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine2 1s 0.5s infinite',
-            'animateLine2 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine4 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine2 1s 1s infinite',
-            'animateLine2 1s 1.1s infinite',
-            'animateLine2 1s 1.2s infinite',
-            'animateLine3 1s 1.3s infinite',
-            'animateLine3 1s 1.4s infinite',
-            'animateLine5 1s 1.5s infinite',
-            'animateLine6 1s 1.6s infinite'
+            'animateLine-5 1s 0.1s infinite',
+            'animateLine-4 1s 0.2s infinite',
+            'animateLine-2 1s 0.3s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-1 1s 0.5s infinite',
+            'animateLine-1 1s 0.6s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-3 1s 0.8s infinite',
+            'animateLine-3 1s 0.9s infinite',
+            'animateLine-1 1s 1s infinite',
+            'animateLine-1 1s 1.1s infinite',
+            'animateLine-1 1s 1.2s infinite',
+            'animateLine-2 1s 1.3s infinite',
+            'animateLine-2 1s 1.4s infinite',
+            'animateLine-4 1s 1.5s infinite',
+            'animateLine-5 1s 1.6s infinite'
           ];
           const patternSineWave = [
-            'animateLine2 1s 0.2s infinite',
-            'animateLine3 1s 0.3s infinite',
-            'animateLine4 1s 0.4s infinite',
-            'animateLine5 1s 0.5s infinite',
-            'animateLine6 1s 0.6s infinite',
-            'animateLine5 1s 0.7s infinite',
-            'animateLine4 1s 0.8s infinite',
-            'animateLine3 1s 0.9s infinite',
-            'animateLine2 1s 1s infinite'
+            'animateLine-1 1s 0.2s infinite',
+            'animateLine-2 1s 0.3s infinite',
+            'animateLine-3 1s 0.4s infinite',
+            'animateLine-4 1s 0.5s infinite',
+            'animateLine-5 1s 0.6s infinite',
+            'animateLine-4 1s 0.7s infinite',
+            'animateLine-3 1s 0.8s infinite',
+            'animateLine-2 1s 0.9s infinite',
+            'animateLine-1 1s 1s infinite'
           ];
           const patternSquareWave = [
-            'animateLine6 1s 0.2s infinite',
-            'animateLine6 1s 0.2s infinite',
-            'animateLine2 1s 0.4s infinite',
-            'animateLine2 1s 0.4s infinite',
-            'animateLine6 1s 0.6s infinite',
-            'animateLine6 1s 0.6s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine2 1s 0.8s infinite'
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-1 1s 0.4s infinite',
+            'animateLine-1 1s 0.4s infinite',
+            'animateLine-5 1s 0.6s infinite',
+            'animateLine-5 1s 0.6s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-1 1s 0.8s infinite'
           ];
           const patternTriangleWave = [
-            'animateLine2 1s 0.2s infinite',
-            'animateLine3 1s 0.3s infinite',
-            'animateLine4 1s 0.4s infinite',
-            'animateLine5 1s 0.5s infinite',
-            'animateLine6 1s 0.6s infinite',
-            'animateLine5 1s 0.7s infinite',
-            'animateLine4 1s 0.8s infinite',
-            'animateLine3 1s 0.9s infinite',
-            'animateLine2 1s 1s infinite'
+            'animateLine-1 1s 0.2s infinite',
+            'animateLine-2 1s 0.3s infinite',
+            'animateLine-3 1s 0.4s infinite',
+            'animateLine-4 1s 0.5s infinite',
+            'animateLine-5 1s 0.6s infinite',
+            'animateLine-4 1s 0.7s infinite',
+            'animateLine-3 1s 0.8s infinite',
+            'animateLine-2 1s 0.9s infinite',
+            'animateLine-1 1s 1s infinite'
           ];
           const patternSawtoothWave = [
-            'animateLine2 1s 0.2s infinite',
-            'animateLine3 1s 0.3s infinite',
-            'animateLine4 1s 0.4s infinite',
-            'animateLine5 1s 0.5s infinite',
-            'animateLine6 1s 0.6s infinite',
-            'animateLine2 1s 0.7s infinite',
-            'animateLine3 1s 0.8s infinite',
-            'animateLine4 1s 0.9s infinite',
-            'animateLine5 1s 1s infinite'
+            'animateLine-1 1s 0.2s infinite',
+            'animateLine-2 1s 0.3s infinite',
+            'animateLine-3 1s 0.4s infinite',
+            'animateLine-4 1s 0.5s infinite',
+            'animateLine-5 1s 0.6s infinite',
+            'animateLine-1 1s 0.7s infinite',
+            'animateLine-2 1s 0.8s infinite',
+            'animateLine-3 1s 0.9s infinite',
+            'animateLine-4 1s 1s infinite'
           ];
           const patternRandomWave = [
-            'animateLine6 1s 0.2s infinite',
-            'animateLine3 1s 0.4s infinite',
-            'animateLine5 1s 0.6s infinite',
-            'animateLine2 1s 0.8s infinite',
-            'animateLine4 1s 1s infinite',
-            'animateLine3 1s 0.7s infinite',
-            'animateLine6 1s 0.5s infinite',
-            'animateLine2 1s 0.3s infinite',
-            'animateLine5 1s 0.1s infinite'
+            'animateLine-5 1s 0.2s infinite',
+            'animateLine-2 1s 0.4s infinite',
+            'animateLine-4 1s 0.6s infinite',
+            'animateLine-1 1s 0.8s infinite',
+            'animateLine-3 1s 1s infinite',
+            'animateLine-2 1s 0.7s infinite',
+            'animateLine-5 1s 0.5s infinite',
+            'animateLine-1 1s 0.3s infinite',
+            'animateLine-4 1s 0.1s infinite'
           ];
           // Determine the pattern to use
           const patternName = variables.animation.pulsewave.pattern || 'default';
@@ -3283,11 +3283,14 @@ cblcars_card_templates:
         show_label: false
   cb-lcars-animate-press:
     variables:
-      ripple_color: var(--lcars-card-top-color)
+      animations:
+        ripple:
+          ripple_color: var(--lcars-card-top-color)
+          ripple_opacity: 0.5
     styles:
       card:
-        - '--mdc-ripple-color': '[[[ return variables.ripple_color; ]]]'
-        - '--mdc-ripple-press-opacity': 0.5
+        - '--mdc-ripple-color': '[[[ return variables.animations.ripple.ripple_color; ]]]'
+        - '--mdc-ripple-press-opacity': '[[[ return variables.animations.ripple.ripple_opacity; ]]]'
   cb-lcars-footer-picard:
     template:
       - cb-lcars-header-picard-base
