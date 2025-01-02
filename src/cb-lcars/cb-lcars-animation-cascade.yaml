@@ -1,27 +1,24 @@
 cb-lcars-animation-cascade:
   template:
     - cb-lcars-functions
-    - cb-lcars-label
-  show_label: true
   variables:
     enable_resize_observer: true
     card:
       height: "[[[ return this.offsetHeight; ]]]"
       width: "[[[ return this.offsetWidth; ]]]"
-    text:
-      label:
-        font_size: 24
-        font_weight: 300
     animation:
       cascade:
         grid:
           num_cols: null
           gap: 8
           num_rows: null
-        colors:
+        color:
           text: var(--picard-dark-blue)
           animation_start: var(--picard-blue)
           animation_end: var(--picard-moonlight)
+        text:
+          font_size: 24
+          font_weight: 300
   styles:
     label:
       - z-index: 1
@@ -33,21 +30,88 @@ cb-lcars-animation-cascade:
   custom_fields:
     animation: |
       [[[
+        const patternDefault = [
+          { duration: 3, delay: 0.1 },
+          { duration: 3, delay: 0.2 },
+          { duration: 4, delay: 0.3 },
+          { duration: 4, delay: 0.4 },
+          { duration: 4, delay: 0.5 },
+          { duration: 2, delay: 0.6 },
+          { duration: 2, delay: 0.7 },
+          { duration: 2, delay: 0.8 }
+        ];
 
-        const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-        const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+        const patternNiagara = [
+          { duration: 2, delay: 0.1 },
+          { duration: 2, delay: 0.2 },
+          { duration: 2, delay: 0.3 },
+          { duration: 2, delay: 0.4 },
+          { duration: 2, delay: 0.5 },
+          { duration: 2, delay: 0.6 },
+          { duration: 2, delay: 0.7 },
+          { duration: 2, delay: 0.8 }
+        ];
+
+        const patternFrozen = [
+          { duration: 3, delay: 0.1 },
+          { duration: 3, delay: 0.2 },
+          { duration: 4, delay: 0.3 },
+          { duration: 4, delay: 0.4 },
+          { duration: 4, delay: 0.5 },
+          { duration: 2, delay: 0.6 },
+          { duration: 2, delay: 0.7 },
+          { duration: 2, delay: 0.8 }
+        ];
+
+        //const customPattern = variables.animation.cascade.custom_pattern;
+        const customPatternInput = variables.animation.cascade.custom_pattern;
+        let customPattern;
+
+        if (typeof customPatternInput === 'string') {
+          try {
+            customPattern = JSON.parse(customPatternInput);
+            console.log('customPattern json parsed:', customPattern);
+          } catch (e) {
+            console.error('Failed to parse custom_pattern as JSON:', e);
+            customPattern = patternDefault;
+          }
+        } else if (Array.isArray(customPatternInput)) {
+          customPattern = customPatternInput;
+        } else {
+          customPattern = patternDefault;
+        }
+
+        const patternName = variables.animation.cascade.pattern || 'patternDefault';
+        const patternMap = {
+          default: patternDefault,
+          niagara: patternNiagara,
+          frozen: patternFrozen,
+          custom: customPattern
+        };
+        const animationSettings = patternMap[patternName] || patternDefault;
+
+        //console.debug("animationSettings: ",animationSettings);
+        //console.debug("patternName: ",patternName);
+
+        //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+        const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+        const align_items = variables.animation.cascade.align_items || 'center';
+        const justify_content = variables.animation.cascade.justify_content || 'center';
 
         //console.debug( `${card_height}`);
         //console.debug( `${card_width}`);
 
-        const font_size = variables.__get_num_with_unit(variables.text.label.font_size) || '24px';
+        const font_size = variables.__get_num_with_unit(variables.animation.cascade.text.font_size) || '24px';
+        const font_weight = variables.animation.cascade.text.font_weight || '300';
         const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
-        const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((variables.text.label.font_size * 2.5)) ||'80px';
+        const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((parseInt(variables.animation.cascade.text.font_size * 2.5))) ||'80px';
         const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
 
-        const text_color = variables.animation.cascade.colors.text || '#000';
-        const animation_start_color = variables.animation.cascade.colors.animation_start || '#26f';
-        const animation_end_color = variables.animation.cascade.colors.animation_end || '#def';
+        const text_color = variables.animation.cascade.color.text || '#000';
+        const animation_start_color = variables.animation.cascade.color.animation_start || '#26f';
+        const animation_end_color = variables.animation.cascade.color.animation_end || '#def';
 
         const auto_num_cols =  variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
         //console.debug(`${auto_num_cols}`);
@@ -62,17 +126,11 @@ cb-lcars-animation-cascade:
         const num_rows = variables.animation.cascade.grid.num_rows || auto_num_rows;
         const num_cols = variables.animation.cascade.grid.num_cols || auto_num_cols;
 
-        // Predefined animation delays and durations for a more random feel
-        const animationSettings = [
-          { duration: 3, delay: 0.1 },
-          { duration: 3, delay: 0.2 },
-          { duration: 4, delay: 0.3 },
-          { duration: 4, delay: 0.4 },
-          { duration: 4, delay: 0.5 },
-          { duration: 2, delay: 0.6 },
-          { duration: 2, delay: 0.7 },
-          { duration: 2, delay: 0.8 }
-        ];
+        // Function to get random color variable from our palette
+        function getRandomColor() {
+          const colors = [animation_start_color, animation_end_color, text_color];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }
 
         // Function to generate random text for cells (digits, floats, or text)
         function getRandomText() {
@@ -92,8 +150,22 @@ cb-lcars-animation-cascade:
         }
 
         let rows = '';
+        let keyframes = '';
+
         for (let i = 1; i <= num_rows; i++) {
           const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
+          const randomColor = getRandomColor();
+          keyframes += `
+            @keyframes colorchange-frozen-${i} {
+              0% {color: ${animation_start_color}}
+              25% {color: ${animation_start_color}}
+              50% {color: ${animation_start_color}}
+              75% {color: ${animation_start_color}}
+              80% {color: ${text_color}}
+              90% {color: ${text_color}}
+              100% {color: ${randomColor}}
+            }
+          `;
           rows += `
             <div class="row-${i} row">
               ${Array.from({ length: num_cols }, (_, j) => `
@@ -103,26 +175,43 @@ cb-lcars-animation-cascade:
           `;
         }
 
+        const isFrozen = patternName === 'frozen';
+        const animationIterationCount = isFrozen ? '1' : 'infinite';
+        const animationFillMode = isFrozen ? 'forwards' : 'none';
+        const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
+
+        const defaultKeyframes = `
+          @keyframes colorchange {
+            0% {color: ${animation_start_color}}
+            25% {color: ${animation_start_color}}
+            50% {color: ${animation_start_color}}
+            75% {color: ${animation_start_color}}
+            80% {color: ${text_color}}
+            90% {color: ${text_color}}
+            100% {color: ${animation_end_color}}
+          }
+        `;
+        const customKeyframes = variables.animation.cascade.custom_keyframes || defaultKeyframes;
+
+        //const elt = `
         return `
           <elt>
             <style>
-              @keyframes colorchange {
-                0% {color: ${animation_start_color}}
-                25% {color: ${animation_start_color}}
-                50% {color: ${animation_start_color}}
-                75% {color: ${animation_start_color}}
-                80% {color: ${text_color}}
-                90% {color: ${text_color}}
-                100% {color: ${animation_end_color}}
-              }
+              ${customKeyframes}
+              ${keyframes}
               .cascade-wrapper {
                 flex: 1;
                 padding-right: 1px;
                 display: flex;
                 flex-grow: 1;
+                width: ${card_width};
+                height: ${card_height};
+                align-items: ${align_items};
+                justify-content: ${justify_content};
               }
               .data-cascade {
                 font-size: ${font_size};
+                font-weight: ${font_weight};
                 line-height: 1;
               }
               ${Array.from({ length: num_rows }, (_, i) => `
@@ -131,8 +220,9 @@ cb-lcars-animation-cascade:
                   grid-template-columns: repeat(${num_cols}, ${column_width});
                   gap: ${grid_gap};
                   color: ${text_color};
-                  animation: colorchange ${animationSettings[i % animationSettings.length].duration}s infinite;
+                  animation: ${keyframesName}${isFrozen ? `-${i + 1}` : ''} ${animationSettings[i % animationSettings.length].duration}s ${animationIterationCount};
                   animation-delay: ${animationSettings[i % animationSettings.length].delay}s;
+                  animation-fill-mode: ${animationFillMode};
                   margin-bottom: ${grid_gap}; /* Add spacing between rows */
                   height: ${row_height}
                 }
@@ -148,5 +238,6 @@ cb-lcars-animation-cascade:
             </div>
           </elt>
         `;
-      ]]]
 
+        //return elt;
+      ]]]

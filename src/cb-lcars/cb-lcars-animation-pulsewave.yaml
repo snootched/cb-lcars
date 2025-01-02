@@ -1,0 +1,356 @@
+cb-lcars-animation-pulsewave:
+  variables:
+    enable_resize_observer: true
+    animation:
+      pulsewave:
+        color:
+          line_color: black
+          start_color: var(--lcars-ui-tertiary)
+          end_color: black
+        pattern: default
+        line_height: 20
+        line_width: 3
+        line_width_even: 4
+        line_angle: 15
+        custom_keyframes: null
+        custom_pattern: null
+        line_heights: null
+        scale_line_heights: true
+        align_items: center
+  styles:
+    label:
+      - z-index: 1
+  custom_fields:
+    animation: |
+      [[[
+        // Calculate card dimensions
+        //const card_height = (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        //const card_width = (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+
+        const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+
+        // Get line properties
+        const line_height = (variables.animation.pulsewave.line_height !== undefined ) ? parseInt(variables.animation.pulsewave.line_height) : 20;
+        const line_width = (variables.animation.pulsewave.line_width !== undefined ) ? parseInt(variables.animation.pulsewave.line_width) : 3;
+        const line_width_even = (variables.animation.pulsewave.line_width_even !== undefined ) ? parseInt(variables.animation.pulsewave.line_width_even) : 4;
+        const line_color = variables.animation.pulsewave.color.line_color || '#000';
+        const animation_start_color = variables.animation.pulsewave.color.animation_start || 'var(--picard-blue)';
+        const animation_end_color = variables.animation.pulsewave.color.animation_end || '#000';
+        const line_angle = (variables.animation.pulsewave.line_angle !== undefined) ? variables.animation.pulsewave.line_angle : 17;
+        let line_transform = variables.animation.pulsewave.line_transform || `rotate(${line_angle}deg)`;
+
+        const align_items = variables.animation.pulsewave.align_items || 'center';
+        const justify_content = variables.animation.pulsewave.justify_content || 'center';
+
+        // Initialize keyframes
+        let keyframes = '';
+        const pattern_width = line_width + line_width_even;
+        const num_lines = variables.animation.pulsewave.num_lines || Math.ceil(card_width / pattern_width) * 2;
+
+        // Use custom keyframes if provided
+        const customKeyframes = variables.animation.pulsewave.custom_keyframes;
+        if (customKeyframes) {
+          keyframes = customKeyframes;
+        } else {
+          // Use provided original heights if available
+          const originalHeights = variables.animation.pulsewave.line_heights || [180, 120, 230, 60, 30];
+          const scaleHeights = variables.animation.pulsewave.scale_line_heights ?? true;
+
+          let newHeights;
+          if (scaleHeights === false) {
+            newHeights = originalHeights;
+          } else {
+            const maxOriginalHeight = Math.max(...originalHeights);
+            const heightRatios = originalHeights.map(height => height / maxOriginalHeight);
+            // Calculate new heights based on card_height
+            newHeights = heightRatios.map(ratio => Math.round(ratio * card_height));
+          }
+
+          // Define keyframes based on new heights
+          const animationSettingsDefault = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+          ];
+
+          const animationSettingsSineWave = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+          ];
+
+          const animationSettingsSquareWave = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 0.5, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 0.5, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 0.5, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 0.5, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 0.5, delay: 0.6 }
+          ];
+
+          const animationSettingsTriangleWave = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+          ];
+
+          const animationSettingsSawtoothWave = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.3 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.5 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 0.6 }
+          ];
+
+          const animationSettingsRandomWave = [
+            { keyframe: 'animateLine2', height: newHeights[0], duration: 1, delay: 0.2 },
+            { keyframe: 'animateLine3', height: newHeights[1], duration: 1, delay: 0.4 },
+            { keyframe: 'animateLine4', height: newHeights[2], duration: 1, delay: 0.6 },
+            { keyframe: 'animateLine5', height: newHeights[3], duration: 1, delay: 0.8 },
+            { keyframe: 'animateLine6', height: newHeights[4], duration: 1, delay: 1 }
+          ];
+
+          const patternName = variables.animation.pulsewave.pattern || 'default';
+
+          const animationSettingsMap = {
+            default: animationSettingsDefault,
+            sine: animationSettingsSineWave,
+            square: animationSettingsSquareWave,
+            triangle: animationSettingsTriangleWave,
+            sawtooth: animationSettingsSawtoothWave,
+            random: animationSettingsRandomWave,
+            custom: animationSettingsDefault
+          };
+
+          const animationSettings = animationSettingsMap[patternName] || animationSettingsDefault;
+
+          keyframes = '';
+          animationSettings.forEach(({ keyframe, height }) => {
+            if (patternName === 'sine') {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  25% { height: ${height * 0.75}px; }
+                  50% { height: ${height / 2}px; }
+                  75% { height: ${height * 0.75}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            } else if (patternName === 'square') {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  50% { height: ${height / 2}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            } else if (patternName === 'triangle') {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  50% { height: ${height / 2}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            } else if (patternName === 'sawtooth') {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  25% { height: ${height * 0.75}px; }
+                  50% { height: ${height / 2}px; }
+                  75% { height: ${height * 0.25}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            } else if (patternName === 'random') {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  50% { height: ${height / 2}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            } else {
+              keyframes += `
+                @keyframes ${keyframe} {
+                  0% { height: ${height}px; }
+                  50% { height: ${height / 2}px; }
+                  100% { height: ${height}px; }
+                }
+              `;
+            }
+          });
+        }
+
+        let lines = '';
+        for (let i = 1; i <= num_lines; i++) {
+          lines += `<div class="line line-${i}"></div>`;
+        }
+
+        const patternDefault = [
+          'animateLine6 1s 0.2s infinite',
+          'animateLine5 1s 0.3s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine3 1s 0.5s infinite',
+          'animateLine2 1s 0.6s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine4 1s 0.9s infinite',
+          'animateLine4 1s 1s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine2 1s 0.6s infinite',
+          'animateLine3 1s 0.5s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine5 1s 0.3s infinite',
+          'animateLine6 1s 0.2s infinite',
+          'animateLine6 1s 0.2s infinite',
+          'animateLine5 1s 0.3s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine3 1s 0.5s infinite',
+          'animateLine2 1s 0.6s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine4 1s 0.9s infinite',
+          'animateLine4 1s 1s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine2 1s 0.6s infinite',
+          'animateLine3 1s 0.5s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine5 1s 0.3s infinite',
+          'animateLine6 1s 0.2s infinite'
+        ];
+
+        const patternNiagara = [
+          'animateLine6 1s 0.1s infinite',
+          'animateLine5 1s 0.2s infinite',
+          'animateLine3 1s 0.3s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine2 1s 0.5s infinite',
+          'animateLine2 1s 0.6s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine4 1s 0.8s infinite',
+          'animateLine4 1s 0.9s infinite',
+          'animateLine2 1s 1s infinite',
+          'animateLine2 1s 1.1s infinite',
+          'animateLine2 1s 1.2s infinite',
+          'animateLine3 1s 1.3s infinite',
+          'animateLine3 1s 1.4s infinite',
+          'animateLine5 1s 1.5s infinite',
+          'animateLine6 1s 1.6s infinite'
+        ];
+
+        const patternSineWave = [
+          'animateLine2 1s 0.2s infinite',
+          'animateLine3 1s 0.3s infinite',
+          'animateLine4 1s 0.4s infinite',
+          'animateLine5 1s 0.5s infinite',
+          'animateLine6 1s 0.6s infinite',
+          'animateLine5 1s 0.7s infinite',
+          'animateLine4 1s 0.8s infinite',
+          'animateLine3 1s 0.9s infinite',
+          'animateLine2 1s 1s infinite'
+        ];
+
+        const patternSquareWave = [
+          'animateLine6 1s 0.2s infinite',
+          'animateLine6 1s 0.2s infinite',
+          'animateLine2 1s 0.4s infinite',
+          'animateLine2 1s 0.4s infinite',
+          'animateLine6 1s 0.6s infinite',
+          'animateLine6 1s 0.6s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine2 1s 0.8s infinite'
+        ];
+
+        const patternTriangleWave = [
+          'animateLine2 1s 0.2s infinite',
+          'animateLine3 1s 0.3s infinite',
+          'animateLine4 1s 0.4s infinite',
+          'animateLine5 1s 0.5s infinite',
+          'animateLine6 1s 0.6s infinite',
+          'animateLine5 1s 0.7s infinite',
+          'animateLine4 1s 0.8s infinite',
+          'animateLine3 1s 0.9s infinite',
+          'animateLine2 1s 1s infinite'
+        ];
+
+        const patternSawtoothWave = [
+          'animateLine2 1s 0.2s infinite',
+          'animateLine3 1s 0.3s infinite',
+          'animateLine4 1s 0.4s infinite',
+          'animateLine5 1s 0.5s infinite',
+          'animateLine6 1s 0.6s infinite',
+          'animateLine2 1s 0.7s infinite',
+          'animateLine3 1s 0.8s infinite',
+          'animateLine4 1s 0.9s infinite',
+          'animateLine5 1s 1s infinite'
+        ];
+
+        const patternRandomWave = [
+          'animateLine6 1s 0.2s infinite',
+          'animateLine3 1s 0.4s infinite',
+          'animateLine5 1s 0.6s infinite',
+          'animateLine2 1s 0.8s infinite',
+          'animateLine4 1s 1s infinite',
+          'animateLine3 1s 0.7s infinite',
+          'animateLine6 1s 0.5s infinite',
+          'animateLine2 1s 0.3s infinite',
+          'animateLine5 1s 0.1s infinite'
+        ];
+        // Determine the pattern to use
+        const patternName = variables.animation.pulsewave.pattern || 'default';
+        const patternMap = {
+          default: patternDefault,
+          niagara: patternNiagara,
+          sine: patternSineWave,
+          square: patternSquareWave,
+          triangle: patternTriangleWave,
+          sawtooth: patternSawtoothWave,
+          random: patternRandomWave,
+          custom: variables.animation.pulsewave.custom_pattern ? JSON.parse(variables.animation.pulsewave.custom_pattern) : patternDefault
+        };
+
+
+        const nthChildAnimations = patternMap[patternName] || patternDefault;
+
+        return `
+          <elt>
+            <style>
+              .wrapper {
+                flex: 1;
+                display: flex;
+                flex-grow: 1;
+                align-items: ${align_items};
+                justify-content: ${justify_content};
+                height: ${card_height}px;
+                width: ${card_width}px;
+
+              }
+              .line {
+                height: ${line_height}px;
+                width: ${line_width}px;
+                background: linear-gradient( ${line_color}, ${animation_start_color}, ${line_color}, ${animation_end_color});
+                transform: ${line_transform};
+              }
+              .line:nth-child(even) {
+                width: ${line_width_even}px;
+              }
+              ${keyframes}
+              ${Array.from({ length: num_lines }, (_, i) => `
+                .line:nth-child(${i + 1}) { animation: ${nthChildAnimations[i % nthChildAnimations.length]}; }
+              `).join('')}
+            </style>
+            <div class="wrapper">
+              ${lines}
+            </div>
+          </elt>
+        `;
+      ]]]

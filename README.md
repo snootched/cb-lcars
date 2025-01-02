@@ -9,7 +9,7 @@ Functionality and configurations may change over time until stabilized.  Things 
 
 <p align="center">
 
-![cb-lcars](images/screenshots/cb-lcars-banner.png)
+![cb-lcars](images/screenshots/cb-lcars-banner-3.gif)
 </p>
 <p align="center">
     <em>A collection of custom cards for building LCARS styled dashboards in Home Assistant</em>
@@ -49,6 +49,9 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
   - [LCARS DPAD](#lcars-dpad)
     - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
+- [Animations](#animations)
+  - [Data Cascade](#data-cascade)
+  - [Pulse Wave](#pulse-wave)
 - [Screenshots](#screenshots)
       - [Button Samples](#button-samples)
       - [Sliders/Gauges](#slidersgauges)
@@ -71,8 +74,7 @@ If you can - it's advisable to start with a fresh dashboard.
 
 <br>
 
-To retrofit:
-
+<details closed><summary>To Retrofit</summary>
 It is necessary to remove those old templates from your dashboard file, and potentially update any card configs.
 
 The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
@@ -96,6 +98,7 @@ variables:
   label: "my label"
 ```
 If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
+</details>
 
 ---
 
@@ -129,8 +132,9 @@ The following should be installed and working in your Home Assistant instance - 
 |-----------------------------------------------------------------------------|-------------|-------------|
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
 | [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
-| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Required    | Used internally.<br><br>Also handy for the ultimate in dashboard layout customization! |
 | [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| | |
+| [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
 
 
@@ -365,11 +369,6 @@ TODOs:
 | -------------- | ---------------------- |
 | [`cb-lcars-label`](src/cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
 | [`cb-lcars-label-picard`](src/cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
-| [`cb-lcars-cascade`](src/cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
-
-TODOs:
-- add presets/expose options for cascade animation settings
-- add alternative text sources (sensors?)
 
 <br>
 
@@ -389,6 +388,68 @@ TODOs:
 - add 'match entity color' for active state
 
 <br>
+
+---
+
+# Animations
+
+TODO: background animations section
+
+<br>
+
+## Data Cascade
+
+| template ||
+|----------|----------------|
+| [`cb-lcars-cascade`](src/cb-lcars/cb-lcars-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
+
+| setting | default |
+|---------|---------|
+
+
+```yaml
+type: custom:cb-lcars-base-card
+label: CB-LCARS Base Card
+show_label: true
+configSample:
+  actionSelector: {}
+grid_options:
+  columns: 12
+  rows: 5
+template:
+  - cb-lcars-animation-cascade
+variables:
+  animation:
+    cascade:
+      pattern: custom
+      custom_pattern: |
+        [
+          { "duration": 1, "delay": 0.1 },
+          { "duration": 1.5, "delay": 0.2 },
+          { "duration": 2, "delay": 0.3 },
+          { "duration": 2.5, "delay": 0.4 },
+          { "duration": 3, "delay": 0.5 },
+          { "duration": 3.5, "delay": 0.6 },
+          { "duration": 4, "delay": 0.7 },
+          { "duration": 4.5, "delay": 0.8 }
+        ]
+      custom_keyframes: |
+        @keyframes colorchange {
+          0% {color: #ff0000}
+          25% {color: #00ff00}
+          50% {color: #0000ff}
+          75% {color: #ffff00}
+          80% {color: #ff00ff}
+          90% {color: #00ffff}
+          100% {color: #ffffff}
+        }
+```
+
+TODOs:
+- add presets/expose options for cascade animation settings
+- add alternative text sources (sensors?)
+
+## Pulse Wave
 
 ---
 
