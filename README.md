@@ -45,6 +45,7 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [`type: custom:cb-lcars-button-card`](#type-customcb-lcars-button-card)
   - [LCARS Multimeter (Sliders/Gauges)](#lcars-multimeter-slidersgauges)
     - [`type:cb-lcars-multimeter-card`](#typecb-lcars-multimeter-card)
+      - [Ranges](#ranges)
   - [LCARS Label (Stylized Text)](#lcars-label-stylized-text)
     - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
   - [LCARS DPAD](#lcars-dpad)
@@ -399,8 +400,32 @@ Settings are available in the UI editor.
   - Show/Hide
   - Size
   - Count (number of subticks per segement)
+- Ranges: now supporting background colors set with ranges
 
 ![cb-lcars-multimeter](images/screenshots/multimeter.gif)
+
+#### Ranges
+
+Background color in gauge mode can be segmented into ranges.
+This can currently be done in the yaml configuration of multimeter.
+
+!['multimeter-range'](images/button_samples/cb-lcars-multimeter-ranges.png)
+
+```yaml
+type: custom:cb-lcars-multimeter-card
+variables:
+  gauge:
+    ranges:
+      - from: 0
+        to: 30
+        color: var(--picard-darkest-yellow)
+      - from: 30
+        to: 75
+        color: var(--picard-darkest-green
+      - from: 75
+        to: 100
+        color: var(--picard-darkest-orange)
+```
 
 <br>
 
