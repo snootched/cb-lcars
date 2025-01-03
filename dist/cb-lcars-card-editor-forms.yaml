@@ -2570,7 +2570,7 @@ cb-lcars-base-controls:
                   headerLevel: 4
                   icon: "mdi:format-list-bulleted"
                   noCollapse: false
-                  visibilityCondition: "this._config.variables.animation.cascade.pattern === 'custom'"
+                  visibilityCondition: "(this._config?.variables?.animation?.cascade?.pattern ?? '') === 'custom'"
                   rows:
                     - controls:
                         - type: Message
@@ -5930,12 +5930,12 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.slider_track.meter.gradient_start_color"
+                          configValue: "variables.slider_track.gradient_start_color"
                         - <<: *colorControl
-                          configValue: "variables.slider_track.meter.gradient_start_color"
+                          configValue: "variables.slider_track.gradient_start_color"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.slider_track.meter.gradient_start_color"
+                          configValue: "variables.slider_track.gradient_start_color"
                 - controls:
                     - label: "Gradient: Match [Right/Bottom] to Entity Color"
                       configValue: "variables.entity_match_slider_end"
@@ -5955,9 +5955,9 @@ cb-lcars-multimeter-card:
                       cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
-                          configValue: "variables.slider_track.meter.gradient_end_color"
+                          configValue: "variables.slider_track.gradient_end_color"
                         - <<: *colorControl
-                          configValue: "variables.slider_track.meter.gradient_end_color"
+                          configValue: "variables.slider_track.gradient_end_color"
                     - controls:
                         - <<: *colorPreviewControl
-                          configValue: "variables.slider_track.meter.gradient_end_color"
+                          configValue: "variables.slider_track.gradient_end_color"

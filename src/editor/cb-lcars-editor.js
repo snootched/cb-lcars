@@ -4,7 +4,7 @@ import { readYamlFile } from '../utils/cb-lcars-fileutils.js';
 
 import { html, css, unsafeCSS } from 'lit';
 
-import EditorForm from 'ha-card-formbuilder';
+import EditorForm from 'ha-editor-formbuilder-yaml';
 
 export class CBLCARSCardEditor extends EditorForm {
 
