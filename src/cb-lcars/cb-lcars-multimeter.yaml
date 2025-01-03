@@ -860,6 +860,20 @@ cb-lcars-multimeter:
           [[[
             return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
           ]]]
+    name:
+      - z-index: 1
+      - height: 100%
+      - width: |
+          [[[
+            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")";
+          ]]]
+    state:
+      - z-index: 1
+      - height: 100%
+      - width: |
+          [[[
+            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")";
+          ]]]
     custom_fields:
       gauge:
         - position: absolute
