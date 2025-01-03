@@ -2570,7 +2570,7 @@ cb-lcars-base-controls:
                   headerLevel: 4
                   icon: "mdi:format-list-bulleted"
                   noCollapse: false
-                  visibilityCondition: "this._config.variables.animation.cascade.pattern === 'custom'"
+                  visibilityCondition: "(this._config?.variables?.animation?.cascade?.pattern ?? '') === 'custom'"
                   rows:
                     - controls:
                         - type: Message
