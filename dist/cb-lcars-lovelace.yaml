@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.01.1
+  version: 2025.01.1a
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -5694,6 +5694,20 @@ cblcars_card_templates:
         - width: |
             [[[
               return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+            ]]]
+      name:
+        - z-index: 1
+        - height: 100%
+        - width: |
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")";
+            ]]]
+      state:
+        - z-index: 1
+        - height: 100%
+        - width: |
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")";
             ]]]
       custom_fields:
         gauge:
