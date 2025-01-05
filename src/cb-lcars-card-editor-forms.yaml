@@ -5903,7 +5903,6 @@ cb-lcars-multimeter-card:
                           mode: slider
             - type: Section
               label: "Colors"
-              visibilityCondition: "this._config.variables.entity_match_gauge === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
