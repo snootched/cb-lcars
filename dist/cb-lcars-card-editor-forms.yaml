@@ -9,6 +9,20 @@ cb-lcars-base-card:
               message: "This is a base card for advanced use.  Visual Editor is not available for this card."
 cb-lcars-base-controls:
   tabs:
+    - label: Symbiont
+      content:
+        - type: ControlRow
+          controls:
+            - type: CodeEditor
+              configValue: "custom_fields2.symbiont.card"
+              mode: yaml
+              label: "Symbiont Card Configuration"
+              helper: "Enter the configuration for the symbiont card."
+            - type: CodeEditor
+              configValue: "variables.symbiont.symbiont_user_style"
+              mode: text/plain
+              label: "Symbiont Sytle Block"
+              helper: "Card-Mod style block for the symbiont card."
     - label: Base Controls
       content:
         - type: ControlRow
