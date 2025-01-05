@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.01.2-alpha.4
+  version: 2025.01.2-alpha.5
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -2543,7 +2543,8 @@ cblcars_card_templates:
                 `;
                 symbiont_style = (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
                 return symbiont_style;
-              ]]]cb-lcars-button-picard-filled:
+              ]]]
+  cb-lcars-button-picard-filled:
     template: cb-lcars-button-base
     variables:
       text:
