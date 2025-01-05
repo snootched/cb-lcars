@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.01.1b
+  version: 2025.01.2-alpha.4
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -2409,7 +2409,141 @@ cblcars_card_templates:
                 let rightRadiusWithUnit = isNaN(rightRadius) ? rightRadius : rightRadius + 'px';
                 return "calc(" + rightRadiusWithUnit + " / " + variables.card.border.inner.factor + ")";
             ]]]
-  cb-lcars-button-picard-filled:
+  cb-lcars-symbiont:
+    template:
+      - cb-lcars-functions
+    variables:
+      symbiont:
+        enabled: false
+        imprint_host: true
+        s2ymbiont_user_style: |
+          ha-card {
+            border-bottom-left-radius: 0px !important;
+            border-bottom-right-radius: 34px !important;
+            border-top-right-radius: 34px !important;
+            border-top-left-radius: 34px !important;
+          }
+        card:
+          padding:
+            left: 10
+            right: 10
+            top: 10
+            bottom: 0
+          color:
+            background:
+              default: var(--picard-darkest-orange)
+          border:
+            top:
+              left_radius: 34
+              right_radius: 34
+            bottom:
+              left_radius: 34
+              right_radius: 34
+    styles:
+      custom_fields:
+        symbiont:
+          - visibility: |
+              [[[
+                return (variables.symbiont.enabled) ? 'visible' : 'hidden';
+              ]]]
+          - display: block
+          - position: absolute
+          - margin-top: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.symbiont.card.padding.top) ]]]
+          - margin-bottom: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.symbiont.card.padding.bottom)
+              ]]]
+          - margin-left: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.symbiont.card.padding.left)
+              ]]]
+          - margin-right: >-
+              [[[ return
+              variables.__get_num_with_unit(variables.symbiont.card.padding.right)
+              ]]]
+          - align-items: |
+              [[[
+                return variables.symbiont.align_items || 'center';
+              ]]]
+          - justify-content: |
+              [[[
+                return variables.symbiont.justify_content || 'center';
+              ]]]
+          - height: |
+              [[[
+                return (variables.symbiont?.card?.height) ? variables.symbiont.card.height :
+                "calc( " + variables.__get_num_with_unit(variables.card.height) +
+                  " - " +
+                  variables.__get_num_with_unit(variables.card.border.top.size) +
+                  " - " +
+                  variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                  " - " +
+                  variables.__get_num_with_unit(variables.symbiont.card.padding.top) +
+                  " - " +
+                  variables.__get_num_with_unit(variables.symbiont.card.padding.bottom) +
+                  " )";
+              ]]]
+          - width: |
+              [[[
+                return (variables.symbiont?.card?.width) ? variables.symbiont.card.width :
+                "calc( " + variables.__get_num_with_unit(variables.card.width) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.left.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.right.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.symbiont.card.padding.left) +
+                " - " +
+                variables.__get_num_with_unit(variables.symbiont.card.padding.right) +
+                " )";
+              ]]]
+          - border-top-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.symbiont.card.border.top.left_radius) + " !important";
+              ]]]
+          - border-top-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) + " !important";
+              ]]]
+          - border-bottom-left-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) + " !important";
+              ]]]
+          - border-bottom-right-radius: |
+              [[[
+                return variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) + " !important";
+              ]]]
+    custom_fields:
+      symbiont:
+        card:
+          type: markdown
+          content: |
+            <ha-alert alert-type="error" title="Symbiont Missing">Please add your symbiont card configuration in order to join with host.  Please refer to the documentation.</ha-alert>
+          entity: "[[[ return variables?.entity; ]]]"
+          variables: "[[[ return variables ]]]"
+          card_mod:
+            style: |
+              [[[
+                // variables.symbiont.
+                //   enabled == enable child card function
+                //   imprint_host == apply host card style to child card (along with symbiont_user_style)
+                //   symbiont_user_style == user-supplied style to apply to symbiont card
+                let symbiont_style = "";
+                let symbiont_user_style = variables.symbiont?.symbiont_user_style || "";
+                let host_style = `
+                  ha-card {
+                    background: ${variables.symbiont.card.color.background.default};
+                    border-bottom-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) } !important;
+                    border-bottom-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) } !important;
+                    border-top-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) } !important;
+                    border-top-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.left_radius) } !important;
+                  }
+                `;
+                symbiont_style = (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
+                return symbiont_style;
+              ]]]cb-lcars-button-picard-filled:
     template: cb-lcars-button-base
     variables:
       text:
