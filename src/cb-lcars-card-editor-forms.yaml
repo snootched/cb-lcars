@@ -9,7 +9,6 @@ cb-lcars-base-card:
               message: "This is a base card for advanced use.  Visual Editor is not available for this card."
 cb-lcars-base-controls:
   tabs:
-
     - label: Base Controls
       content:
         - type: ControlRow
@@ -2343,78 +2342,6 @@ cb-lcars-base-controls:
                   configValue: "custom_fields.symbiont.card"
                   label: "Symbiont Card Configuration"
                   helper: "Enter the configuration for the symbiont card."
-            - &symbiontCornerSection
-              type: Section
-              label: Corners
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:rounded-corner"
-              rows:
-                - type: ControlRow
-                  controls:
-                    - type: Message
-                      alertType: info
-                      message: "Set the corner radius of the symbiont card.  These will not be visible if the host style is imprinted on the symbiont as the colors will match."
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - label: "Top Left Radius"
-                      helper: "The top left curve of symbiont"
-                      configValue: "variables.symbiont.card.border.top.left_radius"
-                      disabled: false
-                      required: true
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "px"
-                          slider_ticks: false
-                    - label: "Top Right Radius"
-                      helper: "The top right curve of symbiont"
-                      configValue: "variables.symbiont.card.border.top.right_radius"
-                      disabled: false
-                      required: true
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "px"
-                          slider_ticks: false
-                    - label: "Bottom Left Radius"
-                      helper: "The bottom left curve of symbiont"
-                      configValue: "variables.symbiont.card.border.bottom.left_radius"
-                      disabled: false
-                      required: true
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "px"
-                          slider_ticks: false
-                    - label: "Bottom Right Radius"
-                      helper: "The bottom right curve of symbiont"
-                      configValue: "variables.symbiont.card.border.bottom.right_radius"
-                      disabled: false
-                      required: true
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "px"
-                          slider_ticks: false
             - type: Section
               label: "Symbiont Dimensions"
               outlined: true
@@ -2526,6 +2453,80 @@ cb-lcars-base-controls:
                   configValue: "variables.symbiont.imprint_host"
                   label: "Imprint Host styles on Symbiont"
                   helper: "Attempt to modify various styles on the symbiont card to match the host."
+            - &symbiontCornerSection
+              type: Section
+              label: Corners
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:rounded-corner"
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "Set the corner radius of the symbiont card.  These may not be visible when the host style is imprinted on the symbiont as the colors may match."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Top Left Radius"
+                      helper: "The top left curve of symbiont"
+                      configValue: "variables.symbiont.card.border.top.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Right Radius"
+                      helper: "The top right curve of symbiont"
+                      configValue: "variables.symbiont.card.border.top.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Left Radius"
+                      helper: "The bottom left curve of symbiont"
+                      configValue: "variables.symbiont.card.border.bottom.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Right Radius"
+                      helper: "The bottom right curve of symbiont"
+                      configValue: "variables.symbiont.card.border.bottom.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+            - type: ControlRow
+              controls:
                 - type: Message
                   alertType: info
                   message: "Additional style blocks can be added to the symbiont card.  These will be applied after the host styles.  Card-Mod jinja templating is supported - host card 'variables' object and 'entity' are made available in addtion to the standard card-mod variables."
