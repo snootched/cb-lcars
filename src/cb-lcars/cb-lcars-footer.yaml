@@ -2,6 +2,7 @@ cb-lcars-footer-base:
   template:
     - cb-lcars-functions
     - cb-lcars-button-base
+    - cb-lcars-symbiont
   variables:
     label: ' '
     text:

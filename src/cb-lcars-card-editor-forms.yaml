@@ -9,22 +9,7 @@ cb-lcars-base-card:
               message: "This is a base card for advanced use.  Visual Editor is not available for this card."
 cb-lcars-base-controls:
   tabs:
-    - label: Symbiont
-      content:
-        - type: ControlRow
-          controls:
-            - type: Selector
-              selector:
-                object:
-              configValue: "custom_fields2.symbiont.card"
-              label: "Symbiont Card Configuration"
-              helper: "Enter the configuration for the symbiont card."
-            - type: Selector
-              selector:
-                object:
-              configValue: "variables.symbiont.symbiont_user_style"
-              label: "Symbiont Sytle Block"
-              helper: "Card-Mod style block for the symbiont card."
+
     - label: Base Controls
       content:
         - type: ControlRow
@@ -2325,6 +2310,231 @@ cb-lcars-base-controls:
                             - controls:
                                 - <<: *colorPreviewControl
                                   configValue: "variables.card.color.background.inactive"
+
+    - &symbiontTab
+      label: Symbiont
+      content:
+        - type: ControlRow
+          controls:
+            - type: Selector
+              selector:
+                boolean:
+              configValue: "variables.symbiont.enabled"
+              label: "Join with a Symbiont"
+              helper: "Become a host - join with Symbiont card."
+
+        - &symbiontPositionSection
+          type: Section
+          label: "Symbiont Card"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:card-multiple-outline"
+          visibilityCondition: "this._config.variables?.symbiont?.enabled === true"
+          rows:
+            - type: ControlRow
+              controls:
+                - type: Message
+                  alertType: info
+                  message: "Symbiont card configuration can be pasted below.  Host card entity and variables blocks will be inherited by the symbiont card, but can be overriden if desired."
+                - type: Selector
+                  selector:
+                    object:
+                  configValue: "custom_fields.symbiont.card"
+                  label: "Symbiont Card Configuration"
+                  helper: "Enter the configuration for the symbiont card."
+            - &symbiontCornerSection
+              type: Section
+              label: Corners
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:rounded-corner"
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "Set the corner radius of the symbiont card.  These will not be visible if the host style is imprinted on the symbiont as the colors will match."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Top Left Radius"
+                      helper: "The top left curve of symbiont"
+                      configValue: "variables.symbiont.card.border.top.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Top Right Radius"
+                      helper: "The top right curve of symbiont"
+                      configValue: "variables.symbiont.card.border.top.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Left Radius"
+                      helper: "The bottom left curve of symbiont"
+                      configValue: "variables.symbiont.card.border.bottom.left_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Bottom Right Radius"
+                      helper: "The bottom right curve of symbiont"
+                      configValue: "variables.symbiont.card.border.bottom.right_radius"
+                      disabled: false
+                      required: true
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+            - type: Section
+              label: "Symbiont Dimensions"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-align-left"
+              noCollapse: false
+              expanded: false
+              visibilityCondition: "this._config.show_advanced === true"
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "By default, the symbiont will fill the dimensions of the card minus padding."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Height"
+                      configValue: "variables.symbiont.card.height"
+                      helper: "Sets static height of the symbiont "
+                      disabled: false
+                      type: Selector
+                      selector:
+                        text:
+                    - label: "Width"
+                      configValue: "variables.symbiont.card.width"
+                      helper: "Sets static width of the symbiont"
+                      disabled: false
+                      type: Selector
+                      selector:
+                        text:
+            - type: Section
+              label: "Padding"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:arrow-all"
+              noCollapse: false
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "Padding is the space between the symbiont card and the borders of the host card."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Padding Top"
+                      configValue: "variables.symbiont.card.padding.top"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Right"
+                      configValue: "variables.symbiont.card.padding.right"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Bottom"
+                      configValue: "variables.symbiont.card.padding.bottom"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Left"
+                      configValue: "variables.symbiont.card.padding.left"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+        - type: Section
+          label: "Symbiont Style"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:set-center-right"
+          visibilityCondition: "this._config.variables?.symbiont?.enabled === true"
+          rows:
+            - type: ControlRow
+              controls:
+                - type: Message
+                  alertType: info
+                  message: "Imprinting will attempt to apply the state-specific host card styles/colors to the symbiont.  Styles such as background color, text color, corner radius, etc."
+                - type: Selector
+                  selector:
+                    boolean:
+                  configValue: "variables.symbiont.imprint_host"
+                  label: "Imprint Host styles on Symbiont"
+                  helper: "Attempt to modify various styles on the symbiont card to match the host."
+                - type: Message
+                  alertType: info
+                  message: "Additional style blocks can be added to the symbiont card.  These will be applied after the host styles.  Card-Mod jinja templating is supported - host card 'variables' object and 'entity' are made available in addtion to the standard card-mod variables."
+                - type: Selector
+                  selector:
+                    object:
+                  configValue: "variables.symbiont.symbiont_user_style"
+                  label: "Symbiont Style Block"
+                  helper: "Additional card-mod style block for the symbiont card."
     - &animationsTab
       label: "Animations & Effects"
       content:
@@ -2535,7 +2745,6 @@ cb-lcars-base-controls:
                                       label: Baseline
                                     - value: stretch
                                       label: Stretch
-
 
     - &dataCascadeTab
       label: "Data Cascade"
@@ -2825,7 +3034,7 @@ cb-lcars-base-controls:
                   headerLevel: 4
                   icon: "mdi:format-list-bulleted"
                   noCollapse: false
-                  visibilityCondition: "this._config.variables.animation.pulsewave && this._config.variables.animation.pulsewave.pattern === 'custom'"
+                  visibilityCondition: "this._config.variables.animation?.pulsewave && this._config.variables.animation?.pulsewave?.pattern === 'custom'"
                   rows:
                     - controls:
                         - type: Message
@@ -3079,6 +3288,7 @@ cb-lcars-elbow-card:
         - <<: *cardSection
         - <<: *textSection
         - <<: *actionsSection
+    - <<: *symbiontTab
     - <<: *animationsTab
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab

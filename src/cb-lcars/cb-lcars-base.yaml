@@ -325,6 +325,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'active'
+                return 'state_on'
+              ]]]
           - transition: all 0.4s ease-in
           - background-color: '[[[ return variables.card.color.background.active ]]]'
           - border-top: |
@@ -368,6 +373,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'inactive'
+                return 'state_off'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.inactive ]]]'
           - border-top: |
@@ -407,6 +417,11 @@ cb-lcars-base:
       value: heat
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'heat'
+                return 'state_heat'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
           - border-top: |
@@ -441,6 +456,11 @@ cb-lcars-base:
       value: cool
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'cool'
+                return 'state_cool'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
           - border-top: |
@@ -479,6 +499,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'unavailable'
+                return 'state_unavailable'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.unavailable ]]]'
           - border-top: |
               [[[
@@ -522,6 +547,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'zero'
+                return 'state_zero'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.zero ]]]'
           - border-top: |
               [[[
@@ -560,6 +590,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'non_zero'
+                return 'state_nonzero'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
           - border-top: |
               [[[
@@ -593,6 +628,11 @@ cb-lcars-base:
       operator: default
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'default'
+                return 'state_default'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.default ]]]'
           - border-top: |
               [[[

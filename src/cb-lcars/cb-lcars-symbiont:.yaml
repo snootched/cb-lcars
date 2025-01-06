@@ -2,28 +2,18 @@ cb-lcars-symbiont:
   template:
     - cb-lcars-functions
   variables:
+    enable_resize_observer: true
     symbiont:
       enabled: false
-      imprint_host: true
-      s2ymbiont_user_style: |
-        ha-card {
-          border-bottom-left-radius: 0px !important;
-          border-bottom-right-radius: 34px !important;
-          border-top-right-radius: 34px !important;
-          border-top-left-radius: 34px !important;
-        }
+      imprint_host: false
       card:
         padding:
           left: 10
           right: 10
           top: 10
           bottom: 0
-        color:
-          background:
-            default: var(--picard-darkest-orange)
         border:
           top:
-            left_radius: 34
             right_radius: 34
           bottom:
             left_radius: 34
@@ -63,7 +53,6 @@ cb-lcars-symbiont:
         - height: |
             [[[
               return (variables.symbiont?.card?.height) ? variables.symbiont.card.height :
-
               "calc( " + variables.__get_num_with_unit(variables.card.height) +
                 " - " +
                 variables.__get_num_with_unit(variables.card.border.top.size) +
@@ -78,7 +67,6 @@ cb-lcars-symbiont:
         - width: |
             [[[
               return (variables.symbiont?.card?.width) ? variables.symbiont.card.width :
-
               "calc( " + variables.__get_num_with_unit(variables.card.width) +
               " - " +
               variables.__get_num_with_unit(variables.card.border.left.size) +
@@ -122,21 +110,33 @@ cb-lcars-symbiont:
               //   imprint_host == apply host card style to child card (along with symbiont_user_style)
               //   symbiont_user_style == user-supplied style to apply to symbiont card
 
+              console.log("Symbiont Card Mod cblcars_matched_state: ", this._config.cblcars_matched_state);
+
+              let cblcars_state = this._config.cblcars_matched_state;
+              let cardBackgroundColor = variables.card.color.background[cblcars_state]; //|| variables.card.color.background.default;
+              let cardColor = variables.card.color[cblcars_state] || variables.card.color.default;
+              let labelColor = variables.text.label.color[cblcars_state] || variables.text.label.color.default;
+              let stateColor = variables.text.state.color[cblcars_state] || variables.text.state.color.default;
+              let nameColor = variables.text.name.color[cblcars_state] || variables.text.name.color.default;
+
+              console.log("cardBackgroundColor: ", cardBackgroundColor);
+              console.log("cardColor: ", cardColor);
+              console.log("labelColor: ", labelColor);
+              console.log("stateColor: ", stateColor);
+              console.log("nameColor: ", nameColor);
+
               let symbiont_style = "";
               let symbiont_user_style = variables.symbiont?.symbiont_user_style || "";
-
               let host_style = `
                 ha-card {
-                  background: ${variables.symbiont.card.color.background.default};
+                  background: ${variables.symbiont?.card?.color?.background?.default || 'none'};
+                  color: ${labelColor};
                   border-bottom-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) } !important;
                   border-bottom-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) } !important;
                   border-top-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) } !important;
                   border-top-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.left_radius) } !important;
                 }
-
               `;
-
               symbiont_style = (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
-
               return symbiont_style;
             ]]]
