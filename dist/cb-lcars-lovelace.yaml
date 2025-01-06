@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.01.2-alpha.10
+  version: 2025.01.2-alpha.11
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-capped:
@@ -2213,6 +2213,7 @@ cblcars_card_templates:
     template:
       - cb-lcars-functions
       - cb-lcars-button-base
+      - cb-lcars-symbiont
     variables:
       label: ' '
       text:
@@ -2413,28 +2414,18 @@ cblcars_card_templates:
     template:
       - cb-lcars-functions
     variables:
+      enable_resize_observer: true
       symbiont:
         enabled: false
-        imprint_host: true
-        s2ymbiont_user_style: |
-          ha-card {
-            border-bottom-left-radius: 0px !important;
-            border-bottom-right-radius: 34px !important;
-            border-top-right-radius: 34px !important;
-            border-top-left-radius: 34px !important;
-          }
+        imprint_host: false
         card:
           padding:
             left: 10
             right: 10
             top: 10
             bottom: 0
-          color:
-            background:
-              default: var(--picard-darkest-orange)
           border:
             top:
-              left_radius: 34
               right_radius: 34
             bottom:
               left_radius: 34
@@ -2530,11 +2521,24 @@ cblcars_card_templates:
                 //   enabled == enable child card function
                 //   imprint_host == apply host card style to child card (along with symbiont_user_style)
                 //   symbiont_user_style == user-supplied style to apply to symbiont card
+                console.log("Symbiont Card Mod cblcars_matched_state: ", this._config.cblcars_matched_state);
+                let cblcars_state = this._config.cblcars_matched_state;
+                let cardBackgroundColor = variables.card.color.background[cblcars_state]; //|| variables.card.color.background.default;
+                let cardColor = variables.card.color[cblcars_state] || variables.card.color.default;
+                let labelColor = variables.text.label.color[cblcars_state] || variables.text.label.color.default;
+                let stateColor = variables.text.state.color[cblcars_state] || variables.text.state.color.default;
+                let nameColor = variables.text.name.color[cblcars_state] || variables.text.name.color.default;
+                console.log("cardBackgroundColor: ", cardBackgroundColor);
+                console.log("cardColor: ", cardColor);
+                console.log("labelColor: ", labelColor);
+                console.log("stateColor: ", stateColor);
+                console.log("nameColor: ", nameColor);
                 let symbiont_style = "";
                 let symbiont_user_style = variables.symbiont?.symbiont_user_style || "";
                 let host_style = `
                   ha-card {
-                    background: ${variables.symbiont.card.color.background.default};
+                    background: ${variables.symbiont?.card?.color?.background?.default || 'none'};
+                    color: ${labelColor};
                     border-bottom-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) } !important;
                     border-bottom-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) } !important;
                     border-top-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) } !important;
@@ -3128,6 +3132,7 @@ cblcars_card_templates:
     template:
       - cb-lcars-button-base
       - cb-lcars-functions
+      - cb-lcars-symbiont
     variables:
       label: ' '
       text:
@@ -4279,6 +4284,11 @@ cblcars_card_templates:
           ]]]
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'active'
+                  return 'state_on'
+                ]]]
             - transition: all 0.4s ease-in
             - background-color: '[[[ return variables.card.color.background.active ]]]'
             - border-top: |
@@ -4322,6 +4332,11 @@ cblcars_card_templates:
           ]]]
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'inactive'
+                  return 'state_off'
+                ]]]
             - transition: all 0.4s ease-out
             - background-color: '[[[ return variables.card.color.background.inactive ]]]'
             - border-top: |
@@ -4361,6 +4376,11 @@ cblcars_card_templates:
         value: heat
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'heat'
+                  return 'state_heat'
+                ]]]
             - transition: all 0.4s ease-out
             - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
             - border-top: |
@@ -4395,6 +4415,11 @@ cblcars_card_templates:
         value: cool
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'cool'
+                  return 'state_cool'
+                ]]]
             - transition: all 0.4s ease-out
             - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
             - border-top: |
@@ -4433,6 +4458,11 @@ cblcars_card_templates:
           ]]]
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'unavailable'
+                  return 'state_unavailable'
+                ]]]
             - background-color: '[[[ return variables.card.color.background.unavailable ]]]'
             - border-top: |
                 [[[
@@ -4476,6 +4506,11 @@ cblcars_card_templates:
           ]]]
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'zero'
+                  return 'state_zero'
+                ]]]
             - background-color: '[[[ return variables.card.color.background.zero ]]]'
             - border-top: |
                 [[[
@@ -4514,6 +4549,11 @@ cblcars_card_templates:
           ]]]
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'non_zero'
+                  return 'state_nonzero'
+                ]]]
             - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
             - border-top: |
                 [[[
@@ -4547,6 +4587,11 @@ cblcars_card_templates:
         operator: default
         styles:
           card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'default'
+                  return 'state_default'
+                ]]]
             - background-color: '[[[ return variables.card.color.background.default ]]]'
             - border-top: |
                 [[[
