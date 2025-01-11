@@ -513,8 +513,9 @@ For those that really want to tinker - see below :)
 [`cb-lcars-animation-bg-grid`](src/cb-lcars/cb-lcars-animation-bg-grid.yaml) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
 
 
-
 ## Custom Animations
+
+<details><summary>Custom Animation Settings</summary>
 
 For some of the animations, you can provide custom pattern and keyframes definitions to the animation elements, should you desire.
 
@@ -601,7 +602,7 @@ variables:
           100% { height: 75px; }
         }
 ```
-
+</details>
 
 TODOs:
 - add alternative text data sources (sensors?)
