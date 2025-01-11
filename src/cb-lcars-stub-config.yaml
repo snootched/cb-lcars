@@ -29,6 +29,8 @@ cb-lcars-elbow-card:
     action: none
   hold_action:
     action: none
+cb-lcars-dpad-card:
+  enable_resize_observer: true
 cb-lcars-multimeter-card:
   enable_resize_observer: true
   variables:
@@ -60,3 +62,4 @@ cb-lcars-multimeter-card:
   hold_action:
     action: none
   show_label: false
+

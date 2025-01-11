@@ -65,6 +65,9 @@ cb-lcars-header-base:
           hvac_heat: transparent
           hvac_cool: transparent
           unavailable: transparent
+  styles:
+    label:
+      - z-index: 2
 cb-lcars-header:
   template:
     - cb-lcars-header-base

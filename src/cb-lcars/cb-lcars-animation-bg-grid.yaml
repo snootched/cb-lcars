@@ -1,0 +1,246 @@
+cb-lcars-animation-bg-grid:
+  template:
+    - cb-lcars-functions
+  variables:
+    animation:
+      bg_grid:
+        direction: left
+        speed: 30
+        background_pattern: none
+        grid:
+          num_major_rows: 3
+          num_minor_rows: 3
+          num_major_cols: 3
+          num_minor_cols: 3
+          line_width_major: 4
+          line_width_minor: 1
+          border_lines: true
+        color:
+          line: var(--picard-dark-gray)
+          fill: var(--picard-darkest-blue)
+  styles:
+    label:
+      - z-index: 1
+    custom_fields:
+      animation:
+        - display: flex
+        - position: absolute
+        - align-items: center
+  custom_fields:
+    symbiont:
+      card:
+        type: entity
+        entity: light.tv
+    animation: |
+      [[[
+
+        const direction = variables.animation.bg_grid.direction ?? 'left';
+        const speed = variables.animation.bg_grid.speed ?? 10;
+
+        const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+
+        const num_major_rows = variables.animation.bg_grid.grid.num_major_rows ?? 3;
+        const num_major_cols = variables.animation.bg_grid.grid.num_major_cols ?? 3;
+
+        let num_minor_rows = variables.animation.bg_grid.grid.num_minor_rows ?? 3; // Number of minor rows between major rows
+        let num_minor_cols = variables.animation.bg_grid.grid.num_minor_cols ?? 3; // Number of minor columns between major columns
+
+        num_minor_rows = Math.max(0, num_minor_rows - 1);
+        num_minor_cols = Math.max(0, num_minor_cols - 1);
+
+        const total_rows = num_major_rows * (num_minor_rows + 1);
+        const total_cols = num_major_cols * (num_minor_cols + 1);
+
+        const row_height = card_height / total_rows;
+        const column_width = card_width / total_cols;
+
+        const line_width_minor = variables.animation.bg_grid.grid.line_width_minor ?? 1;
+        const line_width_major = variables.animation.bg_grid.grid.line_width_major ?? 2;
+        const line_color = variables.animation.bg_grid.color.line || 'var(--picard-dark-gray)';
+        const border_lines_horizontal = direction === 'up' || direction === 'down';
+        const border_lines_vertical = direction === 'left' || direction === 'right';
+
+        const bg_pattern = variables.animation.bg_grid.background_pattern || 'none';
+
+        let fill_color = 'transparent';
+        if (variables.animation.bg_grid.background_pattern === 'fill') {
+          fill_color = variables.animation.bg_grid.color.fill;
+        } else {
+          fill_color = 'transparent';
+        }
+
+        const pattern_width = total_cols * column_width;
+        const pattern_height = total_rows * row_height;
+
+        // Error checking
+        if (isNaN(card_height) || isNaN(card_width) || card_height <= 0 || card_width <= 0 ||
+            isNaN(total_rows) || isNaN(total_cols) || total_rows <= 0 || total_cols <= 0 ||
+            isNaN(row_height) || isNaN(column_width) || row_height <= 0 || column_width <= 0) {
+          return '';
+        }
+
+
+        // STARS BG PATTERN
+        function generateRealisticStars(numStars) {
+          let stars = '';
+          for (let i = 0; i < numStars; i++) {
+            const cx = Math.random() * 200;
+            const cy = Math.random() * 200;
+            const r = Math.random() * 0.7 + 0.2; // Smaller radius for more realistic stars
+            const brightness = Math.random() * 0.8 + 0.2; // Random brightness
+            const fill = `rgba(255, 255, 255, ${brightness})`;
+            stars += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" />`;
+          }
+          return stars;
+        }
+
+        let svg_bg_stars = `
+          <defs>
+            <pattern id="starPattern" width="200" height="200" patternUnits="userSpaceOnUse">
+              ${generateRealisticStars(150)}
+            </pattern>
+          </defs>
+          <rect x="0" y="0" width="100%" height="100%" fill="url(#starPattern)" />
+        `;
+
+        // NEBULA BG PATTERN
+        let svg_bg_nebula = `
+          <defs>
+            <pattern id="spacePattern" width="100%" height="100%" patternUnits="objectBoundingBox">
+              <!-- Radial Gradient Definitions -->
+              <radialGradient id="nebula1" cx="30%" cy="30%" r="25%">
+                <stop offset="0%" style="stop-color: #FF00FF; stop-opacity: 1" />
+                <stop offset="50%" style="stop-color: #FF00FF; stop-opacity: 0.3" />
+                <stop offset="100%" style="stop-color: #FF00FF; stop-opacity: 0" />
+              </radialGradient>
+              <radialGradient id="nebula2" cx="70%" cy="30%" r="20%">
+                <stop offset="0%" style="stop-color: #00FFFF; stop-opacity: 1" />
+                <stop offset="50%" style="stop-color: #00FFFF; stop-opacity: 0.3" />
+                <stop offset="100%" style="stop-color: #00FFFF; stop-opacity: 0" />
+              </radialGradient>
+              <radialGradient id="nebula3" cx="50%" cy="70%" r="30%">
+                <stop offset="0%" style="stop-color: #FFD700; stop-opacity: 1" />
+                <stop offset="50%" style="stop-color: #FFD700; stop-opacity: 0.3" />
+                <stop offset="100%" style="stop-color: #FFD700; stop-opacity: 0" />
+              </radialGradient>
+              <radialGradient id="nebula4" cx="40%" cy="50%" r="15%">
+                <stop offset="0%" style="stop-color: #8A2BE2; stop-opacity: 1" />
+                <stop offset="50%" style="stop-color: #8A2BE2; stop-opacity: 0.3" />
+                <stop offset="100%" style="stop-color: #8A2BE2; stop-opacity: 0" />
+              </radialGradient>
+              <!-- Background Rectangles with Radial Gradients -->
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula1)" />
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula2)" />
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula3)" />
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula4)" />
+              <!-- Add more rects with radial gradients as needed -->
+            </pattern>
+          </defs>
+          <rect x="0" y="0" width="100%" height="100%" fill="url(#spacePattern)" />
+        `;
+
+        // Set the background pattern
+        let svg_background = '';
+        switch (bg_pattern) {
+          case 'nebula':
+            svg_background = svg_bg_nebula;
+            break;
+          case 'stars':
+            svg_background = svg_bg_stars;
+            break;
+          case 'none':
+          default:
+            svg_background = '';
+            break;
+        }
+
+        // Start bulding the SVG pattern
+        let svg_pattern = `
+          <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="gridPattern" x="0" y="0" width="${pattern_width}" height="${pattern_height}" patternUnits="userSpaceOnUse">
+        `;
+
+        // Add background to the pattern
+        svg_pattern += svg_background;
+
+        // Create cells within the pattern
+        for (let i = 0; i < total_rows; i++) {
+          for (let j = 0; j < total_cols; j++) {
+            svg_pattern += `<rect x="${j * column_width}" y="${i * row_height}" width="${column_width}" height="${row_height}" fill="${fill_color}" stroke="none" />`;
+          }
+        }
+
+        // Add horizontal lines within the pattern
+        for (let i = 0; i <= total_rows; i++) {
+          if (border_lines_horizontal || (i > 0 && i < total_rows)) {
+            let current_line_width = line_width_minor;
+            if (num_minor_rows > 0 && i % (num_minor_rows + 1) === 0) {
+              current_line_width = line_width_major;
+            }
+            svg_pattern += `<line x1="0" y1="${i * row_height}" x2="${pattern_width}" y2="${i * row_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+          }
+        }
+
+        // Add vertical lines within the pattern
+        for (let j = 0; j <= total_cols; j++) {
+          if (border_lines_vertical || (j > 0 && j < total_cols)) {
+            let current_line_width = line_width_minor;
+            if (num_minor_cols > 0 && j % (num_minor_cols + 1) === 0) {
+              current_line_width = line_width_major;
+            }
+            svg_pattern += `<line x1="${j * column_width}" y1="0" x2="${j * column_width}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+          }
+        }
+
+        svg_pattern += `
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#gridPattern)" />
+          </svg>`;
+
+        const track_size = direction === 'up' || direction === 'down' ? pattern_height : pattern_width;
+        const track_dimension = track_size * 3;
+
+        const animationStyle = `
+          <style>
+            .scroll-container {
+              overflow: hidden;
+              width: ${card_width}px;
+              height: ${card_height}px;
+              position: relative;
+            }
+            .scroll-track {
+              display: flex;
+              flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
+              width: ${direction === 'up' || direction === 'down' ? card_width : track_dimension}px;
+              height: ${direction === 'up' || direction === 'down' ? track_dimension : pattern_height}px;
+            }
+            .scroll-pattern {
+              flex: 0 0 ${direction === 'up' || direction === 'down' ? pattern_height : pattern_width}px;
+              height: ${pattern_height}px;
+            }
+            @keyframes scroll-horizontal {
+              0% { transform: translateX(${direction === 'left' ? 0 : -track_dimension + track_size}px); }
+              100% { transform: translateX(${direction === 'left' ? -track_dimension + track_size : 0}px); }
+            }
+            @keyframes scroll-vertical {
+              0% { transform: translateY(${direction === 'up' ? 0 : -track_dimension + track_size}px); }
+              100% { transform: translateY(${direction === 'up' ? -track_dimension + track_size : 0}px); }
+            }
+            .scroll-track {
+              animation: ${direction === 'up' || direction === 'down' ? 'scroll-vertical' : 'scroll-horizontal'} ${speed}s linear infinite;
+            }
+          </style>
+          <div class="scroll-container">
+            <div class="scroll-track">
+              <div class="scroll-pattern">${svg_pattern}</div>
+              <div class="scroll-pattern">${svg_pattern}</div>
+              <div class="scroll-pattern">${svg_pattern}</div>
+            </div>
+          </div>
+        `;
+
+        return animationStyle;
+      ]]]

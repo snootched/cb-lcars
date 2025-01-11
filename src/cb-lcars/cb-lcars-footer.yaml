@@ -65,6 +65,9 @@ cb-lcars-footer-base:
           unavailable: transparent
       border:
         color: var(--lcars-card-bottom-color)
+  styles:
+    label:
+      - z-index: 2
 cb-lcars-footer:
   template:
     - cb-lcars-footer-base

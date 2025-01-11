@@ -6,6 +6,8 @@ cb-lcars-symbiont:
     symbiont:
       enabled: false
       imprint_host: false
+      text:
+        imprint_from: label
       card:
         padding:
           left: 10
@@ -21,6 +23,7 @@ cb-lcars-symbiont:
   styles:
     custom_fields:
       symbiont:
+        - z-index: 1
         - visibility: |
             [[[
               return (variables.symbiont.enabled) ? 'visible' : 'hidden';
@@ -105,38 +108,76 @@ cb-lcars-symbiont:
         card_mod:
           style: |
             [[[
+
+              // cblcars_matched_state == current state used for style matching
               // variables.symbiont.
               //   enabled == enable child card function
               //   imprint_host == apply host card style to child card (along with symbiont_user_style)
               //   symbiont_user_style == user-supplied style to apply to symbiont card
 
-              console.log("Symbiont Card Mod cblcars_matched_state: ", this._config.cblcars_matched_state);
+              //console.log("Symbiont Card Mod cblcars_matched_state: ", this._config.cblcars_matched_state);
 
               let cblcars_state = this._config.cblcars_matched_state;
               let cardBackgroundColor = variables.card.color.background[cblcars_state]; //|| variables.card.color.background.default;
               let cardColor = variables.card.color[cblcars_state] || variables.card.color.default;
-              let labelColor = variables.text.label.color[cblcars_state] || variables.text.label.color.default;
-              let stateColor = variables.text.state.color[cblcars_state] || variables.text.state.color.default;
-              let nameColor = variables.text.name.color[cblcars_state] || variables.text.name.color.default;
 
-              console.log("cardBackgroundColor: ", cardBackgroundColor);
-              console.log("cardColor: ", cardColor);
-              console.log("labelColor: ", labelColor);
-              console.log("stateColor: ", stateColor);
-              console.log("nameColor: ", nameColor);
+
+              //let labelColor = variables.text.label.color[cblcars_state] || variables.text.label.color.default;
+              //let stateColor = variables.text.state.color[cblcars_state] || variables.text.state.color.default;
+              //let nameColor = variables.text.name.color[cblcars_state] || variables.text.name.color.default;
+
+              let textHostStyle = variables.symbiont.text.imprint_from || 'label';
+
+              let textColor = variables.text[textHostStyle].color[cblcars_state] || variables.text[textStyle].color.default;
+              let fontSize = variables.text[textHostStyle].font_size;
+              let fontFamily = variables.text[textHostStyle].font_family;
+
+
+              //console.log("cardBackgroundColor: ", cardBackgroundColor);
+              //console.log("cardColor: ", cardColor);
+              //console.log("labelColor: ", labelColor);
+              //console.log("stateColor: ", stateColor);
+              //console.log("nameColor: ", nameColor);
+              //console.log("textColor: ", textColor);
+              //console.log("fontSize: ", fontSize);
+              //console.log("fontFamily: ", fontFamily);
+
 
               let symbiont_style = "";
               let symbiont_user_style = variables.symbiont?.symbiont_user_style || "";
-              let host_style = `
-                ha-card {
-                  background: ${variables.symbiont?.card?.color?.background?.default || 'none'};
-                  color: ${labelColor};
+              let base_style = `
+                ha-card, hui-entities-card {
                   border-bottom-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) } !important;
                   border-bottom-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) } !important;
                   border-top-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) } !important;
                   border-top-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.left_radius) } !important;
                 }
               `;
-              symbiont_style = (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
+
+              let host_style = `
+                ha-card, hui-entities-card {
+                  background: ${variables.symbiont?.card?.color?.background?.default || 'none'} !important;
+
+                  border-bottom-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.left_radius) } !important;
+                  border-bottom-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.bottom.right_radius) } !important;
+                  border-top-right-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.right_radius) } !important;
+                  border-top-left-radius: ${ variables.__get_num_with_unit(variables.symbiont.card.border.top.left_radius) } !important;
+
+                  color: ${textColor} !important;
+                  font-size: ${fontSize} !important;
+                  font-family: ${fontFamily} !important;
+                }
+
+                .header, .footer, .name, .state, .label {
+                  color: ${textColor} !important;
+                  font-size: ${fontSize} !important;
+                  font-family: ${fontFamily} !important;
+                }
+                ha-card > ha-gauge {
+                  --primary-text-color: ${textColor} !important;
+                }
+
+              `;
+              symbiont_style = base_style + (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
               return symbiont_style;
             ]]]

@@ -105,6 +105,16 @@ cb-lcars-multimeter:
     entity_match_slider_start: false
     entity_match_slider_end: false
     card:
+      color:
+        background:
+          default: transparent
+          active: transparent
+          inactive: transparent
+          zero: transparent
+          non_zero: transparent
+          hvac_heat: transparent
+          hvac_cool: transparent
+          unavailable: transparent
       height: '[[[ return this.offsetHeight; ]]]'
       min_height: '[[[ return this.offsetHeight; ]]]'
       width: '[[[ return this.offsetWidth; ]]]'
@@ -308,18 +318,15 @@ cb-lcars-multimeter:
             return cssStringToRgb(color);
           }
         }
-
         function cssVarToRgb(cssVar) {
           const varName = cssVar.slice(4, -1).trim();
           const color = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
           return parseColor(color);
         }
-
         function hexToRgb(hex) {
           const bigint = parseInt(hex.slice(1), 16);
           return [bigint >> 16 & 255, bigint >> 8 & 255, bigint & 255];
         }
-
         function rgbStringToRgb(rgbString) {
           const rgba = rgbString.match(/\d+/g).map(Number);
           return rgba.length === 4 ? rgba : rgba.slice(0, 3); // Get only the first three values (R, G, B) or return RGBA
@@ -328,33 +335,27 @@ cb-lcars-multimeter:
           if (color === 'transparent') {
             return [0, 0, 0, 0]; // Return RGBA value for transparent
           }
-
           const ctx = document.createElement('canvas').getContext('2d');
           ctx.fillStyle = color;
           document.body.appendChild(ctx.canvas); // Append to body to apply style
           const computedColor = getComputedStyle(ctx.canvas).fillStyle;
           document.body.removeChild(ctx.canvas); // Remove canvas after use
-
           return rgbStringToRgb(computedColor);
         }
-
         try {
-          const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
-          const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
+          const width = parseInt(variables.slider_track.width) || parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
+          const height = parseInt(variables.slider_track.height) || parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
           let barWidth, barHeight;
-
           // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
           if (width <= 0 || height <= 0) {
             //console.error(`Invalid dimensions: width=${width}, height=${height}`);
             // Return a placeholder or empty SVG
             return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
           }
-
           // Defaults and overrides
           let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
           let barOrientation = variables._vertical ? "vertical" : "horizontal";
           let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
-
           // Set defaults based on orientation
           if (barOrientation === 'horizontal') {
             barHeight = height; // Default to height
@@ -363,7 +364,6 @@ cb-lcars-multimeter:
             barWidth = width; // Default to width
             barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
           }
-
           // Dynamic variable assignment
           let startColor, endColor;
           if (variables._vertical) {
@@ -373,30 +373,23 @@ cb-lcars-multimeter:
             startColor = variables.slider_track.gradient_start_color.trim();
             endColor = variables.slider_track.gradient_end_color.trim();
           }
-
           const startRgb = parseColor(startColor);
           const endRgb = parseColor(endColor);
-
           function interpolateColor(color1, color2, factor) {
             const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
             return `rgb(${result.join(',')})`;
           }
-
           // Autocalculate numBars
           let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
-          numBars = numBars+1;
-
+          //numBars = numBars+1;
           const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
           svg.setAttribute('width', '100%');
           svg.setAttribute('height', '100%');
           svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-
           const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
           svg.appendChild(g);
-
           let x = 0;
           let y = 0;
-
           for (let i = 0; i < numBars; i++) {
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', barOrientation === 'horizontal' ? x : 0);
@@ -405,25 +398,19 @@ cb-lcars-multimeter:
             rect.setAttribute('height', barOrientation === 'horizontal' ? barHeight : barHeight);
             rect.setAttribute('rx', cornerRadius);
             rect.setAttribute('ry', cornerRadius);
-
             const factor = i / (numBars - 1);
             const color = interpolateColor(startRgb, endRgb, factor);
             rect.setAttribute('fill', color);
-
             g.appendChild(rect);
-
             x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
             y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
           }
-
           const svgString = new XMLSerializer().serializeToString(svg);
           return svgString;
-
           //const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
           //const cssBackgroundImage = `url("${svgDataUrl}")`;
           //console.log(cssBackgroundImage)
           //return cssBackgroundImage;
-
         } catch (error) {
           //console.error(error);
           return '';
@@ -849,7 +836,6 @@ cb-lcars-multimeter:
   styles:
     card:
       - border-radius: 0 !important
-      - background: none
       - border: none
       - height: 100%
       - max-width: none
@@ -1190,7 +1176,6 @@ cb-lcars-multimeter:
         const borderWidth = variables.slider.border_width;
         const borderColor = variables.slider.border_color;
         const maskColor = variables.slider_track.mask_color;
-
         const calcWidth = `calc(${variables.__get_num_with_unit(variables.card.width)} - ${variables.__get_num_with_unit(variables.card.border.left.size)} - ${variables.__get_num_with_unit(variables.card.border.right.size)} )`;
         const calcHeight = `calc(${variables.__get_num_with_unit(variables.card.height)} - ${variables.__get_num_with_unit(variables.card.border.top.size)} - ${variables.__get_num_with_unit(variables.card.border.bottom.size)} )`;
         const sliderPaddingTop = variables.__get_num_with_unit(variables.slider.padding.top);
