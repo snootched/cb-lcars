@@ -37,6 +37,8 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [What it isn't...](#what-it-isnt)
     - [What can be done...](#what-can-be-done)
 - [States](#states)
+- [Joining with a Symbiont](#joining-with-a-symbiont)
+      - [Imprinting](#imprinting)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -307,6 +309,32 @@ variables:
         unavailable: var(--lcars-card-button-unavailable)
 ```
 
+# Joining with a Symbiont
+
+CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Once joined, this enables you to imprint some CB-LCARS styling to your other cards.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
+
+Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  Once joined, you can adjust settings, imprint host styles onto the symbiont, and even supply your own card-mod configuration to the symbiont.
+
+#### Imprinting
+
+Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic card-mod targated primarily to ha-card.
+
+You can supply your own card-mod configuration which will append to the host configuration.  You can also override any host styling with your card-mod config.
+
+Card-mod templating variables are supported.  Also made available to the symbiont is the host card's `variables:` block and `entity`.  These can be accessed with standard card-mod jinja templating.
+
+<br>
+
+**Example - Entities Card**
+
+A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font color, background)
+
+![unjoined](images/screenshots/symbiont-unjoined.png)
+
+![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
+
+![joined-imprinted](images/screenshots/symbiont-joined-imprinted.png)
+
 ---
 
 # CB-LCARS Cards
@@ -482,14 +510,17 @@ For those that really want to tinker - see below :)
 |----------|----------------|
 | [`cb-lcars-animation-cascade`](src/cb-lcars/cb-lcars-animation-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 | [`cb-lcars-animation-pulsewave`](src/cb-lcars/cb-lcars-animation-pulsewave.yaml) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
+[`cb-lcars-animation-bg-grid`](src/cb-lcars/cb-lcars-animation-bg-grid.yaml) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
+
 
 
 ## Custom Animations
 
-You can provide custom animation pattern and keyframes definitions to the animation elements should you desire.
+For some of the animations, you can provide custom pattern and keyframes definitions to the animation elements, should you desire.
 
 Examples are below.  More details to come, but for now know:
 - `custom_pattern` and `custom_keyframes` are provided as text blocks
+- Available for Data Cascade and Pulsewave
 - Embedded variables are not currently supported
 
 ### Data Cascade
