@@ -22,12 +22,15 @@ cb-lcars-button-card:
     action: more-info
 cb-lcars-elbow-card:
   cblcars_card_type: cb-lcars-header
+  enable_resize_observer: true
   tap_action:
     action: none
   double_tap_action:
     action: none
   hold_action:
     action: none
+cb-lcars-dpad-card:
+  enable_resize_observer: true
 cb-lcars-multimeter-card:
   enable_resize_observer: true
   variables:
@@ -52,7 +55,6 @@ cb-lcars-multimeter-card:
       bar_thickness: 10
       gap: 5
       bar_border_radius: 0
-
   tap_action:
     action: toggle
   double_tap_action:
