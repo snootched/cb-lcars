@@ -31,7 +31,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-- [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
+    - [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -153,7 +153,7 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
-# Breaking Changes (Coming from _original_ project)
+### Breaking Changes (Coming from _original_ project)
 
 If you have used the original versions of CB-LCARS whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
 
