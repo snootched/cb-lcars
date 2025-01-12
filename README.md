@@ -38,7 +38,8 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [What can be done...](#what-can-be-done)
 - [States](#states)
 - [Joining with a Symbiont](#joining-with-a-symbiont)
-      - [Imprinting](#imprinting)
+    - [Imprinting](#imprinting)
+      - [User card-mod styles](#user-card-mod-styles)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -315,13 +316,30 @@ CB-LCARS has graduated the Initiate program and can become a host to a symbiont 
 
 Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  Once joined, you can adjust settings, imprint host styles onto the symbiont, and even supply your own card-mod configuration to the symbiont.
 
-#### Imprinting
+### Imprinting
 
 Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic card-mod targated primarily to ha-card.
 
 You can supply your own card-mod configuration which will append to the host configuration.  You can also override any host styling with your card-mod config.
 
-Card-mod templating variables are supported.  Also made available to the symbiont is the host card's `variables:` block and `entity`.  These can be accessed with standard card-mod jinja templating.
+<br>
+
+#### User card-mod styles
+You can provide additional card-mod styles that will be appended to the host imprinted styles.
+Card-mod templating is supported and the host card's host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
+
+```yaml
+Example accessing the host card's card default color.
+
+variables:
+  symbiont:
+    enabled: true
+    imprint_host: true
+    symbiont_user_style: |
+      ha-card {
+        background: {{ config.variables.card.color.default }} !important;
+      }
+```
 
 <br>
 
