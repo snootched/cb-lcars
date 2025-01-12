@@ -100,7 +100,7 @@ The following should be installed and working in your Home Assistant instance - 
 |-----------------------------------------------------------------------------|-------------|-------------|
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
 | [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | CB-LCARS requires card-mod for using the _host imprint_ feature on symbiont cards.  It is also required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 | | |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
