@@ -2309,79 +2309,270 @@ cb-lcars-base-controls:
                             - controls:
                                 - <<: *colorPreviewControl
                                   configValue: "variables.card.color.background.inactive"
-    - &animationsTab
-      label: "Animations & Effects"
+
+    - &symbiontTab
+      label: Symbiont
       content:
-        - &effectsSection
+        - type: ControlRow
+          controls:
+            - type: Selector
+              selector:
+                boolean:
+              configValue: "variables.symbiont.enabled"
+              label: "Join with a Symbiont"
+              helper: "Become a host - join with Symbiont card."
+
+        - &symbiontPositionSection
           type: Section
-          label: "Card Effects"
+          label: "Symbiont Card"
           outlined: true
           leftChevron: false
           headerLevel: 4
           icon: "mdi:card-multiple-outline"
-          noCollapse: false
-          expanded: false
+          visibilityCondition: "this._config.variables?.symbiont?.enabled === true"
           rows:
             - type: ControlRow
               controls:
                 - type: Message
                   alertType: info
-                  message: "Select one or more effects to apply to the card.  Additional settings for the effects are available in the corresponding tab."
-                - label: "Effect Templates"
-                  configValue: "template"
-                  disabled: false
-                  required: false
-                  type: Selector
+                  message: "Symbiont card configuration can be pasted below.  Host card entity and variables blocks will be inherited by the symbiont card, but can be overriden if desired."
+                - type: Selector
                   selector:
-                    select:
-                      mode: list
-                      multiple: true
-                      options:
-                        - value: "cb-lcars-state-on-blink"
-                          label: "Blink [Active]"
-                        - value: "cb-lcars-state-off-blink"
-                          label: "Blink [Inactive]"
-                        - value: "cb-lcars-state-unavailable-blink"
-                          label: "Blink [Unavailable]"
-                        - value: "cb-lcars-animate-press"
-                          label: "Rippled Press"
+                    object:
+                  configValue: "custom_fields.symbiont.card"
+                  label: "Symbiont Card Configuration"
+                  helper: "Enter the configuration for the symbiont card."
             - type: Section
-              label: Ripple
-              visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animate-press')"
+              label: "Symbiont Dimensions"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:format-list-bulleted"
+              icon: "mdi:format-align-left"
+              noCollapse: false
+              expanded: false
+              visibilityCondition: "this._config.show_advanced === true"
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "By default, the symbiont will fill the dimensions of the card minus padding."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Height"
+                      configValue: "variables.symbiont.card.height"
+                      helper: "Sets static height of the symbiont "
+                      disabled: false
+                      type: Selector
+                      selector:
+                        text:
+                    - label: "Width"
+                      configValue: "variables.symbiont.card.width"
+                      helper: "Sets static width of the symbiont"
+                      disabled: false
+                      type: Selector
+                      selector:
+                        text:
+            - type: Section
+              label: "Padding"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:arrow-all"
               noCollapse: false
               rows:
                 - type: ControlRow
                   controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Base Color</label>
+                    - type: Message
+                      alertType: info
+                      message: "Padding is the space between the symbiont card and the borders of the host card."
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.animations.ripple.ripple_color"
-                    - <<: *colorControl
-                      configValue: "variables.animations.ripple.ripple_color"
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.animations.ripple.ripple_color"
-                    - label: "Ripple Opacity"
-                      configValue: "variables.animations.ripple.ripple_opacity"
+                    - label: "Padding Top"
+                      configValue: "variables.symbiont.card.padding.top"
                       type: Selector
                       selector:
                         number:
                           min: 0
-                          max: 1
-                          step: 0.1
+                          max: 200
+                          step: 1
                           mode: slider
-                          slider_ticks: true
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Right"
+                      configValue: "variables.symbiont.card.padding.right"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Bottom"
+                      configValue: "variables.symbiont.card.padding.bottom"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Padding Left"
+                      configValue: "variables.symbiont.card.padding.left"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+        - type: Section
+          label: "Symbiont Style"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:set-center-right"
+          visibilityCondition: "this._config.variables?.symbiont?.enabled === true"
+          rows:
+            - type: ControlRow
+              controls:
+                - type: Message
+                  alertType: info
+                  message: "Imprinting will attempt to apply the state-specific host card styles/colors to the symbiont.  Styles such as background color, text color, corner radius, etc."
+                - type: Selector
+                  selector:
+                    boolean:
+                  configValue: "variables.symbiont.imprint_host"
+                  label: "Imprint Host styles on Symbiont"
+                  helper: "Attempt to modify various styles on the symbiont card to match the host."
+            - &symbiontHostImprint
+              type: Section
+              label: "Imprint Host Styles"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              visibilityCondition: "this._config.variables?.symbiont?.imprint_host === true"
+              rows:
+                - &symbiontCornerSection
+                  type: Section
+                  label: Corners
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:rounded-corner"
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - type: Message
+                          alertType: info
+                          message: "Set the corner radius of the symbiont card.  These may not be visible when the host style is imprinted on the symbiont as the colors may match."
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Top Left Radius"
+                          helper: "The top left curve of symbiont"
+                          configValue: "variables.symbiont.card.border.top.left_radius"
+                          disabled: false
+                          required: true
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                        - label: "Top Right Radius"
+                          helper: "The top right curve of symbiont"
+                          configValue: "variables.symbiont.card.border.top.right_radius"
+                          disabled: false
+                          required: true
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                        - label: "Bottom Left Radius"
+                          helper: "The bottom left curve of symbiont"
+                          configValue: "variables.symbiont.card.border.bottom.left_radius"
+                          disabled: false
+                          required: true
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                        - label: "Bottom Right Radius"
+                          helper: "The bottom right curve of symbiont"
+                          configValue: "variables.symbiont.card.border.bottom.right_radius"
+                          disabled: false
+                          required: true
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                - type: ControlRow
+                  controls:
+                    - label: Imprint Host Text Color
+                      configValue: "variables.symbiont.text.imprint_from"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "label"
+                              label: "Label"
+                            - value: "state"
+                              label: "State"
+                            - value: "name"
+                              label: "Name"
+            - type: Section
+              label: "Addtional Custom Styles"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "Additional style blocks can be added to the symbiont card.  These will be applied after the host styles.  Card-Mod jinja templating is supported - host card 'variables' object and 'entity' are made available in addtion to the standard card-mod variables."
+                    - type: Selector
+                      selector:
+                        object:
+                      configValue: "variables.symbiont.symbiont_user_style"
+                      label: "Symbiont Style Block"
+                      helper: "Additional card-mod style block for the symbiont card."
+    - &animationsTab
+      label: "Animations & Effects"
+      content:
         - &animationsSection
           type: Section
-          label: "Animations"
+          label: "Background Animations"
           outlined: true
           leftChevron: false
           headerLevel: 4
@@ -2404,6 +2595,8 @@ cb-lcars-base-controls:
                       mode: list
                       multiple: true
                       options:
+                        - value: "cb-lcars-animation-bg-grid"
+                          label: "GRID"
                         - value: "cb-lcars-animation-cascade"
                           label: "Data Cascade"
                         - value: "cb-lcars-animation-pulsewave"
@@ -2418,12 +2611,123 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Blur"
+                      configValue: "variables.animation.filter.blur"
+                      helper: "Amount of blur to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 25
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "px"
+                          slider_ticks: false
+                    - label: "Opacity"
+                      configValue: "variables.animation.filter.opacity"
+                      helper: "Amount of opacity to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 100
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Brightness"
+                      configValue: "variables.animation.filter.brightness"
+                      helper: "Amount of brightness to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Contrast"
+                      configValue: "variables.animation.filter.contrast"
+                      helper: "Amount of contrast to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 200
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Saturate"
+                      configValue: "variables.animation.filter.saturate"
+                      helper: "Amount of saturation to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 100
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Hue Rotate"
+                      configValue: "variables.animation.filter.hue_rotate"
+                      helper: "Amount of hue rotation to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 360
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "deg"
+                          slider_ticks: false
+                    - label: "Invert"
+                      configValue: "variables.animation.filter.invert"
+                      helper: "Amount of invert to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 100
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Grayscale"
+                      configValue: "variables.animation.filter.grayscale"
+                      helper: "Amount of grayscale to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 100
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                    - label: "Sepia"
+                      configValue: "variables.animation.filter.sepia"
+                      helper: "Amount of sepia to apply to the animation"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 100
+                          step: 1
+                          mode: slider
+                          unit_of_measurement: "%"
+                          slider_ticks: false
+                - type: ControlRow
                   controls:
                   - type: Message
                     alertType: info
-                    message: "Advanced settings/filters apply for the entire animation (e.g. blur() sepia() etc.)"
+                    message: "Advanced: specify custom filter string to apply for the entire animation.  This will override all other filter settings."
                   - label: "CSS Filter"
-                    configValue: "variables.animation.filter"
+                    configValue: "variables.animation.filter.advanced"
                     helper: "CSS `filter` property to apply to the animation"
                     type: Selector
                     selector:
@@ -2520,7 +2824,73 @@ cb-lcars-base-controls:
                                     - value: stretch
                                       label: Stretch
 
-
+        - &effectsSection
+          type: Section
+          label: "Card Effects"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:card-multiple-outline"
+          noCollapse: false
+          expanded: false
+          rows:
+            - type: ControlRow
+              controls:
+                - type: Message
+                  alertType: info
+                  message: "Select one or more effects to apply to the card.  Additional settings for the effects are available in the corresponding tab."
+                - label: "Effect Templates"
+                  configValue: "template"
+                  disabled: false
+                  required: false
+                  type: Selector
+                  selector:
+                    select:
+                      mode: list
+                      multiple: true
+                      options:
+                        - value: "cb-lcars-state-on-blink"
+                          label: "Blink [Active]"
+                        - value: "cb-lcars-state-off-blink"
+                          label: "Blink [Inactive]"
+                        - value: "cb-lcars-state-unavailable-blink"
+                          label: "Blink [Unavailable]"
+                        - value: "cb-lcars-animate-press"
+                          label: "Rippled Press"
+            - type: Section
+              label: Ripple
+              visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animate-press')"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Base Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                    - <<: *colorControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animations.ripple.ripple_color"
+                    - label: "Ripple Opacity"
+                      configValue: "variables.animations.ripple.ripple_opacity"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 1
+                          step: 0.1
+                          mode: slider
+                          slider_ticks: true
     - &dataCascadeTab
       label: "Data Cascade"
       visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animation-cascade')"
@@ -2625,7 +2995,7 @@ cb-lcars-base-controls:
                       configValue: "variables.animation.cascade.color.animation_start"
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "variables.animatino.cascade.color.animation_start"
+                      configValue: "variables.animation.cascade.color.animation_start"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -2708,7 +3078,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: Message
                       alertType: info
-                      message: "Grid dimensions are calculated autmoatically by default using the card's size and font size.  Here you can provide specific values to override the automatic settings."
+                      message: "Grid dimensions are calculated automatically by default using the card's size and font size.  Here you can provide specific values to override the automatic settings."
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -2809,7 +3179,7 @@ cb-lcars-base-controls:
                   headerLevel: 4
                   icon: "mdi:format-list-bulleted"
                   noCollapse: false
-                  visibilityCondition: "this._config.variables.animation.pulsewave && this._config.variables.animation.pulsewave.pattern === 'custom'"
+                  visibilityCondition: "this._config.variables.animation?.pulsewave && this._config.variables.animation?.pulsewave?.pattern === 'custom'"
                   rows:
                     - controls:
                         - type: Message
@@ -2864,7 +3234,7 @@ cb-lcars-base-controls:
                       configValue: "variables.animation.pulsewave.color.animation_start"
                 - controls:
                     - <<: *colorPreviewControl
-                      configValue: "variables.animatino.pulsewave.color.animation_start"
+                      configValue: "variables.animation.pulsewave.color.animation_start"
                 - controls:
                     - type: RawHTML
                       html: |
@@ -3002,7 +3372,194 @@ cb-lcars-base-controls:
                                 - value: stretch
                                   label: Stretch
 
+    - &gridBgTab
+      label: "GRID Background"
+      visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animation-bg-grid')"
+      content:
+        - type: Section
+          label: "GRID Background"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:matrix"
+          noCollapse: false
+          expanded: true
+          rows:
+            - &gridMotionSettingsSection
+              type: Section
+              label: "Motion Settings"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              expanded: false
+              rows:
+                - controls:
+                    - label: "Direction"
+                      configValue: "variables.animation.bg_grid.direction"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "up"
+                              label: "Up"
+                            - value: "down"
+                              label: "Down"
+                            - value: "left"
+                              label: "Left"
+                            - value: "right"
+                              label: "Right"
+                    - label: "Duration (s)"
+                      configValue: "variables.animation.bg_grid.speed"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 60
+                          step: 0.1
+                          mode: slider
+            - &gridPatternSection
+              type: Section
+              label: "Background Pattern"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              expanded: false
+              rows:
+                - controls:
+                    - type: Message
+                      alertType: info
+                      message: "Select the pattern of the background behind the grid."
+                    - label: "Pattern"
+                      configValue: "variables.animation.bg_grid.background_pattern"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "none"
+                              label: "None"
+                            - value: "fill"
+                              label: "Fill"
+                            - value: "stars"
+                              label: "Stars"
+                            - value: "nebula"
+                              label: "Nebula"
+            - &bgGridGridSection
+              type: Section
+              label: "Grid"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:grid"
+              noCollapse: false
+              expanded: false
+              rows:
+                - controls:
+                    - type: Message
+                      alertType: info
+                      message: "Cell dimensions are calculated automatically based on card size and row/column counts."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "# Major Columns"
+                      configValue: "variables.animation.bg_grid.grid.num_major_cols"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 25
+                          step: 1
+                          mode: slider
+                    - label: "# Minor Columns"
+                      configValue: "variables.animation.bg_grid.grid.num_minor_cols"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 25
+                          step: 1
+                          mode: slider
+                    - label: "# Major Rows"
+                      configValue: "variables.animation.bg_grid.grid.num_major_rows"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 25
+                          step: 1
+                          mode: slider
+                          slider_ticks: true
+                    - label: "# Minor Rows"
+                      configValue: "variables.animation.bg_grid.grid.num_minor_rows"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 25
+                          step: 1
+                          mode: slider
+                          slider_ticks: true
+                    - label: "Major Line Width"
+                      configValue: "variables.animation.bg_grid.grid.line_width_major"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 10
+                          step: 1
+                          mode: slider
+                          slider_ticks: true
+                    - label: "Minor Line Width"
+                      configValue: "variables.animation.bg_grid.grid.line_width_minor"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 10
+                          step: 1
+                          mode: slider
+                          slider_ticks: true
+            - type: Section
+              label: "Colors"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:palette-advanced"
+              noCollapse: false
+              rows:
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Grid Line Color</label>
+                - cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.bg_grid.color.line"
+                    - <<: *colorControl
+                      configValue: "variables.animation.bg_grid.color.line"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.bg_grid.color.line"
 
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Grid Cell Fill Color</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.bg_grid.color.fill"
+                    - <<: *colorControl
+                      configValue: "variables.animation.bg_grid.color.fill"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animatino.bg_grid.color.fill"
 
 
 
@@ -3063,9 +3620,11 @@ cb-lcars-elbow-card:
         - <<: *cardSection
         - <<: *textSection
         - <<: *actionsSection
+    - <<: *symbiontTab
     - <<: *animationsTab
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
+    - <<: *gridBgTab
 
 cb-lcars-double-elbow-card:
   tabs:
@@ -5903,7 +6462,6 @@ cb-lcars-multimeter-card:
                           mode: slider
             - type: Section
               label: "Colors"
-              visibilityCondition: "this._config.variables.entity_match_gauge === false"
               outlined: true
               leftChevron: false
               headerLevel: 4

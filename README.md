@@ -31,12 +31,15 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-- [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
+    - [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
     - [What can be done...](#what-can-be-done)
 - [States](#states)
+- [Joining with a Symbiont](#joining-with-a-symbiont)
+    - [Imprinting](#imprinting)
+      - [User card-mod styles](#user-card-mod-styles)
 - [CB-LCARS Cards](#cb-lcars-cards)
   - [LCARS Elbows](#lcars-elbows)
     - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
@@ -97,7 +100,7 @@ The following should be installed and working in your Home Assistant instance - 
 |-----------------------------------------------------------------------------|-------------|-------------|
 | [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
 | [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | Not strictly needed for CB-LCARS, but is required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | CB-LCARS requires card-mod for using the _host imprint_ feature on symbiont cards.  It is also required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 | | |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
 |  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
@@ -151,7 +154,7 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
-# Breaking Changes (Coming from _original_ project)
+### Breaking Changes (Coming from _original_ project)
 
 If you have used the original versions of CB-LCARS whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
 
@@ -306,6 +309,49 @@ variables:
         hvac_cool: var(--lcars-blue)
         unavailable: var(--lcars-card-button-unavailable)
 ```
+
+# Joining with a Symbiont
+
+CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Once joined, this enables you to imprint some CB-LCARS styling to your other cards.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
+
+Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  Once joined, you can adjust settings, imprint host styles onto the symbiont, and even supply your own card-mod configuration to the symbiont.
+
+### Imprinting
+
+Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic card-mod targated primarily to ha-card.
+
+You can supply your own card-mod configuration which will append to the host configuration.  You can also override any host styling with your card-mod config.
+
+<br>
+
+#### User card-mod styles
+You can provide additional card-mod styles that will be appended to the host imprinted styles.
+Card-mod templating is supported and the host card's host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
+
+```yaml
+Example accessing the host card's card default color.
+
+variables:
+  symbiont:
+    enabled: true
+    imprint_host: true
+    symbiont_user_style: |
+      ha-card {
+        background: {{ config.variables.card.color.default }} !important;
+      }
+```
+
+<br>
+
+**Example - Entities Card**
+
+A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font color, background)
+
+![unjoined](images/screenshots/symbiont-unjoined.png)
+
+![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
+
+![joined-imprinted](images/screenshots/symbiont-joined-imprinted.png)
 
 ---
 
@@ -482,14 +528,18 @@ For those that really want to tinker - see below :)
 |----------|----------------|
 | [`cb-lcars-animation-cascade`](src/cb-lcars/cb-lcars-animation-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 | [`cb-lcars-animation-pulsewave`](src/cb-lcars/cb-lcars-animation-pulsewave.yaml) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
+[`cb-lcars-animation-bg-grid`](src/cb-lcars/cb-lcars-animation-bg-grid.yaml) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
 
 
 ## Custom Animations
 
-You can provide custom animation pattern and keyframes definitions to the animation elements should you desire.
+<details><summary>Custom Animation Settings</summary>
+
+For some of the animations, you can provide custom pattern and keyframes definitions to the animation elements, should you desire.
 
 Examples are below.  More details to come, but for now know:
 - `custom_pattern` and `custom_keyframes` are provided as text blocks
+- Available for Data Cascade and Pulsewave
 - Embedded variables are not currently supported
 
 ### Data Cascade
@@ -570,7 +620,7 @@ variables:
           100% { height: 75px; }
         }
 ```
-
+</details>
 
 TODOs:
 - add alternative text data sources (sensors?)

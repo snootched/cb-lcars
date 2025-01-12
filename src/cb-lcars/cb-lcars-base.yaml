@@ -10,6 +10,7 @@ cb-lcars-base:
       label:
         font_size: 20px
         font_weight: normal
+        font_family: '''Antonio'', Arial, sans-serif'
         align: left
         align_items: center
         justify: center
@@ -31,6 +32,7 @@ cb-lcars-base:
       name:
         font_size: 20px
         font_weight: normal
+        font_family: '''Antonio'', Arial, sans-serif'
         align: left
         align_items: center
         justify: center
@@ -52,6 +54,7 @@ cb-lcars-base:
       state:
         font_size: 20px
         font_weight: normal
+        font_family: '''Antonio'', Arial, sans-serif'
         align: left
         align_items: center
         justify: center
@@ -211,7 +214,7 @@ cb-lcars-base:
             return variables.__get_num_with_unit(variables.text.label.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.label.font_weight ]]]'
-      - font-family: '''Antonio'', Arial, sans-serif'
+      - font-family: '[[[ return variables.text.label.font_family ]]]'
       - justify-self: start
       - text-align: '[[[ return variables.text.label.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.top) ]]]'
@@ -243,7 +246,7 @@ cb-lcars-base:
             return variables.__get_num_with_unit(variables.text.state.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.state.font_weight ]]]'
-      - font-family: '''Antonio'', Arial, sans-serif'
+      - font-family: '[[[ return variables.text.state.font_family ]]]'
       - justify-self: start
       - text-align: '[[[ return variables.text.state.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.top) ]]]'
@@ -275,7 +278,7 @@ cb-lcars-base:
               return variables.__get_num_with_unit(variables.text.name.font_size);
           ]]]
       - font-weight: '[[[ return variables.text.name.font_weight ]]]'
-      - font-family: '''Antonio'', Arial, sans-serif'
+      - font-family: '[[[ return variables.text.name.font_family ]]]'
       - justify-self: start
       - text-align: '[[[ return variables.text.name.align ]]]'
       - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.top) ]]]'
@@ -298,7 +301,24 @@ cb-lcars-base:
             ]]]
         - filter: |
             [[[
-              return variables.animation.filter || 'none';
+              if (variables.animation?.filter?.advanced) {
+                return variables.animation.filter.advanced;
+              }
+
+              const filter = variables.animation.filter || {};
+              const filters = [];
+
+              if (filter.blur !== undefined) filters.push(`blur(${filter.blur}px)`);
+              if (filter.brightness !== undefined) filters.push(`brightness(${filter.brightness}%)`);
+              if (filter.saturate !== undefined) filters.push(`saturate(${filter.saturate}%)`);
+              if (filter.invert !== undefined) filters.push(`invert(${filter.invert}%)`);
+              if (filter.sepia !== undefined) filters.push(`sepia(${filter.sepia}%)`);
+              if (filter.grayscale !== undefined) filters.push(`grayscale(${filter.grayscale}%)`);
+              if (filter.hue_rotate !== undefined) filters.push(`hue-rotate(${filter.hue_rotate}deg)`);
+              if (filter.contrast !== undefined) filters.push(`contrast(${filter.contrast}%)`);
+              if (filter.opacity !== undefined) filters.push(`opacity(${filter.opacity}%)`);
+
+              return filters.length > 0 ? filters.join(' ') : 'none';
             ]]]
         - height: |
             [[[
@@ -325,6 +345,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'active'
+                return 'state_on'
+              ]]]
           - transition: all 0.4s ease-in
           - background-color: '[[[ return variables.card.color.background.active ]]]'
           - border-top: |
@@ -368,6 +393,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'inactive'
+                return 'state_off'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.inactive ]]]'
           - border-top: |
@@ -407,6 +437,11 @@ cb-lcars-base:
       value: heat
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'heat'
+                return 'state_heat'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.hvac_heat ]]]'
           - border-top: |
@@ -441,6 +476,11 @@ cb-lcars-base:
       value: cool
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'cool'
+                return 'state_cool'
+              ]]]
           - transition: all 0.4s ease-out
           - background-color: '[[[ return variables.card.color.background.hvac_cool ]]]'
           - border-top: |
@@ -479,6 +519,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'unavailable'
+                return 'state_unavailable'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.unavailable ]]]'
           - border-top: |
               [[[
@@ -522,6 +567,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'zero'
+                return 'state_zero'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.zero ]]]'
           - border-top: |
               [[[
@@ -560,6 +610,11 @@ cb-lcars-base:
         ]]]
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'non_zero'
+                return 'state_nonzero'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.non_zero ]]]'
           - border-top: |
               [[[
@@ -593,6 +648,11 @@ cb-lcars-base:
       operator: default
       styles:
         card:
+          - cblcars_matched_state: |
+              [[[
+                this._config.cblcars_matched_state = 'default'
+                return 'state_default'
+              ]]]
           - background-color: '[[[ return variables.card.color.background.default ]]]'
           - border-top: |
               [[[

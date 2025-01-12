@@ -208,7 +208,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // Enable the resize observer if any merged template contains the word 'animation'
         // this allows us to enable the observer for added animation templates without needed to explicity add it to the config
-        if (mergedTemplates.some(template => template.includes('animation'))) {
+        if (mergedTemplates.some(template => template.includes('animation') || template.includes('symbiont'))) {
             this._isResizeObserverEnabled = true;
         }
 
