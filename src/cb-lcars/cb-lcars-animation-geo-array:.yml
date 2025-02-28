@@ -1,0 +1,297 @@
+cb-lcars-animation-geo-array:
+  template:
+    - cb-lcars-functions
+  variables:
+    enable_resize_observer: true
+    card:
+      height: "[[[ return this.offsetHeight; ]]]"
+      width: "[[[ return this.offsetWidth; ]]]"
+    animation:
+      geo_array:
+        animation_axis: row
+        grid:
+          num_cols: null
+          gap: 8
+          num_rows: null
+        color:
+          base: var(--picard-dark-blue)
+          animation_start: var(--picard-blue)
+          animation_end: transparent
+          animation_end2: var(--picard-moonlight)
+        shape:
+          type: square
+          size: 12
+  styles:
+    label:
+      - z-index: 2
+    custom_fields:
+      animation:
+        - display: flex
+        - position: absolute
+        - align-items: center
+  custom_fields:
+    animation: |
+      [[[
+        const patternDefault = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+
+          const patternNiagara = [
+            { duration: 2, delay: 0.1 },
+            { duration: 2, delay: 0.2 },
+            { duration: 2, delay: 0.3 },
+            { duration: 2, delay: 0.4 },
+            { duration: 2, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+
+          const patternFrozen = [
+            { duration: 3, delay: 0.1 },
+            { duration: 3, delay: 0.2 },
+            { duration: 4, delay: 0.3 },
+            { duration: 4, delay: 0.4 },
+            { duration: 4, delay: 0.5 },
+            { duration: 2, delay: 0.6 },
+            { duration: 2, delay: 0.7 },
+            { duration: 2, delay: 0.8 }
+          ];
+
+          const customPatternInput = variables.animation.geo_array.custom_pattern;
+          let customPattern;
+
+          if (typeof customPatternInput === 'string') {
+            try {
+            customPattern = JSON.parse(customPatternInput);
+            } catch (e) {
+
+            variables.__cblcarsLog('error','Failed to parse custom_pattern as JSON:', e);
+            customPattern = patternDefault;
+            }
+          } else if (Array.isArray(customPatternInput)) {
+            customPattern = customPatternInput;
+          } else {
+            customPattern = patternDefault;
+          }
+
+          const patternName = variables.animation.geo_array.pattern || 'patternDefault';
+          const patternMap = {
+            default: patternDefault,
+            niagara: patternNiagara,
+            frozen: patternFrozen,
+            custom: customPattern
+          };
+          const animationSettings = patternMap[patternName] || patternDefault;
+
+          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+          const align_items = variables.animation.geo_array.align_items || 'center';
+          const justify_content = variables.animation.geo_array.justify_content || 'center';
+
+          const shape_size = variables.animation.geo_array.shape.size || 12;
+          const shape_type = variables.animation.geo_array.shape.type || 'square';
+          const base_color = variables.animation.geo_array.color.base || '#000';
+          const animation_start_color = variables.animation.geo_array.color.animation_start || '#26f';
+          const animation_end_color = variables.animation.geo_array.color.animation_end || '#def';
+
+          const row_height = variables.__get_num_with_unit(variables.animation.geo_array.grid.row_height) || `${shape_size}px`;
+          const column_width = variables.__get_num_with_unit(variables.animation.geo_array.grid.column_width) || `${shape_size}px`;
+          const grid_gap = variables.__get_num_with_unit(variables.animation.geo_array.grid.gap) || '8px';
+
+          const animation_axis = variables.animation.geo_array.animation_axis || 'row'; // Get animation_axis, default to 'row'
+          const isRowAnimation = animation_axis === 'row'; // Boolean to check if it's row animation
+
+          const auto_num_cols = variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
+          const auto_num_rows = variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
+
+          const num_rows = variables.animation.geo_array.grid.num_rows || auto_num_rows;
+          const num_cols = variables.animation.geo_array.grid.num_cols || auto_num_cols;
+
+          const isFrozen = patternName === 'frozen';
+          const animationIterationCount = isFrozen ? '1' : 'infinite';
+          const animationFillMode = isFrozen ? 'forwards' : 'forwards';
+          const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
+
+          function getShapeSVG(color) {
+            if (shape_type === 'circle') {
+            return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
+            } else {
+            return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
+            }
+          }
+
+          let rows = '';
+          let keyframes = '';
+          let animationCSSRule = ''; // Initialize animationCSSRule
+
+          if (isRowAnimation) { // ROW ANIMATION LOGIC
+              for (let i = 1; i <= num_rows; i++) {
+                const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
+                const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
+                const animationName = isFrozen ? `colorchange-frozen-${i}` : 'colorchange'; // Determine keyframe name
+
+                if (isFrozen) { // Generate frozen keyframes - only if frozen pattern is selected
+                  keyframes += `
+                    @keyframes colorchange-frozen-${i} {
+                    0% {fill: ${animation_start_color}}
+                    25% {fill: ${animation_start_color}}
+                    50% {fill: ${animation_start_color}}
+                    75% {fill: ${animation_start_color}}
+                    80% {fill: ${base_color}}
+                    90% {fill: ${base_color}}
+                    100% {fill: ${randomColor}}
+                    }
+                  `;
+                }
+
+                animationCSSRule += `
+                svg.cell.row-anim-${i} > * {
+                  animation-name: ${animationName};
+                  animation-duration: ${duration}s;
+                  animation-delay: ${delay}s;
+                  animation-iteration-count: ${animationIterationCount};
+                  animation-fill-mode: ${animationFillMode};
+                }
+                `;
+
+                rows += `
+                <div class="row-${i} row">
+                  ${Array.from({ length: num_cols }, (_, j) => `
+                  <svg class="cell dc${j + 1} row-anim-${i}" width="${shape_size}" height="${shape_size}">
+                    ${getShapeSVG(randomColor)}
+                  </svg>
+                  `).join('')}
+                </div>
+                `;
+              }
+            } else { // COLUMN ANIMATION LOGIC (animation_axis === 'column')
+              let cols = ''; // Use 'cols' instead of 'rows' for column-based structure
+              for (let j = 1; j <= num_cols; j++) { // Loop through columns
+                const { duration, delay } = animationSettings[(j - 1) % animationSettings.length]; // Re-use animationSettings, but index by column
+                const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
+                const animationName = isFrozen ? `colorchange-frozen-col-${j}` : 'colorchange'; // Unique keyframe name for columns
+
+                if (isFrozen) { // Generate frozen keyframes for columns
+                  keyframes += `
+                    @keyframes colorchange-frozen-col-${j} {
+                    0% {fill: ${animation_start_color}}
+                    25% {fill: ${animation_start_color}}
+                    50% {fill: ${animation_start_color}}
+                    75% {fill: ${animation_start_color}}
+                    80% {fill: ${base_color}}
+                    90% {fill: ${base_color}}
+                    100% {fill: ${randomColor}}
+                    }
+                  `;
+                }
+
+                animationCSSRule += `
+                svg.cell.col-anim-${j} > * {
+                  animation-name: ${animationName};
+                  animation-duration: ${duration}s;
+                  animation-delay: ${delay}s;
+                  animation-iteration-count: ${animationIterationCount};
+                  animation-fill-mode: ${animationFillMode};
+                }
+                `;
+
+                cols += `
+                <div class="col-${j} col">
+                  ${Array.from({ length: num_rows }, (_, i) => `
+                  <svg class="cell row-${i + 1} col-anim-${j} dc${j}" width="${shape_size}" height="${shape_size}">  /* ADD col-anim-${j} CLASS */
+                    ${getShapeSVG(randomColor)}
+                  </svg>
+                  `).join('')}
+                </div>
+                `;
+              }
+              rows = cols; // For column animation, effectively 'rows' becomes 'columns' in output structure
+            }
+
+
+            const defaultKeyframes = `
+              @keyframes colorchange {
+              0% {fill: ${animation_start_color}}
+              25% {fill: ${animation_start_color}}
+              50% {fill: ${animation_start_color}}
+              75% {fill: ${animation_start_color}}
+              80% {fill: ${base_color}}
+              90% {fill: ${base_color}}
+              100% {fill: ${animation_end_color}}
+              }
+            `;
+            const customKeyframes = variables.animation.geo_array.custom_keyframes || defaultKeyframes;
+
+                let styleContent = `
+                ${customKeyframes}
+                ${isFrozen ? keyframes : ''}
+                ${animationCSSRule}
+                .geo-array-wrapper {
+                flex: 1;
+                padding-right: 1px;
+                display: flex;
+                flex-grow: 1;
+                width: ${card_width};
+                height: ${card_height};
+                align-items: ${align_items};
+                justify-content: ${justify_content};
+                }
+                .geo-array {
+                line-height: 1;
+                display: flex; /* Make .geo-array a flex container for columns */
+                flex-direction: ${isRowAnimation ? 'column' : 'row'}; /* Column direction for rows, row direction for columns */
+                }
+                ${isRowAnimation ?
+                  Array.from({ length: num_rows }, (_, i) => `
+                  .row-${i + 1} {
+                    display: grid;
+                    grid-template-columns: repeat(${num_cols}, ${column_width});
+                    gap: ${grid_gap};
+                    margin-bottom: ${grid_gap}; /* Add spacing between rows */
+                    height: ${row_height}
+                  }
+                  `).join('')
+                :
+                  Array.from({ length: num_cols }, (_, j) => `  /* COLUMN LAYOUT CSS */
+                  .col-${j + 1} {
+                    display: flex; /* Use flexbox for columns */
+                    flex-direction: column; /* Stack items vertically in columns */
+                    gap: ${grid_gap};
+                    margin-right: ${grid_gap}; /* Spacing between columns */
+                    width: ${column_width};
+                    align-items: center; /* Center items horizontally in columns */
+                  }
+                  `).join('')
+                }
+                .geo-array .row:last-child {
+                  margin-bottom: 0; /* Remove margin-bottom from the last row */
+                }
+                .geo-array .col:last-child {
+                  margin-right: 0; /* Remove margin-right from the last column */
+                }
+                .cell {
+                text-align: right;
+                }
+              `;
+
+            return `
+              <elt>
+              <style>
+                ${styleContent.trim().replace(/\n\s*\n/g, '\n')}
+              </style>
+              <div class="geo-array-wrapper">
+                <div class="geo-array" id="default">
+                ${rows}
+                </div>
+              </div>
+              </elt>
+            `;
+        ]]]

@@ -21,7 +21,7 @@ cb-lcars-animation-cascade:
           font_weight: 300
   styles:
     label:
-      - z-index: 1
+      - z-index: 2
     custom_fields:
       animation:
         - display: flex
@@ -193,7 +193,6 @@ cb-lcars-animation-cascade:
         `;
         const customKeyframes = variables.animation.cascade.custom_keyframes || defaultKeyframes;
 
-        //const elt = `
         return `
           <elt>
             <style>
@@ -238,6 +237,4 @@ cb-lcars-animation-cascade:
             </div>
           </elt>
         `;
-
-        //return elt;
       ]]]

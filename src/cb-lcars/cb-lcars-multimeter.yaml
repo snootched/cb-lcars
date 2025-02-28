@@ -1,17 +1,20 @@
 cb-lcars-multimeter:
+  enable_resize_observer: true
   entity: '[[[ return variables.entity ]]]'
   template:
     - cb-lcars-functions
     - cb-lcars-base
     - cb-lcars-actions-disable
+    - cb-lcars-animation-geo-array
   triggers_update: '[[[ return variables.entity ]]]'
   show_icon: false
-  show_label: true
+  show_label: false
   label: '[[[ return variables.label ]]]'
   show_name: false
   show_state: false
   variables:
-    _mode: slider
+    _mode: gauge
+    _gauge_style: basic
     _vertical: false
     _slider_thickness: 12
     _slider_step: 1
@@ -104,7 +107,22 @@ cb-lcars-multimeter:
     entity_match_header: false
     entity_match_slider_start: false
     entity_match_slider_end: false
+    animation:
+      justify_content: left
+      align_items: center
+      geo_array:
+        animation_axis: cols
+        grid:
+          num_rows: 1
+          num_cols: 3
+        shape:
+          size: 14
+        color:
+          base: var(--picard-orange)
+          animation_start: var(--picard-blue)
+          animation_end: var(--picard-dark-blue)
     card:
+      gap: 5
       color:
         background:
           default: transparent
@@ -116,15 +134,31 @@ cb-lcars-multimeter:
           hvac_cool: transparent
           unavailable: transparent
       height: '[[[ return this.offsetHeight; ]]]'
-      min_height: '[[[ return this.offsetHeight; ]]]'
+      min_height: '[[[ return Math.max(parseInt(this.offsetHeight), 50); ]]]'
       width: '[[[ return this.offsetWidth; ]]]'
       border:
         top:
-          size: 10
+          size: |
+            [[[
+              return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 40 : 10
+            ]]]
         bottom:
-          size: 0
+          size: |
+            [[[
+              return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 50 : 0
+            ]]]
         left:
-          size: 120
+          size: |
+            [[[
+              if (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') {
+                return 0;
+              }
+
+              if (variables._vertical ) {
+                return 30;
+              }
+              return 120;
+            ]]]
         right:
           size: 0
         inner:
@@ -141,14 +175,30 @@ cb-lcars-multimeter:
           right: 5
           bottom: 0
         color:
-          default: black
-          active: black
-          inactive: black
-          zero: black
-          non_zero: black
-          hvac_heat: black
-          hvac_cool: black
-          unavailable: black
+          default: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--primary-text-color)' : 'black'  ]]]
+          active: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)' : 'black'  ]]]
+          inactive: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' : 'black'  ]]]
+          zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-green)' : 'black'  ]]]
+          non_zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          hvac_heat: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-orange)' : 'black'  ]]]
+          hvac_cool: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          unavailable: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-card-button-unavailable)' : 'black'  ]]]
       name:
         font_size: 22px
         align_items: center
@@ -160,14 +210,30 @@ cb-lcars-multimeter:
           right: 5
           bottom: 0
         color:
-          default: black
-          active: black
-          inactive: black
-          zero: black
-          non_zero: black
-          hvac_heat: black
-          hvac_cool: black
-          unavailable: black
+          default: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--primary-text-color)' : 'black'  ]]]
+          active: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)' : 'black'  ]]]
+          inactive: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' : 'black'  ]]]
+          zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-green)' : 'black'  ]]]
+          non_zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          hvac_heat: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-orange)' : 'black'  ]]]
+          hvac_cool: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          unavailable: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-card-button-unavailable)' : 'black'  ]]]
       state:
         font_size: 22px
         align_items: center
@@ -179,14 +245,30 @@ cb-lcars-multimeter:
           right: 5
           bottom: 0
         color:
-          default: black
-          active: black
-          inactive: black
-          zero: black
-          non_zero: black
-          hvac_heat: black
-          hvac_cool: black
-          unavailable: black
+          default: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--primary-text-color)' : 'black'  ]]]
+          active: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)' : 'black'  ]]]
+          inactive: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' : 'black'  ]]]
+          zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-green)' : 'black'  ]]]
+          non_zero: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          hvac_heat: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-orange)' : 'black'  ]]]
+          hvac_cool: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-blue)' : 'black'  ]]]
+          unavailable: >-
+            [[[ return (variables._mode == 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'var(--lcars-card-button-unavailable)' : 'black'  ]]]
     slider:
       locked: |
         [[[
@@ -228,6 +310,17 @@ cb-lcars-multimeter:
       border_alpha: 0.5
       border_width: 0px
       border_radius: 2px
+      thumb:
+        border:
+          size: 3
+          color: black
+          radius: 50%
+        height: 15
+        color: white
+        enabled: |
+          [[[
+            return (variables._mode == 'gauge' && variables._gauge_style == 'picard' && variables._vertical == true) ? true : false;
+          ]]]
       flipped: '[[[ return (variables._vertical) ? true : false ]]]'
       padding:
         left: 0
@@ -242,6 +335,22 @@ cb-lcars-multimeter:
       min: '[[[ return variables.entity_min ]]]'
       max: '[[[ return variables.entity_max ]]]'
     gauge:
+      range:
+        enabled: true
+        inset:
+          border:
+            color: black
+            size: 4
+          gap: 5
+        border:
+          color:
+            active: var(--lcars-card-button)
+            inactive: var(--lcars-card-button-off)
+      connect_ticks: |
+        [[[
+          return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard' ) ? true : false;
+        ]]]
+      tick_line_thickness: 10
       min: '[[[ return variables.entity_min ]]]'
       max: '[[[ return variables.entity_max ]]]'
       increment: |
@@ -264,8 +373,8 @@ cb-lcars-multimeter:
       color:
         active: >-
           [[[ return variables.entity_match_gauge ? variables.entity_color :
-          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
-        inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
+          variables.card.color.active ]]]
+        inactive: '[[[ return variables.card.color.inactive ]]]'
         background:
           active: transparent
           inactive: transparent
@@ -275,8 +384,8 @@ cb-lcars-multimeter:
         tick_count: 4
         active: >-
           [[[ return variables.entity_match_gauge ? variables.entity_color :
-          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
-        inactive: var(--lcars-card-button-off, var(--picard-dark-gray))
+          variables.card.color.active ]]]
+        inactive: '[[[ return variables.card.color.inactive ]]]'
         background:
           active: >-
             [[[ return variables.entity_match_gauge ? variables.entity_color :
@@ -287,8 +396,8 @@ cb-lcars-multimeter:
         font_size: 14
         active: >-
           [[[ return variables.entity_match_gauge ? variables.entity_color :
-          "var(--lcars-card-button, var(--picard-medium-light-gray))" ]]]
-        inactive: var(--lcars-card-button-off, var(--picard-darkest-gray))
+          variables.card.color.active ]]]
+        inactive: '[[[ return variables.card.color.inactive ]]]'
     slider_track:
       padding:
         left: 5
@@ -407,12 +516,7 @@ cb-lcars-multimeter:
           }
           const svgString = new XMLSerializer().serializeToString(svg);
           return svgString;
-          //const svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-          //const cssBackgroundImage = `url("${svgDataUrl}")`;
-          //console.log(cssBackgroundImage)
-          //return cssBackgroundImage;
         } catch (error) {
-          //console.error(error);
           return '';
         }
       ]]]
@@ -421,67 +525,73 @@ cb-lcars-multimeter:
         let minVal = variables.gauge.min;
         let maxVal = variables.gauge.max;
         let increment = variables.gauge.increment;
-        //console.warn(minVal, maxVal, increment);
+
+
+        let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
+        let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
+
+        if (variables._vertical && variables._gauge_style == 'picard') {
+          width = width /4
+          height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
+        }
+
         const orientation = variables._vertical ? 'vertical' : 'horizontal';
-        //const bg_fill_color = variables.gauge.sub_meter.background.inactive || 'transparent';
         const showSubticks = variables.gauge.sub_meter.show_sub_meter;
         const entityState = entity.state;
-        const meter_bg_color = entityState === 'on' ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
-        const meter_tick_color = entityState === 'on' ? variables.gauge.color.active : variables.gauge.color.inactive;
-        const meter_subtick_color = entityState === 'on' ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
-        const meter_label_color = entityState === 'on' ? variables.gauge.label.active : variables.gauge.label.inactive;
+        const meter_bg_color = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
+        const meter_tick_color = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.color.active : variables.gauge.color.inactive;
+        const meter_subtick_color = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
+        const meter_label_color = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.label.active : variables.gauge.label.inactive;
         const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
-        const width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-        const height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
         const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
         const numSubticks = variables.gauge.sub_meter.tick_count;
         const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
         const subTickIncrement = 100 / numSegments / (numSubticks + 1);
         const decimal_places = variables.gauge.label.decimal_places || 0;
-        /*
-        console.warn('subTickIncrement', subTickIncrement);
-        console.warn('numSegments', numSegments);
-        console.warn('numSubticks', numSubticks);
-        console.warn('increment', increment);
-        console.warn('maxVal', maxVal);
-        console.warn('minVal', minVal);
-        console.warn('decimal_places', decimal_places);
-        console.warn('orientation', orientation);
-        console.warn('width', width);
-        console.warn('height', height);
-        console.warn('meter_subtick_size', meter_subtick_size);
-        */
+        const connect_ticks = variables.gauge.connect_ticks || false;
+        const tick_line_thickness = variables.gauge.tick_line_thickness || 1;
+
         const meterTicks = [];
         for (let i = minVal; i <= maxVal; i += increment) {
           const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
           const position = percent + '%';
           const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-          meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : position}" y1="${orientation === 'vertical' ? position : '0'}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+          meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
           meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
           if (showSubticks && i < maxVal) {
             for (let j = 1; j <= numSubticks; j++) {
               const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
               const subTickPosition = subTickPercent + '%';
-              meterTicks.push(`<line x1="${orientation === 'vertical' ? '0' : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : '0'}" x2="${orientation === 'vertical' ? meter_subtick_size : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+              meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
             }
           }
         }
+
         const ranges = variables.gauge.ranges || [];
         let rangeBackgrounds = '';
-        ranges.forEach(range => {
-          const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
-          const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
-          const rangeWidth = toPercent - fromPercent;
-          rangeBackgrounds += `
-            <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
-                  width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
-                  fill="${range.color}" />
-          `;
-        });
+
+
+        //if (variables.gauge.range.enabled && variables._gauge_style == 'basic') {
+        if (variables.gauge.range.enabled && (!variables._vertical || (variables._vertical && variables._gauge_style == 'basic'))) {            ranges.forEach(range => {
+            const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+            const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+            const rangeWidth = toPercent - fromPercent;
+            rangeBackgrounds += `
+              <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                    width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                    fill="${range.color}" />
+            `;
+          });
+        }
+        const tickLine = connect_ticks ? (orientation === 'vertical' ?
+          `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
+          `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
+
         return `
           <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
             <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
             ${rangeBackgrounds}
+            ${tickLine}
             ${meterTicks.join('')}
           </svg>
         `;
@@ -496,14 +606,15 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
             - border-bottom: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  let border = variables.__get_num_with_unit(parseInt(variables.card.border.bottom.size))
+                  return border + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
             - border-left: |
                 [[[
@@ -513,8 +624,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
@@ -540,7 +703,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -557,8 +720,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
@@ -584,7 +799,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
@@ -601,8 +816,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( variables.card.color.unavailable || variables.card.border.color);
@@ -624,7 +891,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
@@ -641,8 +908,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_heat || variables.card.border.color);
@@ -664,7 +983,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
@@ -681,8 +1000,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.hvac_cool || variables.card.border.color);
@@ -709,7 +1080,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
@@ -726,8 +1097,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.zero || variables.card.border.color);
@@ -754,7 +1177,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
@@ -771,8 +1194,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.non_zero || variables.card.border.color);
@@ -798,7 +1273,7 @@ cb-lcars-multimeter:
       styles:
         custom_fields:
           gauge:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
@@ -815,8 +1290,60 @@ cb-lcars-multimeter:
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
                 ]]]
+          gauge_control:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+          locked_bar:
+            - transition: all 0.2s ease-in
+            - border-top: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-bottom: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-left: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
+            - border-right: |
+                [[[
+                  if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                    return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
+                  }
+                ]]]
           slider_bg:
-            - transition: all 0.7s ease-in
+            - transition: all 0.2s ease-in
             - border-top: |
                 [[[
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.default || variables.card.border.color);
@@ -835,38 +1362,465 @@ cb-lcars-multimeter:
                 ]]]
   styles:
     card:
+      - background: none
       - border-radius: 0 !important
       - border: none
       - height: 100%
       - max-width: none
     label:
-      - z-index: 1
-      - height: 100%
+      - z-index: 2
+      - visibility: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard'){
+              return 'visible';
+            }
+          ]]]
+      - background: |
+          [[[
+            return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
+          ]]]
+      - background-clip: padding-box
+      - height: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard'){
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
+            } else {
+              return '100%'
+            }
+          ]]]
       - width: |
           [[[
-            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
+            } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+            }
           ]]]
+      - border-left: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+            }
+          ]]]
+      - border-top: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+            }
+          ]]]
+      - right: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 0;
+            }
+          ]]]
+      - left: null
     name:
-      - z-index: 1
-      - height: 100%
-      - width: |
+      - z-index: 2
+      - background: |
           [[[
-            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")";
+            return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
           ]]]
-    state:
-      - z-index: 1
-      - height: 100%
+      - background-clip: padding-box
+      - height: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard'){
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) + " + variables.__get_num_with_unit(variables.card.gap) +")"
+            } else {
+              return '100%'
+            }
+          ]]]
       - width: |
           [[[
-            return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")";
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
+            } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+            }
+          ]]]
+      - border-left: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+            }
+          ]]]
+      - border-bottom: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2.25) solid transparent";
+            }
+          ]]]
+      - right: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 0;
+            }
+          ]]]
+      - bottom: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 0;
+            }
+          ]]]
+      - left: null
+      - top: null
+    state:
+      - z-index: 2
+      - background: |
+          [[[
+            return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
+          ]]]
+      - background-clip: padding-box
+      - height: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard'){
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) + " + variables.__get_num_with_unit(variables.card.gap) +")"
+            } else {
+              return '100%'
+            }
+          ]]]
+      - width: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(50% - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + "* 2.5) - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
+            } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+            }
+          ]]]
+      - border-right: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) solid transparent";
+            }
+          ]]]
+      - border-bottom: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) solid transparent";
+            }
+          ]]]
+      - left: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 0;
+            }
+          ]]]
+      - bottom: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 0;
+            }
+          ]]]
+      - right: null
+      - top: null
+      - justify-content: |
+          [[[
+            if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+              return 'left';
+            }
           ]]]
     custom_fields:
-      gauge:
+      ne_mask:
+        - z-index: 1
+        - top: 0
+        - right: 0
+        - visibility: |
+            [[[
+              return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? "visible" : "hidden";
+            ]]]
+        - position: absolute
+        - display: flex
+        - justify: left
+        - background: |
+            [[[
+              return (variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
+            ]]]
+        - background-clip: padding-box
+        - height: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard'){
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
+              } else {
+                return '100%'
+              }
+            ]]]
+        - width: |-
+            [[[
+
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+              }
+            ]]]
+        - border-left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+              }
+            ]]]
+        - border-top: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+              }
+            ]]]
+        - right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - left: null
+      sw_mask:
+        - z-index: 1
+        - visibility: |
+            [[[
+              return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? "visible" : "hidden";
+            ]]]
+        - position: absolute
+        - display: flex
+        - justify: left
+        - background: black
+        - background-clip: padding-box
+        - height: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard'){
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) + " + variables.__get_num_with_unit(variables.card.gap) +")"
+              } else {
+                return '100%'
+              }
+            ]]]
+        - width: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                  return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + "* 2) )"
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+              }
+            ]]]
+        - border-right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) solid transparent";
+              }
+            ]]]
+        - border-bottom: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) solid transparent";
+              }
+            ]]]
+        - left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - bottom: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - right: null
+        - top: null
+        - justify-content: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 'left';
+              }
+            ]]]
+      se_mask:
+        - z-index: 1
+        - visibility: |
+            [[[
+              return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? "visible" : "hidden";
+            ]]]
+        - position: absolute
+        - display: flex
+        - justify: left
+        - background: |
+            [[[
+              return (variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
+            ]]]
+        - background-clip: padding-box
+        - height: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard'){
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) + " + variables.__get_num_with_unit(variables.card.gap) +")"
+              } else {
+                return '100%'
+              }
+            ]]]
+        - width: |-
+            [[[
+
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+              }
+            ]]]
+        - border-left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+              }
+            ]]]
+        - border-bottom: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2.25) solid transparent";
+              }
+            ]]]
+        - right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - bottom: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - left: null
+      animation:
+        - visibility: |
+            [[[
+              return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') ? "visible" : "hidden";
+            ]]]
+        - z-index: 1
+        - background: |
+            [[[
+              return (variables._vertical && variables._gauge_style == 'picard') ? 'black' : 'none';
+            ]]]
+        - background-clip: content-box
+        - height: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard'){
+                return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
+              } else {
+                return '100%'
+              }
+            ]]]
+        - width: |-
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + "* 2) )"
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
+              }
+            ]]]
+        - border-right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * 2) solid transparent";
+              }
+            ]]]
+        - border-top: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
+              }
+            ]]]
+        - left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - right: null
         - position: absolute
         - top: 0
-        - left: 0
+        - background: black
+        - display: flex
+        - align-items: |
+            [[[
+              return variables.animation.align_items || 'center';
+            ]]]
+        - justify-content: |
+            [[[
+              return variables.animation.justify_content || 'center';
+            ]]]
+        - filter: |
+            [[[
+              if (variables.animation?.filter?.advanced) {
+                return variables.animation.filter.advanced;
+              }
+
+              const filter = variables.animation.filter || {};
+              const filters = [];
+
+              if (filter.blur !== undefined) filters.push(`blur(${filter.blur}px)`);
+              if (filter.brightness !== undefined) filters.push(`brightness(${filter.brightness}%)`);
+              if (filter.saturate !== undefined) filters.push(`saturate(${filter.saturate}%)`);
+              if (filter.invert !== undefined) filters.push(`invert(${filter.invert}%)`);
+              if (filter.sepia !== undefined) filters.push(`sepia(${filter.sepia}%)`);
+              if (filter.grayscale !== undefined) filters.push(`grayscale(${filter.grayscale}%)`);
+              if (filter.hue_rotate !== undefined) filters.push(`hue-rotate(${filter.hue_rotate}deg)`);
+              if (filter.contrast !== undefined) filters.push(`contrast(${filter.contrast}%)`);
+              if (filter.opacity !== undefined) filters.push(`opacity(${filter.opacity}%)`);
+
+              return filters.length > 0 ? filters.join(' ') : 'none';
+            ]]]
+      gauge:
+        - background: none
+        - text-align: |
+            [[[
+              return (variables._vertical && variables._gauge_style == 'picard') ? 'left' : '';
+            ]]]
         - visibility: >-
             [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
+            ]]]
+        - position: absolute
+        - top: 0px
+        - left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return '';
+              } else {
+              return 0;
+              }
+            ]]]
+        - right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
+            ]]]
+        - width: >-
+            [[[
+
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return '50%'
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
+            " )"
+              }
+            ]]]
+        - height: |
+            [[[
+              if(variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                " - (2 * " + variables.__get_num_with_unit(variables.card.gap) + ")" +
+                ")"
+              }
+            ]]]
+        - padding-bottom: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - padding-top: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
             ]]]
         - border-top: |
             [[[
@@ -900,20 +1854,6 @@ cb-lcars-multimeter:
             [[[
               return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
             ]]]
-        - width: >-
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size)  +
-            " - " +
-            variables.__get_num_with_unit(variables.card.border.right.size) +
-            " )" ]]]
-        - height: >-
-            [[[ return "calc(" +
-            variables.__get_num_with_unit(variables.card.height) + " - " +
-            variables.__get_num_with_unit(variables.card.border.top.size)  + "
-            - " +
-            variables.__get_num_with_unit(variables.card.border.bottom.size) +
-            ")" ]]]
       slider_track_control:
         - visibility: >-
             [[[ return ((variables._mode === 'slider') &&
@@ -939,24 +1879,8 @@ cb-lcars-multimeter:
             variables.__get_num_with_unit(variables.card.height) + " - " +
             variables.__get_num_with_unit(variables.card.border.top.size) + "
             - " +
-            variables.__get_num_with_unit(variables.card.border.bottom.size)
-            + ")" ]]]
-        - padding-left2: >-
-            [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.left)
-            ]]]
-        - padding-right2: >-
-            [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.right)
-            ]]]
-        - padding-top2: >-
-            [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.top)
-            ]]]
-        - padding-bottom2: >-
-            [[[ return
-            variables.__get_num_with_unit(variables.slider_track.padding.bottom)
-            ]]]
+            variables.__get_num_with_unit(variables.card.border.bottom.size) +
+            ")" ]]]
       slider_bg:
         - visibility: >-
             [[[ return (variables._mode === 'slider') ? 'visible' : 'hidden'
@@ -966,8 +1890,8 @@ cb-lcars-multimeter:
         - width: >-
             [[[ return "calc(" +
             variables.__get_num_with_unit(variables.card.width) +  " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size) +
-            " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size) + "
+            - " +
             variables.__get_num_with_unit(variables.card.border.right.size) +
             " - " +
             variables.__get_num_with_unit(variables.slider_track.padding.left)
@@ -1018,21 +1942,6 @@ cb-lcars-multimeter:
               return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
             ]]]
         - background: '[[[ return variables.z_slider ]]]'
-        - padding-top2: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " + " +
-                      variables.__get_num_with_unit(variables.slider_track.padding.top) + ")";
-            ]]]
-        - padding-right2: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.right) + " + " +
-                      variables.__get_num_with_unit(variables.slider_track.padding.right) + ")";
-            ]]]
-        - padding-bottom2: |
-            [[[
-              return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + " + " +
-                      variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
-            ]]]
         - padding-left: |
             [[[
               return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.left) + ")";
@@ -1050,12 +1959,16 @@ cb-lcars-multimeter:
               return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.bottom) + ")";
             ]]]
       gauge_control:
+        - background: none
         - visibility: >-
             [[[ return ((variables._mode === 'gauge') &&
             !(variables.slider.locked)) ? 'visible' : 'hidden' ]]]
         - position: absolute
         - top: |
             [[[
+                if (variables._vertical && variables._gauge_style == 'picard') {
+                  return 0;
+                }
                 if (variables._vertical) {
                   return variables.__get_num_with_unit(variables.card.border.top.size);
                 } else {
@@ -1064,36 +1977,71 @@ cb-lcars-multimeter:
             ]]]
         - left: |
             [[[
-              if (variables._vertical) {
-                return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) + " + " + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
-              } else {
-                return variables.__get_num_with_unit(variables.card.border.left.size);
+              return variables.__get_num_with_unit(variables.card.border.left.size);
+            ]]]
+        - width: |-
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                  return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
+                }
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
+            ]]]
+        - height: |
+            [[[
+              let gap_count = (variables._gauge_style == 'picard') ? 2 : 0;
+              if(variables._mode == 'gauge' && variables._vertical) {
+                return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                " - (" + gap_count + " * " + variables.__get_num_with_unit(variables.card.gap) + ")" +
+                ")"
               }
             ]]]
-        - width: >-
-            [[[ return "calc(" +
-            variables.__get_num_with_unit(variables.card.width) + " - " +
-            variables.__get_num_with_unit(variables.card.border.left.size)  +
-            " - " +
-            variables.__get_num_with_unit(variables.card.border.right.size) +
-            ")" ]]]
-        - height: >-
-            [[[ return "calc(" +
-            variables.__get_num_with_unit(variables.card.height) + " - " +
-            variables.__get_num_with_unit(variables.card.border.top.size)  + "
-            - " +
-            variables.__get_num_with_unit(variables.card.border.bottom.size) +
-            ")" ]]]
+        - padding-bottom: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - padding-top: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - border-top: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+        - border-bottom: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+        - border-left: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+        - border-right: |
+            [[[
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
       locked_bar:
         - visibility: '[[[ return (variables.slider.locked) ? ''visible'' : ''hidden'' ]]]'
+        - overflow: visible
         - position: absolute
-        - z-index: 1
         - left: |
             [[[
               return variables.__get_num_with_unit(variables.card.border.left.size);
             ]]]
         - top: |
             [[[
+              if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return 0;
+              }
               return variables.__get_num_with_unit(variables.card.border.top.size);
             ]]]
         - width: |-
@@ -1110,15 +2058,12 @@ cb-lcars-multimeter:
                   " + " +
                   variables.__get_num_with_unit(variables.slider_track.padding.right) +
                   ")";
-              } else {
-                return "calc(" +
-                  variables.__get_num_with_unit(variables.card.width) +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.left.size) +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.right.size) +
-                  ")";
               }
+
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                  return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
+                }
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
             ]]]
         - height: |-
             [[[
@@ -1134,17 +2079,210 @@ cb-lcars-multimeter:
                   " + " +
                   variables.__get_num_with_unit(variables.slider_track.padding.bottom) +
                   ")";
-              } else {
-                return "calc(" +
-                  variables.__get_num_with_unit(variables.card.height) +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.top.size) +
-                  " - " +
-                  variables.__get_num_with_unit(variables.card.border.bottom.size) +
-                  ")";
+              }
+
+              let gap_count = (variables._gauge_style == 'picard') ? 2 : 0;
+              if(variables._mode == 'gauge' && variables._vertical) {
+                return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                " - (" + gap_count + " * " + variables.__get_num_with_unit(variables.card.gap) + ")" +
+                ")"
+              }
+
+              return "calc(" +
+                variables.__get_num_with_unit(variables.card.height) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.top.size) +
+                " - " +
+                variables.__get_num_with_unit(variables.card.border.bottom.size) +
+                ")";
+            ]]]
+        - padding-bottom: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - padding-top: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - border-top: |
+            [[[
+              if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
               }
             ]]]
+        - border-bottom: |
+            [[[
+              if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+        - border-left: |
+            [[[
+              if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+        - border-right: |
+            [[[
+              if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
+                return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
+              }
+            ]]]
+      ranges_alt:
+        - background: none
+        - text-align: |
+            [[[
+              return (variables._vertical && variables._gauge_style == 'picard') ? 'left' : '';
+            ]]]
+        - visibility: >-
+            [[[ return (variables._mode === 'gauge' && variables._vertical &&
+            variables._gauge_style == 'picard') ? 'visible' : 'hidden' ]]]
+        - position: absolute
+        - top: 0
+        - left: 0
+        - display: flex
+        - justify-content: flex-end
+        - width: >-
+            [[[
+
+              if (variables._vertical && variables._gauge_style == 'picard') {
+                return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")"
+              } else {
+              return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
+            variables.__get_num_with_unit(variables.card.border.left.size)  +
+            " - " +
+            variables.__get_num_with_unit(variables.card.border.right.size) +
+            " )"
+              }
+            ]]]
+        - height: |
+            [[[
+              return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
+              variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
+              variables.__get_num_with_unit(variables.card.border.bottom.size) +
+              " - (2 * " + variables.__get_num_with_unit(variables.card.gap) + ")" +
+              ")"
+            ]]]
+        - padding-bottom: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - padding-top: |
+            [[[
+              return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+            ]]]
+        - border-top: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.size) + " solid transparent" ;
+            ]]]
+        - border-bottom: |
+            [[[
+              let border = parseInt(variables.card.border.bottom.size); //+ parseInt(variables.card.gap);
+              return  variables.__get_num_with_unit(border) + " solid transparent";
+            ]]]
+        - border-left: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.left.size) + " solid transparent";
+            ]]]
+        - border-right: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.right.size) + " solid transparent";
+            ]]]
+        - border-top-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.left_radius) + " !important";
+            ]]]
+        - border-top-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.top.right_radius) + " !important";
+            ]]]
+        - border-bottom-left-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.left_radius) + " !important";
+            ]]]
+        - border-bottom-right-radius: |
+            [[[
+              return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
+            ]]]
   custom_fields:
+    ranges_alt: |
+      [[[
+        let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
+        let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
+
+        if (variables._vertical && variables._gauge_style == 'picard') {
+          width = variables.gauge.tick_line_thickness*2
+        }
+
+        const entityState = entity.state;
+        const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
+
+        // inset color and thickness - this is the stroke on range rects
+        const borderColor = variables.gauge.range.inset.border.color || 'black';
+        const borderThickness = parseInt(variables.gauge.range.inset.border.size);
+        let borderGap = parseInt(variables.card.border.gap) || 5;
+        let insetGap = parseInt(variables.gauge.range.inset.gap) || parseInt(variables.card.border.gap);
+
+        // gap between ranges (set to 0 when using svg stroke)
+        const rangeGap = 0;
+
+        // svg offsets to start drawing
+        const startX = 0;
+        const startY = 0;
+
+        // Setup ranges - if enabled
+        const ranges = (variables.gauge.range.enabled) ? (variables.gauge.ranges || []) : [];
+        let rects = '';
+
+        // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
+        const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
+
+        // svg rect for background
+        rects += `
+            <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
+        `;
+
+        // Iterate through ranges - generate rects at proper positions in available range height
+        for (let i = 0; i < ranges.length; i++) {
+          const range = ranges[i];
+          const fromPercent = ((range.from - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
+          const toPercent = ((range.to - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
+          const rangePercentHeight = toPercent - fromPercent;
+
+          const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
+
+          // set range X position and width
+          const rangeX = startX; // SIMPLE X
+          const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
+
+          const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
+          const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
+
+          rects += `
+            <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
+          `;
+        }
+
+        return `
+          <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+            ${rects}
+          </svg>
+        `;
+      ]]]
+    se_mask: |
+      [[[
+        return "";
+      ]]]
+    ne_mask: |
+      [[[
+        return "";
+      ]]]
+    sw_mask: |
+      [[[
+        return "";
+      ]]]
     gauge: |
       [[[
         return variables.z_gauge;
@@ -1181,19 +2319,53 @@ cb-lcars-multimeter:
         const sliderPaddingTop = variables.__get_num_with_unit(variables.slider.padding.top);
         const sliderPaddingLeft = variables.__get_num_with_unit(variables.slider.padding.left);
         const sliderHeight = variables.__get_num_with_unit(variables._slider_thickness);
+
+        // match slider in picard mode
+        //return (variables._vertical && variables._gauge_style == 'picard') ? "35px" : "";
+
+        // thumb
+        const thumbEnabled = (variables.slider.locked && variables._vertical && variables.slider.thumb.enabled) || false;
+        const thumbHeight = variables.slider.thumb.height || '12px';
+        const thumbColor = variables.slider.thumb.color || 'white';
+        const thumbBorderColor = variables.slider.thumb.border.color || 'black';
+        const thumbBorderSize = parseInt(variables.slider.thumb.border.size) || '3px';
+        const thumbBorderRadius = parseInt(variables.slider.thumb.border.radius) || '50%';
+
         if (variables._mode === 'gauge') {
+          const leftStyle = (variables._gauge_style == 'picard' && isVertical) ? 'unset' : (isVertical ? sliderPaddingTop : sliderPaddingLeft);
+          const rightStyle = (variables._gauge_style == 'picard' && isVertical) ? '35px' : 'unset';
+
+          let thumbBorderStyle = variables.__get_num_with_unit(thumbBorderSize) + " solid " + thumbBorderColor;
+
+          let thumbLeftStyle =  'calc(-150% - ' + variables.__get_num_with_unit(thumbBorderSize) + ')';
+
           return `
             <div class="progress-bar" style="
               position: absolute;
               ${isVertical ? 'bottom: 0;' : 'left: 0;'}
               top: ${isVertical ? 'unset' : sliderPaddingTop};
-              left: ${isVertical ? sliderPaddingTop : sliderPaddingLeft};
+              left: ${leftStyle};
+              right: ${rightStyle};
               width: ${isVertical ? sliderHeight : progressPercentage + '%'};
               height: ${isVertical ? progressPercentage + '%' : sliderHeight};
               border-radius: ${borderRadius};
               border: ${borderWidth} solid ${borderColor};
               background-color: ${variables.slider.color};
-            "></div>
+            ">
+
+              <div class="progress-bar-custom-thumb" style="
+                height: ${thumbHeight}px;
+                background: ${thumbColor};
+                position: absolute;
+                width: 400%;
+                visibility: ${thumbEnabled ? 'visible' : 'hidden'};
+                border: ${thumbBorderStyle};
+                left: ${isVertical ? thumbLeftStyle : 'auto'};
+                border-radius: ${thumbBorderRadius}%;
+                z-index: 2;
+                top: -${thumbHeight / 2}px;
+              "></div>
+            </div>
           `;
         } else if (variables._mode === 'slider') {
           return `
@@ -1242,20 +2414,13 @@ cb-lcars-multimeter:
           ]]]
         styles:
           card:
-            - width: >-
-                [[[ return "calc(" +
-                variables.__get_num_with_unit(variables.card.width) + " - " +
-                variables.__get_num_with_unit(variables.card.border.left.size)
-                + " - " +
-                variables.__get_num_with_unit(variables.card.border.right.size)
-                + ")" ]]]
-            - height: >-
-                [[[ return "calc(" +
-                variables.__get_num_with_unit(variables.card.height) + " - " +
-                variables.__get_num_with_unit(variables.card.border.top.size)
-                + " - " +
-                variables.__get_num_with_unit(variables.card.border.bottom.size)
-                + ")" ]]]
+            - width: |
+                [[[
+                    if (variables._vertical && variables._gauge_style == 'picard') {
+                        return "100%";
+                      }
+                    return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
+                ]]]
             - background: none
             - border-radius: 0
           progress:
@@ -1270,16 +2435,70 @@ cb-lcars-multimeter:
             - border-radius: '[[[ return variables.slider.border_radius ]]]'
             - height: '[[[ return variables.slider.height ]]]'
             - width: '[[[ return variables.slider.width ]]]'
-            - left: >-
-                [[[ return
-                variables.__get_num_with_unit(variables.slider.padding.left)
+            - left: |-
+                [[[
+                  return (variables._vertical && variables._gauge_style == 'picard') ? "" : variables.__get_num_with_unit(variables.slider.padding.left);
                 ]]]
           container:
             - border-radius: 0
+            - overflow: visible
           track:
             - background: none
+            - width: >-
+                [[[ return variables._vertical ? variables.slider.width :
+                '']]]
+            - left: |
+                [[[
+                  if (variables._vertical && variables._gauge_style != 'picard') {
+                    return "calc(" + variables.__get_num_with_unit(variables.gauge.sub_meter.tick_size) + ")"
+                  }
+                ]]]
+            - position: |
+                [[[
+                  return (variables._vertical && variables._gauge_style == 'picard') ? 'absolute' : 'relative';
+                ]]]
+            - right: |-
+                [[[
+                  return (variables._vertical && variables._gauge_style == 'picard') ? "35px" : "";
+                ]]]
           thumb:
-            - background: none
+            - visibility: |
+                [[[
+                  return (variables.slider.thumb.enabled && variables._vertical && !(variables.slider.locked)) ? 'visible' : 'hidden'
+                ]]]
+            - width: |
+                [[[
+                  return variables._vertical ? '400%' : '';
+                ]]]
+            - background-color: |
+                [[[
+                  return variables.slider.thumb.color || 'white';
+                ]]]
+            - border: |
+                [[[
+                  let thickness = variables.__get_num_with_unit(variables.slider.thumb.border.size) || '3px'
+                  let color = variables.slider.thumb.border.color || 'black';
+                  return thickness + " solid " + color;
+                ]]]
+            - top: |
+                [[[
+                  return "-" + variables.__get_num_with_unit((variables.slider.thumb.height / 2))
+                ]]]
+            - left: |
+                [[[
+                  let thickness = variables.__get_num_with_unit(variables.slider.thumb.border.size) || '3px'
+
+                  return variables._vertical ? 'calc(-150% - ' + thickness + ')' : '';
+                ]]]
+            - border-radius: |
+                [[[
+                  return variables.__get_num_with_unit(variables.slider.thumb.border.radius,'%') || '50%';
+                ]]]
+            - height: |
+                [[[
+                  return variables.__get_num_with_unit(variables.slider.thumb.height) || '12px';
+                ]]]
+            - z-index: 2
     slider_track_control:
       card:
         type: custom:my-slider-v2
@@ -1291,19 +2510,11 @@ cb-lcars-multimeter:
         step: '[[[ return variables.slider.step; ]]]'
         min: |
           [[[
-          //  if (variables.slider.mode === 'temperature') {
-          //    return entity.attributes.min_mired
-          //  } else {
               return variables.slider.min;
-          //  }
           ]]]
         max: |
           [[[
-          //  if (variables.slider.mode === 'temperature') {
-          //    return entity.attributes.max_mired
-          //  } else {
               return variables.slider.max;
-          //  }
           ]]]
         styles:
           progress:

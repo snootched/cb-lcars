@@ -20,17 +20,13 @@ cb-lcars-animation-bg-grid:
           fill: var(--picard-darkest-blue)
   styles:
     label:
-      - z-index: 1
+      - z-index: 2
     custom_fields:
       animation:
         - display: flex
         - position: absolute
         - align-items: center
   custom_fields:
-    symbiont:
-      card:
-        type: entity
-        entity: light.tv
     animation: |
       [[[
 
