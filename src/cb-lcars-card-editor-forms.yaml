@@ -3853,6 +3853,7 @@ cb-lcars-elbow-card:
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
     - <<: *gridBgTab
+    - <<: *geoArrayTab
 
 cb-lcars-double-elbow-card:
   tabs:
@@ -6347,7 +6348,7 @@ cb-lcars-multimeter-card:
                     object:
                   configValue: "variables.gauge.ranges"
                   label: "Ranges"
-                  helper: "Enter the configuration for the symbiont card."
+                  helper: "Array of ranges to display on the gauge.  Each range is defined by a 'from', 'to', and 'color' value."
 
         - type: Section
           label: "Gauge Options"
