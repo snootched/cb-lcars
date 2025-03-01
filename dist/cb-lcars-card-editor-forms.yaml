@@ -6383,6 +6383,17 @@ cb-lcars-multimeter-card:
                       min: 1
                       step: 1
                       mode: box
+                - label: "Gauge: Width (Picard)"
+                  configValue: "variables.gauge.picard_ratio"
+                  visibilityCondition: "this._config.variables._vertical === true && this._config.variables._gauge_style === 'picard'"
+                  type: Selector
+                  selector:
+                    number:
+                      min: 20
+                      max: 50
+                      step: 1
+                      mode: box
+                      unit_of_measurement: "%"
             - type: ControlRow
               cssClass: "form-row two-controls"
               controls:
@@ -6628,7 +6639,7 @@ cb-lcars-multimeter-card:
               controls:
                 - label: "Thumb: Size"
                   configValue: "variables.slider.thumb.height"
-                  visibilityCondition: "this._config.variables.slider.thumb.enabled === true"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
                   helper: "The slider's thumb control size."
                   type: Selector
                   selector:
@@ -6640,7 +6651,7 @@ cb-lcars-multimeter-card:
                       unit_of_measurement: "px"
                 - label: "Thumb: Border Radius"
                   configValue: "variables.slider.thumb.border.radius"
-                  visibilityCondition: "this._config.variables.slider.thumb.enabled === true"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
                   helper: "The curvature of the thumb control."
                   type: Selector
                   selector:
@@ -6706,7 +6717,7 @@ cb-lcars-multimeter-card:
                           configValue: "variables.slider.border_color"
                 - type: Section
                   label: "Thumb"
-                  visibilityCondition: "this._config.variables.slider.thumb.enabled === true"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -6725,7 +6736,7 @@ cb-lcars-multimeter-card:
                           configValue: "variables.slider.thumb.color"
                 - type: Section
                   label: "Thumb Border"
-                  visibilityCondition: "this._config.variables.slider.thumb.enabled === true"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
