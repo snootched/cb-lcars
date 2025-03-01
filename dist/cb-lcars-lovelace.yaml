@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.03.1-alpha.3
+  version: 2025.03.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-lozenge:
