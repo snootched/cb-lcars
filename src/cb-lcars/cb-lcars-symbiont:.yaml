@@ -23,7 +23,7 @@ cb-lcars-symbiont:
   styles:
     custom_fields:
       symbiont:
-        - z-index: 1
+        - z-index: 3
         - visibility: |
             [[[
               return (variables.symbiont.enabled) ? 'visible' : 'hidden';

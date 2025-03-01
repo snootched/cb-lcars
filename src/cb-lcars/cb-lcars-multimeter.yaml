@@ -335,6 +335,7 @@ cb-lcars-multimeter:
       min: '[[[ return variables.entity_min ]]]'
       max: '[[[ return variables.entity_max ]]]'
     gauge:
+      picard_ratio: 40
       range:
         enabled: true
         inset:
@@ -531,7 +532,8 @@ cb-lcars-multimeter:
         let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
 
         if (variables._vertical && variables._gauge_style == 'picard') {
-          width = width /4
+            let percent = (variables.gauge.picard_ratio !== undefined && !isNaN(variables.gauge.picard_ratio)) ? variables.guage.picard_ratio / 100 : 40 / 100;
+          width = width * percent;
           height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
         }
 
