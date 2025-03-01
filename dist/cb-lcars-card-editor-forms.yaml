@@ -7,6 +7,12 @@ cb-lcars-base-card:
             - type: Message
               alertType: info
               message: "This is a base card for advanced use.  Visual Editor is not available for this card."
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 cb-lcars-base-controls:
   tabs:
     - label: Base Controls
@@ -276,7 +282,7 @@ cb-lcars-base-controls:
           cssClass: "form-row two-controls"
           controls:
             - &colorLCARSListControl
-              label: "LCARS Color"
+              label: "LCARS Colour"
               configValue: "variables.card.background.color.default"
               type: Selector
               selector:
@@ -298,7 +304,7 @@ cb-lcars-base-controls:
                         return options;
                       })()
             - &colorControl
-              label: "Custom Color"
+              label: "Custom Colour"
               configValue: "variables.background.color.default"
               type: Selector
               selector:
@@ -519,7 +525,7 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:format-size"
+                  icon: "mdi:move-resize"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -575,11 +581,11 @@ cb-lcars-base-controls:
                               slider_ticks: false
                 - &textColorSection
                   type: Section
-                  label: "Colors"
+                  label: "Colours"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -587,7 +593,7 @@ cb-lcars-base-controls:
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -601,11 +607,11 @@ cb-lcars-base-controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.text.label.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -614,7 +620,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -651,7 +657,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -688,7 +694,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -724,7 +730,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -888,7 +894,7 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:format-size"
+                  icon: "mdi:move-resize"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -939,11 +945,11 @@ cb-lcars-base-controls:
                               unit_of_measurement: "px"
                               slider_ticks: false
                 - type: Section
-                  label: "Colors"
+                  label: "Colours"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -951,7 +957,7 @@ cb-lcars-base-controls:
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -965,11 +971,11 @@ cb-lcars-base-controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.text.name.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -978,7 +984,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1015,7 +1021,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1052,7 +1058,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1088,7 +1094,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1285,7 +1291,7 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:format-size"
+                  icon: "mdi:move-resize"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -1336,11 +1342,11 @@ cb-lcars-base-controls:
                               unit_of_measurement: "px"
                               slider_ticks: false
                 - type: Section
-                  label: "Colors"
+                  label: "Colours"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -1348,7 +1354,7 @@ cb-lcars-base-controls:
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -1362,11 +1368,11 @@ cb-lcars-base-controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.text.state.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -1375,7 +1381,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1412,7 +1418,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1449,7 +1455,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1485,7 +1491,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1615,11 +1621,11 @@ cb-lcars-base-controls:
                         boolean:
             - &cardColorSection
               type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - type: Section
@@ -1627,15 +1633,15 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -1649,11 +1655,11 @@ cb-lcars-base-controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -1662,7 +1668,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1699,7 +1705,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1736,7 +1742,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1772,7 +1778,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1794,15 +1800,15 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -1816,11 +1822,11 @@ cb-lcars-base-controls:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -1829,7 +1835,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1866,7 +1872,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1903,7 +1909,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -1939,7 +1945,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -2147,7 +2153,7 @@ cb-lcars-base-controls:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: true
               expanded: true
               rows:
@@ -2193,11 +2199,11 @@ cb-lcars-base-controls:
             - &iconColorSection
               type: Section
               visibilityCondition: "this._config.show_icon === true"
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - type: Section
@@ -2205,7 +2211,7 @@ cb-lcars-base-controls:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: true
                   expanded: true
                   rows:
@@ -2219,11 +2225,11 @@ cb-lcars-base-controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.icon.color.default"
                 - type: Section
-                  label: "State Colors"
+                  label: "State Colours"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
@@ -2232,7 +2238,7 @@ cb-lcars-base-controls:
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -2240,7 +2246,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: true
                           expanded: true
                           rows:
@@ -2277,7 +2283,7 @@ cb-lcars-base-controls:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: true
                           expanded: true
                           rows:
@@ -2379,7 +2385,7 @@ cb-lcars-base-controls:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:arrow-all"
+              icon: "mdi:move-resize"
               noCollapse: false
               rows:
                 - type: ControlRow
@@ -2446,7 +2452,7 @@ cb-lcars-base-controls:
               controls:
                 - type: Message
                   alertType: info
-                  message: "Imprinting will attempt to apply the state-specific host card styles/colors to the symbiont.  Styles such as background color, text color, corner radius, etc."
+                  message: "Imprinting will attempt to apply the state-specific host card styles/colours to the symbiont.  Styles such as background color, text color, corner radius, etc."
                 - type: Selector
                   selector:
                     boolean:
@@ -2459,7 +2465,7 @@ cb-lcars-base-controls:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               visibilityCondition: "this._config.variables?.symbiont?.imprint_host === true"
               rows:
                 - &symbiontCornerSection
@@ -2474,7 +2480,7 @@ cb-lcars-base-controls:
                       controls:
                         - type: Message
                           alertType: info
-                          message: "Set the corner radius of the symbiont card.  These may not be visible when the host style is imprinted on the symbiont as the colors may match."
+                          message: "Set the corner radius of the symbiont card.  These may not be visible when the host style is imprinted on the symbiont as the colours may match."
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
@@ -2536,7 +2542,7 @@ cb-lcars-base-controls:
                               slider_ticks: false
                 - type: ControlRow
                   controls:
-                    - label: Imprint Host Text Color
+                    - label: Imprint Host Text Colour
                       configValue: "variables.symbiont.text.imprint_from"
                       type: Selector
                       selector:
@@ -2554,7 +2560,7 @@ cb-lcars-base-controls:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               rows:
                 - type: ControlRow
                   controls:
@@ -2576,7 +2582,7 @@ cb-lcars-base-controls:
           outlined: true
           leftChevron: false
           headerLevel: 4
-          icon: "mdi:card-multiple-outline"
+          icon: "mdi:animation-outline"
           noCollapse: false
           expanded: false
           rows:
@@ -2595,6 +2601,8 @@ cb-lcars-base-controls:
                       mode: list
                       multiple: true
                       options:
+                        - value: "cb-lcars-animation-geo-array"
+                          label: "GEO Array"
                         - value: "cb-lcars-animation-bg-grid"
                           label: "GRID"
                         - value: "cb-lcars-animation-cascade"
@@ -2610,129 +2618,227 @@ cb-lcars-base-controls:
               icon: "mdi:format-list-bulleted"
               noCollapse: false
               rows:
-                - type: ControlRow
-                  cssClass: "form-row two-controls"
-                  controls:
-                    - label: "Blur"
-                      configValue: "variables.animation.filter.blur"
-                      helper: "Amount of blur to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 25
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "px"
-                          slider_ticks: false
-                    - label: "Opacity"
-                      configValue: "variables.animation.filter.opacity"
-                      helper: "Amount of opacity to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 100
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Brightness"
-                      configValue: "variables.animation.filter.brightness"
-                      helper: "Amount of brightness to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Contrast"
-                      configValue: "variables.animation.filter.contrast"
-                      helper: "Amount of contrast to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 200
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Saturate"
-                      configValue: "variables.animation.filter.saturate"
-                      helper: "Amount of saturation to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 100
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Hue Rotate"
-                      configValue: "variables.animation.filter.hue_rotate"
-                      helper: "Amount of hue rotation to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 360
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "deg"
-                          slider_ticks: false
-                    - label: "Invert"
-                      configValue: "variables.animation.filter.invert"
-                      helper: "Amount of invert to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 100
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Grayscale"
-                      configValue: "variables.animation.filter.grayscale"
-                      helper: "Amount of grayscale to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 100
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                    - label: "Sepia"
-                      configValue: "variables.animation.filter.sepia"
-                      helper: "Amount of sepia to apply to the animation"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 100
-                          step: 1
-                          mode: slider
-                          unit_of_measurement: "%"
-                          slider_ticks: false
-                - type: ControlRow
-                  controls:
-                  - type: Message
-                    alertType: info
-                    message: "Advanced: specify custom filter string to apply for the entire animation.  This will override all other filter settings."
-                  - label: "CSS Filter"
-                    configValue: "variables.animation.filter.advanced"
-                    helper: "CSS `filter` property to apply to the animation"
-                    type: Selector
-                    selector:
-                      text:
-                        multiline: false
+                - type: Section
+                  label: "CSS Filters"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:filter"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Blur"
+                          configValue: "variables.animation.filter.blur"
+                          helper: "Amount of blur to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 25
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                        - label: "Opacity"
+                          configValue: "variables.animation.filter.opacity"
+                          helper: "Amount of opacity to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Brightness"
+                          configValue: "variables.animation.filter.brightness"
+                          helper: "Amount of brightness to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Contrast"
+                          configValue: "variables.animation.filter.contrast"
+                          helper: "Amount of contrast to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 200
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Saturate"
+                          configValue: "variables.animation.filter.saturate"
+                          helper: "Amount of saturation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Hue Rotate"
+                          configValue: "variables.animation.filter.hue_rotate"
+                          helper: "Amount of hue rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 360
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Invert"
+                          configValue: "variables.animation.filter.invert"
+                          helper: "Amount of invert to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Grayscale"
+                          configValue: "variables.animation.filter.grayscale"
+                          helper: "Amount of grayscale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Sepia"
+                          configValue: "variables.animation.filter.sepia"
+                          helper: "Amount of sepia to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                    - type: ControlRow
+                      controls:
+                      - type: Message
+                        alertType: info
+                        message: "Advanced: specify custom filter string to apply for the entire animation.  This will override all other filter settings."
+                      - label: "CSS Filter"
+                        configValue: "variables.animation.filter.advanced"
+                        helper: "CSS `filter` property to apply to the animation"
+                        type: Selector
+                        selector:
+                          text:
+                            multiline: false
+                - type: Section
+                  label: "CSS Transform"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:format-align-left"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Scale"
+                          configValue: "variables.animation.transform.scale"
+                          helper: "Amount of scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
+                        - label: "Rotate"
+                          configValue: "variables.animation.transform.rotate"
+                          helper: "Amount of rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 360
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Translate X"
+                          configValue: "variables.animation.transform.translate_x"
+                          helper: "Amount of horizontal translation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -100
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Translate Y"
+                          configValue: "variables.animation.transform.translate_y"
+                          helper: "Amount of vertical translation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -100
+                              max: 100
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                              slider_ticks: false
+                        - label: "Skew"
+                          configValue: "variables.animation.transform.skew"
+                          helper: "Amount of skew to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -45
+                              max: 45
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                    - type: ControlRow
+                      controls:
+                        - type: Message
+                          alertType: info
+                          message: "Advanced: specify custom transform string to apply for the entire animation.  This will override all other transform settings."
+                        - label: "CSS Transform"
+                          configValue: "variables.animation.transform.advanced"
+                          helper: "CSS `transform` property to apply to the animation"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: false
+                        - label: "CSS Transform Origin"
+                          configValue: "variables.animation.transform_origin"
+                          helper: "CSS `transform=origin` property to apply to the animation"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: false
+
                 - type: Section
                   label: "Animation Container"
                   outlined: true
@@ -2870,7 +2976,7 @@ cb-lcars-base-controls:
                   controls:
                     - type: RawHTML
                       html: |
-                          <label>Base Color</label>
+                          <label>Base Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -2961,17 +3067,17 @@ cb-lcars-base-controls:
                             text:
                               multiline: true
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Base Color</label>
+                          <label>Base Colour</label>
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
@@ -2985,7 +3091,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Animation Start Color</label>
+                          <label>Animation Start Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -2999,7 +3105,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Animation End Color</label>
+                          <label>Animation End Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -3121,6 +3227,232 @@ cb-lcars-base-controls:
                         number:
                           min: 1
                           step: 1
+    - &geoArrayTab
+      label: "GEO Array"
+      visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animation-geo-array')"
+      content:
+        - type: Section
+          label: "GEO Animation"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:matrix"
+          noCollapse: false
+          expanded: true
+          rows:
+            - &geoArrayPatternSection
+              type: Section
+              label: "Pattern"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              expanded: true
+              rows:
+                - controls:
+                    - type: Message
+                      alertType: info
+                      message: "Select the pattern of the animation."
+                    - label: "Pattern"
+                      configValue: "variables.animation.geo_array.pattern"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "default"
+                              label: "Default"
+                            - value: "niagara"
+                              label: "Niagara"
+                            - value: "frozen"
+                              label: "Frozen"
+                            - value: "custom"
+                              label: "Custom"
+                - type: Section
+                  label: "Custom Pattern"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:format-list-bulleted"
+                  noCollapse: false
+                  visibilityCondition: "(this._config?.variables?.animation?.geo_array?.pattern ?? '') === 'custom'"
+                  rows:
+                    - controls:
+                        - type: Message
+                          alertType: warning
+                          message: "Advanced: Custom animation patterns and keyframes can be defined - please refer to the documentation for more information."
+                    - controls:
+                        - label: "Custom Animation Pattern"
+                          configValue: "variables.animation.geo_array.custom_pattern"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: true
+                    - controls:
+                        - label: "Custom Keyframes"
+                          configValue: "variables.animation.geo_array.custom_keyframes"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: true
+                - controls:
+                    - label: "Animation Axis"
+                      configValue: "variables.animation.geo_array.animation_axis"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "row"
+                              label: "Row"
+                            - value: "col"
+                              label: "Column"
+            - &geoArrayShapeSection
+              type: Section
+              label: "Shape"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:shape"
+              noCollapse: false
+              expanded: false
+              rows:
+                - type: Section
+                  label: "Type & Size"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:shape"
+                  noCollapse: true
+                  expanded: true
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Type"
+                          configValue: "variables.animation.geo_array.shape.type"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: square
+                                  label: Square
+                                - value: circle
+                                  label: Circle
+                        - label: "Size"
+                          configValue: "variables.animation.geo_array.shape.size"
+                          type: Selector
+                          selector:
+                            text:
+                              type: number
+            - type: Section
+              label: "Colours"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:select-color"
+              noCollapse: false
+              rows:
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Base Colour</label>
+                - cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.geo_array.color.base"
+                    - <<: *colorControl
+                      configValue: "variables.animation.geo_array.color.base"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.geo_array.color.base"
+
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation Start Colour</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.geo_array.color.animation_start"
+                    - <<: *colorControl
+                      configValue: "variables.animation.geo_array.color.animation_start"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.geo_array.color.animation_start"
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Animation End Colour</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.geo_array.color.animation_end"
+                    - <<: *colorControl
+                      configValue: "variables.animation.geo_array.color.animation_end"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.geo_array.color.animation_end"
+            - &geoArrayGridSection
+              type: Section
+              label: "Grid"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:grid"
+              noCollapse: false
+              expanded: false
+              rows:
+                - controls:
+                    - type: Message
+                      alertType: info
+                      message: "Grid dimensions are calculated automatically by default using the card's size and font size.  Here you can provide specific values to override the automatic settings."
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "# Columns"
+                      configValue: "variables.animation.geo_array.grid.num_cols"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 100
+                          step: 1
+                          mode: slider
+                    - label: "# Rows"
+                      configValue: "variables.animation.geo_array.grid.num_rows"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 100
+                          step: 1
+                          mode: slider
+                    - label: "Column Width"
+                      configValue: "variables.animation.geo_array.grid.column_width"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          step: 1
+                    - label: "Row Height"
+                      configValue: "variables.animation.geo_array.grid.row_height"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          step: 1
+                    - label: "Grid Gap"
+                      configValue: "variables.animation.geo_array.grid.gap"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          step: 1
 
     - &pulsewaveTab
       label: "Pulsewave"
@@ -3200,17 +3532,17 @@ cb-lcars-base-controls:
                             text:
                               multiline: true
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Base Color</label>
+                          <label>Base Colour</label>
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
@@ -3224,7 +3556,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Animation Start Color</label>
+                          <label>Animation Start Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -3238,7 +3570,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Animation End Color</label>
+                          <label>Animation End Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -3525,17 +3857,17 @@ cb-lcars-base-controls:
                           mode: slider
                           slider_ticks: true
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Grid Line Color</label>
+                          <label>Grid Line Colour</label>
                 - cssClass: "form-row two-controls"
                   controls:
                     - <<: *colorLCARSListControl
@@ -3549,7 +3881,7 @@ cb-lcars-base-controls:
                 - controls:
                     - type: RawHTML
                       html: |
-                          <label>Grid Cell Fill Color</label>
+                          <label>Grid Cell Fill Colour</label>
                 - type: ControlRow
                   cssClass: "form-row two-controls"
                   controls:
@@ -3560,10 +3892,6 @@ cb-lcars-base-controls:
                 - controls:
                     - <<: *colorPreviewControl
                       configValue: "variables.animatino.bg_grid.color.fill"
-
-
-
-
 cb-lcars-elbow-card:
   tabs:
     - label: LCARS
@@ -3574,7 +3902,7 @@ cb-lcars-elbow-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:select-color"
           rows:
             - controls:
                 - label: "LCARS Elbow Type"
@@ -3625,6 +3953,13 @@ cb-lcars-elbow-card:
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
     - <<: *gridBgTab
+    - <<: *geoArrayTab
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 
 cb-lcars-double-elbow-card:
   tabs:
@@ -3636,7 +3971,7 @@ cb-lcars-double-elbow-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:select-color"
           rows:
             - controls:
                 - label: "LCARS Elbow Type"
@@ -3879,11 +4214,11 @@ cb-lcars-double-elbow-card:
                           unit_of_measurement: "px"
                           slider_ticks: false
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - type: Section
@@ -3891,15 +4226,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -3913,11 +4248,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -3926,7 +4261,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -3963,7 +4298,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4000,7 +4335,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4036,7 +4371,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4058,15 +4393,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -4080,11 +4415,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.card.color.background.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -4093,7 +4428,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4130,7 +4465,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4167,7 +4502,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4203,7 +4538,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4336,11 +4671,11 @@ cb-lcars-double-elbow-card:
                               unit_of_measurement: "px"
                               slider_ticks: false
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - type: Section
@@ -4348,15 +4683,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -4370,11 +4705,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.lcars_outer.card.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -4383,7 +4718,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4420,7 +4755,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4457,7 +4792,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4493,7 +4828,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4515,15 +4850,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -4537,11 +4872,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.lcars_outer.card.color.background.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -4550,7 +4885,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4587,7 +4922,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4624,7 +4959,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4660,7 +4995,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4793,11 +5128,11 @@ cb-lcars-double-elbow-card:
                               unit_of_measurement: "px"
                               slider_ticks: false
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette-advanced"
+              icon: "mdi:select-color"
               noCollapse: false
               rows:
                 - type: Section
@@ -4805,15 +5140,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -4827,11 +5162,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.lcars_inner.card.color.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -4840,7 +5175,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4877,7 +5212,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4914,7 +5249,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4950,7 +5285,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -4972,15 +5307,15 @@ cb-lcars-double-elbow-card:
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:palette-advanced"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: Section
-                      label: "Default Color (no entity/state)"
+                      label: "Default Colour (no entity/state)"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: true
                       expanded: true
                       rows:
@@ -4994,11 +5329,11 @@ cb-lcars-double-elbow-card:
                             - <<: *colorPreviewControl
                               configValue: "variables.lcars_inner.card.color.background.default"
                     - type: Section
-                      label: "State Colors"
+                      label: "State Colours"
                       outlined: true
                       leftChevron: false
                       headerLevel: 4
-                      icon: "mdi:palette-advanced"
+                      icon: "mdi:select-color"
                       noCollapse: false
                       rows:
                         - type: Section
@@ -5007,7 +5342,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -5044,7 +5379,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -5081,7 +5416,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -5117,7 +5452,7 @@ cb-lcars-double-elbow-card:
                           outlined: true
                           leftChevron: false
                           headerLevel: 4
-                          icon: "mdi:palette-advanced"
+                          icon: "mdi:select-color"
                           noCollapse: false
                           rows:
                             - controls:
@@ -5137,6 +5472,14 @@ cb-lcars-double-elbow-card:
     - <<: *animationsTab
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
+    - <<: *gridBgTab
+    - <<: *geoArrayTab
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 
 cb-lcars-button-card:
   tabs:
@@ -5148,7 +5491,7 @@ cb-lcars-button-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:select-color"
           rows:
             - controls:
                 - label: "LCARS Button Type"
@@ -5187,6 +5530,14 @@ cb-lcars-button-card:
     - <<: *animationsTab
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
+    - <<: *gridBgTab
+    - <<: *geoArrayTab
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 
 cb-lcars-dpad-card:
   tabs:
@@ -5198,21 +5549,21 @@ cb-lcars-dpad-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:tune-vertical"
           rows:
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette"
+              icon: "mdi:select-color"
               noCollapse: false
               expanded: false
               rows:
                 - controls:
                     - type: Message
                       alertType: info
-                      message: "These colors are used as defaults for the DPAD buttons.\nYou can override these colors for each button individually.\n\nQuandrant colors are inverted from DPAD button colors by default."
+                      message: "These colours are used as defaults for the DPAD buttons.\nYou can override these colours for each button individually.\n\nQuandrant colours are inverted from DPAD button colours by default."
                     - type: RawHTML
                       html: |
                           <label>State: Active</label>
@@ -5245,7 +5596,7 @@ cb-lcars-dpad-card:
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette"
+              icon: "mdi:resize"
               noCollapse: false
               expanded: false
               rows:
@@ -5274,7 +5625,7 @@ cb-lcars-dpad-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:button-pointer"
           rows:
             - type: Section
               label: "Up Button"
@@ -5897,6 +6248,12 @@ cb-lcars-dpad-card:
                               type: Selector
                               selector:
                                 ui_action:
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 cb-lcars-label-card:
   tabs:
     - label: "LCARS"
@@ -5907,7 +6264,7 @@ cb-lcars-label-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:select-color"
           rows:
             - controls:
                 - label: "LCARS Label Preset"
@@ -5926,7 +6283,7 @@ cb-lcars-label-card:
                           label: 'Data Cascade'
                 - type: Message
                   alertType: info
-                  message: "Optional: Select an entity to enable state specific colors."
+                  message: "Optional: Select an entity to enable state specific colours."
                 - label: "Entity [optional]"
                   configValue: "variables.entity"
                   type: Selector
@@ -5940,7 +6297,14 @@ cb-lcars-label-card:
     - <<: *animationsTab
     - <<: *dataCascadeTab
     - <<: *pulsewaveTab
-
+    - <<: *gridBgTab
+    - <<: *geoArrayTab
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }
 cb-lcars-multimeter-card:
   tabs:
     - label: "LCARS"
@@ -5951,7 +6315,7 @@ cb-lcars-multimeter-card:
           leftChevron: false
           expanded: true
           headerLevel: 4
-          icon: "mdi:palette-advanced"
+          icon: "mdi:select-color"
           rows:
             - controls:
                 - type: Message
@@ -6065,7 +6429,7 @@ cb-lcars-multimeter-card:
           rows:
             - type: ControlRow
               controls:
-                - label: "Match Entity Color"
+                - label: "Match Entity Colour"
                   configValue: "variables.entity_match_header"
                   type: Selector
                   selector:
@@ -6079,6 +6443,105 @@ cb-lcars-multimeter-card:
     - label: "Gauge Mode"
       visibilityCondition: "this._config.variables._mode === 'gauge'"
       content:
+        - type: Section
+          label: "Gauge Style"
+          outlined: true
+          leftChevron: false
+          expanded: true
+          headerLevel: 4
+          icon: "mdi:view-grid-compact"
+          rows:
+            - type: ControlRow
+              controls:
+                - label: "Gauge Style"
+                  configValue: "variables._gauge_style"
+                  visibilityCondition: "this._config.variables._vertical === true"
+                  required: true
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      options:
+                        - value: 'basic'
+                          label: 'Basic'
+                        - value: 'picard'
+                          label: 'Picard'
+                - type: Selector
+                  selector:
+                    boolean:
+                  label: "Show Range(s) on Gauge"
+                  configValue: "variables.gauge.range.enabled"
+                - type: Selector
+                  selector:
+                    object:
+                  configValue: "variables.gauge.ranges"
+                  label: "Ranges"
+                  helper: "Array of ranges to display on the gauge.  Each range is defined by a 'from', 'to', and 'color' value."
+            - type: Section
+              label: "Range Options [Picard Style]"
+              visibilityCondition: "this._config.variables._vertical === true && this._config.variables._gauge_style === 'picard'"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:view-grid-compact"
+              noCollapse: false
+              expanded: false
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Range: Vertical Width Ratio"
+                      visibilityCondition: "this._config.variables._vertical === true && this._config.variables._gauge_style === 'picard'"
+                      configValue: "variables.gauge.range.width_ratio"
+                      type: Selector
+                      selector:
+                        number:
+                          step: 0.1
+                          mode: box
+                    - label: "Range: Bottom Height Ratio"
+                      visibilityCondition: "this._config.variables._vertical === true && this._config.variables._gauge_style === 'picard'"
+                      configValue: "variables.gauge.range.height_ratio"
+                      type: Selector
+                      selector:
+                        number:
+                          step: 0.1
+                          mode: box
+                - type: Section
+                  label: "Range Border Colours"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:wallpaper"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>State: Active</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.gauge.range.border.color.active"
+                        - <<: *colorControl
+                          configValue: "variables.gauge.range.border.color.active"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.gauge.range.border.color.active"
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>State: Inctive</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.gauge.range.border.color.inactive"
+                        - <<: *colorControl
+                          configValue: "variables.gauge.range.border.color.inactive"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.gauge.range.border.color.inactive"
         - type: Section
           label: "Gauge Options"
           outlined: true
@@ -6112,6 +6575,17 @@ cb-lcars-multimeter-card:
                       min: 1
                       step: 1
                       mode: box
+                - label: "Gauge: Width (Picard)"
+                  configValue: "variables.gauge.picard_ratio"
+                  visibilityCondition: "this._config.variables._vertical === true && this._config.variables._gauge_style === 'picard'"
+                  type: Selector
+                  selector:
+                    number:
+                      min: 20
+                      max: 50
+                      step: 1
+                      mode: box
+                      unit_of_measurement: "%"
             - type: ControlRow
               cssClass: "form-row two-controls"
               controls:
@@ -6152,18 +6626,18 @@ cb-lcars-multimeter-card:
                       min: 1
                       mode: box
             - controls:
-                - label: "Gauge: Match Entity Color"
+                - label: "Gauge: Match Entity Colour"
                   configValue: "variables.entity_match_gauge"
                   type: Selector
                   selector:
                     boolean:
             - type: Section
-              label: "Gauge Colors"
+              label: "Gauge Colours"
               visibilityCondition: "this._config.variables.entity_match_gauge === false"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette"
+              icon: "mdi:select-color"
               noCollapse: false
               expanded: false
               rows:
@@ -6338,7 +6812,7 @@ cb-lcars-multimeter-card:
                       mode: box
                 - label: "Slider: Step Size"
                   configValue: "variables._slider_step"
-                  helper: "The amount the slider will increment/decrement with each step."
+                  helper: "Slider increment/decrement value."
                   type: Selector
                   selector:
                     number:
@@ -6347,27 +6821,60 @@ cb-lcars-multimeter-card:
                       step: 1
                       mode: box
             - controls:
-                - label: "Slider: Match Entity Color"
-                  configValue: "variables.entity_match_slider"
+                - label: "Show Thumb Control"
+                  configValue: "variables.slider.thumb.enabled"
                   type: Selector
                   selector:
                     boolean:
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - label: "Thumb: Size"
+                  configValue: "variables.slider.thumb.height"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
+                  helper: "The slider's thumb control size."
+                  type: Selector
+                  selector:
+                    number:
+                      min: 1
+                      max: 50
+                      step: 1
+                      mode: box
+                      unit_of_measurement: "px"
+                - label: "Thumb: Border Radius"
+                  configValue: "variables.slider.thumb.border.radius"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
+                  helper: "The curvature of the thumb control."
+                  type: Selector
+                  selector:
+                    number:
+                      min: 1
+                      max: 100
+                      step: 1
+                      mode: box
+                      unit_of_measurement: "%"
             - type: Section
-              label: "Slider Colors"
-              visibilityCondition: "this._config.variables.entity_match_slider === false"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:tune-variant"
+              icon: "mdi:select-color"
               noCollapse: false
               expanded: true
               rows:
+                - controls:
+                    - label: "Slider: Match Entity Colour"
+                      configValue: "variables.entity_match_slider"
+                      type: Selector
+                      selector:
+                        boolean:
                 - type: Section
                   label: "Slider"
+                  visibilityCondition: "this._config.variables.entity_match_slider === false"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:border-right-variant"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -6383,10 +6890,11 @@ cb-lcars-multimeter-card:
 
                 - type: Section
                   label: "Slider Border"
+                  visibilityCondition: "this._config.variables.entity_match_slider === false"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
-                  icon: "mdi:border-none-variant"
+                  icon: "mdi:select-color"
                   noCollapse: false
                   rows:
                     - type: ControlRow
@@ -6399,6 +6907,44 @@ cb-lcars-multimeter-card:
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider.border_color"
+                - type: Section
+                  label: "Thumb"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:border-none-variant"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.slider.thumb.color"
+                        - <<: *colorControl
+                          configValue: "variables.slider.thumb.color"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.slider.thumb.color"
+                - type: Section
+                  label: "Thumb Border"
+                  visibilityCondition: "this._config.variables.slider?.thumb?.enabled === true"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:border-none-variant"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.slider.thumb.border.color"
+                        - <<: *colorControl
+                          configValue: "variables.slider.thumb.border.color"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.slider.thumb.border.color"
     - label: "Slider Mode"
       visibilityCondition: "this._config.variables._mode === 'slider'"
       content:
@@ -6411,12 +6957,29 @@ cb-lcars-multimeter-card:
           headerLevel: 4
           icon: "mdi:tune-variant"
           rows:
+            - type: ControlRow
+              cssClass: "form-row two-controls"
+              controls:
+                - label: "Slider: Min"
+                  configValue: "variables._min"
+                  type: Selector
+                  selector:
+                    number:
+                      step: 1
+                      mode: box
+                - label: "Slider: Max"
+                  configValue: "variables._max"
+                  type: Selector
+                  selector:
+                    number:
+                      step: 1
+                      mode: box
             - type: Section
               label: "Size & Shape"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:format-size"
+              icon: "mdi:shape-square-rounded-plus"
               noCollapse: false
               expanded: true
               rows:
@@ -6461,16 +7024,16 @@ cb-lcars-multimeter-card:
                           step: 1
                           mode: slider
             - type: Section
-              label: "Colors"
+              label: "Colours"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:palette"
+              icon: "mdi:select-color"
               noCollapse: false
               expanded: false
               rows:
                 - controls:
-                    - label: "Gradient: Match [Left/Top] to Entity Color"
+                    - label: "Gradient: Match [Left/Top] to Entity Colour"
                       configValue: "variables.entity_match_slider_start"
                       type: Selector
                       selector:
@@ -6495,7 +7058,7 @@ cb-lcars-multimeter-card:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider_track.gradient_start_color"
                 - controls:
-                    - label: "Gradient: Match [Right/Bottom] to Entity Color"
+                    - label: "Gradient: Match [Right/Bottom] to Entity Colour"
                       configValue: "variables.entity_match_slider_end"
                       type: Selector
                       selector:
@@ -6519,3 +7082,14 @@ cb-lcars-multimeter-card:
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider_track.gradient_end_color"
+    - <<: *animationsTab
+    - <<: *dataCascadeTab
+    - <<: *pulsewaveTab
+    - <<: *gridBgTab
+    - <<: *geoArrayTab
+  css:
+    mergeUserStyles: true
+    cssText: |
+      .form-control {
+        padding: 2px 8px 2px 8px;
+      }

@@ -23,7 +23,7 @@ cb-lcars-symbiont:
   styles:
     custom_fields:
       symbiont:
-        - z-index: 1
+        - z-index: 3
         - visibility: |
             [[[
               return (variables.symbiont.enabled) ? 'visible' : 'hidden';
@@ -128,7 +128,7 @@ cb-lcars-symbiont:
 
               let textHostStyle = variables.symbiont.text.imprint_from || 'label';
 
-              let textColor = variables.text[textHostStyle].color[cblcars_state] || variables.text[textStyle].color.default;
+              let textColor = variables.text[textHostStyle].color[cblcars_state] || variables.text[textHostStyle].color.default;
               let fontSize = variables.text[textHostStyle].font_size;
               let fontFamily = variables.text[textHostStyle].font_family;
 

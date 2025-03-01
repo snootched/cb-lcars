@@ -31,7 +31,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-    - [Breaking Changes (Coming from _original_ project)](#breaking-changes-coming-from-original-project)
+    - [Breaking Changes (Coming from _original_ project prior to Jan 2025)](#breaking-changes-coming-from-original-project-prior-to-jan-2025)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -55,7 +55,7 @@ Functionality and configurations may change over time until stabilized.  Things 
     - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
 - [Animations and Effects](#animations-and-effects)
   - [Custom Animations](#custom-animations)
-    - [Data Cascade](#data-cascade)
+    - [Data Cascade \& GEO Array](#data-cascade--geo-array)
     - [Pulsewave](#pulsewave)
 - [Screenshots](#screenshots)
       - [Button Samples](#button-samples)
@@ -73,6 +73,8 @@ Functionality and configurations may change over time until stabilized.  Things 
 
 
 # Installation - Make it so!
+
+[![Open your Home Assistant instance and show the add repository dialog with a specific repository URL.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=snootched&repository=cb-lcars)
 
 
 > :dizzy: tl;dr: Express Startup Sequence
@@ -103,7 +105,6 @@ The following should be installed and working in your Home Assistant instance - 
 | [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | CB-LCARS requires card-mod for using the _host imprint_ feature on symbiont cards.  It is also required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
 | | |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
-|  [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) | Optional | Provides ability to use a Hue-style light and scene control popup card over the native HA light controls. |
 
 
 
@@ -154,7 +155,7 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
-### Breaking Changes (Coming from _original_ project)
+### Breaking Changes (Coming from _original_ project prior to Jan 2025)
 
 If you have used the original versions of CB-LCARS whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
 
@@ -447,15 +448,17 @@ Settings are available in the UI editor.
   - Size
   - Count (number of subticks per segement)
 - Ranges: now supporting background colors set with ranges
+- Picard style option in vertical mode
 
 ![cb-lcars-multimeter](images/screenshots/multimeter.gif)
+![multimeter-picard](images/screenshots/cb-lcars-multimeter-picard-samples-1.gif)
 
 #### Ranges
 
 Background color in gauge mode can be segmented into ranges.
 This can currently be done in the yaml configuration of multimeter.
 
-!['multimeter-range'](images/button_samples/cb-lcars-multimeter-ranges.png)
+!['multimeter-range'](images/button_samples/cb-lcars-multimeter-ranges.png) !['multimeter-picard-range'](images/button_samples/cb-lcars-multimeter-picard-ranges.png)
 
 ```yaml
 type: custom:cb-lcars-multimeter-card
@@ -529,6 +532,7 @@ For those that really want to tinker - see below :)
 | [`cb-lcars-animation-cascade`](src/cb-lcars/cb-lcars-animation-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 | [`cb-lcars-animation-pulsewave`](src/cb-lcars/cb-lcars-animation-pulsewave.yaml) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
 [`cb-lcars-animation-bg-grid`](src/cb-lcars/cb-lcars-animation-bg-grid.yaml) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
+[`cb-lcars-animation-geo-array`](src/cb-lcars/cb-lcars-animation-geo-array.yaml) | Can be used as an inset animation recreating some of the LCARS panel effects.  Animations are similar to Data Cascade ![cb-lcars-animation-geo-array](images/screenshots/cb-lcars-geo-array-samples-1.gif) |
 
 
 ## Custom Animations
@@ -542,7 +546,7 @@ Examples are below.  More details to come, but for now know:
 - Available for Data Cascade and Pulsewave
 - Embedded variables are not currently supported
 
-### Data Cascade
+### Data Cascade & GEO Array
 ```yaml
 template:
   - cb-lcars-animation-cascade

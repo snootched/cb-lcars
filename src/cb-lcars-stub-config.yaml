@@ -32,6 +32,8 @@ cb-lcars-elbow-card:
 cb-lcars-dpad-card:
   enable_resize_observer: true
 cb-lcars-multimeter-card:
+  template:
+    - cb-lcars-animation-geo-array
   enable_resize_observer: true
   variables:
     entity_match_header: false
@@ -42,19 +44,21 @@ cb-lcars-multimeter-card:
     _mode: gauge
     _vertical: false
     _slider_mode: brightness
-    card:
-      border:
-        left:
-          size: 120
-        top:
-          size: 10
     gauge:
       sub_meter:
         show_sub_meter: true
+      range:
+        enabled: true
     slider_track:
       bar_thickness: 10
       gap: 5
       bar_border_radius: 0
+    animation:
+      geo_array:
+        animation_axis: col
+        grid:
+          num_cols: 3
+          num_rows: 1
   tap_action:
     action: toggle
   double_tap_action:

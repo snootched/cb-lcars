@@ -127,6 +127,7 @@ cb-lcars-base:
     animation:
       justify_content: center
       align_items: center
+      transform_origin: center
   show_label: false
   show_state: false
   show_units: true
@@ -298,6 +299,24 @@ cb-lcars-base:
         - justify-content: |
             [[[
               return variables.animation.justify_content || 'center';
+            ]]]
+        - transform: |
+            [[[
+              if (variables.animation?.transform?.advanced) {
+                return variables.animation.transform.advanced;
+              }
+              const transform = variables.animation.transform || {};
+              const transforms = [];
+              if (transform.scale !== undefined) transforms.push(`scale(${transform.scale})`);
+              if (transform.rotate !== undefined) transforms.push(`rotate(${transform.rotate}deg)`);
+              if (transform.translate_x !== undefined) transforms.push(`translateX(${transform.translate_x}%)`);
+              if (transform.translate_y !== undefined) transforms.push(`translateY(${transform.translate_y}%)`);
+              if (transform.skew !== undefined) transforms.push(`skew(${transform.skew}deg)`);
+              return transforms.length > 0 ? transforms.join(' ') : 'none';
+            ]]]
+        - transform-origin: |
+            [[[
+                return (variables.animation?.transform_origin) ? variables.animation.transform_origin : 'center';
             ]]]
         - filter: |
             [[[
