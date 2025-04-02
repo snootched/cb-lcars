@@ -63,6 +63,7 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
       - [Room Selector with Sliders for Lights](#room-selector-with-sliders-for-lights)
     - [Some Dashboard possibilities...](#some-dashboard-possibilities)
+  - [Example: Tablet Dashboard](#example-tablet-dashboard)
 - [Acknowledgements \& Thanks](#acknowledgements--thanks)
 - [License](#license)
 
@@ -685,6 +686,25 @@ Below are screenshots and snippets of potential variations of the controls.
 <br>
 
 ![dashboard_3](images/screenshots/dashboard_sample_3.png)
+
+## Example: Tablet Dashboard
+
+Example of a WIP dasboard sized for a Samsung Tab A9.
+
+This makes use of custom layouts to create the main dashboard with a header bar, left sidebar, footer bar, and a content area.
+
+The left sidebar uses an `input_select` helper to specify which 'page' is to be displayed in the content area.  Then conditions are used to show/hide the panes of the content.
+
+Source: [`dashboard-tablet.yaml`](examples/dashboard-tablet.yaml)
+
+![tablet_home](images/screenshots/dashboard_tablet_home.png)
+
+![tablet_lights](images/screenshots/dashboard_tablet_lights.png)
+
+![tablet_environmental](images/screenshots/dashboard_tablet_environmental.png)
+
+![tablet_security](images/screenshots/dashboard_tablet_security.png)
+
 
 ---
 
