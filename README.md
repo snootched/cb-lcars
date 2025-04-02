@@ -57,13 +57,14 @@ Functionality and configurations may change over time until stabilized.  Things 
   - [Custom Animations](#custom-animations)
     - [Data Cascade \& GEO Array](#data-cascade--geo-array)
     - [Pulsewave](#pulsewave)
-- [Screenshots](#screenshots)
-      - [Button Samples](#button-samples)
-      - [Sliders/Gauges](#slidersgauges)
-      - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
-      - [Room Selector with Sliders for Lights](#room-selector-with-sliders-for-lights)
-    - [Some Dashboard possibilities...](#some-dashboard-possibilities)
+- [Screenshots and Examples](#screenshots-and-examples)
   - [Example: Tablet Dashboard](#example-tablet-dashboard)
+  - [Example: Room Selector with Multimeter Light Controls](#example-room-selector-with-multimeter-light-controls)
+  - [Control Samples](#control-samples)
+    - [Button Samples](#button-samples)
+    - [Sliders/Gauges](#slidersgauges)
+    - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
+  - [Some Dashboard possibilities...](#some-dashboard-possibilities)
 - [Acknowledgements \& Thanks](#acknowledgements--thanks)
 - [License](#license)
 
@@ -635,57 +636,11 @@ TODOs:
 
 ---
 
-# Screenshots
+# Screenshots and Examples
 
-Below are screenshots and snippets of potential variations of the controls.
-
-#### Button Samples
-
-![picard-button-1](images/screenshots/picard-button-1.png)
-![picard-button-1-off](images/screenshots/picard-button-1-off.png)
-![picard-button-2](images/screenshots/picard-button-2.png)
-![picard-button-2-off](images/screenshots/picard-button-2-off.png)
-![lozenge-button-1](images/screenshots/lozenge-button-1.png)
-![lozenge-button-1-off](images/screenshots/lozenge-button-1-off.png)
-![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)
-![button-grid-1](images/screenshots/button-grid-1.png)
-![button-grid-2](images/screenshots/button-grid-2.png)
-![icon-gird-1](images/screenshots/icon-grid-1.png)
-
-
-
-#### Sliders/Gauges
-
-![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png) ![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
-
-![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)
-
-![multimeter-1](images/screenshots/multimeter-1.png)
-
-
-
-#### Row of sliders (Transporter controls? :grin:)
-
-![dashboard_light_sliders](images/screenshots/dashboard_light_sliders.png)
-
-#### Room Selector with Sliders for Lights
-![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
-
-### Some Dashboard possibilities...
-
-![dashboard_1](images/screenshots/dashboard_sample_1.png)
+Below are some example dashboards and controls.  Also a collection of screenshots and snippets of potential variations of the controls.
 
 <br>
-
-![dashboard_2](images/screenshots/dashboard_sample_2.png)
-
-<br>
-
-![dashboard_red_alert_1](images/screenshots/dashboard_sample_red_alert_1.png)
-
-<br>
-
-![dashboard_3](images/screenshots/dashboard_sample_3.png)
 
 ## Example: Tablet Dashboard
 
@@ -705,6 +660,73 @@ Source: [`dashboard-tablet.yaml`](examples/dashboard-tablet.yaml)
 
 ![tablet_security](images/screenshots/dashboard_tablet_security.png)
 
+## Example: Room Selector with Multimeter Light Controls
+
+Example of a custom controls panel that has a room selector sidebar (similar to the tablet dashboard example using `input_select` helpers.)
+
+Each room then has a grid of multimeter controls for the lights in each room.
+
+For fun, the small block to the right of each room button will change colour to match the entity colour for the room's light group.
+
+This example shows now to use the base card as a canvas and add more cards on top.  This code can be condensed if desired using things like the custom template card - and there are probably many otherways to get the same results.
+
+Source: [`lightselector.yaml`](examples/lightselector.yaml)
+
+
+![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
+
+![dashboard_lightselector_1](images/screenshots/dashboard_lightselector_1.png)
+
+![dashboard_lightselector_2](images/screenshots/dashboard_lightselector_2.png)
+
+
+## Control Samples
+
+### Button Samples
+
+![picard-button-1](images/screenshots/picard-button-1.png)
+![picard-button-1-off](images/screenshots/picard-button-1-off.png)
+![picard-button-2](images/screenshots/picard-button-2.png)
+![picard-button-2-off](images/screenshots/picard-button-2-off.png)
+![lozenge-button-1](images/screenshots/lozenge-button-1.png)
+![lozenge-button-1-off](images/screenshots/lozenge-button-1-off.png)
+![cb-lcars-button-grid](images/button_samples/cb-lcars-button-grid.png)
+![button-grid-1](images/screenshots/button-grid-1.png)
+![button-grid-2](images/screenshots/button-grid-2.png)
+![icon-gird-1](images/screenshots/icon-grid-1.png)
+
+
+
+### Sliders/Gauges
+
+![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png) ![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
+
+![cb-lcars-multimeter](images/button_samples/cb-lcars-multimeter.png)
+
+![multimeter-1](images/screenshots/multimeter-1.png)
+
+
+
+### Row of sliders (Transporter controls? :grin:)
+
+![dashboard_light_sliders](images/screenshots/dashboard_light_sliders.png)
+
+
+## Some Dashboard possibilities...
+
+![dashboard_1](images/screenshots/dashboard_sample_1.png)
+
+<br>
+
+![dashboard_2](images/screenshots/dashboard_sample_2.png)
+
+<br>
+
+![dashboard_red_alert_1](images/screenshots/dashboard_sample_red_alert_1.png)
+
+<br>
+
+![dashboard_3](images/screenshots/dashboard_sample_3.png)
 
 ---
 
