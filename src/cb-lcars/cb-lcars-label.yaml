@@ -1,4 +1,5 @@
 cb-lcars-label:
+  enable_resize_observer: true
   template:
     - cb-lcars-base
   show_label: true

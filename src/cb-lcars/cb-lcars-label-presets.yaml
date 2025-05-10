@@ -3,6 +3,90 @@ cb-lcars-label-picard:
     - cb-lcars-label
   show_label: true
   variables:
+    label: LCARS Label
+    card:
+      border:
+        right:
+          size: 10%
+        left:
+          size: 10%
+        top:
+          left_radius: null
+          right_radius: null
+        bottom:
+          left_radius: null
+          right_radius: null
+    text:
+      label:
+        justify: flex-end
+        font_size: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.height);
+          ]]]
+        font_weight: 100
+        color:
+          default: var(--picard-yellow)
+        padding:
+          right: 10
+          left: 10
+          bottom: 8
+      name:
+        justify: flex-end
+        font_size: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.height);
+          ]]]
+        font_weight: 100
+        color:
+          default: var(--picard-yellow)
+        padding:
+          right: 10
+          left: 10
+          bottom: 8
+      state:
+        justify: flex-end
+        font_size: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.height);
+          ]]]
+        font_weight: 100
+        color:
+          default: var(--picard-yellow)
+        padding:
+          right: 10
+          left: 10
+          bottom: 8
+  styles:
+    card:
+      - background: |
+          [[[
+            return (variables.card.border.color || variables.card.color.default);
+          ]]]
+      - border: none
+    label:
+      - background: black
+      - width: null
+      - outline-width: 0
+      - border: none
+      - margin-left: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.border.left.size);
+          ]]]
+      - margin-right: |
+          [[[
+            return variables.__get_num_with_unit(variables.card.border.right.size);
+          ]]]
+      - left: null
+      - top: null
+      - justify-self: |
+          [[[
+            return (variables.text.label.justify);
+          ]]]
+cb-lcars-label-picard-old:
+  template:
+    - cb-lcars-label
+  show_label: true
+  variables:
     label: LCARS LABEL
     text:
       label:
