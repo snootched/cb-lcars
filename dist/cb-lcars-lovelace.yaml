@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.05.1-alpha.1
+  version: 2025.05.1-alpha.2
   manage_config: true
 cblcars_card_templates:
   cb-lcars-header-base:
