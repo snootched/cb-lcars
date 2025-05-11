@@ -57,12 +57,14 @@ Functionality and configurations may change over time until stabilized.  Things 
   - [Custom Animations](#custom-animations)
     - [Data Cascade \& GEO Array](#data-cascade--geo-array)
     - [Pulsewave](#pulsewave)
-- [Screenshots](#screenshots)
-      - [Button Samples](#button-samples)
-      - [Sliders/Gauges](#slidersgauges)
-      - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
-      - [Room Selector with Sliders for Lights](#room-selector-with-sliders-for-lights)
-    - [Some Dashboard possibilities...](#some-dashboard-possibilities)
+- [Screenshots and Examples](#screenshots-and-examples)
+  - [Example: Tablet Dashboard](#example-tablet-dashboard)
+  - [Example: Room Selector with Multimeter Light Controls](#example-room-selector-with-multimeter-light-controls)
+  - [Control Samples](#control-samples)
+    - [Button Samples](#button-samples)
+    - [Sliders/Gauges](#slidersgauges)
+    - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
+  - [Some Dashboard possibilities...](#some-dashboard-possibilities)
 - [Acknowledgements \& Thanks](#acknowledgements--thanks)
 - [License](#license)
 
@@ -634,11 +636,53 @@ TODOs:
 
 ---
 
-# Screenshots
+# Screenshots and Examples
 
-Below are screenshots and snippets of potential variations of the controls.
+Below are some example dashboards and controls.  Also a collection of screenshots and snippets of potential variations of the controls.
 
-#### Button Samples
+<br>
+
+## Example: Tablet Dashboard
+
+Example of a WIP dasboard sized for a Samsung Tab A9.
+
+This makes use of custom layouts to create the main dashboard with a header bar, left sidebar, footer bar, and a content area.
+
+The left sidebar uses an `input_select` helper to specify which 'page' is to be displayed in the content area.  Then conditions are used to show/hide the panes of the content.
+
+Source: [`dashboard-tablet.yaml`](examples/dashboard-tablet.yaml)
+
+![tablet_home](images/screenshots/dashboard_tablet_home.png)
+
+![tablet_lights](images/screenshots/dashboard_tablet_lights.png)
+
+![tablet_environmental](images/screenshots/dashboard_tablet_environmental.png)
+
+![tablet_security](images/screenshots/dashboard_tablet_security.png)
+
+## Example: Room Selector with Multimeter Light Controls
+
+Example of a custom controls panel that has a room selector sidebar (similar to the tablet dashboard example using `input_select` helpers.)
+
+Each room then has a grid of multimeter controls for the lights in each room.
+
+For fun, the small block to the right of each room button will change colour to match the entity colour for the room's light group.
+
+This example shows now to use the base card as a canvas and add more cards on top.  This code can be condensed if desired using things like the custom template card - and there are probably many otherways to get the same results.
+
+Source: [`lightselector.yaml`](examples/lightselector.yaml)
+
+
+![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
+
+![dashboard_lightselector_1](images/screenshots/dashboard_lightselector_1.png)
+
+![dashboard_lightselector_2](images/screenshots/dashboard_lightselector_2.png)
+
+
+## Control Samples
+
+### Button Samples
 
 ![picard-button-1](images/screenshots/picard-button-1.png)
 ![picard-button-1-off](images/screenshots/picard-button-1-off.png)
@@ -653,7 +697,7 @@ Below are screenshots and snippets of potential variations of the controls.
 
 
 
-#### Sliders/Gauges
+### Sliders/Gauges
 
 ![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png) ![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
 
@@ -663,14 +707,12 @@ Below are screenshots and snippets of potential variations of the controls.
 
 
 
-#### Row of sliders (Transporter controls? :grin:)
+### Row of sliders (Transporter controls? :grin:)
 
 ![dashboard_light_sliders](images/screenshots/dashboard_light_sliders.png)
 
-#### Room Selector with Sliders for Lights
-![dashboard_light_grid](images/screenshots/dashboard_light_grid.png)
 
-### Some Dashboard possibilities...
+## Some Dashboard possibilities...
 
 ![dashboard_1](images/screenshots/dashboard_sample_1.png)
 

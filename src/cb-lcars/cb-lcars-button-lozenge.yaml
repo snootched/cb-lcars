@@ -9,6 +9,12 @@ cb-lcars-button-lozenge:
         bottom:
           left_radius: null
           right_radius: null
+    icon:
+      border:
+        left:
+          padding: 0px
+        right:
+          padding: 3px
 cb-lcars-button-lozenge-right:
   template: cb-lcars-button-lozenge
   variables:
@@ -23,12 +29,8 @@ cb-lcars-button-lozenge-right:
       justify: right
       border:
         left:
-          size: 6px
           color: black
-          padding: 1.0%
-          margin: 0
+          padding: 3px
         right:
-          size: 6px
           color: transparent
-          padding: 1.0%
-          margin: null
+          padding: 3px

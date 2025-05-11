@@ -324,6 +324,7 @@ cb-lcars-multimeter:
         [[[ return (variables._vertical) ?
         variables.__get_num_with_unit(variables._slider_thickness) :
         variables.__get_num_with_unit(variables.card.width) ]]]
+      picard_right: 35
       color: |
         [[[ return  variables.entity_match_slider ? variables.entity_color :
         "var(--picard-lightest-blue)" ]]]
@@ -2362,7 +2363,7 @@ cb-lcars-multimeter:
 
         if (variables._mode === 'gauge') {
           const leftStyle = (variables._gauge_style == 'picard' && isVertical) ? 'unset' : (isVertical ? sliderPaddingTop : sliderPaddingLeft);
-          const rightStyle = (variables._gauge_style == 'picard' && isVertical) ? '35px' : 'unset';
+          const rightStyle = (variables._gauge_style == 'picard' && isVertical) ? variables.__get_num_with_unit(variables.slider.picard_right) : 'unset';
 
           let thumbBorderStyle = variables.__get_num_with_unit(thumbBorderSize) + " solid " + thumbBorderColor;
 
@@ -2488,7 +2489,7 @@ cb-lcars-multimeter:
                 ]]]
             - right: |-
                 [[[
-                  return (variables._vertical && variables._gauge_style == 'picard') ? "35px" : "";
+                  return (variables._vertical && variables._gauge_style == 'picard') ? variables.__get_num_with_unit(variables.slider.picard_right) : "";
                 ]]]
           thumb:
             - visibility: |
