@@ -6279,8 +6279,6 @@ cb-lcars-label-card:
                           label: 'Standard Label'
                         - value: 'cb-lcars-label-picard'
                           label: 'Picard Label'
-                        - value: 'cb-lcars-animation-cascade'
-                          label: 'Data Cascade'
                 - type: Message
                   alertType: info
                   message: "Optional: Select an entity to enable state specific colours."
