@@ -6275,10 +6275,16 @@ cb-lcars-label-card:
                     select:
                       mode: dropdown
                       options:
+                        - value: 'cb-lcars-label-picard'
+                          label: 'Picard Label [square]'
+                        - value: 'cb-lcars-label-picard-lozenge'
+                          label: 'Picard Label [lozenge]'
+                        - value: 'cb-lcars-label-picard-bullet'
+                          label: 'Picard Label [bullet]'
+                        - value: 'cb-lcars-label-picard-bullet-right'
+                          label: 'Picard Label [bullet right]'
                         - value: 'cb-lcars-label'
                           label: 'Standard Label'
-                        - value: 'cb-lcars-label-picard'
-                          label: 'Picard Label'
                 - type: Message
                   alertType: info
                   message: "Optional: Select an entity to enable state specific colours."
