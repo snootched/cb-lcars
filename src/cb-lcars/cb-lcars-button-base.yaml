@@ -115,7 +115,6 @@ cb-lcars-button-base:
       - display: flex
       - align-items: center
       - justify-content: left
-      - height: '[[[ return variables.card.height || variables.card.min_height; ]]]'
       - border-left: >-
           [[[ return variables.icon.border.left.color + " solid " +
           variables.icon.border.left.size ]]]
@@ -123,7 +122,9 @@ cb-lcars-button-base:
           [[[ return variables.icon.border.right.color + " solid " +
           variables.icon.border.right.size ]]]
       - '--mdc-icon-size': '[[[ return variables.icon.size; ]]]'
-      - margin-left: '[[[ return variables.icon.border.left.margin ]]]'
-      - margin-right: '[[[ return variables.icon.border.right.margin ]]]'
-      - padding-left: '[[[ return variables.icon.border.left.padding ]]]'
-      - padding-right: '[[[ return variables.icon.border.right.padding ]]]'
+      - margin-left: '[[[ return variables.__get_num_with_unit(variables.icon.border.left.margin) ]]]'
+      - margin-right: '[[[ return variables.__get_num_with_unit(variables.icon.border.right.margin) ]]]'
+      - padding-left: '[[[ return variables.__get_num_with_unit(variables.icon.border.left.padding) ]]]'
+      - padding-right: '[[[ return variables.__get_num_with_unit(variables.icon.border.right.padding) ]]]'
+      - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
+      - width: "[[[ return variables.__get_num_with_unit(variables.icon.size); ]]]"
