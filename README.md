@@ -31,7 +31,6 @@ Functionality and configurations may change over time until stabilized.  Things 
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-    - [Breaking Changes (Coming from _original_ project prior to Jan 2025)](#breaking-changes-coming-from-original-project-prior-to-jan-2025)
 - [Overview](#overview)
     - [What is this?](#what-is-this)
     - [What it isn't...](#what-it-isnt)
@@ -54,9 +53,6 @@ Functionality and configurations may change over time until stabilized.  Things 
   - [LCARS DPAD](#lcars-dpad)
     - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
 - [Animations and Effects](#animations-and-effects)
-  - [Custom Animations](#custom-animations)
-    - [Data Cascade \& GEO Array](#data-cascade--geo-array)
-    - [Pulsewave](#pulsewave)
 - [Screenshots and Examples](#screenshots-and-examples)
   - [Example: Tablet Dashboard](#example-tablet-dashboard)
   - [Example: Room Selector with Multimeter Light Controls](#example-room-selector-with-multimeter-light-controls)
@@ -157,40 +153,6 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 <br>
 
-### Breaking Changes (Coming from _original_ project prior to Jan 2025)
-
-If you have used the original versions of CB-LCARS whereby you had to copy the button card templates from github into your lovelace dashboard yaml code - you _will_ run into errors with the latest versions.
-
-If you can - it's advisable to start with a fresh dashboard.
-
-<br>
-
-<details closed><summary>To Retrofit</summary>
-If you choose to retrofit an existing dashboard, it is necessary to remove those old templates from your dashboard file, and update any card configs that are broken by variable changes.
-
-The old `cblcars_card_templates:` should no longer be in your dashboard file (unless you are _intentially_ trying to override the templates that come with the distribution)
-
-```yaml
-cblcars_card_templates:      <-- this section should be removed
-  template_name:
-```
-
-Card config structure also changed slightly from original.
-Everything that was in `cblcars_card_config:` section, has been moved up one level.
-
-```yaml
-cblcars_card_config:
-  variables:
-    label: "my label"
-
-would become:
-
-variables:
-  label: "my label"
-```
-If you are coming from previous version and run into any quirks - please try on a blank dashboard to see if it resolves it.
-</details>
-
 ---
 
 <br>
@@ -198,55 +160,36 @@ If you are coming from previous version and run into any quirks - please try on 
 #  Overview
 
 ### What is this?
-This is a set of custom cards to build yourself an LCARS-inspired Home Assistant dashboard.
 
-These cards are built upon `custom-button-card` with some enhancements to base function and internal template management.
+CB-LCARS is a collection of custom cards for Home Assistant, inspired by the iconic LCARS interface from Star Trek. Build your own starship-style dashboard with authentic controls and animations.
 
-<br>
+- Built on top of `custom-button-card` with enhanced features and internal template management.
+- Designed to work seamlessly with the [ha-lcars-theme](https://github.com/th3jesta/ha-lcars).
+- Includes LCARS-style elements: buttons, sliders/gauges, elbows, d-pad, and a growing library of animated effects.
+- Optimized for HA 'Sections' or grid layouts—your dashboard, your bridge.
+- Open to collaboration—suggestions and away team contributions welcome!
+- WIP: Boldly going where no dashboard has gone before.
 
-- Inspired by, and meant to be used side-by-side with the amazing [ha-lcars-theme](https://github.com/th3jesta/ha-lcars)
-- Provides a (growing) library of elements found in LCARS interfaces like:
-  - Buttons
-  - Sliders/Guages
-  - 'Elbows'
-  - That d-pad thing
-  - Animations
-  - etc.
-- Designed with HA 'Sections' or other grid layouts in mind.  YMMV with other layouts.
-- Collaborative - There are likely way better ways of doing some things - open to any and all suggestions, comments, etc.
-- WIP - learn, break, iterate (and probably break again.)
 <br>
 
 ### What it isn't...
 
-- This is not a standalone theme - it provides lovelace dashboard cards.
-<br>The intention is to use [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) to provide the base theme styles, color variables, etc.
-- It is not a fully standalone set of components (at present.)<br>
-For some controls you need to install other cards from HACS (all requirements listed below)
-- Professional work.<br>As this is my first crack at an HA custom card - it's a WIP and as I learn, updates and optimaztions will be made.  Hobbyist here, not a pro.
-- A complete set of bugless components to fit every use-case you can imagine.  Maybe in the next-class starship :P
-
+- Not a standalone theme—pair with [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
+- Not fully standalone—some controls require other HACS cards (see requirements).
+- Not a finished Starfleet-grade product—this is a hobby project, so expect some tribbles (bugs).
 
 <br>
 
-
 ### What can be done...
 
+- Highly customizable: colors, fonts, icons, gradients, and more—make it your own starship.
+- Dynamic styles based on entity state (shields up, red alert, etc.).
+- Controls can match entity colors (lights, sensors, and more).
+- Supports authentic LCARS animations, button effects, and blinking.
+- Generate random LCARS-style button labels (hex numbers, stardates, etc.).
+- Unique features: "Symbiont" mode lets you imprint LCARS styling onto other cards, and advanced animation templates like Data Cascade and Pulsewave.
 
-In no particular ordeer:
-- Customizable variables/settings for just about everything:
-   - default colors / per-instance colors
-   - colors based on entity state
-   - font sizes/weights
-   - text positions
-   - full icon customization
-   - gradients for sliders with automatice step and shade calculations
-   - really too much to list - you can customize just about anything you like
-- Matching control colors to the light entity (buttons, sliders, gradients, etc.)
-- Additional 'flare' such as animations, button presses, blinking buttons
-- Automatic 'random' button labels in LCARS style (hex numbers)
-- Optional: invocation of [lovelace-hue-like-light-card](https://github.com/Gh61/lovelace-hue-like-light-card) popups for light and scene controls
-
+<br>
 
 ---
 
@@ -265,7 +208,6 @@ State styles can be applied to components such as:
 - Buttons
 - etc.
 
-
 | Entity State Value           |  State Variable Name   |
 |------------------------------|------------------------|
 | N/A - no entity assigned     | `default:`             |
@@ -277,6 +219,7 @@ State styles can be applied to components such as:
 | `cool` (hvac/climate entity) | `hvac_cool:`           |
 | `unavailable` `unkown`       | `unavailable:`         |
 
+Tip: when using Light entities, you can choose to yave your colour match the light's current colour.  You can choose this from the colour picker list, or by using the variable `var(--custom-button-light-color)`
 
 Example of configuration (editiable via UI):
 ```yaml
@@ -508,129 +451,22 @@ variables:
 
 ![cb-lcars-dpad](images/screenshots/dpad.gif)
 
-TODOs:
-- update/remove ripple effect
-- add 'match entity color' for active state
-
 <br>
 
 ---
 
 # Animations and Effects
 
-The cards support a growing library of animations and effects that can be applied to the card.  Animations can appear as "backgrounds" for a card giving a really fun effect.
-
-Animations are _highly_ customizable and can be edited via UI.  Each animation has a dedicated configuration tab with details.
-
-Just about every option can be configured to create a multitude of looks from the same animation component - please explore!
-
-For those that really want to tinker - see below :)
-
+CB-LCARS includes a growing set of highly customizable animations and effects for your cards. Each animation offers extensive configuration options, accessible via the UI. For full details and usage instructions, see the dedicated documentation for each animation—just click the template links in the table below.
 
 <br>
 
 | template ||
 |----------|----------------|
-| [`cb-lcars-animation-cascade`](src/cb-lcars/cb-lcars-animation-cascade.yaml) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
-| [`cb-lcars-animation-pulsewave`](src/cb-lcars/cb-lcars-animation-pulsewave.yaml) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
-[`cb-lcars-animation-bg-grid`](src/cb-lcars/cb-lcars-animation-bg-grid.yaml) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
-[`cb-lcars-animation-geo-array`](src/cb-lcars/cb-lcars-animation-geo-array.yaml) | Can be used as an inset animation recreating some of the LCARS panel effects.  Animations are similar to Data Cascade ![cb-lcars-animation-geo-array](images/screenshots/cb-lcars-geo-array-samples-1.gif) |
-
-
-## Custom Animations
-
-<details><summary>Custom Animation Settings</summary>
-
-For some of the animations, you can provide custom pattern and keyframes definitions to the animation elements, should you desire.
-
-Examples are below.  More details to come, but for now know:
-- `custom_pattern` and `custom_keyframes` are provided as text blocks
-- Available for Data Cascade and Pulsewave
-- Embedded variables are not currently supported
-
-### Data Cascade & GEO Array
-```yaml
-template:
-  - cb-lcars-animation-cascade
-variables:
-  animation:
-    cascade:
-      pattern: custom
-      custom_pattern: |
-        [
-          { "duration": 1, "delay": 0.1 },
-          { "duration": 1.5, "delay": 0.2 },
-          { "duration": 2, "delay": 0.3 },
-          { "duration": 2.5, "delay": 0.4 },
-          { "duration": 3, "delay": 0.5 },
-          { "duration": 3.5, "delay": 0.6 },
-          { "duration": 4, "delay": 0.7 },
-          { "duration": 4.5, "delay": 0.8 }
-        ]
-      custom_keyframes: |
-        @keyframes colorchange {
-          0% {color: #ff0000}
-          25% {color: #00ff00}
-          50% {color: #0000ff}
-          75% {color: #ffff00}
-          80% {color: #ff00ff}
-          90% {color: #00ffff}
-          100% {color: #ffffff}
-        }
-```
-
-### Pulsewave
-
-```yaml
-template:
-  - cb-lcars-animation-pulsewave
-variables:
-  animation:
-    pulsewave:
-      line_angle: 15
-      scale_line_heights: true
-      pattern: custom
-      custom_pattern: |
-        [
-          "animateLine3 13s 0.2s infinite",
-          "animateLine2 13s 0.3s infinite",
-          "animateLine3 13s 0.4s infinite",
-          "animateLine3 13s 0.5s infinite",
-          "animateLine2 13s 0.6s infinite",
-          "animateLine2 13s 0.7s infinite",
-          "animateLine2 13s 0.8s infinite",
-          "animateLine1 13s 0.9s infinite",
-          "animateLine1 1s 1s infinite",
-          "animateLine2 1s 0.8s infinite",
-          "animateLine2 1s 0.7s infinite",
-          "animateLine2 1s 0.6s infinite",
-          "animateLine3 1s 0.5s infinite",
-          "animateLine3 1s 0.4s infinite",
-          "animateLine2 1s 0.3s infinite",
-          "animateLine2 1s 0.2s infinite"
-        ]
-      custom_keyframes: |
-        @keyframes animateLine1 {
-          0% { height: 50px; }
-          50% { height: 25px; }
-          100% { height: 50px; }
-        }
-        @keyframes animateLine2 {
-          0% { height: 100px; }
-          50% { height: 50px; }
-          100% { height: 100px; }
-        }
-        @keyframes animateLine3 {
-          0% { height: 75px; }
-          50% { height: 37.5px; }
-          100% { height: 75px; }
-        }
-```
-</details>
-
-TODOs:
-- add alternative text data sources (sensors?)
-
+| [`cb-lcars-animation-cascade`](doc/cb-lcars-animation-cascade.md) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
+| [`cb-lcars-animation-pulsewave`](doc/cb-lcars-animation-pulsewave.md) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
+[`cb-lcars-animation-bg-grid`](doc/cb-lcars-animation-bg-grid.md) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
+[`cb-lcars-animation-geo-array`](doc/cb-lcars-animation-geo-array.md) | Can be used as an inset animation recreating some of the LCARS panel effects.  Animations are similar to Data Cascade ![cb-lcars-animation-geo-array](images/screenshots/cb-lcars-geo-array-samples-1.gif) |
 
 
 

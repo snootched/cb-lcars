@@ -133,6 +133,14 @@ cb-lcars-base:
   show_units: true
   show_icon: false
   show_name: false
+  state_display: |
+    [[[
+      if (!entity) {
+        return 'n/a';
+      }
+      // use the custom button card helper to set state to an attribute if provided (arrays/objects are filtered out on the form)
+      return helpers.localize(entity, entity.attributes[variables.attribute],'card',this._config.show_units,this._config.units);
+    ]]]
   styles:
     img_cell:
       - justify-content: '[[[ return variables.icon.justify ]]]'

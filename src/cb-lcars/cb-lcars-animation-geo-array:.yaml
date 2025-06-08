@@ -120,7 +120,74 @@ cb-lcars-animation-geo-array:
           const animationFillMode = isFrozen ? 'forwards' : 'forwards';
           const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
 
+
           function getShapeSVG(color) {
+            switch (shape_type) {
+              case 'circle':
+                return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
+              case 'triangle':
+                return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size} 0,${shape_size}" fill="${color}" />`;
+              case 'diamond':
+                return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size / 2} ${shape_size / 2},${shape_size} 0,${shape_size / 2}" fill="${color}" />`;
+              case 'star':
+                // 5-pointed star
+                const c = shape_size / 2, r = c, r2 = r * 0.5;
+                let star = '';
+                for (let i = 0; i < 5; i++) {
+                  let angle = (18 + i * 72) * Math.PI / 180;
+                  let x = c + r * Math.cos(angle);
+                  let y = c - r * Math.sin(angle);
+                  star += `${x},${y} `;
+                  angle += 36 * Math.PI / 180;
+                  x = c + r2 * Math.cos(angle);
+                  y = c - r2 * Math.sin(angle);
+                  star += `${x},${y} `;
+                }
+                return `<polygon points="${star.trim()}" fill="${color}" />`;
+              case 'pentagon':
+                let pent = '';
+                for (let i = 0; i < 5; i++) {
+                  let angle = (54 + i * 72) * Math.PI / 180;
+                  let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
+                  let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
+                  pent += `${x},${y} `;
+                }
+                return `<polygon points="${pent.trim()}" fill="${color}" />`;
+              case 'hexagon':
+                // Centered regular hexagon, fits inside the square
+                const cx = shape_size / 2;
+                const cy = shape_size / 2;
+                const r_hex = shape_size / 2 * 0.95; // 0.95 to add a small margin
+                let hex = '';
+                for (let i = 0; i < 6; i++) {
+                  let angle = Math.PI / 6 + i * Math.PI / 3; // Start at 30deg
+                  let x = cx + r_hex * Math.cos(angle);
+                  let y = cy + r_hex * Math.sin(angle);
+                  hex += `${x},${y} `;
+                }
+                return `<polygon points="${hex.trim()}" fill="${color}" />`;
+              case 'octagon':
+                let oct = '';
+                for (let i = 0; i < 8; i++) {
+                  let angle = (22.5 + i * 45) * Math.PI / 180;
+                  let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
+                  let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
+                  oct += `${x},${y} `;
+                }
+                return `<polygon points="${oct.trim()}" fill="${color}" />`;
+              case 'ellipse':
+                return `<ellipse cx="${shape_size / 2}" cy="${shape_size / 2}" rx="${shape_size / 2}" ry="${shape_size / 3}" fill="${color}" />`;
+              case 'cross':
+                const t = shape_size / 3;
+                return `<rect x="${t}" y="0" width="${t}" height="${shape_size}" fill="${color}" />
+                        <rect x="0" y="${t}" width="${shape_size}" height="${t}" fill="${color}" />`;
+              case 'square':
+              default:
+                return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
+            }
+          }
+
+          function getShapeSVGOrig(color) {
             if (shape_type === 'circle') {
             return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
             } else {

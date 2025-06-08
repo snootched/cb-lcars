@@ -1,0 +1,498 @@
+cb-lcars-animation-presets:
+  variables:
+    animation:
+      bg_grid:
+        nebula_presets:
+          orion:
+            - color: '#FFB347'
+              cx: 50
+              cy: 52
+              rx: 55
+              ry: 45
+              opacity_stops:
+                - 0.45
+                - 0.11
+                - 0
+            - color: '#FFD700'
+              cx: 58
+              cy: 48
+              rx: 45
+              ry: 35
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#ADD8E6'
+              cx: 42
+              cy: 56
+              rx: 65
+              ry: 55
+              opacity_stops:
+                - 0.2
+                - 0.06
+                - 0
+            - color: '#FFFFFF'
+              cx: 50
+              cy: 52
+              rx: 18
+              ry: 15
+              opacity_stops:
+                - 0.15
+                - 0.04
+                - 0
+            - color: '#483D8B'
+              cx: 35
+              cy: 65
+              rx: 35
+              ry: 25
+              opacity_stops:
+                - 0.1
+                - 0.03
+                - 0
+            - color: '#8FBC8F'
+              cx: 65
+              cy: 35
+              rx: 30
+              ry: 20
+              opacity_stops:
+                - 0.18
+                - 0.05
+                - 0
+            - color: '#FFC0CB'
+              cx: 25
+              cy: 30
+              rx: 20
+              ry: 18
+              opacity_stops:
+                - 0.2
+                - 0.05
+                - 0
+            - color: '#FAF0E6'
+              cx: 75
+              cy: 70
+              rx: 28
+              ry: 22
+              opacity_stops:
+                - 0.12
+                - 0.03
+                - 0
+            - color: '#C0C0C0'
+              cx: 50
+              cy: 50
+              rx: 40
+              ry: 30
+              opacity_stops:
+                - 0.08
+                - 0.02
+                - 0
+          crab:
+            - color: '#DC143C'
+              cx: 52
+              cy: 48
+              rx: 65
+              ry: 45
+              opacity_stops:
+                - 0.6
+                - 0.15
+                - 0
+            - color: '#FFFF00'
+              cx: 48
+              cy: 52
+              rx: 35
+              ry: 30
+              opacity_stops:
+                - 0.4
+                - 0.1
+                - 0
+            - color: '#FFFFFF'
+              cx: 55
+              cy: 45
+              rx: 12
+              ry: 10
+              opacity_stops:
+                - 0.2
+                - 0.05
+                - 0
+            - color: '#4682B4'
+              cx: 40
+              cy: 60
+              rx: 75
+              ry: 55
+              opacity_stops:
+                - 0.15
+                - 0.04
+                - 0
+            - color: '#000000'
+              cx: 60
+              cy: 35
+              rx: 45
+              ry: 35
+              opacity_stops:
+                - 0.05
+                - 0.01
+                - 0
+            - color: '#FFDAB9'
+              cx: 30
+              cy: 25
+              rx: 22
+              ry: 18
+              opacity_stops:
+                - 0.18
+                - 0.04
+                - 0
+            - color: '#800080'
+              cx: 70
+              cy: 65
+              rx: 28
+              ry: 20
+              opacity_stops:
+                - 0.12
+                - 0.03
+                - 0
+            - color: '#00FFFF'
+              cx: 20
+              cy: 75
+              rx: 30
+              ry: 25
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+          cosmic_embers:
+            - color: '#FF4500'
+              cx: 40
+              cy: 50
+              rx: 55
+              ry: 55
+              opacity_stops:
+                - 0.5
+                - 0.12
+                - 0
+            - color: '#FFFFE0'
+              cx: 60
+              cy: 50
+              rx: 45
+              ry: 45
+              opacity_stops:
+                - 0.35
+                - 0.09
+                - 0
+            - color: '#8B0000'
+              cx: 45
+              cy: 50
+              rx: 18
+              ry: 22
+              opacity_stops:
+                - 0.55
+                - 0.15
+                - 0
+            - color: '#FFA07A'
+              cx: 25
+              cy: 35
+              rx: 35
+              ry: 35
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+            - color: '#FFFFFF'
+              cx: 70
+              cy: 65
+              rx: 8
+              ry: 12
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#FF8C00'
+              cx: 30
+              cy: 70
+              rx: 20
+              ry: 25
+              opacity_stops:
+                - 0.2
+                - 0.05
+                - 0
+            - color: '#F08080'
+              cx: 80
+              cy: 20
+              rx: 22
+              ry: 28
+              opacity_stops:
+                - 0.18
+                - 0.04
+                - 0
+          iridescent_drift:
+            - color: '#4682B4'
+              cx: 35
+              cy: 50
+              rx: 60
+              ry: 55
+              opacity_stops:
+                - 0.4
+                - 0.1
+                - 0
+            - color: '#DA70D6'
+              cx: 65
+              cy: 50
+              rx: 50
+              ry: 45
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#FFFF00'
+              cx: 50
+              cy: 60
+              rx: 25
+              ry: 25
+              opacity_stops:
+                - 0.45
+                - 0.11
+                - 0
+            - color: '#00CED1'
+              cx: 20
+              cy: 35
+              rx: 40
+              ry: 35
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+            - color: '#FFFAFA'
+              cx: 80
+              cy: 65
+              rx: 10
+              ry: 12
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#BA55D3'
+              cx: 75
+              cy: 25
+              rx: 22
+              ry: 28
+              opacity_stops:
+                - 0.2
+                - 0.05
+                - 0
+            - color: '#ADD8E6'
+              cx: 15
+              cy: 75
+              rx: 28
+              ry: 30
+              opacity_stops:
+                - 0.15
+                - 0.04
+                - 0
+          emerald_void:
+            - color: '#008000'
+              cx: 50
+              cy: 50
+              rx: 65
+              ry: 65
+              opacity_stops:
+                - 0.4
+                - 0.1
+                - 0
+            - color: '#90EE90'
+              cx: 52
+              cy: 52
+              rx: 75
+              ry: 75
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+            - color: '#00FF7F'
+              cx: 30
+              cy: 60
+              rx: 35
+              ry: 40
+              opacity_stops:
+                - 0.5
+                - 0.12
+                - 0
+            - color: '#3CB371'
+              cx: 70
+              cy: 40
+              rx: 30
+              ry: 35
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#F0FFF0'
+              cx: 40
+              cy: 25
+              rx: 15
+              ry: 20
+              opacity_stops:
+                - 0.35
+                - 0.09
+                - 0
+            - color: '#ADFF2F'
+              cx: 60
+              cy: 70
+              rx: 10
+              ry: 15
+              opacity_stops:
+                - 0.45
+                - 0.11
+                - 0
+            - color: '#006400'
+              cx: 20
+              cy: 30
+              rx: 20
+              ry: 25
+              opacity_stops:
+                - 0.15
+                - 0.04
+                - 0
+            - color: '#7CFC00'
+              cx: 80
+              cy: 80
+              rx: 22
+              ry: 28
+              opacity_stops:
+                - 0.2
+                - 0.05
+                - 0
+          ethereal_drift:
+            - color: '#4682B4'
+              cx: 35
+              cy: 50
+              rx: 65
+              ry: 60
+              opacity_stops:
+                - 0.35
+                - 0.09
+                - 0
+            - color: '#DA70D6'
+              cx: 65
+              cy: 50
+              rx: 55
+              ry: 50
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+            - color: '#FFFF00'
+              cx: 50
+              cy: 60
+              rx: 30
+              ry: 30
+              opacity_stops:
+                - 0.4
+                - 0.1
+                - 0
+            - color: '#00CED1'
+              cx: 20
+              cy: 35
+              rx: 40
+              ry: 35
+              opacity_stops:
+                - 0.2
+                - 0.06
+                - 0
+            - color: '#FFFAFA'
+              cx: 80
+              cy: 65
+              rx: 12
+              ry: 15
+              opacity_stops:
+                - 0.25
+                - 0.07
+                - 0
+            - color: '#BA55D3'
+              cx: 75
+              cy: 25
+              rx: 25
+              ry: 30
+              opacity_stops:
+                - 0.15
+                - 0.04
+                - 0
+            - color: '#ADD8E6'
+              cx: 15
+              cy: 75
+              rx: 30
+              ry: 35
+              opacity_stops:
+                - 0.1
+                - 0.02
+                - 0
+            - color: '#FFD700'
+              cx: 45
+              cy: 20
+              rx: 20
+              ry: 22
+              opacity_stops:
+                - 0.3
+                - 0.08
+                - 0
+            - color: '#F0F8FF'
+              cx: 90
+              cy: 40
+              rx: 18
+              ry: 20
+              opacity_stops:
+                - 0.18
+                - 0.05
+                - 0
+          aurora_nexus:
+            - color: '#FF00FF'
+              cx: 50
+              cy: 50
+              rx: 60
+              ry: 30
+              opacity_stops:
+                - 0.5
+                - 0.1
+                - 0
+            - color: '#00FFFF'
+              cx: 50
+              cy: 50
+              rx: 30
+              ry: 60
+              opacity_stops:
+                - 0.8
+                - 0.15
+                - 0
+            - color: '#FFD700'
+              cx: 50
+              cy: 50
+              rx: 50
+              ry: 25
+              opacity_stops:
+                - 0.7
+                - 0.1
+                - 0
+            - color: '#8A2BE2'
+              cx: 50
+              cy: 50
+              rx: 45
+              ry: 45
+              opacity_stops:
+                - 0.5
+                - 0.08
+                - 0
+            - color: '#FF4500'
+              cx: 50
+              cy: 50
+              rx: 25
+              ry: 50
+              opacity_stops:
+                - 0.6
+                - 0.1
+                - 0
+            - color: '#00FF99'
+              cx: 50
+              cy: 45
+              rx: 20
+              ry: 60
+              opacity_stops:
+                - 0
+                - 0.2
+                - 0

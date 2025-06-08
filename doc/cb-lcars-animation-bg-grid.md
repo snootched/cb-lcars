@@ -6,7 +6,7 @@ A highly customizable animated background grid for CB-LCARS cards, supporting mu
 
 ## Overview
 
-This template provides a flexible, animated grid background for your CB-LCARS cards. It supports rectangular, hexagonal, and diagonal grid patterns, with optional animated backgrounds such as starfields and nebulae. Both the grid and the background can be independently animated with scroll or zoom effects.
+This template provides a flexible, animated grid background for your CB-LCARS cards. It supports rectangular, hexagonal, diagonal, and bracket grid patterns, with optional animated backgrounds such as starfields and nebulae. Both the grid and the background can be independently animated with scroll or zoom effects.
 
 ---
 
@@ -35,16 +35,14 @@ All variables are set under `variables.animation.bg_grid`.
 | Variable                | Type      | Default         | Description                                                                                 |
 |-------------------------|-----------|-----------------|---------------------------------------------------------------------------------------------|
 | `direction`             | string    | `left`          | Animation direction: `left`, `right`, `up`, `down`                                          |
-| `speed`                 | number    | `30`            | Default animation speed (seconds) for scroll/zoom                                            |
+| `speed`                 | number    | `30`            | Default animation speed (seconds) for scroll/zoom                                           |
 | `background_pattern`    | string    | `none`          | Background pattern: `none`, `stars`, `nebula`, `fill`                                       |
 | `background_effect`     | string    | `auto`          | Animation effect for background: `auto`, `scroll`, `zoom`, `none`                           |
 | `background_speed`      | number    | `null`          | Speed for background animation (overrides global `speed`)                                   |
 | `background_zoom`       | object    | `{}`            | Zoom animation config for background (see below)                                            |
 | `grid_effect`           | string    | `auto`          | Animation effect for grid: `auto`, `scroll`, `zoom`, `none`                                 |
 | `grid_speed`            | number    | `null`          | Speed for grid animation (overrides global `speed`)                                         |
-| `grid_animation`        | string    | `auto`          | (Alias for `grid_effect`)                                                                   |
 | `grid_zoom`             | object    | `{}`            | Zoom animation config for grid (see below)                                                  |
-| `grid_pattern`          | string    | `rect`          | Grid pattern: `rect`, `hex`, `diagonal`                                                     |
 
 ---
 
@@ -59,16 +57,23 @@ All variables are set under `variables.animation.bg_grid`.
 | `line_width_major`   | number  | `4`     | Stroke width for major grid lines                |
 | `line_width_minor`   | number  | `1`     | Stroke width for minor grid lines                |
 | `border_lines`       | bool    | `true`  | Show border lines                                |
+| `preset`             | string  | `rect`  | Grid pattern: `rect`, `hex`, `diagonal`, `bracket`|
 | `hex_radius`         | number  | auto    | (Hex grid) Radius of hexagons                    |
+| `bracket_width`      | number  | `5`     | (Bracket grid) Width of bracket lines            |
+| `bracket_radius`     | number  | `7`     | (Bracket grid) Corner radius                     |
+| `bracket_color`      | string  | `var(--lcars-yellow)` | (Bracket grid) Bracket line color      |
+| `bracket_gap`        | number  | `35`    | (Bracket grid) Gap from edge (px)                |
+| `bracket_fill`       | string  | `rgba(128,128,128,0.08)` | (Bracket grid) Fill color between brackets |
+| `bracket_height`     | number  | `20`    | (Bracket grid) Height of brackets (px)           |
 
 ---
 
-### Color Options (`color`)
+### Colour Options (`color`)
 
 | Variable   | Type   | Default                    | Description                       |
 |------------|--------|----------------------------|-----------------------------------|
-| `line`     | string | `var(--picard-dark-gray)`  | Color for grid lines              |
-| `fill`     | string | `transparent` or user-set  | Fill color for grid cells         |
+| `line`     | string | `var(--picard-dark-gray)`  | Colour for grid lines             |
+| `fill`     | string | `transparent` or user-set  | Fill colour for grid cells        |
 
 ---
 
@@ -84,7 +89,7 @@ All variables are set under `variables.animation.bg_grid`.
 | `max_brightness` | number  | `1.0`   | Maximum star brightness (opacity)           |
 | `pattern_width`  | number  | `200`   | Width of star pattern tile                  |
 | `pattern_height` | number  | `200`   | Height of star pattern tile                 |
-| `color`          | string/array | `#fff` | Color(s) for stars (hex, rgb, CSS var)      |
+| `color`          | string/array | `#fff` | Colour(s) for stars (hex, rgb, CSS var)      |
 
 ---
 
@@ -94,11 +99,12 @@ All variables are set under `variables.animation.bg_grid`.
 |----------------------|---------|-----------|------------------------------------------------------------------|
 | `preset`             | string  | `default` | Name of nebula preset (see `nebula_presets`)                     |
 | `nebula_effect`      | bool    | `true`    | Enable SVG turbulence/displacement effect                        |
-| `baseFrequency`      | number  | `1`       | Turbulence base frequency                                        |
-| `numOctaves`         | number  | `3`       | Turbulence octaves                                               |
+| `base_frequency`     | number  | `1`       | Turbulence base frequency                                        |
+| `num_octaves`        | number  | `3`       | Turbulence octaves                                               |
 | `scale`              | number  | `40`      | Displacement scale                                               |
 | `seed`               | number  | `2`       | Turbulence seed                                                  |
 | `blur`               | bool    | `true`    | Apply Gaussian blur                                              |
+| `blur_level`         | number  | `8`       | Blur strength (stdDeviation for blur)                            |
 | `animate`            | bool    | `true`    | Animate turbulence                                               |
 | `animation_duration` | number  | `20`      | Animation duration (seconds)                                     |
 
@@ -113,7 +119,7 @@ All variables are set under `variables.animation.bg_grid`.
 
 #### Nebula Presets (`nebula_presets`)
 - Object mapping preset names to arrays of nebula layer objects (see above for structure).
-- Presets included: `orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`.
+- Presets included: `orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`.
 
 ---
 
@@ -123,13 +129,15 @@ All variables are set under `variables.animation.bg_grid`.
 |--------------------|---------|---------|--------------------------------------------------|
 | `layers`           | number  | `3`     | Number of zoom layers                            |
 | `scale_to`         | number  | `2`     | Final scale factor for zoom                      |
-| `duration`         | number  | `speed` | Animation duration (seconds)                     |
+| `speed`            | number  | `speed` | Animation duration (seconds)<br>Defaults to global `speed`                  |
 | `opacity_fade_in`  | number  | `10`    | % of animation for fade-in                       |
 | `opacity_fade_out` | number  | `80`    | % of animation for fade-out                      |
 
 ---
 
-## Example Configuration
+## Example Configurations
+
+### Example 1: Animated Nebula with Zoom
 
 ```yaml
 type: custom:button-card
@@ -145,10 +153,9 @@ variables:
       background_zoom:
         layers: 4
         scale_to: 2.5
-        duration: 30
+        speed: 30
       grid_effect: scroll
       grid_speed: 15
-      grid_pattern: hex
       grid:
         num_major_rows: 4
         num_minor_rows: 2
@@ -157,6 +164,7 @@ variables:
         line_width_major: 3
         line_width_minor: 1
         border_lines: true
+        preset: hex
         hex_radius: 18
       color:
         line: var(--picard-yellow)
@@ -164,22 +172,57 @@ variables:
       nebula:
         preset: orion
         nebula_effect: true
-        baseFrequency: 0.8
-        numOctaves: 4
+        base_frequency: 0.8
+        num_octaves: 4
         scale: 50
         seed: 5
         blur: true
+        blur_level: 8
         animate: true
         animation_duration: 25
 ```
 
+### Example 2: Animated Starfield with Bracket Grid
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-animation-bg-grid
+variables:
+  animation:
+    bg_grid:
+      direction: left
+      speed: 25
+      background_pattern: stars
+      background_effect: scroll
+      grid_effect: scroll
+      grid:
+        preset: bracket
+        bracket_width: 8
+        bracket_radius: 16
+        bracket_color: var(--lcars-orange)
+        bracket_gap: 40
+        bracket_fill: rgba(255,179,0,0.15)
+        bracket_height: 60
+      color:
+        line: var(--picard-dark-gray)
+        fill: var(--picard-black)
+      stars:
+        count: 200
+        seed: 42
+        min_radius: 0.3
+        max_radius: 1.2
+        color: [#fff, #ffd700, #add8e6]
+```
+
 ---
 
-## Grid Patterns
+## Grid Presets
 
-- **Rectangular** (default): Standard grid with major/minor lines.
-- **Hexagonal**: Honeycomb pattern, with major/minor hexes.
-- **Diagonal**: Hatched/diagonal lines.
+- **rect** (default): Standard grid with major/minor lines.
+- **hex**: Honeycomb pattern, with major/minor hexes.
+- **diagonal**: Hatched/diagonal lines.
+- **bracket**: LCARS-style brackets at left/right edges.
 
 ---
 
@@ -188,7 +231,7 @@ variables:
 - **none**: No background, just grid.
 - **stars**: Animated starfield (customizable).
 - **nebula**: Animated nebula clouds (customizable, supports presets and custom layers).
-- **fill**: Solid fill color.
+- **fill**: Solid fill colour.
 
 ---
 
@@ -203,26 +246,27 @@ variables:
 ## Advanced
 
 - Both grid and background can be animated independently.
-- All colors support CSS variables for theme integration.
+- All colours support CSS variables for theme integration.
 - Nebula and starfield backgrounds are fully customizable and tile seamlessly.
+- Bracket grid supports custom color, fill, and sizing.
 
 ---
 
 ## Presets
 
-Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`). You can also define your own custom nebula layers.
+Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`). You can also define your own custom nebula layers.
 
 ---
 
 ## File Location
 
-`src/cb-lcars/cb-lcars-animation-bg-grid.yaml`
+![`src/cb-lcars/cb-lcars-animation-bg-grid.yaml`](../src/cb-lcars/cb-lcars-animation-bg-grid.yaml)
 
 ---
 
 ## See Also
 
-- CB-LCARS README
+- CB-LCARS ![README](../README.md)
 - Other Animation Templates
 
 ---

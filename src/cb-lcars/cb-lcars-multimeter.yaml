@@ -1546,6 +1546,8 @@ cb-lcars-multimeter:
           [[[
             if (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard') {
               return 'left';
+            } else {
+              return 'right';
             }
           ]]]
     custom_fields:
@@ -2325,17 +2327,24 @@ cb-lcars-multimeter:
       [[[
         const entityState = entity.state;
         const entityType = entity.entity_id.split('.')[0]; // Extract entity type
+        const attr = variables.attribute;
         let progress = 0;
-        switch(entityType) {
-          case 'light':
-            progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
-            break;
-          case 'fan':
-            progress = (parseFloat(entity.attributes.percentage));
-            break;
-          default:
-            progress = (parseFloat(entityState));
-            break;
+
+        // try to get the attribute value provided by the user
+        if(attr) {
+          progress = parseFloat(states[entity.entity_id].attributes[attr]) || 0;
+        } else {
+          switch(entityType) {
+            case 'light':
+              progress = ((parseFloat(entity.attributes.brightness) / 256) * 100);
+              break;
+            case 'fan':
+              progress = (parseFloat(entity.attributes.percentage));
+              break;
+            default:
+              progress = (parseFloat(entityState));
+              break;
+          }
         }
         const progressPercentage = ((progress / variables.slider.max) * 100);
         const remainingPercentage = 100 - progressPercentage;
