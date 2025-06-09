@@ -611,6 +611,7 @@ cb-lcars-animation-bg-grid:
 
         // Zoom config for background
         const backgroundZoomLayers = background_zoom.layers ?? 3;
+        const backgroundZoomScaleFrom = background_zoom.scale_from ?? 1; // NEW: initial scale
         const backgroundZoomScaleTo = background_zoom.scale_to ?? 2;
         const backgroundZoomDuration = background_zoom.speed ?? background_speed;
         const backgroundZoomOpacityFadeIn = background_zoom.opacity_fade_in ?? 10;
@@ -618,6 +619,7 @@ cb-lcars-animation-bg-grid:
 
         // Zoom config for grid
         const gridZoomLayers = grid_zoom.layers ?? 1;
+        const gridZoomScaleFrom = grid_zoom.scale_from ?? 1; // NEW: initial scale
         const gridZoomScaleTo = grid_zoom.scale_to ?? 2;
         const gridZoomDuration = grid_zoom.speec ?? grid_speed;
         const gridZoomOpacityFadeIn = grid_zoom.opacity_fade_in ?? 10;
@@ -1244,6 +1246,12 @@ cb-lcars-animation-bg-grid:
         function buildGridSVG() {
           const grid_pattern = variables.animation.bg_grid.grid.preset || 'rect';
 
+          // --- Support for disabling grid ---
+          if (grid_pattern === 'none') {
+            // Return an empty SVG (transparent, no grid)
+            return `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg"></svg>`;
+          }
+
           // Rectangular grid (existing logic)
           function drawRectGrid() {
             // Start building the SVG pattern for the grid (with optional background)
@@ -1561,7 +1569,7 @@ cb-lcars-animation-bg-grid:
         /////////////////////////////////////////////
         // --- Animation containers for background and grid ---
         //  buildAnimatedLayer: returns HTML/CSS for animated background/grid layer
-        function buildAnimatedLayer(contentArr, type, duration, direction, pattern_width, pattern_height, zIndex, pointerEvents, zoomScaleTo, zoomOpacityFadeIn, zoomOpacityFadeOut) {
+        function buildAnimatedLayer(contentArr, type, duration, direction, pattern_width, pattern_height, zIndex, pointerEvents, zoomScaleTo, zoomOpacityFadeIn, zoomOpacityFadeOut, zoomScaleFrom = 1) {
           if (type === 'zoom') {
             return `
               <style>
@@ -1584,7 +1592,7 @@ cb-lcars-animation-bg-grid:
                   mix-blend-mode: lighten;
                 }
                 @keyframes zoom-infinite-${zIndex} {
-                  0% { transform: scale(1); opacity: 0; }
+                  0% { transform: scale(${zoomScaleFrom}); opacity: 0; }
                   ${zoomOpacityFadeIn}% { opacity: 1; }
                   ${zoomOpacityFadeOut}% { opacity: 1; }
                   100% { transform: scale(${zoomScaleTo}); opacity: 0; }
@@ -1599,7 +1607,6 @@ cb-lcars-animation-bg-grid:
             `;
           } else if (type === 'scroll') {
             // ...existing code for scroll...
-            // (unchanged, just use contentArr[0])
             const content = contentArr[0];
             const track_size = (direction === 'up' || direction === 'down') ? pattern_height : pattern_width;
             const track_dimension = track_size * 3;
@@ -1677,7 +1684,8 @@ cb-lcars-animation-bg-grid:
             '',
             backgroundZoomScaleTo,
             backgroundZoomOpacityFadeIn,
-            backgroundZoomOpacityFadeOut
+            backgroundZoomOpacityFadeOut,
+            backgroundZoomScaleFrom // pass initial scale
           );
         } else if (background_effect === 'scroll') {
           backgroundLayer = `
@@ -1715,7 +1723,8 @@ cb-lcars-animation-bg-grid:
             'none',
             gridZoomScaleTo,
             gridZoomOpacityFadeIn,
-            gridZoomOpacityFadeOut
+            gridZoomOpacityFadeOut,
+            gridZoomScaleFrom // pass initial scale
           );
         } else if (grid_effect === 'scroll') {
           gridLayer = `
@@ -1771,7 +1780,7 @@ cb-lcars-animation-bg-grid:
               }
               @keyframes scroll-left-bg {
                 0% { transform: translateX(0); }
-                100% { transform: translateX(${-pattern_width * 2}px); }
+                100% { transform: translateX(${-pattern_width *  2}px); }
               }
               @keyframes scroll-right-bg {
                 0% { transform: translateX(${-pattern_width * 2}px); }

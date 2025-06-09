@@ -128,6 +128,7 @@ All variables are set under `variables.animation.bg_grid`.
 | Variable           | Type    | Default | Description                                      |
 |--------------------|---------|---------|--------------------------------------------------|
 | `layers`           | number  | `3`     | Number of zoom layers                            |
+| `scale_from`         | number  | `1`     | Initial scale factor for zoom                      |
 | `scale_to`         | number  | `2`     | Final scale factor for zoom                      |
 | `speed`            | number  | `speed` | Animation duration (seconds)<br>Defaults to global `speed`                  |
 | `opacity_fade_in`  | number  | `10`    | % of animation for fade-in                       |

@@ -3928,7 +3928,7 @@ cb-lcars-base-controls:
                           type: Selector
                           selector:
                             number:
-                              min: 1
+                              min: 0.1
                               max: 5
                               step: 0.1
                               mode: slider
@@ -3940,7 +3940,7 @@ cb-lcars-base-controls:
                           type: Selector
                           selector:
                             number:
-                              min: 1
+                              min: 0.1
                               max: 15
                               step: 0.1
                               mode: slider
@@ -4030,9 +4030,17 @@ cb-lcars-base-controls:
                                 - value: "default"
                                   label: "Default"
                                 - value: "orion"
-                                  label: "M42 - Orion"
+                                  label: "[M42] Orion"
                                 - value: "crab"
-                                  label: "M1 - Crab"
+                                  label: "[M1] Crab"
+                                - value: "horsehead"
+                                  label: "[B33] Horsehead"
+                                - value: "eagle"
+                                  label: "[M16] Eagle"
+                                - value: "pillars_of_creation"
+                                  label: "[M16] Pillars of Creation"
+                                - value: "veil"
+                                  label: "[NGC 6960] Veil"
                                 - value: "aurora_nexus"
                                   label: "Aurora Nexus"
                                 - value: "cosmic_embers"
@@ -7169,10 +7177,6 @@ cb-lcars-multimeter-card:
           icon: "mdi:select-color"
           rows:
             - controls:
-                - type: Message
-                  alertType: warning
-                  message: "The selected entity is not supported for slider control.  The slider will be in display-only mode."
-                  visibilityCondition: "this._config.variables._locked === true"
                 - label: "Slider Control Mode"
                   configValue: variables._mode
                   required: true
@@ -7211,12 +7215,49 @@ cb-lcars-multimeter-card:
           icon: "mdi:devices"
           rows:
             - controls:
+                - type: Message
+                  visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
+                  alertType: warning
+                  message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
                 - label: "Entity"
                   configValue: "variables.entity"
                   required: true
                   type: Selector
                   selector:
                     entity:
+                - type: Message
+                  visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
+                  alertType: info
+                  message: "You can try the 'Attribute' selector to select a specific attribute of the entity to display.  The list of attributes has been filtered down to those that can parse to a number.  If not selected, the card will use the state of the entity."
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              (typeof value === "number" && isFinite(value)) ||
+                              (typeof value === "string" && !isNaN(parseFloat(value)) && isFinite(parseFloat(value)))
+                            )
+                          .map(([key]) => ({
+                                value: key,
+                                label: key
+                              }));
+                        })()
+
                 - label: "Light Control Mode"
                   configValue: variables._slider_mode
                   visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'light'"
@@ -7260,12 +7301,6 @@ cb-lcars-multimeter-card:
                           label: 'Volume'
                         - value: 'seekbar'
                           label: 'Seekbar'
-            - type: ControlRow
-              visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
-              controls:
-                - type: Message
-                  alertType: warning
-                  message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
             - <<: *actionsSection
     - label: "LCARS Border"
       content:

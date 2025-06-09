@@ -10,20 +10,16 @@
 	<img src="https://img.shields.io/badge/license-MIT-37a6d1?logo=opensourceinitiative&logoColor=white" alt="license">
   <img src="https://img.shields.io/github/last-commit/snootched/cb-lcars?style=default&logo=git&logoColor=white&color=37a6d1" alt="last-commit">
 <p>
-<p align="center">
-	<!-- default option, no dependency badges. -->
-</p>
-
 
 - [CB-LCARS](#cb-lcars)
   - [Overview](#overview)
   - [Features](#features)
-  - [What it isn't...](#what-it-isnt)
+    - [What it isn't...](#what-it-isnt)
   - [Installation - Make it so!](#installation---make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
     - [2. HA-LCARS Theme - Setup and Customizations](#2-ha-lcars-theme---setup-and-customizations)
       - [Font](#font)
-      - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
+      - [Customized *CB-LCARS* Colour Scheme](#customized-cb-lcars-colour-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
   - [States](#states)
@@ -67,15 +63,14 @@ CB-LCARS is a collection of custom cards for Home Assistant, inspired by the ico
 - Designed to work seamlessly with the [ha-lcars-theme](https://github.com/th3jesta/ha-lcars).
 - Includes many LCARS-style elements: buttons, sliders/gauges, elbows, d-pad, and a growing library of animated effects.
 - Optimized for HA 'Sections' or grid layouts.
-- Highly customizable and dynamic state-responsive styles: colors, text, icons, animations, and much more.
+- Highly customizable and dynamic state-responsive styles: colours, text, icons, animations, and much more.
 - Controls can match light-entity colours.
 - Supports LCARS animations, button effects, and blinking.
 - Unique features: ***Symbiont*** mode lets you encapsulate and imprint LCARS styling onto other cards.
 
 
-<br>
 
-## What it isn't...
+### What it isn't...
 
 - CB-LCARS is not its own theme — pair with [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
 - Not fully standalone—some controls may require other HACS cards (see requirements).
@@ -110,9 +105,9 @@ The following should be installed and working in your Home Assistant instance - 
 
 | Custom Card                                                                 |  Required?  | Function    |
 |-----------------------------------------------------------------------------|-------------|-------------|
-| [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, color variables, etc. |
+| [ha-lcars theme](https://github.com/th3jesta/ha-lcars)                      | Required    | Provides base theme elements, styes, colour variables, etc. |
 | [my-slider-v2](https://github.com/AnthonMS/my-cards)                      | Required    | Provided slider function in Multimeter card. |
-| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | CB-LCARS requires card-mod for using the _host imprint_ feature on symbiont cards.  It is also required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colors, remove backgrounds etc.) |
+| [lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod)       | Required | CB-LCARS requires card-mod for using the _host imprint_ feature on symbiont cards.  It is also required by HA-LCARS theming at the time of writing.<br><br>Very useful for modifying the elements/styles of other cards to fit the theme (overriding fonts, colours, remove backgrounds etc.) |
 | | |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
 
@@ -131,9 +126,9 @@ Substitute the following resource string when setting up font in HA-LCARS theme:
 _(Note: if the font is missing, the card will attempt to load it dynamically from the above URL.)_
 
 
-#### Customized *CB-LCARS* Color Scheme
+#### Customized *CB-LCARS* Colour Scheme
 
- *Ideally, add and use this cb-lcars profile into your HA-LCARS theme.  If not, the additional color definitions will be made available to use at runtime by the cards.*
+ *Ideally, add and use this cb-lcars profile into your HA-LCARS theme.  If not, the additional colour definitions will be made available to use at runtime by the cards.*
 
  Copy the custom `LCARS Picard [cb-lcars]` definition from [cb-lcars-lcars.yaml](ha-lcars-theme/cb-lcars-lcars.yaml) to your HA-LCARS `lcars.yaml` file in Home Assistant (per instructions for [adding custom themes to HA-LCARS](https://github.com/th3jesta/ha-lcars?tab=readme-ov-file#make-your-own-color-themes)).
 
@@ -144,7 +139,7 @@ Grays, Blues, and Oranges are the core colours.  Greens and Yellows added for ad
 
 ![Picard theme](images/themes/lcars_picard_ii_colors.png)
 
-These are the colors used for the ha-lcars defined variables.
+These are the colours used for the ha-lcars defined variables.
 
 ![Picard ha-lcars](images/themes/lcars_picard_ii_ha-lcars_settings.png)
 </details>
@@ -168,7 +163,7 @@ Add CB-LCARS cards to your dashboard just like any other card.
 
 ## States
 
-The cards support changing the styles/colors of independent components based on the state of the entity.
+The cards support changing the styles/colours of independent components based on the state of the entity.
 
 If no entity is defined (no state), `default` will be used.  If the entity is unavailable or unknown, then `unavailable` will be used.
 
@@ -192,7 +187,7 @@ State styles can be applied to components such as:
 | `cool` (hvac/climate entity) | `hvac_cool:`           |
 | `unavailable` `unknown`      | `unavailable:`         |
 
-Tip: when using Light entities, you can choose to yave your colour match the light's current colour.  You can choose this from the colour picker list, or by using the variable `var(--custom-button-light-color)`
+Tip: when using Light entities, you can choose to have your colour match the light's current colour.  You can choose this from the colour picker list, or by using the variable `var(--custom-button-light-color)`
 
 Example of configuration (editable via UI):
 ```yaml
@@ -238,7 +233,7 @@ Just supply your symbiont card configuration into the editor and it will inset t
 
 ### Imprinting
 
-Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic `card-mod` configuration targeted primarily to `ha-card`.
+Currently, imprinting will apply the host background colours and text font, size, and colours to the symbiont.  This feature uses some basic `card-mod` configuration targeted primarily to `ha-card`.
 
 #### User card-mod styles
 You can provide your own `card-mod` configuration which will append to the host configuration.  You can also override any host styling with your `card-mod` config.
@@ -246,7 +241,7 @@ You can provide your own `card-mod` configuration which will append to the host 
 Card-mod templating is supported and the host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
 
 ```yaml
-Example accessing the host card's card default color.
+Example accessing the host card's card default colour.
 
 variables:
   symbiont:
@@ -262,7 +257,7 @@ variables:
 
 **Example - Join with Entities Card**
 
-A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font color, background)
+A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font colour and size, background)
 
 We start with our basic entities card
 ![unjoined](images/screenshots/symbiont-unjoined.png)
@@ -358,7 +353,7 @@ Settings are available in the UI editor.
   - Media Player: volume, seek
   - (uses my-slider-v2 custom card internally)
 - Fully configurable borders, label/text, slider
-- Color match [border|slider|gauge|gradient start/end etc.] to entity color
+- Colour match [border|slider|gauge|gradient start/end etc.] to entity colour
 - Configurable min, max, gauge increments, slider step size
   - Min/Max/Units are automatically obtained from the entity (if supported)
 - Show/Hide Units, Override unit
@@ -366,7 +361,7 @@ Settings are available in the UI editor.
   - Show/Hide
   - Size
   - Count (number of subticks per segement)
-- Ranges: now supporting background colors set with ranges
+- Ranges: now supporting background colours set with ranges
 - Picard style option in vertical mode
 
 ![cb-lcars-multimeter](images/screenshots/multimeter.gif)
@@ -374,7 +369,7 @@ Settings are available in the UI editor.
 
 #### Ranges
 
-Background color in gauge mode can be segmented into ranges.
+Background colour in gauge mode can be segmented into ranges.
 This can currently be done in the yaml configuration of multimeter.
 
 !['multimeter-range'](images/button_samples/cb-lcars-multimeter-ranges.png) !['multimeter-picard-range'](images/button_samples/cb-lcars-multimeter-picard-ranges.png)
@@ -418,8 +413,8 @@ variables:
 
 #### `type:cb-lcars-dpad-card`
 
-- Card-wide active/inactive colors
-- Per-segment active/inactive colors
+- Card-wide active/inactive colours
+- Per-segment active/inactive colours
 - Assignable entity per segment
 - Assignable actions/controls per segment (default `toggle`)
 
@@ -566,7 +561,7 @@ As well, some shout-outs and attributions to these great projects:
 
 [LCARSlad London](https://twitter.com/lcarslad) for excellent LCARS images and diagrams for reference.
 
-[meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and color reference.
+[meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and colour reference.
 
 [TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference, and the base reference for Data Cascade and Pulsewave animations.
 

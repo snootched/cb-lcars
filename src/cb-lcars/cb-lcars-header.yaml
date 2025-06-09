@@ -68,6 +68,10 @@ cb-lcars-header-base:
   styles:
     label:
       - z-index: 2
+    name:
+      - z-index: 2
+    state:
+      - z-index: 2
 cb-lcars-header:
   template:
     - cb-lcars-header-base
