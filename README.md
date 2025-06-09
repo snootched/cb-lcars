@@ -1,12 +1,3 @@
-***
-**Note:**
-
-This project is active development.
-
-
-Functionality and configurations may change over time until stabilized.  Things may break - so you may not want to use this on your primary dashboard just yet.
-***
-
 <p align="center">
 
 ![cb-lcars](images/screenshots/cb-lcars-banner-3.gif)
@@ -24,53 +15,75 @@ Functionality and configurations may change over time until stabilized.  Things 
 </p>
 
 
-- [Installation - Make it so!](#installation---make-it-so)
+- [CB-LCARS](#cb-lcars)
+  - [Overview](#overview)
+  - [Features](#features)
+  - [What it isn't...](#what-it-isnt)
+  - [Installation - Make it so!](#installation---make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
     - [2. HA-LCARS Theme - Setup and Customizations](#2-ha-lcars-theme---setup-and-customizations)
       - [Font](#font)
       - [Customized *CB-LCARS* Color Scheme](#customized-cb-lcars-color-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-- [Overview](#overview)
-    - [What is this?](#what-is-this)
-    - [What it isn't...](#what-it-isnt)
-    - [What can be done...](#what-can-be-done)
-- [States](#states)
-- [Joining with a Symbiont](#joining-with-a-symbiont)
+  - [States](#states)
+  - [Joining with a Symbiont \[Card Encapsulation\]](#joining-with-a-symbiont-card-encapsulation)
     - [Imprinting](#imprinting)
       - [User card-mod styles](#user-card-mod-styles)
-- [CB-LCARS Cards](#cb-lcars-cards)
-  - [LCARS Elbows](#lcars-elbows)
-    - [`type: custom:cb-lcars-elbow-card`](#type-customcb-lcars-elbow-card)
-    - [`type: custom:cb-lcars-double-elbow-card`](#type-customcb-lcars-double-elbow-card)
-  - [LCARS Buttons](#lcars-buttons)
-    - [`type: custom:cb-lcars-button-card`](#type-customcb-lcars-button-card)
-  - [LCARS Multimeter (Sliders/Gauges)](#lcars-multimeter-slidersgauges)
-    - [`type:cb-lcars-multimeter-card`](#typecb-lcars-multimeter-card)
+  - [CB-LCARS Cards](#cb-lcars-cards)
+    - [LCARS Elbows](#lcars-elbows)
+    - [LCARS Buttons](#lcars-buttons)
+    - [LCARS Multimeter (Sliders/Gauges)](#lcars-multimeter-slidersgauges)
       - [Ranges](#ranges)
-  - [LCARS Label (Stylized Text)](#lcars-label-stylized-text)
-    - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
-  - [LCARS DPAD](#lcars-dpad)
-    - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
-- [Animations and Effects](#animations-and-effects)
-- [Screenshots and Examples](#screenshots-and-examples)
-  - [Example: Tablet Dashboard](#example-tablet-dashboard)
+    - [LCARS Label (Stylized Text)](#lcars-label-stylized-text)
+      - [`type:cb-lcars-label-card`](#typecb-lcars-label-card)
+    - [LCARS DPAD](#lcars-dpad)
+      - [`type:cb-lcars-dpad-card`](#typecb-lcars-dpad-card)
+  - [Animations and Effects](#animations-and-effects)
+  - [Screenshots and Examples](#screenshots-and-examples)
+    - [Example: Tablet Dashboard](#example-tablet-dashboard)
   - [Example: Room Selector with Multimeter Light Controls](#example-room-selector-with-multimeter-light-controls)
-  - [Control Samples](#control-samples)
-    - [Button Samples](#button-samples)
-    - [Sliders/Gauges](#slidersgauges)
-    - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
+    - [Control Samples](#control-samples)
+      - [Button Samples](#button-samples)
+      - [Sliders/Gauges](#slidersgauges)
+      - [Row of sliders (Transporter controls? :grin:)](#row-of-sliders-transporter-controls-grin)
   - [Some Dashboard possibilities...](#some-dashboard-possibilities)
-- [Acknowledgements \& Thanks](#acknowledgements--thanks)
-- [License](#license)
+  - [Acknowledgements \& Thanks](#acknowledgements--thanks)
+  - [License](#license)
 
 
 <br>
 
 ---
+# CB-LCARS
+
+##  Overview
+
+CB-LCARS is a collection of custom cards for Home Assistant, inspired by the iconic LCARS interface from Star Trek.  Build your own LCARS-style dashboard with authentic controls and animations.
+
+## Features
+
+- Built upon a [Federation-enhanced version](https://github.com/snootched/button-card-lcars/tree/cb-lcars) of `custom-button-card` with additional features and internal template management.
+- Designed to work seamlessly with the [ha-lcars-theme](https://github.com/th3jesta/ha-lcars).
+- Includes many LCARS-style elements: buttons, sliders/gauges, elbows, d-pad, and a growing library of animated effects.
+- Optimized for HA 'Sections' or grid layouts.
+- Highly customizable and dynamic state-responsive styles: colors, text, icons, animations, and much more.
+- Controls can match light-entity colours.
+- Supports LCARS animations, button effects, and blinking.
+- Unique features: ***Symbiont*** mode lets you encapsulate and imprint LCARS styling onto other cards.
 
 
-# Installation - Make it so!
+<br>
+
+## What it isn't...
+
+- CB-LCARS is not its own theme — pair with [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
+- Not fully standalone—some controls may require other HACS cards (see requirements).
+- Not a commissioned Starfleet-grade product — this is a hobby project, so expect some tribbles (bugs).
+
+<br>
+
+## Installation - Make it so!
 
 [![Open your Home Assistant instance and show the add repository dialog with a specific repository URL.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=snootched&repository=cb-lcars)
 
@@ -88,8 +101,7 @@ Functionality and configurations may change over time until stabilized.  Things 
 > - _Engage!_
 >
 
-
----
+<details closed><summary>Detailed Installation</summary>
 
 ### 1. Dependencies and Extras
 
@@ -104,14 +116,12 @@ The following should be installed and working in your Home Assistant instance - 
 | | |
 | [lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Optional    | No longer used internally but it's handy for the ultimate in dashboard layout customization! |
 
-
-
 <br>
 
 ### 2. HA-LCARS Theme - Setup and Customizations
 
 #### Font
-When adding the font resource, use a slightly updated Antonio font resouce string.<br>
+When adding the font resource, use a slightly updated Antonio font resource string.<br>
 
 This will include weights 100-700 allowing for more thinner/lighter text as seen in Picard (some displays use really thin font, 100 or 200)
 
@@ -150,50 +160,13 @@ These are the colors used for the ha-lcars defined variables.
 ### 4. Engage!
 
 Add CB-LCARS cards to your dashboard just like any other card.
+</details>
 
-<br>
-
----
-
-<br>
-
-#  Overview
-
-### What is this?
-
-CB-LCARS is a collection of custom cards for Home Assistant, inspired by the iconic LCARS interface from Star Trek. Build your own starship-style dashboard with authentic controls and animations.
-
-- Built on top of `custom-button-card` with enhanced features and internal template management.
-- Designed to work seamlessly with the [ha-lcars-theme](https://github.com/th3jesta/ha-lcars).
-- Includes LCARS-style elements: buttons, sliders/gauges, elbows, d-pad, and a growing library of animated effects.
-- Optimized for HA 'Sections' or grid layouts—your dashboard, your bridge.
-- Open to collaboration—suggestions and away team contributions welcome!
-- WIP: Boldly going where no dashboard has gone before.
-
-<br>
-
-### What it isn't...
-
-- Not a standalone theme—pair with [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
-- Not fully standalone—some controls require other HACS cards (see requirements).
-- Not a finished Starfleet-grade product—this is a hobby project, so expect some tribbles (bugs).
-
-<br>
-
-### What can be done...
-
-- Highly customizable: colors, fonts, icons, gradients, and more—make it your own starship.
-- Dynamic styles based on entity state (shields up, red alert, etc.).
-- Controls can match entity colors (lights, sensors, and more).
-- Supports authentic LCARS animations, button effects, and blinking.
-- Generate random LCARS-style button labels (hex numbers, stardates, etc.).
-- Unique features: "Symbiont" mode lets you imprint LCARS styling onto other cards, and advanced animation templates like Data Cascade and Pulsewave.
-
-<br>
 
 ---
 
-# States
+
+## States
 
 The cards support changing the styles/colors of independent components based on the state of the entity.
 
@@ -217,11 +190,11 @@ State styles can be applied to components such as:
 | Number (non-zero)            | `non_zero:`            |
 | `heat` (hvac/climate entity) | `hvac_heat:`           |
 | `cool` (hvac/climate entity) | `hvac_cool:`           |
-| `unavailable` `unkown`       | `unavailable:`         |
+| `unavailable` `unknown`      | `unavailable:`         |
 
 Tip: when using Light entities, you can choose to yave your colour match the light's current colour.  You can choose this from the colour picker list, or by using the variable `var(--custom-button-light-color)`
 
-Example of configuration (editiable via UI):
+Example of configuration (editable via UI):
 ```yaml
 variables:
   text:
@@ -255,24 +228,22 @@ variables:
         hvac_cool: var(--lcars-blue)
         unavailable: var(--lcars-card-button-unavailable)
 ```
+---
 
-# Joining with a Symbiont
+## Joining with a Symbiont [Card Encapsulation]
 
-CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Once joined, this enables you to imprint some CB-LCARS styling to your other cards.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
+CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Joining enables you to imprint some CB-LCARS styling to the encapsulated card.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
 
-Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  Once joined, you can adjust settings, imprint host styles onto the symbiont, and even supply your own card-mod configuration to the symbiont.
+Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  After joining, you can adjust settings, imprint host styles onto the symbiont, and even supply your own additional `card-mod` configuration to the symbiont.
 
 ### Imprinting
 
-Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic card-mod targated primarily to ha-card.
-
-You can supply your own card-mod configuration which will append to the host configuration.  You can also override any host styling with your card-mod config.
-
-<br>
+Currently, imprinting will apply the host background colors and text font, size, and colors to the symbiont.  This feature uses some basic `card-mod` configuration targeted primarily to `ha-card`.
 
 #### User card-mod styles
-You can provide additional card-mod styles that will be appended to the host imprinted styles.
-Card-mod templating is supported and the host card's host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
+You can provide your own `card-mod` configuration which will append to the host configuration.  You can also override any host styling with your `card-mod` config.
+
+Card-mod templating is supported and the host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
 
 ```yaml
 Example accessing the host card's card default color.
@@ -289,19 +260,22 @@ variables:
 
 <br>
 
-**Example - Entities Card**
+**Example - Join with Entities Card**
 
 A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font color, background)
 
+We start with our basic entities card
 ![unjoined](images/screenshots/symbiont-unjoined.png)
 
+We join the card as our symbiont:
 ![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
 
+We then imprint the host card styles onto the symbiont:
 ![joined-imprinted](images/screenshots/symbiont-joined-imprinted.png)
 
 ---
 
-# CB-LCARS Cards
+## CB-LCARS Cards
 
 For reference - these are the cards found in CB-LCARS.
 They are highly configurable - and some default styles are shown.
@@ -313,10 +287,10 @@ Settings are available in the UI editor.
 
 <br>
 
-## LCARS Elbows
+### LCARS Elbows
 
 
-### `type: custom:cb-lcars-elbow-card`
+**`type: custom:cb-lcars-elbow-card`**
 
 
 | `cblcars_card_type:`                                            | Default Style          |
@@ -343,7 +317,7 @@ Settings are available in the UI editor.
 
 <br>
 
-### `type: custom:cb-lcars-double-elbow-card`
+**`type: custom:cb-lcars-double-elbow-card`**
 
 | `cblcars_card_type:`                                                   | Default Style          |
 | ---------------------------------------------------------------------- | ---------------------- |
@@ -354,9 +328,9 @@ Settings are available in the UI editor.
 
 <br>
 
-## LCARS Buttons
+### LCARS Buttons
 
-### `type: custom:cb-lcars-button-card`
+**`type: custom:cb-lcars-button-card`**
 
 | `cblcars_card_type:`                                                                 | Default Style          |
 | ------------------------------------------------------------------------------------ | ---------------------- |
@@ -371,9 +345,9 @@ Settings are available in the UI editor.
 
 <br>
 
-## LCARS Multimeter (Sliders/Gauges)
+### LCARS Multimeter (Sliders/Gauges)
 
-### `type:cb-lcars-multimeter-card`
+**`type:cb-lcars-multimeter-card`**
 
 - Supports interactive (entity) mode, or non-interactive (sensor) mode.
   - Mode is determined automatically by the assigned entity
@@ -423,9 +397,9 @@ variables:
 
 <br>
 
-## LCARS Label (Stylized Text)
+### LCARS Label (Stylized Text)
 
-### `type:cb-lcars-label-card`
+#### `type:cb-lcars-label-card`
 
 
 - Card for creating labels/text
@@ -440,14 +414,14 @@ variables:
 
 <br>
 
-## LCARS DPAD
+### LCARS DPAD
 
-### `type:cb-lcars-dpad-card`
+#### `type:cb-lcars-dpad-card`
 
 - Card-wide active/inactive colors
 - Per-segment active/inactive colors
 - Assignable entity per segment
-- Assignable actions/controls per segment (deafult `toggle`)
+- Assignable actions/controls per segment (default `toggle`)
 
 ![cb-lcars-dpad](images/screenshots/dpad.gif)
 
@@ -455,7 +429,7 @@ variables:
 
 ---
 
-# Animations and Effects
+## Animations and Effects
 
 CB-LCARS includes a growing set of highly customizable animations and effects for your cards. Each animation offers extensive configuration options, accessible via the UI. For full details and usage instructions, see the dedicated documentation for each animation—just click the template links in the table below.
 
@@ -472,13 +446,13 @@ CB-LCARS includes a growing set of highly customizable animations and effects fo
 
 ---
 
-# Screenshots and Examples
+## Screenshots and Examples
 
 Below are some example dashboards and controls.  Also a collection of screenshots and snippets of potential variations of the controls.
 
 <br>
 
-## Example: Tablet Dashboard
+### Example: Tablet Dashboard
 
 Example of a WIP dasboard sized for a Samsung Tab A9.
 
@@ -504,7 +478,7 @@ Each room then has a grid of multimeter controls for the lights in each room.
 
 For fun, the small block to the right of each room button will change colour to match the entity colour for the room's light group.
 
-This example shows now to use the base card as a canvas and add more cards on top.  This code can be condensed if desired using things like the custom template card - and there are probably many otherways to get the same results.
+This example shows how to use the base card as a canvas and add more cards on top.  This code can be condensed if desired using things like the custom template card - and there are probably many other ways to get the same results.
 
 Source: [`lightselector.yaml`](examples/lightselector.yaml)
 
@@ -516,9 +490,9 @@ Source: [`lightselector.yaml`](examples/lightselector.yaml)
 ![dashboard_lightselector_2](images/screenshots/dashboard_lightselector_2.png)
 
 
-## Control Samples
+### Control Samples
 
-### Button Samples
+#### Button Samples
 
 ![picard-button-1](images/screenshots/picard-button-1.png)
 ![picard-button-1-off](images/screenshots/picard-button-1-off.png)
@@ -533,7 +507,7 @@ Source: [`lightselector.yaml`](examples/lightselector.yaml)
 
 
 
-### Sliders/Gauges
+#### Sliders/Gauges
 
 ![meter-1](images/screenshots/meter-1.png) ![meter-2](images/screenshots/meter-2.png) ![meter-3](images/screenshots/meter-3.png) ![meter-4](images/screenshots/meter-4.png)
 
@@ -543,7 +517,7 @@ Source: [`lightselector.yaml`](examples/lightselector.yaml)
 
 
 
-### Row of sliders (Transporter controls? :grin:)
+#### Row of sliders (Transporter controls? :grin:)
 
 ![dashboard_light_sliders](images/screenshots/dashboard_light_sliders.png)
 
@@ -566,9 +540,9 @@ Source: [`lightselector.yaml`](examples/lightselector.yaml)
 
 ---
 
-# Acknowledgements & Thanks
+## Acknowledgements & Thanks
 
-A very sincere thanks to these projects and their authors, contributers and communities for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
+A very sincere thanks to these projects and their authors, contributors and communities for doing what they do, and making it available.  It really does make this a fun hobby to tinker with.
 
 [**ha-lcars theme**](https://github.com/th3jesta/ha-lcars) (the definitive LCARS theme for HA!)
 
@@ -596,12 +570,12 @@ As well, some shout-outs and attributions to these great projects:
 
 [TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference, and the base reference for Data Cascade and Pulsewave animations.
 
-[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browswer console - super handy.
+[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browser console - super handy.
 
 [lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
 
 ---
-#  License
+##  License
 
 This project uses the MIT License. For more details, refer to the [LICENSE](LICENSE) file.
 
