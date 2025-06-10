@@ -3,7 +3,7 @@
 ![cb-lcars](images/screenshots/cb-lcars-banner-4.gif)
 </p>
 <p align="center">
-    <em>A collection of custom cards for building LCARS styled dashboards in Home Assistant</em>
+    <em>A collection of custom cards to build your own LCARS dashboards in Home Assistant</em>
 </p>
 <p align="left">
 	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek&color=37a6d1" alt="release">
