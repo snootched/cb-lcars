@@ -1,6 +1,6 @@
 <p align="center">
 
-![cb-lcars](images/screenshots/cb-lcars-banner-3.gif)
+![cb-lcars](images/screenshots/cb-lcars-banner-4.gif)
 </p>
 <p align="center">
     <em>A collection of custom cards for building LCARS styled dashboards in Home Assistant</em>
