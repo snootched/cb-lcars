@@ -434,7 +434,7 @@ CB-LCARS includes a growing set of highly customizable animations and effects fo
 |----------|----------------|
 | [`cb-lcars-animation-cascade`](doc/cb-lcars-animation-cascade.md) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 | [`cb-lcars-animation-pulsewave`](doc/cb-lcars-animation-pulsewave.md) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
-[`cb-lcars-animation-bg-grid`](doc/cb-lcars-animation-bg-grid.md) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) |
+[`cb-lcars-animation-bg-grid`](doc/cb-lcars-animation-bg-grid.md) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) <br>Nebula Samples ![nebula-samples-1](images/screenshots/nebula-samples-1.png)|
 [`cb-lcars-animation-geo-array`](doc/cb-lcars-animation-geo-array.md) | Can be used as an inset animation recreating some of the LCARS panel effects.  Animations are similar to Data Cascade ![cb-lcars-animation-geo-array](images/screenshots/cb-lcars-geo-array-samples-1.gif) |
 
 

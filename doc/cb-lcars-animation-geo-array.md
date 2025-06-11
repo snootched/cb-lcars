@@ -1,12 +1,8 @@
-# CB-LCARS Animation Geo Array
+# CB-LCARS Animation: GEO Array
 
-A flexible animated background template for CB-LCARS cards, supporting arrays of geometric shapes (squares, circles, polygons, etc) with advanced animation and customization options.
+GEO Array is a customizable animated background for CB-LCARS cards, supporting arrays of geometric shapes (squares, circles, triangles, etc.)  With advanced customization options, you can configure the type, count, color, size, and animation of the shapes, as well as advanced effects such as row/column animation, custom patterns, and color cycling (like with Data Cascade.)
 
----
-
-## Overview
-
-This template enables animated arrays of geometric shapes as a background for your CB-LCARS cards. You can configure the type, count, color, size, and animation of the shapes, as well as advanced effects such as row/column animation, custom patterns, and color cycling.
+![geo-array-example](../images/screenshots/cb-lcars-geo-array-samples-1.gif)
 
 ---
 

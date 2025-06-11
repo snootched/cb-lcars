@@ -1,12 +1,6 @@
-# CB-LCARS Animation Pulsewave
+# CB-LCARS Animation: Pulsewave
 
-A flexible animated pulsewave background template for CB-LCARS cards, supporting animated lines with customizable heights, colors, angles, and animation patterns.
-
----
-
-## Overview
-
-This template enables animated pulsewave lines as a background for your CB-LCARS cards. You can configure the number of lines, line heights, colors, angles, and animation pattern. The pulsewave can animate in various waveforms, including custom timing and keyframes.
+The CB-LCARS Pulsewave animation template provides a flexible animated background for CB-LCARS cards, featuring customizable animated lines with adjustable heights, colors, angles, and animation patterns. You can configure the number of lines, their appearance, and choose from various built-in or custom waveforms, allowing for advanced and theme-integrated animated effects as a card background.
 
 ---
 

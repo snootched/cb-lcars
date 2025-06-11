@@ -1,13 +1,156 @@
-# CB-LCARS Animation Background Grid
+# CB-LCARS Animation: GRID
 
-A highly customizable animated background grid for CB-LCARS cards, supporting multiple grid types, animated starfields, nebula effects, and advanced animation controls.
+GRID is a highly customizable animated background supporting multiple foreground and background styles including grids, honeycombs, starfields, nebula effects, and much more.
 
 ---
 
 ## Overview
 
-This template provides a flexible, animated grid background for your CB-LCARS cards. It supports rectangular, hexagonal, diagonal, and bracket grid patterns, with optional animated backgrounds such as starfields and nebulae. Both the grid and the background can be independently animated with scroll or zoom effects.
+This template provides a flexible multi-layered animation for the card's background.
 
+Both the foreground and background layers support independent animation styles such as scrolling or zooming.
+
+The forground layer (GRID), supports rectangular, hexagonal, diagonal, and the "bracket" grid patterns.
+The background layer supports animated backgrounds such as starfields and nebulae.
+
+Here is an example that utilized the bracket-style for the grid layer, and the starfield for the background layer.  A symbiont card was added to get the additional nebula layer effect.
+
+![bg-grid-example](../images/screenshots/cb-lcars-banner-4.gif)
+
+<details closed><summary>Example's YAML</summary>
+
+```yaml
+type: custom:cb-lcars-elbow-card
+cblcars_card_type: cb-lcars-header
+template:
+  - cb-lcars-animation-bg-grid
+enable_resize_observer: true
+show_label: true
+styles:
+  name:
+    - z-index: 4
+  label:
+    - z-index: 4
+variables:
+  label: CB-LCARS
+  text:
+    label:
+      justify: center
+      align_items: center
+      color:
+        default: var(--picard-light-blue)
+      font_size: "48"
+      padding:
+        top: 0
+        bottom: 30
+        left: 0
+        right: 0
+      font_weight: 300
+    name:
+      font_size: "18"
+      font_weight: 200
+      justify: center
+      align_items: center
+      padding:
+        top: 44
+        right: 0
+        left: 0
+        bottom: 0
+      color:
+        default: var(--picard-light-yellow)
+  animation:
+    bg_grid:
+      grid:
+        preset: bracket
+        bracket_width: 5
+        bracket_gap: 33
+        bracket_height: 43
+        bracket_color: var(--picard-yellow)
+        bracket_fill: none
+        bracket_radius: 7
+      background_pattern: stars
+      stars:
+        count: 150
+        color:
+          - var(--picard-black-cherry)
+          - var(--picard-dark-blue)
+          - var(--picard-moonlight)
+        max_radius: 0.5
+      background_zoom:
+        scale_to: 5
+        layers: 6
+        opacity_fade_in: 17
+        opacity_fade_out: 95
+      background_speed: 3
+      background_effect: zoom
+      grid_effect: zoom
+      grid_zoom:
+        scale_to: 3
+        layers: 3
+        opacity_fade_out: 15
+        opacity_fade_in: 5
+      grid_speed: 8
+  card:
+    color:
+      default: var(--picard-dark-gray)
+    border:
+      top:
+        left_radius: 0
+        size: 15
+      left:
+        size: 110
+      right:
+        size: 110
+      bottom:
+        size: 15
+  symbiont:
+    enabled: true
+show_name: true
+name: Cards for Home Assistant
+custom_fields:
+  symbiont:
+    card:
+      type: custom:cb-lcars-elbow-card
+      template:
+        - cb-lcars-animation-bg-grid
+      cblcars_card_type: cb-lcars-header-open
+      enable_resize_observer: true
+      show_label: false
+      variables:
+        animation:
+          bg_grid:
+            grid:
+              preset: none
+            background_pattern: nebula
+            nebula:
+              blur: true
+              blur_level: 4
+              nebula_effect: true
+              animate: true
+              animation_duration: 3
+              preset: cosmic_embers
+            background_effect: zoom
+            background_zoom:
+              scale_to: 1.6
+              scale_from: 0.5
+              layers: 1
+            background_speed: 10
+            grid_speed: 0
+            color:
+              fill: transparent
+        card:
+          border:
+            left:
+              size: 0
+            right:
+              size: 0
+            top:
+              size: 0
+          color:
+            background:
+              default: transparent
+```
+</details>
 ---
 
 ## Configuration
@@ -23,6 +166,21 @@ variables:
     bg_grid:
       # ...your customizations here...
 ```
+
+---
+
+### Bracket Grid Options (`grid` with `preset: bracket`)
+
+| Variable           | Type    | Default                        | Description                                      |
+|--------------------|---------|--------------------------------|--------------------------------------------------|
+| `bracket_width`    | number  | `5`                            | Width of bracket lines (%)                      |
+| `bracket_radius`   | number  | `7`                            | Corner radius for brackets (px)                  |
+| `bracket_color`    | string  | `var(--lcars-yellow)`          | Bracket line color                               |
+| `bracket_gap`      | number  | `35`                           | Gap from edge to bracket (%)                    |
+| `bracket_fill`     | string  | `rgba(128,128,128,0.08)`       | Fill color between brackets                      |
+| `bracket_height`   | number  | `20`                           | Height of brackets (%)                          |
+
+> **Note:** These options are only used when `preset: bracket` is set in the `grid` configuration.
 
 ---
 
@@ -59,12 +217,8 @@ All variables are set under `variables.animation.bg_grid`.
 | `border_lines`       | bool    | `true`  | Show border lines                                |
 | `preset`             | string  | `rect`  | Grid pattern: `rect`, `hex`, `diagonal`, `bracket`|
 | `hex_radius`         | number  | auto    | (Hex grid) Radius of hexagons                    |
-| `bracket_width`      | number  | `5`     | (Bracket grid) Width of bracket lines            |
-| `bracket_radius`     | number  | `7`     | (Bracket grid) Corner radius                     |
-| `bracket_color`      | string  | `var(--lcars-yellow)` | (Bracket grid) Bracket line color      |
-| `bracket_gap`        | number  | `35`    | (Bracket grid) Gap from edge (px)                |
-| `bracket_fill`       | string  | `rgba(128,128,128,0.08)` | (Bracket grid) Fill color between brackets |
-| `bracket_height`     | number  | `20`    | (Bracket grid) Height of brackets (px)           |
+
+See [Bracket Grid Options](#bracket-grid-options-grid-with-preset-bracket) for additional options when using `preset: bracket`.
 
 ---
 
@@ -236,6 +390,63 @@ variables:
 
 ---
 
+## Nebula: Custom Layers
+
+You can define your own nebula effect by specifying `preset: custom` and providing an array of `nebula_layers`. Each layer is an object describing an ellipse and its color/opacity stops.
+
+### Custom Nebula Layers Example
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-animation-bg-grid
+variables:
+  animation:
+    bg_grid:
+      background_pattern: nebula
+      nebula:
+        preset: custom
+        nebula_layers:
+          - color: "#ff69b4"
+            cx: 50
+            cy: 40
+            rx: 40
+            ry: 25
+            opacity_stops: [1, 0.5, 0]
+          - color: "var(--lcars-cyan)"
+            cx: 60
+            cy: 60
+            rx: 30
+            ry: 18
+            opacity_stops: [0.8, 0.3, 0]
+          - color: "#fff"
+            cx: 40
+            cy: 55
+            rx: 15
+            ry: 10
+            opacity_stops: [0.5, 0]
+        nebula_effect: true
+        blur: true
+        blur_level: 10
+        animate: true
+        animation_duration: 18
+```
+
+**nebula_layers fields:**
+- `color`: Fill color (hex, rgb, or CSS var)
+- `cx`, `cy`: Center position (0-100, as % of width/height)
+- `rx`, `ry`: Radii (ellipse size, in % of width/height)
+- `opacity_stops`: Array of opacity values (e.g. `[1, 0.3, 0]`).
+  Each value represents the opacity at a specific percentage along the gradient or animation:
+  - The first value is the opacity at the center (0%),
+  - The last value is the opacity at the edge (100%),
+  - Any values in between are distributed evenly.
+  This allows you to control how the nebula fades from the center outward, or over the course of the animation.
+
+You can add as many layers as you like for complex nebula effects.
+
+---
+
 ## Animation Effects
 
 - **scroll**: Infinite scrolling effect (directional).
@@ -255,8 +466,9 @@ variables:
 
 ## Presets
 
-Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`). You can also define your own custom nebula layers.
+Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`). You can also define your own custom nebula layers (see [Nebula: Custom Layers](#nebula-custom-layers)).
 
+![nebula-presets](../images/screenshots/nebula-samples-1.png)
 ---
 
 ## File Location

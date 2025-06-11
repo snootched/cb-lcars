@@ -1,12 +1,8 @@
-# CB-LCARS Animation Cascade
+# CB-LCARS Animation: Data Cascade
 
-A flexible animated text cascade background template for CB-LCARS cards, supporting animated rows and columns of text (numbers, floats, or characters) with advanced animation and customization options.
+A flexible animated text cascade background for CB-LCARS cards. This template provides animated rows and columns of numbers, floats, or characters as a dynamic background, with extensive options for grid size, text style, animation patterns (including custom timing and color keyframes), and color transitions.
 
----
-
-## Overview
-
-This template enables animated cascades of text as a background for your CB-LCARS cards. You can configure the number of rows/columns, text style, animation pattern, and color transitions. The cascade can animate in various patterns, including custom timing and color keyframes.
+![data-cascade](../images/screenshots/data_cascade.gif)
 
 ---
 
