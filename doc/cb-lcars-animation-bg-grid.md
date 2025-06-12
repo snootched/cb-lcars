@@ -178,7 +178,7 @@ All variables are set under `variables.animation.bg_grid`
 |-------------------------|-----------|-----------------|---------------------------------------------------------------------------------------------|
 | `direction`             | string    | `left`          | Scroll direction: `left`, `right`, `up`, `down`                                          |
 | `speed`                 | number    | `30`            | Default animation speed (seconds) for scroll/zoom                                           |
-| `zoom`                 | object    | `{}`            | Glocal zoom settings (see below)                                           |
+| `zoom`                 | object    | `{}`            | Global zoom settings (see below)                                           |
 | `background_pattern`    | string    | `none`          | Background pattern: `none`, `stars`, `nebula`, `fill`                                       |
 | `background_effect`     | string    | `auto`          | Animation effect for background: `auto`, `scroll`, `zoom`, `none`                           |
 | `background_speed`      | number    | `null`          | Speed for background animation (overrides global `speed`)                                   |
