@@ -169,31 +169,16 @@ variables:
 
 ---
 
-### Bracket Grid Options (`grid` with `preset: bracket`)
-
-| Variable           | Type    | Default                        | Description                                      |
-|--------------------|---------|--------------------------------|--------------------------------------------------|
-| `bracket_width`    | number  | `5`                            | Width of bracket lines (%)                      |
-| `bracket_radius`   | number  | `7`                            | Corner radius for brackets (px)                  |
-| `bracket_color`    | string  | `var(--lcars-yellow)`          | Bracket line color                               |
-| `bracket_gap`      | number  | `35`                           | Gap from edge to bracket (%)                    |
-| `bracket_fill`     | string  | `rgba(128,128,128,0.08)`       | Fill color between brackets                      |
-| `bracket_height`   | number  | `20`                           | Height of brackets (%)                          |
-
-> **Note:** These options are only used when `preset: bracket` is set in the `grid` configuration.
-
----
-
 ## Variables Reference
 
-All variables are set under `variables.animation.bg_grid`.
+All variables are set under `variables.animation.bg_grid`
 
-### Top-Level Options
 
 | Variable                | Type      | Default         | Description                                                                                 |
 |-------------------------|-----------|-----------------|---------------------------------------------------------------------------------------------|
-| `direction`             | string    | `left`          | Animation direction: `left`, `right`, `up`, `down`                                          |
+| `direction`             | string    | `left`          | Scroll direction: `left`, `right`, `up`, `down`                                          |
 | `speed`                 | number    | `30`            | Default animation speed (seconds) for scroll/zoom                                           |
+| `zoom`                 | object    | `{}`            | Glocal zoom settings (see below)                                           |
 | `background_pattern`    | string    | `none`          | Background pattern: `none`, `stars`, `nebula`, `fill`                                       |
 | `background_effect`     | string    | `auto`          | Animation effect for background: `auto`, `scroll`, `zoom`, `none`                           |
 | `background_speed`      | number    | `null`          | Speed for background animation (overrides global `speed`)                                   |
@@ -201,10 +186,34 @@ All variables are set under `variables.animation.bg_grid`.
 | `grid_effect`           | string    | `auto`          | Animation effect for grid: `auto`, `scroll`, `zoom`, `none`                                 |
 | `grid_speed`            | number    | `null`          | Speed for grid animation (overrides global `speed`)                                         |
 | `grid_zoom`             | object    | `{}`            | Zoom animation config for grid (see below)                                                  |
+| `grid`              | object    | `{}`                |    Settings for grid (see below)
+| `stars`             | object    | `{}`            | Settings for starfield animation (see below)                                                  |
+| `nebula`             | object    | `{}`            | Settings for nebula animation (see below)                                                  |
 
 ---
 
-### Grid Options (`grid`)
+## Zoom Options (`zoom`, `background_zoom`, `grid_zoom`)
+Controls global, or independent zoom settings for background and grid layers (independent overloads global settings)
+
+Variables at:
+Global: `variables.animation.bg_grid.zoom`
+<br>Grid: `variables.animation.bg_grid.grid_zoom`
+<br>Background: `variables.animation.bg_grid.background_zoom`
+
+| Variable           | Type    | Default | Description                                      |
+|--------------------|---------|---------|--------------------------------------------------|
+| `layers`           | number  | `3`     | Number of zoom layers<br><br>Stack layers to create depth effect.                             |
+| `scale_from`         | number  | `1`     | Initial scale factor for zoom                      |
+| `scale_to`         | number  | `2`     | Final scale factor for zoom                      |
+| `speed`            | number  | `speed` | Animation duration (seconds)<br>Defaults to global `speed`                  |
+| `opacity_fade_in`  | number  | `10`    | % of animation for fade-in                       |
+| `opacity_fade_out` | number  | `80`    | % of animation for fade-out                      |
+
+
+---
+
+## GRID Options (`grid`)
+Variables under `variables.animation.bg_grid.grid`
 
 | Variable             | Type    | Default | Description                                      |
 |----------------------|---------|---------|--------------------------------------------------|
@@ -216,13 +225,25 @@ All variables are set under `variables.animation.bg_grid`.
 | `line_width_minor`   | number  | `1`     | Stroke width for minor grid lines                |
 | `border_lines`       | bool    | `true`  | Show border lines                                |
 | `preset`             | string  | `rect`  | Grid pattern: `rect`, `hex`, `diagonal`, `bracket`|
-| `hex_radius`         | number  | auto    | (Hex grid) Radius of hexagons                    |
+| `hex_radius`         | number  | auto    | (`preset: hex`) Radius of hexagons                    |
 
-See [Bracket Grid Options](#bracket-grid-options-grid-with-preset-bracket) for additional options when using `preset: bracket`.
+
+
+#### Bracket Grid Options (`grid` with `preset: bracket`)
+
+| Variable           | Type    | Default                        | Description                                      |
+|--------------------|---------|--------------------------------|--------------------------------------------------|
+| `bracket_width`    | number  | `5`                            | Width of bracket lines (%)                      |
+| `bracket_radius`   | number  | `7`                            | Corner radius for brackets (px)                  |
+| `bracket_color`    | string  | `var(--lcars-yellow)`          | Bracket line color                               |
+| `bracket_gap`      | number  | `35`                           | Gap from edge to bracket (%)                    |
+| `bracket_fill`     | string  | `rgba(128,128,128,0.08)`       | Fill color between brackets                      |
+| `bracket_height`   | number  | `20`                           | Height of brackets (%)                          |
 
 ---
 
-### Colour Options (`color`)
+## GRID Colour Options (`color`)
+Variables under `variables.animation.bg_grid.color`
 
 | Variable   | Type   | Default                    | Description                       |
 |------------|--------|----------------------------|-----------------------------------|
@@ -231,7 +252,8 @@ See [Bracket Grid Options](#bracket-grid-options-grid-with-preset-bracket) for a
 
 ---
 
-### Starfield Options (`stars`)
+## Starfield Options (`stars`)
+Variables under `variables.animation.bg_grid.stars`
 
 | Variable         | Type    | Default | Description                                 |
 |------------------|---------|---------|---------------------------------------------|
@@ -247,12 +269,13 @@ See [Bracket Grid Options](#bracket-grid-options-grid-with-preset-bracket) for a
 
 ---
 
-### Nebula Options (`nebula`)
+## Nebula Options (`nebula`)
+Variables under `variables.animation.bg_grid.nebula`
 
 | Variable             | Type    | Default   | Description                                                      |
 |----------------------|---------|-----------|------------------------------------------------------------------|
-| `preset`             | string  | `default` | Name of nebula preset (see `nebula_presets`)                     |
-| `nebula_effect`      | bool    | `true`    | Enable SVG turbulence/displacement effect                        |
+| `preset`             | string  | `default` | Name of nebula preset: `orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`<br><br>`custom` (see below)                   |
+| `nebula_effect`      | bool    | `true`    | Enable SVG turbulence/displacement effect ***[can be performance intensive]***                       |
 | `base_frequency`     | number  | `1`       | Turbulence base frequency                                        |
 | `num_octaves`        | number  | `3`       | Turbulence octaves                                               |
 | `scale`              | number  | `40`      | Displacement scale                                               |
@@ -262,31 +285,76 @@ See [Bracket Grid Options](#bracket-grid-options-grid-with-preset-bracket) for a
 | `animate`            | bool    | `true`    | Animate turbulence                                               |
 | `animation_duration` | number  | `20`      | Animation duration (seconds)                                     |
 
-#### Nebula Layers (`nebula_layers`)
-- Array of custom nebula layer objects (used if `preset: custom`):
-  - `color`: string (hex/rgb/CSS var)
-  - `cx`: number (center x, 0-100)
-  - `cy`: number (center y, 0-100)
-  - `rx`: number (x radius)
-  - `ry`: number (y radius)
-  - `opacity_stops`: array (e.g. `[1, 0.3, 0]`)
 
-#### Nebula Presets (`nebula_presets`)
-- Object mapping preset names to arrays of nebula layer objects (see above for structure).
-- Presets included: `orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`.
+
+## Nebula Presets
+
+Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`, etc.). You can also define your own custom nebula layers (see [Nebula: Custom Layers](#nebula-custom-layers)).
+
+![nebula-presets](../images/screenshots/nebula-samples-1.png)
 
 ---
 
-### Zoom Animation Options (`background_zoom`, `grid_zoom`)
+## Nebula: Custom Layers (`nebula_layers`)
 
-| Variable           | Type    | Default | Description                                      |
-|--------------------|---------|---------|--------------------------------------------------|
-| `layers`           | number  | `3`     | Number of zoom layers                            |
-| `scale_from`         | number  | `1`     | Initial scale factor for zoom                      |
-| `scale_to`         | number  | `2`     | Final scale factor for zoom                      |
-| `speed`            | number  | `speed` | Animation duration (seconds)<br>Defaults to global `speed`                  |
-| `opacity_fade_in`  | number  | `10`    | % of animation for fade-in                       |
-| `opacity_fade_out` | number  | `80`    | % of animation for fade-out                      |
+You can define your own nebula effect by specifying `preset: custom` and providing an array of `variables.animation.bg_grid.nebula_layers`. Each layer is an object describing an ellipse and its color/opacity stops.
+
+**nebula_layers fields:**
+- `color`: Fill color (hex, rgb, or CSS var)
+- `cx`, `cy`: Center position (0-100, as % of width/height)
+- `rx`, `ry`: Radii (ellipse size, in % of width/height)
+- `opacity_stops`: Array of opacity values (e.g. `[1, 0.3, 0]`)
+
+  Each value represents the opacity at a specific percentage along the gradient or animation:
+  - The first value is the opacity at the center (0%),
+  - The last value is the opacity at the edge (100%),
+  - Any values in between are distributed evenly.
+  This allows you to control how the nebula fades from the center outward, or over the course of the animation.
+
+You can add as many layers as you like for complex nebula effects.
+
+### Custom Nebula Layers Example
+
+```yaml
+type: custom:button-card
+template:
+  - cb-lcars-animation-bg-grid
+variables:
+  animation:
+    bg_grid:
+      background_pattern: nebula
+      nebula:
+        preset: custom
+        nebula_layers:
+          - color: "#ff69b4"
+            cx: 50
+            cy: 40
+            rx: 40
+            ry: 25
+            opacity_stops: [1, 0.5, 0]
+          - color: "var(--lcars-cyan)"
+            cx: 60
+            cy: 60
+            rx: 30
+            ry: 18
+            opacity_stops: [0.8, 0.3, 0]
+          - color: "#fff"
+            cx: 40
+            cy: 55
+            rx: 15
+            ry: 10
+            opacity_stops: [0.5, 0]
+        nebula_effect: true
+        blur: true
+        blur_level: 10
+        animate: true
+        animation_duration: 18
+```
+---
+
+## File Location
+
+![`src/cb-lcars/cb-lcars-animation-bg-grid.yaml`](../src/cb-lcars/cb-lcars-animation-bg-grid.yaml)
 
 ---
 
@@ -369,111 +437,6 @@ variables:
         max_radius: 1.2
         color: [#fff, #ffd700, #add8e6]
 ```
-
----
-
-## Grid Presets
-
-- **rect** (default): Standard grid with major/minor lines.
-- **hex**: Honeycomb pattern, with major/minor hexes.
-- **diagonal**: Hatched/diagonal lines.
-- **bracket**: LCARS-style brackets at left/right edges.
-
----
-
-## Background Patterns
-
-- **none**: No background, just grid.
-- **stars**: Animated starfield (customizable).
-- **nebula**: Animated nebula clouds (customizable, supports presets and custom layers).
-- **fill**: Solid fill colour.
-
----
-
-## Nebula: Custom Layers
-
-You can define your own nebula effect by specifying `preset: custom` and providing an array of `nebula_layers`. Each layer is an object describing an ellipse and its color/opacity stops.
-
-### Custom Nebula Layers Example
-
-```yaml
-type: custom:button-card
-template:
-  - cb-lcars-animation-bg-grid
-variables:
-  animation:
-    bg_grid:
-      background_pattern: nebula
-      nebula:
-        preset: custom
-        nebula_layers:
-          - color: "#ff69b4"
-            cx: 50
-            cy: 40
-            rx: 40
-            ry: 25
-            opacity_stops: [1, 0.5, 0]
-          - color: "var(--lcars-cyan)"
-            cx: 60
-            cy: 60
-            rx: 30
-            ry: 18
-            opacity_stops: [0.8, 0.3, 0]
-          - color: "#fff"
-            cx: 40
-            cy: 55
-            rx: 15
-            ry: 10
-            opacity_stops: [0.5, 0]
-        nebula_effect: true
-        blur: true
-        blur_level: 10
-        animate: true
-        animation_duration: 18
-```
-
-**nebula_layers fields:**
-- `color`: Fill color (hex, rgb, or CSS var)
-- `cx`, `cy`: Center position (0-100, as % of width/height)
-- `rx`, `ry`: Radii (ellipse size, in % of width/height)
-- `opacity_stops`: Array of opacity values (e.g. `[1, 0.3, 0]`).
-  Each value represents the opacity at a specific percentage along the gradient or animation:
-  - The first value is the opacity at the center (0%),
-  - The last value is the opacity at the edge (100%),
-  - Any values in between are distributed evenly.
-  This allows you to control how the nebula fades from the center outward, or over the course of the animation.
-
-You can add as many layers as you like for complex nebula effects.
-
----
-
-## Animation Effects
-
-- **scroll**: Infinite scrolling effect (directional).
-- **zoom**: Infinite zoom effect (multiple layers).
-- **none**: Static background/grid.
-
----
-
-## Advanced
-
-- Both grid and background can be animated independently.
-- All colours support CSS variables for theme integration.
-- Nebula and starfield backgrounds are fully customizable and tile seamlessly.
-- Bracket grid supports custom color, fill, and sizing.
-
----
-
-## Presets
-
-Several nebula presets are included (`orion`, `crab`, `cosmic_embers`, `iridescent_drift`, `emerald_void`, `ethereal_drift`, `aurora_nexus`). You can also define your own custom nebula layers (see [Nebula: Custom Layers](#nebula-custom-layers)).
-
-![nebula-presets](../images/screenshots/nebula-samples-1.png)
----
-
-## File Location
-
-![`src/cb-lcars/cb-lcars-animation-bg-grid.yaml`](../src/cb-lcars/cb-lcars-animation-bg-grid.yaml)
 
 ---
 

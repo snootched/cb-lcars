@@ -4,6 +4,11 @@ GEO Array is a customizable animated background for CB-LCARS cards, supporting a
 
 ![geo-array-example](../images/screenshots/cb-lcars-geo-array-samples-1.gif)
 
+- All colors support CSS variables for theme integration.
+- Grid size auto-calculates to fit the card unless overridden.
+- Custom patterns and keyframes allow for advanced animation effects.
+- Both row and column animation modes are supported.
+
 ---
 
 ## Configuration
@@ -26,8 +31,6 @@ variables:
 
 All variables are set under `variables.animation.geo_array`.
 
-### Top-Level Options
-
 | Variable                | Type      | Default         | Description                                                                                 |
 |-------------------------|-----------|-----------------|---------------------------------------------------------------------------------------------|
 | `animation_axis`        | string    | `row`           | Animation axis: `row` or `column` (controls if animation is per-row or per-column)          |
@@ -41,6 +44,8 @@ All variables are set under `variables.animation.geo_array`.
 
 ### Grid Options (`grid`)
 
+Variables under `variables.animation.geo_array.grid`
+
 | Variable             | Type    | Default | Description                                      |
 |----------------------|---------|---------|--------------------------------------------------|
 | `num_cols`           | number  | auto    | Number of columns (auto-calculated if not set)    |
@@ -53,6 +58,8 @@ All variables are set under `variables.animation.geo_array`.
 
 ### Colour Options (`color`)
 
+Variables under `variables.animation.geo_array.color`
+
 | Variable           | Type   | Default                    | Description                       |
 |--------------------|--------|----------------------------|-----------------------------------|
 | `base`             | string | `var(--picard-dark-blue)`  | Base color for shapes             |
@@ -63,6 +70,8 @@ All variables are set under `variables.animation.geo_array`.
 ---
 
 ### Shape Options (`shape`)
+
+Variables under `variables.animation.geo_array.shape`
 
 | Variable   | Type   | Default   | Description                                      |
 |------------|--------|-----------|--------------------------------------------------|
@@ -140,39 +149,6 @@ variables:
         type: hexagon
         size: 18
 ```
-
----
-
-## Shape Types
-
-- **square** (default)
-- **circle**
-- **triangle**
-- **diamond**
-- **star**
-- **pentagon**
-- **hexagon**
-- **octagon**
-- **ellipse**
-- **cross**
-
----
-
-## Animation Patterns
-
-- **default**: Standard staggered animation.
-- **niagara**: Faster, uniform animation.
-- **frozen**: One-shot animation, does not repeat.
-- **custom**: User-defined pattern via `custom_pattern`.
-
----
-
-## Advanced
-
-- All colors support CSS variables for theme integration.
-- Grid size auto-calculates to fit the card unless overridden.
-- Custom patterns and keyframes allow for advanced animation effects.
-- Both row and column animation modes are supported.
 
 ---
 

@@ -59,22 +59,20 @@ CB-LCARS is a collection of custom cards for Home Assistant, inspired by the ico
 
 ## Features
 
-- Built upon a [Federation-enhanced version](https://github.com/snootched/button-card-lcars/tree/cb-lcars) of `custom-button-card` with additional features and internal template management.
-- Designed to work seamlessly with the [ha-lcars-theme](https://github.com/th3jesta/ha-lcars).
+- Built upon a [Starfleet-issued version](https://github.com/snootched/button-card-lcars/tree/cb-lcars) of `custom-button-card` enhanced with additional features and internal template management.
+- Designed to work with [HA-LCARS theme](https://github.com/th3jesta/ha-lcars).
 - Includes many LCARS-style elements: buttons, sliders/gauges, elbows, d-pad, and a growing library of animated effects.
-- Optimized for HA 'Sections' or grid layouts.
-- Highly customizable and dynamic state-responsive styles: colours, text, icons, animations, and much more.
-- Controls can match light-entity colours.
-- Supports LCARS animations, button effects, and blinking.
-- Unique features: ***Symbiont*** mode lets you encapsulate and imprint LCARS styling onto other cards.
-
+- Highly customizable and dynamic state-responsive styles: colours, borders, text, icons, animations, and much more.
+- Controls can match the colour of light entities.
+- ***Symbiont*** mode lets you encapsulate other cards and imprint LCARS styling onto them.
+- Use HA 'Sections' dashboards or custom/grid layouts for best results.
 
 
 ### What it isn't...
 
-- CB-LCARS is not its own theme — pair with [ha-lcars-theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
+- CB-LCARS is not its own theme — pair with [HA-LCARS theme](https://github.com/th3jesta/ha-lcars) for the full LCARS experience.
 - Not fully standalone—some controls may require other HACS cards (see requirements).
-- Not a commissioned Starfleet-grade product — this is a hobby project, so expect some tribbles (bugs).
+- Not a fully commissioned Starfleet  product — those features won't be installed until Tuesday.  (this is a hobby project, so expect some tribbles.)
 
 <br>
 
@@ -405,7 +403,7 @@ variables:
 | `cblcars_card_type:`        | Styles          |
 | -------------- | ---------------------- |
 | [`cb-lcars-label`](src/cb-lcars/cb-lcars-label.yaml) | ![picard-callout-2](images/screenshots/label-2.png) |
-| [`cb-lcars-label-picard`](src/cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label](images/button_samples/cb-lcars-label.png)<br>![cb-lcars-label-2](images/button_samples/cb-lcars-label-2.png) |
+| [`cb-lcars-label-picard`](src/cb-lcars/cb-lcars-label-presets.yaml) | ![cb-lcars-label-2](images/screenshots/picard-labels.png) |
 
 <br>
 

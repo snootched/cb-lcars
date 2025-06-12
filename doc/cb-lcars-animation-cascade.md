@@ -4,6 +4,11 @@ A flexible animated text cascade background for CB-LCARS cards. This template pr
 
 ![data-cascade](../images/screenshots/data_cascade.gif)
 
+- All colors support CSS variables for theme integration.
+- Grid size auto-calculates to fit the card unless overridden.
+- Custom patterns and keyframes allow for advanced animation effects.
+- Text in each cell is randomized (numbers, floats, or characters).
+
 ---
 
 ## Configuration
@@ -26,8 +31,6 @@ variables:
 
 All variables are set under `variables.animation.cascade`.
 
-### Top-Level Options
-
 | Variable                | Type      | Default         | Description                                                                                 |
 |-------------------------|-----------|-----------------|---------------------------------------------------------------------------------------------|
 | `pattern`               | string    | `default`       | Animation pattern: `default`, `niagara`, `frozen`, `custom`                                 |
@@ -39,6 +42,8 @@ All variables are set under `variables.animation.cascade`.
 ---
 
 ### Grid Options (`grid`)
+
+Variables under `variables.animation.cascade.grid`
 
 | Variable             | Type    | Default | Description                                      |
 |----------------------|---------|---------|--------------------------------------------------|
@@ -52,6 +57,8 @@ All variables are set under `variables.animation.cascade`.
 
 ### Colour Options (`color`)
 
+Variables under `variables.animation.cascade.color`
+
 | Variable           | Type   | Default                    | Description                       |
 |--------------------|--------|----------------------------|-----------------------------------|
 | `text`             | string | `var(--picard-dark-blue)`  | Base color for text               |
@@ -62,10 +69,17 @@ All variables are set under `variables.animation.cascade`.
 
 ### Text Options (`text`)
 
+Variables under `variables.animation.cascade.text`
+
+
 | Variable     | Type   | Default | Description                                      |
 |--------------|--------|---------|--------------------------------------------------|
 | `font_size`  | number | `24`    | Font size (px)                                   |
 | `font_weight`| number | `300`   | Font weight                                      |
+
+---
+
+TODO: custom animation
 
 ---
 
@@ -143,24 +157,6 @@ variables:
           100% {color: #ffffff}
         }
 ```
-
----
-
-## Animation Patterns
-
-- **default**: Standard staggered animation.
-- **niagara**: Faster, uniform animation.
-- **frozen**: One-shot animation, does not repeat.
-- **custom**: User-defined pattern via `custom_pattern`.
-
----
-
-## Advanced
-
-- All colors support CSS variables for theme integration.
-- Grid size auto-calculates to fit the card unless overridden.
-- Custom patterns and keyframes allow for advanced animation effects.
-- Text in each cell is randomized (numbers, floats, or characters).
 
 ---
 
