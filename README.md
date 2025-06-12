@@ -262,8 +262,6 @@ We start with our basic entities card
 
 We join the card as our symbiont:
 
-<img src="images/screenshots/symbiont-joined-not-imprinted.png" alt="cb-lcars" style="max-width: 400px;">
-
 ![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
 
 We then imprint the host card styles onto the symbiont:
