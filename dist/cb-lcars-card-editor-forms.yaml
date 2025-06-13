@@ -13,6 +13,12 @@ cb-lcars-base-card:
       .form-control {
         padding: 2px 8px 2px 8px;
       }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
+      }
 cb-lcars-base-controls:
   tabs:
     - label: Base Controls
@@ -291,7 +297,10 @@ cb-lcars-base-controls:
                       (() => {
                         const styles = document.documentElement.style;
                         const options = [];
-                        options.push({ value: 'transparent', label: '**transparent**' });
+                        options.push({ value: 'transparent', label: '[[ transparent ]]' });
+                        options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });
+                        options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });
+
                         for (let i = 0; i < styles.length; i++) {
                           const name = styles[i];
                           if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {
@@ -3341,6 +3350,20 @@ cb-lcars-base-controls:
                                   label: Square
                                 - value: circle
                                   label: Circle
+                                - value: ellipse
+                                  label: Ellipse
+                                - value: triangle
+                                  label: Triangle
+                                - value: diamond
+                                  label: Diamond
+                                - value: hexagon
+                                  label: Hexagon
+                                - value: pentagon
+                                  label: Pentagon
+                                - value: octagon
+                                  label: Octagon
+                                - value: cross
+                                  label: Cross
                         - label: "Size"
                           configValue: "variables.animation.geo_array.shape.size"
                           type: Selector
@@ -3719,17 +3742,44 @@ cb-lcars-base-controls:
           rows:
             - &gridMotionSettingsSection
               type: Section
-              label: "Motion Settings"
+              label: "Global Motion Settings"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:format-list-bulleted"
+              icon: "mdi:motion-outline"
               noCollapse: false
               expanded: false
               rows:
                 - controls:
-                    - label: "Direction"
+                    - type: Message
+                      alertType: info
+                      message: "These settings control the global motion effect of the background and grid layers together.  You can override these settings independently in the background and grid sections below."
+                    - label: "Speed (s)"
+                      configValue: "variables.animation.bg_grid.speed"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          max: 60
+                          step: 0.5
+                          mode: slider
+                - controls:
+                    - label: "Motion Effect"
+                      configValue: "variables.animation.bg_grid.effect"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: radio
+                          options:
+                            - value: "scroll"
+                              label: "Scroll"
+                            - value: "zoom"
+                              label: "Zoom"
+                            - value: "none"
+                              label: "None"
+                    - label: "Scroll Direction"
                       configValue: "variables.animation.bg_grid.direction"
+                      visibilityCondition: "this._config.variables.animation?.bg_grid?.effect === 'scroll'"
                       type: Selector
                       selector:
                         select:
@@ -3743,22 +3793,79 @@ cb-lcars-base-controls:
                               label: "Left"
                             - value: "right"
                               label: "Right"
-                    - label: "Duration (s)"
-                      configValue: "variables.animation.bg_grid.speed"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 0
-                          max: 60
-                          step: 0.1
-                          mode: slider
+                - &bgGridZoom
+                  type: Section
+                  label: "Zoom Settings"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:move-resize-variant"
+                  noCollapse: false
+                  expanded: true
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.effect === 'zoom'"
+                  rows:
+                    - controls:
+                        - type: Message
+                          alertType: info
+                          message: "Each layer will zoom in until the layer is scaled by the factor.  It will fade in and out based on the opacity stops."
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Zoom Layers"
+                          configValue: "variables.animation.bg_grid.zoom.layers"
+                          helper: "Number of layers to zoom in the background"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Scale Size"
+                          configValue: "variables.animation.bg_grid.zoom.scale_to"
+                          helper: "Scale factor of the zoom effect"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                              2unit_of_measurement: "x"
+                        - label: "Opacity Fade In"
+                          configValue: "variables.animation.bg_grid.zoom.opacity_fade_in"
+                          helper: "At what percent of the zoom should the opacity fade in"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                              2unit_of_measurement: "%"
+
+                        - label: "Opacity Fade Out"
+                          configValue: "variables.animation.bg_grid.zoom.opacity_fade_out"
+                          helper: "At what percent of the zoom should the opacity fade out"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 100
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                              2unit_of_measurement: "%"
             - &gridPatternSection
               type: Section
-              label: "Background Pattern"
+              label: "Background"
+              icon: "mdi:star-shooting-outline"
               outlined: true
               leftChevron: false
               headerLevel: 4
-              icon: "mdi:format-list-bulleted"
               noCollapse: false
               expanded: false
               rows:
@@ -3781,9 +3888,395 @@ cb-lcars-base-controls:
                               label: "Stars"
                             - value: "nebula"
                               label: "Nebula"
+                - type: Section
+                  label: "Star Settings"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:star-cog-outline"
+                  noCollapse: false
+                  expanded: true
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.background_pattern === 'stars'"
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Star Count"
+                          configValue: "variables.animation.bg_grid.stars.count"
+                          helper: "Number of stars for background"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 500
+                              step: 1
+                              mode: slider
+                        - label: "Scale Size"
+                          configValue: "variables.animation.bg_grid.background_zoom.scale_to"
+                          helper: "Scale factor of the zoom effect"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              unit_of_measurement: "x"
+                              mode: slider
+
+                        - label: "Minumum Radius"
+                          configValue: "variables.animation.bg_grid.stars.min_radius"
+                          helper: "Minimum radius of the stars"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0.1
+                              max: 5
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: true
+                              unit_of_measurement: "px"
+                        - label: "Maximum Radius"
+                          configValue: "variables.animation.bg_grid.stars.max_radius"
+                          helper: "Maximum radius of the stars"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0.1
+                              max: 15
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: true
+                              unit_of_measurement: "px"
+                        - label: "Minumum Brightness"
+                          configValue: "variables.animation.bg_grid.stars.min_brightness"
+                          helper: "Minimum brightness of the stars"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 1
+                              step: 0.01
+                              mode: slider
+                              slider_ticks: true
+                              unit_of_measurement: ""
+                        - label: "Maximum Brightness"
+                          configValue: "variables.animation.bg_grid.stars.max_brightness"
+                          helper: "Maximum brightness of the stars"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 1
+                              step: 0.01
+                              mode: slider
+                              slider_ticks: true
+                              unit_of_measurement: ""
+                    - type: Section
+                      label: "Star Colours"
+                      outlined: false
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:select-color"
+                      noCollapse: true
+                      expanded: true
+                      rows:
+                        - visibilityCondition: "!Array.isArray(this._config.variables?.animation?.bg_grid?.stars?.color)"
+                          controls:
+                            - type: Message
+                              alertType: info
+                              message: "Tip: Pick a singular colour below - or for multiple colours, you can provide an array in the YAML: [var(--lcars-blue), '#00ff00', rgba(255, 0, 0, 0.5)]"
+                        - visibilityCondition: "Array.isArray(this._config.variables?.animation?.bg_grid?.stars?.color)"
+                          controls:
+                            - type: Message
+                              alertType: warning
+                              message: "Multiple colours are defined - colour picker disabled.  Please edit the list as text below or in the code editor."
+                        - cssClass: "form-row two-controls"
+                          visibilityCondition: "!Array.isArray(this._config.variables?.animation?.bg_grid?.stars?.color)"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.animation.bg_grid.stars.color"
+                            - <<: *colorControl
+                              configValue: "variables.animation.bg_grid.stars.color"
+                        - visibilityCondition: "!Array.isArray(this._config.variables?.animation?.bg_grid?.stars?.color)"
+                          controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.animation.bg_grid.stars.color"
+                        - controls:
+                            - type: Selector
+                              configValue: "variables.animation.bg_grid.stars.color"
+                              visibilityCondition: "Array.isArray(this._config.variables?.animation?.bg_grid?.stars?.color)"
+                              selector:
+                                text:
+                                  type: text
+                                  multiple: true
+                - type: Section
+                  label: "Nebula Settings"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:weather-tornado"
+                  noCollapse: false
+                  expanded: true
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.background_pattern === 'nebula'"
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Preset"
+                          configValue: "variables.animation.bg_grid.nebula.preset"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: "default"
+                                  label: "Default"
+                                - value: "orion"
+                                  label: "[M42] Orion"
+                                - value: "crab"
+                                  label: "[M1] Crab"
+                                - value: "horsehead"
+                                  label: "[B33] Horsehead"
+                                - value: "eagle"
+                                  label: "[M16] Eagle"
+                                - value: "pillars_of_creation"
+                                  label: "[M16] Pillars of Creation"
+                                - value: "veil"
+                                  label: "[NGC 6960] Veil"
+                                - value: "aurora_nexus"
+                                  label: "Aurora Nexus"
+                                - value: "cosmic_embers"
+                                  label: "Cosmic Embers"
+                                - value: "iridescent_drift"
+                                  label: "Iridescent Drift"
+                                - value: "emerald_void"
+                                  label: "Emerald Void"
+                                - value: "ethereal_drift"
+                                  label: "Ethereal Drift"
+                                - value: "custom"
+                                  label: "Custom"
+                        - label: "Custom Nebula"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.preset === 'custom'"
+                          configValue: "variables.animation.bg_grid.nebula_layers"
+                          helper: "Please see documentation for how to define custom nebula layers"
+                          type: Selector
+                          selector:
+                            object:
+                        - label: "Blur"
+                          configValue: "variables.animation.bg_grid.nebula.blur"
+                          helper: "Softens the nebula for a foggy look."
+                          type: Selector
+                          selector:
+                            boolean:
+                        - label: "Blur Level"
+                          configValue: "variables.animation.bg_grid.nebula.blur_level"
+                          helper: "Amount of blur to apply to the nebula.  Higher = more blur."
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.blur"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 25
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                              slider_ticks: false
+                        - label: "Nebula Effect"
+                          configValue: "variables.animation.bg_grid.nebula.nebula_effect"
+                          helper: "Enable advanced nebula effect adding noise and distortion"
+                          type: Selector
+                          selector:
+                            boolean:
+                        - label: "Turbulance/noise Base Frequency"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          configValue: "variables.animation.bg_grid.nebula.base_frequency"
+                          helper: "Controls the size and density of the nebula's noise pattern. Higher = finer."
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 5
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Turbulance/Noise Octaves"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          configValue: "variables.animation.bg_grid.nebula.octaves"
+                          helper: " Number of noise layers for detail. Higher = more complex nebula."
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Turbulance/Noise Seed"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          configValue: "variables.animation.bg_grid.nebula.seed"
+                          helper: "Seed for the turbulence effect to randomize the pattern.  Any integer for different looks."
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 1000
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Displacement Scale"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          configValue: "variables.animation.bg_grid.nebula.scale"
+                          helper: "Scale of the displacement effect"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 10
+                              max: 100
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+
+                        - label: "Animate Effects"
+                          configValue: "variables.animation.bg_grid.nebula.animate"
+                          helper: "Give the nebula a subtle animated effect"
+                          type: Selector
+                          selector:
+                            boolean:
+                        - label: "Animation Duration (s)"
+                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.animate"
+                          configValue: "variables.animation.bg_grid.nebula.animation_duration"
+                          helper: "Duration (seconds) for the full animation cycle effect."
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 60
+                              step: 0.5
+                              mode: slider
+                              slider_ticks: true
+                - type: Section
+                  label: "Background Motion Settings"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:motion-outline"
+                  noCollapse: false
+                  expanded: false
+                  rows:
+                    - controls:
+                        - type: Message
+                          alertType: info
+                          message: "These settings control override the global motion effect of the background layers."
+                        - label: "Speed (s)"
+                          configValue: "variables.animation.bg_grid.background_speed"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 60
+                              step: 0.5
+                              mode: slider
+                    - controls:
+                        - label: "Motion Effect"
+                          configValue: "variables.animation.bg_grid.background_effect"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: radio
+                              options:
+                                - value: "scroll"
+                                  label: "Scroll"
+                                - value: "zoom"
+                                  label: "Zoom"
+                                - value: "none"
+                                  label: "None"
+                    - type: Section
+                      label: "Zoom Settings"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:move-resize-variant"
+                      noCollapse: false
+                      expanded: true
+                      visibilityCondition: "this._config.variables.animation?.bg_grid?.background_effect === 'zoom'"
+                      rows:
+                        - controls:
+                            - type: Message
+                              alertType: info
+                              message: "Each layer will zoom in until the layer is scaled by the factor.  It will fade in and out based on the opacity stops."
+                        - type: ControlRow
+                          controls:
+                            - label: "Zoom Layers"
+                              configValue: "variables.animation.bg_grid.background_zoom.layers"
+                              helper: "Number of layers to zoom in the background"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 1
+                                  max: 10
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                            - label: "Scale Size"
+                              configValue: "variables.animation.bg_grid.background_zoom.scale_to"
+                              helper: "Scale factor of the zoom effect"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 1
+                                  max: 10
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "x"
+                            - label: "Opacity Fade In"
+                              configValue: "variables.animation.bg_grid.background_zoom.opacity_fade_in"
+                              helper: "At what percent of the zoom should the opacity fade in"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 0
+                                  max: 100
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "%"
+
+                            - label: "Opacity Fade Out"
+                              configValue: "variables.animation.bg_grid.background_zoom.opacity_fade_out"
+                              helper: "At what percent of the zoom should the opacity fade out"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 0
+                                  max: 100
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "%"
+
+                - type: Section
+                  label: "Background Colours"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:select-color"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Background Fill Colour</label>
+                    - cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.animation.bg_grid.color.fill"
+                        - <<: *colorControl
+                          configValue: "variables.animation.bg_grid.color.fill"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.animation.bg_grid.color.fill"
             - &bgGridGridSection
               type: Section
-              label: "Grid"
+              label: "GRID"
               outlined: true
               leftChevron: false
               headerLevel: 4
@@ -3791,107 +4284,322 @@ cb-lcars-base-controls:
               noCollapse: false
               expanded: false
               rows:
-                - controls:
+                - type: ControlRow
+                  controls:
                     - type: Message
                       alertType: info
                       message: "Cell dimensions are calculated automatically based on card size and row/column counts."
                 - type: ControlRow
-                  cssClass: "form-row two-controls"
                   controls:
-                    - label: "# Major Columns"
-                      configValue: "variables.animation.bg_grid.grid.num_major_cols"
+                    - label: "Grid Preset"
+                      configValue: "variables.animation.bg_grid.grid.preset"
+                      helper: "Select the type of grid to display"
                       type: Selector
                       selector:
-                        number:
-                          min: 1
-                          max: 25
-                          step: 1
-                          mode: slider
-                    - label: "# Minor Columns"
-                      configValue: "variables.animation.bg_grid.grid.num_minor_cols"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 1
-                          max: 25
-                          step: 1
-                          mode: slider
-                    - label: "# Major Rows"
-                      configValue: "variables.animation.bg_grid.grid.num_major_rows"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 1
-                          max: 25
-                          step: 1
-                          mode: slider
-                          slider_ticks: true
-                    - label: "# Minor Rows"
-                      configValue: "variables.animation.bg_grid.grid.num_minor_rows"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 1
-                          max: 25
-                          step: 1
-                          mode: slider
-                          slider_ticks: true
-                    - label: "Major Line Width"
-                      configValue: "variables.animation.bg_grid.grid.line_width_major"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 1
-                          max: 10
-                          step: 1
-                          mode: slider
-                          slider_ticks: true
-                    - label: "Minor Line Width"
-                      configValue: "variables.animation.bg_grid.grid.line_width_minor"
-                      type: Selector
-                      selector:
-                        number:
-                          min: 1
-                          max: 10
-                          step: 1
-                          mode: slider
-                          slider_ticks: true
-            - type: Section
-              label: "Colours"
-              outlined: true
-              leftChevron: false
-              headerLevel: 4
-              icon: "mdi:select-color"
-              noCollapse: false
-              rows:
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Grid Line Colour</label>
-                - cssClass: "form-row two-controls"
-                  controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.animation.bg_grid.color.line"
-                    - <<: *colorControl
-                      configValue: "variables.animation.bg_grid.color.line"
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.animation.bg_grid.color.line"
-
-                - controls:
-                    - type: RawHTML
-                      html: |
-                          <label>Grid Cell Fill Colour</label>
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "rect"
+                              label: "Rectangular"
+                            - value: "bracket"
+                              label: "[[ bracket ]]"
+                            - value: "hex"
+                              label: "Hexagonal"
+                            - value: "diagonal"
+                              label: "Diagonal/Diamond"
                 - type: ControlRow
-                  cssClass: "form-row two-controls"
                   controls:
-                    - <<: *colorLCARSListControl
-                      configValue: "variables.animation.bg_grid.color.fill"
-                    - <<: *colorControl
-                      configValue: "variables.animation.bg_grid.color.fill"
-                - controls:
-                    - <<: *colorPreviewControl
-                      configValue: "variables.animatino.bg_grid.color.fill"
+                    - label: "Hex Radius"
+                      configValue: "variables.animation.bg_grid.grid.hex_radius"
+                      helper: "Radius of the hexagonal grid cells"
+                      visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset === 'hex'"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 1
+                          max: 50
+                          step: 1
+                          mode: slider
+                          slider_ticks: true
+                          unit_of_measurement: "px"
+                - type: Section
+                  label: "Grid Dimensions & Sizing"
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:ruler-square"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "# Major Columns"
+                          configValue: "variables.animation.bg_grid.grid.num_major_cols"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                        - label: "# Minor Columns"
+                          configValue: "variables.animation.bg_grid.grid.num_minor_cols"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                        - label: "# Major Rows"
+                          configValue: "variables.animation.bg_grid.grid.num_major_rows"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "# Minor Rows"
+                          configValue: "variables.animation.bg_grid.grid.num_minor_rows"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Major Line Width"
+                          configValue: "variables.animation.bg_grid.grid.line_width_major"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                        - label: "Minor Line Width"
+                          configValue: "variables.animation.bg_grid.grid.line_width_minor"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 10
+                              step: 1
+                              mode: slider
+                              slider_ticks: true
+                - type: Section
+                  label: "Bracket Settings"
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset === 'bracket'"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:ruler-square"
+                  noCollapse: false
+                  rows:
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - label: "Bracket Width"
+                          configValue: "variables.animation.bg_grid.grid.bracket_width"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                        - label: "Bracket Height"
+                          configValue: "variables.animation.bg_grid.grid.bracket_height"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: label
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                        - label: "Bracket Radius"
+                          configValue: "variables.animation.bg_grid.grid.bracket_radius"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 1
+                              max: 25
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "px"
+                        - label: "Bracket Gap/Inset"
+                          configValue: "variables.animation.bg_grid.grid.bracket_gap"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 50
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "%"
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Bracket Colour</label>
+                    - cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.animation.bg_grid.grid.bracket_color"
+                        - <<: *colorControl
+                          configValue: "variables.animation.bg_grid.grid.bracket_color"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.animation.bg_grid.grid.bracket_color"
+                    - controls:
+                        - type: Selector
+                          label: "Bracket Fill"
+                          configValue: "variables.animation.bg_grid.grid.bracket_fill"
+                          helper: "Fill the area between brackets (def: rgba(128, 128, 128, 0.08) )  Set 'none' to disable."
+                          selector:
+                            text:
+                - type: Section
+                  label: "Grid Colours"
+                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:select-color"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Grid Line Colour</label>
+                    - cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.animation.bg_grid.color.line"
+                        - <<: *colorControl
+                          configValue: "variables.animation.bg_grid.color.line"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.animation.bg_grid.color.line"
+
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Grid Cell Fill Colour</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.animation.bg_grid.color.fill"
+                        - <<: *colorControl
+                          configValue: "variables.animation.bg_grid.color.fill"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.animatino.bg_grid.color.fill"
+                - type: Section
+                  label: "GRID Motion Settings"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:motion-outline"
+                  noCollapse: false
+                  expanded: false
+                  rows:
+                    - controls:
+                        - type: Message
+                          alertType: info
+                          message: "These settings control override the global motion effect of the grid layers."
+                        - label: "Speed (s)"
+                          configValue: "variables.animation.bg_grid.grid_speed"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 60
+                              step: 0.5
+                              mode: slider
+                    - controls:
+                        - label: "Motion Effect"
+                          configValue: "variables.animation.bg_grid.grid_effect"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: radio
+                              options:
+                                - value: "scroll"
+                                  label: "Scroll"
+                                - value: "zoom"
+                                  label: "Zoom"
+                                - value: "none"
+                                  label: "None"
+                    - type: Section
+                      label: "Zoom Settings"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 4
+                      icon: "mdi:move-resize-variant"
+                      noCollapse: false
+                      expanded: true
+                      visibilityCondition: "this._config.variables.animation?.bg_grid?.grid_effect === 'zoom'"
+                      rows:
+                        - controls:
+                            - type: Message
+                              alertType: info
+                              message: "Each layer will zoom in until the layer is scaled by the factor.  It will fade in and out based on the opacity stops."
+                        - type: ControlRow
+                          controls:
+                            - label: "Zoom Layers"
+                              configValue: "variables.animation.bg_grid.grid_zoom.layers"
+                              helper: "Number of grid layers to zoom"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 1
+                                  max: 10
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                            - label: "Scale Size"
+                              configValue: "variables.animation.bg_grid.grid_zoom.scale_to"
+                              helper: "Scale factor of the zoom effect"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 1
+                                  max: 10
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "x"
+                            - label: "Opacity Fade In"
+                              configValue: "variables.animation.bg_grid.grid_zoom.opacity_fade_in"
+                              helper: "At what percent of the zoom should the opacity fade in"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 0
+                                  max: 100
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "%"
+                            - label: "Opacity Fade Out"
+                              configValue: "variables.animation.bg_grid.grid_zoom.opacity_fade_out"
+                              helper: "At what percent of the zoom should the opacity fade out"
+                              type: Selector
+                              selector:
+                                number:
+                                  min: 0
+                                  max: 100
+                                  step: 1
+                                  mode: slider
+                                  slider_ticks: true
+                                  unit_of_measurement: "%"
 cb-lcars-elbow-card:
   tabs:
     - label: LCARS
@@ -3944,6 +4652,34 @@ cb-lcars-elbow-card:
                   type: Selector
                   selector:
                     entity:
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              value === null ||
+                              ["string", "number", "boolean"].includes(typeof value)
+                            )
+                            .map(([key]) => ({
+                              value: key,
+                              label: key
+                            }));
+                        })()
         - <<: *advancedSettingsToggle
         - <<: *cardSection
         - <<: *textSection
@@ -3959,6 +4695,12 @@ cb-lcars-elbow-card:
     cssText: |
       .form-control {
         padding: 2px 8px 2px 8px;
+      }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
       }
 
 cb-lcars-double-elbow-card:
@@ -3998,6 +4740,34 @@ cb-lcars-double-elbow-card:
                   type: Selector
                   selector:
                     entity:
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              value === null ||
+                              ["string", "number", "boolean"].includes(typeof value)
+                            )
+                            .map(([key]) => ({
+                              value: key,
+                              label: key
+                            }));
+                        })()
         - <<: *advancedSettingsToggle
         - <<: *textSection
         - <<: *actionsSection
@@ -5480,6 +6250,12 @@ cb-lcars-double-elbow-card:
       .form-control {
         padding: 2px 8px 2px 8px;
       }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
+      }
 
 cb-lcars-button-card:
   tabs:
@@ -5522,6 +6298,34 @@ cb-lcars-button-card:
                   type: Selector
                   selector:
                     entity:
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              value === null ||
+                              ["string", "number", "boolean"].includes(typeof value)
+                            )
+                            .map(([key]) => ({
+                              value: key,
+                              label: key
+                            }));
+                        })()
         - <<: *advancedSettingsToggle
         - <<: *cardSection
         - <<: *iconSection
@@ -5537,6 +6341,12 @@ cb-lcars-button-card:
     cssText: |
       .form-control {
         padding: 2px 8px 2px 8px;
+      }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
       }
 
 cb-lcars-dpad-card:
@@ -6254,6 +7064,12 @@ cb-lcars-dpad-card:
       .form-control {
         padding: 2px 8px 2px 8px;
       }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
+      }
 cb-lcars-label-card:
   tabs:
     - label: "LCARS"
@@ -6276,15 +7092,20 @@ cb-lcars-label-card:
                       mode: dropdown
                       options:
                         - value: 'cb-lcars-label-picard'
-                          label: 'Picard Label [square]'
+                          label: 'Picard Label [manual border, animations]'
+                        - value: 'cb-lcars-label-picard-square'
+                          label: 'Picard Label [auto border, square]'
                         - value: 'cb-lcars-label-picard-lozenge'
-                          label: 'Picard Label [lozenge]'
+                          label: 'Picard Label [auto border, lozenge]'
                         - value: 'cb-lcars-label-picard-bullet'
-                          label: 'Picard Label [bullet]'
+                          label: 'Picard Label [auto border, bullet]'
                         - value: 'cb-lcars-label-picard-bullet-right'
-                          label: 'Picard Label [bullet right]'
+                          label: 'Picard Label [auto border, bullet right]'
                         - value: 'cb-lcars-label'
                           label: 'Standard Label'
+                - type: Message
+                  alertType: info
+                  message: "For background animation support, please select the manual preset with animations.  Auto modes do not support background animations behind the text - they will render in the border area if enabled."
                 - type: Message
                   alertType: info
                   message: "Optional: Select an entity to enable state specific colours."
@@ -6293,6 +7114,34 @@ cb-lcars-label-card:
                   type: Selector
                   selector:
                     entity:
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              value === null ||
+                              ["string", "number", "boolean"].includes(typeof value)
+                            )
+                            .map(([key]) => ({
+                              value: key,
+                              label: key
+                            }));
+                        })()
         - <<: *textSection
           expanded: true
         - <<: *advancedSettingsToggle
@@ -6309,6 +7158,12 @@ cb-lcars-label-card:
       .form-control {
         padding: 2px 8px 2px 8px;
       }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
+      }
 cb-lcars-multimeter-card:
   tabs:
     - label: "LCARS"
@@ -6322,10 +7177,6 @@ cb-lcars-multimeter-card:
           icon: "mdi:select-color"
           rows:
             - controls:
-                - type: Message
-                  alertType: warning
-                  message: "The selected entity is not supported for slider control.  The slider will be in display-only mode."
-                  visibilityCondition: "this._config.variables._locked === true"
                 - label: "Slider Control Mode"
                   configValue: variables._mode
                   required: true
@@ -6364,12 +7215,49 @@ cb-lcars-multimeter-card:
           icon: "mdi:devices"
           rows:
             - controls:
+                - type: Message
+                  visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
+                  alertType: warning
+                  message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
                 - label: "Entity"
                   configValue: "variables.entity"
                   required: true
                   type: Selector
                   selector:
                     entity:
+                - type: Message
+                  visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
+                  alertType: info
+                  message: "You can try the 'Attribute' selector to select a specific attribute of the entity to display.  The list of attributes has been filtered down to those that can parse to a number.  If not selected, the card will use the state of the entity."
+                - label: "Attribute [optional]"
+                  configValue: "variables.attribute"
+                  visibilityCondition: "this._config?.variables?.entity"
+                  type: Selector
+                  selector:
+                    select:
+                      mode: dropdown
+                      optionsCondition: |
+                        (() => {
+                          const entityId = this._config?.variables?.entity;
+                          const hass = this._hass || this.hass;
+                          if (!entityId || !hass?.states?.[entityId]) {
+                            return [];
+                          }
+                          const entity = hass.states[entityId];
+                          if (!entity.attributes || typeof entity.attributes !== "object") {
+                            return [];
+                          }
+                          return Object.entries(entity.attributes)
+                            .filter(([_, value]) =>
+                              (typeof value === "number" && isFinite(value)) ||
+                              (typeof value === "string" && !isNaN(parseFloat(value)) && isFinite(parseFloat(value)))
+                            )
+                          .map(([key]) => ({
+                                value: key,
+                                label: key
+                              }));
+                        })()
+
                 - label: "Light Control Mode"
                   configValue: variables._slider_mode
                   visibilityCondition: "this._config.variables.entity?.split?.('.')[0] === 'light'"
@@ -6413,12 +7301,6 @@ cb-lcars-multimeter-card:
                           label: 'Volume'
                         - value: 'seekbar'
                           label: 'Seekbar'
-            - type: ControlRow
-              visibilityCondition: "this._config.variables.entity && !['light','input_number','number','media_player','cover','fan','switch','input_boolean','lock'].includes(this._config.variables.entity.split('.')[0])"
-              controls:
-                - type: Message
-                  alertType: warning
-                  message: "Slider control functionality is disabled for unsupported entity types.  The sliders for these entities will be in display-only mode."
             - <<: *actionsSection
     - label: "LCARS Border"
       content:
@@ -7096,4 +7978,10 @@ cb-lcars-multimeter-card:
     cssText: |
       .form-control {
         padding: 2px 8px 2px 8px;
+      }
+      .form-row {
+        grid-template-columns: 100%;
+      }
+      .form-row.two-controls {
+        grid-template-columns: 50% 50%;
       }
