@@ -3,7 +3,7 @@
 ![cb-lcars](images/screenshots/cb-lcars-banner-4.gif)
 </p>
 <p align="center">
-    <em>A collection of custom cards to build your own LCARS dashboards in Home Assistant</em>
+    <em>A <b>Star Trek LCARS</b> experience for Home Assistant</em>
 </p>
 <p align="left">
 	<img src="https://img.shields.io/github/v/release/snootched/cb-lcars?display_name=release&logo=startrek&color=37a6d1" alt="release">
@@ -23,7 +23,7 @@
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
   - [States](#states)
-      - [Advanced: Overriding State Matching and Styles](#advanced-overriding-state-matching-and-styles)
+    - [Advanced: Overriding State Matching and Styles](#advanced-overriding-state-matching-and-styles)
   - [Joining with a Symbiont \[Card Encapsulation\]](#joining-with-a-symbiont-card-encapsulation)
     - [Imprinting](#imprinting)
       - [User card-mod styles](#user-card-mod-styles)
@@ -120,7 +120,7 @@ This will include weights 100-700 allowing for more thinner/lighter text as seen
 Substitute the following resource string when setting up font in HA-LCARS theme:
 `https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
 
-_(Note: if the font is missing, the card will attempt to load it dynamically from the above URL.)_
+> **Note:**  If the font is missing, the card will attempt to load it dynamically from the above URL.)
 
 
 #### Customized *CB-LCARS* Colour Scheme
@@ -184,7 +184,9 @@ State styles can be applied to components such as:
 | `cool` (hvac/climate entity) | `hvac_cool:`           | `id: state_cool`        |
 | `unavailable` `unknown`      | `unavailable:`         | `id: state_unavailable` |
 
-Tip: when using Light entities, you can choose to have your colour match the light's current colour.  You can choose this from the colour picker list, or by using the variable `var(--custom-button-light-color)`
+> **Tip**
+> When using Light entities, you can choose to have your colour > match the light's current colour.  You can choose this from
+> the colour picker list, or by using the variable `var(--custom-button-light-color)`
 
 Example of configuration (editable via UI):
 ```yaml
@@ -221,7 +223,7 @@ variables:
         unavailable: var(--lcars-card-button-unavailable)
 ```
 
-#### Advanced: Overriding State Matching and Styles
+### Advanced: Overriding State Matching and Styles
 
 <details>
 
@@ -462,6 +464,12 @@ variables:
 ## Animations and Effects
 
 CB-LCARS includes a growing set of highly customizable animations and effects for your cards. Each animation offers extensive configuration options, accessible via the UI. For full details and usage instructions, see the dedicated documentation for each animation—just click the template links in the table below.
+
+
+- [Data Cascade](doc/cb-lcars-animation-cascade.md)
+- [Pulsewave](doc/cb-lcars-animation-pulsewave.md)
+- [GRID](doc/cb-lcars-animation-bg-grid.md)
+- [GEO Array](doc/cb-lcars-animation-geo-array.md)
 
 <br>
 
