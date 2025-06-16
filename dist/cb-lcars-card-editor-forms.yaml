@@ -3779,7 +3779,7 @@ cb-lcars-base-controls:
                               label: "None"
                     - label: "Scroll Direction"
                       configValue: "variables.animation.bg_grid.direction"
-                      visibilityCondition: "this._config.variables.animation?.bg_grid?.effect === 'scroll'"
+                      visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.effect === 'scroll'"
                       type: Selector
                       selector:
                         select:
@@ -3802,7 +3802,7 @@ cb-lcars-base-controls:
                   icon: "mdi:move-resize-variant"
                   noCollapse: false
                   expanded: true
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.effect === 'zoom'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.effect === 'zoom'"
                   rows:
                     - controls:
                         - type: Message
@@ -3896,7 +3896,7 @@ cb-lcars-base-controls:
                   icon: "mdi:star-cog-outline"
                   noCollapse: false
                   expanded: true
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.background_pattern === 'stars'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.background_pattern === 'stars'"
                   rows:
                     - type: ControlRow
                       controls:
@@ -4016,7 +4016,7 @@ cb-lcars-base-controls:
                   icon: "mdi:weather-tornado"
                   noCollapse: false
                   expanded: true
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.background_pattern === 'nebula'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.background_pattern === 'nebula'"
                   rows:
                     - type: ControlRow
                       controls:
@@ -4054,7 +4054,7 @@ cb-lcars-base-controls:
                                 - value: "custom"
                                   label: "Custom"
                         - label: "Custom Nebula"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.preset === 'custom'"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.preset === 'custom'"
                           configValue: "variables.animation.bg_grid.nebula_layers"
                           helper: "Please see documentation for how to define custom nebula layers"
                           type: Selector
@@ -4069,7 +4069,7 @@ cb-lcars-base-controls:
                         - label: "Blur Level"
                           configValue: "variables.animation.bg_grid.nebula.blur_level"
                           helper: "Amount of blur to apply to the nebula.  Higher = more blur."
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.blur"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.blur"
                           type: Selector
                           selector:
                             number:
@@ -4086,7 +4086,7 @@ cb-lcars-base-controls:
                           selector:
                             boolean:
                         - label: "Turbulance/noise Base Frequency"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
                           configValue: "variables.animation.bg_grid.nebula.base_frequency"
                           helper: "Controls the size and density of the nebula's noise pattern. Higher = finer."
                           type: Selector
@@ -4098,7 +4098,7 @@ cb-lcars-base-controls:
                               mode: slider
                               slider_ticks: true
                         - label: "Turbulance/Noise Octaves"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
                           configValue: "variables.animation.bg_grid.nebula.octaves"
                           helper: " Number of noise layers for detail. Higher = more complex nebula."
                           type: Selector
@@ -4110,7 +4110,7 @@ cb-lcars-base-controls:
                               mode: slider
                               slider_ticks: true
                         - label: "Turbulance/Noise Seed"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
                           configValue: "variables.animation.bg_grid.nebula.seed"
                           helper: "Seed for the turbulence effect to randomize the pattern.  Any integer for different looks."
                           type: Selector
@@ -4122,7 +4122,7 @@ cb-lcars-base-controls:
                               mode: slider
                               slider_ticks: true
                         - label: "Displacement Scale"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.nebula_effect"
                           configValue: "variables.animation.bg_grid.nebula.scale"
                           helper: "Scale of the displacement effect"
                           type: Selector
@@ -4141,7 +4141,7 @@ cb-lcars-base-controls:
                           selector:
                             boolean:
                         - label: "Animation Duration (s)"
-                          visibilityCondition: "this._config.variables.animation?.bg_grid?.nebula?.animate"
+                          visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.nebula?.animate"
                           configValue: "variables.animation.bg_grid.nebula.animation_duration"
                           helper: "Duration (seconds) for the full animation cycle effect."
                           type: Selector
@@ -4196,7 +4196,7 @@ cb-lcars-base-controls:
                       icon: "mdi:move-resize-variant"
                       noCollapse: false
                       expanded: true
-                      visibilityCondition: "this._config.variables.animation?.bg_grid?.background_effect === 'zoom'"
+                      visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.background_effect === 'zoom'"
                       rows:
                         - controls:
                             - type: Message
@@ -4312,7 +4312,7 @@ cb-lcars-base-controls:
                     - label: "Hex Radius"
                       configValue: "variables.animation.bg_grid.grid.hex_radius"
                       helper: "Radius of the hexagonal grid cells"
-                      visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset === 'hex'"
+                      visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.grid?.preset === 'hex'"
                       type: Selector
                       selector:
                         number:
@@ -4324,7 +4324,7 @@ cb-lcars-base-controls:
                           unit_of_measurement: "px"
                 - type: Section
                   label: "Grid Dimensions & Sizing"
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -4394,7 +4394,7 @@ cb-lcars-base-controls:
                               slider_ticks: true
                 - type: Section
                   label: "Bracket Settings"
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset === 'bracket'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.grid?.preset === 'bracket'"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -4466,7 +4466,7 @@ cb-lcars-base-controls:
                             text:
                 - type: Section
                   label: "Grid Colours"
-                  visibilityCondition: "this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
+                  visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.grid?.preset !== 'bracket'"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -4545,7 +4545,7 @@ cb-lcars-base-controls:
                       icon: "mdi:move-resize-variant"
                       noCollapse: false
                       expanded: true
-                      visibilityCondition: "this._config.variables.animation?.bg_grid?.grid_effect === 'zoom'"
+                      visibilityCondition: "this._config.variables && this._config.variables.animation?.bg_grid?.grid_effect === 'zoom'"
                       rows:
                         - controls:
                             - type: Message
