@@ -487,8 +487,8 @@ cb-lcars-multimeter:
           }
 
           // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
-          const startRgb = variables.__parse_color_to_rgb_array(startColor);
-          const endRgb = variables.__parse_color_to_rgb_array(endColor);
+          const startRgb = variables.__parse_color(startColor,'rgb',this);
+          const endRgb = variables.__parse_color(endColor,'rgb',this);
 
           function interpolateColor(color1, color2, factor) {
             const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
@@ -2455,13 +2455,13 @@ cb-lcars-multimeter:
             - border-radius: 0
           progress:
             - background-color: >-
-                [[[ return
-                variables.__hex_to_rgba(variables.slider.color,variables.slider.color_alpha)
+                [[[
+                  return variables.slider.color;
                 ]]]
             - border: >-
-                [[[ return variables.slider.border_width + " solid " +
-                variables.__hex_to_rgba(variables.slider.border_color,
-                variables.slider.border_alpha)  ]]]
+                [[[
+                  return variables.slider.border_width + " solid " + variables.slider.border_color;
+                ]]]
             - border-radius: '[[[ return variables.slider.border_radius ]]]'
             - height: '[[[ return variables.slider.height ]]]'
             - width: '[[[ return variables.slider.width ]]]'
