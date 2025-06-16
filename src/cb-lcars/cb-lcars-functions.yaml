@@ -38,61 +38,6 @@ cb-lcars-functions:
             }
         }
       ]]]
-
-
-    __getParentDimension: |
-      [[[
-        return function(thisObj, dimension, units, fallbackDimensions) {
-          // Function to get the CSS variable value
-          function getCSSVariableValue(variable) {
-            return getComputedStyle(thisObj).getPropertyValue(variable).trim();
-          }
-
-          // Determine the CSS variable based on the dimension
-          let cssVariable;
-          if (dimension === 'width') {
-            cssVariable = '--button-card-width';
-          } else if (dimension === 'height') {
-            cssVariable = '--button-card-height';
-          } else {
-            console.error("Invalid dimension specified. Use 'width' or 'height'.");
-            return null;
-          }
-
-          // Try to get the value from the CSS variable
-          let parentDimension = parseFloat(getCSSVariableValue(cssVariable));
-
-          // If the CSS variable is not defined or not reasonable, fall back to parent element's dimension
-          if (isNaN(parentDimension) || parentDimension <= 0) {
-            if (dimension === 'width') {
-              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetWidth : 0;
-            } else if (dimension === 'height') {
-              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetHeight : 0;
-            }
-          }
-
-          // Function to check if the dimension is reasonable
-          function isReasonableSize(size) {
-            return size > 0; // Adjust this condition based on what's 'reasonable'
-          }
-
-          // If dimension is not reasonable, use fallback
-          if (!isReasonableSize(parentDimension)) {
-            if (fallbackDimensions && fallbackDimensions[dimension]) {
-              parentDimension = parseFloat(fallbackDimensions[dimension]);
-            } else {
-              parentDimension = dimension === 'width' ? window.innerWidth : window.innerHeight;
-            }
-          }
-
-          // Return the dimension with units if provided
-          if (units) {
-            return parentDimension + units;
-          } else {
-            return parentDimension;
-          }
-        }
-      ]]]
     __calculcate_grid_cell_dimension: |
       [[[
         return function calculcate_grid_cell_dimension(cardDimension, gridCells, gridGap, defaultButtonCardDimension) {
@@ -207,36 +152,6 @@ cb-lcars-functions:
             return color;
           }
       ]]]
-    __get_light_css_color_old: |
-      [[[
-        return function get_light_css_color(entity) {
-          let css_color = 'var(--lcars-ui-secondary)';
-          let lightEntity = states[entity];
-          if (lightEntity && lightEntity.attributes.rgb_color) {
-            const light_color = lightEntity.attributes.rgb_color;
-            css_color = `rgb(${light_color.join(', ')})`;
-          }
-          return css_color;
-        }
-      ]]]
-    __get_light_css_color: |
-      [[[
-        return function get_light_css_color(entity) {
-          let css_color = 'var(--lcars-ui-secondary)';
-          const buttonCardLightColor = getComputedStyle(document.documentElement).getPropertyValue('--button-card-light-color').trim();
-
-          if (buttonCardLightColor.startsWith('rgb')) {
-            return buttonCardLightColor;
-          }
-
-          let lightEntity = states[entity];
-          if (lightEntity && lightEntity.attributes.rgb_color) {
-            const light_color = lightEntity.attributes.rgb_color;
-            css_color = `rgb(${light_color.join(', ')})`;
-          }
-          return css_color;
-        }
-      ]]]
     __hex_to_rgba: |
       [[[
         return function hex_to_rgba(input, alpha = 1) {
@@ -292,6 +207,30 @@ cb-lcars-functions:
           return `rgba(${r}, ${g}, ${b}, ${a})`;
         }
       ]]]
+    __parse_color_to_rgb_array: |
+      [[[
+        // create an element to use for color parsing
+        if (!window._cbLcarsColorParser) {
+          const el = document.createElement('div');
+          el.style.display = 'none';
+          document.body.appendChild(el);
+          window._cbLcarsColorParser = el;
+        }
+        const el = window._cbLcarsColorParser;
+        return function(color) {
+          if (color.startsWith('var(')) {
+            el.style.color = color;
+            color = getComputedStyle(el).color;
+          } else if (color === 'transparent') {
+            return [0, 0, 0, 0];
+          } else {
+            el.style.color = color;
+            color = getComputedStyle(el).color;
+          }
+          const rgba = color.match(/\d+/g).map(Number);
+          return rgba.length === 4 ? rgba : rgba.slice(0, 3);
+        }
+      ]]]
     __extract_color_channel: |
       [[[
         return function extract_color_channel(color, channel) {
@@ -332,9 +271,7 @@ cb-lcars-functions:
           let interpolated_g = Math.round(start_g + step * (end_g - start_g) / total_steps);
           let interpolated_b = Math.round(start_b + step * (end_b - start_b) / total_steps);
           //console.log("in function r="+interpolated_r + ",g=" +interpolated_g+ ",b=" + interpolated_b);
-
           return `rgb(${interpolated_r}, ${interpolated_g}, ${interpolated_b})`;
-
         }
       ]]]
   custom_fields:
