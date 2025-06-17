@@ -1,13 +1,21 @@
 cb-lcars-animation-bg-grid:
   template:
     - cb-lcars-functions
+    - cb-lcars-animation-presets
   variables:
     animation:
       bg_grid:
         direction: left
         speed: 30
         background_pattern: none
+        background_effect: auto
+        background_speed: null
+        background_zoom: {}
+        grid_effect: auto
+        grid_speed: null
+        grid_zoom: {}
         grid:
+          preset: rect
           num_major_rows: 3
           num_minor_rows: 3
           num_major_cols: 3
@@ -15,9 +23,31 @@ cb-lcars-animation-bg-grid:
           line_width_major: 4
           line_width_minor: 1
           border_lines: true
+          bracket_width: 5
+          bracket_radius: 7
+          bracket_color: var(--lcars-yellow)
+          bracket_gap: 35
+          bracket_fill: rgba(128,128,128,0.08)
+          bracket_height: 20
         color:
           line: var(--picard-dark-gray)
-          fill: var(--picard-darkest-blue)
+        stars:
+          seed: |
+            [[[
+              // Generate a random seed for the stars (32-bit unsigned integer)
+              return Math.floor(Math.random() * 1e9);
+            ]]]
+        nebula:
+          preset: default
+          nebula_effect: true
+          base_frequency: 1
+          num_octaves: 3
+          scale: 40
+          seed: 2
+          blur: true
+          blur_level: 8
+          animate: true
+          animation_duration: 20
   styles:
     label:
       - z-index: 2
@@ -30,9 +60,6 @@ cb-lcars-animation-bg-grid:
     animation: |
       [[[
 
-        const direction = variables.animation.bg_grid.direction ?? 'left';
-        const speed = variables.animation.bg_grid.speed ?? 10;
-
         const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
         const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
 
@@ -44,13 +71,13 @@ cb-lcars-animation-bg-grid:
 
         num_minor_rows = Math.max(0, num_minor_rows - 1);
         num_minor_cols = Math.max(0, num_minor_cols - 1);
-
         const total_rows = num_major_rows * (num_minor_rows + 1);
         const total_cols = num_major_cols * (num_minor_cols + 1);
 
         const row_height = card_height / total_rows;
         const column_width = card_width / total_cols;
 
+        const direction = variables.animation.bg_grid.direction ?? 'left';
         const line_width_minor = variables.animation.bg_grid.grid.line_width_minor ?? 1;
         const line_width_major = variables.animation.bg_grid.grid.line_width_major ?? 2;
         const line_color = variables.animation.bg_grid.color.line || 'var(--picard-dark-gray)';
@@ -59,13 +86,57 @@ cb-lcars-animation-bg-grid:
 
         const bg_pattern = variables.animation.bg_grid.background_pattern || 'none';
 
+        const global_effect = variables.animation.bg_grid.effect ?? 'scroll';
+        const global_speed = variables.animation.bg_grid.speed ?? 10;
+        const global_zoom = variables.animation.bg_grid.zoom ?? {};
+
+        /////////////////////////////////////////////
+        // Helper functions to resolve local vs global settings
+        function resolveEffect(local, global) {
+          if (!local || local === 'auto') return global;
+          return local;
+        }
+        // Always prefer local, fallback to speed, then global
+        function resolveSpeed(local, global) {
+          return (local === null || local === undefined) ? global : local;
+        }
+        function resolveZoom(local, global) {
+          return { ...(global || {}), ...(local || {}) };
+        }
+
+        /////////////////////////////////////////////
+        // Resolve effects and speeds for background and grid
+        const background_effect = resolveEffect(variables.animation.bg_grid.background_effect, global_effect);
+        const grid_effect = resolveEffect(variables.animation.bg_grid.grid_effect, global_effect);
+
+        const background_speed = resolveSpeed(variables.animation.bg_grid.background_speed, global_speed);
+        const grid_speed = resolveSpeed(variables.animation.bg_grid.grid_speed, global_speed);
+
+        const background_zoom = resolveZoom(variables.animation.bg_grid.background_zoom, global_zoom);
+        const grid_zoom = resolveZoom(variables.animation.bg_grid.grid_zoom, global_zoom);
+
+        // Zoom config for background
+        const backgroundZoomLayers = background_zoom.layers ?? 3;
+        const backgroundZoomScaleFrom = background_zoom.scale_from ?? 1; // NEW: initial scale
+        const backgroundZoomScaleTo = background_zoom.scale_to ?? 2;
+        const backgroundZoomDuration = background_zoom.speed ?? background_speed;
+        const backgroundZoomOpacityFadeIn = background_zoom.opacity_fade_in ?? 10;
+        const backgroundZoomOpacityFadeOut = background_zoom.opacity_fade_out ?? 80;
+
+        // Zoom config for grid
+        const gridZoomLayers = grid_zoom.layers ?? 1;
+        const gridZoomScaleFrom = grid_zoom.scale_from ?? 1; // NEW: initial scale
+        const gridZoomScaleTo = grid_zoom.scale_to ?? 2;
+        const gridZoomDuration = grid_zoom.speec ?? grid_speed;
+        const gridZoomOpacityFadeIn = grid_zoom.opacity_fade_in ?? 10;
+        const gridZoomOpacityFadeOut = grid_zoom.opacity_fade_out ?? 80;
+
         let fill_color = 'transparent';
         if (variables.animation.bg_grid.background_pattern === 'fill') {
-          fill_color = variables.animation.bg_grid.color.fill;
+          fill_color = variables.animation.bg_grid.color?.fill;
         } else {
           fill_color = 'transparent';
         }
-
         const pattern_width = total_cols * column_width;
         const pattern_height = total_rows * row_height;
 
@@ -76,167 +147,1186 @@ cb-lcars-animation-bg-grid:
           return '';
         }
 
+        /////////////////////////////////////////////
+        // -- not used yet
+        // Helper to generate a random seed
+        function randomSeed() {
+          return Math.floor(Math.random() * 1e9);
+        }
 
-        // STARS BG PATTERN
-        function generateRealisticStars(numStars) {
+        // Seeded random number generator (Mulberry32)
+        function mulberry32(seed) {
+          return function() {
+            let t = seed += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+          }
+        }
+
+        /////////////////////////////////////////////
+        // --- STARS BG PATTERN ---
+        //  Randomized, tileable starfield pattern
+        //  'animation.bg_grid.stars' options:
+        //    - count: number of stars
+        //    - min_radius: minimum radius of stars
+        //    - max_radius: maximum radius of stars
+        //    - min_brightness: minimum brightness of stars
+        //    - max_brightness: maximum brightness of stars
+        //    - pattern_width: width of the star pattern
+        //    - pattern_height: height of the star pattern
+        //    - color: color of the stars (supports hex, rgb, rgba, CSS variables)
+        //  can use 'variables.bg_grid.color.fill' color for the background
+        //  Uses seeded RNG for reproducibility
+        //  Supports both scroll and zoom effects
+        //
+        /////////////////////////////////////////////
+
+        const starSettings = variables.animation.bg_grid.stars ?? {};
+        const numStars = starSettings.count ?? 150;
+        const starSeed = starSettings.seed ?? 1;
+        const starMinRadius = starSettings.min_radius ?? 0.2;
+        const starMaxRadius = starSettings.max_radius ?? 0.9;
+        const starMinBrightness = starSettings.min_brightness ?? 0.2;
+        const starMaxBrightness = starSettings.max_brightness ?? 1.0;
+        const starPatternWidth = starSettings.pattern_width ?? 200;
+        const starPatternHeight = starSettings.pattern_height ?? 200;
+        const starColor = starSettings.color ?? '#fff';
+
+        // Use 'fill' for compatibility
+        const userBgColor = variables.animation.bg_grid.color?.fill ?? '#000';
+
+        /////////////////////////////////////////////
+        // Generate a tileable star pattern with seeded RNG for reproducibility
+        // numStars: number of stars to generate
+        // width: width of the pattern
+        // height: height of the pattern
+        // minR: minimum radius of stars
+        // maxR: maximum radius of stars
+        // minB: minimum brightness of stars (0-1)
+        // maxB: maximum brightness of stars (0-1)
+        // seed: seed for the RNG (default: 1)
+        // color: color of the stars (supports hex, rgb, rgba, CSS variables)
+        // Returns a string of SVG circles representing the stars
+        function generateTileableStarsSeeded(numStars, width, height, minR, maxR, minB, maxB, seed, color) {
           let stars = '';
+          const rand = mulberry32(seed);
+
+          // Normalize color input to array
+          let colorArray;
+          if (Array.isArray(color)) {
+            colorArray = color.length > 0 ? color : ['#fff'];
+          } else {
+            colorArray = [color ?? '#fff'];
+          }
+
           for (let i = 0; i < numStars; i++) {
-            const cx = Math.random() * 200;
-            const cy = Math.random() * 200;
-            const r = Math.random() * 0.7 + 0.2; // Smaller radius for more realistic stars
-            const brightness = Math.random() * 0.8 + 0.2; // Random brightness
-            const fill = `rgba(255, 255, 255, ${brightness})`;
-            stars += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}" />`;
+            const cx = rand() * width;
+            const cy = rand() * height;
+            const r = rand() * (maxR - minR) + minR;
+            const brightness = rand() * (maxB - minB) + minB;
+
+            // Pick a color from the array using the seeded RNG
+            const pickedColor = colorArray[Math.floor(rand() * colorArray.length)];
+
+            let fill;
+            if (pickedColor) {
+              if (pickedColor.startsWith('#')) {
+                // Convert hex to rgb
+                const hex = pickedColor.replace('#', '');
+                const bigint = parseInt(hex, 16);
+                const rC = (hex.length === 3 ? (bigint >> 8 & 0xf) * 17 : (bigint >> 16) & 0xff);
+                const gC = (hex.length === 3 ? (bigint >> 4 & 0xf) * 17 : (bigint >> 8) & 0xff);
+                const bC = (hex.length === 3 ? (bigint & 0xf) * 17 : bigint & 0xff);
+                fill = `rgba(${rC},${gC},${bC},${brightness})`;
+              } else if (pickedColor.startsWith('rgb')) {
+                // If rgb(a), just replace the alpha
+                fill = pickedColor.replace(/rgba?\(([^)]+)\)/, (m, rgb) => {
+                  const parts = rgb.split(',').map(x => x.trim());
+                  return `rgba(${parts[0]},${parts[1]},${parts[2]},${brightness})`;
+                });
+              } else if (pickedColor.startsWith('var(') || pickedColor.startsWith('--') || /^[a-zA-Z]/.test(pickedColor)) {
+                // Accept CSS variable or named color, just use as fill (no alpha)
+                fill = pickedColor;
+              } else {
+                // Fallback to white with brightness
+                fill = `rgba(255,255,255,${brightness})`;
+              }
+            } else {
+              fill = `rgba(255,255,255,${brightness})`;
+            }
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dy = -1; dy <= 1; dy++) {
+                if (
+                  (dx === 0 && dy === 0) ||
+                  (dx !== 0 && (cx < r || cx > width - r)) ||
+                  (dy !== 0 && (cy < r || cy > height - r))
+                ) {
+                  stars += `<circle cx="${cx + dx * width}" cy="${cy + dy * height}" r="${r}" fill="${fill}" />`;
+                }
+              }
+            }
           }
           return stars;
         }
 
-        let svg_bg_stars = `
+        ////////////////////////////////////////////////////
+        // Generate the def for the star background pattern
+        // For zoom, we generate randomized layers later in buildZoomBackgroundSVGs()
+        let svg_bg_stars;
+        svg_bg_stars = `
           <defs>
-            <pattern id="starPattern" width="200" height="200" patternUnits="userSpaceOnUse">
-              ${generateRealisticStars(150)}
+            <pattern id="starPattern" width="${starPatternWidth}" height="${starPatternHeight}" patternUnits="userSpaceOnUse">
+              ${generateTileableStarsSeeded(numStars, starPatternWidth, starPatternHeight, starMinRadius, starMaxRadius, starMinBrightness, starMaxBrightness, starSeed, starColor)}
             </pattern>
           </defs>
           <rect x="0" y="0" width="100%" height="100%" fill="url(#starPattern)" />
         `;
 
-        // NEBULA BG PATTERN
-        let svg_bg_nebula = `
-          <defs>
-            <pattern id="spacePattern" width="100%" height="100%" patternUnits="objectBoundingBox">
-              <!-- Radial Gradient Definitions -->
-              <radialGradient id="nebula1" cx="30%" cy="30%" r="25%">
-                <stop offset="0%" style="stop-color: #FF00FF; stop-opacity: 1" />
-                <stop offset="50%" style="stop-color: #FF00FF; stop-opacity: 0.3" />
-                <stop offset="100%" style="stop-color: #FF00FF; stop-opacity: 0" />
-              </radialGradient>
-              <radialGradient id="nebula2" cx="70%" cy="30%" r="20%">
-                <stop offset="0%" style="stop-color: #00FFFF; stop-opacity: 1" />
-                <stop offset="50%" style="stop-color: #00FFFF; stop-opacity: 0.3" />
-                <stop offset="100%" style="stop-color: #00FFFF; stop-opacity: 0" />
-              </radialGradient>
-              <radialGradient id="nebula3" cx="50%" cy="70%" r="30%">
-                <stop offset="0%" style="stop-color: #FFD700; stop-opacity: 1" />
-                <stop offset="50%" style="stop-color: #FFD700; stop-opacity: 0.3" />
-                <stop offset="100%" style="stop-color: #FFD700; stop-opacity: 0" />
-              </radialGradient>
-              <radialGradient id="nebula4" cx="40%" cy="50%" r="15%">
-                <stop offset="0%" style="stop-color: #8A2BE2; stop-opacity: 1" />
-                <stop offset="50%" style="stop-color: #8A2BE2; stop-opacity: 0.3" />
-                <stop offset="100%" style="stop-color: #8A2BE2; stop-opacity: 0" />
-              </radialGradient>
-              <!-- Background Rectangles with Radial Gradients -->
-              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula1)" />
-              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula2)" />
-              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula3)" />
-              <rect x="0" y="0" width="100%" height="100%" fill="url(#nebula4)" />
-              <!-- Add more rects with radial gradients as needed -->
-            </pattern>
-          </defs>
-          <rect x="0" y="0" width="100%" height="100%" fill="url(#spacePattern)" />
-        `;
+        /////////////////////////////////////////////
+        // --- NEBULA BG PATTERN ---
+        //  Nebula effect with customizable layers, colors, and animations
+        //  'animation.bg_grid.nebula' options:
+        //    - preset: name of the nebula preset to use (from nebula_presets) or 'custom' for custom layers (see nebula_layers)
+        //    - nebula_effect: enable/disable the nebula effect (default: true)
+        //
+        //    Turbulance and Displacement settings:
+        //    - base_frequency: base frequency for the turbulence (default: 0.8)
+        //    - num_octaves: number of octaves for the turbulence (default: 3)
+        //    - scale: scale factor for the displacement map (default: 40)
+        //    - seed: seed for the turbulence noise (default: 2)
+        //    - animate: enable/disable animation of the turbulence (default: true)
+        //    - animation_duration: duration of the animation in seconds (default: 20)
+        //
+        //    - blur: enable/disable Gaussian blur effect (default: true)
+        //    - blur_level: level of the Gaussian blur (default: 8)
+        //
+        //  'animation.bg_grid.nebula_layers':
+        //
+        //  Nebula layers presets are provided by default but can be replaced with custom layers.
+        //  this is an array of objects, each with:
+        //    - color: color of the nebula layer (hex, rgb, rgba, CSS variable)
+        //    - cx: x position of the center (0-100%)
+        //    - cy: y position of the center (0-100%)
+        //    - rx: x radius of the nebula (default: 40% of the pattern width)
+        //    - ry: y radius of the nebula (default: 40% of the pattern height)
+        //    - opacity_stops: array of opacity stops for the gradient (default: [1, 0.3, 0])
+        //      - first stop (0%): full opacity
+        //      - second stop (50%): reduced opacity (default 0.3)
+        //      - third stop (100%): fully transparent
+        //
+        //  Example nebula layers:
+        //    nebula_layers:
+        //      - color: "#FF00FF"
+        //        cx: 30
+        //        cy: 30
+        //        rx: null  # use default 40% of width
+        //        ry: null  # use default 40% of height
+        //        opacity_stops: [1, 0.3, 0]  # default stops
+        //
+        /////////////////////////////////////////////
 
-        // Set the background pattern
-        let svg_background = '';
-        switch (bg_pattern) {
-          case 'nebula':
-            svg_background = svg_bg_nebula;
-            break;
-          case 'stars':
-            svg_background = svg_bg_stars;
-            break;
-          case 'none':
-          default:
-            svg_background = '';
-            break;
+        const nebulaSettings = variables.animation.bg_grid.nebula ?? {};
+        const nebulaPresets = variables.animation.bg_grid.nebula_presets ?? {};
+        const nebulaPresetName = nebulaSettings.preset;
+
+        const nebulaEffect = nebulaSettings.nebula_effect !== false; // default true
+        const nebulaBaseFrequency = nebulaSettings.base_frequency ?? 0.8;
+        const nebulaNumOctaves = nebulaSettings.num_octaves ?? 3;
+        const nebulaScale = nebulaSettings.scale ?? 40;
+        const nebulaSeed = nebulaSettings.seed ?? 2;
+
+        const nebulaAnimate = nebulaSettings.animate !== false; // default true
+        const nebulaAnimationDuration = nebulaSettings.animation_duration ?? 20;
+        const nebulaBlur = nebulaSettings.blur !== false; // default true
+        const nebulaBlurLevel = nebulaSettings.blur_level ?? 8; // default 8 if not set
+
+        let nebulaLayers;
+
+        // Determine which nebula layers to use based on preset or custom layers
+        // If a preset is specified, use that; otherwise, use custom layers if available
+        // If no preset is specified, use the default layers
+        if (
+          nebulaPresetName &&
+          nebulaPresets !== 'custom' &&
+          nebulaPresets[nebulaPresetName] &&
+          Array.isArray(nebulaPresets[nebulaPresetName])
+        ) {
+          nebulaLayers = nebulaPresets[nebulaPresetName];
+        } else if (
+          nebulaPresetName === 'custom' &&
+          Array.isArray(variables.animation.bg_grid.nebula_layers) &&
+          variables.animation.bg_grid.nebula_layers.length > 0
+        ) {
+          nebulaLayers = variables.animation.bg_grid.nebula_layers;
+        } else {
+          nebulaLayers = [
+            { color: "#FF00FF", cx: 40, cy: 40, rx: 28, ry: 22, opacity_stops: [1, 0.3, 0] },
+            { color: "#00FFFF", cx: 65, cy: 35, rx: 22, ry: 18, opacity_stops: [1, 0.3, 0] },
+            { color: "#FFD700", cx: 55, cy: 65, rx: 18, ry: 15, opacity_stops: [1, 0.3, 0] },
+            { color: "#8A2BE2", cx: 50, cy: 55, rx: 12, ry: 10, opacity_stops: [1, 0.3, 0] }
+          ];
         }
 
-        // Start bulding the SVG pattern
-        let svg_pattern = `
-          <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="gridPattern" x="0" y="0" width="${pattern_width}" height="${pattern_height}" patternUnits="userSpaceOnUse">
-        `;
+        // Helper to build a gradient for each nebula layer
+        function buildNebulaGradients(layers) {
+          let gradients = '';
+          layers.forEach((layer, idx) => {
+            const gradId = `nebula${idx}`;
+            const color = layer.color;
+            const cx = layer.cx ?? 50;
+            const cy = layer.cy ?? 50;
+            const rx = layer.rx ?? 40;
+            const ry = layer.ry ?? 40;
+            const stops = layer.opacity_stops;
 
-        // Add background to the pattern
-        svg_pattern += svg_background;
+            // Use a fixed r for all gradients
+            const r = 50;
+            const scaleX = rx / r;
+            const scaleY = ry / r;
 
-        // Create cells within the pattern
-        for (let i = 0; i < total_rows; i++) {
-          for (let j = 0; j < total_cols; j++) {
-            svg_pattern += `<rect x="${j * column_width}" y="${i * row_height}" width="${column_width}" height="${row_height}" fill="${fill_color}" stroke="none" />`;
-          }
+            // SVG translate uses 0-1, so convert cx/cy from percent to [0,1]
+            const tx = cx / 100;
+            const ty = cy / 100;
+
+            // Compose the transform: translate to origin, scale, translate back
+            const gradientTransform = `
+              translate(${tx},${ty})
+              scale(${scaleX},${scaleY})
+              translate(${-tx},${-ty})
+            `.replace(/\s+/g, ' ').trim();
+
+            gradients += `
+              <radialGradient id="${gradId}" cx="${cx}%" cy="${cy}%" r="${r}%" gradientTransform="${gradientTransform}">
+                <stop offset="0%" style="stop-color: ${color}; stop-opacity: ${stops?.[0] ?? 1}" />
+                <stop offset="50%" style="stop-color: ${color}; stop-opacity: ${stops?.[1] ?? 0.3}" />
+                <stop offset="100%" style="stop-color: ${color}; stop-opacity: ${stops?.[2] ?? 0}" />
+              </radialGradient>
+            `;
+          });
+          return gradients;
         }
 
-        // Add horizontal lines within the pattern
-        for (let i = 0; i <= total_rows; i++) {
-          if (border_lines_horizontal || (i > 0 && i < total_rows)) {
-            let current_line_width = line_width_minor;
-            if (num_minor_rows > 0 && i % (num_minor_rows + 1) === 0) {
-              current_line_width = line_width_major;
-            }
-            svg_pattern += `<line x1="0" y1="${i * row_height}" x2="${pattern_width}" y2="${i * row_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
-          }
+        function buildNebulaRects(layers) {
+          let rects = '';
+          layers.forEach((layer, idx) => {
+            const gradId = `nebula${idx}`;
+            const cx = layer.cx ?? 50;
+            const cy = layer.cy ?? 50;
+
+            rects += `
+              <rect x="0" y="0" width="100%" height="100%" fill="url(#${gradId})" />
+            `;
+          });
+          return rects;
         }
 
-        // Add vertical lines within the pattern
-        for (let j = 0; j <= total_cols; j++) {
-          if (border_lines_vertical || (j > 0 && j < total_cols)) {
-            let current_line_width = line_width_minor;
-            if (num_minor_cols > 0 && j % (num_minor_cols + 1) === 0) {
-              current_line_width = line_width_major;
-            }
-            svg_pattern += `<line x1="${j * column_width}" y1="0" x2="${j * column_width}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
-          }
+        // --- NEBULA BG PATTERN WITH FILTER & ANIMATION ---
+        // If all effects are false, render only the basic radial gradients (no filter)
+        function allNebulaEffectsOff() {
+          return !nebulaEffect && !nebulaBlur && !nebulaAnimate;
         }
 
-        svg_pattern += `
-              </pattern>
+        let svg_bg_nebula;
+        if (allNebulaEffectsOff()) {
+          // Only render the basic radial gradients, no filter, no animation
+          svg_bg_nebula = `
+            <defs>
+              ${buildNebulaGradients(nebulaLayers)}
             </defs>
-            <rect width="100%" height="100%" fill="url(#gridPattern)" />
-          </svg>`;
+            <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+            ${buildNebulaRects(nebulaLayers)}
+          `;
+        } else {
+          // Build up the filter chain based on toggles
+          let filterContent = '';
+          if (nebulaEffect) {
+            filterContent += `<feTurbulence
+              type="fractalNoise"
+              baseFrequency="${nebulaBaseFrequency}"
+              numOctaves="${nebulaNumOctaves}"
+              seed="${nebulaSeed}"
+              result="turb"
+            >${
+              nebulaAnimate
+                ? `
+              <animate attributeName="baseFrequency" values="${nebulaBaseFrequency};${nebulaBaseFrequency * 1.5};${nebulaBaseFrequency}" dur="${nebulaAnimationDuration}s" repeatCount="indefinite" />
+              <animate attributeName="seed" values="${nebulaSeed};${nebulaSeed + 10};${nebulaSeed}" dur="${nebulaAnimationDuration}s" repeatCount="indefinite" />
+              `
+                : ''
+            }</feTurbulence>
+            <feDisplacementMap in2="turb" in="SourceGraphic" scale="${nebulaScale}" xChannelSelector="R" yChannelSelector="G"/>`;
+          }
+          if (nebulaBlur) {
+            filterContent += `<feGaussianBlur stdDeviation="${nebulaBlurLevel}"/>`;
+          }
 
-        const track_size = direction === 'up' || direction === 'down' ? pattern_height : pattern_width;
-        const track_dimension = track_size * 3;
+          svg_bg_nebula = `
+            <defs>
+              <filter id="nebulaCloud" x="0" y="0" width="100%" height="100%">
+                ${filterContent}
+              </filter>
+              ${buildNebulaGradients(nebulaLayers)}
+            </defs>
+            <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+            <g${filterContent ? ' filter="url(#nebulaCloud)"' : ''}>
+              ${buildNebulaRects(nebulaLayers)}
+            </g>
+          `;
+        }
 
-        const animationStyle = `
-          <style>
-            .scroll-container {
-              overflow: hidden;
-              width: ${card_width}px;
-              height: ${card_height}px;
-              position: relative;
+
+        /////////////////////////////////////////////
+        // --- SVG Backgrounds for Nebula and Stars ---
+        // --- Assign svg_background based on bg_pattern ---
+        let svg_background = '';
+        if (bg_pattern === 'nebula') {
+          svg_background = svg_bg_nebula;
+        } else if (bg_pattern === 'stars') {
+          svg_background = svg_bg_stars;
+        } else {
+          svg_background = '';
+        }
+
+
+
+        /////////////////////////////////////////////
+        // --- GRID ---
+        //  Main grid pattern builder, optionally includes background SVG.
+        //  Used for both scroll and zoom effects.
+        function buildGridPattern(withBackground) {
+          let svg = `
+            <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="gridPattern" x="0" y="0" width="${pattern_width}" height="${pattern_height}" patternUnits="userSpaceOnUse">
+          `;
+          if (withBackground) svg += svg_background;
+
+          // Create cells within the pattern
+          for (let i = 0; i < total_rows; i++) {
+            for (let j = 0; j < total_cols; j++) {
+              svg += `<rect x="${j * column_width}" y="${i * row_height}" width="${column_width}" height="${row_height}" fill="${fill_color}" stroke="none" />`;
             }
-            .scroll-track {
-              display: flex;
-              flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
-              width: ${direction === 'up' || direction === 'down' ? card_width : track_dimension}px;
-              height: ${direction === 'up' || direction === 'down' ? track_dimension : pattern_height}px;
+          }
+
+          // Add horizontal lines within the pattern
+          for (let i = 0; i <= total_rows; i++) {
+            if (border_lines_horizontal || (i > 0 && i < total_rows)) {
+              let current_line_width = line_width_minor;
+              if (num_minor_rows > 0 && i % (num_minor_rows + 1) === 0) {
+                current_line_width = line_width_major;
+              }
+              svg += `<line x1="0" y1="${i * row_height}" x2="${pattern_width}" y2="${i * row_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
             }
-            .scroll-pattern {
-              flex: 0 0 ${direction === 'up' || direction === 'down' ? pattern_height : pattern_width}px;
-              height: ${pattern_height}px;
+          }
+
+          // Add vertical lines within the pattern
+          for (let j = 0; j <= total_cols; j++) {
+            if (border_lines_vertical || (j > 0 && j < total_cols)) {
+              let current_line_width = line_width_minor;
+              if (num_minor_cols > 0 && j % (num_minor_cols + 1) === 0) {
+                current_line_width = line_width_major;
+              }
+              svg += `<line x1="${j * column_width}" y1="0" x2="${j * column_width}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
             }
-            @keyframes scroll-horizontal {
-              0% { transform: translateX(${direction === 'left' ? 0 : -track_dimension + track_size}px); }
-              100% { transform: translateX(${direction === 'left' ? -track_dimension + track_size : 0}px); }
+          }
+
+          svg += `
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#gridPattern)" />
+            </svg>`;
+          return svg;
+        }
+
+        // --- Start bulding the SVG pattern for the grid (without background) ---
+        let svg_pattern = buildGridPattern(false);
+
+        let animationStyle = '';
+
+        // --- Zoom effect: seamless infinite zoom using multiple layers ---
+        if (background_effect === 'zoom') {
+          // Build multiple zoom layers for infinite zoom animation
+          let zoomPatterns = '';
+          for (let i = 0; i < backgroundZoomLayers; i++) {
+            const delay = (i * backgroundZoomDuration) / backgroundZoomLayers;
+            let layerSvgPattern;
+
+            if (bg_pattern === 'stars') {
+              // Each layer gets a unique star pattern and grid lines, with user background color
+              const layerStars = `
+                <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+                <defs>
+                  <pattern id="starPattern${i}" width="${starPatternWidth}" height="${starPatternHeight}" patternUnits="userSpaceOnUse">
+                    ${generateTileableStarsSeeded(numStars, starPatternWidth, starPatternHeight, starMinRadius, starMaxRadius, starMinBrightness, starMaxBrightness, 1000 + i, starColor)}
+                  </pattern>
+                </defs>
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#starPattern${i})" />
+              `;
+              layerSvgPattern = `
+                <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+                  ${layerStars}
+                  <g>
+                    ${(() => {
+                      let grid = '';
+                      // Cells
+                      for (let ii = 0; ii < total_rows; ii++) {
+                        for (let jj = 0; jj < total_cols; jj++) {
+                          grid += `<rect x="${jj * column_width}" y="${ii * row_height}" width="${column_width}" height="${row_height}" fill="${fill_color}" stroke="none" />`;
+                        }
+                      }
+                      // Horizontal lines
+                      for (let ii = 0; ii <= total_rows; ii++) {
+                        if (border_lines_horizontal || (ii > 0 && ii < total_rows)) {
+                          let current_line_width = line_width_minor;
+                          if (num_minor_rows > 0 && ii % (num_minor_rows + 1) === 0) {
+                            current_line_width = line_width_major;
+                          }
+                          grid += `<line x1="0" y1="${ii * row_height}" x2="${pattern_width}" y2="${ii * row_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+                        }
+                      }
+                      // Vertical lines
+                      for (let jj = 0; jj <= total_cols; jj++) {
+                        if (border_lines_vertical || (jj > 0 && jj < total_cols)) {
+                          let current_line_width = line_width_minor;
+                          if (num_minor_cols > 0 && jj % (num_minor_cols + 1) === 0) {
+                            current_line_width = line_width_major;
+                          }
+                          grid += `<line x1="${jj * column_width}" y1="0" x2="${jj * column_width}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+                        }
+                      }
+                      return grid;
+                    })()}
+                  </g>
+                </svg>
+              `;
+            } else {
+              // For nebula or other backgrounds, use the grid pattern builder with background
+              layerSvgPattern = buildGridPattern(true);
             }
-            @keyframes scroll-vertical {
-              0% { transform: translateY(${direction === 'up' ? 0 : -track_dimension + track_size}px); }
-              100% { transform: translateY(${direction === 'up' ? -track_dimension + track_size : 0}px); }
-            }
-            .scroll-track {
-              animation: ${direction === 'up' || direction === 'down' ? 'scroll-vertical' : 'scroll-horizontal'} ${speed}s linear infinite;
-            }
-          </style>
-          <div class="scroll-container">
-            <div class="scroll-track">
-              <div class="scroll-pattern">${svg_pattern}</div>
-              <div class="scroll-pattern">${svg_pattern}</div>
-              <div class="scroll-pattern">${svg_pattern}</div>
+
+            zoomPatterns += `<div class="zoom-pattern zoom-layer${i}" style="animation-delay: ${delay}s;">${layerSvgPattern}</div>`;
+          }
+
+          // --- CSS and HTML for zoom animation container ---
+          animationStyle = `
+            <style>
+              .zoom-container {
+                overflow: hidden;
+                width: ${card_width}px;
+                height: ${card_height}px;
+                position: relative;
+              }
+              .zoom-pattern {
+                position: absolute;
+                left: 0; top: 0;
+                width: 100%; height: 100%;
+                will-change: transform, opacity;
+                animation: zoom-infinite ${backgroundZoomDuration}s linear infinite;
+                mix-blend-mode: lighten;
+                opacity: 0;
+              }
+              @keyframes zoom-infinite {
+                0% {
+                  transform: scale(1);
+                  opacity: 0;
+                }
+                ${backgroundZoomOpacityFadeIn}% {
+                  opacity: 1;
+                }
+                ${backgroundZoomOpacityFadeOut}% {
+                  opacity: 1;
+                }
+                100% {
+                  transform: scale(${backgroundZoomScaleTo});
+                  opacity: 0;
+                }
+              }
+            </style>
+            <div class="zoom-container">
+              ${zoomPatterns}
             </div>
+          `;
+        } else {
+          // --- Scroll effect: background and grid scroll independently ---
+          svg_pattern = buildGridPattern(true);
+
+          // Use independent speeds for scroll as well
+          const backgroundScrollSpeed = background_speed;
+          const gridScrollSpeed = grid_speed;
+
+          const track_size = direction === 'up' || direction === 'down' ? pattern_height : pattern_width;
+          const track_dimension = track_size * 3;
+
+          // --- CSS and HTML for scroll animation container ---
+          animationStyle = `
+            <style>
+              .scroll-container {
+                overflow: hidden;
+                width: ${card_width}px;
+                height: ${card_height}px;
+                position: relative;
+              }
+              .scroll-track-bg {
+                display: flex;
+                flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
+                width: ${direction === 'up' || direction === 'down' ? card_width : track_dimension}px;
+                height: ${direction === 'up' || direction === 'down' ? track_dimension : pattern_height}px;
+                animation: scroll-${direction}-bg ${backgroundScrollSpeed}s linear infinite;
+              }
+              .scroll-track-grid {
+                display: flex;
+                flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
+                width: ${direction === 'up' || direction === 'down' ? card_width : track_dimension}px;
+                height: ${direction === 'up' || direction === 'down' ? track_dimension : pattern_height}px;
+                animation: scroll-${direction}-grid ${gridScrollSpeed}s linear infinite;
+              }
+              .scroll-pattern {
+                flex: 0 0 ${direction === 'up' || direction === 'down' ? pattern_height : pattern_width}px;
+                height: ${pattern_height}px;
+              }
+              @keyframes scroll-left-bg {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(${-track_dimension + track_size}px); }
+              }
+              @keyframes scroll-right-bg {
+                0% { transform: translateX(${-track_dimension + track_size}px); }
+                100% { transform: translateX(0); }
+              }
+              @keyframes scroll-up-bg {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(${-track_dimension + track_size}px); }
+              }
+              @keyframes scroll-down-bg {
+                0% { transform: translateY(${-track_dimension + track_size}px); }
+                100% { transform: translateY(0); }
+              }
+              @keyframes scroll-left-grid {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(${-track_dimension + track_size}px); }
+              }
+              @keyframes scroll-right-grid {
+                0% { transform: translateX(${-track_dimension + track_size}px); }
+                100% { transform: translateX(0); }
+              }
+              @keyframes scroll-up-grid {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(${-track_dimension + track_size}px); }
+              }
+              @keyframes scroll-down-grid {
+                0% { transform: translateY(${-track_dimension + track_size}px); }
+                100% { transform: translateY(0); }
+              }
+            </style>
+            <div class="scroll-container">
+              <div class="scroll-track-bg" style="animation-name: scroll-${direction}-bg;">
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+              </div>
+              <div class="scroll-track-grid" style="animation-name: scroll-${direction}-grid;">
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        /////////////////////////////////////////////
+        // --- Helper functions for SVG generation ---
+        //  buildBackgroundSVG: returns SVG for background (nebula or stars)
+        //  buildGridSVG: returns SVG for grid pattern (rect, hex, diagonal, bracket)
+        function buildBackgroundSVG() {
+          let svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">`;
+          if (bg_pattern === 'nebula') {
+            // Use the new unified nebula rendering logic
+            svg += svg_bg_nebula;
+          } else if (bg_pattern === 'stars') {
+            svg += svg_bg_stars;
+          }
+          svg += `</svg>`;
+          return svg;
+        }
+
+        function buildGridSVG() {
+          const grid_pattern = variables.animation.bg_grid.grid.preset || 'rect';
+
+          // --- Support for disabling grid ---
+          if (grid_pattern === 'none') {
+            // Return an empty SVG (transparent, no grid)
+            return `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg"></svg>`;
+          }
+
+          // Rectangular grid (existing logic)
+          function drawRectGrid() {
+            // Start building the SVG pattern for the grid (with optional background)
+            function buildGridPattern(withBackground) {
+              let svg = `
+                <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="gridPattern" x="0" y="0" width="${pattern_width}" height="${pattern_height}" patternUnits="userSpaceOnUse">
+              `;
+              if (withBackground) svg += svg_background;
+
+              // Create cells within the pattern
+              for (let i = 0; i < total_rows; i++) {
+                for (let j = 0; j < total_cols; j++) {
+                  svg += `<rect x="${j * column_width}" y="${i * row_height}" width="${column_width}" height="${row_height}" fill="${fill_color}" stroke="none" />`;
+                }
+              }
+
+              // Add horizontal lines within the pattern
+              for (let i = 0; i <= total_rows; i++) {
+                if (border_lines_horizontal || (i > 0 && i < total_rows)) {
+                  let current_line_width = line_width_minor;
+                  if (num_minor_rows > 0 && i % (num_minor_rows + 1) === 0) {
+                    current_line_width = line_width_major;
+                  }
+                  svg += `<line x1="0" y1="${i * row_height}" x2="${pattern_width}" y2="${i * row_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+                }
+              }
+
+              // Add vertical lines within the pattern
+              for (let j = 0; j <= total_cols; j++) {
+                if (border_lines_vertical || (j > 0 && j < total_cols)) {
+                  let current_line_width = line_width_minor;
+                  if (num_minor_cols > 0 && j % (num_minor_cols + 1) === 0) {
+                    current_line_width = line_width_major;
+                  }
+                  svg += `<line x1="${j * column_width}" y1="0" x2="${j * column_width}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${current_line_width}" />`;
+                }
+              }
+
+              svg += `
+                    </pattern>
+                  </defs>
+                  <rect width="100%" height="100%" fill="url(#gridPattern)" />
+                </svg>`;
+              return svg;
+            }
+
+            // Start bulding the SVG pattern
+            let svg_pattern = buildGridPattern(false);
+
+            return svg_pattern;
+          }
+
+          // Hexagonal grid pattern
+          function drawHexGrid() {
+            // Improved: Robust staggering and major hex logic.
+            // Major hexes appear at every (majorColInterval, majorRowInterval), staggered by minor intervals.
+            // Tileability: pattern_width and pattern_height should be integer multiples of the hex tile size.
+
+            const userHexRadius = variables.animation.bg_grid.grid.hex_radius;
+            const hexRadius = userHexRadius > 0
+              ? userHexRadius
+              : Math.max(10, Math.min(card_width, card_height) / 12);
+            const hexWidth = 2 * hexRadius;
+            const hexHeight = Math.sqrt(3) * hexRadius;
+
+            // Calculate how many columns and rows to fill the SVG
+            const cols = Math.ceil(pattern_width / (1.5 * hexRadius));
+            const rows = Math.ceil(pattern_height / hexHeight) + 1;
+
+            // Major/minor intervals
+            const majorColInterval = Math.max(1, variables.animation.bg_grid.grid.num_major_cols ?? 3);
+            const majorRowInterval = Math.max(1, variables.animation.bg_grid.grid.num_major_rows ?? 3);
+            const minorColInterval = Math.max(0, variables.animation.bg_grid.grid.num_minor_cols ?? 0);
+            const minorRowInterval = Math.max(0, variables.animation.bg_grid.grid.num_minor_rows ?? 0);
+            const lineWidthMajor = variables.animation.bg_grid.grid.line_width_major ?? 2;
+            const lineWidthMinor = variables.animation.bg_grid.grid.line_width_minor ?? 1;
+
+            let svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">`;
+            if (fill_color !== 'transparent') {
+              svg += `<rect x="0" y="0" width="100%" height="100%" fill="${fill_color}" />`;
+            }
+
+            // Minor variables currently only affect the phase/offset of the major hexes,
+            // not the density or appearance of minor hexes themselves.
+            // If you want minor hexes to have a different style or to appear at a different interval,
+            // you would need to add logic to draw "minor" hexes at those intervals, e.g.:
+            //
+            // - Draw all hexes as minor by default (lineWidthMinor)
+            // - For every majorColInterval/majorRowInterval (with optional phase/offset from minor vars), draw as major (lineWidthMajor)
+            //
+            // The current code only uses minorRowInterval to stagger the phase of major hexes in each column.
+            // Changing minorRowInterval or minorColInterval will only shift the pattern, not add more minor hexes.
+            //
+            // If you want minor hexes to be visually grouped or have a different effect, you must add explicit logic for that.
+
+            for (let col = 0; col < cols; col++) {
+              let rowPhase = 0;
+              if (minorRowInterval > 0) {
+                rowPhase = (col % (minorRowInterval + 1)) * Math.floor(majorRowInterval / (minorRowInterval + 1));
+              }
+              for (let row = 0; row < rows; row++) {
+                // Offset every other column vertically by half a hex
+                const x = col * 1.5 * hexRadius;
+                const y = row * hexHeight + (col % 2 === 1 ? hexHeight / 2 : 0);
+
+                // Only draw hexes whose bounding box is inside the SVG area
+                if (
+                  x - hexRadius < pattern_width &&
+                  y - hexHeight / 2 < pattern_height &&
+                  x + hexRadius > 0 &&
+                  y + hexHeight / 2 > 0
+                ) {
+                  // Major if col and (row + rowPhase) are multiples of interval
+                  const isMajor =
+                    (col % majorColInterval === 0) &&
+                    ((row + rowPhase) % majorRowInterval === 0);
+                  const lw = isMajor ? lineWidthMajor : lineWidthMinor;
+                  svg += `<polygon points="${
+                    Array.from({ length: 6 }).map((_, i) => {
+                      const angle = Math.PI / 3 * i;
+                      return [
+                        x + hexRadius * Math.cos(angle),
+                        y + hexRadius * Math.sin(angle)
+                      ].join(',');
+                    }).join(' ')
+                  }" fill="none" stroke="${line_color}" stroke-width="${lw}" />`;
+                }
+              }
+            }
+            svg += `</svg>`;
+            return svg;
+          }
+
+          // Diagonal/hatched grid pattern
+          function drawDiagonalGrid() {
+            const spacing = Math.max(column_width, row_height);
+            let svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">`;
+            if (fill_color !== 'transparent') {
+              svg += `<rect x="0" y="0" width="100%" height="100%" fill="${fill_color}" />`;
+            }
+            // Draw diagonal lines (bottom-left to top-right)
+            for (let x = -pattern_height; x < pattern_width; x += spacing) {
+              svg += `<line x1="${x}" y1="0" x2="${x + pattern_height}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${line_width_minor}" />`;
+            }
+            // Draw diagonal lines (top-left to bottom-right)
+            for (let x = 0; x < pattern_width + pattern_height; x += spacing) {
+              svg += `<line x1="${x}" y1="0" x2="${x - pattern_height}" y2="${pattern_height}" stroke="${line_color}" stroke-width="${line_width_minor}" />`;
+            }
+            svg += `</svg>`;
+            return svg;
+          }
+
+          // --- NEW: Bracket grid pattern ---
+          function drawBracketGrid() {
+            // Configurable parameters
+            const bracketWidth = variables.animation.bg_grid.grid.bracket_width ?? 16;
+            const bracketColor = variables.animation.bg_grid.grid.bracket_color ?? '#FFB300';
+            const fillColor = variables.animation.bg_grid.grid.bracket_fill ?? 'none'; // e.g. 'rgba(255,179,0,0.15)'
+            const bracketRadius = variables.animation.bg_grid.grid.bracket_radius ?? (pattern_height * 0.12);
+
+            const bracketGapPercent = (variables.animation.bg_grid.grid.bracket_gap/100) ?? 0.12;
+            const bracketGap = pattern_width * bracketGapPercent;
+
+            const bracketHeightPercent = (variables.animation.bg_grid.grid?.bracket_height/100) ?? 0.7;
+            const bracketHeight = pattern_height * bracketHeightPercent;
+
+            const bracketY = (pattern_height - bracketHeight) / 2;
+
+            // Bracket horizontal position
+            const leftX = bracketGap;
+            const rightX = pattern_width - bracketGap - bracketWidth;
+
+            // SVG path for a single bracket (left or right)
+            function bracketPath(x, y, width, height, radius, side = 'left') {
+              // side: 'left' or 'right'
+              // Draw from top to bottom, with rounded corners
+              if (side === 'left') {
+                return `
+                  M ${x + width} ${y}
+                  H ${x + radius}
+                  Q ${x} ${y} ${x} ${y + radius}
+                  V ${y + height - radius}
+                  Q ${x} ${y + height} ${x + radius} ${y + height}
+                  H ${x + width}
+                `;
+              } else {
+                // right
+                return `
+                  M ${x} ${y}
+                  H ${x + width - radius}
+                  Q ${x + width} ${y} ${x + width} ${y + radius}
+                  V ${y + height - radius}
+                  Q ${x + width} ${y + height} ${x + width - radius} ${y + height}
+                  H ${x}
+                `;
+              }
+            }
+
+            // Optionally fill the space between brackets
+            let fillRect = '';
+            if (fillColor && fillColor !== 'none' && fillColor !== 'transparent') {
+              fillRect = `<rect x="${leftX}" y="${bracketY + (bracketWidth/2)}" width="${rightX - leftX + bracketWidth}" height="${bracketHeight - bracketWidth}" fill="${fillColor}" stroke="none"/>`;
+            }
+
+            return `
+              <svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+                ${fillRect}
+                <path d="${bracketPath(leftX, bracketY, bracketWidth, bracketHeight, bracketRadius, 'left')}"
+                      fill="none" stroke="${bracketColor}" stroke-width="${bracketWidth}" stroke-linecap="round"/>
+                <path d="${bracketPath(rightX, bracketY, bracketWidth, bracketHeight, bracketRadius, 'right')}"
+                      fill="none" stroke="${bracketColor}" stroke-width="${bracketWidth}" stroke-linecap="round"/>
+              </svg>
+            `;
+          }
+
+          // --- Select grid pattern type ---
+          switch (grid_pattern) {
+            case 'hex':
+              return drawHexGrid();
+            case 'diagonal':
+              return drawDiagonalGrid();
+            case 'bracket':
+              return drawBracketGrid();
+            case 'rect':
+            default:
+              return drawRectGrid();
+          }
+        }
+
+        /////////////////////////////////////////////
+        // --- Infinite zoom layers support for background ---
+        //  Returns array of SVGs for each zoom layer (background)
+        function buildZoomBackgroundSVGs() {
+          const arr = [];
+          for (let i = 0; i < backgroundZoomLayers; i++) {
+            let svg;
+            if (bg_pattern === 'stars') {
+              const layerStars = `
+                <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+                <defs>
+                  <pattern id="starPattern${i}" width="${starPatternWidth}" height="${starPatternHeight}" patternUnits="userSpaceOnUse">
+                    ${generateTileableStarsSeeded(numStars, starPatternWidth, starPatternHeight, starMinRadius, starMaxRadius, starMinBrightness, starMaxBrightness, 1000 + i, starColor)}
+                  </pattern>
+                </defs>
+                <rect x="0" y="0" width="100%" height="100%" fill="url(#starPattern${i})" />
+              `;
+              svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">${layerStars}</svg>`;
+            } else if (bg_pattern === 'nebula') {
+              // For nebula: use a unique seed per layer for turbulence if enabled
+              let layerFilterContent = '';
+              let layerSeed = nebulaSeed + i;
+              if (nebulaEffect) {
+                layerFilterContent += `<feTurbulence
+                  type="fractalNoise"
+                  baseFrequency="${nebulaBaseFrequency}"
+                  numOctaves="${nebulaNumOctaves}"
+                  seed="${layerSeed}"
+                  result="turb"
+                >${
+                  nebulaAnimate
+                    ? `
+                  <animate attributeName="baseFrequency" values="${nebulaBaseFrequency};${nebulaBaseFrequency * 1.5};${nebulaBaseFrequency}" dur="${nebulaAnimationDuration}s" repeatCount="indefinite" />
+                  <animate attributeName="seed" values="${layerSeed};${layerSeed + 10};${layerSeed}" dur="${nebulaAnimationDuration}s" repeatCount="indefinite" />
+                  `
+                    : ''
+                }</feTurbulence>
+                <feDisplacementMap in2="turb" in="SourceGraphic" scale="${nebulaScale}" xChannelSelector="R" yChannelSelector="G"/>`;
+              }
+              if (nebulaBlur) {
+                layerFilterContent += `<feGaussianBlur stdDeviation="${nebulaBlurLevel}"/>`;
+              }
+              if (!nebulaEffect && !nebulaBlur && !nebulaAnimate) {
+                svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    ${buildNebulaGradients(nebulaLayers)}
+                  </defs>
+                  <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+                  ${buildNebulaRects(nebulaLayers)}
+                </svg>`;
+              } else {
+                svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    <filter id="nebulaCloud${i}" x="0" y="0" width="100%" height="100%">
+                      ${layerFilterContent}
+                    </filter>
+                    ${buildNebulaGradients(nebulaLayers)}
+                  </defs>
+                  <rect x="0" y="0" width="100%" height="100%" fill="${userBgColor}" />
+                  <g${layerFilterContent ? ` filter="url(#nebulaCloud${i})"` : ''}>
+                    ${buildNebulaRects(nebulaLayers)}
+                  </g>
+                </svg>`;
+              }
+            } else {
+              svg = `<svg width="${pattern_width}" height="${pattern_height}" xmlns="http://www.w3.org/2000/svg"></svg>`;
+            }
+            arr.push(svg);
+          }
+          return arr;
+        }
+
+        /////////////////////////////////////////////
+        // --- Infinite zoom layers support for grid ---
+        //  Returns array of SVGs for each zoom layer (grid)
+        function buildZoomGridSVGs() {
+          const arr = [];
+          for (let i = 0; i < gridZoomLayers; i++) {
+            arr.push(buildGridSVG());
+          }
+          return arr;
+        }
+
+        /////////////////////////////////////////////
+        // --- Animation containers for background and grid ---
+        //  buildAnimatedLayer: returns HTML/CSS for animated background/grid layer
+        function buildAnimatedLayer(contentArr, type, duration, direction, pattern_width, pattern_height, zIndex, pointerEvents, zoomScaleTo, zoomOpacityFadeIn, zoomOpacityFadeOut, zoomScaleFrom = 1) {
+          if (type === 'zoom') {
+            return `
+              <style>
+                .zoom-container-${zIndex} {
+                  overflow: hidden;
+                  width: ${card_width}px;
+                  height: ${card_height}px;
+                  position: absolute;
+                  left: 0; top: 0;
+                  z-index: ${zIndex};
+                  ${pointerEvents ? `pointer-events:${pointerEvents};` : ''}
+                }
+                .zoom-content-${zIndex} {
+                  position: absolute;
+                  left: 0; top: 0;
+                  width: 100%; height: 100%;
+                  will-change: transform, opacity;
+                  animation: zoom-infinite-${zIndex} ${duration}s linear infinite;
+                  opacity: 1;
+                  mix-blend-mode: lighten;
+                }
+                @keyframes zoom-infinite-${zIndex} {
+                  0% { transform: scale(${zoomScaleFrom}); opacity: 0; }
+                  ${zoomOpacityFadeIn}% { opacity: 1; }
+                  ${zoomOpacityFadeOut}% { opacity: 1; }
+                  100% { transform: scale(${zoomScaleTo}); opacity: 0; }
+                }
+              </style>
+              <div class="zoom-container-${zIndex}">
+                ${contentArr.map((svg, i) => {
+                  const delay = (i * duration) / contentArr.length;
+                  return `<div class="zoom-content-${zIndex}" style="animation-delay:${delay}s">${svg}</div>`;
+                }).join('')}
+              </div>
+            `;
+          } else if (type === 'scroll') {
+            // ...existing code for scroll...
+            const content = contentArr[0];
+            const track_size = (direction === 'up' || direction === 'down') ? pattern_height : pattern_width;
+            const track_dimension = track_size * 3;
+            return `
+              <style>
+                .scroll-container {
+                  overflow: hidden;
+                  width: ${card_width}px;
+                  height: ${card_height}px;
+                  position: absolute;
+                  left: 0; top: 0;
+                  z-index: ${zIndex};
+                  ${pointerEvents ? `pointer-events:${pointerEvents};` : ''}
+                }
+                .scroll-track {
+                  display: flex;
+                  flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
+                  width: ${direction === 'up' || direction === 'down' ? card_width : track_dimension}px;
+                  height: ${direction === 'up' || direction === 'down' ? track_dimension : pattern_height}px;
+                  animation: scroll-${direction}-${zIndex} ${duration}s linear infinite;
+                }
+                .scroll-pattern {
+                  flex: 0 0 ${direction === 'up' || direction === 'down' ? pattern_height : pattern_width}px;
+                  height: ${pattern_height}px;
+                }
+                @keyframes scroll-left-${zIndex} {
+                  0% { transform: translateX(0); }
+                  100% { transform: translateX(${-track_dimension + track_size}px); }
+                }
+                @keyframes scroll-right-${zIndex} {
+                  0% { transform: translateX(${-track_dimension + track_size}px); }
+                  100% { transform: translateX(0); }
+                }
+                @keyframes scroll-up-${zIndex} {
+                  0% { transform: translateY(0); }
+                  100% { transform: translateY(${-track_dimension + track_size}px); }
+                }
+                @keyframes scroll-down-${zIndex} {
+                  0% { transform: translateY(${-track_dimension + track_size}px); }
+                  100% { transform: translateY(0); }
+                }
+              </style>
+              <div class="scroll-container">
+                <div class="scroll-track" style="animation-name: scroll-${direction}-${zIndex};">
+                  <div class="scroll-pattern">${content}</div>
+                  <div class="scroll-pattern">${content}</div>
+                  <div class="scroll-pattern">${content}</div>
+                </div>
+              </div>
+            `;
+          } else {
+            // No animation
+            return `
+              <div style="position:absolute;left:0;top:0;width:${card_width}px;height:${card_height}px;z-index:${zIndex};${pointerEvents ? `pointer-events:${pointerEvents};` : ''}">
+                ${contentArr[0]}
+              </div>
+            `;
+          }
+        }
+
+        /////////////////////////////////////////////
+        // --- Compose layers ---
+        //  Compose background and grid layers, each with their own animation/effect
+        //  Always include scroll CSS if either layer uses scroll
+        let backgroundLayer;
+        if (background_effect === 'zoom') {
+          backgroundLayer = buildAnimatedLayer(
+            buildZoomBackgroundSVGs(),
+            'zoom',
+            backgroundZoomDuration,
+            direction,
+            pattern_width,
+            pattern_height,
+            0,
+            '',
+            backgroundZoomScaleTo,
+            backgroundZoomOpacityFadeIn,
+            backgroundZoomOpacityFadeOut,
+            backgroundZoomScaleFrom // pass initial scale
+          );
+        } else if (background_effect === 'scroll') {
+          backgroundLayer = `
+            <div class="scroll-container-bg" style="position:absolute;left:0;top:0;width:${card_width}px;height:${card_height}px;z-index:0;">
+              <div class="scroll-track-bg" style="animation-name: scroll-${direction}-bg;">
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+                <div class="scroll-pattern">${buildBackgroundSVG()}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          backgroundLayer = buildAnimatedLayer(
+            [buildBackgroundSVG()],
+            background_effect,
+            background_speed,
+            direction,
+            pattern_width,
+            pattern_height,
+            0,
+            ''
+          );
+        }
+
+        let gridLayer;
+        if (grid_effect === 'zoom') {
+          gridLayer = buildAnimatedLayer(
+            buildZoomGridSVGs(),
+            'zoom',
+            gridZoomDuration,
+            direction,
+            pattern_width,
+            pattern_height,
+            1,
+            'none',
+            gridZoomScaleTo,
+            gridZoomOpacityFadeIn,
+            gridZoomOpacityFadeOut,
+            gridZoomScaleFrom // pass initial scale
+          );
+        } else if (grid_effect === 'scroll') {
+          gridLayer = `
+            <div class="scroll-container-grid" style="position:absolute;left:0;top:0;width:${card_width}px;height:${card_height}px;z-index:1;pointer-events:none;">
+              <div class="scroll-track-grid" style="animation-name: scroll-${direction}-grid;">
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+                <div class="scroll-pattern">${buildGridSVG()}</div>
+              </div>
+            </div>
+          `;
+        } else {
+          gridLayer = buildAnimatedLayer(
+            [buildGridSVG()],
+            grid_effect,
+            grid_speed,
+            direction,
+            pattern_width,
+            pattern_height,
+            1,
+            'none'
+          );
+        }
+
+        /////////////////////////////////////////////
+        // --- Always include scroll CSS if either layer uses scroll ---
+        let scrollCSS = '';
+        if (background_effect === 'scroll' || grid_effect === 'scroll') {
+          scrollCSS = `
+            <style>
+              .scroll-container-bg, .scroll-container-grid {
+                overflow: hidden;
+                width: ${card_width}px;
+                height: ${card_height}px;
+                position: absolute;
+                left: 0; top: 0;
+              }
+              .scroll-track-bg, .scroll-track-grid {
+                display: flex;
+                flex-direction: ${direction === 'up' || direction === 'down' ? 'column' : 'row'};
+                width: ${direction === 'up' || direction === 'down' ? card_width : pattern_width * 3}px;
+                height: ${direction === 'up' || direction === 'down' ? pattern_height * 3 : pattern_height}px;
+              }
+              .scroll-track-bg {
+                animation: scroll-${direction}-bg ${background_speed}s linear infinite;
+              }
+              .scroll-track-grid {
+                animation: scroll-${direction}-grid ${grid_speed}s linear infinite;
+              }
+              .scroll-pattern {
+                flex: 0 0 ${direction === 'up' || direction === 'down' ? pattern_height : pattern_width}px;
+                height: ${pattern_height}px;
+              }
+              @keyframes scroll-left-bg {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(${-pattern_width *  2}px); }
+              }
+              @keyframes scroll-right-bg {
+                0% { transform: translateX(${-pattern_width * 2}px); }
+                100% { transform: translateX(0); }
+              }
+              @keyframes scroll-up-bg {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(${-pattern_height * 2}px); }
+              }
+              @keyframes scroll-down-bg {
+                0% { transform: translateY(${-pattern_height * 2}px); }
+                100% { transform: translateY(0); }
+              }
+              @keyframes scroll-left-grid {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(${-pattern_width * 2}px); }
+              }
+              @keyframes scroll-right-grid {
+                0% { transform: translateX(${-pattern_width * 2}px); }
+                100% { transform: translateX(0); }
+              }
+              @keyframes scroll-up-grid {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(${-pattern_height * 2}px); }
+              }
+              @keyframes scroll-down-grid {
+                0% { transform: translateY(${-pattern_height * 2}px); }
+                100% { transform: translateY(0); }
+              }
+            </style>
+          `;
+        }
+
+        /////////////////////////////////////////////
+        // --- Final output: Compose all layers and CSS ---
+        return `
+          ${scrollCSS}
+          <div style="position:relative;width:${card_width}px;height:${card_height}px;">
+            ${backgroundLayer}
+            ${gridLayer}
           </div>
         `;
-
-        return animationStyle;
       ]]]

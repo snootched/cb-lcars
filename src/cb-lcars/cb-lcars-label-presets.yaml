@@ -1,6 +1,29 @@
 cb-lcars-label-picard:
   template:
     - cb-lcars-label
+  show_label: true
+  variables:
+    label: LCARS LABEL
+    text:
+      label:
+        font_size: 52
+        font_weight: 100
+        color:
+          default: var(--picard-yellow)
+        justify: right
+        padding:
+          right: 15
+          bottom: 8
+    card:
+      border:
+        left:
+          size: 60
+        right:
+          size: 40
+        color: var(--picard-medium-dark-gray)
+cb-lcars-label-picard-square:
+  template:
+    - cb-lcars-label
   enable_resize_observer: true
   show_label: true
   variables:
@@ -8,9 +31,9 @@ cb-lcars-label-picard:
     card:
       border:
         right:
-          size: 10%
+          size: 50
         left:
-          size: 10%
+          size: 50
         top:
           left_radius: 0
           right_radius: 0
@@ -140,9 +163,15 @@ cb-lcars-label-picard:
           [[[
             return (variables.text.state.justify);
           ]]]
+    custom_fields:
+      animation:
+        - width: |
+            [[[
+              return "calc( " + variables.__get_num_with_unit(variables.card.width) + ")";
+            ]]]
 cb-lcars-label-picard-lozenge:
   template:
-    - cb-lcars-label-picard
+    - cb-lcars-label-picard-square
   variables:
     card:
       border:
@@ -154,7 +183,7 @@ cb-lcars-label-picard-lozenge:
           right_radius: null
 cb-lcars-label-picard-bullet:
   template:
-    - cb-lcars-label-picard
+    - cb-lcars-label-picard-square
   variables:
     card:
       border:
@@ -166,7 +195,7 @@ cb-lcars-label-picard-bullet:
           right_radius: null
 cb-lcars-label-picard-bullet-right:
   template:
-    - cb-lcars-label-picard
+    - cb-lcars-label-picard-square
   variables:
     card:
       border:
@@ -176,4 +205,3 @@ cb-lcars-label-picard-bullet-right:
         bottom:
           left_radius: null
           right_radius: 0
-

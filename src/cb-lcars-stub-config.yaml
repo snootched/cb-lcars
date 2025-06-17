@@ -1,6 +1,6 @@
 cb-lcars-label-card:
   enable_resize_observer: true
-  cblcars_card_type: cb-lcars-label-picard
+  cblcars_card_type: cb-lcars-label-picard-square
   show_label: true
   variables:
     label: "LCARS Label"

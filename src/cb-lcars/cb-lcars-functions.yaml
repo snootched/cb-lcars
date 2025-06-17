@@ -38,61 +38,6 @@ cb-lcars-functions:
             }
         }
       ]]]
-
-
-    __getParentDimension: |
-      [[[
-        return function(thisObj, dimension, units, fallbackDimensions) {
-          // Function to get the CSS variable value
-          function getCSSVariableValue(variable) {
-            return getComputedStyle(thisObj).getPropertyValue(variable).trim();
-          }
-
-          // Determine the CSS variable based on the dimension
-          let cssVariable;
-          if (dimension === 'width') {
-            cssVariable = '--button-card-width';
-          } else if (dimension === 'height') {
-            cssVariable = '--button-card-height';
-          } else {
-            console.error("Invalid dimension specified. Use 'width' or 'height'.");
-            return null;
-          }
-
-          // Try to get the value from the CSS variable
-          let parentDimension = parseFloat(getCSSVariableValue(cssVariable));
-
-          // If the CSS variable is not defined or not reasonable, fall back to parent element's dimension
-          if (isNaN(parentDimension) || parentDimension <= 0) {
-            if (dimension === 'width') {
-              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetWidth : 0;
-            } else if (dimension === 'height') {
-              parentDimension = thisObj.parentElement ? thisObj.parentElement.offsetHeight : 0;
-            }
-          }
-
-          // Function to check if the dimension is reasonable
-          function isReasonableSize(size) {
-            return size > 0; // Adjust this condition based on what's 'reasonable'
-          }
-
-          // If dimension is not reasonable, use fallback
-          if (!isReasonableSize(parentDimension)) {
-            if (fallbackDimensions && fallbackDimensions[dimension]) {
-              parentDimension = parseFloat(fallbackDimensions[dimension]);
-            } else {
-              parentDimension = dimension === 'width' ? window.innerWidth : window.innerHeight;
-            }
-          }
-
-          // Return the dimension with units if provided
-          if (units) {
-            return parentDimension + units;
-          } else {
-            return parentDimension;
-          }
-        }
-      ]]]
     __calculcate_grid_cell_dimension: |
       [[[
         return function calculcate_grid_cell_dimension(cardDimension, gridCells, gridGap, defaultButtonCardDimension) {
@@ -207,89 +152,43 @@ cb-lcars-functions:
             return color;
           }
       ]]]
-    __get_light_css_color_old: |
+    __parse_color: |
       [[[
-        return function get_light_css_color(entity) {
-          let css_color = 'var(--lcars-ui-secondary)';
-          let lightEntity = states[entity];
-          if (lightEntity && lightEntity.attributes.rgb_color) {
-            const light_color = lightEntity.attributes.rgb_color;
-            css_color = `rgb(${light_color.join(', ')})`;
-          }
-          return css_color;
+        // Parses a css colour string and returns it in the specified format.
+        // It returns the colour in the specified format: 'rgb' (array), 'rgba' (string), 'hex' (string)
+        // Defaults to 'rgb' (array)
+
+        // create an element to use for colour parsing.  Set on window so it can be reused
+        if (!window._cbLcarsColorParser) {
+          const el = document.createElement('div');
+          el.style.display = 'none';
+          document.body.appendChild(el);
+          window._cbLcarsColorParser = el;
         }
-      ]]]
-    __get_light_css_color: |
-      [[[
-        return function get_light_css_color(entity) {
-          let css_color = 'var(--lcars-ui-secondary)';
-          const buttonCardLightColor = getComputedStyle(document.documentElement).getPropertyValue('--button-card-light-color').trim();
+        const defaultEl = window._cbLcarsColorParser;
 
-          if (buttonCardLightColor.startsWith('rgb')) {
-            return buttonCardLightColor;
+        // Accepts: color string, format ('rgb'|'rgba'|'hex'), optional context element (ie. 'this' in a template)
+        return function(color, format = 'rgb', contextEl = null) {
+          const el = contextEl || defaultEl;
+          el.style.color = color;
+          let computedColor = getComputedStyle(el).color;
+          if (color === 'transparent') {
+            if (format === 'hex') return '#000000';
+            if (format === 'rgba') return 'rgba(0,0,0,0)';
+            return [0, 0, 0, 0];
           }
+          const rgba = computedColor.match(/\d+/g).map(Number);
+          const [r, g, b, a = 1] = rgba.length === 4 ? rgba : [...rgba.slice(0, 3), 1];
 
-          let lightEntity = states[entity];
-          if (lightEntity && lightEntity.attributes.rgb_color) {
-            const light_color = lightEntity.attributes.rgb_color;
-            css_color = `rgb(${light_color.join(', ')})`;
+          if (format === 'hex') {
+            const toHex = v => v.toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
           }
-          return css_color;
-        }
-      ]]]
-    __hex_to_rgba: |
-      [[[
-        return function hex_to_rgba(input, alpha = 1) {
-
-          // Ensure alpha is between 0 and 1, or convert if between 1 and 255
-          if (alpha > 1 && alpha <= 255) {
-            alpha = alpha / 255;
-          } else if (alpha < 0 || alpha > 1) {
-            alpha = 1;
+          if (format === 'rgba') {
+            return `rgba(${r},${g},${b},${a})`;
           }
-
-          if (input.startsWith('rgba')) {
-            // If the input starts with 'rgb', return the input as is
-            return input;
-          }
-          if (input.startsWith('rgb(')) {
-            // If the input starts with 'rgb(', add the alpha channel and return
-            return input.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`);
-          }
-
-          let hex;
-          if (input.startsWith('var(--')) {
-              // If the input is a CSS variable in the format "var(--color)", extract the color variable
-              hex = getComputedStyle(document.documentElement)
-                  .getPropertyValue(input.slice(4, -1))
-                  .trim();
-          } else if (input.startsWith('--')) {
-              // If the input is a CSS variable, get its value
-              hex = getComputedStyle(document.documentElement)
-                  .getPropertyValue(input)
-                  .trim();
-          } else {
-              hex = input;
-          }
-
-          let r, g, b, a = alpha;
-          if (hex.length === 9) { // #RRGGBBAA
-              r = parseInt(hex.slice(1, 3), 16);
-              g = parseInt(hex.slice(3, 5), 16);
-              b = parseInt(hex.slice(5, 7), 16);
-              a = parseInt(hex.slice(7, 9), 16) / 255;
-          } else if (hex.length === 7) {  // #RRGGBB
-              r = parseInt(hex.slice(1, 3), 16);
-              g = parseInt(hex.slice(3, 5), 16);
-              b = parseInt(hex.slice(5, 7), 16);
-          } else if (hex.length === 4) {  // #RGB
-              r = parseInt(hex[1] + hex[1], 16);
-              g = parseInt(hex[2] + hex[2], 16);
-              b = parseInt(hex[3] + hex[3], 16);
-          } else {
-              throw new Error(`Invalid HEX color: ${input}`);
-          }
-          return `rgba(${r}, ${g}, ${b}, ${a})`;
+          // Default: return array
+          return [r, g, b, a];
         }
       ]]]
     __extract_color_channel: |
@@ -332,9 +231,7 @@ cb-lcars-functions:
           let interpolated_g = Math.round(start_g + step * (end_g - start_g) / total_steps);
           let interpolated_b = Math.round(start_b + step * (end_b - start_b) / total_steps);
           //console.log("in function r="+interpolated_r + ",g=" +interpolated_g+ ",b=" + interpolated_b);
-
           return `rgb(${interpolated_r}, ${interpolated_g}, ${interpolated_b})`;
-
         }
       ]]]
   custom_fields:
