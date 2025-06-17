@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.06.1-beta.4
+  version: 2025.06.1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-picard-label-east:
