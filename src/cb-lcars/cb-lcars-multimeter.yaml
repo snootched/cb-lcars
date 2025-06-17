@@ -717,19 +717,19 @@ cb-lcars-multimeter:
             - transition: all 0.2s ease-in
             - border-top: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + (variables.card.color.inactive || variables.card.border.color);
                 ]]]
             - border-bottom: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + (variables.card.color.inactive || variables.card.border.color);
                 ]]]
             - border-left: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + (variables.card.color.inactive || variables.card.border.color);
                 ]]]
             - border-right: |
                 [[[
-                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.inactive || variables.card.border.color);
+                  return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + (variables.card.color.inactive || variables.card.border.color);
                 ]]]
           gauge_control:
             - transition: all 0.2s ease-in
