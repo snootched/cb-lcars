@@ -226,9 +226,9 @@ cb-lcars-animation-alert:
             } else {
               value = entity.state;
             }
-            //cblcarsLog('debug',`value: ${value}`)
+            cblcarsLog('debug',`value: ${value}`)
           } else {
-            //cblcarsLog("debug","no entity selected");
+            cblcarsLog("debug","no entity selected");
           }
           let numericValue = value;
           if (typeof value === "string" && !isNaN(Number(value))) {
@@ -254,19 +254,21 @@ cb-lcars-animation-alert:
         }
 
 
-        //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
+        cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
 
         const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
         const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
 
+        //const alertSettings = variables.animation.alert ?? {};
         const builtInPresets = alertSettings.alert_presets ?? {};
         const userPresets = alertSettings.custom_alert_presets ?? {}; // <-- user can supply this
+        //const alertPresetName = alertSettings.preset;
 
         let alertPresetName = alertSettings.preset;
         if (selectedPreset) {
           alertPresetName = selectedPreset;
         }
-        //cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
+        cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
 
         // Merge built-in and user presets (user wins on conflicts)
         const mergedPresets = deepMerge({}, builtInPresets, userPresets);

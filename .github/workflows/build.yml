@@ -28,12 +28,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-  
+
       - name: Build
         run: |
           npm install
           npx webpack
-       
+
       - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
         run: |
           mkdir -p ./dist
@@ -47,6 +47,7 @@ jobs:
           head -10 ./dist/cb-lcars-lovelace.yaml
           echo "Copy yamls from src to dist for lint"
           cp -v ./src/*.yaml ./dist
+          cp -Rv ./src/fonts ./dist/fonts
 
       - name: Lint YAML files
         uses: ibiqlik/action-yamllint@v3.1.1

@@ -80,6 +80,7 @@ jobs:
           head -10 ./dist/cb-lcars-lovelace.yaml
           echo "Copy yamls from src to dist for lint"
           cp -v ./src/*.yaml ./dist
+          cp -Rv ./src/fonts ./dist/fonts
 
       - name: Lint YAML files
         uses: ibiqlik/action-yamllint@v3.1.1
