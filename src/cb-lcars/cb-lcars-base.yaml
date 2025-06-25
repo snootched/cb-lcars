@@ -320,6 +320,7 @@ cb-lcars-base:
               if (transform.translate_x !== undefined) transforms.push(`translateX(${transform.translate_x}%)`);
               if (transform.translate_y !== undefined) transforms.push(`translateY(${transform.translate_y}%)`);
               if (transform.skew !== undefined) transforms.push(`skew(${transform.skew}deg)`);
+              if (transform.perspective !== undefined) transforms.push(`perspective(${transform.perspective}px)`);
               return transforms.length > 0 ? transforms.join(' ') : 'none';
             ]]]
         - transform-origin: |

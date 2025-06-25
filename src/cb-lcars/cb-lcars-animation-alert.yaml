@@ -1,0 +1,662 @@
+cb-lcars-animation-alert:
+  template:
+    - cb-lcars-functions
+  variables:
+    animation:
+      alert:
+        size: default
+        alert_text: "alert"
+        sub_text: "condition"
+        preset: condition_green
+        text:
+          alert_text:
+            font_size: 14
+            font_weight: 500
+            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,Antonio,Arial,sans-serif"
+            align: center
+            transform: uppercase
+            stretch: true
+            color:
+              default: var(--error-color)
+          sub_text:
+            font_size: 6
+            font_weight: 200
+            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,Antonio,Arial,sans-serif"
+            align: center
+            transform: uppercase
+            stretch: true
+            color:
+              default: var(--primary-text-color)
+        color:
+          bars:
+            default: var(--lcars-ui-primary)
+            animation_base: var(--lcars-ui-quaternary)
+            animation_flash: var(--lcars-alert-blue)
+          shape:
+            default: var(--lcars-ui-primary)
+        enable_bar_animation: true
+        animation_duration: 2
+        enable_blink: true
+        blink_duration: 4
+        blink_delay: 2
+        custom_alert_presets:
+          my_condition:
+            alert_text: my custom alert
+            animation_duration: 1.5
+        alert_presets:
+          condition_red:
+            alert_text: Alert
+            sub_text: "condition: red"
+            color:
+              bars:
+                default: var(--lcars-alert-red)
+                animation_base: var(--lcars-alert-red)
+                animation_flash: var(--picard-lightest-orange)
+              shape:
+                default: var(--lcars-alert-red)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-red)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-red)
+          condition_blue:
+            alert_text: Alert
+            sub_text: "condition: blue"
+            color:
+              bars:
+                default: var(--lcars-alert-blue)
+                animation_base: var(--lcars-alert-blue)
+                animation_flash: var(--picard-light-blue)
+              shape:
+                default: var(--lcars-alert-blue)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-blue)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-blue)
+          condition_green:
+            alert_text: Alert
+            sub_text: "condition: green"
+            color:
+              bars:
+                default: var(--picard-green)
+                animation_base: var(--picard-green)
+                animation_flash: var(--picard-light-green)
+              shape:
+                default: var(--picard-green)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--picard-green)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--picard-green)
+          condition_yellow:
+            alert_text: Alert
+            sub_text: "condition: yellow"
+            color:
+              bars:
+                default: var(--lcars-alert-yellow)
+                animation_base: var(--lcars-alert-yellow)
+                animation_flash: var(--picard-yellow)
+              shape:
+                default: var(--lcars-alert-yellow)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-yellow)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--lcars-alert-yellow)
+          condition_grey:
+            alert_text: Alert
+            sub_text: "condition: grey"
+            color:
+              bars:
+                default: var(--picard-grey)
+                animation_base: var(--picard-darkest-gray)
+                animation_flash: var(--picard-medium-light-gray)
+              shape:
+                default: var(--picard-dark-gray)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--picard-dark-gray)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--picard-dark-gray)
+          condition_black:
+            alert_text: Alert
+            sub_text: "condition: black"
+            color:
+              bars:
+                default: var(--picard-lightest-blue)
+                animation_base: var(--picard-lightest-blue)
+                animation_flash: black
+              shape:
+                default: var(--picard-lightest-blue)
+            text:
+              alert_text:
+                stretch: true
+                color:
+                  default: var(--picard-lightest-blue)
+              sub_text:
+                stretch: true
+                color:
+                  default: var(--picard-lightest-blue)
+        range:
+          enabled: false
+          ranges:
+            - from: 0
+              to: 50
+              preset: condition_green
+            - from: 50
+              to: 80
+              preset: condition_yellow
+            - from: 80
+              to: 100
+              preset: condition_red
+        black_box_x: 18
+        black_box_y: 27
+        black_box_width: 64
+        black_box_height: 22
+        alert_text_box_height: 12
+        sub_text_box_height: 8
+        text_box_gap: 0
+        padding:
+          top: 0
+          left: 5
+          right: 5
+          bottom: 0
+  custom_fields:
+    animation: |
+      [[[
+
+        function deepMerge(target, ...sources) {
+          if (!sources.length) return target;
+          const source = sources.shift();
+          if (typeof target !== 'object' || target === null) target = {};
+          if (typeof source !== 'object' || source === null) return target;
+
+          for (const key in source) {
+            if (
+              source[key] &&
+              typeof source[key] === 'object' &&
+              !Array.isArray(source[key])
+            ) {
+              target[key] = deepMerge(target[key], source[key]);
+            } else {
+              target[key] = source[key];
+            }
+          }
+          return deepMerge(target, ...sources);
+        }
+        const cblcarsLog = variables.__cblcarsLog;
+
+        // --- Pull in alert settings
+        const alertSettings = variables.animation.alert ?? {};
+
+        // --- CONDITIONAL PRESET SELECTION BASED ON ENTITY/ATTRIBUTE VALUE ---
+        let selectedPreset = null;
+        const rangeSettings = alertSettings.range;
+        if (rangeSettings && rangeSettings.enabled && Array.isArray(rangeSettings.ranges)) {
+          let value = null;
+          const attribute = variables.attribute;
+          if (entity) {
+            if (attribute) {
+              value = entity.attributes?.[attribute];
+              // Special handling for brightness: convert 0-255 to 0-100 percentage
+              if (attribute === 'brightness' && value !== undefined && value !== null && !isNaN(parseFloat(value))) {
+                value = (parseFloat(value) / 256) * 100;
+              }
+            } else {
+              value = entity.state;
+            }
+            //cblcarsLog('debug',`value: ${value}`)
+          } else {
+            //cblcarsLog("debug","no entity selected");
+          }
+          let numericValue = value;
+          if (typeof value === "string" && !isNaN(Number(value))) {
+            numericValue = Number(value);
+          }
+          for (const entry of rangeSettings.ranges) {
+            if ("equals" in entry && entry.equals !== undefined) {
+              // Accept non-numeric values for equals, use loose equality for flexibility
+              if (value == entry.equals) {
+                selectedPreset = entry.preset;
+                break;
+              }
+            } else if ("from" in entry && "to" in entry) {
+              // Only check numeric values for from/to
+              if (typeof numericValue === "number" && !isNaN(numericValue)) {
+                if (numericValue >= entry.from && numericValue <= entry.to) {
+                  selectedPreset = entry.preset;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+
+        //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
+
+        const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
+        const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
+
+        const builtInPresets = alertSettings.alert_presets ?? {};
+        const userPresets = alertSettings.custom_alert_presets ?? {}; // <-- user can supply this
+
+        let alertPresetName = alertSettings.preset;
+        if (selectedPreset) {
+          alertPresetName = selectedPreset;
+        }
+        //cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
+
+        // Merge built-in and user presets (user wins on conflicts)
+        const mergedPresets = deepMerge({}, builtInPresets, userPresets);
+
+        // Remove meta keys from alertSettings to get only the base/defaults
+        const { alert_presets, custom_alert_presets, preset, ...alertDefaults } = alertSettings;
+
+        // Get preset settings if specified
+        const presetSettings =
+          alertPresetName &&
+          mergedPresets[alertPresetName] &&
+          typeof mergedPresets[alertPresetName] === 'object'
+            ? mergedPresets[alertPresetName]
+            : {};
+
+        // Merge: defaults <- preset <- top-level overrides
+        const alertStyleSettings = deepMerge(
+          {},
+          alertDefaults,
+          presetSettings
+        );
+
+        //cblcarsLog("debug",alertStyleSettings);
+
+        const shape_color = alertStyleSettings.color.shape?.default || '#FF0000';
+        const bar_color = alertStyleSettings.color.bars?.default || '#FF0000';
+
+        const animation_base_color = alertStyleSettings.color.bars?.animation_base || '#FF0000';
+        const animation_flash_color = alertStyleSettings.color.bars?.animation_flash || '#FFFFFF';
+        const animation_duration = alertStyleSettings.animation_duration || 1;
+        const enable_bar_animation = (alertStyleSettings.animation_duration != 0 && alertStyleSettings.enable_bar_animation) ?? 'true';
+
+        const blink_duration = alertStyleSettings.blink_duration || 4;
+        const blink_delay = alertStyleSettings.blink_delay || 2;
+        const enable_blink = (alertStyleSettings.blink_duration != 0 && alertStyleSettings.enable_blink) ?? true;
+
+
+        // Calculate animation delays based on animation_duration (as a number)
+        const delays = [
+          0,
+          0.0833 * animation_duration,
+          0.1667 * animation_duration,
+          0.25 * animation_duration,
+          0.3333 * animation_duration,
+          0.4167 * animation_duration
+        ];
+
+        // Padding for SVG (object with top, right, bottom, left)
+        const pad = variables.animation.alert.padding || {};
+        const padTop = pad.top !== undefined ? parseInt(pad.top) : 0;
+        const padRight = pad.right !== undefined ? parseInt(pad.right) : 0;
+        const padBottom = pad.bottom !== undefined ? parseInt(pad.bottom) : 0;
+        const padLeft = pad.left !== undefined ? parseInt(pad.left) : 0;
+
+        // Adjusted viewBox
+        const vb_x = 0 - padLeft;
+        const vb_y = 0 - padTop;
+        const vb_w = 100 + padLeft + padRight;
+        const vb_h = 73.56 + padTop + padBottom;
+
+        // --- SVG PATHS ---
+        // Condensed and standard SVG paths creating the main alert shape
+
+        // Condensed version based on svg provided by sparkyvision
+        const condensed_path = `
+          <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
+          M23.108 25.389
+          L15.402 17.558
+          C18.473 14.316 23.222 10.239 28.118 8.950
+          L31.047 8.950 L31.047 23.210
+          L68.953 23.210 L68.953 8.950
+          L71.882 8.950
+          C76.776 10.239 81.524 14.314 84.594 17.555
+          L76.885 25.389 L23.108 25.389Z
+
+          M8.889 36.834
+          C8.889 33.512 9.541 30.602 10.197 28.093
+          L16.885 28.093 L16.885 45.659
+          L10.214 45.659
+          C9.547 43.090 8.889 40.180 8.889 36.834Z
+
+          M91.111 36.834
+          C91.111 40.180 90.453 43.090 89.786 45.659
+          L83.176 45.659 L83.176 28.093
+          L89.803 28.093
+          C90.459 30.602 91.111 33.512 91.111 36.834Z
+
+          M15.399 56.090
+          C18.470 59.349 23.220 63.435 28.118 64.697
+          L31.047 64.697 L31.047 50.490
+          L68.953 50.490 L68.953 64.697
+          L71.882 64.697
+          C76.778 63.436 81.527 59.351 84.600 56.094
+          L76.953 48.347 L23.040 48.347 L15.399 56.090Z
+          " fill="${shape_color}"/>
+          `;
+
+        // Standard version based on svg provided by Panter (recalculated and baselined with condensed)
+        const std_path = `
+          <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
+            M30.40 0
+            V21.00
+            C30.40 21.84 31.06 22.50 31.89 22.50
+            H68.08
+            C68.91 22.50 69.57 21.84 69.57 21.00
+            V0
+            C77.94 2.90 85.08 7.63 90.35 13.59
+            L75.92 25.26
+            H24.08
+            L9.29 13.59
+            C14.62 7.63 22.01 2.90 30.40 0
+            ZM1.08 28.36
+            C0.37 31.07 0 33.84 0 36.63
+            C0 39.42 0.37 42.19 1.08 44.90
+            H15.10
+            V28.36
+            H1.08
+            ZM9.29 60.03
+            C14.62 65.90 22.01 70.62 30.40 73.56
+            V52.54
+            C30.40 51.70 31.06 51.04 31.89 51.04
+            H68.08
+            C68.91 51.04 69.57 51.70 69.57 52.54
+            V73.56
+            C77.94 70.62 85.08 65.90 90.35 60.03
+            L75.92 48.37
+            H24.08
+            L9.29 60.03
+            ZM98.67 44.90
+            C99.38 42.19 99.76 39.42 99.76 36.63
+            C99.76 33.84 99.38 31.07 98.67 28.36
+            H84.77
+            V44.90
+            H98.67Z
+          " fill="${shape_color}"></path>
+        `;
+
+        // Define y-coordinates for condensed version
+        const condensedLines1 = [
+          [8.950, 10.176],
+          [11.213, 12.439],
+          [13.476, 14.702],
+          [15.739, 16.965],
+          [17.996, 19.222],
+          [20.259, 21.485]
+        ];
+        const condensedLines2 = [
+          [52.105, 53.331],
+          [54.372, 55.598],
+          [56.635, 57.861],
+          [58.898, 60.124],
+          [61.161, 62.387],
+          [63.425, 64.651]
+        ];
+
+        // SVG height for condensed and standard
+        const condensedHeight = 64.697 - 8.950; // 55.747
+        const standardHeight = 85.56;
+
+        // Select path based on size variable
+        const alert_size = variables.animation.alert.size || "standard";
+        const selected_path = alert_size === "condensed" ? condensed_path : std_path;
+
+        // Helper to scale y-coordinates
+        function scaleLines(lines, fromHeight, toHeight, yOffsetFrom, yOffsetTo) {
+          const scale = toHeight / fromHeight;
+          const offset = yOffsetTo - yOffsetFrom * scale;
+          return lines.map(([y1, y2]) => [
+            y1 * scale + offset,
+            y2 * scale + offset
+          ]);
+        }
+
+        // Select lines based on size
+        let lines1, lines2;
+        if (alert_size === "condensed") {
+          lines1 = condensedLines1;
+          lines2 = condensedLines2;
+        } else {
+          // Scale condensed lines to standard height
+          lines1 = scaleLines(condensedLines1, condensedHeight, standardHeight, 8.95, 0);
+          lines2 = scaleLines(condensedLines2, condensedHeight, standardHeight, 8.95, -12);
+        }
+
+        // Generate SVG line elements
+        function linesToSVG(lines, group) {
+          return lines.map(
+            ([y1, y2], i) =>
+              `<line id="raLines${group}_${i + 1}" x1="50.0" y1="${y1.toFixed(3)}" x2="50.0" y2="${y2.toFixed(3)}" stroke="${bar_color}" stroke-width="33.33" />`
+          ).join('\n');
+        }
+        const svgLines =
+          linesToSVG(lines2, 2) + '\n' +
+          linesToSVG(lines1, 1);
+
+        // --- TEXT CONFIGURATION ---
+
+        // Black box dimensions and position (user-configurable)
+        // - black_box_x: left edge of black box (default: 18)
+        // - black_box_y: top edge of black box (default: 37)
+        // - black_box_width: width of black box (default: 64)
+        // - black_box_height: height of black box (default: 32)
+        const black_box_x = alertSettings.black_box_x !== undefined ? alertSettings.black_box_x : 18;
+        const black_box_y = alertSettings.black_box_y !== undefined ? alertSettings.black_box_y : 37;
+        const black_box_width = alertSettings.black_box_width !== undefined ? alertSettings.black_box_width : 64;
+        const black_box_height = alertSettings.black_box_height !== undefined ? alertSettings.black_box_height : 32;
+
+        // Text box heights and gap (user-configurable)
+        const alert_text_box_height = alertSettings.alert_text_box_height !== undefined ? alertSettings.alert_text_box_height : 18;
+        const sub_text_box_height = alertSettings.sub_text_box_height !== undefined ? alertSettings.sub_text_box_height : 14;
+        const text_box_gap = alertSettings.text_box_gap !== undefined ? alertSettings.text_box_gap : 4;
+
+        // Calculate total text height
+        const total_text_height = alert_text_box_height + text_box_gap + sub_text_box_height;
+
+        // Center the text group vertically in the black box
+        const text_group_top = black_box_y + (black_box_height - total_text_height) / 2;
+
+        // Y positions for each line (centered in their respective boxes)
+        const alert_text_y = text_group_top + alert_text_box_height / 2;
+        const sub_text_y = text_group_top + alert_text_box_height + text_box_gap + sub_text_box_height / 2;
+
+        // Get text content and style for alert_text and sub_text
+        const alert_text_content = alertStyleSettings.alert_text ?? '';
+        const sub_text_content = alertStyleSettings.sub_text ?? '';
+        const alert_text_style = (alertStyleSettings.text && alertStyleSettings.text.alert_text) || {};
+        const sub_text_style = (alertStyleSettings.text && alertStyleSettings.text.sub_text) || {};
+
+        // Helper to get style value with fallback, fail gracefully if styleObj is missing or not an object
+        function getTextStyle(styleObj, key, fallback) {
+          if (!styleObj || typeof styleObj !== 'object') return fallback;
+          return styleObj[key] !== undefined ? styleObj[key] : fallback;
+        }
+
+        // Font and alignment for alert_text
+        const alert_font_size = getTextStyle(alert_text_style, 'font_size', 14);
+        const alert_font_weight = getTextStyle(alert_text_style, 'font_weight', 500);
+        const alert_font_family = getTextStyle(alert_text_style, 'font_family', "'Antonio', Arial, sans-serif");
+        const alert_fill = getTextStyle(alert_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
+        const alert_text_anchor = getTextStyle(alert_text_style, 'align', 'center') === 'left' ? 'start' :
+                                getTextStyle(alert_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
+        const alert_text_transform = getTextStyle(alert_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
+        const alert_dominant_baseline = getTextStyle(alert_text_style, 'dominant_baseline', 'middle');
+        const alert_stretch = getTextStyle(alert_text_style, 'stretch', false);
+
+        // Font and alignment for sub_text
+        const sub_font_size = getTextStyle(sub_text_style, 'font_size', 6);
+        const sub_font_weight = getTextStyle(sub_text_style, 'font_weight', 200);
+        const sub_font_family = getTextStyle(sub_text_style, 'font_family', "'Antonio', Arial, sans-serif");
+        const sub_fill = getTextStyle(sub_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
+        const sub_text_anchor = getTextStyle(sub_text_style, 'align', 'center') === 'left' ? 'start' :
+                              getTextStyle(sub_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
+        const sub_text_transform = getTextStyle(sub_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
+        const sub_dominant_baseline = getTextStyle(sub_text_style, 'dominant_baseline', 'middle');
+        const sub_stretch = getTextStyle(sub_text_style, 'stretch', false);
+
+        // Calculate text x position based on anchor
+        function getTextX(anchor) {
+          if (anchor === 'start') return black_box_x;
+          if (anchor === 'end') return black_box_x + black_box_width;
+          return black_box_x + black_box_width / 2;
+        }
+
+        // SVG text elements for both lines
+        const svgTextElements = `
+          <text
+            x="${getTextX(alert_text_anchor)}"
+            y="${alert_text_y}"
+            font-size="${alert_font_size}"
+            font-weight="${alert_font_weight}"
+            font-family=${alert_font_family}
+            fill="${alert_fill}"
+            text-anchor="${alert_text_anchor}"
+            dominant-baseline="${alert_dominant_baseline}"
+            ${alert_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
+            class="redAlertBlink"
+            style="text-transform:${alert_text_transform};"
+          >${alert_text_transform === 'uppercase' ? (alert_text_content + '').toUpperCase() : alert_text_content}</text>
+          <text
+            x="${getTextX(sub_text_anchor)}"
+            y="${sub_text_y}"
+            font-size="${sub_font_size}"
+            font-weight="${sub_font_weight}"
+            font-family=${sub_font_family}
+            fill="${sub_fill}"
+            text-anchor="${sub_text_anchor}"
+            dominant-baseline="${sub_dominant_baseline}"
+            ${sub_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
+            class="redAlertBlink"
+            style="text-transform:${sub_text_transform};"
+          >${sub_text_transform === 'uppercase' ? (sub_text_content + '').toUpperCase() : sub_text_content}</text>
+        `;
+
+        return `
+          <elt>
+            <style>
+
+              .svgContainer{
+                  padding:0px;
+                  border-radius:10px;
+                  display:flex;
+                  align-items:center;
+              }
+
+              /* RED ALERT -- overall blinking */
+
+              .redAlertBlink {
+                  ${enable_blink ? `
+                  animation-delay: ${blink_delay}s;
+                  animation-duration: ${blink_duration}s;
+                  animation-iteration-count: infinite;
+                  animation-direction: normal;
+                  animation-timing-function: ease-in-out;
+                  animation-name: redAlertBlink;
+                  ` : ''};
+              }
+
+              div.svgContainer svg {
+                  width:100%;
+                  height:100%;
+              }
+
+              @keyframes redAlertBlink {
+                  0%, 100% { opacity: 1; }
+                  50% { opacity: 0.25; }
+              }
+
+              @keyframes flashLine {
+                  0% {
+                      stroke: ${animation_flash_color};
+                      opacity: 1;
+                  }
+                  20% {
+                      stroke: ${animation_base_color};
+                      opacity: 1;
+                  }
+                  100% {
+                      stroke: ${animation_base_color};
+                      opacity: 0.25;
+                  }
+              }
+
+              /* Spread animation for raLines */
+
+              [id^="raLines1_"], [id^="raLines2_"] {
+                  ${enable_bar_animation ? `
+                  animation-name: flashLine;
+                  animation-duration: ${animation_duration}s;
+                  animation-timing-function: ease-in-out;
+                  animation-iteration-count: infinite;
+                  animation-fill-mode: both;
+                  ` : ''};
+              }
+
+              /* Group 1: Top to bottom */
+              #raLines1_1 { animation-delay: ${delays[0]}s; }
+              #raLines1_2 { animation-delay: ${delays[1]}s; }
+              #raLines1_3 { animation-delay: ${delays[2]}s; }
+              #raLines1_4 { animation-delay: ${delays[3]}s; }
+              #raLines1_5 { animation-delay: ${delays[4]}s; }
+              #raLines1_6 { animation-delay: ${delays[5]}s; }
+
+              /* Group 2: Bottom to top */
+              #raLines2_6 { animation-delay: ${delays[0]}s; }
+              #raLines2_5 { animation-delay: ${delays[1]}s; }
+              #raLines2_4 { animation-delay: ${delays[2]}s; }
+              #raLines2_3 { animation-delay: ${delays[3]}s; }
+              #raLines2_2 { animation-delay: ${delays[4]}s; }
+              #raLines2_1 { animation-delay: ${delays[5]}s; }
+
+            </style>
+
+            <div class="svgContainer">
+                <svg
+                  width="${card_width}"
+                  height="${card_height}"
+                  viewBox="${vb_x} ${vb_y} ${vb_w} ${vb_h}"
+                  fill="none"
+                >
+                <g id="redAlertSymbol">
+
+                ${selected_path}
+
+                ${svgLines}
+
+                ${svgTextElements}
+
+                </g>
+                </svg>
+            </div>
+          </elt>
+        `;
+        ]]]
