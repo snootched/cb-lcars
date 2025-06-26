@@ -57,7 +57,7 @@ fi
 echo 'cblcars_card_templates:' > $output_filename
 for dir in "${paths[@]}"
 do
-    find ./$dir -type f \( -name '*.yaml' -o -name '*.yml' \) -exec cat {} \; | grep -v '^ *#' | grep -v '^ *$' | sed 's/^/  /' >> $output_filename
+    find ./$dir -type f \( -name '*.yaml' -o -name '*.yml' \) -exec cat {} \; | grep -v '^ *$' | sed 's/^/  /' >> $output_filename
 done
 
 echo "Concatenation complete. Output written to $output_filename"
