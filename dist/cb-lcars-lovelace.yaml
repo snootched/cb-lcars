@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.06.2-beta2
+  version: 2025.06.2-beta3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-picard-label-east:
@@ -3499,7 +3499,7 @@ cblcars_card_templates:
           size: default
           alert_text: "alert"
           sub_text: "condition"
-          preset: condition_green
+          preset: default
           text:
             alert_text:
               font_size: 14
@@ -3670,10 +3670,10 @@ cblcars_card_templates:
           sub_text_box_height: 8
           text_box_gap: 0
           padding:
-            top: 0
+            top: 5
             left: 5
             right: 5
-            bottom: 0
+            bottom: 5
     custom_fields:
       animation: |
         [[[
@@ -3714,9 +3714,9 @@ cblcars_card_templates:
               } else {
                 value = entity.state;
               }
-              cblcarsLog('debug',`value: ${value}`)
+              //cblcarsLog('debug',`value: ${value}`)
             } else {
-              cblcarsLog("debug","no entity selected");
+              //cblcarsLog("debug","no entity selected");
             }
             let numericValue = value;
             if (typeof value === "string" && !isNaN(Number(value))) {
@@ -3740,7 +3740,7 @@ cblcars_card_templates:
               }
             }
           }
-          cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
+          //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
           const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
           const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
           //const alertSettings = variables.animation.alert ?? {};
@@ -3751,7 +3751,7 @@ cblcars_card_templates:
           if (selectedPreset) {
             alertPresetName = selectedPreset;
           }
-          cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
+          //cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
           // Merge built-in and user presets (user wins on conflicts)
           const mergedPresets = deepMerge({}, builtInPresets, userPresets);
           // Remove meta keys from alertSettings to get only the base/defaults
