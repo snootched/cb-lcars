@@ -10,7 +10,7 @@ cb-lcars-base:
       label:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center
@@ -32,7 +32,7 @@ cb-lcars-base:
       name:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center
@@ -54,7 +54,7 @@ cb-lcars-base:
       state:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center

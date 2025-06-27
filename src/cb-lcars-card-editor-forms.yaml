@@ -3293,16 +3293,16 @@ cb-lcars-base-controls:
                     - type: Message
                       alertType: info
                       message: "State-based alert presets allow you to apply different alert settings based on the state of the entity/attribue.  If enabled, the following settings will be used to select the alert condition to apply.  Please refer to the documentation for more information."
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled === true"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
                     - label: "Entity [same as the card entity]"
                       configValue: "variables.entity"
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled === true"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
                       type: Selector
                       selector:
                         entity:
                     - label: "Attribute [same as the card attribute]"
                       configValue: "variables.attribute"
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled === true && this._config?.variables?.entity"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.entity"
                       type: Selector
                       selector:
                         select:
@@ -3331,19 +3331,19 @@ cb-lcars-base-controls:
                     - type: Message
                       alertType: info
                       message: "Note: for convenience 'brightness' attribute is automatically converted from 0-255 to 0-100%."
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled === true && this._config?.variables?.attribute === 'brightness'"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.attribute === 'brightness'"
                     - type: Selector
                       selector:
                         object:
                       configValue: "variables.animation.alert.range.ranges"
                       label: "State-based Alert Settings"
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled === true"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
                     - type: Message
                       alertType: info
                       message: "Select from the Alert Condition presets, or provide custom presets below."
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled != true"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
                     - label: "Preset"
-                      visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled != true"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
                       configValue: "variables.animation.alert.preset"
                       type: Selector
                       selector:
@@ -3380,7 +3380,7 @@ cb-lcars-base-controls:
                           message: "Advanced: Provide your own list of custom alert presets, or customize individual settings of the standard presets.  Please refer to the documentation for more information."
                         - label: "Custom Preset Name"
                           configValue: "variables.animation.alert.preset"
-                          visibilityCondition: "this._config.variables.animation?.alert?.range?.enabled != true"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
                           type: Selector
                           selector:
                             text:
@@ -3520,7 +3520,7 @@ cb-lcars-base-controls:
                               mode: checkbox
                         - label: "Align"
                           configValue: "variables.animation.alert.text.alert_text.align"
-                          visibilityCondition: "this._config.variables.animation?.alert?.text?.alert_text?.stretch === false"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.text?.alert_text?.stretch === false"
                           type: Selector
                           selector:
                             select:
@@ -3618,7 +3618,7 @@ cb-lcars-base-controls:
                               mode: checkbox
                         - label: "Align"
                           configValue: "variables.animation.alert.text.sub_text.align"
-                          visibilityCondition: "this._config.variables.animation?.alert?.text?.sub_text?.stretch === false"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.text?.sub_text?.stretch === false"
                           type: Selector
                           selector:
                             select:

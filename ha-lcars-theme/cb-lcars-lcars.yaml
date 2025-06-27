@@ -76,7 +76,7 @@ LCARS Picard [cb-lcars]:
   sidebar-selected-icon-color: black
   sidebar-selected-text-color: black
 
-  font-family: "Antonio, Segoe UI Variable Static Text, Segoe UI, SegoeUI, -apple-system,BlinkMacSystemFont, system-ui, sans-serif"
+  font-family: "cb-lcars_antonio, Antonio, Segoe UI Variable Static Text, Segoe UI, SegoeUI, -apple-system,BlinkMacSystemFont, system-ui, sans-serif"
 
 
   # Primary colors

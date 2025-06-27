@@ -12,7 +12,7 @@ cb-lcars-animation-alert:
           alert_text:
             font_size: 14
             font_weight: 500
-            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,Antonio,Arial,sans-serif"
+            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif"
             align: center
             transform: uppercase
             stretch: true
@@ -21,7 +21,7 @@ cb-lcars-animation-alert:
           sub_text:
             font_size: 6
             font_weight: 200
-            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,Antonio,Arial,sans-serif"
+            font_family: "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif"
             align: center
             transform: uppercase
             stretch: true
@@ -506,7 +506,7 @@ cb-lcars-animation-alert:
         // Font and alignment for alert_text
         const alert_font_size = getTextStyle(alert_text_style, 'font_size', 14);
         const alert_font_weight = getTextStyle(alert_text_style, 'font_weight', 500);
-        const alert_font_family = getTextStyle(alert_text_style, 'font_family', "'Antonio', Arial, sans-serif");
+        const alert_font_family = getTextStyle(alert_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
         const alert_fill = getTextStyle(alert_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
         const alert_text_anchor = getTextStyle(alert_text_style, 'align', 'center') === 'left' ? 'start' :
                                 getTextStyle(alert_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
@@ -517,7 +517,7 @@ cb-lcars-animation-alert:
         // Font and alignment for sub_text
         const sub_font_size = getTextStyle(sub_text_style, 'font_size', 6);
         const sub_font_weight = getTextStyle(sub_text_style, 'font_weight', 200);
-        const sub_font_family = getTextStyle(sub_text_style, 'font_family', "'Antonio', Arial, sans-serif");
+        const sub_font_family = getTextStyle(sub_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
         const sub_fill = getTextStyle(sub_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
         const sub_text_anchor = getTextStyle(sub_text_style, 'align', 'center') === 'left' ? 'start' :
                               getTextStyle(sub_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
