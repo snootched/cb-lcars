@@ -1,0 +1,793 @@
+title: CB-LCARS Gallery
+path: cb-lcars-template-gallery
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: custom:cb-lcars-elbow-card
+        cblcars_card_config:
+          variables:
+            card:
+              border:
+                left:
+                  size: 200
+                top:
+                  size: 45
+                  left_radius: 150
+                color: var(--picard-dark-gray)
+            text:
+              label:
+                padding:
+                  left: 56
+                  top: 35
+                font_size: '17'
+            label: |2-
+                    <elt>
+                        <h2>Welcome to the <strong>CB-LCARS</strong> Gallery</h2>
+                        <p>Here you will find examples for each of the cards with some variations.
+                        <br>Defaults are shown, but the look and feel of the cards are highly customizable.</p>
+                        <p>Please enjoy using and tinkering with these cards to personalize your LCARS interface!</p>
+                        <p>For more information see the <a href="https://github.com/snootched/cb-lcars" style="color: var(--picard-blue);">CB-LCARS Repository</a></p>
+                    </elt>
+        cblcars_card_type: cb-lcars-header
+        layout_options:
+          grid_columns: 10
+          grid_rows: 5
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          show_label: true
+          variables:
+            label: GALLERY
+            text:
+              label:
+                font_size: 42
+                font_weight: 100
+                color:
+                  default: var(--picard-yellow)
+                justify: right
+                padding:
+                  right: 15
+                  bottom: 6
+            card:
+              height: 45
+              border:
+                right:
+                  size: 65
+                color: var(--picard-dark-gray)
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+    column_span: 3
+  - type: grid
+    cards:
+      - type: custom:cb-lcars-elbow-card
+        cblcars_card_config:
+          variables:
+            card:
+              border:
+                left:
+                  size: 200
+                bottom:
+                  left_radius: 150
+                color: var(--picard-darkest-gray)
+        cblcars_card_type: cb-lcars-footer
+        layout_options:
+          grid_columns: 14
+          grid_rows: 2
+      - type: custom:cb-lcars-elbow-card
+        cblcars_card_config:
+          variables:
+            card:
+              border:
+                left:
+                  size: 200
+                top:
+                  size: 20
+                  left_radius: 150
+            label: THEME COLORS
+            text:
+              label:
+                font_size: '36'
+                font_weight: 300
+                justify: flex-end
+          show_label: true
+        layout_options:
+          grid_columns: 14
+          grid_rows: 2
+    column_span: 3
+  - type: grid
+    cards:
+      - type: vertical-stack
+        cards:
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-picard-filled
+            cblcars_card_config:
+              label: Gallery Home
+              show_label: true
+              variables:
+                card:
+                  width: 200
+              tap_action:
+                action: navigate
+                navigation_path: cb-lcars-template-gallery
+              double_tap_action:
+                action: none
+              hold_action:
+                action: none
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-picard-filled
+            cblcars_card_config:
+              label: Elbows [hdr/ftr]
+              show_label: true
+              variables:
+                card:
+                  width: 200
+              tap_action:
+                action: navigate
+                navigation_path: gallery-lcars-elbows
+              double_tap_action:
+                action: none
+              hold_action:
+                action: none
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-picard-filled
+            cblcars_card_config:
+              label: Buttons
+              show_label: true
+              variables:
+                card:
+                  width: 200
+              tap_action:
+                action: navigate
+                navigation_path: gallery-lcars-buttons
+              double_tap_action:
+                action: none
+              hold_action:
+                action: none
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-picard-filled
+            cblcars_card_config:
+              label: Controls
+              show_label: true
+              variables:
+                card:
+                  width: 200
+              tap_action:
+                action: navigate
+                navigation_path: gallery-lcars-multimeter
+              double_tap_action:
+                action: none
+              hold_action:
+                action: none
+          - type: custom:cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-picard-filled
+            cblcars_card_config:
+              show_label: true
+              variables:
+                card:
+                  width: 200
+                  height: 400
+                text:
+                  label:
+                    align_items: flex-end
+        layout_options:
+          grid_columns: 2
+          grid_rows: 8
+  - type: grid
+    cards:
+      - type: entities
+        entities:
+          - input_select.lcars_ui_alert_condition
+        layout_options:
+          grid_columns: 3
+          grid_rows: auto
+      - type: custom:cblcars-button-card
+        template:
+          - cb-lcars-button-grid
+          - cb-lcars-defs
+        triggers_update: '[[[ return variables.___helpers.alert_condition ]]]'
+        variables:
+          button:
+            template:
+              - cb-lcars-button-picard-filled
+              - cb-lcars-button-picard-label-se
+              - cb-lcars-button-picard-name-nw
+            show_name: true
+            variables:
+              text:
+                label:
+                  font_size: 16px
+                  font_weight: 300
+                name:
+                  font_size: 14px
+                  font_weight: 300
+          grid:
+            X: 4
+            'Y': 4
+            buttons:
+              - label: lcars-card-top-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-top-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-top-color');
+                  ]]]
+              - label: lcars-card-mid-left-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-mid-left-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-mid-left-color');
+                  ]]]
+              - label: lcars-card-bottom-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-bottom-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-bottom-color');
+                  ]]]
+              - label: lcars-card-background
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-background)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-background');
+                  ]]]
+              - label: lcars-card-button
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button');
+                  ]]]
+              - label: lcars-card-button-off
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button-off)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-off');
+                  ]]]
+              - label: lcars-card-button-unavailable
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button-unavailable)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-unavailable');
+                  ]]]
+              - label: lcars-card-button-bar
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-card-button-bar)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-card-button-bar');
+                  ]]]
+              - label: success-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--success-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--success-color');
+                  ]]]
+              - label: warning-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--warning-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--warning-color');
+                  ]]]
+              - label: error-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--error-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--error-color');
+                  ]]]
+              - label: alert-color
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-alert-color)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-alert-color');
+                  ]]]
+              - label: lcars-ui-primary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-primary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-primary');
+                  ]]]
+              - label: lcars-ui-secondary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-secondary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-secondary');
+                  ]]]
+              - label: lcars-ui-tertiary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-tertiary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-tertiary');
+                  ]]]
+              - label: lcars-ui-quaternary
+                variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--lcars-ui-quaternary)
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--lcars-ui-quaternary');
+                  ]]]
+        layout_options:
+          grid_columns: full
+          grid_rows: 3
+      - type: custom:cblcars-button-card
+        template: cb-lcars-theme
+        variables:
+          ___debug: false
+      - type: custom:gap-card
+        layout_options:
+          grid_columns: full
+        height: 30px
+      - type: custom:cblcars-button-card
+        template:
+          - cb-lcars-button-grid
+          - cb-lcars-defs
+        triggers_update: '[[[ return variables.___helpers.alert_condition ]]]'
+        variables:
+          button:
+            template:
+              - cb-lcars-button-picard-filled
+              - cb-lcars-button-picard-label-se
+              - cb-lcars-button-picard-name-nw
+            show_name: true
+            variables:
+              text:
+                label:
+                  font_size: 16px
+                  font_weight: 300
+                name:
+                  font_size: 14px
+                  font_weight: 300
+          grid:
+            X: 5
+            'Y': 7
+            buttons:
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-gray)
+                label: picard-darkest-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-blue)
+                label: picard-darkest-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-orange)
+                label: picard-darkest-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-green)
+                label: picard-darkest-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-darkest-yellow)
+                label: picard-darkest-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-darkest-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-gray)
+                label: picard-dark-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-blue)
+                label: picard-dark-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-orange)
+                label: picard-dark-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-green)
+                label: picard-dark-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-dark-yellow)
+                label: picard-dark-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-dark-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-gray)
+                label: picard-medium-dark-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-blue)
+                label: picard-medium-dark-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-orange)
+                label: picard-medium-dark-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-green)
+                label: picard-medium-dark-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-dark-yellow)
+                label: picard-medium-dark-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-dark-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-gray)
+                label: picard-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-blue)
+                label: picard-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-orange)
+                label: picard-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-green)
+                label: picard-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-yellow)
+                label: picard-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-gray)
+                label: picard-medium-light-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-blue)
+                label: picard-medium-light-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-orange)
+                label: picard-medium-light-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-green)
+                label: picard-medium-light-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-medium-light-yellow)
+                label: picard-medium-light-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-medium-light-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-gray)
+                label: picard-light-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-blue)
+                label: picard-light-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-orange)
+                label: picard-light-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-green)
+                label: picard-light-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-light-yellow)
+                label: picard-light-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-light-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-gray)
+                label: picard-lightest-gray
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-gray');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-blue)
+                label: picard-lightest-blue
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-blue');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-orange)
+                label: picard-lightest-orange
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-orange');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-green)
+                label: picard-lightest-green
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-green');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: var(--picard-lightest-yellow)
+                label: picard-lightest-yellow
+                name: |
+                  [[[
+                    return getComputedStyle(document.documentElement).getPropertyValue('--picard-lightest-yellow');
+                  ]]]
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+              - variables:
+                  card:
+                    color:
+                      background:
+                        inactive: black
+        layout_options:
+          grid_columns: full
+          grid_rows: 7
+    column_span: 2
+max_columns: 3
+cards: []

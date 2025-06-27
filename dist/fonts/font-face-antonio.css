@@ -1,0 +1,16 @@
+@font-face {
+    font-family: 'cb-lcars_antonio';
+    src: url('/hacsfiles/cb-lcars/fonts/antonio-variablefont_wght-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/antonio-variablefont_wght-webfont.woff') format('woff'),
+         url('https://fonts.googleapis.com/css2?family=Antonio:wght@100;700&display=swap');
+    font-weight: 100 700;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Antonio';
+    src: url('/hacsfiles/cb-lcars/fonts/antonio-variablefont_wght-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/antonio-variablefont_wght-webfont.woff') format('woff'),
+         url('https://fonts.googleapis.com/css2?family=Antonio:wght@100;700&display=swap');
+    font-weight: 100 700;
+    font-style: normal;
+}

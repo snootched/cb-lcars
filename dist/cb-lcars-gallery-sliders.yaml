@@ -1,0 +1,237 @@
+title: Gallery LCARS Sliders
+path: gallery-lcars-sliders
+type: sections
+sections:
+  - type: grid
+    cards:
+      - type: custom:cb-lcars-elbow-card
+        cblcars_card_config:
+          variables:
+            card:
+              border:
+                left:
+                  size: 200
+                top:
+                  size: 45
+                  left_radius: 150
+                color: var(--picard-dark-gray)
+            text:
+              label:
+                padding:
+                  left: 56
+                  top: 35
+                font_size: '17'
+          label: |-
+            <elt>
+                <h2>Sliders and Guages</h2>
+                <p>Sliders/Gauges can control the brightness of lights etc.</p>
+                <p>The style of the slider and guage are very customizable and sizable. </p>
+            </elt>
+        cblcars_card_type: cb-lcars-header
+        layout_options:
+          grid_columns: 10
+          grid_rows: 4
+      - type: custom:cb-lcars-label-card
+        cblcars_card_config:
+          label: sliders
+          show_label: true
+          variables:
+            text:
+              label:
+                font_size: 42
+                font_weight: 100
+                color:
+                  default: var(--picard-yellow)
+                justify: right
+                padding:
+                  right: 15
+                  bottom: 6
+            card:
+              height: 45
+              border:
+                right:
+                  size: 65
+                color: var(--picard-dark-gray)
+        layout_options:
+          grid_columns: 2
+          grid_rows: 1
+    column_span: 3
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Slider
+        heading_style: title
+      - type: custom:cblcars-button-card
+        template: cb-lcars-slider
+        variables:
+          entity: light.desk
+          slider:
+            variables:
+              mask_color: rgba(0,0,0,1)
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config:
+          variables:
+            entity: light.desk
+        cblcars_card_type: cb-lcars-slider
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Guage
+        heading_style: title
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config:
+          variables: {}
+        cblcars_card_type: cb-lcars-slider-gauge
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cb-lcars-slider-card
+        cblcars_card_config:
+          variables:
+            card:
+              height: 400px
+              width: 50px
+            slider:
+              variables:
+                color: var(--error-color)
+                color_alpha: 0.7
+                border_color: none
+            meter:
+              variables:
+                button:
+                  variables:
+                    text:
+                      label:
+                        color:
+                          'on': var(--warning-color)
+                    card:
+                      color:
+                        active: var(--error-color)
+        cblcars_card_type: cb-lcars-slider-gauge
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Meter [no slider control]
+        heading_style: title
+      - type: custom:cblcars-button-card
+        template:
+          - cb-lcars-meter
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter
+        variables:
+          gradient_start_color: var(--picard-lightest-blue)
+          gradient_end_color: var(--picard-dark-blue)
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter
+        variables:
+          gradient_start_color: var(--picard-lightest-blue)
+          gradient_end_color: var(--picard-dark-blue)
+          button:
+            variables:
+              card:
+                height: 15px
+            template:
+              - cb-lcars-button-picard-filled
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Meter (custom color/button shape)
+        heading_style: title
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter
+        variables:
+          gradient_start_color: var(--warning-color)
+          gradient_end_color: var(--picard-lightest-gray)
+          button:
+            variables:
+              card:
+                height: 10px
+            template:
+              - cb-lcars-button-picard-filled
+          _gradient:
+            gap: 1px
+            'Y': 18
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cblcars-button-card
+        template:
+          - cb-lcars-meter
+        variables:
+          _gradient:
+            'Y': 20
+            gap: 1px
+          gradient_start_color: var(--lcars-blue)
+          gradient_end_color: var(--lcars-orange)
+          button:
+            variables:
+              card:
+                height: 10px
+        layout_options:
+          grid_columns: 1
+          grid_rows: 6
+      - type: custom:cblcars-button-card
+        template:
+          - cb-lcars-meter
+        variables:
+          _gradient:
+            'Y': 20
+            gap: 1px
+          gradient_start_color: var(--lcars-blue)
+          gradient_end_color: var(--lcars-orange)
+          button:
+            variables:
+              card:
+                height: 10px
+                width: 10px
+        layout_options:
+          grid_columns: 1
+          grid_rows: 4
+  - type: grid
+    cards:
+      - type: heading
+        heading: CB-LCARS Meter Horizontal
+        heading_style: title
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter-horizontal
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter-horizontal
+        variables:
+          gradient_start_color: var(--lcars-blue)
+          gradient_end_color: var(--lcars-gray)
+      - type: custom:cblcars-button-card
+        template: cb-lcars-meter-horizontal
+        variables:
+          _gradient:
+            gap: 15px
+            X: 15
+          gradient_start_color: var(--picard-lightest-blue)
+          gradient_end_color: var(--picard-dark-blue)
+          button:
+            variables:
+              card:
+                width: 20px
+                height: 20px
+            template:
+              - cb-lcars-button-lozenge
+max_columns: 3
+subview: true
+cards: []
