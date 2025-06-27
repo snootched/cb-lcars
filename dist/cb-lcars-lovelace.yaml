@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.06.2-beta3
+  version: 2025.06.2-beta4
   manage_config: true
 cblcars_card_templates:
   cb-lcars-button-picard-label-east:
@@ -4061,7 +4061,19 @@ cblcars_card_templates:
                     ` : ''};
                 }
                 /* Group 1: Top to bottom */
+                #raLines1_1 { animation-delay: ${delays[0]}s; }
+                #raLines1_2 { animation-delay: ${delays[1]}s; }
+                #raLines1_3 { animation-delay: ${delays[2]}s; }
+                #raLines1_4 { animation-delay: ${delays[3]}s; }
+                #raLines1_5 { animation-delay: ${delays[4]}s; }
+                #raLines1_6 { animation-delay: ${delays[5]}s; }
                 /* Group 2: Bottom to top */
+                #raLines2_6 { animation-delay: ${delays[0]}s; }
+                #raLines2_5 { animation-delay: ${delays[1]}s; }
+                #raLines2_4 { animation-delay: ${delays[2]}s; }
+                #raLines2_3 { animation-delay: ${delays[3]}s; }
+                #raLines2_2 { animation-delay: ${delays[4]}s; }
+                #raLines2_1 { animation-delay: ${delays[5]}s; }
               </style>
               <div class="svgContainer">
                   <svg
