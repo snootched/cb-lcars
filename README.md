@@ -18,7 +18,7 @@
   - [Installation - Make it so!](#installation---make-it-so)
     - [1. Dependencies and Extras](#1-dependencies-and-extras)
     - [2. HA-LCARS Theme - Setup and Customizations](#2-ha-lcars-theme---setup-and-customizations)
-      - [Font](#font)
+      - [Fonts](#fonts)
       - [Customized *CB-LCARS* Colour Scheme](#customized-cb-lcars-colour-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
@@ -86,7 +86,6 @@ CB-LCARS is a collection of custom cards for Home Assistant, inspired by the ico
 >   - Install 'required' dependencies from HACS
 > - _Thrusters Ahead, Take Us Out_
 >   - Setup HA-LCARS theme (notes below)
->   - Add font (customized URL)
 >   - Add CB-LCARS custom style to HA-LCARS theme
 > - _Bring Warp Core Online, Engines to Full Power_
 >   - Install CB-LCARS from HACS
@@ -112,15 +111,14 @@ The following should be installed and working in your Home Assistant instance - 
 
 ### 2. HA-LCARS Theme - Setup and Customizations
 
-#### Font
-When adding the font resource, use a slightly updated Antonio font resource string.<br>
+#### Fonts
+CB-LCARS now ships with local versions of Antonio, Microgramma and Jeffries.
 
-This will include weights 100-700 allowing for more thinner/lighter text as seen in Picard (some displays use really thin font, 100 or 200)
+These fonts are added automatically to the page via stylesheets and use custom names as to not conflict with any existing fonts.
 
-Substitute the following resource string when setting up font in HA-LCARS theme:
-`https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
-
-> **Note:**  If the font is missing, the card will attempt to load it dynamically from the above URL.)
+- `cb-lcars_antonio`
+- `cb-lcars_microgramma`
+- `cb-lcars_jeffries`
 
 
 #### Customized *CB-LCARS* Colour Scheme

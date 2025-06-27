@@ -151,6 +151,7 @@ custom_fields:
               default: transparent
 ```
 </details>
+
 ---
 
 ## Configuration

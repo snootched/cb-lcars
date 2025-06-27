@@ -186,6 +186,8 @@ cb-lcars-animation-alert:
     animation: |
       [[[
 
+        // --- Deep merge utility for merging settings objects
+        // Recursively merges source objects into the target, with later sources overriding earlier ones
         function deepMerge(target, ...sources) {
           if (!sources.length) return target;
           const source = sources.shift();
@@ -207,10 +209,13 @@ cb-lcars-animation-alert:
         }
         const cblcarsLog = variables.__cblcarsLog;
 
-        // --- Pull in alert settings
+        // --- Pull in alert settings from variables ---
         const alertSettings = variables.animation.alert ?? {};
 
-        // --- CONDITIONAL PRESET SELECTION BASED ON ENTITY/ATTRIBUTE VALUE ---
+        //////////////////////////////////////////////////////////////////////////////
+        // CONDITIONAL PRESET SELECTION BASED ON ENTITY/ATTRIBUTE VALUE
+        // Supports dynamic preset selection based on entity state or attribute value
+        //////////////////////////////////////////////////////////////////////////////
         let selectedPreset = null;
         const rangeSettings = alertSettings.range;
         if (rangeSettings && rangeSettings.enabled && Array.isArray(rangeSettings.ranges)) {
@@ -253,13 +258,15 @@ cb-lcars-animation-alert:
           }
         }
 
-
         //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
 
         const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
         const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
 
-        //const alertSettings = variables.animation.alert ?? {};
+        //////////////////////////////////////////////////////////////////////////////
+        // ALERT PRESET MERGING
+        // Merge built-in and user presets, with user presets taking precedence
+        //////////////////////////////////////////////////////////////////////////////
         const builtInPresets = alertSettings.alert_presets ?? {};
         const userPresets = alertSettings.custom_alert_presets ?? {}; // <-- user can supply this
         //const alertPresetName = alertSettings.preset;
@@ -293,6 +300,9 @@ cb-lcars-animation-alert:
 
         //cblcarsLog("debug",alertStyleSettings);
 
+        //////////////////////////////////////////////////////////////////////////////
+        // COLOR AND ANIMATION SETTINGS
+        //////////////////////////////////////////////////////////////////////////////
         const shape_color = alertStyleSettings.color.shape?.default || '#FF0000';
         const bar_color = alertStyleSettings.color.bars?.default || '#FF0000';
 
@@ -305,8 +315,7 @@ cb-lcars-animation-alert:
         const blink_delay = alertStyleSettings.blink_delay || 2;
         const enable_blink = (alertStyleSettings.blink_duration != 0 && alertStyleSettings.enable_blink) ?? true;
 
-
-        // Calculate animation delays based on animation_duration (as a number)
+        // Calculate animation delays for bar spread effect
         const delays = [
           0,
           0.0833 * animation_duration,
@@ -316,6 +325,9 @@ cb-lcars-animation-alert:
           0.4167 * animation_duration
         ];
 
+        //////////////////////////////////////////////////////////////////////////////
+        // PADDING AND VIEWBOX
+        //////////////////////////////////////////////////////////////////////////////
         // Padding for SVG (object with top, right, bottom, left)
         const pad = variables.animation.alert.padding || {};
         const padTop = pad.top !== undefined ? parseInt(pad.top) : 0;
@@ -323,14 +335,16 @@ cb-lcars-animation-alert:
         const padBottom = pad.bottom !== undefined ? parseInt(pad.bottom) : 0;
         const padLeft = pad.left !== undefined ? parseInt(pad.left) : 0;
 
-        // Adjusted viewBox
+        // Adjusted viewBox for SVG
         const vb_x = 0 - padLeft;
         const vb_y = 0 - padTop;
         const vb_w = 100 + padLeft + padRight;
         const vb_h = 73.56 + padTop + padBottom;
 
-        // --- SVG PATHS ---
-        // Condensed and standard SVG paths creating the main alert shape
+        //////////////////////////////////////////////////////////////////////////////
+        // SVG PATHS FOR ALERT SHAPE
+        // Condensed and standard SVG paths for the main alert shape
+        //////////////////////////////////////////////////////////////////////////////
 
         // Condensed version based on svg provided by sparkyvision
         const condensed_path = `
@@ -406,7 +420,10 @@ cb-lcars-animation-alert:
           " fill="${shape_color}"></path>
         `;
 
-        // Define y-coordinates for condensed version
+        //////////////////////////////////////////////////////////////////////////////
+        // BAR ANIMATION LINES
+        // Define y-coordinates for condensed and standard versions
+        //////////////////////////////////////////////////////////////////////////////
         const condensedLines1 = [
           [8.950, 10.176],
           [11.213, 12.439],
@@ -432,7 +449,7 @@ cb-lcars-animation-alert:
         const alert_size = variables.animation.alert.size || "standard";
         const selected_path = alert_size === "condensed" ? condensed_path : std_path;
 
-        // Helper to scale y-coordinates
+        // Helper to scale y-coordinates for standard size
         function scaleLines(lines, fromHeight, toHeight, yOffsetFrom, yOffsetTo) {
           const scale = toHeight / fromHeight;
           const offset = yOffsetTo - yOffsetFrom * scale;
@@ -453,7 +470,7 @@ cb-lcars-animation-alert:
           lines2 = scaleLines(condensedLines2, condensedHeight, standardHeight, 8.95, -12);
         }
 
-        // Generate SVG line elements
+        // Generate SVG line elements for bar animation
         function linesToSVG(lines, group) {
           return lines.map(
             ([y1, y2], i) =>
@@ -464,7 +481,9 @@ cb-lcars-animation-alert:
           linesToSVG(lines2, 2) + '\n' +
           linesToSVG(lines1, 1);
 
-        // --- TEXT CONFIGURATION ---
+        //////////////////////////////////////////////////////////////////////////////
+        // TEXT CONFIGURATION
+        //////////////////////////////////////////////////////////////////////////////
 
         // Black box dimensions and position (user-configurable)
         // - black_box_x: left edge of black box (default: 18)
@@ -562,6 +581,9 @@ cb-lcars-animation-alert:
           >${sub_text_transform === 'uppercase' ? (sub_text_content + '').toUpperCase() : sub_text_content}</text>
         `;
 
+        //////////////////////////////////////////////////////////////////////////////
+        // FINAL OUTPUT: Compose SVG and CSS for alert animation
+        //////////////////////////////////////////////////////////////////////////////
         return `
           <elt>
             <style>
