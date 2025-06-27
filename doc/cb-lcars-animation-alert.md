@@ -2,7 +2,7 @@
 
 ALERT provides a highly customizable animated alert symbol for LCARS.  Supporting dynamic presets (aka alert conditions,) colours, text, and animation settings and more.
 
-![alert_samples](../images/screenshots/alert_condition_sample_1.png)
+![alert_samples](../images/screenshots/alert_condition_animated_1.gif)
 
 This template renders an animated alert symbol with configurable options like text, colours, animation settings, fonts, etc
 

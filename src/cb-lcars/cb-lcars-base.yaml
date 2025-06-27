@@ -316,11 +316,18 @@ cb-lcars-base:
               const transform = variables.animation.transform || {};
               const transforms = [];
               if (transform.scale !== undefined) transforms.push(`scale(${transform.scale})`);
+              if (transform.scale_x !== undefined) transforms.push(`scaleX(${transform.scale_x})`);
+              if (transform.scale_y !== undefined) transforms.push(`scaleY(${transform.scale_y})`);
+              if (transform.scale_z !== undefined) transforms.push(`scaleZ(${transform.scale_z})`);
               if (transform.rotate !== undefined) transforms.push(`rotate(${transform.rotate}deg)`);
               if (transform.translate_x !== undefined) transforms.push(`translateX(${transform.translate_x}%)`);
               if (transform.translate_y !== undefined) transforms.push(`translateY(${transform.translate_y}%)`);
+              if (transform.translate_z !== undefined) transforms.push(`translateZ(${transform.translate_z}px)`);
               if (transform.skew !== undefined) transforms.push(`skew(${transform.skew}deg)`);
               if (transform.perspective !== undefined) transforms.push(`perspective(${transform.perspective}px)`);
+              if (transform.rotate_x !== undefined) transforms.push(`rotateX(${transform.rotate_x}deg)`);
+              if (transform.rotate_y !== undefined) transforms.push(`rotateY(${transform.rotate_y}deg)`);
+              if (transform.rotate_z !== undefined) transforms.push(`rotateZ(${transform.rotate_z}deg)`);
               return transforms.length > 0 ? transforms.join(' ') : 'none';
             ]]]
         - transform-origin: |

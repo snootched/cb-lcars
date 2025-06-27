@@ -2782,6 +2782,39 @@ cb-lcars-base-controls:
                               step: 0.1
                               mode: slider
                               slider_ticks: false
+                        - label: "Scale X"
+                          configValue: "variables.animation.transform.scale_x"
+                          helper: "Amount of horizontal scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
+                        - label: "Scale Y"
+                          configValue: "variables.animation.transform.scale_y"
+                          helper: "Amount of vertical scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
+                        - label: "Scale Z"
+                          configValue: "variables.animation.transform.scale_z"
+                          helper: "Amount of depth scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
                         - label: "Rotate"
                           configValue: "variables.animation.transform.rotate"
                           helper: "Amount of rotation to apply to the animation"
@@ -2790,6 +2823,42 @@ cb-lcars-base-controls:
                             number:
                               min: 0
                               max: 360
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate X"
+                          configValue: "variables.animation.transform.rotate_x"
+                          helper: "Amount of horizontal rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate Y"
+                          configValue: "variables.animation.transform.rotate_y"
+                          helper: "Amount of vertical rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate Z"
+                          configValue: "variables.animation.transform.rotate_z"
+                          helper: "Amount of depth rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
                               step: 1
                               mode: slider
                               unit_of_measurement: "deg"
