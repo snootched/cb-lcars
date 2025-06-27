@@ -463,7 +463,7 @@ variables:
 
 CB-LCARS includes a growing set of highly customizable animations and effects for your cards. Each animation offers extensive configuration options, accessible via the UI. For full details and usage instructions, see the dedicated documentation for each animation—just click the template links in the table below.
 
-
+- [ALERT](doc/cb-lcars-animation-alert.md)
 - [Data Cascade](doc/cb-lcars-animation-cascade.md)
 - [Pulsewave](doc/cb-lcars-animation-pulsewave.md)
 - [GRID](doc/cb-lcars-animation-bg-grid.md)
@@ -473,6 +473,7 @@ CB-LCARS includes a growing set of highly customizable animations and effects fo
 
 | template ||
 |----------|----------------|
+| [`cb-lcars-animation-alert`](doc/cb-lcars-animation-alert.md) | ![cb-lcars-alert](images/screenshots/alert_condition_animated_1.gif) |
 | [`cb-lcars-animation-cascade`](doc/cb-lcars-animation-cascade.md) | ![cb-lcars-cascade](images/screenshots/data_cascade.gif) |
 | [`cb-lcars-animation-pulsewave`](doc/cb-lcars-animation-pulsewave.md) | ![cb-lcars-animation-pulsewave](images/screenshots/cb-lcars-pulsewave-samples-1.gif) |
 [`cb-lcars-animation-bg-grid`](doc/cb-lcars-animation-bg-grid.md) |![cb-lcars-animation-bg-grid](images/screenshots/cb-lcars-bg-grid-samples-1.gif) <br>Nebula Samples ![nebula-samples-1](images/screenshots/nebula-samples-1.png)|
