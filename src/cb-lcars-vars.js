@@ -4,7 +4,7 @@ export const CBLCARS_VERSION = packageJson.version;
 export const project_url = "https://cb-lcars.unimatrix01.ca";
 
 export const font_url = [
-        'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap',
+        '/hacsfiles/cb-lcars/fonts/font-face-antonio.css',
         '/hacsfiles/cb-lcars/fonts/font-face-jeffries.css',
         '/hacsfiles/cb-lcars/fonts/font-face-microgramma-ext.css'
     ]
