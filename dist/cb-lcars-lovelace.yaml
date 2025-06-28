@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.1-beta2
+  version: 2025.07.1-beta3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -570,7 +570,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 0px
+            top: 7px
             left: 10px
             right: 10px
             bottom: 5px
@@ -588,7 +588,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 0px
+            top: 7px
             left: 10px
             right: 10px
             bottom: 5px
@@ -606,7 +606,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 0px
+            top: 7px
             left: 10px
             right: 10px
             bottom: 5px
@@ -9017,7 +9017,7 @@ cblcars_card_templates:
             hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
           padding:
-            top: 0px
+            top: 3px
             left: 10px
             right: 10px
             bottom: 0px
@@ -9035,7 +9035,7 @@ cblcars_card_templates:
             hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
           padding:
-            top: 0px
+            top: 3px
             left: 10px
             right: 10px
             bottom: 0px
