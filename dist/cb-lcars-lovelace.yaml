@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.1-beta1
+  version: 2025.07.1-beta2
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -8014,7 +8014,8 @@ cblcars_card_templates:
         value: |
           [[[
             if (entity === undefined) return false;
-            return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+            const val = Number(states[entity.entity_id].state);
+            return entity !== undefined && !isNaN(val) && val === 0;
           ]]]
         styles:
           card:
@@ -8057,7 +8058,8 @@ cblcars_card_templates:
         value: |
           [[[
             if (entity === undefined) return false;
-            return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+            const val = Number(states[entity.entity_id].state);
+            return entity !== undefined && !isNaN(val) && val !== 0;
           ]]]
         styles:
           card:
@@ -9000,7 +9002,7 @@ cblcars_card_templates:
             top: 0px
             left: 10px
             right: 10px
-            bottom: 5px
+            bottom: 0px
         state:
           font_weight: normal
           font_size: 22px
@@ -9018,7 +9020,7 @@ cblcars_card_templates:
             top: 0px
             left: 10px
             right: 10px
-            bottom: 5px
+            bottom: 0px
         name:
           font_weight: normal
           font_size: 22px
@@ -9036,7 +9038,7 @@ cblcars_card_templates:
             top: 0px
             left: 10px
             right: 10px
-            bottom: 5px
+            bottom: 0px
       icon:
         color:
           default: null
