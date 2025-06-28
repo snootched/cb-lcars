@@ -247,9 +247,16 @@ type: custom:cb-lcars-button-card
 entity: alarm_control_panel.home_alarm
 state:
   - value: "armed_home"
+    operator: "=="
     id: state_on  # This links to the 'active' style block
+    variables:    # Variable overrides
     styles:       # Style overrides if not already taken care of with variables
       ...
+  - operator: '=='    # add more blocks if you do not want to use one of the builtin state blocks
+    value: "my_value"
+    styles:
+      card:
+        - background-color: red
 ```
 
 > **Tip:**

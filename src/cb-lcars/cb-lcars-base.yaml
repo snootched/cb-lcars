@@ -598,7 +598,8 @@ cb-lcars-base:
       value: |
         [[[
           if (entity === undefined) return false;
-          return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+          const val = Number(states[entity.entity_id].state);
+          return entity !== undefined && !isNaN(val) && val === 0;
         ]]]
       styles:
         card:
@@ -641,7 +642,8 @@ cb-lcars-base:
       value: |
         [[[
           if (entity === undefined) return false;
-          return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+          const val = Number(states[entity.entity_id].state);
+          return entity !== undefined && !isNaN(val) && val !== 0;
         ]]]
       styles:
         card:
