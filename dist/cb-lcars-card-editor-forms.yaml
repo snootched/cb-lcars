@@ -2610,6 +2610,8 @@ cb-lcars-base-controls:
                       mode: list
                       multiple: true
                       options:
+                        - value: "cb-lcars-animation-alert"
+                          label: "ALERT"
                         - value: "cb-lcars-animation-geo-array"
                           label: "GEO Array"
                         - value: "cb-lcars-animation-bg-grid"
@@ -2780,6 +2782,39 @@ cb-lcars-base-controls:
                               step: 0.1
                               mode: slider
                               slider_ticks: false
+                        - label: "Scale X"
+                          configValue: "variables.animation.transform.scale_x"
+                          helper: "Amount of horizontal scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
+                        - label: "Scale Y"
+                          configValue: "variables.animation.transform.scale_y"
+                          helper: "Amount of vertical scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
+                        - label: "Scale Z"
+                          configValue: "variables.animation.transform.scale_z"
+                          helper: "Amount of depth scale to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 10
+                              step: 0.1
+                              mode: slider
+                              slider_ticks: false
                         - label: "Rotate"
                           configValue: "variables.animation.transform.rotate"
                           helper: "Amount of rotation to apply to the animation"
@@ -2788,6 +2823,42 @@ cb-lcars-base-controls:
                             number:
                               min: 0
                               max: 360
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate X"
+                          configValue: "variables.animation.transform.rotate_x"
+                          helper: "Amount of horizontal rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate Y"
+                          configValue: "variables.animation.transform.rotate_y"
+                          helper: "Amount of vertical rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
+                              step: 1
+                              mode: slider
+                              unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Rotate Z"
+                          configValue: "variables.animation.transform.rotate_z"
+                          helper: "Amount of depth rotation to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: -180
+                              max: 180
                               step: 1
                               mode: slider
                               unit_of_measurement: "deg"
@@ -2827,6 +2898,18 @@ cb-lcars-base-controls:
                               step: 1
                               mode: slider
                               unit_of_measurement: "deg"
+                              slider_ticks: false
+                        - label: "Perspective"
+                          configValue: "variables.animation.transform.perspective"
+                          helper: "Amount of perspective to apply to the animation"
+                          type: Selector
+                          selector:
+                            number:
+                              min: 0
+                              max: 1000
+                              step: 25
+                              mode: slider
+                              unit_of_measurement: "px"
                               slider_ticks: false
                     - type: ControlRow
                       controls:
@@ -3236,6 +3319,459 @@ cb-lcars-base-controls:
                         number:
                           min: 1
                           step: 1
+    - &alertConditionTab
+      label: "ALERT Condition"
+      visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animation-alert')"
+      content:
+        - type: Section
+          label: "Alert Condition"
+          outlined: true
+          leftChevron: false
+          headerLevel: 4
+          icon: "mdi:alert-box-outline"
+          noCollapse: true
+          expanded: true
+          rows:
+            - &presetSection
+              type: Section
+              label: "Styles & Presets"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-list-bulleted"
+              noCollapse: false
+              expanded: true
+              rows:
+                - controls:
+                    - type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "default"
+                              label: "Default"
+                            - value: "condensed"
+                              label: "Condensed"
+                      configValue: "variables.animation.alert.size"
+                      label: "Size"
+                    - type: Selector
+                      label: "Enable State-Based Alert Presets"
+                      selector:
+                        boolean:
+                      configValue: "variables.animation.alert.range.enabled"
+                    - type: Message
+                      alertType: info
+                      message: "State-based alert presets allow you to apply different alert settings based on the state of the entity/attribue.  If enabled, the following settings will be used to select the alert condition to apply.  Please refer to the documentation for more information."
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
+                    - label: "Entity [same as the card entity]"
+                      configValue: "variables.entity"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
+                      type: Selector
+                      selector:
+                        entity:
+                    - label: "Attribute [same as the card attribute]"
+                      configValue: "variables.attribute"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.entity"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          optionsCondition: |
+                            (() => {
+                              const entityId = this._config?.variables?.entity;
+                              const hass = this._hass || this.hass;
+                              if (!entityId || !hass?.states?.[entityId]) {
+                                return [];
+                              }
+                              const entity = hass.states[entityId];
+                              if (!entity.attributes || typeof entity.attributes !== "object") {
+                                return [];
+                              }
+                              return Object.entries(entity.attributes)
+                                .filter(([_, value]) =>
+                                  value === null ||
+                                  ["string", "number", "boolean"].includes(typeof value)
+                                )
+                                .map(([key]) => ({
+                                  value: key,
+                                  label: key
+                                }));
+                            })()
+                    - type: Message
+                      alertType: info
+                      message: "Note: for convenience 'brightness' attribute is automatically converted from 0-255 to 0-100%."
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.attribute === 'brightness'"
+                    - type: Selector
+                      selector:
+                        object:
+                      configValue: "variables.animation.alert.range.ranges"
+                      label: "State-based Alert Settings"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled === true"
+                    - type: Message
+                      alertType: info
+                      message: "Select from the Alert Condition presets, or provide custom presets below."
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
+                    - label: "Preset"
+                      visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
+                      configValue: "variables.animation.alert.preset"
+                      type: Selector
+                      selector:
+                        select:
+                          mode: dropdown
+                          options:
+                            - value: "default"
+                              label: "Default [no preset]"
+                            - value: "condition_red"
+                              label: "Condition: RED"
+                            - value: "condition_yellow"
+                              label: "Condition: YELLOW"
+                            - value: "condition_green"
+                              label: "Condition: GREEN"
+                            - value: "condition_blue"
+                              label: "Condition: BLUE"
+                            - value: "condition_black"
+                              label: "Condition: BLACK"
+                            - value: "condition_grey"
+                              label: "Condition: GREY"
+                            - value: "custom"
+                              label: "Custom [user provided]"
+                - type: Section
+                  label: "Customize Presets"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:format-list-bulleted"
+                  noCollapse: false
+                  rows:
+                    - controls:
+                        - type: Message
+                          alertType: info
+                          message: "Advanced: Provide your own list of custom alert presets, or customize individual settings of the standard presets.  Please refer to the documentation for more information."
+                        - label: "Custom Preset Name"
+                          configValue: "variables.animation.alert.preset"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.range?.enabled != true"
+                          type: Selector
+                          selector:
+                            text:
+                        - type: Selector
+                          selector:
+                            object:
+                          configValue: "variables.animation.alert.custom_alert_presets"
+                          label: "Custom Alert Presets"
+            - type: Section
+              label: "Default Preset Colours"
+              visibilityCondition: "(!this._config?.variables?.animation?.alert?.preset || this._config?.variables?.animation?.alert?.preset === 'default')"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:select-color"
+              noCollapse: false
+              rows:
+                - controls:
+                    - type: Message
+                      alertType: info
+                      message: "These colours are used by the default alert preset.  If you have selected a custom preset, these colours will not be used."
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Shape Colour</label>
+                - cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.alert.color.shape.default"
+                    - <<: *colorControl
+                      configValue: "variables.animation.alert.color.shape.default"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.alert.color.shape.default"
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Bar Animation Base Colour</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.alert.color.bars.animation_base"
+                    - <<: *colorControl
+                      configValue: "variables.animation.alert.color.bars.animation_base"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.alert.color.bars.animation_base"
+                - controls:
+                    - type: RawHTML
+                      html: |
+                          <label>Bar Animation Flash Colour</label>
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *colorLCARSListControl
+                      configValue: "variables.animation.alert.color.bars.animation_flash"
+                    - <<: *colorControl
+                      configValue: "variables.animation.alert.color.bars.animation_flash"
+                - controls:
+                    - <<: *colorPreviewControl
+                      configValue: "variables.animation.alert.color.bars.animation_flash"
+            - &alertTextSection
+              type: Section
+              label: "Text"
+              visibilityCondition: "(!this._config?.variables?.animation?.alert?.preset || this._config?.variables?.animation?.alert?.preset === 'default')"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:format-textbox"
+              noCollapse: false
+              expanded: false
+              rows:
+                - type: ControlRow
+                  controls:
+                    - type: Message
+                      alertType: info
+                      message: "Use 'custom presets' feature if you would like to change text for the builtin presets."
+                - type: Section
+                  label: "Alert Text (top line)"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:format-textbox"
+                  noCollapse: false
+                  expanded: true
+                  rows:
+                    - type: ControlRow
+                      controls:
+                        - label: "Alert Text (top line)"
+                          configValue: "variables.animation.alert.alert_text"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: false
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - &fontSizeControl
+                          label: "Font Size"
+                          configValue: "variables.animation.alert.text.alert_text.font_size"
+                          type: Selector
+                          selector:
+                            text:
+                              type: number
+                        - &fontWeightControl
+                          label: "Font Weight"
+                          configValue: "variables.animation.alert.text.alert_text.font_weight"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: 100
+                                  label: Thin (100)
+                                - value: 200
+                                  label: Extra Light (200)
+                                - value: 300
+                                  label: Light (300)
+                                - value: 400
+                                  label: Normal (400)
+                                - value: 500
+                                  label: Medium (500)
+                                - value: 600
+                                  label: Semi Bold (600)
+                                - value: 700
+                                  label: Bold (700)
+                                - value: 800
+                                  label: Extra Bold (800)
+                                - value: 900
+                                  label: Black (900)
+                        - label: "Stretch to Fit"
+                          configValue: "variables.animation.alert.text.alert_text.stretch"
+                          type: Selector
+                          selector:
+                            boolean:
+                              mode: checkbox
+                        - label: "Align"
+                          configValue: "variables.animation.alert.text.alert_text.align"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.text?.alert_text?.stretch === false"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: left
+                                  label: Left
+                                - value: center
+                                  label: Center
+                                - value: right
+                                  label: Right
+                    - type: Section
+                      label: "Colour"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 3
+                      icon: "mdi:select-color"
+                      noCollapse: false
+                      collapsed: false
+                      rows:
+                        - type: ControlRow
+                          controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>Alert (top line) Colour</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.animation.alert.text.alert_text.color.default"
+                            - <<: *colorControl
+                              configValue: "variables.animation.alert.text.alert_text.color.default"
+                        - type: ControlRow
+                          controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.animation.alert.text.alert_text.color.default"
+
+                - type: Section
+                  label: "Sub Text (bottom line)"
+                  outlined: true
+                  leftChevron: false
+                  headerLevel: 4
+                  icon: "mdi:format-textbox"
+                  noCollapse: false
+                  expanded: true
+                  rows:
+                    - controls:
+                        - label: "Sub Text (bottom line)"
+                          configValue: "variables.animation.alert.sub_text"
+                          type: Selector
+                          selector:
+                            text:
+                              multiline: false
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - &fontSizeControl
+                          label: "Font Size"
+                          configValue: "variables.animation.alert.text.sub_text.font_size"
+                          type: Selector
+                          selector:
+                            text:
+                              type: number
+                        - &fontWeightControl
+                          label: "Font Weight"
+                          configValue: "variables.animation.alert.text.sub_text.font_weight"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: 100
+                                  label: Thin (100)
+                                - value: 200
+                                  label: Extra Light (200)
+                                - value: 300
+                                  label: Light (300)
+                                - value: 400
+                                  label: Normal (400)
+                                - value: 500
+                                  label: Medium (500)
+                                - value: 600
+                                  label: Semi Bold (600)
+                                - value: 700
+                                  label: Bold (700)
+                                - value: 800
+                                  label: Extra Bold (800)
+                                - value: 900
+                                  label: Black (900)
+                        - label: "Stretch to Fit"
+                          configValue: "variables.animation.alert.text.sub_text.stretch"
+                          type: Selector
+                          selector:
+                            boolean:
+                              mode: checkbox
+                        - label: "Align"
+                          configValue: "variables.animation.alert.text.sub_text.align"
+                          visibilityCondition: "this._config.variables?.animation?.alert?.text?.sub_text?.stretch === false"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: left
+                                  label: Left
+                                - value: center
+                                  label: Center
+                                - value: right
+                                  label: Right
+                    - type: Section
+                      label: "Colour"
+                      outlined: true
+                      leftChevron: false
+                      headerLevel: 3
+                      icon: "mdi:select-color"
+                      noCollapse: false
+                      collapsed: false
+                      rows:
+                        - type: ControlRow
+                          controls:
+                            - type: RawHTML
+                              html: |
+                                  <label>Sub (bottom line) Colour</label>
+                        - type: ControlRow
+                          cssClass: "form-row two-controls"
+                          controls:
+                            - <<: *colorLCARSListControl
+                              configValue: "variables.animation.alert.text.sub_text.color.default"
+                            - <<: *colorControl
+                              configValue: "variables.animation.alert.text.sub_text.color.default"
+                        - type: ControlRow
+                          controls:
+                            - <<: *colorPreviewControl
+                              configValue: "variables.animation.alert.text.sub_text.color.default"
+            - &alertAnimationSection
+              type: Section
+              label: "Animation Settings"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:animation-outline"
+              noCollapse: false
+              expanded: false
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - label: "Enable Bar Animation"
+                      configValue: "variables.animation.alert.enable_bar_animation"
+                      type: Selector
+                      selector:
+                        boolean:
+                    - label: "Bar Animation Duration (s)"
+                      configValue: "variables.animation.alert.animation_duration"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          step: 0.1
+                    - label: "Blink Text"
+                      configValue: "variables.animation.alert.enable_blink"
+                      type: Selector
+                      selector:
+                        boolean:
+                    - label: "Blink Duration (s)"
+                      configValue: "variables.animation.alert.blink_duration"
+                      type: Selector
+                      selector:
+                        number:
+                          min: 0
+                          step: 0.1
+
+
+
+
+
+
+
+
+
+
+
     - &geoArrayTab
       label: "GEO Array"
       visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-animation-geo-array')"
@@ -4690,6 +5226,7 @@ cb-lcars-elbow-card:
     - <<: *pulsewaveTab
     - <<: *gridBgTab
     - <<: *geoArrayTab
+    - <<: *alertConditionTab
   css:
     mergeUserStyles: true
     cssText: |

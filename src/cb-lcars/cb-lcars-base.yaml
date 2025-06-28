@@ -10,7 +10,7 @@ cb-lcars-base:
       label:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center
@@ -32,7 +32,7 @@ cb-lcars-base:
       name:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center
@@ -54,7 +54,7 @@ cb-lcars-base:
       state:
         font_size: 20px
         font_weight: normal
-        font_family: '''Antonio'', Arial, sans-serif'
+        font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
         align: left
         align_items: center
         justify: center
@@ -316,10 +316,18 @@ cb-lcars-base:
               const transform = variables.animation.transform || {};
               const transforms = [];
               if (transform.scale !== undefined) transforms.push(`scale(${transform.scale})`);
+              if (transform.scale_x !== undefined) transforms.push(`scaleX(${transform.scale_x})`);
+              if (transform.scale_y !== undefined) transforms.push(`scaleY(${transform.scale_y})`);
+              if (transform.scale_z !== undefined) transforms.push(`scaleZ(${transform.scale_z})`);
               if (transform.rotate !== undefined) transforms.push(`rotate(${transform.rotate}deg)`);
               if (transform.translate_x !== undefined) transforms.push(`translateX(${transform.translate_x}%)`);
               if (transform.translate_y !== undefined) transforms.push(`translateY(${transform.translate_y}%)`);
+              if (transform.translate_z !== undefined) transforms.push(`translateZ(${transform.translate_z}px)`);
               if (transform.skew !== undefined) transforms.push(`skew(${transform.skew}deg)`);
+              if (transform.perspective !== undefined) transforms.push(`perspective(${transform.perspective}px)`);
+              if (transform.rotate_x !== undefined) transforms.push(`rotateX(${transform.rotate_x}deg)`);
+              if (transform.rotate_y !== undefined) transforms.push(`rotateY(${transform.rotate_y}deg)`);
+              if (transform.rotate_z !== undefined) transforms.push(`rotateZ(${transform.rotate_z}deg)`);
               return transforms.length > 0 ? transforms.join(' ') : 'none';
             ]]]
         - transform-origin: |
@@ -590,7 +598,8 @@ cb-lcars-base:
       value: |
         [[[
           if (entity === undefined) return false;
-          return entity !== undefined && Number(states[entity.entity_id].state) === 0;
+          const val = Number(states[entity.entity_id].state);
+          return entity !== undefined && !isNaN(val) && val === 0;
         ]]]
       styles:
         card:
@@ -633,7 +642,8 @@ cb-lcars-base:
       value: |
         [[[
           if (entity === undefined) return false;
-          return entity !== undefined && Number(states[entity.entity_id].state) !== 0;
+          const val = Number(states[entity.entity_id].state);
+          return entity !== undefined && !isNaN(val) && val !== 0;
         ]]]
       styles:
         card:

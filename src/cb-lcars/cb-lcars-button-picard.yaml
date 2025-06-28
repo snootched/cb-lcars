@@ -22,7 +22,7 @@ cb-lcars-button-picard:
           top: 0px
           left: 10px
           right: 10px
-          bottom: 5px
+          bottom: 0px
       state:
         font_weight: normal
         font_size: 22px
@@ -37,10 +37,10 @@ cb-lcars-button-picard:
           hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
           unavailable: '[[[ return variables.card.color.unavailable ]]]'
         padding:
-          top: 0px
+          top: 3px
           left: 10px
           right: 10px
-          bottom: 5px
+          bottom: 0px
       name:
         font_weight: normal
         font_size: 22px
@@ -55,10 +55,10 @@ cb-lcars-button-picard:
           hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
           unavailable: '[[[ return variables.card.color.unavailable ]]]'
         padding:
-          top: 0px
+          top: 3px
           left: 10px
           right: 10px
-          bottom: 5px
+          bottom: 0px
     icon:
       color:
         default: null

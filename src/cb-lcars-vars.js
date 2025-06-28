@@ -3,8 +3,11 @@ const packageJson = require('../package.json');
 export const CBLCARS_VERSION = packageJson.version;
 export const project_url = "https://cb-lcars.unimatrix01.ca";
 
-//Antonio font url
-export const font_url = 'https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap';
+export const font_url = [
+        '/hacsfiles/cb-lcars/fonts/font-face-antonio.css',
+        '/hacsfiles/cb-lcars/fonts/font-face-jeffries.css',
+        '/hacsfiles/cb-lcars/fonts/font-face-microgramma-ext.css'
+    ]
 
 //CB-LARS yaml configuration files (templates, strategies, editor forms, etc.)
 export const templates_uri = '/hacsfiles/cb-lcars/cb-lcars-lovelace.yaml';
