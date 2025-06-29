@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.1
+  version: 2025.07.2-beta1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -570,7 +570,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 7px
+            top: 0px
             left: 10px
             right: 10px
             bottom: 5px
@@ -588,7 +588,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 7px
+            top: 0px
             left: 10px
             right: 10px
             bottom: 5px
@@ -606,7 +606,7 @@ cblcars_card_templates:
           font_size: 22px
           align_items: center
           padding:
-            top: 7px
+            top: 0px
             left: 10px
             right: 10px
             bottom: 5px
@@ -7429,7 +7429,7 @@ cblcars_card_templates:
         label:
           font_size: 20px
           font_weight: normal
-          font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
+          font_family: '''Antonio'', Arial, sans-serif'
           align: left
           align_items: center
           justify: center
@@ -7451,7 +7451,7 @@ cblcars_card_templates:
         name:
           font_size: 20px
           font_weight: normal
-          font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
+          font_family: '''Antonio'', Arial, sans-serif'
           align: left
           align_items: center
           justify: center
@@ -7473,7 +7473,7 @@ cblcars_card_templates:
         state:
           font_size: 20px
           font_weight: normal
-          font_family: 'cb-lcars_antonio,Antonio,Arial,sans-serif'
+          font_family: '''Antonio'', Arial, sans-serif'
           align: left
           align_items: center
           justify: center
@@ -9002,7 +9002,7 @@ cblcars_card_templates:
             top: 0px
             left: 10px
             right: 10px
-            bottom: 0px
+            bottom: 5px
         state:
           font_weight: normal
           font_size: 22px
@@ -9017,10 +9017,10 @@ cblcars_card_templates:
             hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
           padding:
-            top: 3px
+            top: 0px
             left: 10px
             right: 10px
-            bottom: 0px
+            bottom: 5px
         name:
           font_weight: normal
           font_size: 22px
@@ -9035,10 +9035,10 @@ cblcars_card_templates:
             hvac_cool: '[[[ return variables.card.color.hvac_cool ]]]'
             unavailable: '[[[ return variables.card.color.unavailable ]]]'
           padding:
-            top: 3px
+            top: 0px
             left: 10px
             right: 10px
-            bottom: 0px
+            bottom: 5px
       icon:
         color:
           default: null
