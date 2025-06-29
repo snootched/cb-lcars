@@ -112,11 +112,24 @@ The following should be installed and working in your Home Assistant instance - 
 ### 2. HA-LCARS Theme - Setup and Customizations
 
 #### Fonts
-CB-LCARS now ships with local versions of Antonio, Microgramma and Jeffries.
+
+As part of HA-LCARS setup, when adding the font resource, use a slightly updated Antonio font resource string.<br>
+
+This will include weights 100-700 allowing for more thinner/lighter text as seen in Picard (some displays use really thin font, 100 or 200)
+
+Substitute the following resource string when setting up font in HA-LCARS theme:
+`https://fonts.googleapis.com/css2?family=Antonio:wght@100..700&display=swap`
+
+> **Note:**  If the font is missing, the card will attempt to load it dynamically from the above URL.)
+
+<br>
+
+**Additional Fonts**
+
+CB-LCARS ships with local versions of Microgramma and Jeffries.
 
 These fonts are added automatically to the page via stylesheets and use custom names as to not conflict with any existing fonts.
 
-- `cb-lcars_antonio`
 - `cb-lcars_microgramma`
 - `cb-lcars_jeffries`
 
