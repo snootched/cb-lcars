@@ -321,9 +321,8 @@ state:
 
 ## Debugging and Tips
 
-- Enable browser console logging to see which matcher is triggered (`variables.__cblcarsLog`).
-- Use the UI editor to experiment with custom states and see results live.
-- If no custom matcher matches, the card falls back to built-in state logic.
+- ,,,
+
 
 ---
 
