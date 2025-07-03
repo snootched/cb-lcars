@@ -23,7 +23,6 @@
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
   - [States](#states)
-    - [Advanced: Overriding State Matching and Styles](#advanced-overriding-state-matching-and-styles)
   - [Joining with a Symbiont \[Card Encapsulation\]](#joining-with-a-symbiont-card-encapsulation)
     - [Imprinting](#imprinting)
       - [User card-mod styles](#user-card-mod-styles)
@@ -194,6 +193,7 @@ State styles can be applied to components such as:
 | `heat` (hvac/climate entity) | `hvac_heat:`           | `id: state_heat`        |
 | `cool` (hvac/climate entity) | `hvac_cool:`           | `id: state_cool`        |
 | `unavailable` `unknown`      | `unavailable:`         | `id: state_unavailable` |
+| Custom match (see docs)      | *(user-defined)*       | `id: state_custom`      |
 
 > **Tip**
 > When using Light entities, you can choose to have your colour > match the light's current colour.  You can choose this from
@@ -234,49 +234,9 @@ variables:
         unavailable: var(--lcars-card-button-unavailable)
 ```
 
-### Advanced: Overriding State Matching and Styles
-
-<details>
-
-CB-LCARS cards use the state-matching system from [custom-button-card](https://github.com/custom-cards/button-card), allowing you to override how states are matched and styled on a per-card basis. This is useful if you want to treat a specific entity state as "active" or "inactive", or apply custom styles for a particular value.
-
-You can define multiple custom matchers for different states, and override or extend
-the default styles as needed.
-
-You can specify a custom state matcher in your card configuration using the `state:` block. Each matcher can define:
-- The value to match (e.g., a specific string or number)
-- The styles to apply when matched
-- The `id` field, which determines which state style block (from the table above) will be used for styling
-
-**How to use the `id` field:**
-The `id` value should match one of the state IDs listed in the table above (e.g., `state_on`, `state_off`, `state_unavailable`, etc.). This tells the card which style block to apply when your custom matcher is triggered. For example, if you want your custom state to use the same styles as the "active" state, set `id: state_on`.
-
-If you want to apply additional or different styles for your custom state, you can do so in the `styles` section of the matcher.
-
-For example, to treat the state `"armed_home"` as `active`
-
-```yaml
-type: custom:cb-lcars-button-card
-entity: alarm_control_panel.home_alarm
-state:
-  - value: "armed_home"
-    operator: "=="
-    id: state_on  # This links to the 'active' style block
-    variables:    # Variable overrides
-    styles:       # Style overrides if not already taken care of with variables
-      ...
-  - operator: '=='    # add more blocks if you do not want to use one of the builtin state blocks
-    value: "my_value"
-    styles:
-      card:
-        - background-color: red
-```
-
-> **Tip:**
-> You can use advanced state matching features from custom-button-card, including templates and complex matchers, to create highly dynamic and flexible state handling for your cards.
-> Please see the [States/Operators](https://github.com/custom-cards/button-card?tab=readme-ov-file#available-operators) in `custom-button-card` documentation.
-
-</details>
+> **Advanced State Matching**
+>
+> CB-LCARS supports advanced state matching and styling using the `state_custom` system. This allows you to define custom state matchers (using value, range, regex, etc.) and apply custom styles or variables when matched. See [doc/cb-lcars-state-system.md](doc/cb-lcars-state-system.md) for full details, usage, and examples.
 
 ---
 
