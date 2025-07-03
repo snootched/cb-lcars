@@ -1,0 +1,1763 @@
+{
+  "tabs": [
+    {
+      "label": "DPAD Defaults",
+      "content": [
+        {
+          "type": "Section",
+          "label": "DPAD Defaults",
+          "outlined": true,
+          "leftChevron": false,
+          "expanded": true,
+          "headerLevel": 4,
+          "icon": "mdi:tune-vertical",
+          "rows": [
+            {
+              "type": "Section",
+              "label": "Colours",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:select-color",
+              "noCollapse": false,
+              "expanded": false,
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "These colours are used as defaults for the DPAD buttons.\nYou can override these colours for each button individually.\n\nQuandrant colours are inverted from DPAD button colours by default."
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.__defs_dpad.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.__defs_dpad.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.__defs_dpad.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.__defs_dpad.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.__defs_dpad.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.__defs_dpad.color.background.inactive"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Size",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:resize",
+              "noCollapse": false,
+              "expanded": false,
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "By default the DPAD will autosize to fit the card dimensions.\nYou can override this behavior by setting a fixed size here."
+                    },
+                    {
+                      "label": "DPAD Size",
+                      "configValue": "variables.card.size",
+                      "disabled": false,
+                      "required": false,
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 100,
+                          "max": 1000,
+                          "step": 10,
+                          "mode": "slider",
+                          "unit_of_measurement": "px",
+                          "slider_ticks": false
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "DPAD Buttons",
+      "content": [
+        {
+          "type": "Section",
+          "label": "DPAD Buttons",
+          "outlined": true,
+          "leftChevron": false,
+          "expanded": true,
+          "headerLevel": 4,
+          "icon": "mdi:button-pointer",
+          "rows": [
+            {
+              "type": "Section",
+              "label": "Up Button",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:gamepad-up",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.up.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.up.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.up.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.up.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Down Button",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:gamepad-down",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.down.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.down.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.down.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.down.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Left Button",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:gamepad-left",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.left.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.left.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.left.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.left.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.left.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.left.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Right Button",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:gamepad-right",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.right.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.right.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.right.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.right.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.right.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.right.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Center Button",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:gamepad-round",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.center.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.center.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.center.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.center.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.center.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.center.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.center.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.center.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.center.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.center.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Upper Left Quadrant",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:numeric-1-circle",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.up_left.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up_left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up_left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up_left.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up_left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up_left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up_left.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.up_left.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.up_left.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.up_left.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Upper Right Quadrant",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:numeric-2-circle",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.up_right.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up_right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up_right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up_right.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.up_right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.up_right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.up_right.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.up_right.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.up_right.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.up_right.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Lower Left Quadrant",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:numeric-3-circle",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.down_left.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down_left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down_left.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down_left.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down_left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down_left.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down_left.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.down_left.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.down_left.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.down_left.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Lower Right Quadrant",
+              "outlined": true,
+              "leftChevron": false,
+              "expanded": false,
+              "headerLevel": 4,
+              "icon": "mdi:numeric-4-circle",
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "label": "Entity",
+                      "configValue": "variables.dpad.down_right.entity",
+                      "required": true,
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Active</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down_right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down_right.color.background.active",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down_right.color.background.active"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>State: Inctive</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.dpad.down_right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.dpad.down_right.color.background.inactive",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.dpad.down_right.color.background.inactive"
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Actions",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:gesture-double-tap",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "type": "Section",
+                      "label": "Tap Action",
+                      "icon": "mdi:gesture-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Tap Action",
+                              "configValue": "variables.dpad.down_right.tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Double-Tap Action",
+                      "icon": "mdi:gesture-double-tap",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "controls": [
+                            {
+                              "label": "Double-tap Action",
+                              "configValue": "variables.dpad.down_right.double_tap_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Hold Action",
+                      "icon": "mdi:gesture-tap-hold",
+                      "outline": true,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "label": "Hold Action",
+                              "configValue": "variables.dpad.down_right.hold_action",
+                              "type": "Selector",
+                              "selector": {
+                                "ui_action": null
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "css": {
+    "mergeUserStyles": true,
+    "cssText": ".form-control {\n  padding: 2px 8px 2px 8px;\n}\n.form-row {\n  grid-template-columns: 100%;\n}\n.form-row.two-controls {\n  grid-template-columns: 50% 50%;\n}\n"
+  }
+}

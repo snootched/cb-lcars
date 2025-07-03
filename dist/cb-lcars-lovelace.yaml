@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.2-beta1
+  version: 2025.07.3-beta1
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -133,8 +133,10 @@ cblcars_card_templates:
         border:
           top:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
           bottom:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
   cb-lcars-button-bullet-right:
     template: cb-lcars-button-lozenge-right
     variables:
@@ -142,8 +144,10 @@ cblcars_card_templates:
         border:
           top:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
           bottom:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
   cb-lcars-header-base:
     template:
       - cb-lcars-button-base
@@ -4640,11 +4644,11 @@ cblcars_card_templates:
       card:
         border:
           top:
-            left_radius: null
-            right_radius: null
+            left_radius: var(--ha-card-border-radius)
+            right_radius: var(--ha-card-border-radius)
           bottom:
-            left_radius: null
-            right_radius: null
+            left_radius: var(--ha-card-border-radius)
+            right_radius: var(--ha-card-border-radius)
       icon:
         border:
           left:
@@ -7406,8 +7410,10 @@ cblcars_card_templates:
         border:
           top:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
           bottom:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
   cb-lcars-button-capped-right:
     template: cb-lcars-button-lozenge-right
     variables:
@@ -7415,14 +7421,31 @@ cblcars_card_templates:
         border:
           top:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
           bottom:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
   cb-lcars-base:
     template:
       - cb-lcars-functions
       - cb-lcars-actions-disable
     label: '[[[ return variables.label ]]]'
     entity: '[[[ return variables.entity ]]]'
+    triggers_update: |
+      [[[
+        // Start with the main entity
+        let entities = [];
+        if (variables.entity) entities.push(variables.entity);
+        // Add all entities from custom state matches
+        if (variables.custom_states?.states) {
+          variables.custom_states.states.forEach(entry => {
+            if (entry.entity && !entities.includes(entry.entity)) {
+              entities.push(entry.entity);
+            }
+          });
+        }
+        return entities;
+      ]]]
     variables:
       label: ' '
       text:
@@ -7633,9 +7656,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.label.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.label.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.top) + " - " + variables.__get_num_with_unit(variables.text.label.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.label.padding.top) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.label.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.label.color.default ]]]'
         - font-size: |
             [[[
@@ -7645,12 +7676,25 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.label.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.label.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.right)
+            ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       state:
         - display: flex
         - justify-content: '[[[ return variables.text.state.justify ]]]'
@@ -7665,9 +7709,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.left) + " - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.state.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.state.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.top) + " - " + variables.__get_num_with_unit(variables.text.state.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.state.padding.top) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.state.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.state.color.default ]]]'
         - font-size: |
             [[[
@@ -7677,12 +7729,25 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.state.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.state.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.right)
+            ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       name:
         - display: flex
         - justify-content: '[[[ return variables.text.name.justify ]]]'
@@ -7697,9 +7762,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.left) + " - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.name.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.name.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.top) + " - " + variables.__get_num_with_unit(variables.text.name.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.name.padding.top) + " -
+            " +
+            variables.__get_num_with_unit(variables.text.name.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.name.color.default ]]]'
         - font-size: |
             [[[
@@ -7709,12 +7782,24 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.name.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.name.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.right) ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       custom_fields:
         animation:
           - display: flex
@@ -7788,6 +7873,453 @@ cblcars_card_templates:
                 variables.__get_num_with_unit(variables.card.border.right.size)
               ]]]
     state:
+      - id: state_custom
+        operator: template
+        value: |
+          [[[
+            if (!variables.custom_states?.enabled) return false;
+            const matches = variables.custom_states.states || [];
+            // Default to global entity and attribute
+            let mainEntity = entity;
+            let value = entity?.state;
+            if (variables.attribute && entity?.attributes && entity.attributes.hasOwnProperty(variables.attribute)) {
+              value = entity.attributes[variables.attribute];
+              // Special handling for brightness: convert 0-255 to 0-100 percentage
+              if (variables.attribute === 'brightness' && value !== undefined && value !== null && !isNaN(parseFloat(value))) {
+                value = (parseFloat(value) / 256) * 100;
+              }
+            }
+            for (const entry of matches) {
+              // Use per-match entity if specified, else global
+              let matchEntity = mainEntity;
+              if (entry.entity && states[entry.entity]) {
+                matchEntity = states[entry.entity];
+              }
+              // Use per-match attribute if specified, else global
+              let matchValue = matchEntity?.state;
+              // Per-match attribute override (with brightness handling)
+              if (entry.attribute && matchEntity?.attributes && matchEntity.attributes.hasOwnProperty(entry.attribute)) {
+                matchValue = matchEntity.attributes[entry.attribute];
+                if (entry.attribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
+                  matchValue = (parseFloat(matchValue) / 256) * 100;
+                }
+              } else if (variables.attribute && matchEntity?.attributes && matchEntity.attributes.hasOwnProperty(variables.attribute)) {
+                matchValue = matchEntity.attributes[variables.attribute];
+                if (variables.attribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
+                  matchValue = (parseFloat(matchValue) / 256) * 100;
+                }
+              }
+              // If no match value is defined, skip this entry
+              if (matchValue === undefined || matchValue === null) {
+                // No value to match against
+                continue;
+              }
+              // Prepare numeric value for this match
+              let matchNumericValue = matchValue;
+              if (typeof matchValue === "string" && !isNaN(Number(matchValue))) {
+                matchNumericValue = Number(matchValue);
+              }
+              // 1. equals: strict match (string or number)
+              if ("equals" in entry && entry.equals !== undefined) {
+                if (matchValue == entry.equals) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 2. not_equals: value must not match
+              if ("not_equals" in entry && entry.not_equals !== undefined) {
+                if (matchValue != entry.not_equals) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 3. from/to: numeric range or single-sided match
+              if ("from" in entry || "to" in entry) {
+                if (typeof matchNumericValue === "number" && !isNaN(matchNumericValue)) {
+                  if (
+                    (("from" in entry ? matchNumericValue >= entry.from : true)) &&
+                    (("to" in entry ? matchNumericValue <= entry.to : true))
+                  ) {
+                    this._config.cblcars_custom_match = entry;
+                    return true;
+                  }
+                }
+              }
+              // 4. in: match if value is in provided array
+              if ("in" in entry && Array.isArray(entry.in)) {
+                if (entry.in.includes(matchValue)) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 5. not_in: match if value is NOT in provided array
+              if ("not_in" in entry && Array.isArray(entry.not_in)) {
+                if (!entry.not_in.includes(matchValue)) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 6. regex: match if value matches regex (string only)
+              if ("regex" in entry && typeof entry.regex === "string") {
+                try {
+                  const re = new RegExp(entry.regex);
+                  if (typeof matchValue === "string" && re.test(matchValue)) {
+                    this._config.cblcars_custom_match = entry;
+                    return true;
+                  }
+                } catch (e) {
+                  // Invalid regex, ignore
+                  variables.__cblcarsLog("error",`Invalid regex: ${e}`);
+                }
+              }
+            }
+            // No match found
+            return false;
+          ]]]
+        styles:
+          card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'custom';
+                  return 'state_custom';
+                ]]]
+            - height: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.height ??
+                    variables.card.height
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.height ?? variables.card.height) : "100%";
+                ]]]
+            - min-height: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.min_height ??
+                    variables.card.min_height
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.min_height ?? variables.card.min_height) : undefined;
+                ]]]
+            - width: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.width ??
+                    variables.card.width
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.width ?? variables.card.width) : undefined;
+                ]]]
+            - border-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.top || variables.card.border.top;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.left || variables.card.border.left;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.right || variables.card.border.right;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.bottom || variables.card.border.bottom;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - background-color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.color?.background?.default ??
+                    variables.card.color.background.default
+                  );
+                ]]]
+            - border-top-left-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.top?.left_radius ?? variables.card.border.top.left_radius
+                  ) + " !important";
+                ]]]
+            - border-top-right-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.top?.right_radius ?? variables.card.border.top.right_radius
+                  ) + " !important";
+                ]]]
+            - border-bottom-left-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                      return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.bottom?.left_radius ?? variables.card.border.bottom.left_radius
+                  ) + " !important";
+                ]]]
+            - border-bottom-right-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                    return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.bottom?.right_radius ?? variables.card.border.bottom.right_radius
+                  ) + " !important";
+                ]]]
+            - position: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.card?.position ?? "relative";
+                ]]]
+          label:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.label?.color?.default ??
+                    variables.text.label.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.transform ?? variables.text.label.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.justify ?? variables.text.label.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.font_size ?? variables.text.label.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.font_weight ?? variables.text.label.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.font_family ?? variables.text.label.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.top ?? variables.text.label.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.bottom ?? variables.text.label.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.left ?? variables.text.label.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.right ?? variables.text.label.padding.right
+                  );
+                ]]]
+          state:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.state?.color?.default ??
+                    variables.text.state.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.transform ?? variables.text.state.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.justify ?? variables.text.state.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.font_size ?? variables.text.state.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.font_weight ?? variables.text.state.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.font_family ?? variables.text.state.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.top ?? variables.text.state.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.bottom ?? variables.text.state.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.left ?? variables.text.state.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.right ?? variables.text.state.padding.right
+                  );
+                ]]]
+            - outline: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.inner?.width ?? variables.card.border.inner.width
+                  ) + " solid " + (
+                    match?.settings?.card?.border?.color ?? variables.card.border.color ?? variables.card.color.default
+                  );
+                ]]]
+          name:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.name?.color?.default ??
+                    variables.text.name.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.transform ?? variables.text.name.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.justify ?? variables.text.name.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.font_size ?? variables.text.name.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.font_weight ?? variables.text.name.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.font_family ?? variables.text.name.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.top ?? variables.text.name.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.bottom ?? variables.text.name.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.left ?? variables.text.name.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.right ?? variables.text.name.padding.right
+                  );
+                ]]]
+            - outline: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.inner?.width ?? variables.card.border.inner.width
+                  ) + " solid " + (
+                    match?.settings?.card?.border?.color ?? variables.card.border.color ?? variables.card.color.default
+                  );
+                ]]]
+          icon:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.icon?.color?.inactive ??
+                    match?.settings?.icon?.color?.default ??
+                    variables.icon.color.inactive ?? variables.icon.color.default
+                  );
+                ]]]
+            - background: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.icon?.color?.background?.default ??
+                    variables.icon.color.background.default ?? variables.card.color.background.inactive
+                  );
+                ]]]
       - id: state_on
         operator: template
         value: |
@@ -7822,20 +8354,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           label:
             - color: '[[[ return variables.text.label.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           name:
             - color: '[[[ return variables.text.name.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.active || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.active ||
+                variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.active || variables.card.color.background.active ]]]
+                [[[ return variables.icon.color.background.active ||
+                variables.card.color.background.active ]]]
       - id: state_off
         operator: template
         value: |
@@ -7870,20 +8410,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           label:
             - color: '[[[ return variables.text.label.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           name:
             - color: '[[[ return variables.text.name.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.inactive ||
+                variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]
       - id: state_heat
         value: heat
         styles:
@@ -7914,15 +8462,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
       - id: state_cool
         value: cool
         styles:
@@ -7953,15 +8507,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
       - id: state_unavailable
         operator: template
         value: |
@@ -7995,20 +8555,31 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           label:
             - color: '[[[ return variables.text.label.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           name:
             - color: '[[[ return variables.text.name.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.unavailable || variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.unavailable ||
+                variables.icon.color.inactive || variables.icon.color.default
+                ]]]
             - background: >-
-                [[[ return variables.icon.color.background.unavailable || variables.card.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.unavailable ||
+                variables.card.color.background.unavailable ||
+                variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]
       - id: state_zero
         operator: template
         value: |
@@ -8044,15 +8615,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
       - id: state_nonzero
         operator: template
         value: |
@@ -8088,15 +8665,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
       - id: state_default
         operator: default
         styles:
@@ -8126,20 +8709,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           label:
             - color: '[[[ return variables.text.label.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           name:
             - color: '[[[ return variables.text.name.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.inactive ||
+                variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.default ||
+                variables.card.color.background.inactive ]]]
   cb-lcars-symbiont:
     template:
       - cb-lcars-functions
