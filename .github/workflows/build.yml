@@ -34,6 +34,14 @@ jobs:
           npm install
           npx webpack
 
+      - name: Generate per-card JSON editor definitions
+        run: npm run generate-editor-json
+
+      - name: Copy editor JSON files to dist
+        run: |
+          mkdir -p ./dist/editor
+          cp -v ./src/editor/*.json ./dist/editor/
+
       - name: Create full yaml with version and manage_config as cb-lcars-lovelace.yaml
         run: |
           mkdir -p ./dist
@@ -56,7 +64,7 @@ jobs:
           format: parsable
           config_data: "{ rules: { line-length: disable, trailing-spaces: disable } }"
 
-      - name: Upload YAML files
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v4.3.6
         with:
           name: dist-files

@@ -1,6 +1,5 @@
 import * as CBLCARS from '../cb-lcars-vars.js'
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
-import { readYamlFile } from '../utils/cb-lcars-fileutils.js';
 
 import { html, css, unsafeCSS } from 'lit';
 
@@ -8,14 +7,12 @@ import EditorForm from 'ha-editor-formbuilder-yaml';
 
 export class CBLCARSCardEditor extends EditorForm {
 
-    _formDefinitions;
     _formControls;
     _cardType;
 
     constructor(cardType) {
         super();
 
-        this._formDefinitions = {};
         this._formControls = {};
         this._cardType = "";
         this._cardType = cardType;
@@ -27,23 +24,20 @@ export class CBLCARSCardEditor extends EditorForm {
 
     async _initialize() {
         try {
-            const formDefinitions = await readYamlFile(CBLCARS.card_editor_uri)
-            cblcarsLog('debug','formDefinitions: ',formDefinitions);
-            this._formDefinitions = formDefinitions;
-            //console.debug('this._formDefinitions: ',this._formDefinitions)
+            // Fetch only the relevant JSON file for this card type
+            const response = await fetch(`${CBLCARS.card_editor_uri}/${this._cardType}.json`);
+            if (!response.ok) throw new Error(`Form definition not found for card type: ${this._cardType}`);
+            const formControls = await response.json();
+            cblcarsLog('debug', 'Loaded formControls:', formControls);
+            this._formControls = formControls;
 
-            //returns the content for this card type
-            this._formControls = formDefinitions[this._cardType];
-            //console.debug('this._formControls: ',this._formControls);
-
-            this._userStyles = css`${unsafeCSS((formDefinitions[this._cardType].css && formDefinitions[this._cardType].css.cssText) || '')}`;
-            //console.debug('this._userStyles: ',this._userStyles);
-            this._mergeUserStyles = formDefinitions[this._cardType]?.css?.mergeUserStyles ?? true;
-            //console.debug('this._mergeUserStyles: ',this._mergeUserStyles);
+            // Handle user styles if present
+            this._userStyles = css`${unsafeCSS((formControls.css && formControls.css.cssText) || '')}`;
+            this._mergeUserStyles = formControls?.css?.mergeUserStyles ?? true;
 
             this.requestUpdate();
         } catch(error) {
-            cblcarsLog('error','Error fetching editor form definitions: ', error);
+            cblcarsLog('error','Error fetching editor form definition: ', error);
         }
     }
 
