@@ -1313,8 +1313,8 @@ cb-lcars-base:
               + " solid " + variables.card.color.default; ]]]
         icon:
           - color: >-
-              [[[ return variables.icon.color.inactive ||
-              variables.icon.color.default ]]]
+              [[[ return variables.icon.color.default ||
+              variables.card.color.default ]]]
           - background: >-
               [[[ return variables.icon.color.background.default ||
-              variables.card.color.background.inactive ]]]
+              variables.card.color.background.default ]]]

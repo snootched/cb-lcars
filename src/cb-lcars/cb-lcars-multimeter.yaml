@@ -443,84 +443,6 @@ cb-lcars-multimeter:
       gap: 5
       bar_border_radius: 0
       bar_thickness: 10
-    z_slider: |
-      [[[
-
-        try {
-          const width = parseInt(variables.slider_track.width) || parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
-          const height = parseInt(variables.slider_track.height) || parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
-          let barWidth, barHeight;
-          // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
-          if (width <= 0 || height <= 0) {
-            //console.error(`Invalid dimensions: width=${width}, height=${height}`);
-            // Return a placeholder or empty SVG
-            return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
-          }
-          // Defaults and overrides
-          let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
-          let barOrientation = variables._vertical ? "vertical" : "horizontal";
-          let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
-          // Set defaults based on orientation
-          if (barOrientation === 'horizontal') {
-            barHeight = height; // Default to height
-            barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-          } else {
-            barWidth = width; // Default to width
-            barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-          }
-
-          let startColor, endColor;
-          if (variables._vertical) {
-            startColor = variables.entity_match_slider_start
-              ? variables.entity_color
-              : variables.slider_track.gradient_start_color.trim();
-            endColor = variables.entity_match_slider_end
-              ? variables.entity_color
-              : variables.slider_track.gradient_end_color.trim();
-          } else {
-            startColor = variables.entity_match_slider_start
-              ? variables.entity_color
-              : variables.slider_track.gradient_start_color.trim();
-            endColor = variables.entity_match_slider_end
-              ? variables.entity_color
-              : variables.slider_track.gradient_end_color.trim();
-          }
-
-          // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
-          const startRgb = variables.__parse_color(startColor,'rgb',this);
-          const endRgb = variables.__parse_color(endColor,'rgb',this);
-
-          function interpolateColor(color1, color2, factor) {
-            const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
-            return `rgb(${result.join(',')})`;
-          }
-          // Autocalculate numBars
-          let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
-          //numBars = numBars+1;
-
-          let bars = '';
-          let x = 0, y = 0;
-          for (let i = 0; i < numBars; i++) {
-            const factor = i / (numBars - 1);
-            const color = interpolateColor(startRgb, endRgb, factor);
-            bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
-            x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
-            y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
-          }
-
-          // Build SVG string directly
-          const svgString = `
-            <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              <g>
-                ${bars}
-              </g>
-            </svg>
-          `;
-          return svgString;
-        } catch (error) {
-          return '';
-        }
-      ]]]
     z_gauge: |
       [[[
         let minVal = variables.gauge.min;
@@ -1958,7 +1880,6 @@ cb-lcars-multimeter:
             [[[
               return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
             ]]]
-        - background: '[[[ return variables.z_slider ]]]'
         - padding-left: |
             [[[
               return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.left) + ")";
@@ -2315,7 +2236,81 @@ cb-lcars-multimeter:
       ]]]
     slider_bg: |
       [[[
-        return variables.z_slider;
+
+        try {
+          const width = parseInt(variables.slider_track.width) || parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
+          const height = parseInt(variables.slider_track.height) || parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
+          let barWidth, barHeight;
+          // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+          if (width <= 0 || height <= 0) {
+            //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+            // Return a placeholder or empty SVG
+            return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+          }
+          // Defaults and overrides
+          let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
+          let barOrientation = variables._vertical ? "vertical" : "horizontal";
+          let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
+          // Set defaults based on orientation
+          if (barOrientation === 'horizontal') {
+            barHeight = height; // Default to height
+            barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+          } else {
+            barWidth = width; // Default to width
+            barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+          }
+
+          let startColor, endColor;
+          if (variables._vertical) {
+            endColor = variables.entity_match_slider_start
+              ? variables.entity_color
+              : variables.slider_track.gradient_start_color.trim();
+            startColor = variables.entity_match_slider_end
+              ? variables.entity_color
+              : variables.slider_track.gradient_end_color.trim();
+          } else {
+            startColor = variables.entity_match_slider_start
+              ? variables.entity_color
+              : variables.slider_track.gradient_start_color.trim();
+            endColor = variables.entity_match_slider_end
+              ? variables.entity_color
+              : variables.slider_track.gradient_end_color.trim();
+          }
+
+          // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
+          const startRgb = variables.__parse_color(startColor,'rgb',this);
+          const endRgb = variables.__parse_color(endColor,'rgb',this);
+
+          function interpolateColor(color1, color2, factor) {
+            const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+            return `rgb(${result.join(',')})`;
+          }
+          // Autocalculate numBars
+          let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+          //numBars = numBars+1;
+
+          let bars = '';
+          let x = 0, y = 0;
+          for (let i = 0; i < numBars; i++) {
+            const factor = i / (numBars - 1);
+            const color = interpolateColor(startRgb, endRgb, factor);
+            bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
+            x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+            y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+          }
+
+          // Build SVG string directly
+          const svgString = `
+            <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+              <g>
+                ${bars}
+              </g>
+            </svg>
+          `;
+          return svgString;
+        } catch (error) {
+          return '';
+        }
       ]]]
     locked_bar: |
       [[[
@@ -2454,11 +2449,11 @@ cb-lcars-multimeter:
             - background: none
             - border-radius: 0
           progress:
-            - background-color: >-
+            - background-color: |-
                 [[[
                   return variables.slider.color;
                 ]]]
-            - border: >-
+            - border: |-
                 [[[
                   return variables.slider.border_width + " solid " + variables.slider.border_color;
                 ]]]
@@ -2494,7 +2489,7 @@ cb-lcars-multimeter:
           thumb:
             - visibility: |
                 [[[
-                  return (variables.slider.thumb.enabled && variables._vertical && !(variables.slider.locked)) ? 'visible' : 'hidden'
+                  return (variables.slider.thumb.enabled && variables.z_isPicardMode && !(variables.slider.locked)) ? 'visible' : 'hidden'
                 ]]]
             - width: |
                 [[[

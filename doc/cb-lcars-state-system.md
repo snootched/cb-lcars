@@ -97,9 +97,9 @@ This system enables your cards to dynamically update their appearance at runtime
 
 > **How to enable:**
 > To use custom state matchers, set `enabled: true` under `variables.custom_states`.
-> - When `enabled` is true, only `state_custom` logic is used for state matching.
-> - All other built-in states are disabled while `state_custom` is active.
-> - If no custom matcher matches, the card falls back to the default values (`state_default`).
+> - When `enabled` is true, `state_custom` logic is used for state matching first.
+> - All other built-in states are only evaluated if `state_custom` doesn't have a match.
+> - For properties not customized via the custom matcher, the default value is used.
 
 
 It provides a quick and accessible way to achieve dynamic custom styling for most common cases, without needing to write full button-card state templates.

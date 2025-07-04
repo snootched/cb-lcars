@@ -2216,7 +2216,7 @@ cb-lcars-base-controls:
               noCollapse: false
               rows:
                 - type: Section
-                  label: "Default"
+                  label: "Default Colour [no entity/state]"
                   outlined: true
                   leftChevron: false
                   headerLevel: 4
@@ -2224,7 +2224,12 @@ cb-lcars-base-controls:
                   noCollapse: true
                   expanded: true
                   rows:
-                    - cssClass: "form-row two-controls"
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Foreground</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
                       controls:
                         - <<: *colorLCARSListControl
                           configValue: "variables.icon.color.default"
@@ -2233,6 +2238,20 @@ cb-lcars-base-controls:
                     - controls:
                         - <<: *colorPreviewControl
                           configValue: "variables.icon.color.default"
+                    - controls:
+                        - type: RawHTML
+                          html: |
+                              <label>Background</label>
+                    - type: ControlRow
+                      cssClass: "form-row two-controls"
+                      controls:
+                        - <<: *colorLCARSListControl
+                          configValue: "variables.icon.color.background.default"
+                        - <<: *colorControl
+                          configValue: "variables.icon.color.background.default"
+                    - controls:
+                        - <<: *colorPreviewControl
+                          configValue: "variables.icon.color.background.default"
                 - type: Section
                   label: "State Colours"
                   outlined: true
@@ -8456,13 +8475,13 @@ cb-lcars-multimeter-card:
               expanded: false
               rows:
                 - controls:
-                    - label: "Gradient: Match [Left/Top] to Entity Colour"
+                    - label: "Gradient: Match [Left/Bottom] to Entity Colour"
                       configValue: "variables.entity_match_slider_start"
                       type: Selector
                       selector:
                         boolean:
                 - type: Section
-                  label: "Gradient - Left/Top"
+                  label: "Gradient - Left/Bottom"
                   visibilityCondition: "this._config.variables.entity_match_slider_start === false"
                   outlined: true
                   leftChevron: false
@@ -8481,13 +8500,13 @@ cb-lcars-multimeter-card:
                         - <<: *colorPreviewControl
                           configValue: "variables.slider_track.gradient_start_color"
                 - controls:
-                    - label: "Gradient: Match [Right/Bottom] to Entity Colour"
+                    - label: "Gradient: Match [Right/Top] to Entity Colour"
                       configValue: "variables.entity_match_slider_end"
                       type: Selector
                       selector:
                         boolean:
                 - type: Section
-                  label: "Slider - Right/Bottom"
+                  label: "Slider - Right/Top"
                   visibilityCondition: "this._config.variables.entity_match_slider_end === false"
                   outlined: true
                   leftChevron: false
