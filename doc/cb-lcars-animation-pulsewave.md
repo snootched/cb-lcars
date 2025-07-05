@@ -11,7 +11,7 @@ The CB-LCARS Pulsewave animation template provides a flexible animated backgroun
 ### Basic Usage
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-pulsewave
 variables:
@@ -70,7 +70,7 @@ All variables are set under `variables.animation.pulsewave`.
 ### Example 1: Default Pulsewave
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-pulsewave
 variables:
@@ -90,7 +90,7 @@ variables:
 ### Example 2: Sine Wave Pattern with Custom Heights
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-pulsewave
 variables:
