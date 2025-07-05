@@ -16,7 +16,7 @@ A flexible animated text cascade background for CB-LCARS cards. This template pr
 ### Basic Usage
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-cascade
 variables:
@@ -88,7 +88,7 @@ TODO: custom animation
 ### Example 1: Animated Cascade (Default)
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-cascade
 variables:
@@ -108,7 +108,7 @@ variables:
 ### Example 2: Niagara Pattern with Custom Colors
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-cascade
 variables:
