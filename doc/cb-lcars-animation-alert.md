@@ -16,7 +16,7 @@ It supports both built-in and user-defined presets - and even dynamic preset sel
 ### Basic Usage
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-alert
 variables:
@@ -170,7 +170,7 @@ variables:
 ![alert_condition_red](../images/screenshots/alert_condition_red.png)
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-alert
 variables:
@@ -184,7 +184,7 @@ variables:
 
 ![alert_custom_defaults](../images/screenshots/alert_condition_customize_defaults.png)
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-alert
 variables:
@@ -220,7 +220,7 @@ variables:
 ![customize_existing_preset](../images/screenshots/alert_condition_customize_presets.png)
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-alert
 variables:
@@ -243,7 +243,7 @@ variables:
 ![custom_preset](../images/screenshots/alert_condition_user_custom.png)
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-alert
 variables:

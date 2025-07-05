@@ -159,7 +159,7 @@ custom_fields:
 ### Basic Usage
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-bg-grid
 variables:
@@ -317,7 +317,7 @@ You can add as many layers as you like for complex nebula effects.
 ### Custom Nebula Layers Example
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-bg-grid
 variables:
@@ -364,7 +364,7 @@ variables:
 ### Example 1: Animated Nebula with Zoom
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-bg-grid
 variables:
@@ -409,7 +409,7 @@ variables:
 ### Example 2: Animated Starfield with Bracket Grid
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-bg-grid
 variables:
