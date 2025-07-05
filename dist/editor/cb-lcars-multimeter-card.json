@@ -4968,7 +4968,7 @@
                 {
                   "controls": [
                     {
-                      "label": "Gradient: Match [Left/Top] to Entity Colour",
+                      "label": "Gradient: Match [Left/Bottom] to Entity Colour",
                       "configValue": "variables.entity_match_slider_start",
                       "type": "Selector",
                       "selector": {
@@ -4979,7 +4979,7 @@
                 },
                 {
                   "type": "Section",
-                  "label": "Gradient - Left/Top",
+                  "label": "Gradient - Left/Bottom",
                   "visibilityCondition": "this._config.variables.entity_match_slider_start === false",
                   "outlined": true,
                   "leftChevron": false,
@@ -5026,7 +5026,7 @@
                 {
                   "controls": [
                     {
-                      "label": "Gradient: Match [Right/Bottom] to Entity Colour",
+                      "label": "Gradient: Match [Right/Top] to Entity Colour",
                       "configValue": "variables.entity_match_slider_end",
                       "type": "Selector",
                       "selector": {
@@ -5037,7 +5037,7 @@
                 },
                 {
                   "type": "Section",
-                  "label": "Slider - Right/Bottom",
+                  "label": "Slider - Right/Top",
                   "visibilityCondition": "this._config.variables.entity_match_slider_end === false",
                   "outlined": true,
                   "leftChevron": false,

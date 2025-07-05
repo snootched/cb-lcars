@@ -4087,7 +4087,7 @@
               "rows": [
                 {
                   "type": "Section",
-                  "label": "Default",
+                  "label": "Default Colour [no entity/state]",
                   "outlined": true,
                   "leftChevron": false,
                   "headerLevel": 4,
@@ -4096,6 +4096,15 @@
                   "expanded": true,
                   "rows": [
                     {
+                      "controls": [
+                        {
+                          "type": "RawHTML",
+                          "html": "<label>Foreground</label>\n"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
                       "cssClass": "form-row two-controls",
                       "controls": [
                         {
@@ -4125,6 +4134,48 @@
                         {
                           "type": "ColorPreview",
                           "configValue": "variables.icon.color.default"
+                        }
+                      ]
+                    },
+                    {
+                      "controls": [
+                        {
+                          "type": "RawHTML",
+                          "html": "<label>Background</label>\n"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "cssClass": "form-row two-controls",
+                      "controls": [
+                        {
+                          "label": "LCARS Colour",
+                          "configValue": "variables.icon.color.background.default",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                            }
+                          }
+                        },
+                        {
+                          "label": "Custom Colour",
+                          "configValue": "variables.icon.color.background.default",
+                          "type": "Selector",
+                          "selector": {
+                            "text": {
+                              "type": "color"
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "controls": [
+                        {
+                          "type": "ColorPreview",
+                          "configValue": "variables.icon.color.background.default"
                         }
                       ]
                     }
