@@ -3,7 +3,7 @@ import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/c
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
-import { loadFont } from './utils/cb-lcars-theme.js';
+import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
 import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
@@ -19,6 +19,7 @@ let stubConfig = {};
 
 // Ensure the cblcars object exists on the window object
 window.cblcars = window.cblcars || {};
+window.cblcars.loadFont = loadFont;
 
 
 
@@ -39,7 +40,7 @@ async function initializeCustomCard() {
     ];
     await Promise.all(cardImports);
 
-    loadFont();
+    loadCoreFonts();
 
     // Checks that custom element dependencies are defined for use in the cards
     if (!customElements.get('cblcars-button-card')) {

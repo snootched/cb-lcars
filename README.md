@@ -22,10 +22,6 @@
       - [Customized *CB-LCARS* Colour Scheme](#customized-cb-lcars-colour-scheme)
     - [3. Install CB-LCARS from HACS](#3-install-cb-lcars-from-hacs)
     - [4. Engage!](#4-engage)
-  - [States](#states)
-  - [Joining with a Symbiont \[Card Encapsulation\]](#joining-with-a-symbiont-card-encapsulation)
-    - [Imprinting](#imprinting)
-      - [User card-mod styles](#user-card-mod-styles)
   - [CB-LCARS Cards](#cb-lcars-cards)
     - [LCARS Elbows](#lcars-elbows)
     - [LCARS Buttons](#lcars-buttons)
@@ -33,6 +29,10 @@
       - [Ranges](#ranges)
     - [LCARS Labels](#lcars-labels)
     - [LCARS DPAD](#lcars-dpad)
+  - [States](#states)
+  - [Joining with a Symbiont \[Card Encapsulation\]](#joining-with-a-symbiont-card-encapsulation)
+    - [Imprinting](#imprinting)
+      - [User card-mod styles](#user-card-mod-styles)
   - [Animations and Effects](#animations-and-effects)
   - [Screenshots and Examples](#screenshots-and-examples)
     - [Example: Tablet Dashboard](#example-tablet-dashboard)
@@ -164,125 +164,6 @@ These are the colours used for the ha-lcars defined variables.
 Add CB-LCARS cards to your dashboard just like any other card.
 </details>
 
-
----
-
-
-## States
-
-The cards support changing the styles/colours of independent components based on the state of the entity.
-
-If no entity is defined (no state), `default` will be used.  If the entity is unavailable or unknown, then `unavailable` will be used.
-
-Each of these is configurable in the UI editor for the cards.
-
-State styles can be applied to components such as:
-- Borders
-- Backgrounds
-- Text
-- Buttons
-- etc.
-
-| Entity State Value           |  State Variable Name   |  State ID               |
-|------------------------------|------------------------|--------------------------
-| N/A - no entity assigned     | `default:`             | `id: state_default`     |
-| `on` `open` `locked`         | `active:`              | `id: state_on`          |
-| `off` `closed` `unlocked`    | `inactive:`            | `id: state_off`         |
-| Number (zero): `0`           | `zero:`                | `id: state_zero`        |
-| Number (non-zero)            | `non_zero:`            | `id: state_nonzero`     |
-| `heat` (hvac/climate entity) | `hvac_heat:`           | `id: state_heat`        |
-| `cool` (hvac/climate entity) | `hvac_cool:`           | `id: state_cool`        |
-| `unavailable` `unknown`      | `unavailable:`         | `id: state_unavailable` |
-| Custom match (see docs)      | *(user-defined)*       | `id: state_custom`      |
-
-> **Tip**
-> When using Light entities, you can choose to have your colour > match the light's current colour.  You can choose this from
-> the colour picker list, or by using the variable `var(--custom-button-light-color)`
-
-Example of configuration (editable via UI):
-```yaml
-variables:
-  text:
-    label:
-      color:
-        default: var(--primary-text-color)
-        active: var(--lcars-ui-secondary)
-        inactive: var(--lcars-ui-tertiary)
-        zero: var(--lcars-green)
-        non_zero: var(--lcars-blue)
-        hvac_heat: var(--lcars-orange)
-        hvac_cool: var(--lcars-blue)
-        unavailable: var(--lcars-card-button-unavailable)
-  card:
-    color:
-      default: var(--lcars-card-top-color, var(--picard-dark-gray))
-      active: var(--lcars-ui-secondary)
-      inactive: var(--lcars-ui-tertiary)
-      zero: var(--lcars-green)
-      non_zero: var(--lcars-blue)
-      hvac_heat: var(--lcars-orange)
-      hvac_cool: var(--lcars-blue)
-      unavailable: var(--lcars-card-button-unavailable)
-      background:
-        default: var(--lcars-card-top-color, var(--picard-dark-gray))
-        active: var(--lcars-ui-secondary)
-        inactive: var(--lcars-ui-tertiary)
-        zero: var(--lcars-green)
-        non_zero: var(--lcars-blue)
-        hvac_heat: var(--lcars-orange)
-        hvac_cool: var(--lcars-blue)
-        unavailable: var(--lcars-card-button-unavailable)
-```
-
-> **Advanced State Matching**
->
-> CB-LCARS supports advanced state matching and styling using the `state_custom` system. This allows you to define custom state matchers (using value, range, regex, etc.) and apply custom styles or variables when matched. See [doc/cb-lcars-state-system.md](doc/cb-lcars-state-system.md) for full details, usage, and examples.
-
----
-
-## Joining with a Symbiont [Card Encapsulation]
-
-CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Joining enables you to imprint some CB-LCARS styling to the encapsulated card.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
-
-Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  After joining, you can adjust settings, imprint host styles onto the symbiont, and even supply your own additional `card-mod` configuration to the symbiont.
-
-### Imprinting
-
-Currently, imprinting will apply the host background colours and text font, size, and colours to the symbiont.  This feature uses some basic `card-mod` configuration targeted primarily to `ha-card`.
-
-#### User card-mod styles
-You can provide your own `card-mod` configuration which will append to the host configuration.  You can also override any host styling with your `card-mod` config.
-
-Card-mod templating is supported and the host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
-
-```yaml
-Example accessing the host card's card default colour.
-
-variables:
-  symbiont:
-    enabled: true
-    imprint_host: true
-    symbiont_user_style: |
-      ha-card {
-        background: {{ config.variables.card.color.default }} !important;
-      }
-```
-
-<br>
-
-**Example - Join with Entities Card**
-
-A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font colour and size, background)
-
-We start with our basic entities card
-![unjoined](images/screenshots/symbiont-unjoined.png)
-
-We join the card as our symbiont:
-
-![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
-
-We then imprint the host card styles onto the symbiont:
-![joined-imprinted](images/screenshots/symbiont-joined-imprinted.png)
 
 ---
 
@@ -439,9 +320,65 @@ variables:
 
 ---
 
+## States
+
+CB-LCARS cards allow you to dynamically change the appearance of card components—such as borders, backgrounds, text, and icons — based on the state of an entity or attribute. You can use built-in state options for common scenarios, or define advanced custom state conditions for more granular control.
+
+For full details on configuring states, including advanced matching (by value, range, regex, etc.) and applying custom styles, see the dedicated documentation: [doc/cb-lcars-state-system.md](doc/cb-lcars-state-system.md).
+
+---
+
+## Joining with a Symbiont [Card Encapsulation]
+
+CB-LCARS has graduated the Initiate program and can become a host to a symbiont card.  Joining enables you to imprint some CB-LCARS styling to the encapsulated card.  Most common case would be with the Elbow card to add LCARS borders - but much more is possible.
+
+Just supply your symbiont card configuration into the editor and it will inset the the symbiont into the CB-LCARS host card.  After joining, you can adjust settings, imprint host styles onto the symbiont, and even supply your own additional `card-mod` configuration to the symbiont.
+
+### Imprinting
+
+Currently, imprinting will apply the host background colours and text font, size, and colours to the symbiont.  This feature uses some basic `card-mod` configuration targeted primarily to `ha-card`.
+
+#### User card-mod styles
+You can provide your own `card-mod` configuration which will append to the host configuration.  You can also override any host styling with your `card-mod` config.
+
+Card-mod templating is supported and the host card's `variables:` block and `entity` are made available to the symbiont.  These can be accessed with standard card-mod jinja templating.
+
+```yaml
+Example accessing the host card's card default colour.
+
+variables:
+  symbiont:
+    enabled: true
+    imprint_host: true
+    symbiont_user_style: |
+      ha-card {
+        background: {{ config.variables.card.color.default }} !important;
+      }
+```
+
+<br>
+
+**Example - Join with Entities Card**
+
+A regular entities card will join with a host CB-LCARS Elbow card and have the host styles imprinted (font, font colour and size, background)
+
+We start with our basic entities card
+![unjoined](images/screenshots/symbiont-unjoined.png)
+
+We join the card as our symbiont:
+
+![joined-not-imprinted](images/screenshots/symbiont-joined-not-imprinted.png)
+
+We then imprint the host card styles onto the symbiont:
+![joined-imprinted](images/screenshots/symbiont-joined-imprinted.png)
+
+---
+
 ## Animations and Effects
 
 CB-LCARS includes a growing set of highly customizable animations and effects for your cards. Each animation offers extensive configuration options, accessible via the UI. For full details and usage instructions, see the dedicated documentation for each animation—just click the template links in the table below.
+
+It's recommended to use either the Elbow or Button card as the base card to host your animation.
 
 - [ALERT](doc/cb-lcars-animation-alert.md)
 - [Data Cascade](doc/cb-lcars-animation-cascade.md)
@@ -586,6 +523,10 @@ As well, some shout-outs and attributions to these great projects:
 [meWho Titan.DS](https://www.mewho.com/titan) for such a cool interactive design demo and colour reference.
 
 [TheLCARS.com]( https://www.thelcars.com) a great LCARS design reference, and the base reference for Data Cascade and Pulsewave animations.
+
+[wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browser console - super handy.
+
+[lcars](https://github.com/joernweissenborn/lcars) for the SVG used inline in the dpad control.
 
 [wfurphy creative-button-card-templates](https://github.com/wfurphy/creative-button-card-templates) for debugging code template that dumps variables to the browser console - super handy.
 
