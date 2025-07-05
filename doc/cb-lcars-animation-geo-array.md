@@ -16,7 +16,7 @@ GEO Array is a customizable animated background for CB-LCARS cards, supporting a
 ### Basic Usage
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-geo-array
 variables:
@@ -85,7 +85,7 @@ Variables under `variables.animation.geo_array.shape`
 ### Example 1: Animated Squares (Default)
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-geo-array
 variables:
@@ -106,7 +106,7 @@ variables:
 ### Example 2: Animated Circles with Niagara Pattern
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-geo-array
 variables:
@@ -128,7 +128,7 @@ variables:
 ### Example 3: Custom Animation Pattern
 
 ```yaml
-type: custom:button-card
+type: custom:cb-lcars-elbow-card
 template:
   - cb-lcars-animation-geo-array
 variables:
