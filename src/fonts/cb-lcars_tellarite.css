@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_tellarite';
+    src: url('/hacsfiles/cb-lcars/fonts/tellarite-opad-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/tellarite-opad-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}

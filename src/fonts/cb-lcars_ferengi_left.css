@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_ferengi_left';
+    src: url('/hacsfiles/cb-lcars/fonts/startrek_ferengi_l_engi_1l-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/startrek_ferengi_l_engi_1l-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}

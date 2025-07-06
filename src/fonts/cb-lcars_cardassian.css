@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_cardassian';
+    src: url('/hacsfiles/cb-lcars/fonts/startrek_cardassian_k_canon_based-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/startrek_cardassian_k_canon_based-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}

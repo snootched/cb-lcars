@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_romulan';
+    src: url('/hacsfiles/cb-lcars/fonts/romulan_regular-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/romulan_regular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
