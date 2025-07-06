@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_eurostile';
+    src: url('/hacsfiles/cb-lcars/fonts/eurostile_oblique-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/eurostile_oblique-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}

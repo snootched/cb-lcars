@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.3-beta2
+  version: 2025.07.3-beta3
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -4800,6 +4800,7 @@ cblcars_card_templates:
           text:
             font_size: 24
             font_weight: 300
+            font_family: 'Antonio'
     styles:
       label:
         - z-index: 2
@@ -4877,6 +4878,7 @@ cblcars_card_templates:
           //console.debug( `${card_width}`);
           const font_size = variables.__get_num_with_unit(variables.animation.cascade.text.font_size) || '24px';
           const font_weight = variables.animation.cascade.text.font_weight || '300';
+          const font_family = variables.animation.cascade.text.font_family || 'Antonio';
           const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
           const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((parseInt(variables.animation.cascade.text.font_size * 2.5))) ||'80px';
           const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
@@ -4971,6 +4973,7 @@ cblcars_card_templates:
                 .data-cascade {
                   font-size: ${font_size};
                   font-weight: ${font_weight};
+                  font-family: ${font_family};
                   line-height: 1;
                 }
                 ${Array.from({ length: num_rows }, (_, i) => `
@@ -7579,29 +7582,30 @@ cblcars_card_templates:
         return helpers.localize(entity, entity.attributes[variables.attribute],'card',this._config.show_units,this._config.units);
       ]]]
     custom_fields:
-    font_loader: >
-      [[[
-        // This field dynamically loads any fonts specified in variables or conditionally matched settings.
-        // It supports comma-separated font-family strings and de-dupes via window.cblcars.loadFont().
-        // Load fonts from variables and match settings
-        const fontSources = [
-          variables?.text?.label?.font_family,
-          variables?.text?.name?.font_family,
-          variables?.text?.state?.font_family,
-          variables?.animation?.alert?.text?.alert_text?.font_family,
-          variables?.animation?.alert?.text?.sub_text?.font_family,
-          match?.settings?.text?.label?.font_family,
-          match?.settings?.text?.name?.font_family,
-          match?.settings?.text?.state?.font_family,
-          match?.settings?.animation?.alert?.text?.alert_text?.font_family,
-          match?.settings?.animation?.alert?.text?.sub_text?.font_family
-        ];
-        fontSources.forEach(font => {
-          if (font && typeof font === 'string') {
-            window.cblcars?.loadFont(font);
-          }
-        });
-      ]]]
+      font_loader: |
+        [[[
+          // This field dynamically loads any fonts specified in variables or conditionally matched settings.
+          // It supports comma-separated font-family strings and de-dupes via window.cblcars.loadFont().
+          // Load fonts from variables and match settings
+          const fontSources = [
+            variables?.text?.label?.font_family,
+            variables?.text?.name?.font_family,
+            variables?.text?.state?.font_family,
+            variables?.animation?.alert?.text?.alert_text?.font_family,
+            variables?.animation?.alert?.text?.sub_text?.font_family,
+            variables?.animation?.cascade?.text?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.label?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.name?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.state?.font_family,
+            this._config.cblcars_custom_match?.settings?.animation?.alert?.text?.alert_text?.font_family,
+            this._config.cblcars_custom_match?.settings?.animation?.alert?.text?.sub_text?.font_family
+          ];
+          fontSources.forEach(font => {
+            if (font && typeof font === 'string') {
+              window.cblcars?.loadFont(font);
+            }
+          });
+        ]]]
     styles:
       img_cell:
         - justify-content: '[[[ return variables.icon.justify ]]]'

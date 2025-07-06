@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_vulcan';
+    src: url('/hacsfiles/cb-lcars/fonts/modern_vulcan_1.1_normal-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/modern_vulcan_1.1_normal-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
