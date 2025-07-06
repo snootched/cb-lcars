@@ -451,6 +451,79 @@ cb-lcars-base-controls:
                                   label: Extra Bold (800)
                                 - value: 900
                                   label: Black (900)
+                    - type: ControlRow
+                      controls:
+                        - &fontFamilyControl
+                          label: "Font Family"
+                          configValue: "variables.text.label.font_family"
+                          type: Selector
+                          selector:
+                            select:
+                              mode: dropdown
+                              options:
+                                - value: Antonio
+                                  label: Default (Antonio)
+                                - value: cb-lcars_tungsten
+                                  label: Tungsten
+                                - value: cb-lcars_microgramma
+                                  label: Microgramma
+                                - value: cb-lcars_context_ultra_condensed
+                                  label: Context Ultra Condensed
+                                - value: cb-lcars_crillee
+                                  label: Crillee
+                                - value: cb-lcars_eurostile
+                                  label: Eurostile
+                                - value: cb-lcars_fabrini
+                                  label: Fabrini
+                                - value: cb-lcars_federation
+                                  label: Federation
+                                - value: cb-lcars_galaxy
+                                  label: Galaxy
+                                - value: cb-lcars_handel_gothic
+                                  label: Handel Gothic
+                                - value: cb-lcars_jeffries
+                                  label: Jeffries
+                                - value: cb-lcars_sonic
+                                  label: Sonic
+                                - value: cb-lcars_sqaure_721
+                                  label: Square 721
+                                - value: cb-lcars_stellar
+                                  label: Stellar
+                                - value: cb-lcars_swiss_911
+                                  label: Swiss 911
+                                - value: cb-lcars_trekarrowcaps
+                                  label: Trek Arrow Caps
+                                - value: cb-lcars_bajoran_ancient
+                                  label: "[alien] Bajoran [ancient]"
+                                - value: cb-lcars_bajoran_ideogram
+                                  label: "[alien] Bajoran [ideogram]"
+                                - value: cb-lcars_binar
+                                  label: "[Alien] Binar"
+                                - value: cb-lcars_borg
+                                  label: "[alien] Borg"
+                                - value: cb-lcars_cardassian
+                                  label: "[alien] Cardassian"
+                                - value: cb-lcars_changeling
+                                  label: "[alien] Changeling"
+                                - value: cb-lcars_dominion
+                                  label: "[alien] Dominion"
+                                - value: cb-lcars_ferengi_left
+                                  label: "[alien] Ferengi [left]"
+                                - value: cb-lcars_ferengi_right
+                                  label: "[alien] Ferengi [right]"
+                                - value: cb-lcars_klingon
+                                  label: "[alien] Klingon"
+                                - value: cb-lcars_romulan
+                                  label: "[alien] Romulan"
+                                - value: cb-lcars_tellarite
+                                  label: "[alien] Tellarite"
+                                - value: cb-lcars_tholian
+                                  label: "[Alien] Tholian"
+                                - value: cb-lcars_trill
+                                  label: "[alien] Trill"
+                                - value: cb-lcars_vulcan
+                                  label: "[alien] Vulcan"
+
                 - &textAlignmentSection
                   type: Section
                   label: "Alignment"
@@ -826,6 +899,11 @@ cb-lcars-base-controls:
                                   label: Extra Bold (800)
                                 - value: 900
                                   label: Black (900)
+                    - type: ControlRow
+                      controls:
+                        - <<: *fontFamilyControl
+                          configValue: "variables.text.name.font_family"
+
                 - type: Section
                   label: "Alignment"
                   outlined: true
@@ -1223,6 +1301,10 @@ cb-lcars-base-controls:
                                   label: Extra Bold (800)
                                 - value: 900
                                   label: Black (900)
+                    - type: ControlRow
+                      controls:
+                        - <<: *fontFamilyControl
+                          configValue: "variables.text.state.font_family"
                 - type: Section
                   label: "Alignment"
                   outlined: true
@@ -3282,6 +3364,10 @@ cb-lcars-base-controls:
                                   label: Extra Bold (800)
                                 - value: 900
                                   label: Black (900)
+                    - type: ControlRow
+                      controls:
+                        - <<: *fontFamilyControl
+                          configValue: "variables.animation.cascade.text.font_family"
             - &cascadeGridSection
               type: Section
               label: "Grid"
@@ -3565,6 +3651,10 @@ cb-lcars-base-controls:
                             text:
                               multiline: false
                     - type: ControlRow
+                      controls:
+                        - <<: *fontFamilyControl
+                          configValue: "variables.animation.alert.text.alert_text.font_family"
+                    - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
                         - &fontSizeControl
@@ -3662,6 +3752,10 @@ cb-lcars-base-controls:
                           selector:
                             text:
                               multiline: false
+                    - type: ControlRow
+                      controls:
+                        - <<: *fontFamilyControl
+                          configValue: "variables.animation.alert.text.sub_text.font_family"
                     - type: ControlRow
                       cssClass: "form-row two-controls"
                       controls:
@@ -6892,6 +6986,8 @@ cb-lcars-button-card:
     - <<: *pulsewaveTab
     - <<: *gridBgTab
     - <<: *geoArrayTab
+    - <<: *alertConditionTab
+
   css:
     mergeUserStyles: true
     cssText: |

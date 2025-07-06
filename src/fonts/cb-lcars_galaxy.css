@@ -1,0 +1,7 @@
+@font-face {
+    font-family: 'cb-lcars_galaxy';
+    src: url('/hacsfiles/cb-lcars/fonts/galaxy_regular-webfont.woff2') format('woff2'),
+         url('/hacsfiles/cb-lcars/fonts/galaxy_regular-webfont.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
