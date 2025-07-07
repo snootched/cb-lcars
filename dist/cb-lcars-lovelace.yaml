@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.3-beta4
+  version: 2025.07.3-beta5
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -7429,21 +7429,18 @@ cblcars_card_templates:
       - cb-lcars-actions-disable
     label: '[[[ return variables.label ]]]'
     entity: '[[[ return variables.entity ]]]'
-    triggers_update: |
-      [[[
-        // Start with the main entity
-        let entities = [];
-        if (variables.entity) entities.push(variables.entity);
-        // Add all entities from custom state matches
-        if (variables.custom_states?.states) {
-          variables.custom_states.states.forEach(entry => {
-            if (entry.entity && !entities.includes(entry.entity)) {
-              entities.push(entry.entity);
-            }
-          });
-        }
-        return entities;
-      ]]]
+    triggers_update:
+      - '[[[ return variables.entity; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[0]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[1]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[2]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[3]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[4]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[5]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[6]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[7]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[8]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[9]?.entity) || null; ]]]'
     variables:
       label: ' '
       text:

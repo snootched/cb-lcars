@@ -1570,6 +1570,10 @@
                                       "label": "Microgramma"
                                     },
                                     {
+                                      "value": "cb-lcars_microgramma_regular",
+                                      "label": "Microgramma Regular"
+                                    },
+                                    {
                                       "value": "cb-lcars_context_ultra_condensed",
                                       "label": "Context Ultra Condensed"
                                     },
@@ -1580,6 +1584,10 @@
                                     {
                                       "value": "cb-lcars_eurostile",
                                       "label": "Eurostile"
+                                    },
+                                    {
+                                      "value": "cb-lcars_eurostile_oblique",
+                                      "label": "Eurostile Oblique"
                                     },
                                     {
                                       "value": "cb-lcars_fabrini",
@@ -2442,6 +2450,10 @@
                                       "label": "Microgramma"
                                     },
                                     {
+                                      "value": "cb-lcars_microgramma_regular",
+                                      "label": "Microgramma Regular"
+                                    },
+                                    {
                                       "value": "cb-lcars_context_ultra_condensed",
                                       "label": "Context Ultra Condensed"
                                     },
@@ -2452,6 +2464,10 @@
                                     {
                                       "value": "cb-lcars_eurostile",
                                       "label": "Eurostile"
+                                    },
+                                    {
+                                      "value": "cb-lcars_eurostile_oblique",
+                                      "label": "Eurostile Oblique"
                                     },
                                     {
                                       "value": "cb-lcars_fabrini",
@@ -3365,6 +3381,10 @@
                                       "label": "Microgramma"
                                     },
                                     {
+                                      "value": "cb-lcars_microgramma_regular",
+                                      "label": "Microgramma Regular"
+                                    },
+                                    {
                                       "value": "cb-lcars_context_ultra_condensed",
                                       "label": "Context Ultra Condensed"
                                     },
@@ -3375,6 +3395,10 @@
                                     {
                                       "value": "cb-lcars_eurostile",
                                       "label": "Eurostile"
+                                    },
+                                    {
+                                      "value": "cb-lcars_eurostile_oblique",
+                                      "label": "Eurostile Oblique"
                                     },
                                     {
                                       "value": "cb-lcars_fabrini",
@@ -6628,6 +6652,10 @@
                                   "label": "Microgramma"
                                 },
                                 {
+                                  "value": "cb-lcars_microgramma_regular",
+                                  "label": "Microgramma Regular"
+                                },
+                                {
                                   "value": "cb-lcars_context_ultra_condensed",
                                   "label": "Context Ultra Condensed"
                                 },
@@ -6638,6 +6666,10 @@
                                 {
                                   "value": "cb-lcars_eurostile",
                                   "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile_oblique",
+                                  "label": "Eurostile Oblique"
                                 },
                                 {
                                   "value": "cb-lcars_fabrini",
