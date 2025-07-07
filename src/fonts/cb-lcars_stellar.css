@@ -1,7 +1,6 @@
 @font-face {
     font-family: 'cb-lcars_stellar';
-    src: url('/hacsfiles/cb-lcars/fonts/stellar_regular-webfont.woff2') format('woff2'),
-         url('/hacsfiles/cb-lcars/fonts/stellar_regular-webfont.woff') format('woff');
+    src: url('/hacsfiles/cb-lcars/fonts/stellar_regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }
