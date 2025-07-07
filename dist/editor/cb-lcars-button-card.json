@@ -1778,6 +1778,147 @@
                           }
                         }
                       ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.text.label.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
                     }
                   ]
                 },
@@ -2503,6 +2644,147 @@
                                 {
                                   "value": 900,
                                   "label": "Black (900)"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.text.name.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
                                 }
                               ]
                             }
@@ -3285,6 +3567,147 @@
                                 {
                                   "value": 900,
                                   "label": "Black (900)"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.text.state.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
                                 }
                               ]
                             }
@@ -5071,6 +5494,147 @@
                                 {
                                   "value": 900,
                                   "label": "Black (900)"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.animation.cascade.text.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
                                 }
                               ]
                             }
@@ -7491,6 +8055,1068 @@
                         "number": {
                           "min": 1,
                           "step": 1
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "ALERT Condition",
+      "visibilityCondition": "this._config.template && this._config.template.includes('cb-lcars-animation-alert')",
+      "content": [
+        {
+          "type": "Section",
+          "label": "Alert Condition",
+          "outlined": true,
+          "leftChevron": false,
+          "headerLevel": 4,
+          "icon": "mdi:alert-box-outline",
+          "noCollapse": true,
+          "expanded": true,
+          "rows": [
+            {
+              "type": "Section",
+              "label": "Styles & Presets",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:format-list-bulleted",
+              "noCollapse": false,
+              "expanded": true,
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "mode": "dropdown",
+                          "options": [
+                            {
+                              "value": "default",
+                              "label": "Default"
+                            },
+                            {
+                              "value": "condensed",
+                              "label": "Condensed"
+                            }
+                          ]
+                        }
+                      },
+                      "configValue": "variables.animation.alert.size",
+                      "label": "Size"
+                    },
+                    {
+                      "type": "Selector",
+                      "label": "Enable State-Based Alert Presets",
+                      "selector": {
+                        "boolean": null
+                      },
+                      "configValue": "variables.animation.alert.range.enabled"
+                    },
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "State-based alert presets allow you to apply different alert settings based on the state of the entity/attribue.  If enabled, the following settings will be used to select the alert condition to apply.  Please refer to the documentation for more information.",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled === true"
+                    },
+                    {
+                      "label": "Entity [same as the card entity]",
+                      "configValue": "variables.entity",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled === true",
+                      "type": "Selector",
+                      "selector": {
+                        "entity": null
+                      }
+                    },
+                    {
+                      "label": "Attribute [same as the card attribute]",
+                      "configValue": "variables.attribute",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.entity",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "mode": "dropdown",
+                          "optionsCondition": "(() => {\n  const entityId = this._config?.variables?.entity;\n  const hass = this._hass || this.hass;\n  if (!entityId || !hass?.states?.[entityId]) {\n    return [];\n  }\n  const entity = hass.states[entityId];\n  if (!entity.attributes || typeof entity.attributes !== \"object\") {\n    return [];\n  }\n  return Object.entries(entity.attributes)\n    .filter(([_, value]) =>\n      value === null ||\n      [\"string\", \"number\", \"boolean\"].includes(typeof value)\n    )\n    .map(([key]) => ({\n      value: key,\n      label: key\n    }));\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "Note: for convenience 'brightness' attribute is automatically converted from 0-255 to 0-100%.",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled === true && this._config?.variables?.attribute === 'brightness'"
+                    },
+                    {
+                      "type": "Selector",
+                      "selector": {
+                        "object": null
+                      },
+                      "configValue": "variables.animation.alert.range.ranges",
+                      "label": "State-based Alert Settings",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled === true"
+                    },
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "Select from the Alert Condition presets, or provide custom presets below.",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled != true"
+                    },
+                    {
+                      "label": "Preset",
+                      "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled != true",
+                      "configValue": "variables.animation.alert.preset",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "mode": "dropdown",
+                          "options": [
+                            {
+                              "value": "default",
+                              "label": "Default [no preset]"
+                            },
+                            {
+                              "value": "condition_red",
+                              "label": "Condition: RED"
+                            },
+                            {
+                              "value": "condition_yellow",
+                              "label": "Condition: YELLOW"
+                            },
+                            {
+                              "value": "condition_green",
+                              "label": "Condition: GREEN"
+                            },
+                            {
+                              "value": "condition_blue",
+                              "label": "Condition: BLUE"
+                            },
+                            {
+                              "value": "condition_black",
+                              "label": "Condition: BLACK"
+                            },
+                            {
+                              "value": "condition_grey",
+                              "label": "Condition: GREY"
+                            },
+                            {
+                              "value": "custom",
+                              "label": "Custom [user provided]"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Customize Presets",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:format-list-bulleted",
+                  "noCollapse": false,
+                  "rows": [
+                    {
+                      "controls": [
+                        {
+                          "type": "Message",
+                          "alertType": "info",
+                          "message": "Advanced: Provide your own list of custom alert presets, or customize individual settings of the standard presets.  Please refer to the documentation for more information."
+                        },
+                        {
+                          "label": "Custom Preset Name",
+                          "configValue": "variables.animation.alert.preset",
+                          "visibilityCondition": "this._config.variables?.animation?.alert?.range?.enabled != true",
+                          "type": "Selector",
+                          "selector": {
+                            "text": null
+                          }
+                        },
+                        {
+                          "type": "Selector",
+                          "selector": {
+                            "object": null
+                          },
+                          "configValue": "variables.animation.alert.custom_alert_presets",
+                          "label": "Custom Alert Presets"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Default Preset Colours",
+              "visibilityCondition": "(!this._config?.variables?.animation?.alert?.preset || this._config?.variables?.animation?.alert?.preset === 'default')",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:select-color",
+              "noCollapse": false,
+              "rows": [
+                {
+                  "controls": [
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "These colours are used by the default alert preset.  If you have selected a custom preset, these colours will not be used."
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>Shape Colour</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.animation.alert.color.shape.default",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.animation.alert.color.shape.default",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.animation.alert.color.shape.default"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>Bar Animation Base Colour</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.animation.alert.color.bars.animation_base",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.animation.alert.color.bars.animation_base",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.animation.alert.color.bars.animation_base"
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "RawHTML",
+                      "html": "<label>Bar Animation Flash Colour</label>\n"
+                    }
+                  ]
+                },
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "LCARS Colour",
+                      "configValue": "variables.animation.alert.color.bars.animation_flash",
+                      "type": "Selector",
+                      "selector": {
+                        "select": {
+                          "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                        }
+                      }
+                    },
+                    {
+                      "label": "Custom Colour",
+                      "configValue": "variables.animation.alert.color.bars.animation_flash",
+                      "type": "Selector",
+                      "selector": {
+                        "text": {
+                          "type": "color"
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "controls": [
+                    {
+                      "type": "ColorPreview",
+                      "configValue": "variables.animation.alert.color.bars.animation_flash"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Text",
+              "visibilityCondition": "(!this._config?.variables?.animation?.alert?.preset || this._config?.variables?.animation?.alert?.preset === 'default')",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:format-textbox",
+              "noCollapse": false,
+              "expanded": false,
+              "rows": [
+                {
+                  "type": "ControlRow",
+                  "controls": [
+                    {
+                      "type": "Message",
+                      "alertType": "info",
+                      "message": "Use 'custom presets' feature if you would like to change text for the builtin presets."
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Alert Text (top line)",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:format-textbox",
+                  "noCollapse": false,
+                  "expanded": true,
+                  "rows": [
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Alert Text (top line)",
+                          "configValue": "variables.animation.alert.alert_text",
+                          "type": "Selector",
+                          "selector": {
+                            "text": {
+                              "multiline": false
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.animation.alert.text.alert_text.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "cssClass": "form-row two-controls",
+                      "controls": [
+                        {
+                          "label": "Font Size",
+                          "configValue": "variables.animation.alert.text.alert_text.font_size",
+                          "type": "Selector",
+                          "selector": {
+                            "text": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        {
+                          "label": "Font Weight",
+                          "configValue": "variables.animation.alert.text.alert_text.font_weight",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": 100,
+                                  "label": "Thin (100)"
+                                },
+                                {
+                                  "value": 200,
+                                  "label": "Extra Light (200)"
+                                },
+                                {
+                                  "value": 300,
+                                  "label": "Light (300)"
+                                },
+                                {
+                                  "value": 400,
+                                  "label": "Normal (400)"
+                                },
+                                {
+                                  "value": 500,
+                                  "label": "Medium (500)"
+                                },
+                                {
+                                  "value": 600,
+                                  "label": "Semi Bold (600)"
+                                },
+                                {
+                                  "value": 700,
+                                  "label": "Bold (700)"
+                                },
+                                {
+                                  "value": 800,
+                                  "label": "Extra Bold (800)"
+                                },
+                                {
+                                  "value": 900,
+                                  "label": "Black (900)"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "label": "Stretch to Fit",
+                          "configValue": "variables.animation.alert.text.alert_text.stretch",
+                          "type": "Selector",
+                          "selector": {
+                            "boolean": {
+                              "mode": "checkbox"
+                            }
+                          }
+                        },
+                        {
+                          "label": "Align",
+                          "configValue": "variables.animation.alert.text.alert_text.align",
+                          "visibilityCondition": "this._config.variables?.animation?.alert?.text?.alert_text?.stretch === false",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "left",
+                                  "label": "Left"
+                                },
+                                {
+                                  "value": "center",
+                                  "label": "Center"
+                                },
+                                {
+                                  "value": "right",
+                                  "label": "Right"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Colour",
+                      "outlined": true,
+                      "leftChevron": false,
+                      "headerLevel": 3,
+                      "icon": "mdi:select-color",
+                      "noCollapse": false,
+                      "collapsed": false,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "type": "RawHTML",
+                              "html": "<label>Alert (top line) Colour</label>\n"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "ControlRow",
+                          "cssClass": "form-row two-controls",
+                          "controls": [
+                            {
+                              "label": "LCARS Colour",
+                              "configValue": "variables.animation.alert.text.alert_text.color.default",
+                              "type": "Selector",
+                              "selector": {
+                                "select": {
+                                  "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                                }
+                              }
+                            },
+                            {
+                              "label": "Custom Colour",
+                              "configValue": "variables.animation.alert.text.alert_text.color.default",
+                              "type": "Selector",
+                              "selector": {
+                                "text": {
+                                  "type": "color"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "type": "ColorPreview",
+                              "configValue": "variables.animation.alert.text.alert_text.color.default"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "Section",
+                  "label": "Sub Text (bottom line)",
+                  "outlined": true,
+                  "leftChevron": false,
+                  "headerLevel": 4,
+                  "icon": "mdi:format-textbox",
+                  "noCollapse": false,
+                  "expanded": true,
+                  "rows": [
+                    {
+                      "controls": [
+                        {
+                          "label": "Sub Text (bottom line)",
+                          "configValue": "variables.animation.alert.sub_text",
+                          "type": "Selector",
+                          "selector": {
+                            "text": {
+                              "multiline": false
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "controls": [
+                        {
+                          "label": "Font Family",
+                          "configValue": "variables.animation.alert.text.sub_text.font_family",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "Antonio",
+                                  "label": "Default (Antonio)"
+                                },
+                                {
+                                  "value": "cb-lcars_tungsten",
+                                  "label": "Tungsten"
+                                },
+                                {
+                                  "value": "cb-lcars_microgramma",
+                                  "label": "Microgramma"
+                                },
+                                {
+                                  "value": "cb-lcars_context_ultra_condensed",
+                                  "label": "Context Ultra Condensed"
+                                },
+                                {
+                                  "value": "cb-lcars_crillee",
+                                  "label": "Crillee"
+                                },
+                                {
+                                  "value": "cb-lcars_eurostile",
+                                  "label": "Eurostile"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "Fabrini"
+                                },
+                                {
+                                  "value": "cb-lcars_federation",
+                                  "label": "Federation"
+                                },
+                                {
+                                  "value": "cb-lcars_galaxy",
+                                  "label": "Galaxy"
+                                },
+                                {
+                                  "value": "cb-lcars_handel_gothic",
+                                  "label": "Handel Gothic"
+                                },
+                                {
+                                  "value": "cb-lcars_jeffries",
+                                  "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_sonic",
+                                  "label": "Sonic"
+                                },
+                                {
+                                  "value": "cb-lcars_sqaure_721",
+                                  "label": "Square 721"
+                                },
+                                {
+                                  "value": "cb-lcars_stellar",
+                                  "label": "Stellar"
+                                },
+                                {
+                                  "value": "cb-lcars_swiss_911",
+                                  "label": "Swiss 911"
+                                },
+                                {
+                                  "value": "cb-lcars_trekarrowcaps",
+                                  "label": "Trek Arrow Caps"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ancient",
+                                  "label": "[alien] Bajoran [ancient]"
+                                },
+                                {
+                                  "value": "cb-lcars_bajoran_ideogram",
+                                  "label": "[alien] Bajoran [ideogram]"
+                                },
+                                {
+                                  "value": "cb-lcars_binar",
+                                  "label": "[Alien] Binar"
+                                },
+                                {
+                                  "value": "cb-lcars_borg",
+                                  "label": "[alien] Borg"
+                                },
+                                {
+                                  "value": "cb-lcars_cardassian",
+                                  "label": "[alien] Cardassian"
+                                },
+                                {
+                                  "value": "cb-lcars_changeling",
+                                  "label": "[alien] Changeling"
+                                },
+                                {
+                                  "value": "cb-lcars_dominion",
+                                  "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_left",
+                                  "label": "[alien] Ferengi [left]"
+                                },
+                                {
+                                  "value": "cb-lcars_ferengi_right",
+                                  "label": "[alien] Ferengi [right]"
+                                },
+                                {
+                                  "value": "cb-lcars_klingon",
+                                  "label": "[alien] Klingon"
+                                },
+                                {
+                                  "value": "cb-lcars_romulan",
+                                  "label": "[alien] Romulan"
+                                },
+                                {
+                                  "value": "cb-lcars_tellarite",
+                                  "label": "[alien] Tellarite"
+                                },
+                                {
+                                  "value": "cb-lcars_tholian",
+                                  "label": "[Alien] Tholian"
+                                },
+                                {
+                                  "value": "cb-lcars_trill",
+                                  "label": "[alien] Trill"
+                                },
+                                {
+                                  "value": "cb-lcars_vulcan",
+                                  "label": "[alien] Vulcan"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "ControlRow",
+                      "cssClass": "form-row two-controls",
+                      "controls": [
+                        {
+                          "label": "Font Size",
+                          "configValue": "variables.animation.alert.text.sub_text.font_size",
+                          "type": "Selector",
+                          "selector": {
+                            "text": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        {
+                          "label": "Font Weight",
+                          "configValue": "variables.animation.alert.text.sub_text.font_weight",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": 100,
+                                  "label": "Thin (100)"
+                                },
+                                {
+                                  "value": 200,
+                                  "label": "Extra Light (200)"
+                                },
+                                {
+                                  "value": 300,
+                                  "label": "Light (300)"
+                                },
+                                {
+                                  "value": 400,
+                                  "label": "Normal (400)"
+                                },
+                                {
+                                  "value": 500,
+                                  "label": "Medium (500)"
+                                },
+                                {
+                                  "value": 600,
+                                  "label": "Semi Bold (600)"
+                                },
+                                {
+                                  "value": 700,
+                                  "label": "Bold (700)"
+                                },
+                                {
+                                  "value": 800,
+                                  "label": "Extra Bold (800)"
+                                },
+                                {
+                                  "value": 900,
+                                  "label": "Black (900)"
+                                }
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "label": "Stretch to Fit",
+                          "configValue": "variables.animation.alert.text.sub_text.stretch",
+                          "type": "Selector",
+                          "selector": {
+                            "boolean": {
+                              "mode": "checkbox"
+                            }
+                          }
+                        },
+                        {
+                          "label": "Align",
+                          "configValue": "variables.animation.alert.text.sub_text.align",
+                          "visibilityCondition": "this._config.variables?.animation?.alert?.text?.sub_text?.stretch === false",
+                          "type": "Selector",
+                          "selector": {
+                            "select": {
+                              "mode": "dropdown",
+                              "options": [
+                                {
+                                  "value": "left",
+                                  "label": "Left"
+                                },
+                                {
+                                  "value": "center",
+                                  "label": "Center"
+                                },
+                                {
+                                  "value": "right",
+                                  "label": "Right"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Section",
+                      "label": "Colour",
+                      "outlined": true,
+                      "leftChevron": false,
+                      "headerLevel": 3,
+                      "icon": "mdi:select-color",
+                      "noCollapse": false,
+                      "collapsed": false,
+                      "rows": [
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "type": "RawHTML",
+                              "html": "<label>Sub (bottom line) Colour</label>\n"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "ControlRow",
+                          "cssClass": "form-row two-controls",
+                          "controls": [
+                            {
+                              "label": "LCARS Colour",
+                              "configValue": "variables.animation.alert.text.sub_text.color.default",
+                              "type": "Selector",
+                              "selector": {
+                                "select": {
+                                  "optionsCondition": "(() => {\n  const styles = document.documentElement.style;\n  const options = [];\n  options.push({ value: 'transparent', label: '[[ transparent ]]' });\n  options.push({ value: 'var(--button-card-light-color)', label: '[[ Match Light Colour ]]' });\n  options.push({ value: 'var(--button-card-light-color-no-temperature)', label: '[[ Match Light Colour w/o temp. ]]' });\n\n  for (let i = 0; i < styles.length; i++) {\n    const name = styles[i];\n    if (name.startsWith('--cblcars-') || name.startsWith('--picard-') || name.startsWith('--lcars-')) {\n      //const value = styles.getPropertyValue(name).trim();\n      const value = `var(${name})`;\n      options.push({ value, label: name.replace('--', '') });\n    }\n  }\n  options.sort((a, b) => a.label.localeCompare(b.label));\n  return options;\n})()\n"
+                                }
+                              }
+                            },
+                            {
+                              "label": "Custom Colour",
+                              "configValue": "variables.animation.alert.text.sub_text.color.default",
+                              "type": "Selector",
+                              "selector": {
+                                "text": {
+                                  "type": "color"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "ControlRow",
+                          "controls": [
+                            {
+                              "type": "ColorPreview",
+                              "configValue": "variables.animation.alert.text.sub_text.color.default"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Animation Settings",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:animation-outline",
+              "noCollapse": false,
+              "expanded": false,
+              "rows": [
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "Enable Bar Animation",
+                      "configValue": "variables.animation.alert.enable_bar_animation",
+                      "type": "Selector",
+                      "selector": {
+                        "boolean": null
+                      }
+                    },
+                    {
+                      "label": "Bar Animation Duration (s)",
+                      "configValue": "variables.animation.alert.animation_duration",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "step": 0.1
+                        }
+                      }
+                    },
+                    {
+                      "label": "Blink Text",
+                      "configValue": "variables.animation.alert.enable_blink",
+                      "type": "Selector",
+                      "selector": {
+                        "boolean": null
+                      }
+                    },
+                    {
+                      "label": "Blink Duration (s)",
+                      "configValue": "variables.animation.alert.blink_duration",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "step": 0.1
                         }
                       }
                     }
