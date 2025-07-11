@@ -8167,6 +8167,26 @@ cb-lcars-multimeter-card:
                     number:
                       min: 1
                       mode: box
+            - type: Section
+              label: "Gauge Text"
+              outlined: true
+              leftChevron: false
+              headerLevel: 4
+              icon: "mdi:select-color"
+              noCollapse: false
+              expanded: false
+              rows:
+                - type: ControlRow
+                  cssClass: "form-row two-controls"
+                  controls:
+                    - <<: *fontSizeControl
+                      configValue: "variables.gauge.label.font_size"
+                    - <<: *fontWeightControl
+                      configValue: "variables.gauge.label.font_weight"
+                - type: ControlRow
+                  controls:
+                    - <<: *fontFamilyControl
+                      configValue: "variables.gauge.label.font_family"
             - controls:
                 - label: "Gauge: Match Entity Colour"
                   configValue: "variables.entity_match_gauge"

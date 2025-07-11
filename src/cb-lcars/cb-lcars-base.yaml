@@ -167,6 +167,7 @@ cb-lcars-base:
           variables?.animation?.alert?.text?.alert_text?.font_family,
           variables?.animation?.alert?.text?.sub_text?.font_family,
           variables?.animation?.cascade?.text?.font_family,
+          variables?.gauge?.label?.font_family,
           this._config.cblcars_custom_match?.settings?.text?.label?.font_family,
           this._config.cblcars_custom_match?.settings?.text?.name?.font_family,
           this._config.cblcars_custom_match?.settings?.text?.state?.font_family,
