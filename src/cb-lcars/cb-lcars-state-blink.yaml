@@ -1,6 +1,14 @@
 cb-lcars-state-on-blink:
+  template:
+    - cb-lcars-functions
   variables:
-    blink_seconds: 3s
+    card:
+      blink:
+        state_on:
+          blink_seconds: 3
+          blink_delay: 1
+    blink_seconds: 3
+    blink_delay: 1
   extra_styles: |
     [[[ return `
         @keyframes blink2 {
@@ -19,14 +27,28 @@ cb-lcars-state-on-blink:
     - id: state_on
       styles:
         card:
-          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-duration: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_on.blink_seconds || variables.blink_sections),'s');
+              ]]]
           - animation-timing-function: ease-out
           - animation-name: blink2
           - animation-iteration-count: infinite
-          - animation-delay: 1s
+          - animation-delay: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_on.blink_delay || variables.blink_delay),'s');
+              ]]]
 cb-lcars-state-off-blink:
+  template:
+    - cb-lcars-functions
   variables:
-    blink_seconds: 3s
+    card:
+      blink:
+        state_off:
+          blink_seconds: 3
+          blink_delay: 1
+    blink_seconds: 3
+    blink_delay: 1
   extra_styles: |
     [[[ return `
         @keyframes blink2 {
@@ -45,14 +67,28 @@ cb-lcars-state-off-blink:
     - id: state_off
       styles:
         card:
-          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-duration: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_off.blink_seconds || variables.blink_sections),'s');
+              ]]]
           - animation-timing-function: ease-out
           - animation-name: blink2
           - animation-iteration-count: infinite
-          - animation-delay: 1s
+          - animation-delay: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_off.blink_delay || variables.blink_delay),'s');
+              ]]]
 cb-lcars-state-unavailable-blink:
+  template:
+    - cb-lcars-functions
   variables:
-    blink_seconds: 3s
+    card:
+      blink:
+        state_unavailable:
+          blink_seconds: 3
+          blink_delay: 1
+    blink_seconds: 3
+    blink_delay: 1
   extra_styles: |
     [[[ return `
         @keyframes blink2 {
@@ -71,8 +107,14 @@ cb-lcars-state-unavailable-blink:
     - id: state_unavailable
       styles:
         card:
-          - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+          - animation-duration: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_unavailable.blink_seconds || variables.blink_sections),'s');
+              ]]]
           - animation-timing-function: ease-out
           - animation-name: blink2
           - animation-iteration-count: infinite
-          - animation-delay: 1s
+          - animation-delay: |
+              [[[
+                return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_unavailable.blink_delay || variables.blink_delay),'s');
+              ]]]

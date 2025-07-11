@@ -187,14 +187,6 @@ cb-lcars-animation-geo-array:
             }
           }
 
-          function getShapeSVGOrig(color) {
-            if (shape_type === 'circle') {
-            return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
-            } else {
-            return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
-            }
-          }
-
           let rows = '';
           let keyframes = '';
           let animationCSSRule = ''; // Initialize animationCSSRule
