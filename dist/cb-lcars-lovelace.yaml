@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.3-beta5
+  version: 2025.07.3-beta6
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -974,7 +974,273 @@ cblcars_card_templates:
         - padding-right: '[[[ return variables.__get_num_with_unit(variables.icon.border.right.padding) ]]]'
         - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
         - width: "[[[ return variables.__get_num_with_unit(variables.icon.size); ]]]"
-  cb-lcars-button-picard-label-east:
+  cb-lcars-functions-svg:
+    variables:
+      __memoize: |
+        [[[
+          return function(fn) {
+            const cache = new Map();
+            return function(...args) {
+              const key = JSON.stringify(args);
+              if (cache.has(key)) return cache.get(key);
+              const result = fn.apply(this, args);
+              cache.set(key, result);
+              return result;
+            }
+          }
+        ]]]
+      get_memoized_svg: |
+        [[[
+          // Returns a memoized version of any function in variables by name
+          return function(fnName) {
+            if (!this._memoized_svgs) this._memoized_svgs = {};
+            if (!this._memoized_svgs[fnName]) {
+              variables.__cblcarsLog("debug",`Memoized svg [${fnName}] was not found - will generate.`,this._memoized_gauge_svg);
+              this._memoized_svgs[fnName] = variables.__memoize(variables[fnName]);
+            } else {
+              variables.__cblcarsLog("debug",`Found and will use memoized svg [${fnName}]`,this._memoized_gauge_svg);
+            }
+            return this._memoized_svgs[fnName];
+          }
+        ]]]
+      z_gauge_svg: |
+        [[[
+          // This function generates an SVG representation of a gauge based on the provided parameters.
+          const z_gauge_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = variables._z_isPicardMode || false;
+            const _vertical = variables._vertical || false;
+            const _gauge_style = variables._gauge_style || 'basic';
+            const orientation = _vertical ? 'vertical' : 'horizontal';
+            const showSubticks = gauge.sub_meter.show_sub_meter !== undefined ? gauge.sub_meter.show_sub_meter : true;
+            let minVal = gauge.min;
+            let maxVal = gauge.max;
+            let increment = gauge.increment;
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size);
+            if (_z_isPicardMode) {
+                let percent = (gauge.picard_ratio !== undefined && !isNaN(gauge.picard_ratio)) ? gauge.picard_ratio / 100 : 40 / 100;
+              width = width * percent;
+              height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            }
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const meter_bg_color = isActive ? gauge.color.background.active : gauge.color.background.inactive;
+            const meter_tick_color = isActive ? gauge.color.active : gauge.color.inactive;
+            const meter_subtick_color = isActive ? gauge.sub_meter.active : gauge.sub_meter.inactive;
+            const meter_label_color = isActive ? gauge.label.active : gauge.label.inactive;
+            const meter_label_font_size = variables.__get_num_with_unit(gauge.label.font_size);
+            const meter_label_font_weight = gauge.label.font_weight || 'normal';
+            const meter_label_font_family = gauge.label.font_family || 'Antonio';
+            const meter_subtick_size = parseInt(gauge.sub_meter.tick_size) || 10;
+            const numSubticks = gauge.sub_meter.tick_count;
+            const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+            const subTickIncrement = 100 / numSegments / (numSubticks + 1);
+            const decimal_places = gauge.label.decimal_places || 0;
+            const connect_ticks = gauge.connect_ticks || false;
+            const tick_line_thickness = gauge.tick_line_thickness || 1;
+            const _show_unit_of_measurement = params._show_unit_of_measurement;
+            const entity_unit_of_measurement = params.entity_unit_of_measurement;
+            const meterTicks = [];
+            for (let i = minVal; i <= maxVal; i += increment) {
+              const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+              const position = percent + '%';
+              const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
+              meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+              meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" font-weight="${meter_label_font_weight}" font-family="${meter_label_font_family}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${_show_unit_of_measurement ? entity_unit_of_measurement : ''}</text>`);
+              if (showSubticks && i < maxVal) {
+                for (let j = 1; j <= numSubticks; j++) {
+                  const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+                  const subTickPosition = subTickPercent + '%';
+                  meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+                }
+              }
+            }
+            const ranges = gauge.ranges || [];
+            let rangeBackgrounds = '';
+            if (gauge.range.enabled && (!_vertical || (_vertical && _gauge_style == 'basic'))) {
+              ranges.forEach(range => {
+                const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+                const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+                const rangeWidth = toPercent - fromPercent;
+                rangeBackgrounds += `
+                  <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                        width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                        fill="${range.color}" />
+                `;
+              });
+            }
+            const tickLine = connect_ticks ? (orientation === 'vertical' ?
+              `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
+              `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+                ${rangeBackgrounds}
+                ${tickLine}
+                ${meterTicks.join('')}
+              </svg>
+            `;
+          }
+          return z_gauge_svg;
+        ]]]
+      z_ranges_alt_svg: |
+        [[[
+          const z_ranges_alt_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = params._z_isPicardMode || false;
+            //const _vertical = variables._vertical || false;
+            //const _gauge_style = variables._gauge_style || 'basic';
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            if (_z_isPicardMode) {
+              let ratio = gauge.range?.width_ratio || 2;
+              width = gauge.tick_line_thickness * ratio;
+            }
+            //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const outerRectColor = isActive ? gauge.range.border.color.active : gauge.range.border.color.inactive;
+            // inset color and thickness - this is the stroke on range rects
+            const borderColor = gauge.range.inset.border.color || 'black';
+            const borderThickness = parseInt(gauge.range.inset.border.size);
+            let borderGap = parseInt(card.border.gap) || 5;
+            let insetGap = parseInt(gauge.range.inset.gap) || parseInt(card.border.gap);
+            // gap between ranges (set to 0 when using svg stroke)
+            const rangeGap = 0;
+            // svg offsets to start drawing
+            const startX = 0;
+            const startY = 0;
+            // Setup ranges - if enabled
+            const ranges = (gauge.range.enabled) ? (gauge.ranges || []) : [];
+            let rects = '';
+            // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
+            const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
+            // svg rect for background
+            rects += `
+                <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
+            `;
+            // Iterate through ranges - generate rects at proper positions in available range height
+            for (let i = 0; i < ranges.length; i++) {
+              const range = ranges[i];
+              const fromPercent = ((range.from - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const toPercent = ((range.to - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const rangePercentHeight = toPercent - fromPercent;
+              const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
+              // set range X position and width
+              const rangeX = startX; // SIMPLE X
+              const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
+              const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
+              const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
+              rects += `
+                <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
+              `;
+            }
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                ${rects}
+              </svg>
+            `;
+          }
+          return z_ranges_alt_svg;
+        ]]]
+      z_slider_bg_svg: |
+        [[[
+          const z_slider_bg_svg = function(params){
+            const slider_track = params.slider_track;
+            const card = params.card;
+            const _vertical = params._vertical;
+            const entity_match_slider_start = params.entity_match_slider_start;
+            const entity_match_slider_end = params.entity_match_slider_end;
+            const entity_color = params.entity_color;
+            try {
+              const width = parseInt(slider_track.width) || parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size) - parseInt(slider_track.padding.left) - parseInt(slider_track.padding.right);
+              const height = parseInt(slider_track.height) || parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - parseInt(slider_track.padding.top) - parseInt(slider_track.padding.bottom);
+              let barWidth, barHeight;
+              // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+              if (width <= 0 || height <= 0) {
+                //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+                // Return a placeholder or empty SVG
+                return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+              }
+              // Defaults and overrides
+              let barSpacing = slider_track.gap ? parseInt(slider_track.gap) : 5;
+              let barOrientation = _vertical ? "vertical" : "horizontal";
+              let cornerRadius = slider_track.bar_border_radius ? parseInt(slider_track.bar_border_radius) : 0;
+              // Set defaults based on orientation
+              if (barOrientation === 'horizontal') {
+                barHeight = height; // Default to height
+                barWidth = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              } else {
+                barWidth = width; // Default to width
+                barHeight = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              }
+              let startColor, endColor;
+              if (_vertical) {
+                endColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                startColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              } else {
+                startColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                endColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              }
+              // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
+              const startRgb = variables.__parse_color(startColor,'rgb');
+              const endRgb = variables.__parse_color(endColor,'rgb');
+              function interpolateColor(color1, color2, factor) {
+                const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+                return `rgb(${result.join(',')})`;
+              }
+              // Autocalculate numBars
+              let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+              //numBars = numBars+1;
+              let bars = '';
+              let x = 0, y = 0;
+              for (let i = 0; i < numBars; i++) {
+                const factor = i / (numBars - 1);
+                const color = interpolateColor(startRgb, endRgb, factor);
+                bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
+                x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+                y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+              }
+              // Build SVG string directly
+              const svgString = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                  <g>
+                    ${bars}
+                  </g>
+                </svg>
+              `;
+              return svgString;
+            } catch (error) {
+              return '';
+            }
+          }
+          return z_slider_bg_svg;
+        ]]]cb-lcars-button-picard-label-east:
     variables:
       text:
         label:
@@ -1907,6 +2173,7 @@ cblcars_card_templates:
     entity: '[[[ return variables.entity ]]]'
     template:
       - cb-lcars-functions
+      - cb-lcars-functions-svg
       - cb-lcars-base
       - cb-lcars-actions-disable
       - cb-lcars-animation-geo-array
@@ -1928,6 +2195,10 @@ cblcars_card_templates:
       _increment: 10
       _show_unit_of_measurement: false
       _unit_of_measurement: null
+      _z_isPicardMode: |
+        [[[
+          return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard');
+        ]]]
       entity: |
         [[[
           return variables.__get_random_entity('light');
@@ -2045,22 +2316,18 @@ cblcars_card_templates:
           top:
             size: |
               [[[
-                return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 40 : 10
+                return (variables._z_isPicardMode) ? 40 : 10
               ]]]
           bottom:
             size: |
               [[[
-                return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 50 : 0
+                return (variables._z_isPicardMode) ? 50 : 0
               ]]]
           left:
             size: |
               [[[
-                if (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') {
-                  return 0;
-                }
-                if (variables._vertical ) {
-                  return 30;
-                }
+                if (variables._z_isPicardMode) { return 0; }
+                if (variables._vertical) { return 30; }
                 return 120;
               ]]]
           right:
@@ -2079,38 +2346,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
         name:
           font_size: 22px
           align_items: center
@@ -2122,38 +2389,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
         state:
           font_size: 22px
           align_items: center
@@ -2165,38 +2432,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
       slider:
         locked: |
           [[[
@@ -2248,7 +2515,7 @@ cblcars_card_templates:
           color: white
           enabled: |
             [[[
-              return (variables._mode == 'gauge' && variables._gauge_style == 'picard' && variables._vertical == true) ? true : false;
+              return (variables._z_isPicardMode) ? true : false;
             ]]]
         flipped: '[[[ return (variables._vertical) ? true : false ]]]'
         padding:
@@ -2280,7 +2547,7 @@ cblcars_card_templates:
               inactive: var(--lcars-card-button-off)
         connect_ticks: |
           [[[
-            return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard' ) ? true : false;
+            return (variables._z_isPicardMode ) ? true : false;
           ]]]
         tick_line_thickness: 10
         min: '[[[ return variables.entity_min ]]]'
@@ -2326,6 +2593,8 @@ cblcars_card_templates:
         label:
           decimal_places: 0
           font_size: 14
+          font_weight: 400
+          font_family: Antonio
           active: >-
             [[[ return variables.entity_match_gauge ? variables.entity_color :
             variables.card.color.active ]]]
@@ -2337,94 +2606,15 @@ cblcars_card_templates:
           top: 5
           bottom: 0
         mask_color: rgba(0,0,0,0.8)
-        gradient_start_color: >
+        gradient_start_color: >-
           [[[ return  variables.entity_match_slider_start ?
           variables.entity_color : "var(--error-color)" ]]]
-        gradient_end_color: >
+        gradient_end_color: >-
           [[[ return  variables.entity_match_slider_end ? variables.entity_color
           : "var(--success-color)" ]]]
         gap: 5
         bar_border_radius: 0
         bar_thickness: 10
-      z_gauge: |
-        [[[
-          let minVal = variables.gauge.min;
-          let maxVal = variables.gauge.max;
-          let increment = variables.gauge.increment;
-          let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-          let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
-          if (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') {
-              let percent = (variables.gauge.picard_ratio !== undefined && !isNaN(variables.gauge.picard_ratio)) ? variables.gauge.picard_ratio / 100 : 40 / 100;
-            width = width * percent;
-            height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
-          }
-          const orientation = variables._vertical ? 'vertical' : 'horizontal';
-          const showSubticks = variables.gauge.sub_meter.show_sub_meter;
-          const entityState = entity.state;
-          const attribute = variables.attribute;
-          let isActive;
-          if (attribute && !isNaN(Number(entity.attributes?.[attribute]))) {
-            isActive = Number(entity.attributes[attribute]) > 0;
-          } else {
-            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-          }
-          const meter_bg_color = isActive ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
-          const meter_tick_color = isActive ? variables.gauge.color.active : variables.gauge.color.inactive;
-          const meter_subtick_color = isActive ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
-          const meter_label_color = isActive ? variables.gauge.label.active : variables.gauge.label.inactive;
-          const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
-          const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
-          const numSubticks = variables.gauge.sub_meter.tick_count;
-          const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
-          const subTickIncrement = 100 / numSegments / (numSubticks + 1);
-          const decimal_places = variables.gauge.label.decimal_places || 0;
-          const connect_ticks = variables.gauge.connect_ticks || false;
-          const tick_line_thickness = variables.gauge.tick_line_thickness || 1;
-          const meterTicks = [];
-          for (let i = minVal; i <= maxVal; i += increment) {
-            const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
-            const position = percent + '%';
-            const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-            meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
-            meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
-            if (showSubticks && i < maxVal) {
-              for (let j = 1; j <= numSubticks; j++) {
-                const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
-                const subTickPosition = subTickPercent + '%';
-                meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
-              }
-            }
-          }
-          const ranges = variables.gauge.ranges || [];
-          let rangeBackgrounds = '';
-          //if (variables.gauge.range.enabled && variables._gauge_style == 'basic') {
-          if (variables.gauge.range.enabled && (!variables._vertical || (variables._vertical && variables._gauge_style == 'basic'))) {            ranges.forEach(range => {
-              const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
-              const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
-              const rangeWidth = toPercent - fromPercent;
-              rangeBackgrounds += `
-                <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
-                      width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
-                      fill="${range.color}" />
-              `;
-            });
-          }
-          const tickLine = connect_ticks ? (orientation === 'vertical' ?
-            `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
-            `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
-          return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-              ${rangeBackgrounds}
-              ${tickLine}
-              ${meterTicks.join('')}
-            </svg>
-          `;
-        ]]]
-      z_isPicardMode: |
-        [[[
-          return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard');
-        ]]]
     state:
       - id: state_on
         operator: template
@@ -2457,25 +2647,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
@@ -2483,25 +2673,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
@@ -2553,25 +2743,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
@@ -2579,25 +2769,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
@@ -2649,25 +2839,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2675,25 +2865,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2741,25 +2931,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2767,25 +2957,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2833,25 +3023,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2859,25 +3049,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2934,25 +3124,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2960,25 +3150,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3035,25 +3225,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3061,25 +3251,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3127,25 +3317,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3153,25 +3343,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3204,18 +3394,18 @@ cblcars_card_templates:
         - z-index: 2
         - visibility: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return 'visible';
               }
             ]]]
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: padding-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
               } else {
                 return '100%'
@@ -3223,7 +3413,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3231,19 +3421,19 @@ cblcars_card_templates:
             ]]]
         - border-left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - border-top: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3252,12 +3442,12 @@ cblcars_card_templates:
         - z-index: 2
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: padding-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
               } else {
                 return '100%'
@@ -3265,7 +3455,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3273,25 +3463,25 @@ cblcars_card_templates:
             ]]]
         - border-left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - border-bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
               }
             ]]]
         - right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
         - bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3301,12 +3491,12 @@ cblcars_card_templates:
         - z-index: 2
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: content-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
               } else {
                 return '100%'
@@ -3314,7 +3504,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3322,25 +3512,25 @@ cblcars_card_templates:
             ]]]
         - border-right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
               }
             ]]]
         - border-bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
               }
             ]]]
         - left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
         - bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3348,7 +3538,7 @@ cblcars_card_templates:
         - top: null
         - justify-content: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 'left';
               } else {
                 return 'right';
@@ -3361,19 +3551,19 @@ cblcars_card_templates:
           - right: 0
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
                 } else {
                   return '100%'
@@ -3381,7 +3571,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3389,19 +3579,19 @@ cblcars_card_templates:
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3410,16 +3600,16 @@ cblcars_card_templates:
           - z-index: 1
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: black
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
                 } else {
                   return '100%'
@@ -3427,7 +3617,7 @@ cblcars_card_templates:
               ]]]
           - width: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio +") )"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3435,25 +3625,25 @@ cblcars_card_templates:
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio +") solid transparent";
                 }
               ]]]
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3461,7 +3651,7 @@ cblcars_card_templates:
           - top: null
           - justify-content: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 'left';
                 }
               ]]]
@@ -3469,19 +3659,19 @@ cblcars_card_templates:
           - z-index: 1
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
                 } else {
                   return '100%'
@@ -3489,7 +3679,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3497,25 +3687,25 @@ cblcars_card_templates:
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
                 }
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3523,17 +3713,18 @@ cblcars_card_templates:
         animation:
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? "visible" : "hidden";
               ]]]
+          - display: flex
           - z-index: 1
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: content-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
                 } else {
                   return '100%'
@@ -3541,7 +3732,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio +") )"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3549,19 +3740,19 @@ cblcars_card_templates:
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
                 }
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3569,7 +3760,6 @@ cblcars_card_templates:
           - position: absolute
           - top: 0
           - background: black
-          - display: flex
           - align-items: |
               [[[
                 return variables.animation.align_items || 'center';
@@ -3578,29 +3768,11 @@ cblcars_card_templates:
               [[[
                 return variables.animation.justify_content || 'center';
               ]]]
-          - filter: |
-              [[[
-                if (variables.animation?.filter?.advanced) {
-                  return variables.animation.filter.advanced;
-                }
-                const filter = variables.animation.filter || {};
-                const filters = [];
-                if (filter.blur !== undefined) filters.push(`blur(${filter.blur}px)`);
-                if (filter.brightness !== undefined) filters.push(`brightness(${filter.brightness}%)`);
-                if (filter.saturate !== undefined) filters.push(`saturate(${filter.saturate}%)`);
-                if (filter.invert !== undefined) filters.push(`invert(${filter.invert}%)`);
-                if (filter.sepia !== undefined) filters.push(`sepia(${filter.sepia}%)`);
-                if (filter.grayscale !== undefined) filters.push(`grayscale(${filter.grayscale}%)`);
-                if (filter.hue_rotate !== undefined) filters.push(`hue-rotate(${filter.hue_rotate}deg)`);
-                if (filter.contrast !== undefined) filters.push(`contrast(${filter.contrast}%)`);
-                if (filter.opacity !== undefined) filters.push(`opacity(${filter.opacity}%)`);
-                return filters.length > 0 ? filters.join(' ') : 'none';
-              ]]]
         gauge:
           - background: none
           - text-align: |
               [[[
-                return (variables.z_isPicardMode) ? 'left' : '';
+                return (variables._z_isPicardMode) ? 'left' : '';
               ]]]
           - visibility: >-
               [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
@@ -3609,7 +3781,7 @@ cblcars_card_templates:
           - top: 0px
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return '';
                 } else {
                 return 0;
@@ -3617,13 +3789,13 @@ cblcars_card_templates:
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - width: >-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return '50%'
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
@@ -3635,7 +3807,7 @@ cblcars_card_templates:
               ]]]
           - height: |
               [[[
-                if(variables.z_isPicardMode) {
+                if(variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
                   variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
                   variables.__get_num_with_unit(variables.card.border.bottom.size) +
@@ -3645,11 +3817,11 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
@@ -3794,7 +3966,7 @@ cblcars_card_templates:
           - position: absolute
           - top: |
               [[[
-                  if (variables.z_isPicardMode) {
+                  if (variables._z_isPicardMode) {
                     return 0;
                   }
                   if (variables._vertical) {
@@ -3809,7 +3981,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
                   }
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -3827,33 +3999,33 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
@@ -3867,7 +4039,7 @@ cblcars_card_templates:
               ]]]
           - top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
                 return variables.__get_num_with_unit(variables.card.border.top.size);
@@ -3887,7 +4059,7 @@ cblcars_card_templates:
                     variables.__get_num_with_unit(variables.slider_track.padding.right) +
                     ")";
                 }
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
                   }
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -3925,33 +4097,33 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
@@ -3959,19 +4131,16 @@ cblcars_card_templates:
           - background: none
           - text-align: |
               [[[
-                return (variables.z_isPicardMode) ? 'left' : '';
+                return (variables._z_isPicardMode) ? 'left' : '';
               ]]]
-          - visibility: >-
-              [[[ return (variables._mode === 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'visible' : 'hidden' ]]]
+          - display: '[[[ return (variables._z_isPicardMode) ? ''flex'' : ''none'' ]]]'
           - position: absolute
           - top: 0
           - left: 0
-          - display: flex
           - justify-content: flex-end
           - width: >-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
@@ -3991,11 +4160,11 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
@@ -4033,62 +4202,15 @@ cblcars_card_templates:
     custom_fields:
       ranges_alt: |
         [[[
-          let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-          let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
-          if (variables.z_isPicardMode) {
-            let ratio = variables.gauge?.range?.width_ratio || 2;
-            width = variables.gauge.tick_line_thickness * ratio;
-          }
-          const entityState = entity.state;
-          //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
-          const attribute = variables.attribute;
-          let isActive;
-          if (attribute && !isNaN(Number(entity.attributes?.[attribute]))) {
-            isActive = Number(entity.attributes[attribute]) > 0;
-          } else {
-            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-          }
-          const outerRectColor = isActive ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
-          // inset color and thickness - this is the stroke on range rects
-          const borderColor = variables.gauge.range.inset.border.color || 'black';
-          const borderThickness = parseInt(variables.gauge.range.inset.border.size);
-          let borderGap = parseInt(variables.card.border.gap) || 5;
-          let insetGap = parseInt(variables.gauge.range.inset.gap) || parseInt(variables.card.border.gap);
-          // gap between ranges (set to 0 when using svg stroke)
-          const rangeGap = 0;
-          // svg offsets to start drawing
-          const startX = 0;
-          const startY = 0;
-          // Setup ranges - if enabled
-          const ranges = (variables.gauge.range.enabled) ? (variables.gauge.ranges || []) : [];
-          let rects = '';
-          // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
-          const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
-          // svg rect for background
-          rects += `
-              <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
-          `;
-          // Iterate through ranges - generate rects at proper positions in available range height
-          for (let i = 0; i < ranges.length; i++) {
-            const range = ranges[i];
-            const fromPercent = ((range.from - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
-            const toPercent = ((range.to - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
-            const rangePercentHeight = toPercent - fromPercent;
-            const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
-            // set range X position and width
-            const rangeX = startX; // SIMPLE X
-            const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
-            const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
-            const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
-            rects += `
-              <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
-            `;
-          }
-          return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              ${rects}
-            </svg>
-          `;
+          if(!variables._z_isPicardMode) return null;
+          const params = {
+            gauge: variables.gauge,
+            card: variables.card,
+            entity: entity,
+            attribute: variables.attribute,
+            _z_isPicardMode: variables._z_isPicardMode,
+          };
+          return variables.get_memoized_svg.call(this,'z_ranges_alt_svg')(params);
         ]]]
       se_mask: |
         [[[
@@ -4104,82 +4226,37 @@ cblcars_card_templates:
         ]]]
       gauge: |
         [[[
-          return variables.z_gauge;
+          if(!(variables._mode === 'gauge')) return null;
+          const params = {
+            gauge: variables.gauge,
+            card: variables.card,
+            entity: entity,
+            attribute: variables.attribute,
+            _show_unit_of_measurement: variables._show_unit_of_measurement,
+            entity_unit_of_measurement: variables.entity_unit_of_measurement,
+            _z_isPicardMode: variables._z_isPicardMode,
+            _vertical: variables._vertical,
+            _gauge_style: variables._gauge_style,
+          };
+          //return variables.z_memoized_gauge_svg(params);
+          return variables.get_memoized_svg.call(this,'z_gauge_svg')(params);
         ]]]
       slider_bg: |
         [[[
-          try {
-            const width = parseInt(variables.slider_track.width) || parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
-            const height = parseInt(variables.slider_track.height) || parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
-            let barWidth, barHeight;
-            // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
-            if (width <= 0 || height <= 0) {
-              //console.error(`Invalid dimensions: width=${width}, height=${height}`);
-              // Return a placeholder or empty SVG
-              return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
-            }
-            // Defaults and overrides
-            let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
-            let barOrientation = variables._vertical ? "vertical" : "horizontal";
-            let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
-            // Set defaults based on orientation
-            if (barOrientation === 'horizontal') {
-              barHeight = height; // Default to height
-              barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-            } else {
-              barWidth = width; // Default to width
-              barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-            }
-            let startColor, endColor;
-            if (variables._vertical) {
-              endColor = variables.entity_match_slider_start
-                ? variables.entity_color
-                : variables.slider_track.gradient_start_color.trim();
-              startColor = variables.entity_match_slider_end
-                ? variables.entity_color
-                : variables.slider_track.gradient_end_color.trim();
-            } else {
-              startColor = variables.entity_match_slider_start
-                ? variables.entity_color
-                : variables.slider_track.gradient_start_color.trim();
-              endColor = variables.entity_match_slider_end
-                ? variables.entity_color
-                : variables.slider_track.gradient_end_color.trim();
-            }
-            // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
-            const startRgb = variables.__parse_color(startColor,'rgb',this);
-            const endRgb = variables.__parse_color(endColor,'rgb',this);
-            function interpolateColor(color1, color2, factor) {
-              const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
-              return `rgb(${result.join(',')})`;
-            }
-            // Autocalculate numBars
-            let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
-            //numBars = numBars+1;
-            let bars = '';
-            let x = 0, y = 0;
-            for (let i = 0; i < numBars; i++) {
-              const factor = i / (numBars - 1);
-              const color = interpolateColor(startRgb, endRgb, factor);
-              bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
-              x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
-              y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
-            }
-            // Build SVG string directly
-            const svgString = `
-              <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-                <g>
-                  ${bars}
-                </g>
-              </svg>
-            `;
-            return svgString;
-          } catch (error) {
-            return '';
-          }
+          if(!(variables._mode === 'slider')) return null;
+          const params = {
+            slider_track: variables.slider_track,
+            card: variables.card,
+            _vertical: variables._vertical,
+            entity_color: variables.__parse_color(variables.entity_color,'hex',this),
+            entity_match_slider_start: variables.entity_match_slider_start,
+            entity_match_slider_end: variables.entity_match_slider_end,
+          };
+          return variables.get_memoized_svg.call(this,'z_slider_bg_svg')(params);
         ]]]
       locked_bar: |
         [[[
+          if(!(variables.slider.locked)) return null;
           const entityState = entity.state;
           const entityType = entity.entity_id.split('.')[0]; // Extract entity type
           const attr = variables.attribute;
@@ -4300,7 +4377,7 @@ cblcars_card_templates:
             card:
               - width: |
                   [[[
-                      if (variables.z_isPicardMode) {
+                      if (variables._z_isPicardMode) {
                           return "100%";
                         }
                       return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -4321,7 +4398,7 @@ cblcars_card_templates:
               - width: '[[[ return variables.slider.width ]]]'
               - left: |-
                   [[[
-                    return (variables.z_isPicardMode) ? "" : variables.__get_num_with_unit(variables.slider.padding.left);
+                    return (variables._z_isPicardMode) ? "" : variables.__get_num_with_unit(variables.slider.padding.left);
                   ]]]
             container:
               - border-radius: 0
@@ -4339,16 +4416,16 @@ cblcars_card_templates:
                   ]]]
               - position: |
                   [[[
-                    return (variables.z_isPicardMode) ? 'absolute' : 'relative';
+                    return (variables._z_isPicardMode) ? 'absolute' : 'relative';
                   ]]]
               - right: |-
                   [[[
-                    return (variables.z_isPicardMode) ? variables.__get_num_with_unit(variables.slider.picard_right) : "";
+                    return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.slider.picard_right) : "";
                   ]]]
             thumb:
               - visibility: |
                   [[[
-                    return (variables.slider.thumb.enabled && variables.z_isPicardMode && !(variables.slider.locked)) ? 'visible' : 'hidden'
+                    return (variables.slider.thumb.enabled && variables._z_isPicardMode && !(variables.slider.locked)) ? 'visible' : 'hidden'
                   ]]]
               - width: |
                   [[[
@@ -7591,6 +7668,7 @@ cblcars_card_templates:
             variables?.animation?.alert?.text?.alert_text?.font_family,
             variables?.animation?.alert?.text?.sub_text?.font_family,
             variables?.animation?.cascade?.text?.font_family,
+            variables?.gauge?.label?.font_family,
             this._config.cblcars_custom_match?.settings?.text?.label?.font_family,
             this._config.cblcars_custom_match?.settings?.text?.name?.font_family,
             this._config.cblcars_custom_match?.settings?.text?.state?.font_family,
