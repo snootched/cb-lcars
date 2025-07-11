@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.3-beta6
+  version: 2025.07.3-beta7
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -1240,7 +1240,8 @@ cblcars_card_templates:
             }
           }
           return z_slider_bg_svg;
-        ]]]cb-lcars-button-picard-label-east:
+        ]]]
+  cb-lcars-button-picard-label-east:
     variables:
       text:
         label:
