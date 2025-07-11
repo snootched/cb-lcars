@@ -149,18 +149,20 @@ class CBLCARSBaseCard extends ButtonCard {
     _lastWidth = 0;
     _lastHeight = 0;
     _resizeObserverTolerance = 16; // Default tolerance for resize observer.  16 settles infinite resize in preview mode.
+    _debounceWait = 100; // Default debounce wait time in milliseconds
     _isUsingLovelaceTemplate = false;
     _overrideTemplates = [];
 
 
     constructor () {
         super();
-        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || 10;
+        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || this._resizeObserverTolerance;
+        this._debounceWait = window.cblcars.debounceWait || this._debounceWait;
         this._resizeObserver = new ResizeObserver(() => {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 50);
+        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
     }
 
 
@@ -205,8 +207,8 @@ class CBLCARSBaseCard extends ButtonCard {
         // Set up the resizeObserver properties
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         this._isResizeObserverEnabled = (config.enable_resize_observer || (config.variables && config.variables.enable_resize_observer)) || false;
-        this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
-
+        this._resizeObserverTolerance = config.resize_observer_tolerance || this._resizeObserverTolerance;
+        this._debounceWait = config.debounce_wait || this._debounceWait;
         // Enable the resize observer if any merged template contains the word 'animation'
         // this allows us to enable the observer for added animation templates without needed to explicity add it to the config
         if (mergedTemplates.some(template => template.includes('animation') || template.includes('symbiont'))) {
