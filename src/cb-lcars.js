@@ -148,7 +148,7 @@ class CBLCARSBaseCard extends ButtonCard {
     _resizeObserverTarget = 'this';
     _lastWidth = 0;
     _lastHeight = 0;
-    _resizeObserverTolerance = 10;
+    _resizeObserverTolerance = 16; // Default tolerance for resize observer.  16 settles infinite resize in preview mode.
     _isUsingLovelaceTemplate = false;
     _overrideTemplates = [];
 
