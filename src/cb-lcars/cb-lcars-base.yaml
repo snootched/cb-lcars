@@ -16,6 +16,11 @@ cb-lcars-base:
     - '[[[ return (variables.custom_states?.states?.[7]?.entity) || null; ]]]'
     - '[[[ return (variables.custom_states?.states?.[8]?.entity) || null; ]]]'
     - '[[[ return (variables.custom_states?.states?.[9]?.entity) || null; ]]]'
+    - '[[[ return (variables.custom_states?.states?.[10]?.entity) || null; ]]]'
+    - '[[[ return (variables.custom_states?.states?.[11]?.entity) || null; ]]]'
+    - '[[[ return (variables.custom_states?.states?.[12]?.entity) || null; ]]]'
+    - '[[[ return (variables.custom_states?.states?.[13]?.entity) || null; ]]]'
+    - '[[[ return (variables.custom_states?.states?.[14]?.entity) || null; ]]]'
   variables:
     label: ' '
     text:

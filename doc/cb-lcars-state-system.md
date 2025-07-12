@@ -5,7 +5,7 @@ CB-LCARS cards provide a flexible state system for controlling the appearance an
 - **Built-in state matching**: Predefined states like `on`, `off`, `unavailable`, etc.
 - **Custom state matching (`state_custom`)**:
   - Designed for quick, simple styling customizations.
-  - Supports only a single condition per matcher (no AND/OR or complex logic).
+  - Supports a single condition per matcher (no AND/OR or complex logic).
   - Not a replacement for full button-card state templates.
   - For advanced logic (multiple conditions, AND/OR, expressions), use the standard button-card `state:` template system.
 
@@ -13,7 +13,7 @@ CB-LCARS cards provide a flexible state system for controlling the appearance an
 
 ## Overview
 
-Each CB-LCARS card can respond to the state of its assigned entity (or entities), and apply different styles, variables, and behaviors depending on the current state. This is achieved through a set of **state matchers**, each of which can match on specific values, ranges, or patterns.
+Each CB-LCARS card can respond to the state of its assigned entity and apply different styles depending on the current state. This is achieved through a set of **state matchers**, each of which can match on specific values, ranges, or patterns.
 
 There are two main types of state matchers:
 
@@ -24,7 +24,7 @@ There are two main types of state matchers:
 
 ## Built-in State Matchers
 
-The following built-in states are available and can be styled via the card's variables and styles:
+The following built-in states are available.  The styles are controlled via the card's variables structure (see below):
 
 | State ID             | Matches Entity State Value(s)         | Variable Name   |
 |----------------------|---------------------------------------|-----------------|
@@ -41,16 +41,15 @@ If no entity is defined (no state), `default` will be used.  If the entity is un
 
 Each of these is configurable in the UI editor for the cards.
 
-State styles can be applied to components such as:
+State styles can be applied to various components such as:
 - Borders
 - Backgrounds
 - Text
-- Buttons
 - etc.
 > **Tip**
 > When using Light entities, you can choose to have your colour
 > match the light's current colour.  You can choose this from
-> the colour picker list, or by using the variable `var(--custom-button-light-color)`
+> the colour picker list, or by using the variables `var(--button-card-light-color)` or `var(--button-card-light-color-no-temperature)`
 
 Example of configuration (editable via UI):
 ```yaml
@@ -98,14 +97,14 @@ This system enables your cards to dynamically update their appearance at runtime
 > **How to enable:**
 > To use custom state matchers, set `enabled: true` under `variables.custom_states`.
 > - When `enabled` is true, `state_custom` logic is used for state matching first.
-> - All other built-in states are only evaluated if `state_custom` doesn't have a match.
-> - For properties not customized via the custom matcher, the default value is used.
+> - For properties not customized via the custom matcher, or if a match is not found, the `default` value is used.
 
 
 It provides a quick and accessible way to achieve dynamic custom styling for most common cases, without needing to write full button-card state templates.
 
 > **Note:**
 > `state_custom` is **not** a replacement for button-card's full state template functionality. If you require more complex logic (such as multiple conditions, AND/OR logic, or advanced expressions), you should use the standard button-card `state:` template system instead as you can write full javascript code blocks for value expressions.
+
 
 ### How It Works
 
@@ -119,17 +118,38 @@ It provides a quick and accessible way to achieve dynamic custom styling for mos
 - Each matcher can specify:
   - Which entity and/or attribute to match (defaults to the card's main entity/attribute if omitted)  Any entity can be used here - it need not be the entity tied to the main card.
   - The operator and value(s) to match (e.g., `equals`, `from`/`to`, `regex`, `in`, `not_in`, etc.)
-  - Optional style/variable overrides to apply when matched
+  - The style variable overrides to apply when matched.
 
 When a match from the list occurs, the card will:
-- Set the matched state configuration into the card's config at `cblcars_custom_match`
-- Apply any style overrides defined in the matcher
-- Use the `state_custom` style block for rendering
+- Set the matched state configuration config into the card's main config at `cblcars_custom_match`
+- Apply any style overrides defined in the matcher.
+- Use the `state_custom` style block for rendering.
 
 
 > **Technical Limitation:**
-> Only the _styling_ variables for the `card` and `text` (including `label`,`name`,`state`) variable blocks are available for override in `state_custom`. The entire variables structure is **not** mirrored here, due to limitations in button-card: as variables are only evaluated on first load and cannot be updated dynamically during state evaluation - we can only dynammically alter CSS styles.
+> Only the _styling_ variables for the `card` and `text` (including `label`,`name`,`state`) variable blocks are available for override in `state_custom`. The entire variables structure is **not** mirrored here, due to limitations in button-card. Since variables are only evaluated on first load and cannot be updated dynamically during state evaluation - we can only dynamically alter CSS styles.
 
+> **What are "styling variables"?**<br>
+> Styling variables are variables that directly control the CSS properties of the card's appearance. These variables are used to set things like colors, font sizes, padding, borders, and other visual aspects in the card's style blocks. Only these variables can be overridden dynamically by `state_custom` matchers. Other variables (such as those used for logic, actions, or non-style configuration) are **not** supported for override.
+
+**Supported Styling Variable Paths for Override**
+
+The following variable paths can be overridden in a `state_custom` matcher (non-exhaustive list):
+
+| Variable Path                        | Description                        |
+|-------------------------------------- |------------------------------------|
+| `card.color.background.default`       | Card background color              |
+| `card.border.top.size`                | Card top border size               |
+| `card.border.top.left_radius`         | Card top left border radius        |
+| `text.label.color.default`            | Label text color                   |
+| `text.label.font_size`                | Label font size                    |
+| `text.label.font_family`              | Label font family                  |
+| `text.state.color.default`            | State text color                   |
+| `text.name.font_family`               | Name font family                   |
+| `icon.color.default`                  | Icon color                         |
+| ... *(add more as needed)*            |                                    |
+
+> **Note:** Only the above (and similar) variables that map directly to CSS properties in the card's style blocks are supported for override. If you attempt to override a variable not used for styling, it will have no effect.
 
 ### Supported Operators and Evaluation Order
 
@@ -152,7 +172,7 @@ Each matcher can use one of the following operators (evaluated in this order):
 
 ### Example: Custom State Matchers
 
-#### Example 1: Match a Specific Attribute Value
+#### Example 1: Match a Specific Attribute Value of the main Entity
 
 ```yaml
 variables:
@@ -173,7 +193,7 @@ variables:
                 default: var(--lcars-orange)
 ```
 
-#### Example 2: Match on a Different Entity
+#### Example 2: Match State on a Different Entity
 
 ```yaml
 variables:
@@ -231,47 +251,104 @@ variables:
 > **Important:**
 > Each matcher entry supports only a single condition/operator. If you specify multiple operators in one entry, **only the first one (in the order above) will be evaluated**.
 
+> **First Match Wins**
+> Custom state matchers are evaluated in the order they appear in your configuration. As soon as a matcher matches, its settings are applied and no further matchers are checked. Make sure to order your matchers from most specific to most general.
+
 ---
 
-## Applying Styles and Variables
+## Troubleshooting & FAQ
 
-When a custom matcher is triggered, you can override **styling variables for the card and text blocks** using the `settings` block inside your matcher. The structure mirrors the main `variables:` block for these sections only.
+**Q: Why isn't my custom state matcher working?**<br>
+A: Check that:
+- `variables.custom_states.enabled` is set to `true`.
+- Your matcher is the first one that matches (remember, only the first match is used).
+- The variable you are trying to override is a supported styling variable (see the table above).
+- The entity and attribute you reference exist and have the expected value.
 
-> **Limitation:**
-> Only `card` and `text` styling variables are supported for override in `state_custom`. Other variable blocks are not available for dynamic override.
+**Q: Can I override icon color or other style properties?**<br>
+A: Yes, you can override supported styling variables for `card`, `text`, and `icon` (see the table above). Other variables or logic are not supported.
 
-Example:
+**Q: What happens if no matcher matches?**<br>
+A: If no custom matcher matches, the card's `default` state values will be used.
+
+**Q: Can I use multiple conditions (AND/OR) in a matcher?**<br>
+A: No, each matcher supports only a single condition/operator. For more complex logic, use the standard button-card `state:` template system.
+
+---
+
+## Advanced Examples
+
+Here are some more advanced use cases to help you get the most out of custom state matchers:
+
+### Example: Override Multiple Style Properties
 
 ```yaml
 variables:
   custom_states:
     enabled: true
     states:
-      - equals: "special"
+      - equals: "maintenance"
         settings:
           card:
             color:
               background:
-                default: var(--lcars-special)
+                default: var(--lcars-yellow)
             border:
-              left:
-                size: 30
               top:
-                size: 20
-                left_radius: 20
-                right_radius: 0
+                size: 8px
+                color: var(--lcars-orange)
           text:
             label:
               color:
-                default: var(--lcars-special)
-              font_family: cb-lcars_jeffries
-              font_size: 32
-              text_transform: lowercase
+                default: var(--lcars-orange)
+              font_size: 28
+              font_family: "cb-lcars_millenium"
+```
+
+### Example: Use a Different Entity and Attribute
+
+```yaml
+variables:
+  custom_states:
+    enabled: true
+    states:
+      - entity: "sensor.weather"
+        attribute: "condition"
+        equals: "rainy"
+        settings:
+          card:
+            color:
+              background:
+                default: var(--lcars-blue)
+          text:
+            state:
+              color:
+                default: var(--lcars-blue)
+```
+
+### Example: Override Icon Color
+
+```yaml
+variables:
+  custom_states:
+    enabled: true
+    states:
+      - equals: "alert"
+        settings:
+          icon:
+            color:
+              default: var(--lcars-red)
 ```
 
 ---
 
-## Advanced: Overriding Built-in State Styles
+> **Limitation:**
+> Only variables that directly affect card, text, or icon styling can be overridden dynamically. Attempting to override other variables will have no effect.
+> If no custom matcher matches, the card will use the "default" styling variables (such as `variables.card.color.background.default`). Other built-in state styles (like `state_on`, `state_off`, etc.) are not evaluated when `state_custom` is enabled.
+
+---
+
+## Advanced: Overriding _Built-in_ State Styles
 
 You can override the `value:` expressions and styles of any built-in state by providing a `state:` block in your card configuration with the appropriate `id:`.
 
@@ -316,41 +393,6 @@ state:
 
 > **Tip:**
 > The `id` field determines which style block is to be customized. You can use this to map custom values to built-in state styles, or to apply your own overrides.
-
----
-
-## Debugging and Tips
-
-- ,,,
-
-
----
-
-## Full Example: Custom State for Alarm Panel
-
-Suppose you want your alarm panel card to show a special color when armed in any mode, and another color when triggered:
-
-```yaml
-type: custom:cb-lcars-button-card
-entity: alarm_control_panel.home_alarm
-variables:
-  custom_states:
-    enabled: true
-    states:
-      - attribute: "state"
-        regex: "^armed_.*$"
-        settings:
-          card:
-            color:
-              background:
-                default: var(--lcars-orange)
-      - equals: "triggered"
-        settings:
-          card:
-            color:
-              background:
-                default: var(--lcars-red)
-```
 
 ---
 
