@@ -1590,10 +1590,6 @@
                                       "label": "Eurostile Oblique"
                                     },
                                     {
-                                      "value": "cb-lcars_fabrini",
-                                      "label": "Fabrini"
-                                    },
-                                    {
                                       "value": "cb-lcars_federation",
                                       "label": "Federation"
                                     },
@@ -1608,6 +1604,10 @@
                                     {
                                       "value": "cb-lcars_jeffries",
                                       "label": "Jeffries"
+                                    },
+                                    {
+                                      "value": "cb-lcars_millenium_extended_bold",
+                                      "label": "Millenium Extended Bold"
                                     },
                                     {
                                       "value": "cb-lcars_sonic",
@@ -1656,6 +1656,10 @@
                                     {
                                       "value": "cb-lcars_dominion",
                                       "label": "[alien] Dominion"
+                                    },
+                                    {
+                                      "value": "cb-lcars_fabrini",
+                                      "label": "[alien] Fabrini"
                                     },
                                     {
                                       "value": "cb-lcars_ferengi_left",
@@ -2470,10 +2474,6 @@
                                       "label": "Eurostile Oblique"
                                     },
                                     {
-                                      "value": "cb-lcars_fabrini",
-                                      "label": "Fabrini"
-                                    },
-                                    {
                                       "value": "cb-lcars_federation",
                                       "label": "Federation"
                                     },
@@ -2488,6 +2488,10 @@
                                     {
                                       "value": "cb-lcars_jeffries",
                                       "label": "Jeffries"
+                                    },
+                                    {
+                                      "value": "cb-lcars_millenium_extended_bold",
+                                      "label": "Millenium Extended Bold"
                                     },
                                     {
                                       "value": "cb-lcars_sonic",
@@ -2536,6 +2540,10 @@
                                     {
                                       "value": "cb-lcars_dominion",
                                       "label": "[alien] Dominion"
+                                    },
+                                    {
+                                      "value": "cb-lcars_fabrini",
+                                      "label": "[alien] Fabrini"
                                     },
                                     {
                                       "value": "cb-lcars_ferengi_left",
@@ -3401,10 +3409,6 @@
                                       "label": "Eurostile Oblique"
                                     },
                                     {
-                                      "value": "cb-lcars_fabrini",
-                                      "label": "Fabrini"
-                                    },
-                                    {
                                       "value": "cb-lcars_federation",
                                       "label": "Federation"
                                     },
@@ -3419,6 +3423,10 @@
                                     {
                                       "value": "cb-lcars_jeffries",
                                       "label": "Jeffries"
+                                    },
+                                    {
+                                      "value": "cb-lcars_millenium_extended_bold",
+                                      "label": "Millenium Extended Bold"
                                     },
                                     {
                                       "value": "cb-lcars_sonic",
@@ -3467,6 +3475,10 @@
                                     {
                                       "value": "cb-lcars_dominion",
                                       "label": "[alien] Dominion"
+                                    },
+                                    {
+                                      "value": "cb-lcars_fabrini",
+                                      "label": "[alien] Fabrini"
                                     },
                                     {
                                       "value": "cb-lcars_ferengi_left",
@@ -4839,10 +4851,6 @@
                               "label": "Eurostile Oblique"
                             },
                             {
-                              "value": "cb-lcars_fabrini",
-                              "label": "Fabrini"
-                            },
-                            {
                               "value": "cb-lcars_federation",
                               "label": "Federation"
                             },
@@ -4857,6 +4865,10 @@
                             {
                               "value": "cb-lcars_jeffries",
                               "label": "Jeffries"
+                            },
+                            {
+                              "value": "cb-lcars_millenium_extended_bold",
+                              "label": "Millenium Extended Bold"
                             },
                             {
                               "value": "cb-lcars_sonic",
@@ -4905,6 +4917,10 @@
                             {
                               "value": "cb-lcars_dominion",
                               "label": "[alien] Dominion"
+                            },
+                            {
+                              "value": "cb-lcars_fabrini",
+                              "label": "[alien] Fabrini"
                             },
                             {
                               "value": "cb-lcars_ferengi_left",
@@ -7185,10 +7201,6 @@
                                   "label": "Eurostile Oblique"
                                 },
                                 {
-                                  "value": "cb-lcars_fabrini",
-                                  "label": "Fabrini"
-                                },
-                                {
                                   "value": "cb-lcars_federation",
                                   "label": "Federation"
                                 },
@@ -7203,6 +7215,10 @@
                                 {
                                   "value": "cb-lcars_jeffries",
                                   "label": "Jeffries"
+                                },
+                                {
+                                  "value": "cb-lcars_millenium_extended_bold",
+                                  "label": "Millenium Extended Bold"
                                 },
                                 {
                                   "value": "cb-lcars_sonic",
@@ -7251,6 +7267,10 @@
                                 {
                                   "value": "cb-lcars_dominion",
                                   "label": "[alien] Dominion"
+                                },
+                                {
+                                  "value": "cb-lcars_fabrini",
+                                  "label": "[alien] Fabrini"
                                 },
                                 {
                                   "value": "cb-lcars_ferengi_left",
