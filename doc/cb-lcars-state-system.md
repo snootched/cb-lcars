@@ -185,6 +185,8 @@ Each matcher can use one of the following operators (evaluated in this order):
 
 #### Example 1: Match a Specific Attribute Value of the main Entity
 
+> Sets the button background to orange and the label text to blue if the brightness of the main entity is between 1-50%
+
 ```yaml
 variables:
   custom_states:
@@ -199,12 +201,14 @@ variables:
               background:
                 default: var(--lcars-orange)
           text:
-            state:
+            label:
               color:
-                default: var(--lcars-orange)
+                default: var(--lcars-blue)
 ```
 
 #### Example 2: Match State on a Different Entity
+
+> Sets the button background to blue when the outdoor sensor temperature is between -10 and 0.  The main entity is not used for the state matching in this case.
 
 ```yaml
 variables:
@@ -224,6 +228,8 @@ variables:
 
 #### Example 3: Regex Match
 
+> Sets the button background to orange when the `alarm_state` attribut of the main entity matches the regular expression (eg. `armed_home`, `armed_away` etc.)
+
 ```yaml
 variables:
   custom_states:
@@ -239,6 +245,10 @@ variables:
 ```
 
 #### Example 4: In/Not In
+
+> First check if the main entity state is either `paused` or `idle` and set the background to yellow if it matched.
+>
+> If not, then check if the main entity state is **not** one of `off`,`unavailable` and set the background to yellow.
 
 ```yaml
 variables:
@@ -293,6 +303,8 @@ Here are some more advanced use cases to help you get the most out of custom sta
 
 ### Example: Override Multiple Style Properties
 
+> If the main entity state is `maintenance` then set background color to yellow, set the top border to 8px and orange, set the label text to orange, 28px, and use the millenium font.
+
 ```yaml
 variables:
   custom_states:
@@ -306,7 +318,7 @@ variables:
                 default: var(--lcars-yellow)
             border:
               top:
-                size: 8px
+                size: 8
                 color: var(--lcars-orange)
           text:
             label:
@@ -317,6 +329,8 @@ variables:
 ```
 
 ### Example: Use a Different Entity and Attribute
+
+> Checks if a different entity other than the main, in this case `sensor.weather` has the attribute `condition` and that attribute equals `rainy` - if true, set the background to blue and set the label text color to white.
 
 ```yaml
 variables:
@@ -332,12 +346,14 @@ variables:
               background:
                 default: var(--lcars-blue)
           text:
-            state:
+            label:
               color:
-                default: var(--lcars-blue)
+                default: var(--lcars-moonbeam)
 ```
 
-### Example: Override Icon Color
+### Example: Override Icon Colour
+
+> Sets the icon colour to red if the state of the main entity equals `alert`
 
 ```yaml
 variables:
@@ -373,18 +389,45 @@ This is a standard [custom-button-card](https://github.com/custom-cards/button-c
 
 Each `state:` entry can match a value (or use an operator) and apply additional styles or variable overrides when that state is active. This is useful if you want to treat a specific value as "active", or apply custom styles for a particular state.
 
-**Example: Override the "active" state for a specific value**
+**Example: Use a template for advanced logic**
+
+> Suppose you want to treat the entity as "active" only if its state is `"on"` **and** its `power` attribute is above 100 **and** its `voltage` attribute is below 220. This cannot be done with `state_custom` (which only supports a single condition per matcher), but can be achieved with a template in the `state:` block.
 
 ```yaml
 type: custom:cb-lcars-button-card
-entity: alarm_control_panel.home_alarm
+entity: sensor.device_power
 state:
-  - value: "armed_home"
-    operator: "=="
+  - operator: template
+    value: |
+      [[[
+        return entity.state === "on" &&
+               entity.attributes.power > 100 &&
+               entity.attributes.voltage < 220;
+      ]]]
     id: state_on  # Use the 'active' style block
-    styles:       # Style overrides (advanced, for non-variable properties)
+    styles:
       card:
-        - background-color: var(--lcars-orange)  # Specify CSS property directly
+        - background-color: var(--lcars-orange)
+```
+
+**Example: Use a template for complex OR logic**
+
+> You want to show a special style if the entity is `"on"` and either the temperature is above 25 **or** the humidity is below 30. This requires OR logic within a single matcher, which is not possible with `state_custom`.
+
+```yaml
+type: custom:cb-lcars-button-card
+entity: climate.bedroom
+state:
+  - operator: template
+    value: |
+      [[[
+        return entity.state === "on" &&
+          (entity.attributes.temperature > 25 || entity.attributes.humidity < 30)
+      ]]]
+    id: state_on
+    styles:
+      card:
+        - background-color: var(--lcars-red)
 ```
 
 You can also override styles for any built-in state by matching its value and specifying the `id` field to link to the desired style block (`state_on`, `state_off`, etc.).
