@@ -1,8 +1,8 @@
 # CB-LCARS State System
 
-CB-LCARS cards provide a flexible state system for controlling the appearance and behavior of your cards based on entity state, attribute values, or simple custom logic.
+CB-LCARS cards provide a flexible state system for controlling the appearance of your cards based on entity state, attribute values, or simple custom logic.
 
-- **Built-in state matching**: Predefined states like `on`, `off`, `unavailable`, etc.
+- **Built-in state matching**: Predefined states (`active`, `inactive`, `unavailable`, etc.)
 - **Custom state matching (`state_custom`)**:
   - Designed for quick, simple styling customizations.
   - Supports a single condition per matcher (no AND/OR or complex logic).
@@ -17,7 +17,7 @@ Each CB-LCARS card can respond to the state of its assigned entity and apply dif
 
 There are two main types of state matchers:
 
-- **Built-in State Matchers**: Predefined states such as `on`, `off`, `unavailable`, `zero`, etc.
+- **Built-in State Matchers**: Predefined states that match entity states such as `on`, `off`, `unavailable`, `zero`, etc.  See below.
 - **Custom State Matchers (`state_custom`)**: User-defined matchers that allow for advanced matching logic (e.g., value ranges, regex, attribute-based, multi-entity, etc.).
 
 ---
@@ -28,7 +28,7 @@ The following built-in states are available.  The styles are controlled via the 
 
 | State ID             | Matches Entity State Value(s)         | Variable Name   |
 |----------------------|---------------------------------------|-----------------|
-| `state_default`      | No entity assigned                    | `default:`      |
+| `state_default`      | No built-in state matches, or no entity configured.                    | `default:`      |
 | `state_on`           | `on`, `open`, `locked`                | `active:`       |
 | `state_off`          | `off`, `closed`, `unlocked`           | `inactive:`     |
 | `state_zero`         | Numeric value exactly `0`             | `zero:`         |
@@ -92,7 +92,7 @@ variables:
 
 CB-LCARS contains a **simple custom state matching** system, allowing you to define a list of your own matchers using a variety of operators for conditional styling.
 
-This system enables your cards to dynamically update their appearance at runtime based on the current state or attribute values of entities—no reloads or manual updates required.
+This system enables you to configure additional conditions for dynamically updating the card appearance at runtime.  Can be based on the current state or attribute values of any entity.  No reloads or manual updates required.
 
 > **How to enable:**
 > To use custom state matchers, set `enabled: true` under `variables.custom_states`.
@@ -134,22 +134,33 @@ When a match from the list occurs, the card will:
 
 **Supported Styling Variable Paths for Override**
 
-The following variable paths can be overridden in a `state_custom` matcher (non-exhaustive list):
+**Card**
+- `card.height`, `card.width`, `card.min-height`
+- `card.color.default`, `card.color.background.default`
+- `card.border.color`
+- `card.border.[top|bottom|left|right].color`
+- `card.border.[top|bottom|left|right].size`
+- `card.border.[top|bottom].left_radius`
+- `card.border.[top|bottom].right_radius`
 
-| Variable Path                        | Description                        |
-|-------------------------------------- |------------------------------------|
-| `card.color.background.default`       | Card background color              |
-| `card.border.top.size`                | Card top border size               |
-| `card.border.top.left_radius`         | Card top left border radius        |
-| `text.label.color.default`            | Label text color                   |
-| `text.label.font_size`                | Label font size                    |
-| `text.label.font_family`              | Label font family                  |
-| `text.state.color.default`            | State text color                   |
-| `text.name.font_family`               | Name font family                   |
-| `icon.color.default`                  | Icon color                         |
-| ... *(add more as needed)*            |                                    |
+**Text**
+- `text.[label|name|state].color.default`
+- `text.[label|name|state].transform`
+- `text.[label|name|state].justify`
+- `text.[label|name|state].font_size`
+- `text.[label|name|state].font_weight`
+- `text.[label|name|state].font_family`
+- `text.[label|name|state].padding.[top|bottom|left|right]`
 
-> **Note:** Only the above (and similar) variables that map directly to CSS properties in the card's style blocks are supported for override. If you attempt to override a variable not used for styling, it will have no effect.
+**Icon**
+- `icon.color.default`
+- `icon.color.background.default`
+
+> **Legend:**
+> `[top|bottom|left|right]` means you can use any of those values at that position, e.g., `card.border.top.color`.
+> `[label|name|state]` means you can use any of those text blocks, e.g., `text.label.font_size`.
+
+> **Tip:** Only variables that map directly to CSS properties in the card's style blocks are supported for override. If you attempt to override a variable not used for styling, it will have no effect.
 
 ### Supported Operators and Evaluation Order
 
