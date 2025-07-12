@@ -477,8 +477,6 @@ cb-lcars-base-controls:
                                   label: Eurostile
                                 - value: cb-lcars_eurostile_oblique
                                   label: Eurostile Oblique
-                                - value: cb-lcars_fabrini
-                                  label: Fabrini
                                 - value: cb-lcars_federation
                                   label: Federation
                                 - value: cb-lcars_galaxy
@@ -487,6 +485,8 @@ cb-lcars-base-controls:
                                   label: Handel Gothic
                                 - value: cb-lcars_jeffries
                                   label: Jeffries
+                                - value: cb-lcars_millenium_extended_bold
+                                  label: "Millenium Extended Bold"
                                 - value: cb-lcars_sonic
                                   label: Sonic
                                 - value: cb-lcars_sqaure_721
@@ -511,6 +511,8 @@ cb-lcars-base-controls:
                                   label: "[alien] Changeling"
                                 - value: cb-lcars_dominion
                                   label: "[alien] Dominion"
+                                - value: cb-lcars_fabrini
+                                  label: "[alien] Fabrini"
                                 - value: cb-lcars_ferengi_left
                                   label: "[alien] Ferengi [left]"
                                 - value: cb-lcars_ferengi_right
@@ -3232,6 +3234,7 @@ cb-lcars-base-controls:
                           mode: slider
                           unit_of_measurement: "s"
                           slider_ticks: true
+
             - type: Section
               label:  "Blink [Unavailable]"
               visibilityCondition: "this._config.template && this._config.template.includes('cb-lcars-state-unavailable-blink')"
