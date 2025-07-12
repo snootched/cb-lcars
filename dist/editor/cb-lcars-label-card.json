@@ -4698,6 +4698,150 @@
             },
             {
               "type": "Section",
+              "label": "Blink [Active]",
+              "visibilityCondition": "this._config.template && this._config.template.includes('cb-lcars-state-on-blink')",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:format-list-bulleted",
+              "noCollapse": false,
+              "rows": [
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "Blink Seconds",
+                      "configValue": "variables.card.blink.state_on.blink_seconds",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    },
+                    {
+                      "label": "Blink Delay",
+                      "configValue": "variables.card.blink.state_on.blink_delay",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Blink [Inactive]",
+              "visibilityCondition": "this._config.template && this._config.template.includes('cb-lcars-state-off-blink')",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:format-list-bulleted",
+              "noCollapse": false,
+              "rows": [
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "Blink Seconds",
+                      "configValue": "variables.card.blink.state_off.blink_seconds",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    },
+                    {
+                      "label": "Blink Delay",
+                      "configValue": "variables.card.blink.state_off.blink_delay",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
+              "label": "Blink [Unavailable]",
+              "visibilityCondition": "this._config.template && this._config.template.includes('cb-lcars-state-unavailable-blink')",
+              "outlined": true,
+              "leftChevron": false,
+              "headerLevel": 4,
+              "icon": "mdi:format-list-bulleted",
+              "noCollapse": false,
+              "rows": [
+                {
+                  "type": "ControlRow",
+                  "cssClass": "form-row two-controls",
+                  "controls": [
+                    {
+                      "label": "Blink Seconds",
+                      "configValue": "variables.card.blink.state_unavailable.blink_seconds",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    },
+                    {
+                      "label": "Blink Delay",
+                      "configValue": "variables.card.blink.state_unavailable.blink_delay",
+                      "type": "Selector",
+                      "selector": {
+                        "number": {
+                          "min": 0,
+                          "max": 10,
+                          "step": 0.1,
+                          "mode": "slider",
+                          "unit_of_measurement": "s",
+                          "slider_ticks": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "Section",
               "label": "Ripple",
               "visibilityCondition": "this._config.template && this._config.template.includes('cb-lcars-animate-press')",
               "outlined": true,
