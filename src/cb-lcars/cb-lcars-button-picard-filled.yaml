@@ -214,11 +214,11 @@ cb-lcars-button-picard-filled:
           - color: '[[[ return variables.text.name.color.default ]]]'
         icon:
           - color: >-
-              [[[ return variables.icon.color.inactive ||
-              variables.icon.color.default ]]]
+              [[[ return variables.icon.color.default ||
+              variables.card.color.default ]]]
           - background: >-
-              [[[ return variables.icon.color.background.inactive ||
-              variables.card.color.background.inactive ]]]
+              [[[ return variables.icon.color.background.default ||
+              variables.card.color.background.default ]]]
 cb-lcars-button-picard-filled-dense:
   template: cb-lcars-button-picard-filled
   variables:

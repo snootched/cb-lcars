@@ -3,7 +3,7 @@ import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/c
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
-import { loadFont } from './utils/cb-lcars-theme.js';
+import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
 import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
@@ -19,6 +19,7 @@ let stubConfig = {};
 
 // Ensure the cblcars object exists on the window object
 window.cblcars = window.cblcars || {};
+window.cblcars.loadFont = loadFont;
 
 
 
@@ -39,7 +40,7 @@ async function initializeCustomCard() {
     ];
     await Promise.all(cardImports);
 
-    loadFont();
+    loadCoreFonts();
 
     // Checks that custom element dependencies are defined for use in the cards
     if (!customElements.get('cblcars-button-card')) {
@@ -147,19 +148,21 @@ class CBLCARSBaseCard extends ButtonCard {
     _resizeObserverTarget = 'this';
     _lastWidth = 0;
     _lastHeight = 0;
-    _resizeObserverTolerance = 10;
+    _resizeObserverTolerance = 16; // Default tolerance for resize observer.  16 settles infinite resize in preview mode.
+    _debounceWait = 100; // Default debounce wait time in milliseconds
     _isUsingLovelaceTemplate = false;
     _overrideTemplates = [];
 
 
     constructor () {
         super();
-        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || 10;
+        this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || this._resizeObserverTolerance;
+        this._debounceWait = window.cblcars.debounceWait || this._debounceWait;
         this._resizeObserver = new ResizeObserver(() => {
             cblcarsLog('debug','Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
-        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), 50);
+        this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
     }
 
 
@@ -204,8 +207,8 @@ class CBLCARSBaseCard extends ButtonCard {
         // Set up the resizeObserver properties
         this._resizeObserverTarget = config.resize_observer_target || 'this';
         this._isResizeObserverEnabled = (config.enable_resize_observer || (config.variables && config.variables.enable_resize_observer)) || false;
-        this._resizeObserverTolerance = config.resize_observer_tolerance || 10;
-
+        this._resizeObserverTolerance = config.resize_observer_tolerance || this._resizeObserverTolerance;
+        this._debounceWait = config.debounce_wait || this._debounceWait;
         // Enable the resize observer if any merged template contains the word 'animation'
         // this allows us to enable the observer for added animation templates without needed to explicity add it to the config
         if (mergedTemplates.some(template => template.includes('animation') || template.includes('symbiont'))) {

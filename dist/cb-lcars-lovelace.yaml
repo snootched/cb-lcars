@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.07.2
+  version: 2025.07.3-beta10
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label:
@@ -49,8 +49,16 @@ cblcars_card_templates:
           align: center
           justify: center
   cb-lcars-state-on-blink:
+    template:
+      - cb-lcars-functions
     variables:
-      blink_seconds: 3s
+      card:
+        blink:
+          state_on:
+            blink_seconds: 3
+            blink_delay: 1
+      blink_seconds: 3
+      blink_delay: 1
     extra_styles: |
       [[[ return `
           @keyframes blink2 {
@@ -69,14 +77,28 @@ cblcars_card_templates:
       - id: state_on
         styles:
           card:
-            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+            - animation-duration: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_on.blink_seconds || variables.blink_sections),'s');
+                ]]]
             - animation-timing-function: ease-out
             - animation-name: blink2
             - animation-iteration-count: infinite
-            - animation-delay: 1s
+            - animation-delay: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_on.blink_delay || variables.blink_delay),'s');
+                ]]]
   cb-lcars-state-off-blink:
+    template:
+      - cb-lcars-functions
     variables:
-      blink_seconds: 3s
+      card:
+        blink:
+          state_off:
+            blink_seconds: 3
+            blink_delay: 1
+      blink_seconds: 3
+      blink_delay: 1
     extra_styles: |
       [[[ return `
           @keyframes blink2 {
@@ -95,14 +117,28 @@ cblcars_card_templates:
       - id: state_off
         styles:
           card:
-            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+            - animation-duration: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_off.blink_seconds || variables.blink_sections),'s');
+                ]]]
             - animation-timing-function: ease-out
             - animation-name: blink2
             - animation-iteration-count: infinite
-            - animation-delay: 1s
+            - animation-delay: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_off.blink_delay || variables.blink_delay),'s');
+                ]]]
   cb-lcars-state-unavailable-blink:
+    template:
+      - cb-lcars-functions
     variables:
-      blink_seconds: 3s
+      card:
+        blink:
+          state_unavailable:
+            blink_seconds: 3
+            blink_delay: 1
+      blink_seconds: 3
+      blink_delay: 1
     extra_styles: |
       [[[ return `
           @keyframes blink2 {
@@ -121,11 +157,17 @@ cblcars_card_templates:
       - id: state_unavailable
         styles:
           card:
-            - animation-duration: '[[[ return variables.blink_seconds; ]]]'
+            - animation-duration: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_unavailable.blink_seconds || variables.blink_sections),'s');
+                ]]]
             - animation-timing-function: ease-out
             - animation-name: blink2
             - animation-iteration-count: infinite
-            - animation-delay: 1s
+            - animation-delay: |
+                [[[
+                  return variables.__get_num_with_unit(parseFloat(variables.card.blink.state_unavailable.blink_delay || variables.blink_delay),'s');
+                ]]]
   cb-lcars-button-bullet:
     template: cb-lcars-button-lozenge
     variables:
@@ -133,8 +175,10 @@ cblcars_card_templates:
         border:
           top:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
           bottom:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
   cb-lcars-button-bullet-right:
     template: cb-lcars-button-lozenge-right
     variables:
@@ -142,8 +186,10 @@ cblcars_card_templates:
         border:
           top:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
           bottom:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
   cb-lcars-header-base:
     template:
       - cb-lcars-button-base
@@ -776,11 +822,11 @@ cblcars_card_templates:
             - color: '[[[ return variables.text.name.color.default ]]]'
           icon:
             - color: >-
-                [[[ return variables.icon.color.inactive ||
-                variables.icon.color.default ]]]
+                [[[ return variables.icon.color.default ||
+                variables.card.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.inactive ||
-                variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.default ||
+                variables.card.color.background.default ]]]
   cb-lcars-button-picard-filled-dense:
     template: cb-lcars-button-picard-filled
     variables:
@@ -970,6 +1016,273 @@ cblcars_card_templates:
         - padding-right: '[[[ return variables.__get_num_with_unit(variables.icon.border.right.padding) ]]]'
         - height: "[[[ return variables.__get_num_with_unit(variables.card.height); ]]]"
         - width: "[[[ return variables.__get_num_with_unit(variables.icon.size); ]]]"
+  cb-lcars-functions-svg:
+    variables:
+      __memoize: |
+        [[[
+          return function(fn) {
+            const cache = new Map();
+            return function(...args) {
+              const key = JSON.stringify(args);
+              if (cache.has(key)) return cache.get(key);
+              const result = fn.apply(this, args);
+              cache.set(key, result);
+              return result;
+            }
+          }
+        ]]]
+      get_memoized_svg: |
+        [[[
+          // Returns a memoized version of any function in variables by name
+          return function(fnName) {
+            if (!this._memoized_svgs) this._memoized_svgs = {};
+            if (!this._memoized_svgs[fnName]) {
+              variables.__cblcarsLog("debug",`Memoized svg [${fnName}] was not found - will generate.`,this._memoized_gauge_svg);
+              this._memoized_svgs[fnName] = variables.__memoize(variables[fnName]);
+            } else {
+              variables.__cblcarsLog("debug",`Found and will use memoized svg [${fnName}]`,this._memoized_gauge_svg);
+            }
+            return this._memoized_svgs[fnName];
+          }
+        ]]]
+      z_gauge_svg: |
+        [[[
+          // This function generates an SVG representation of a gauge based on the provided parameters.
+          const z_gauge_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = variables._z_isPicardMode || false;
+            const _vertical = variables._vertical || false;
+            const _gauge_style = variables._gauge_style || 'basic';
+            const orientation = _vertical ? 'vertical' : 'horizontal';
+            const showSubticks = gauge.sub_meter.show_sub_meter !== undefined ? gauge.sub_meter.show_sub_meter : true;
+            let minVal = gauge.min;
+            let maxVal = gauge.max;
+            let increment = gauge.increment;
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size);
+            if (_z_isPicardMode) {
+                let percent = (gauge.picard_ratio !== undefined && !isNaN(gauge.picard_ratio)) ? gauge.picard_ratio / 100 : 40 / 100;
+              width = width * percent;
+              height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            }
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const meter_bg_color = isActive ? gauge.color.background.active : gauge.color.background.inactive;
+            const meter_tick_color = isActive ? gauge.color.active : gauge.color.inactive;
+            const meter_subtick_color = isActive ? gauge.sub_meter.active : gauge.sub_meter.inactive;
+            const meter_label_color = isActive ? gauge.label.active : gauge.label.inactive;
+            const meter_label_font_size = variables.__get_num_with_unit(gauge.label.font_size);
+            const meter_label_font_weight = gauge.label.font_weight || 'normal';
+            const meter_label_font_family = gauge.label.font_family || 'Antonio';
+            const meter_subtick_size = parseInt(gauge.sub_meter.tick_size) || 10;
+            const numSubticks = gauge.sub_meter.tick_count;
+            const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+            const subTickIncrement = 100 / numSegments / (numSubticks + 1);
+            const decimal_places = gauge.label.decimal_places || 0;
+            const connect_ticks = gauge.connect_ticks || false;
+            const tick_line_thickness = gauge.tick_line_thickness || 1;
+            const _show_unit_of_measurement = params._show_unit_of_measurement;
+            const entity_unit_of_measurement = params.entity_unit_of_measurement;
+            const meterTicks = [];
+            for (let i = minVal; i <= maxVal; i += increment) {
+              const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+              const position = percent + '%';
+              const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
+              meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+              meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" font-weight="${meter_label_font_weight}" font-family="${meter_label_font_family}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${_show_unit_of_measurement ? entity_unit_of_measurement : ''}</text>`);
+              if (showSubticks && i < maxVal) {
+                for (let j = 1; j <= numSubticks; j++) {
+                  const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+                  const subTickPosition = subTickPercent + '%';
+                  meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+                }
+              }
+            }
+            const ranges = gauge.ranges || [];
+            let rangeBackgrounds = '';
+            if (gauge.range.enabled && (!_vertical || (_vertical && _gauge_style == 'basic'))) {
+              ranges.forEach(range => {
+                const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+                const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+                const rangeWidth = toPercent - fromPercent;
+                rangeBackgrounds += `
+                  <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                        width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                        fill="${range.color}" />
+                `;
+              });
+            }
+            const tickLine = connect_ticks ? (orientation === 'vertical' ?
+              `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
+              `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+                ${rangeBackgrounds}
+                ${tickLine}
+                ${meterTicks.join('')}
+              </svg>
+            `;
+          }
+          return z_gauge_svg;
+        ]]]
+      z_ranges_alt_svg: |
+        [[[
+          const z_ranges_alt_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = params._z_isPicardMode || false;
+            //const _vertical = variables._vertical || false;
+            //const _gauge_style = variables._gauge_style || 'basic';
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            if (_z_isPicardMode) {
+              let ratio = gauge.range?.width_ratio || 2;
+              width = gauge.tick_line_thickness * ratio;
+            }
+            //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const outerRectColor = isActive ? gauge.range.border.color.active : gauge.range.border.color.inactive;
+            // inset color and thickness - this is the stroke on range rects
+            const borderColor = gauge.range.inset.border.color || 'black';
+            const borderThickness = parseInt(gauge.range.inset.border.size);
+            let borderGap = parseInt(card.border.gap) || 5;
+            let insetGap = parseInt(gauge.range.inset.gap) || parseInt(card.border.gap);
+            // gap between ranges (set to 0 when using svg stroke)
+            const rangeGap = 0;
+            // svg offsets to start drawing
+            const startX = 0;
+            const startY = 0;
+            // Setup ranges - if enabled
+            const ranges = (gauge.range.enabled) ? (gauge.ranges || []) : [];
+            let rects = '';
+            // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
+            const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
+            // svg rect for background
+            rects += `
+                <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
+            `;
+            // Iterate through ranges - generate rects at proper positions in available range height
+            for (let i = 0; i < ranges.length; i++) {
+              const range = ranges[i];
+              const fromPercent = ((range.from - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const toPercent = ((range.to - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const rangePercentHeight = toPercent - fromPercent;
+              const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
+              // set range X position and width
+              const rangeX = startX; // SIMPLE X
+              const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
+              const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
+              const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
+              rects += `
+                <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
+              `;
+            }
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                ${rects}
+              </svg>
+            `;
+          }
+          return z_ranges_alt_svg;
+        ]]]
+      z_slider_bg_svg: |
+        [[[
+          const z_slider_bg_svg = function(params){
+            const slider_track = params.slider_track;
+            const card = params.card;
+            const _vertical = params._vertical;
+            const entity_match_slider_start = params.entity_match_slider_start;
+            const entity_match_slider_end = params.entity_match_slider_end;
+            const entity_color = params.entity_color;
+            try {
+              const width = parseInt(slider_track.width) || parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size) - parseInt(slider_track.padding.left) - parseInt(slider_track.padding.right);
+              const height = parseInt(slider_track.height) || parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - parseInt(slider_track.padding.top) - parseInt(slider_track.padding.bottom);
+              let barWidth, barHeight;
+              // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+              if (width <= 0 || height <= 0) {
+                //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+                // Return a placeholder or empty SVG
+                return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+              }
+              // Defaults and overrides
+              let barSpacing = slider_track.gap ? parseInt(slider_track.gap) : 5;
+              let barOrientation = _vertical ? "vertical" : "horizontal";
+              let cornerRadius = slider_track.bar_border_radius ? parseInt(slider_track.bar_border_radius) : 0;
+              // Set defaults based on orientation
+              if (barOrientation === 'horizontal') {
+                barHeight = height; // Default to height
+                barWidth = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              } else {
+                barWidth = width; // Default to width
+                barHeight = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              }
+              let startColor, endColor;
+              if (_vertical) {
+                endColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                startColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              } else {
+                startColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                endColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              }
+              // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
+              const startRgb = variables.__parse_color(startColor,'rgb');
+              const endRgb = variables.__parse_color(endColor,'rgb');
+              function interpolateColor(color1, color2, factor) {
+                const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+                return `rgb(${result.join(',')})`;
+              }
+              // Autocalculate numBars
+              let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+              //numBars = numBars+1;
+              let bars = '';
+              let x = 0, y = 0;
+              for (let i = 0; i < numBars; i++) {
+                const factor = i / (numBars - 1);
+                const color = interpolateColor(startRgb, endRgb, factor);
+                bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
+                x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+                y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+              }
+              // Build SVG string directly
+              const svgString = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                  <g>
+                    ${bars}
+                  </g>
+                </svg>
+              `;
+              return svgString;
+            } catch (error) {
+              return '';
+            }
+          }
+          return z_slider_bg_svg;
+        ]]]
   cb-lcars-button-picard-label-east:
     variables:
       text:
@@ -1903,6 +2216,7 @@ cblcars_card_templates:
     entity: '[[[ return variables.entity ]]]'
     template:
       - cb-lcars-functions
+      - cb-lcars-functions-svg
       - cb-lcars-base
       - cb-lcars-actions-disable
       - cb-lcars-animation-geo-array
@@ -1924,6 +2238,10 @@ cblcars_card_templates:
       _increment: 10
       _show_unit_of_measurement: false
       _unit_of_measurement: null
+      _z_isPicardMode: |
+        [[[
+          return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard');
+        ]]]
       entity: |
         [[[
           return variables.__get_random_entity('light');
@@ -2041,22 +2359,18 @@ cblcars_card_templates:
           top:
             size: |
               [[[
-                return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 40 : 10
+                return (variables._z_isPicardMode) ? 40 : 10
               ]]]
           bottom:
             size: |
               [[[
-                return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') ? 50 : 0
+                return (variables._z_isPicardMode) ? 50 : 0
               ]]]
           left:
             size: |
               [[[
-                if (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') {
-                  return 0;
-                }
-                if (variables._vertical ) {
-                  return 30;
-                }
+                if (variables._z_isPicardMode) { return 0; }
+                if (variables._vertical) { return 30; }
                 return 120;
               ]]]
           right:
@@ -2075,38 +2389,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
         name:
           font_size: 22px
           align_items: center
@@ -2118,38 +2432,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
         state:
           font_size: 22px
           align_items: center
@@ -2161,38 +2475,38 @@ cblcars_card_templates:
             right: 5
             bottom: 0
           color:
-            default: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--primary-text-color)'
-              : 'black'  ]]]
-            active: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-secondary)'
-              : 'black'  ]]]
-            inactive: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-ui-tertiary)' :
-              'black'  ]]]
-            zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-green)' :
-              'black'  ]]]
-            non_zero: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            hvac_heat: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-orange)' :
-              'black'  ]]]
-            hvac_cool: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'var(--lcars-blue)' :
-              'black'  ]]]
-            unavailable: >-
-              [[[ return (variables._mode == 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ?
-              'var(--lcars-card-button-unavailable)' : 'black'  ]]]
+            default: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--primary-text-color)' : 'black'
+              ]]]
+            active: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-secondary)' : 'black'
+              ]]]
+            inactive: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-ui-tertiary)' : 'black'
+              ]]]
+            zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-green)' : 'black'
+              ]]]
+            non_zero: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            hvac_heat: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-orange)' : 'black'
+              ]]]
+            hvac_cool: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-blue)' : 'black'
+              ]]]
+            unavailable: |
+              [[[
+                return (variables._z_isPicardMode) ? 'var(--lcars-card-button-unavailable)' : 'black'
+              ]]]
       slider:
         locked: |
           [[[
@@ -2244,7 +2558,7 @@ cblcars_card_templates:
           color: white
           enabled: |
             [[[
-              return (variables._mode == 'gauge' && variables._gauge_style == 'picard' && variables._vertical == true) ? true : false;
+              return (variables._z_isPicardMode) ? true : false;
             ]]]
         flipped: '[[[ return (variables._vertical) ? true : false ]]]'
         padding:
@@ -2276,7 +2590,7 @@ cblcars_card_templates:
               inactive: var(--lcars-card-button-off)
         connect_ticks: |
           [[[
-            return (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard' ) ? true : false;
+            return (variables._z_isPicardMode ) ? true : false;
           ]]]
         tick_line_thickness: 10
         min: '[[[ return variables.entity_min ]]]'
@@ -2322,6 +2636,8 @@ cblcars_card_templates:
         label:
           decimal_places: 0
           font_size: 14
+          font_weight: 400
+          font_family: Antonio
           active: >-
             [[[ return variables.entity_match_gauge ? variables.entity_color :
             variables.card.color.active ]]]
@@ -2333,166 +2649,15 @@ cblcars_card_templates:
           top: 5
           bottom: 0
         mask_color: rgba(0,0,0,0.8)
-        gradient_start_color: >
+        gradient_start_color: >-
           [[[ return  variables.entity_match_slider_start ?
           variables.entity_color : "var(--error-color)" ]]]
-        gradient_end_color: >
+        gradient_end_color: >-
           [[[ return  variables.entity_match_slider_end ? variables.entity_color
           : "var(--success-color)" ]]]
         gap: 5
         bar_border_radius: 0
         bar_thickness: 10
-      z_slider: |
-        [[[
-          try {
-            const width = parseInt(variables.slider_track.width) || parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size) - parseInt(variables.slider_track.padding.left) - parseInt(variables.slider_track.padding.right);
-            const height = parseInt(variables.slider_track.height) || parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - parseInt(variables.slider_track.padding.top) - parseInt(variables.slider_track.padding.bottom);
-            let barWidth, barHeight;
-            // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
-            if (width <= 0 || height <= 0) {
-              //console.error(`Invalid dimensions: width=${width}, height=${height}`);
-              // Return a placeholder or empty SVG
-              return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
-            }
-            // Defaults and overrides
-            let barSpacing = variables.slider_track.gap ? parseInt(variables.slider_track.gap) : 5;
-            let barOrientation = variables._vertical ? "vertical" : "horizontal";
-            let cornerRadius = variables.slider_track.bar_border_radius ? parseInt(variables.slider_track.bar_border_radius) : 0;
-            // Set defaults based on orientation
-            if (barOrientation === 'horizontal') {
-              barHeight = height; // Default to height
-              barWidth = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-            } else {
-              barWidth = width; // Default to width
-              barHeight = variables.slider_track.bar_thickness ? parseInt(variables.slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-            }
-            let startColor, endColor;
-            if (variables._vertical) {
-              startColor = variables.entity_match_slider_start
-                ? variables.entity_color
-                : variables.slider_track.gradient_start_color.trim();
-              endColor = variables.entity_match_slider_end
-                ? variables.entity_color
-                : variables.slider_track.gradient_end_color.trim();
-            } else {
-              startColor = variables.entity_match_slider_start
-                ? variables.entity_color
-                : variables.slider_track.gradient_start_color.trim();
-              endColor = variables.entity_match_slider_end
-                ? variables.entity_color
-                : variables.slider_track.gradient_end_color.trim();
-            }
-            // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
-            const startRgb = variables.__parse_color(startColor,'rgb',this);
-            const endRgb = variables.__parse_color(endColor,'rgb',this);
-            function interpolateColor(color1, color2, factor) {
-              const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
-              return `rgb(${result.join(',')})`;
-            }
-            // Autocalculate numBars
-            let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
-            //numBars = numBars+1;
-            let bars = '';
-            let x = 0, y = 0;
-            for (let i = 0; i < numBars; i++) {
-              const factor = i / (numBars - 1);
-              const color = interpolateColor(startRgb, endRgb, factor);
-              bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
-              x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
-              y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
-            }
-            // Build SVG string directly
-            const svgString = `
-              <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-                <g>
-                  ${bars}
-                </g>
-              </svg>
-            `;
-            return svgString;
-          } catch (error) {
-            return '';
-          }
-        ]]]
-      z_gauge: |
-        [[[
-          let minVal = variables.gauge.min;
-          let maxVal = variables.gauge.max;
-          let increment = variables.gauge.increment;
-          let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-          let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size);
-          if (variables._vertical && variables._mode == 'gauge' && variables._gauge_style == 'picard') {
-              let percent = (variables.gauge.picard_ratio !== undefined && !isNaN(variables.gauge.picard_ratio)) ? variables.gauge.picard_ratio / 100 : 40 / 100;
-            width = width * percent;
-            height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
-          }
-          const orientation = variables._vertical ? 'vertical' : 'horizontal';
-          const showSubticks = variables.gauge.sub_meter.show_sub_meter;
-          const entityState = entity.state;
-          const attribute = variables.attribute;
-          let isActive;
-          if (attribute && !isNaN(Number(entity.attributes?.[attribute]))) {
-            isActive = Number(entity.attributes[attribute]) > 0;
-          } else {
-            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-          }
-          const meter_bg_color = isActive ? variables.gauge.color.background.active : variables.gauge.color.background.inactive;
-          const meter_tick_color = isActive ? variables.gauge.color.active : variables.gauge.color.inactive;
-          const meter_subtick_color = isActive ? variables.gauge.sub_meter.active : variables.gauge.sub_meter.inactive;
-          const meter_label_color = isActive ? variables.gauge.label.active : variables.gauge.label.inactive;
-          const meter_label_font_size = variables.__get_num_with_unit(variables.gauge.label.font_size);
-          const meter_subtick_size = parseInt(variables.gauge.sub_meter.tick_size) || 10;
-          const numSubticks = variables.gauge.sub_meter.tick_count;
-          const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
-          const subTickIncrement = 100 / numSegments / (numSubticks + 1);
-          const decimal_places = variables.gauge.label.decimal_places || 0;
-          const connect_ticks = variables.gauge.connect_ticks || false;
-          const tick_line_thickness = variables.gauge.tick_line_thickness || 1;
-          const meterTicks = [];
-          for (let i = minVal; i <= maxVal; i += increment) {
-            const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
-            const position = percent + '%';
-            const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-            meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
-            meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${variables._show_unit_of_measurement ? variables.entity_unit_of_measurement : ''}</text>`);
-            if (showSubticks && i < maxVal) {
-              for (let j = 1; j <= numSubticks; j++) {
-                const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
-                const subTickPosition = subTickPercent + '%';
-                meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
-              }
-            }
-          }
-          const ranges = variables.gauge.ranges || [];
-          let rangeBackgrounds = '';
-          //if (variables.gauge.range.enabled && variables._gauge_style == 'basic') {
-          if (variables.gauge.range.enabled && (!variables._vertical || (variables._vertical && variables._gauge_style == 'basic'))) {            ranges.forEach(range => {
-              const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
-              const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
-              const rangeWidth = toPercent - fromPercent;
-              rangeBackgrounds += `
-                <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
-                      width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
-                      fill="${range.color}" />
-              `;
-            });
-          }
-          const tickLine = connect_ticks ? (orientation === 'vertical' ?
-            `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
-            `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
-          return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-              ${rangeBackgrounds}
-              ${tickLine}
-              ${meterTicks.join('')}
-            </svg>
-          `;
-        ]]]
-      z_isPicardMode: |
-        [[[
-          return (variables._mode == 'gauge' && variables._vertical && variables._gauge_style == 'picard');
-        ]]]
     state:
       - id: state_on
         operator: template
@@ -2525,25 +2690,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
@@ -2551,25 +2716,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.active;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.active;
                     }
                   ]]]
@@ -2621,25 +2786,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
@@ -2647,25 +2812,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid "  +  variables.gauge.range.border.color.inactive;
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + variables.gauge.range.border.color.inactive;
                     }
                   ]]]
@@ -2717,25 +2882,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2743,25 +2908,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2809,25 +2974,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2835,25 +3000,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2901,25 +3066,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -2927,25 +3092,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3002,25 +3167,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3028,25 +3193,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.inactive || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3103,25 +3268,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3129,25 +3294,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3195,25 +3360,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3221,25 +3386,25 @@ cblcars_card_templates:
               - transition: all 0.2s ease-in
               - border-top: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-bottom: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-left: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
               - border-right: |
                   [[[
-                    if (variables.z_isPicardMode) {
+                    if (variables._z_isPicardMode) {
                       return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.gauge.range.border.color.active || variables.card.color.active || variables.card.border.color);
                     }
                   ]]]
@@ -3272,18 +3437,18 @@ cblcars_card_templates:
         - z-index: 2
         - visibility: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return 'visible';
               }
             ]]]
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: padding-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
               } else {
                 return '100%'
@@ -3291,7 +3456,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3299,19 +3464,19 @@ cblcars_card_templates:
             ]]]
         - border-left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - border-top: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3320,12 +3485,12 @@ cblcars_card_templates:
         - z-index: 2
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: padding-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
               } else {
                 return '100%'
@@ -3333,7 +3498,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3341,25 +3506,25 @@ cblcars_card_templates:
             ]]]
         - border-left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
               }
             ]]]
         - border-bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
               }
             ]]]
         - right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
         - bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3369,12 +3534,12 @@ cblcars_card_templates:
         - z-index: 2
         - background: |
             [[[
-              return (variables.z_isPicardMode) ? 'black' : 'none';
+              return (variables._z_isPicardMode) ? 'black' : 'none';
             ]]]
         - background-clip: content-box
         - height: |
             [[[
-              if (variables.z_isPicardMode){
+              if (variables._z_isPicardMode){
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
               } else {
                 return '100%'
@@ -3382,7 +3547,7 @@ cblcars_card_templates:
             ]]]
         - width: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(50% - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"
               } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3390,25 +3555,25 @@ cblcars_card_templates:
             ]]]
         - border-right: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
               }
             ]]]
         - border-bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
               }
             ]]]
         - left: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
         - bottom: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 0;
               }
             ]]]
@@ -3416,7 +3581,7 @@ cblcars_card_templates:
         - top: null
         - justify-content: |
             [[[
-              if (variables.z_isPicardMode) {
+              if (variables._z_isPicardMode) {
                 return 'left';
               } else {
                 return 'right';
@@ -3429,19 +3594,19 @@ cblcars_card_templates:
           - right: 0
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
                 } else {
                   return '100%'
@@ -3449,7 +3614,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3457,19 +3622,19 @@ cblcars_card_templates:
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3478,16 +3643,16 @@ cblcars_card_templates:
           - z-index: 1
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: black
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
                 } else {
                   return '100%'
@@ -3495,7 +3660,7 @@ cblcars_card_templates:
               ]]]
           - width: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio +") )"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3503,25 +3668,25 @@ cblcars_card_templates:
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio +") solid transparent";
                 }
               ]]]
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3529,7 +3694,7 @@ cblcars_card_templates:
           - top: null
           - justify-content: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 'left';
                 }
               ]]]
@@ -3537,19 +3702,19 @@ cblcars_card_templates:
           - z-index: 1
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? 'visible' : 'hidden';
               ]]]
-          - position: absolute
           - display: flex
+          - position: absolute
           - justify: left
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: padding-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.bottom.size) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") + " + variables.__get_num_with_unit(variables.card.gap) +")"
                 } else {
                   return '100%'
@@ -3557,7 +3722,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3565,25 +3730,25 @@ cblcars_card_templates:
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.height_ratio + ") solid transparent";
                 }
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3591,17 +3756,18 @@ cblcars_card_templates:
         animation:
           - visibility: |
               [[[
-                return (variables.z_isPicardMode) ? "visible" : "hidden";
+                return (variables._z_isPicardMode) ? "visible" : "hidden";
               ]]]
+          - display: flex
           - z-index: 1
           - background: |
               [[[
-                return (variables.z_isPicardMode) ? 'black' : 'none';
+                return (variables._z_isPicardMode) ? 'black' : 'none';
               ]]]
           - background-clip: content-box
           - height: |
               [[[
-                if (variables.z_isPicardMode){
+                if (variables._z_isPicardMode){
                   return "calc(" + variables.__get_num_with_unit(variables.card.border.top.size) + " - " + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " + 1px )"
                 } else {
                   return '100%'
@@ -3609,7 +3775,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(50% - " + variables.__get_num_with_unit(variables.card.gap) + " - (" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio +") )"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.border.left.size) +" - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")";
@@ -3617,19 +3783,19 @@ cblcars_card_templates:
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " * " + variables.gauge.range.width_ratio + ") solid transparent";
                 }
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.gauge.tick_line_thickness) + " solid transparent";
                 }
               ]]]
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
@@ -3637,7 +3803,6 @@ cblcars_card_templates:
           - position: absolute
           - top: 0
           - background: black
-          - display: flex
           - align-items: |
               [[[
                 return variables.animation.align_items || 'center';
@@ -3646,29 +3811,11 @@ cblcars_card_templates:
               [[[
                 return variables.animation.justify_content || 'center';
               ]]]
-          - filter: |
-              [[[
-                if (variables.animation?.filter?.advanced) {
-                  return variables.animation.filter.advanced;
-                }
-                const filter = variables.animation.filter || {};
-                const filters = [];
-                if (filter.blur !== undefined) filters.push(`blur(${filter.blur}px)`);
-                if (filter.brightness !== undefined) filters.push(`brightness(${filter.brightness}%)`);
-                if (filter.saturate !== undefined) filters.push(`saturate(${filter.saturate}%)`);
-                if (filter.invert !== undefined) filters.push(`invert(${filter.invert}%)`);
-                if (filter.sepia !== undefined) filters.push(`sepia(${filter.sepia}%)`);
-                if (filter.grayscale !== undefined) filters.push(`grayscale(${filter.grayscale}%)`);
-                if (filter.hue_rotate !== undefined) filters.push(`hue-rotate(${filter.hue_rotate}deg)`);
-                if (filter.contrast !== undefined) filters.push(`contrast(${filter.contrast}%)`);
-                if (filter.opacity !== undefined) filters.push(`opacity(${filter.opacity}%)`);
-                return filters.length > 0 ? filters.join(' ') : 'none';
-              ]]]
         gauge:
           - background: none
           - text-align: |
               [[[
-                return (variables.z_isPicardMode) ? 'left' : '';
+                return (variables._z_isPicardMode) ? 'left' : '';
               ]]]
           - visibility: >-
               [[[ return (variables._mode === 'gauge') ? 'visible' : 'hidden'
@@ -3677,7 +3824,7 @@ cblcars_card_templates:
           - top: 0px
           - left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return '';
                 } else {
                 return 0;
@@ -3685,13 +3832,13 @@ cblcars_card_templates:
               ]]]
           - right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
               ]]]
           - width: >-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return '50%'
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
@@ -3703,7 +3850,7 @@ cblcars_card_templates:
               ]]]
           - height: |
               [[[
-                if(variables.z_isPicardMode) {
+                if(variables._z_isPicardMode) {
                   return "calc(" + variables.__get_num_with_unit(variables.card.height) + " - " +
                   variables.__get_num_with_unit(variables.card.border.top.size)  + " - " +
                   variables.__get_num_with_unit(variables.card.border.bottom.size) +
@@ -3713,11 +3860,11 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
@@ -3838,7 +3985,6 @@ cblcars_card_templates:
               [[[
                 return variables.__get_num_with_unit(variables.card.border.bottom.right_radius) + " !important";
               ]]]
-          - background: '[[[ return variables.z_slider ]]]'
           - padding-left: |
               [[[
                 return "calc(" + variables.__get_num_with_unit(variables.slider_track.padding.left) + ")";
@@ -3863,7 +4009,7 @@ cblcars_card_templates:
           - position: absolute
           - top: |
               [[[
-                  if (variables.z_isPicardMode) {
+                  if (variables._z_isPicardMode) {
                     return 0;
                   }
                   if (variables._vertical) {
@@ -3878,7 +4024,7 @@ cblcars_card_templates:
               ]]]
           - width: |-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
                   }
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -3896,33 +4042,33 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
@@ -3936,7 +4082,7 @@ cblcars_card_templates:
               ]]]
           - top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return 0;
                 }
                 return variables.__get_num_with_unit(variables.card.border.top.size);
@@ -3956,7 +4102,7 @@ cblcars_card_templates:
                     variables.__get_num_with_unit(variables.slider_track.padding.right) +
                     ")";
                 }
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                     return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")";
                   }
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -3994,33 +4140,33 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.top.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-bottom: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.bottom.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-left: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.left.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
           - border-right: |
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return variables.__get_num_with_unit(variables.card.border.right.size) + " solid " + ( (variables.entity_match_header) ? variables.entity_color : variables.card.border.top.color || variables.card.border.color);
                 }
               ]]]
@@ -4028,19 +4174,16 @@ cblcars_card_templates:
           - background: none
           - text-align: |
               [[[
-                return (variables.z_isPicardMode) ? 'left' : '';
+                return (variables._z_isPicardMode) ? 'left' : '';
               ]]]
-          - visibility: >-
-              [[[ return (variables._mode === 'gauge' && variables._vertical &&
-              variables._gauge_style == 'picard') ? 'visible' : 'hidden' ]]]
+          - display: '[[[ return (variables._z_isPicardMode) ? ''flex'' : ''none'' ]]]'
           - position: absolute
           - top: 0
           - left: 0
-          - display: flex
           - justify-content: flex-end
           - width: >-
               [[[
-                if (variables.z_isPicardMode) {
+                if (variables._z_isPicardMode) {
                   return "calc( 50% - " + variables.__get_num_with_unit(variables.card.gap) + ")"
                 } else {
                 return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " +
@@ -4060,11 +4203,11 @@ cblcars_card_templates:
               ]]]
           - padding-bottom: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - padding-top: |
               [[[
-                return (variables._vertical && variables._gauge_style =='picard') ? variables.__get_num_with_unit(variables.card.gap) : 0;
+                return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.card.gap) : 0;
               ]]]
           - border-top: |
               [[[
@@ -4102,62 +4245,15 @@ cblcars_card_templates:
     custom_fields:
       ranges_alt: |
         [[[
-          let width = parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size);
-          let height = parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size) - (2 * parseInt(variables.card.gap));
-          if (variables.z_isPicardMode) {
-            let ratio = variables.gauge?.range?.width_ratio || 2;
-            width = variables.gauge.tick_line_thickness * ratio;
-          }
-          const entityState = entity.state;
-          //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
-          const attribute = variables.attribute;
-          let isActive;
-          if (attribute && !isNaN(Number(entity.attributes?.[attribute]))) {
-            isActive = Number(entity.attributes[attribute]) > 0;
-          } else {
-            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-          }
-          const outerRectColor = isActive ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
-          // inset color and thickness - this is the stroke on range rects
-          const borderColor = variables.gauge.range.inset.border.color || 'black';
-          const borderThickness = parseInt(variables.gauge.range.inset.border.size);
-          let borderGap = parseInt(variables.card.border.gap) || 5;
-          let insetGap = parseInt(variables.gauge.range.inset.gap) || parseInt(variables.card.border.gap);
-          // gap between ranges (set to 0 when using svg stroke)
-          const rangeGap = 0;
-          // svg offsets to start drawing
-          const startX = 0;
-          const startY = 0;
-          // Setup ranges - if enabled
-          const ranges = (variables.gauge.range.enabled) ? (variables.gauge.ranges || []) : [];
-          let rects = '';
-          // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
-          const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
-          // svg rect for background
-          rects += `
-              <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
-          `;
-          // Iterate through ranges - generate rects at proper positions in available range height
-          for (let i = 0; i < ranges.length; i++) {
-            const range = ranges[i];
-            const fromPercent = ((range.from - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
-            const toPercent = ((range.to - variables.gauge.min) / (variables.gauge.max - variables.gauge.min)) * 100;
-            const rangePercentHeight = toPercent - fromPercent;
-            const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
-            // set range X position and width
-            const rangeX = startX; // SIMPLE X
-            const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
-            const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
-            const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
-            rects += `
-              <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
-            `;
-          }
-          return `
-            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-              ${rects}
-            </svg>
-          `;
+          if(!variables._z_isPicardMode) return null;
+          const params = {
+            gauge: variables.gauge,
+            card: variables.card,
+            entity: entity,
+            attribute: variables.attribute,
+            _z_isPicardMode: variables._z_isPicardMode,
+          };
+          return variables.get_memoized_svg.call(this,'z_ranges_alt_svg')(params);
         ]]]
       se_mask: |
         [[[
@@ -4173,14 +4269,37 @@ cblcars_card_templates:
         ]]]
       gauge: |
         [[[
-          return variables.z_gauge;
+          if(!(variables._mode === 'gauge')) return null;
+          const params = {
+            gauge: variables.gauge,
+            card: variables.card,
+            entity: entity,
+            attribute: variables.attribute,
+            _show_unit_of_measurement: variables._show_unit_of_measurement,
+            entity_unit_of_measurement: variables.entity_unit_of_measurement,
+            _z_isPicardMode: variables._z_isPicardMode,
+            _vertical: variables._vertical,
+            _gauge_style: variables._gauge_style,
+          };
+          //return variables.z_memoized_gauge_svg(params);
+          return variables.get_memoized_svg.call(this,'z_gauge_svg')(params);
         ]]]
       slider_bg: |
         [[[
-          return variables.z_slider;
+          if(!(variables._mode === 'slider')) return null;
+          const params = {
+            slider_track: variables.slider_track,
+            card: variables.card,
+            _vertical: variables._vertical,
+            entity_color: variables.__parse_color(variables.entity_color,'hex',this),
+            entity_match_slider_start: variables.entity_match_slider_start,
+            entity_match_slider_end: variables.entity_match_slider_end,
+          };
+          return variables.get_memoized_svg.call(this,'z_slider_bg_svg')(params);
         ]]]
       locked_bar: |
         [[[
+          if(!(variables.slider.locked)) return null;
           const entityState = entity.state;
           const entityType = entity.entity_id.split('.')[0]; // Extract entity type
           const attr = variables.attribute;
@@ -4301,7 +4420,7 @@ cblcars_card_templates:
             card:
               - width: |
                   [[[
-                      if (variables.z_isPicardMode) {
+                      if (variables._z_isPicardMode) {
                           return "100%";
                         }
                       return "calc(" + variables.__get_num_with_unit(variables.card.width) + " - " + variables.__get_num_with_unit(variables.card.border.left.size)  + " - " + variables.__get_num_with_unit(variables.card.border.right.size) + ")";
@@ -4309,11 +4428,11 @@ cblcars_card_templates:
               - background: none
               - border-radius: 0
             progress:
-              - background-color: >-
+              - background-color: |-
                   [[[
                     return variables.slider.color;
                   ]]]
-              - border: >-
+              - border: |-
                   [[[
                     return variables.slider.border_width + " solid " + variables.slider.border_color;
                   ]]]
@@ -4322,7 +4441,7 @@ cblcars_card_templates:
               - width: '[[[ return variables.slider.width ]]]'
               - left: |-
                   [[[
-                    return (variables.z_isPicardMode) ? "" : variables.__get_num_with_unit(variables.slider.padding.left);
+                    return (variables._z_isPicardMode) ? "" : variables.__get_num_with_unit(variables.slider.padding.left);
                   ]]]
             container:
               - border-radius: 0
@@ -4340,16 +4459,16 @@ cblcars_card_templates:
                   ]]]
               - position: |
                   [[[
-                    return (variables.z_isPicardMode) ? 'absolute' : 'relative';
+                    return (variables._z_isPicardMode) ? 'absolute' : 'relative';
                   ]]]
               - right: |-
                   [[[
-                    return (variables.z_isPicardMode) ? variables.__get_num_with_unit(variables.slider.picard_right) : "";
+                    return (variables._z_isPicardMode) ? variables.__get_num_with_unit(variables.slider.picard_right) : "";
                   ]]]
             thumb:
               - visibility: |
                   [[[
-                    return (variables.slider.thumb.enabled && variables._vertical && !(variables.slider.locked)) ? 'visible' : 'hidden'
+                    return (variables.slider.thumb.enabled && variables._z_isPicardMode && !(variables.slider.locked)) ? 'visible' : 'hidden'
                   ]]]
               - width: |
                   [[[
@@ -4640,11 +4759,11 @@ cblcars_card_templates:
       card:
         border:
           top:
-            left_radius: null
-            right_radius: null
+            left_radius: var(--ha-card-border-radius)
+            right_radius: var(--ha-card-border-radius)
           bottom:
-            left_radius: null
-            right_radius: null
+            left_radius: var(--ha-card-border-radius)
+            right_radius: var(--ha-card-border-radius)
       icon:
         border:
           left:
@@ -4801,6 +4920,7 @@ cblcars_card_templates:
           text:
             font_size: 24
             font_weight: 300
+            font_family: 'Antonio'
     styles:
       label:
         - z-index: 2
@@ -4878,6 +4998,7 @@ cblcars_card_templates:
           //console.debug( `${card_width}`);
           const font_size = variables.__get_num_with_unit(variables.animation.cascade.text.font_size) || '24px';
           const font_weight = variables.animation.cascade.text.font_weight || '300';
+          const font_family = variables.animation.cascade.text.font_family || 'Antonio';
           const row_height = variables.__get_num_with_unit(variables.animation.cascade.grid.row_height) || font_size;
           const column_width = variables.__get_num_with_unit(variables.animation.cascade.grid.column_width) || variables.__get_num_with_unit((parseInt(variables.animation.cascade.text.font_size * 2.5))) ||'80px';
           const grid_gap = variables.__get_num_with_unit(variables.animation.cascade.grid.gap) || '8px';
@@ -4972,6 +5093,7 @@ cblcars_card_templates:
                 .data-cascade {
                   font-size: ${font_size};
                   font-weight: ${font_weight};
+                  font-family: ${font_family};
                   line-height: 1;
                 }
                 ${Array.from({ length: num_rows }, (_, i) => `
@@ -7406,8 +7528,10 @@ cblcars_card_templates:
         border:
           top:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
           bottom:
             right_radius: 0px
+            left_radius: var(--ha-card-border-radius)
   cb-lcars-button-capped-right:
     template: cb-lcars-button-lozenge-right
     variables:
@@ -7415,14 +7539,28 @@ cblcars_card_templates:
         border:
           top:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
           bottom:
             left_radius: 0px
+            right_radius: var(--ha-card-border-radius)
   cb-lcars-base:
     template:
       - cb-lcars-functions
       - cb-lcars-actions-disable
     label: '[[[ return variables.label ]]]'
     entity: '[[[ return variables.entity ]]]'
+    triggers_update:
+      - '[[[ return variables.entity; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[0]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[1]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[2]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[3]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[4]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[5]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[6]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[7]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[8]?.entity) || null; ]]]'
+      - '[[[ return (variables.custom_states?.states?.[9]?.entity) || null; ]]]'
     variables:
       label: ' '
       text:
@@ -7560,6 +7698,32 @@ cblcars_card_templates:
         // use the custom button card helper to set state to an attribute if provided (arrays/objects are filtered out on the form)
         return helpers.localize(entity, entity.attributes[variables.attribute],'card',this._config.show_units,this._config.units);
       ]]]
+    custom_fields:
+      font_loader: |
+        [[[
+          // This field dynamically loads any fonts specified in variables or conditionally matched settings.
+          // It supports comma-separated font-family strings and de-dupes via window.cblcars.loadFont().
+          // Load fonts from variables and match settings
+          const fontSources = [
+            variables?.text?.label?.font_family,
+            variables?.text?.name?.font_family,
+            variables?.text?.state?.font_family,
+            variables?.animation?.alert?.text?.alert_text?.font_family,
+            variables?.animation?.alert?.text?.sub_text?.font_family,
+            variables?.animation?.cascade?.text?.font_family,
+            variables?.gauge?.label?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.label?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.name?.font_family,
+            this._config.cblcars_custom_match?.settings?.text?.state?.font_family,
+            this._config.cblcars_custom_match?.settings?.animation?.alert?.text?.alert_text?.font_family,
+            this._config.cblcars_custom_match?.settings?.animation?.alert?.text?.sub_text?.font_family
+          ];
+          fontSources.forEach(font => {
+            if (font && typeof font === 'string') {
+              window.cblcars?.loadFont(font);
+            }
+          });
+        ]]]
     styles:
       img_cell:
         - justify-content: '[[[ return variables.icon.justify ]]]'
@@ -7633,9 +7797,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.left) + " - " + variables.__get_num_with_unit(variables.text.label.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.label.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.label.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.label.padding.top) + " - " + variables.__get_num_with_unit(variables.text.label.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.label.padding.top) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.label.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.label.color.default ]]]'
         - font-size: |
             [[[
@@ -7645,12 +7817,25 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.label.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.label.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.label.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.right)
+            ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.label.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       state:
         - display: flex
         - justify-content: '[[[ return variables.text.state.justify ]]]'
@@ -7665,9 +7850,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.left) + " - " + variables.__get_num_with_unit(variables.text.state.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.state.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.state.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.state.padding.top) + " - " + variables.__get_num_with_unit(variables.text.state.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.state.padding.top) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.state.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.state.color.default ]]]'
         - font-size: |
             [[[
@@ -7677,12 +7870,25 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.state.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.state.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.state.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.right)
+            ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.state.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       name:
         - display: flex
         - justify-content: '[[[ return variables.text.name.justify ]]]'
@@ -7697,9 +7903,17 @@ cblcars_card_templates:
         - top: 0px
         - left: 0px
         - width: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.left) + " - " + variables.__get_num_with_unit(variables.text.name.padding.right) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.name.padding.left) + "
+            - " +
+            variables.__get_num_with_unit(variables.text.name.padding.right) +
+            ")"; ]]]
         - height: >-
-            [[[ return "calc(100% - " + variables.__get_num_with_unit(variables.text.name.padding.top) + " - " + variables.__get_num_with_unit(variables.text.name.padding.bottom) + ")"; ]]]
+            [[[ return "calc(100% - " +
+            variables.__get_num_with_unit(variables.text.name.padding.top) + " -
+            " +
+            variables.__get_num_with_unit(variables.text.name.padding.bottom) +
+            ")"; ]]]
         - color: '[[[ return variables.text.name.color.default ]]]'
         - font-size: |
             [[[
@@ -7709,13 +7923,27 @@ cblcars_card_templates:
         - font-family: '[[[ return variables.text.name.font_family ]]]'
         - justify-self: start
         - text-align: '[[[ return variables.text.name.align ]]]'
-        - padding-top: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.top) ]]]'
-        - padding-left: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.left) ]]]'
-        - padding-right: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.right) ]]]'
-        - padding-bottom: '[[[ return variables.__get_num_with_unit(variables.text.name.padding.bottom) ]]]'
+        - padding-top: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.top) ]]]
+        - padding-left: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.left) ]]]
+        - padding-right: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.right) ]]]
+        - padding-bottom: >-
+            [[[ return
+            variables.__get_num_with_unit(variables.text.name.padding.bottom)
+            ]]]
         - outline: >-
-            [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + (variables.card.border.color || variables.card.color.default); ]]]
+            [[[ return
+            variables.__get_num_with_unit(variables.card.border.inner.width) + "
+            solid " + (variables.card.border.color ||
+            variables.card.color.default); ]]]
       custom_fields:
+        font_loader:
+          - display: none
         animation:
           - display: flex
           - position: absolute
@@ -7788,6 +8016,453 @@ cblcars_card_templates:
                 variables.__get_num_with_unit(variables.card.border.right.size)
               ]]]
     state:
+      - id: state_custom
+        operator: template
+        value: |
+          [[[
+            if (!variables.custom_states?.enabled) return false;
+            const matches = variables.custom_states.states || [];
+            // Default to global entity and attribute
+            let mainEntity = entity;
+            let value = entity?.state;
+            if (variables.attribute && entity?.attributes && entity.attributes.hasOwnProperty(variables.attribute)) {
+              value = entity.attributes[variables.attribute];
+              // Special handling for brightness: convert 0-255 to 0-100 percentage
+              if (variables.attribute === 'brightness' && value !== undefined && value !== null && !isNaN(parseFloat(value))) {
+                value = (parseFloat(value) / 256) * 100;
+              }
+            }
+            for (const entry of matches) {
+              // Use per-match entity if specified, else global
+              let matchEntity = mainEntity;
+              if (entry.entity && states[entry.entity]) {
+                matchEntity = states[entry.entity];
+              }
+              // Use per-match attribute if specified, else global
+              let matchValue = matchEntity?.state;
+              // Per-match attribute override (with brightness handling)
+              if (entry.attribute && matchEntity?.attributes && matchEntity.attributes.hasOwnProperty(entry.attribute)) {
+                matchValue = matchEntity.attributes[entry.attribute];
+                if (entry.attribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
+                  matchValue = (parseFloat(matchValue) / 256) * 100;
+                }
+              } else if (variables.attribute && matchEntity?.attributes && matchEntity.attributes.hasOwnProperty(variables.attribute)) {
+                matchValue = matchEntity.attributes[variables.attribute];
+                if (variables.attribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
+                  matchValue = (parseFloat(matchValue) / 256) * 100;
+                }
+              }
+              // If no match value is defined, skip this entry
+              if (matchValue === undefined || matchValue === null) {
+                // No value to match against
+                continue;
+              }
+              // Prepare numeric value for this match
+              let matchNumericValue = matchValue;
+              if (typeof matchValue === "string" && !isNaN(Number(matchValue))) {
+                matchNumericValue = Number(matchValue);
+              }
+              // 1. equals: strict match (string or number)
+              if ("equals" in entry && entry.equals !== undefined) {
+                if (matchValue == entry.equals) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 2. not_equals: value must not match
+              if ("not_equals" in entry && entry.not_equals !== undefined) {
+                if (matchValue != entry.not_equals) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 3. from/to: numeric range or single-sided match
+              if ("from" in entry || "to" in entry) {
+                if (typeof matchNumericValue === "number" && !isNaN(matchNumericValue)) {
+                  if (
+                    (("from" in entry ? matchNumericValue >= entry.from : true)) &&
+                    (("to" in entry ? matchNumericValue <= entry.to : true))
+                  ) {
+                    this._config.cblcars_custom_match = entry;
+                    return true;
+                  }
+                }
+              }
+              // 4. in: match if value is in provided array
+              if ("in" in entry && Array.isArray(entry.in)) {
+                if (entry.in.includes(matchValue)) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 5. not_in: match if value is NOT in provided array
+              if ("not_in" in entry && Array.isArray(entry.not_in)) {
+                if (!entry.not_in.includes(matchValue)) {
+                  this._config.cblcars_custom_match = entry;
+                  return true;
+                }
+              }
+              // 6. regex: match if value matches regex (string only)
+              if ("regex" in entry && typeof entry.regex === "string") {
+                try {
+                  const re = new RegExp(entry.regex);
+                  if (typeof matchValue === "string" && re.test(matchValue)) {
+                    this._config.cblcars_custom_match = entry;
+                    return true;
+                  }
+                } catch (e) {
+                  // Invalid regex, ignore
+                  variables.__cblcarsLog("error",`Invalid regex: ${e}`);
+                }
+              }
+            }
+            // No match found
+            return false;
+          ]]]
+        styles:
+          card:
+            - cblcars_matched_state: |
+                [[[
+                  this._config.cblcars_matched_state = 'custom';
+                  return 'state_custom';
+                ]]]
+            - height: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.height ??
+                    variables.card.height
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.height ?? variables.card.height) : "100%";
+                ]]]
+            - min-height: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.min_height ??
+                    variables.card.min_height
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.min_height ?? variables.card.min_height) : undefined;
+                ]]]
+            - width: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.width ??
+                    variables.card.width
+                  ) ? variables.__get_num_with_unit(match?.settings?.card?.width ?? variables.card.width) : undefined;
+                ]]]
+            - border-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.top || variables.card.border.top;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.left || variables.card.border.left;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.right || variables.card.border.right;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - border-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  const border = match?.settings?.card?.border?.bottom || variables.card.border.bottom;
+                  const color =
+                    border.color ??
+                    match?.settings?.card?.border?.color ??
+                    variables.card.border.color ??
+                    variables.card.color.default;
+                  return variables.__get_num_with_unit(border.size) + " solid " + color;
+                ]]]
+            - background-color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.card?.color?.background?.default ??
+                    variables.card.color.background.default
+                  );
+                ]]]
+            - border-top-left-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.top?.left_radius ?? variables.card.border.top.left_radius
+                  ) + " !important";
+                ]]]
+            - border-top-right-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.top?.right_radius ?? variables.card.border.top.right_radius
+                  ) + " !important";
+                ]]]
+            - border-bottom-left-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                      return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.bottom?.left_radius ?? variables.card.border.bottom.left_radius
+                  ) + " !important";
+                ]]]
+            - border-bottom-right-radius: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                    return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.bottom?.right_radius ?? variables.card.border.bottom.right_radius
+                  ) + " !important";
+                ]]]
+            - position: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.card?.position ?? "relative";
+                ]]]
+          label:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.label?.color?.default ??
+                    variables.text.label.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.transform ?? variables.text.label.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.justify ?? variables.text.label.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.font_size ?? variables.text.label.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.font_weight ?? variables.text.label.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.label?.font_family ?? variables.text.label.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.top ?? variables.text.label.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.bottom ?? variables.text.label.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.left ?? variables.text.label.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.label?.padding?.right ?? variables.text.label.padding.right
+                  );
+                ]]]
+          state:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.state?.color?.default ??
+                    variables.text.state.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.transform ?? variables.text.state.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.justify ?? variables.text.state.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.font_size ?? variables.text.state.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.font_weight ?? variables.text.state.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.state?.font_family ?? variables.text.state.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.top ?? variables.text.state.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.bottom ?? variables.text.state.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.left ?? variables.text.state.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.state?.padding?.right ?? variables.text.state.padding.right
+                  );
+                ]]]
+            - outline: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.inner?.width ?? variables.card.border.inner.width
+                  ) + " solid " + (
+                    match?.settings?.card?.border?.color ?? variables.card.border.color ?? variables.card.color.default
+                  );
+                ]]]
+          name:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.text?.name?.color?.default ??
+                    variables.text.name.color.default
+                  );
+                ]]]
+            - text-transform: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.transform ?? variables.text.name.transform;
+                ]]]
+            - justify-content: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.justify ?? variables.text.name.justify;
+                ]]]
+            - font-size: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.font_size ?? variables.text.name.font_size
+                  );
+                ]]]
+            - font-weight: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.font_weight ?? variables.text.name.font_weight;
+                ]]]
+            - font-family: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return match?.settings?.text?.name?.font_family ?? variables.text.name.font_family;
+                ]]]
+            - padding-top: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.top ?? variables.text.name.padding.top
+                  );
+                ]]]
+            - padding-bottom: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.bottom ?? variables.text.name.padding.bottom
+                  );
+                ]]]
+            - padding-left: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.left ?? variables.text.name.padding.left
+                  );
+                ]]]
+            - padding-right: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.text?.name?.padding?.right ?? variables.text.name.padding.right
+                  );
+                ]]]
+            - outline: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return variables.__get_num_with_unit(
+                    match?.settings?.card?.border?.inner?.width ?? variables.card.border.inner.width
+                  ) + " solid " + (
+                    match?.settings?.card?.border?.color ?? variables.card.border.color ?? variables.card.color.default
+                  );
+                ]]]
+          icon:
+            - color: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.icon?.color?.inactive ??
+                    match?.settings?.icon?.color?.default ??
+                    variables.icon.color.inactive ?? variables.icon.color.default
+                  );
+                ]]]
+            - background: |
+                [[[
+                  const match = this._config.cblcars_custom_match;
+                  return (
+                    match?.settings?.icon?.color?.background?.default ??
+                    variables.icon.color.background.default ?? variables.card.color.background.inactive
+                  );
+                ]]]
       - id: state_on
         operator: template
         value: |
@@ -7822,20 +8497,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           label:
             - color: '[[[ return variables.text.label.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           name:
             - color: '[[[ return variables.text.name.color.active ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.active; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.active; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.active || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.active ||
+                variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.active || variables.card.color.background.active ]]]
+                [[[ return variables.icon.color.background.active ||
+                variables.card.color.background.active ]]]
       - id: state_off
         operator: template
         value: |
@@ -7870,20 +8553,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           label:
             - color: '[[[ return variables.text.label.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           name:
             - color: '[[[ return variables.text.name.color.inactive ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.inactive; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.inactive; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.inactive ||
+                variables.icon.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]
       - id: state_heat
         value: heat
         styles:
@@ -7914,15 +8605,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_heat ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_heat; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_heat; ]]]
       - id: state_cool
         value: cool
         styles:
@@ -7953,15 +8650,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
           label:
             - color: '[[[ return variables.text.label.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
           name:
             - color: '[[[ return variables.text.name.color.hvac_cool ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.hvac_cool; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.hvac_cool; ]]]
       - id: state_unavailable
         operator: template
         value: |
@@ -7995,20 +8698,31 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           label:
             - color: '[[[ return variables.text.label.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           name:
             - color: '[[[ return variables.text.name.color.unavailable ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.unavailable; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.unavailable; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.unavailable || variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.unavailable ||
+                variables.icon.color.inactive || variables.icon.color.default
+                ]]]
             - background: >-
-                [[[ return variables.icon.color.background.unavailable || variables.card.color.background.unavailable || variables.icon.color.background.inactive || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.unavailable ||
+                variables.card.color.background.unavailable ||
+                variables.icon.color.background.inactive ||
+                variables.card.color.background.inactive ]]]
       - id: state_zero
         operator: template
         value: |
@@ -8044,15 +8758,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.zero; ]]]
       - id: state_nonzero
         operator: template
         value: |
@@ -8088,15 +8808,21 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
           label:
             - color: '[[[ return variables.text.label.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
           name:
             - color: '[[[ return variables.text.name.color.non_zero ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.non_zero; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.non_zero; ]]]
       - id: state_default
         operator: default
         styles:
@@ -8126,20 +8852,28 @@ cblcars_card_templates:
           state:
             - color: '[[[ return variables.text.state.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           label:
             - color: '[[[ return variables.text.label.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           name:
             - color: '[[[ return variables.text.name.color.default ]]]'
             - outline: >-
-                [[[ return variables.__get_num_with_unit(variables.card.border.inner.width) + " solid " + variables.card.color.default; ]]]
+                [[[ return
+                variables.__get_num_with_unit(variables.card.border.inner.width)
+                + " solid " + variables.card.color.default; ]]]
           icon:
             - color: >-
-                [[[ return variables.icon.color.inactive || variables.icon.color.default ]]]
+                [[[ return variables.icon.color.default ||
+                variables.card.color.default ]]]
             - background: >-
-                [[[ return variables.icon.color.background.default || variables.card.color.background.inactive ]]]
+                [[[ return variables.icon.color.background.default ||
+                variables.card.color.background.default ]]]
   cb-lcars-symbiont:
     template:
       - cb-lcars-functions
@@ -10674,13 +11408,6 @@ cblcars_card_templates:
                 case 'square':
                 default:
                   return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
-              }
-            }
-            function getShapeSVGOrig(color) {
-              if (shape_type === 'circle') {
-              return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
-              } else {
-              return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
               }
             }
             let rows = '';

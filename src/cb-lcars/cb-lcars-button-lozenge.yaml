@@ -4,11 +4,11 @@ cb-lcars-button-lozenge:
     card:
       border:
         top:
-          left_radius: null
-          right_radius: null
+          left_radius: var(--ha-card-border-radius)
+          right_radius: var(--ha-card-border-radius)
         bottom:
-          left_radius: null
-          right_radius: null
+          left_radius: var(--ha-card-border-radius)
+          right_radius: var(--ha-card-border-radius)
     icon:
       border:
         left:

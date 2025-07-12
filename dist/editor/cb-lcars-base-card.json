@@ -1,0 +1,23 @@
+{
+  "tabs": [
+    {
+      "label": "Base Card",
+      "content": [
+        {
+          "type": "ControlRow",
+          "controls": [
+            {
+              "type": "Message",
+              "alertType": "info",
+              "message": "This is a base card for advanced use.  Visual Editor is not available for this card."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "css": {
+    "mergeUserStyles": true,
+    "cssText": ".form-control {\n  padding: 2px 8px 2px 8px;\n}\n.form-row {\n  grid-template-columns: 100%;\n}\n.form-row.two-controls {\n  grid-template-columns: 50% 50%;\n}\n"
+  }
+}

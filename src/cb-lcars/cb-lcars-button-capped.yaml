@@ -5,8 +5,10 @@ cb-lcars-button-capped:
       border:
         top:
           right_radius: 0px
+          left_radius: var(--ha-card-border-radius)
         bottom:
           right_radius: 0px
+          left_radius: var(--ha-card-border-radius)
 cb-lcars-button-capped-right:
   template: cb-lcars-button-lozenge-right
   variables:
@@ -14,5 +16,7 @@ cb-lcars-button-capped-right:
       border:
         top:
           left_radius: 0px
+          right_radius: var(--ha-card-border-radius)
         bottom:
           left_radius: 0px
+          right_radius: var(--ha-card-border-radius)

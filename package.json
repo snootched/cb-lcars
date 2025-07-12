@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.07.2",
+  "version": "2025.07.3",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -18,10 +18,12 @@
   ],
   "scripts": {
     "clean": "rimraf dist",
-    "build": "webpack --mode production"
+    "build": "webpack --mode production",
+    "generate-editor-json": "node src/editor/cb-lcars_generate_editor_forms.js"
   },
   "devDependencies": {
     "clean-webpack-plugin": "^4.0.0",
+    "js-yaml": "^4.1.0",
     "rimraf": "^6.0.1",
     "webpack": "^5.94.0",
     "webpack-bundle-analyzer": "^4.10.2",
@@ -29,7 +31,6 @@
     "webpack-dev-server": "^5.0.4"
   },
   "dependencies": {
-    "ha-editor-formbuilder-yaml": "github:snootched/ha-card-formbuilder",
-    "js-yaml": "^4.1.0"
+    "ha-editor-formbuilder-yaml": "github:snootched/ha-card-formbuilder"
   }
 }

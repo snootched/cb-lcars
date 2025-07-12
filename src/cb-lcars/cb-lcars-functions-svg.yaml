@@ -1,0 +1,309 @@
+cb-lcars-functions-svg:
+  variables:
+    __memoize: |
+      [[[
+        return function(fn) {
+          const cache = new Map();
+          return function(...args) {
+            const key = JSON.stringify(args);
+            if (cache.has(key)) return cache.get(key);
+            const result = fn.apply(this, args);
+            cache.set(key, result);
+            return result;
+          }
+        }
+      ]]]
+    get_memoized_svg: |
+      [[[
+        // Returns a memoized version of any function in variables by name
+        return function(fnName) {
+          if (!this._memoized_svgs) this._memoized_svgs = {};
+          if (!this._memoized_svgs[fnName]) {
+            variables.__cblcarsLog("debug",`Memoized svg [${fnName}] was not found - will generate.`,this._memoized_gauge_svg);
+            this._memoized_svgs[fnName] = variables.__memoize(variables[fnName]);
+          } else {
+            variables.__cblcarsLog("debug",`Found and will use memoized svg [${fnName}]`,this._memoized_gauge_svg);
+          }
+          return this._memoized_svgs[fnName];
+        }
+      ]]]
+    z_gauge_svg: |
+      [[[
+        // This function generates an SVG representation of a gauge based on the provided parameters.
+
+        const z_gauge_svg = function(params){
+          const gauge = params.gauge;
+          const card = params.card;
+
+          const ent = params.entity;
+          const entityState = ent.state;
+          const attribute = params.attribute;
+
+          const _z_isPicardMode = variables._z_isPicardMode || false;
+          const _vertical = variables._vertical || false;
+          const _gauge_style = variables._gauge_style || 'basic';
+          const orientation = _vertical ? 'vertical' : 'horizontal';
+          const showSubticks = gauge.sub_meter.show_sub_meter !== undefined ? gauge.sub_meter.show_sub_meter : true;
+          let minVal = gauge.min;
+          let maxVal = gauge.max;
+          let increment = gauge.increment;
+
+          let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+          let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size);
+
+          if (_z_isPicardMode) {
+              let percent = (gauge.picard_ratio !== undefined && !isNaN(gauge.picard_ratio)) ? gauge.picard_ratio / 100 : 40 / 100;
+            width = width * percent;
+            height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+          }
+
+          let isActive;
+          if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+            isActive = Number(ent.attributes[attribute]) > 0;
+          } else {
+            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+          }
+          const meter_bg_color = isActive ? gauge.color.background.active : gauge.color.background.inactive;
+          const meter_tick_color = isActive ? gauge.color.active : gauge.color.inactive;
+          const meter_subtick_color = isActive ? gauge.sub_meter.active : gauge.sub_meter.inactive;
+
+          const meter_label_color = isActive ? gauge.label.active : gauge.label.inactive;
+          const meter_label_font_size = variables.__get_num_with_unit(gauge.label.font_size);
+          const meter_label_font_weight = gauge.label.font_weight || 'normal';
+          const meter_label_font_family = gauge.label.font_family || 'Antonio';
+          const meter_subtick_size = parseInt(gauge.sub_meter.tick_size) || 10;
+          const numSubticks = gauge.sub_meter.tick_count;
+          const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+          const subTickIncrement = 100 / numSegments / (numSubticks + 1);
+          const decimal_places = gauge.label.decimal_places || 0;
+          const connect_ticks = gauge.connect_ticks || false;
+          const tick_line_thickness = gauge.tick_line_thickness || 1;
+
+          const _show_unit_of_measurement = params._show_unit_of_measurement;
+          const entity_unit_of_measurement = params.entity_unit_of_measurement;
+
+          const meterTicks = [];
+          for (let i = minVal; i <= maxVal; i += increment) {
+            const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+            const position = percent + '%';
+            const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
+            meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+            meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" font-weight="${meter_label_font_weight}" font-family="${meter_label_font_family}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${_show_unit_of_measurement ? entity_unit_of_measurement : ''}</text>`);
+            if (showSubticks && i < maxVal) {
+              for (let j = 1; j <= numSubticks; j++) {
+                const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+                const subTickPosition = subTickPercent + '%';
+                meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+              }
+            }
+          }
+
+          const ranges = gauge.ranges || [];
+          let rangeBackgrounds = '';
+
+          if (gauge.range.enabled && (!_vertical || (_vertical && _gauge_style == 'basic'))) {
+            ranges.forEach(range => {
+              const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+              const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+              const rangeWidth = toPercent - fromPercent;
+              rangeBackgrounds += `
+                <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                      width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                      fill="${range.color}" />
+              `;
+            });
+          }
+          const tickLine = connect_ticks ? (orientation === 'vertical' ?
+            `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
+            `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
+
+          return `
+            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+              <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+              ${rangeBackgrounds}
+              ${tickLine}
+              ${meterTicks.join('')}
+            </svg>
+          `;
+        }
+        return z_gauge_svg;
+      ]]]
+    z_ranges_alt_svg: |
+      [[[
+        const z_ranges_alt_svg = function(params){
+
+          const gauge = params.gauge;
+          const card = params.card;
+
+          const ent = params.entity;
+          const entityState = ent.state;
+          const attribute = params.attribute;
+
+          const _z_isPicardMode = params._z_isPicardMode || false;
+          //const _vertical = variables._vertical || false;
+          //const _gauge_style = variables._gauge_style || 'basic';
+
+
+
+          let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+          let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+
+          if (_z_isPicardMode) {
+            let ratio = gauge.range?.width_ratio || 2;
+            width = gauge.tick_line_thickness * ratio;
+          }
+
+          //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
+
+          let isActive;
+          if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+            isActive = Number(ent.attributes[attribute]) > 0;
+          } else {
+            isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+          }
+          const outerRectColor = isActive ? gauge.range.border.color.active : gauge.range.border.color.inactive;
+
+          // inset color and thickness - this is the stroke on range rects
+          const borderColor = gauge.range.inset.border.color || 'black';
+          const borderThickness = parseInt(gauge.range.inset.border.size);
+          let borderGap = parseInt(card.border.gap) || 5;
+          let insetGap = parseInt(gauge.range.inset.gap) || parseInt(card.border.gap);
+
+          // gap between ranges (set to 0 when using svg stroke)
+          const rangeGap = 0;
+
+          // svg offsets to start drawing
+          const startX = 0;
+          const startY = 0;
+
+          // Setup ranges - if enabled
+          const ranges = (gauge.range.enabled) ? (gauge.ranges || []) : [];
+          let rects = '';
+
+          // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
+          const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
+
+          // svg rect for background
+          rects += `
+              <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
+          `;
+
+          // Iterate through ranges - generate rects at proper positions in available range height
+          for (let i = 0; i < ranges.length; i++) {
+            const range = ranges[i];
+            const fromPercent = ((range.from - gauge.min) / (gauge.max - gauge.min)) * 100;
+            const toPercent = ((range.to - gauge.min) / (gauge.max - gauge.min)) * 100;
+            const rangePercentHeight = toPercent - fromPercent;
+
+            const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
+
+            // set range X position and width
+            const rangeX = startX; // SIMPLE X
+            const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
+
+            const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
+            const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
+
+            rects += `
+              <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
+            `;
+          }
+
+          return `
+            <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+              ${rects}
+            </svg>
+          `;
+        }
+        return z_ranges_alt_svg;
+      ]]]
+    z_slider_bg_svg: |
+      [[[
+        const z_slider_bg_svg = function(params){
+
+          const slider_track = params.slider_track;
+          const card = params.card;
+
+          const _vertical = params._vertical;
+
+          const entity_match_slider_start = params.entity_match_slider_start;
+          const entity_match_slider_end = params.entity_match_slider_end;
+          const entity_color = params.entity_color;
+
+          try {
+            const width = parseInt(slider_track.width) || parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size) - parseInt(slider_track.padding.left) - parseInt(slider_track.padding.right);
+            const height = parseInt(slider_track.height) || parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - parseInt(slider_track.padding.top) - parseInt(slider_track.padding.bottom);
+            let barWidth, barHeight;
+            // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+            if (width <= 0 || height <= 0) {
+              //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+              // Return a placeholder or empty SVG
+              return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+            }
+            // Defaults and overrides
+            let barSpacing = slider_track.gap ? parseInt(slider_track.gap) : 5;
+            let barOrientation = _vertical ? "vertical" : "horizontal";
+            let cornerRadius = slider_track.bar_border_radius ? parseInt(slider_track.bar_border_radius) : 0;
+            // Set defaults based on orientation
+            if (barOrientation === 'horizontal') {
+              barHeight = height; // Default to height
+              barWidth = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            } else {
+              barWidth = width; // Default to width
+              barHeight = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+            }
+
+            let startColor, endColor;
+            if (_vertical) {
+              endColor = entity_match_slider_start
+                ? entity_color
+                : slider_track.gradient_start_color.trim();
+              startColor = entity_match_slider_end
+                ? entity_color
+                : slider_track.gradient_end_color.trim();
+            } else {
+              startColor = entity_match_slider_start
+                ? entity_color
+                : slider_track.gradient_start_color.trim();
+              endColor = entity_match_slider_end
+                ? entity_color
+                : slider_track.gradient_end_color.trim();
+            }
+
+            // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
+            const startRgb = variables.__parse_color(startColor,'rgb');
+            const endRgb = variables.__parse_color(endColor,'rgb');
+
+            function interpolateColor(color1, color2, factor) {
+              const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+              return `rgb(${result.join(',')})`;
+            }
+            // Autocalculate numBars
+            let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+            //numBars = numBars+1;
+
+            let bars = '';
+            let x = 0, y = 0;
+            for (let i = 0; i < numBars; i++) {
+              const factor = i / (numBars - 1);
+              const color = interpolateColor(startRgb, endRgb, factor);
+              bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
+              x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+              y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+            }
+
+            // Build SVG string directly
+            const svgString = `
+              <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                <g>
+                  ${bars}
+                </g>
+              </svg>
+            `;
+            return svgString;
+          } catch (error) {
+            return '';
+          }
+        }
+        return z_slider_bg_svg;
+      ]]]
