@@ -3,7 +3,7 @@ cb-lcars-multimeter:
   entity: '[[[ return variables.entity ]]]'
   template:
     - cb-lcars-functions
-    - cb-lcars-functions-svg
+    - cb-lcars-svg-multimeter
     - cb-lcars-base
     - cb-lcars-actions-disable
     - cb-lcars-animation-geo-array

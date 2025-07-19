@@ -1,0 +1,94 @@
+cb-lcars-svg-bg-grid:
+  template:
+    - cb-lcars-functions
+    - cb-lcars-functions-svg
+  variables:
+    ___mulberry32: |
+      [[[
+        return function mulberry32(seed) {
+          return function() {
+            let t = seed += 0x6D2B79F5;
+            t = Math.imul(t ^ t >>> 15, t | 1);
+            t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+            return ((t ^ t >>> 14) >>> 0) / 4294967296;
+          }
+        }
+      ]]]
+    z_tileable_stars_seeded: |
+      [[[
+          /////////////////////////////////////////////
+          // Generate a tileable star pattern with seeded RNG for reproducibility
+          // numStars: number of stars to generate
+          // width: width of the pattern
+          // height: height of the pattern
+          // minR: minimum radius of stars
+          // maxR: maximum radius of stars
+          // minB: minimum brightness of stars (0-1)
+          // maxB: maximum brightness of stars (0-1)
+          // seed: seed for the RNG (default: 1)
+          // color: color of the stars (supports hex, rgb, rgba, CSS variables)
+          // Returns a string of SVG circles representing the stars
+
+        const z_tileable_stars_seeded = function(numStars, width, height, minR, maxR, minB, maxB, seed, color) {
+            let stars = '';
+            const rand = variables.___mulberry32(seed);
+
+            // Normalize color input to array
+            let colorArray;
+            if (Array.isArray(color)) {
+              colorArray = color.length > 0 ? color : ['#fff'];
+            } else {
+              colorArray = [color ?? '#fff'];
+            }
+
+            for (let i = 0; i < numStars; i++) {
+              const cx = rand() * width;
+              const cy = rand() * height;
+              const r = rand() * (maxR - minR) + minR;
+              const brightness = rand() * (maxB - minB) + minB;
+
+              // Pick a color from the array using the seeded RNG
+              const pickedColor = colorArray[Math.floor(rand() * colorArray.length)];
+
+              let fill;
+              if (pickedColor) {
+                if (pickedColor.startsWith('#')) {
+                  // Convert hex to rgb
+                  const hex = pickedColor.replace('#', '');
+                  const bigint = parseInt(hex, 16);
+                  const rC = (hex.length === 3 ? (bigint >> 8 & 0xf) * 17 : (bigint >> 16) & 0xff);
+                  const gC = (hex.length === 3 ? (bigint >> 4 & 0xf) * 17 : (bigint >> 8) & 0xff);
+                  const bC = (hex.length === 3 ? (bigint & 0xf) * 17 : bigint & 0xff);
+                  fill = `rgba(${rC},${gC},${bC},${brightness})`;
+                } else if (pickedColor.startsWith('rgb')) {
+                  // If rgb(a), just replace the alpha
+                  fill = pickedColor.replace(/rgba?\(([^)]+)\)/, (m, rgb) => {
+                    const parts = rgb.split(',').map(x => x.trim());
+                    return `rgba(${parts[0]},${parts[1]},${parts[2]},${brightness})`;
+                  });
+                } else if (pickedColor.startsWith('var(') || pickedColor.startsWith('--') || /^[a-zA-Z]/.test(pickedColor)) {
+                  // Accept CSS variable or named color, just use as fill (no alpha)
+                  fill = pickedColor;
+                } else {
+                  // Fallback to white with brightness
+                  fill = `rgba(255,255,255,${brightness})`;
+                }
+              } else {
+                fill = `rgba(255,255,255,${brightness})`;
+              }
+              for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                  if (
+                    (dx === 0 && dy === 0) ||
+                    (dx !== 0 && (cx < r || cx > width - r)) ||
+                    (dy !== 0 && (cy < r || cy > height - r))
+                  ) {
+                    stars += `<circle cx="${cx + dx * width}" cy="${cy + dy * height}" r="${r}" fill="${fill}" />`;
+                  }
+                }
+              }
+            }
+            return stars;
+          }
+          return z_tileable_stars_seeded;
+      ]]]

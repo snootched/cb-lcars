@@ -1,0 +1,41 @@
+cb-lcars-animation-geo-array:
+  template:
+    - cb-lcars-functions
+    - cb-lcars-svg-geo-array
+  variables:
+    enable_resize_observer: true
+    card:
+      height: '[[[ return this.offsetHeight; ]]]'
+      width: '[[[ return this.offsetWidth; ]]]'
+    animation:
+      geo_array:
+        animation_axis: row
+        grid:
+          num_cols: null
+          gap: 8
+          num_rows: null
+        color:
+          base: var(--picard-dark-blue)
+          animation_start: var(--picard-blue)
+          animation_end: transparent
+          animation_end2: var(--picard-moonlight)
+        shape:
+          type: square
+          size: 12
+  styles:
+    label:
+      - z-index: 2
+    custom_fields:
+      animation:
+        - display: flex
+        - position: absolute
+        - align-items: center
+  custom_fields:
+    animation: |
+      [[[
+        const params = {
+          animation: variables.animation,
+          card: variables.card,
+        };
+        return variables.get_memoized_svg.call(this,'z_geo_array_svg')(params);
+      ]]]

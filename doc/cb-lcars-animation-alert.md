@@ -115,8 +115,9 @@ variables:
 variables:
   animation:
     alert:
+      preset: my_custom_preset
       custom_alert_presets:
-        my_custom:
+        my_custom_preset:
           alert_text: "MY ALERT"
           color:
             bars:
