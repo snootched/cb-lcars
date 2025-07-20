@@ -25,3 +25,10 @@ export const gallery_views_uris = [
         '/hacsfiles/cb-lcars/cb-lcars-gallery-elbows.yaml',
         '/hacsfiles/cb-lcars/cb-lcars-gallery-multimeter.yaml'
     ]
+
+export const builtin_svg_keys = [
+    'ncc-1701-blue',
+    'enterprise-d-shuttlecraft15-anomaly',
+    // Add more built-in SVG keys here (without .svg extension)
+    ];
+export const builtin_svg_basepath = '/hacsfiles/cb-lcars/msd/';

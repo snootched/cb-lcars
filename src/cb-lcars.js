@@ -1,6 +1,7 @@
 import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
+import { preloadSVGs, loadSVGToCache, getSVGFromCache } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
 import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
@@ -21,6 +22,12 @@ let stubConfig = {};
 window.cblcars = window.cblcars || {};
 window.cblcars.loadFont = loadFont;
 
+// Utility for lazy loading user SVGs (e.g., from /local/)
+window.cblcars = window.cblcars || {};
+window.cblcars.loadUserSVG = async function(key, url) {
+    return await loadSVGToCache(key, url);
+};
+window.cblcars.getSVGFromCache = getSVGFromCache;
 
 
 async function initializeCustomCard() {
@@ -32,6 +39,10 @@ async function initializeCustomCard() {
     templatesPromise = loadTemplates(CBLCARS.templates_uri);
     stubConfigPromise = loadStubConfig(CBLCARS.stub_config_uri);
     themeColorsPromise = loadThemeColors(CBLCARS.theme_colors_uri);
+
+    // Preload built-in SVGs for the MSD card
+    preloadSVGs(CBLCARS.builtin_svg_keys, CBLCARS.builtin_svg_basepath)
+        .catch(error => cblcarsLog('error', 'Error preloading built-in SVGs:', error));
 
     // Import and wait for 3rd party card dependencies
     const cardImports = [
@@ -463,6 +474,74 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
       }
 }
 
+
+class CBLCARSMSDCard extends CBLCARSBaseCard {
+    static get editorType() {
+        return 'cb-lcars-msd-card-editor';
+    }
+
+    static get cardType() {
+        return 'cb-lcars-msd-card';
+    }
+
+    static get defaultConfig() {
+        return {
+            variables: {
+                card: {
+                    border: {
+                        left: { size: 0 },
+                        right: { size: 0 },
+                        top: { size: 0 },
+                        bottom: { size: 0 }
+                    }
+                }
+            }
+        };
+    }
+
+    setConfig(config) {
+
+        const defaultTemplates = ['cb-lcars-msd'];
+        const userTemplates = (config.template) ? [...config.template] : [];
+        const mergedTemplates = [...defaultTemplates, ...userTemplates];
+
+        const specialConfig = {
+            ...config,
+            template: mergedTemplates,
+        };
+        super.setConfig(specialConfig);
+
+        // --- SVG Lazy Loading Logic ---
+        const msdVars = specialConfig.variables && specialConfig.variables.msd;
+        if (msdVars && msdVars.base_svg) {
+            let svgKey = null, svgUrl = null;
+            if (msdVars.base_svg.startsWith('builtin:')) {
+                svgKey = msdVars.base_svg.replace('builtin:', '');
+                // Preloaded, nothing to do
+            } else if (msdVars.base_svg.startsWith('/local/')) {
+                // User SVG: derive key from filename
+                svgKey = msdVars.base_svg.split('/').pop().replace('.svg','');
+                svgUrl = msdVars.base_svg;
+                // Lazy load if not cached (fire-and-forget, do not await)
+                if (!window.cblcars.getSVGFromCache(svgKey)) {
+                    window.cblcars.loadUserSVG(svgKey, svgUrl)
+                        .then(() => this.requestUpdate && this.requestUpdate())
+                        .catch(() => {}); // Error already logged
+                }
+            }
+            // Optionally, store svgKey for use in render/template
+            this._svgKey = svgKey;
+        }
+    }
+
+    getLayoutOptions() {
+        return {
+            grid_rows: 4,
+            grid_columns: 4
+        };
+      }
+}
+
 class CBLCARSDoubleElbowCard extends CBLCARSBaseCard {
     static get editorType() {
         return 'cb-lcars-double-elbow-card-editor';
@@ -649,6 +728,7 @@ Promise.all([templatesPromise, , stubConfigPromise, themeColorsPromise])
     defineCustomElement('cb-lcars-multimeter-card', CBLCARSMultimeterCard, 'cb-lcars-multimeter-card-editor', CBLCARSCardEditor);
     defineCustomElement('cb-lcars-dpad-card', CBLCARSDPADCard, 'cb-lcars-dpad-card-editor', CBLCARSCardEditor);
     defineCustomElement('cb-lcars-button-card', CBLCARSButtonCard, 'cb-lcars-button-card-editor', CBLCARSCardEditor);
+    defineCustomElement('cb-lcars-msd-card', CBLCARSMSDCard, 'cb-lcars-msd-card-editor', CBLCARSCardEditor);
   })
   .catch(error => {
     cblcarsLog('error', 'Error loading YAML configuration:', error);
@@ -705,6 +785,13 @@ const CBLCARSCardClasses = [
         name: 'CB-LCARS Button',
         preview: true,
         description: 'CB-LCARS Buttons [various styles]',
+        documentationURL: "https://cb-lcars.unimatrix01.ca",
+    },
+    {
+        type: 'cb-lcars-msd-card',
+        name: 'CB-LCARS MSD',
+        preview: true,
+        description: 'CB-LCARS Master Systems Display (MSD) card',
         documentationURL: "https://cb-lcars.unimatrix01.ca",
     }
 ];

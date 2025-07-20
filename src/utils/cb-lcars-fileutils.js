@@ -32,3 +32,62 @@ export async function readYamlFile(url) {
         throw error; // Re-throw the error after logging it
     }
 }
+
+/**
+ * Ensure the SVG cache exists on the window object.
+ */
+function ensureSVGCache() {
+    window.cblcars = window.cblcars || {};
+    window.cblcars.msd = window.cblcars.msd || {};
+    window.cblcars.msd.svg_templates = window.cblcars.msd.svg_templates || {};
+    return window.cblcars.msd.svg_templates;
+}
+
+/**
+ * Load an SVG from a URL and cache it under the given key.
+ * Returns a promise that resolves to the SVG string.
+ */
+export async function loadSVGToCache(key, url) {
+    const cache = ensureSVGCache();
+    if (cache[key]) {
+        // Already cached
+        return cache[key];
+    }
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            cblcarsLog('error', `Failed to fetch SVG [${url}] for key [${key}]: ${response.status} ${response.statusText}`);
+            return undefined;
+        }
+        const svgText = await response.text();
+        cache[key] = svgText;
+        cblcarsLog('debug', `Loaded SVG [${key}] from [${url}]`);
+        return svgText;
+    } catch (error) {
+        cblcarsLog('error', `Error loading SVG [${key}] from [${url}]`, error);
+        return undefined;
+    }
+}
+
+/**
+ * Get an SVG from the cache by key.
+ */
+export function getSVGFromCache(key) {
+    const cache = ensureSVGCache();
+    return cache[key];
+}
+
+/**
+ * Preload a list of SVGs from a base path.
+ * svgList: array of keys (filenames without .svg)
+ * basePath: path to prepend (should end with /)
+ * Returns a promise that resolves when all SVGs are loaded.
+ */
+export async function preloadSVGs(svgList, basePath) {
+    const promises = svgList.map(key => {
+        const url = `${basePath}${key}.svg`;
+        return loadSVGToCache(key, url);
+    });
+    await Promise.all(promises);
+    cblcarsLog('info', `Preloaded SVGs: ${svgList.join(', ')} from ${basePath}`);
+}

@@ -1,4 +1,4 @@
-cb-lcars-msd-card:
+cb-lcars-msd:
   template:
     - cb-lcars-base
   variables:
@@ -194,11 +194,15 @@ cb-lcars-msd-card:
         let svgContent = '';
         let viewBox = [0, 0, 400, 200];
         let anchorTable = {};
-        if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/')) {
-          svgContent = `<svg width="100%" height="100%"><text x="50%" y="50%" text-anchor="middle" fill="gray">[SVG Loaded Here]</text></svg>`;
-        } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
-          const key = variables.msd.base_svg.replace('builtin:', '');
-          svgContent = window.cblcars?.msd?.svg_templates?.[key] || window.cblcars?.msd?.svg_templates?.['test'] || '';
+        let svgKey = null;
+        if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
+          svgKey = variables.msd.base_svg.replace('builtin:', '');
+        } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/local/')) {
+          svgKey = variables.msd.base_svg.split('/').pop().replace('.svg','');
+        }
+        let svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
+        if (!svgContent) {
+          return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
         }
         const match = svgContent.match(/viewBox="([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)"/);
         if (match) {
