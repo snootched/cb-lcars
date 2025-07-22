@@ -3,10 +3,10 @@ cb-lcars-msd:
     - cb-lcars-header
   variables:
     msd:
-      base_svg: 'builtin:test'
+      base_svg: 'builtin:ncc-1701-blue'   # Use 'builtin:' for built-in SVGs, or '/local/' for custom SVGs
       x_offset: 0
       y_offset: 0
-      text_width_multiplier: 0.3
+      text_width_multiplier: 0.3          # Multiplier for text width estimation in px (when needed)
       presets:
         default:
           text:
@@ -22,7 +22,7 @@ cb-lcars-msd:
             rounded: true
             corner_radius: 12
             color:
-              default: var(--lcars-orange)
+              default: var(--lcars-moonlight)
             # --- New line style options ---
             stroke_dasharray: "none"   # e.g. "5,5" for dashed, "1,4" for dotted, "none" for solid
             stroke_linecap: "round"    # "butt", "round", "square"
@@ -36,14 +36,25 @@ cb-lcars-msd:
         warning:
           text:
             color:
-              default: orange
+              default: var(--lcars-orange)
           line:
             color:
-              default: orange
+              default: var(--lcars-orange)
             stroke_dasharray: "5,5"
             animation:
               type: march
               speed: 1.5s
+        error:
+          text:
+            color:
+              default: var(--lcars-red)
+          line:
+            color:
+              default: var(--lcars-red)
+            stroke_dasharray: "5,5"
+            animation:
+              type: blink
+              speed: 1s
       custom_presets:   # user-defined presets (merged over built-in)
         # User can override or add presets here, including 'default'
         # Example:
@@ -731,9 +742,8 @@ cb-lcars-msd:
           }
 
           // --- Debug: Output anchor positions for troubleshooting ---
-          // Remove/comment this in production
-           //overlaySvg += `<text x="10" y="${10 + 20 * Math.random()}" font-size="10" fill="red">DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}</text>`;
-           //console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
+          //overlaySvg += `<text x="10" y="${10 + 20 * Math.random()}" font-size="10" fill="red">DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}</text>`;
+          //console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
 
           // --- Line points ---
           let linePoints = [];
