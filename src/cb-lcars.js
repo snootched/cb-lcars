@@ -486,6 +486,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
     static get defaultConfig() {
         return {
+            enable_resize_observer: true,
             variables: {
                 card: {
                     border: {

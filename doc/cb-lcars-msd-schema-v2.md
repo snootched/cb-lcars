@@ -43,7 +43,7 @@ variables:
             stroke_linecap: "round"
             animation:
               type: march
-              speed: 2s
+              duration: 2s
           visible: |
             [[[ return entity.state > 0; ]]]
 ```
@@ -94,24 +94,21 @@ Each callout is a deeply customizable overlay, defined either in `slots` (named)
 
 | Key          | Type    | Description                                                       |
 |--------------|---------|-------------------------------------------------------------------|
-| entity       | string  | Home Assistant entity_id (required)                               |
-| attribute    | string  | Optional attribute to use instead of state                        |
+| entity       | string  | Home Assistant entity_id (used when using simple state matching)                               |
+| *attribute    | string  | Optional attribute to use instead of state                        |
 | preset       | string  | Name of preset to use (optional)                                  |
-| text         | object  | Label text and styling                                            |
+| text         | object  | Label text and styling (see below)                                           |
 | anchor       | [x, y] or string | Where the line terminates (coordinates or anchor id)      |
-| line         | object  | Line geometry and style                                           |
+| line         | object  | Line geometry and style (see below)                                          |
 | visible      | bool/string/template | Show/hide callout (JS template allowed)               |
-| tap_action   | object  | Button-card style action                                          |
-| hold_action  | object  | Button-card style action                                          |
-| double_tap_action | object | Button-card style action                                      |
 | animation    | object  | Animation for callout (see below)                                 |
-| state_resolver | object | Per-callout state-based style resolver                           |
+| state_resolver | object | Per-callout state-based style resolver (see below)                          |
 
 #### Example: Verbose Callout
 
 ```yaml
 callout:
-  entity: sensor.hull_integrity
+  entity: sensor.hull_integrity  # Used when doing simple state matching
   attribute: null                # Use state by default
   preset: warning                # Use the 'warning' preset for styling
   text:
@@ -121,11 +118,11 @@ callout:
     font_size: 16px
     font_weight: bold
     font_family: 'Antonio'
-    align: left
+    align: left                   # Align text to the left in the box
     color:
       default: blue
-      active: var(--lcars-blue)
-      inactive: var(--lcars-ui-tertiary)
+      "on": var(--lcars-blue)     # Simple state matching values here
+      "off": var(--lcars-ui-tertiary)
       unavailable: var(--lcars-card-button-unavailable)
       unknown: var(--lcars-yellow)
     line_attach: right
@@ -133,7 +130,7 @@ callout:
     y_offset: 0
   anchor: [90%, 15%]              # Where the line ends (can be anchor id)
   line:
-    points: [[88%, 12%], [90%, 15%]]  # Optional, auto-generated if omitted
+    points: [[88%, 12%], [90%, 15%]]  # Optional - more than 2 sets creates a polyline
     width: 2
     rounded: true
     corner_radius: 12
@@ -149,20 +146,11 @@ callout:
     opacity: 1
     animation:
       type: march
-      speed: 2s
+      duration: 2s
   visible: true
-  tap_action:
-    action: toggle
-    entity: switch.hull_repair
-  hold_action:
-    action: more-info
-    entity: sensor.hull_integrity
-  double_tap_action:
-    action: call-service
-    service: script.alert_hull
   animation:
     type: pulse
-    speed: 1s
+    duration: 1s
     color: blue
 ```
 
@@ -177,12 +165,12 @@ callout:
 | font_size   | string    | Font size (e.g., `16px`)             |
 | font_weight | string    | Font weight                          |
 | font_family | string    | Font family                          |
-| color       | object    | Per-state text color                 |
+| color       | object    | Per-state text color (only 'default' used when using custom state matching - see below)                |
 | align       | string    | `left`, `right`, `center`, `start`, `end`, `middle` |
 | line_attach | string    | Where line meets text: `left`, `right`, `center`, etc. |
 | x_offset    | number    | Additional x offset for line attachment |
 | y_offset    | number    | Additional y offset for line attachment |
-| animation   | object    | Animation for text label             |
+| animation   | object    | Animation for text label (see below)            |
 
 #### Example: Text with Smart Line Attachment
 
@@ -205,7 +193,7 @@ text:
 
 | Key              | Type    | Description                                   |
 |------------------|---------|-----------------------------------------------|
-| points           | array   | Array of [x, y] points for the callout path   |
+| points           | array   | Optional - Array of [x, y] points for the callout path (>2 creates a polyline)  |
 | width            | number  | Line width (px)                               |
 | rounded          | bool    | Rounded elbows/corners (default: true)        |
 | corner_radius    | number  | Radius for rounded corners                    |
@@ -242,7 +230,7 @@ line:
     unknown: var(--lcars-yellow)
   animation:
     type: march
-    speed: 2s
+    duration: 2s
 ```
 
 > **Tip:** If you use `state_resolver`, only set the `default` color key, as the others will not be used. If you want simple color changes based on state (and nothing else), you can use state keys directly in the color object and omit `state_resolver`.
@@ -254,9 +242,8 @@ line:
 | Key      | Type   | Description                                         |
 |----------|--------|-----------------------------------------------------|
 | type     | string | `blink`, `pulse`, `march`                           |
-| speed    | string/number | Animation speed (e.g. `'1s'`, `2`)           |
-| duration | string/number | Animation duration (optional)                 |
-| delay    | string/number | Animation delay before start (optional)       |
+| duration | string/number | Animation duration (e.g. `'1s'`, `2`)        |
+| delay    | string/number | Animation delay before start (optional)      |
 | color    | string | Animation color override (optional)                 |
 
 #### Supported Types
@@ -272,7 +259,7 @@ text:
   value: "ALERT"
   animation:
     type: blink
-    speed: 0.5s
+    duration: 0.5s
 ```
 
 ---
@@ -524,7 +511,7 @@ line:
   stroke_linecap: "round"
   animation:
     type: march
-    speed: 1.5s
+    duration: 1.5s
 ```
 
 ### 3. State-Based Color and Animation
@@ -545,7 +532,7 @@ state_resolver:
         line:
           animation:
             type: blink
-            speed: 0.5s
+            duration: 0.5s
 ```
 
 ---
@@ -617,7 +604,7 @@ variables:
           opacity: 1
           animation:
             type: none
-            speed: 2s
+            duration: 2s
       warning:
         text:
           color:
@@ -628,7 +615,7 @@ variables:
           stroke_dasharray: "5,5"
           animation:
             type: march
-            speed: 1.5s
+            duration: 1.5s
     custom_presets:
       info:
         text:
@@ -680,7 +667,7 @@ variables:
             opacity: 1
             animation:
               type: march
-              speed: 2s
+              duration: 2s
           visible: |
             [[[ return entity.state > 0; ]]]
           tap_action:
@@ -738,7 +725,7 @@ variables:
             opacity: 1
             animation:
               type: pulse
-              speed: 1.5s
+              duration: 1.5s
           visible: true
     callouts:
       - entity: sensor.hull_integrity
@@ -840,7 +827,7 @@ slots:
           off: green            # Used when entity.state === 'off'
         animation:
           type: march
-          speed: 2s
+          duration: 2s
       # No state_resolver: color keys are matched directly to entity.state.
       # This is a shortcut for simple color changes only.
       # No other style or preset logic is affected.
@@ -866,7 +853,7 @@ slots:
           default: var(--lcars-orange)        # Only 'default' is used when state_resolver is enabled
         animation:
           type: march
-          speed: 2s
+          duration: 2s
       state_resolver:
         enabled: true
         states:

@@ -1,6 +1,6 @@
 cb-lcars-msd:
   template:
-    - cb-lcars-base
+    - cb-lcars-header
   variables:
     msd:
       base_svg: 'builtin:test'
@@ -132,7 +132,7 @@ cb-lcars-msd:
                   : "Life Support: OFFLINE"; ]]]
               position: life_support_label
               line_attach: left
-              font_family: LCARS
+              font_family: Antonio
             line:
               width: 3
               rounded: true
@@ -158,7 +158,7 @@ cb-lcars-msd:
             text:
               value: testing ve
               position: vertical_end_label
-              font_family: LCARS
+              font_family: Antonio
               color:
                 default: green
                 active: var(--lcars-green)
@@ -200,7 +200,7 @@ cb-lcars-msd:
         } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/local/')) {
           svgKey = variables.msd.base_svg.split('/').pop().replace('.svg','');
         }
-        let svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
+        svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
         if (!svgContent) {
           return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
         }
@@ -300,14 +300,14 @@ cb-lcars-msd:
             // 1. equals
             if ("equals" in entry && entry.equals !== undefined) {
               if (matchValue == entry.equals) {
-                console.debug('[MSD state_resolver] Matched "equals"', {entry, matchValue});
+                //console.debug('[MSD state_resolver] Matched "equals"', {entry, matchValue});
                 return entry;
               }
             }
             // 2. not_equals
             if ("not_equals" in entry && entry.not_equals !== undefined) {
               if (matchValue != entry.not_equals) {
-                console.debug('[MSD state_resolver] Matched "not_equals"', {entry, matchValue});
+                //console.debug('[MSD state_resolver] Matched "not_equals"', {entry, matchValue});
                 return entry;
               }
             }
@@ -318,7 +318,7 @@ cb-lcars-msd:
                   (("from" in entry ? matchNumericValue >= entry.from : true)) &&
                   (("to" in entry ? matchNumericValue <= entry.to : true))
                 ) {
-                  console.debug('[MSD state_resolver] Matched "from/to"', {entry, matchValue, matchNumericValue});
+                  //console.debug('[MSD state_resolver] Matched "from/to"', {entry, matchValue, matchNumericValue});
                   return entry;
                 }
               }
@@ -326,14 +326,14 @@ cb-lcars-msd:
             // 4. in
             if ("in" in entry && Array.isArray(entry.in)) {
               if (entry.in.includes(matchValue)) {
-                console.debug('[MSD state_resolver] Matched "in"', {entry, matchValue});
+                //console.debug('[MSD state_resolver] Matched "in"', {entry, matchValue});
                 return entry;
               }
             }
             // 5. not_in
             if ("not_in" in entry && Array.isArray(entry.not_in)) {
               if (!entry.not_in.includes(matchValue)) {
-                console.debug('[MSD state_resolver] Matched "not_in"', {entry, matchValue});
+                //console.debug('[MSD state_resolver] Matched "not_in"', {entry, matchValue});
                 return entry;
               }
             }
@@ -342,13 +342,13 @@ cb-lcars-msd:
               try {
                 const re = new RegExp(entry.regex);
                 if (typeof matchValue === "string" && re.test(matchValue)) {
-                  console.debug('[MSD state_resolver] Matched "regex"', {entry, matchValue});
+                  //console.debug('[MSD state_resolver] Matched "regex"', {entry, matchValue});
                   return entry;
                 }
               } catch (e) {}
             }
           }
-          console.debug('[MSD state_resolver] No match', {callout, stateConfig});
+          //console.debug('[MSD state_resolver] No match', {callout, stateConfig});
           return null;
         }
 
@@ -369,7 +369,7 @@ cb-lcars-msd:
               if (stateMatch) {
                 if (stateMatch.preset) presetName = stateMatch.preset;
                 if (stateMatch.settings) stateOverrides = stateMatch.settings;
-                console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
+                //console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
               }
               // Merge: default <- preset (if any) <- callout <- stateOverrides
               let merged = deepMerge(
@@ -379,7 +379,7 @@ cb-lcars-msd:
                 c,
                 stateOverrides
               );
-              console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
+              //console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
               return merged;
             });
           }
@@ -394,7 +394,7 @@ cb-lcars-msd:
                 if (stateMatch) {
                   if (stateMatch.preset) presetName = stateMatch.preset;
                   if (stateMatch.settings) stateOverrides = stateMatch.settings;
-                  console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
+                  //console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
                 }
                 // Merge: default <- preset (if any) <- callout <- stateOverrides
                 let merged = deepMerge(
@@ -405,7 +405,7 @@ cb-lcars-msd:
                   stateOverrides
                 );
                 merged.anchor = c.anchor || name;
-                console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
+                //console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
                 arr.push(merged);
               }
             });
@@ -733,7 +733,7 @@ cb-lcars-msd:
           // --- Debug: Output anchor positions for troubleshooting ---
           // Remove/comment this in production
            //overlaySvg += `<text x="10" y="${10 + 20 * Math.random()}" font-size="10" fill="red">DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}</text>`;
-           console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
+           //console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
 
           // --- Line points ---
           let linePoints = [];
@@ -760,7 +760,12 @@ cb-lcars-msd:
           const lineAnim = (callout.line && callout.line.animation) || {};
 
           // --- Unique class base for this overlay (by anchor, entity, or idx) ---
-          const slotKey = (callout.anchor || callout.entity || ('slot'+idx)).replace(/[^a-zA-Z0-9]/g, '_');
+          //const slotKey = (callout.anchor || callout.entity || ('slot'+idx)).replace(/[^a-zA-Z0-9]/g, '_');
+          const slotKeyRaw = callout.anchor || callout.entity || ('slot'+idx);
+          const slotKey = (typeof slotKeyRaw === 'string'
+            ? slotKeyRaw
+            : JSON.stringify(slotKeyRaw)
+          ).replace(/[^a-zA-Z0-9]/g, '_');
 
           // Animation: type, speed, duration, color, delay
           // Defaults

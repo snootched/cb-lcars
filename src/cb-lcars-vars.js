@@ -27,7 +27,8 @@ export const gallery_views_uris = [
     ]
 
 export const builtin_svg_keys = [
-    'ncc-1701-blue',
+    'ncc-1701-a',
+    'ncc-1701-a-blue',
     'enterprise-d-shuttlecraft15-anomaly',
     // Add more built-in SVG keys here (without .svg extension)
     ];
