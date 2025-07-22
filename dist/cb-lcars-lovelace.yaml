@@ -1,7 +1,250 @@
 cblcars:
-  version: 2025.07.3
+  version: 2025.07.4-beta1
   manage_config: true
 cblcars_card_templates:
+  cb-lcars-svg-multimeter:
+    template:
+      - cb-lcars-functions
+      - cb-lcars-functions-svg
+    variables:
+      z_gauge_svg: |
+        [[[
+          // This function generates an SVG representation of a gauge based on the provided parameters.
+          const z_gauge_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = variables._z_isPicardMode || false;
+            const _vertical = variables._vertical || false;
+            const _gauge_style = variables._gauge_style || 'basic';
+            const orientation = _vertical ? 'vertical' : 'horizontal';
+            const showSubticks = gauge.sub_meter.show_sub_meter !== undefined ? gauge.sub_meter.show_sub_meter : true;
+            let minVal = gauge.min;
+            let maxVal = gauge.max;
+            let increment = gauge.increment;
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size);
+            if (_z_isPicardMode) {
+                let percent = (gauge.picard_ratio !== undefined && !isNaN(gauge.picard_ratio)) ? gauge.picard_ratio / 100 : 40 / 100;
+              width = width * percent;
+              height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            }
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const meter_bg_color = isActive ? gauge.color.background.active : gauge.color.background.inactive;
+            const meter_tick_color = isActive ? gauge.color.active : gauge.color.inactive;
+            const meter_subtick_color = isActive ? gauge.sub_meter.active : gauge.sub_meter.inactive;
+            const meter_label_color = isActive ? gauge.label.active : gauge.label.inactive;
+            const meter_label_font_size = variables.__get_num_with_unit(gauge.label.font_size);
+            const meter_label_font_weight = gauge.label.font_weight || 'normal';
+            const meter_label_font_family = gauge.label.font_family || 'Antonio';
+            const meter_subtick_size = parseInt(gauge.sub_meter.tick_size) || 10;
+            const numSubticks = gauge.sub_meter.tick_count;
+            const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
+            const subTickIncrement = 100 / numSegments / (numSubticks + 1);
+            const decimal_places = gauge.label.decimal_places || 0;
+            const connect_ticks = gauge.connect_ticks || false;
+            const tick_line_thickness = gauge.tick_line_thickness || 1;
+            const _show_unit_of_measurement = params._show_unit_of_measurement;
+            const entity_unit_of_measurement = params.entity_unit_of_measurement;
+            const meterTicks = [];
+            for (let i = minVal; i <= maxVal; i += increment) {
+              const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
+              const position = percent + '%';
+              const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
+              meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
+              meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" font-weight="${meter_label_font_weight}" font-family="${meter_label_font_family}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${_show_unit_of_measurement ? entity_unit_of_measurement : ''}</text>`);
+              if (showSubticks && i < maxVal) {
+                for (let j = 1; j <= numSubticks; j++) {
+                  const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
+                  const subTickPosition = subTickPercent + '%';
+                  meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
+                }
+              }
+            }
+            const ranges = gauge.ranges || [];
+            let rangeBackgrounds = '';
+            if (gauge.range.enabled && (!_vertical || (_vertical && _gauge_style == 'basic'))) {
+              ranges.forEach(range => {
+                const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
+                const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
+                const rangeWidth = toPercent - fromPercent;
+                rangeBackgrounds += `
+                  <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
+                        width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
+                        fill="${range.color}" />
+                `;
+              });
+            }
+            const tickLine = connect_ticks ? (orientation === 'vertical' ?
+              `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
+              `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
+                ${rangeBackgrounds}
+                ${tickLine}
+                ${meterTicks.join('')}
+              </svg>
+            `;
+          }
+          return z_gauge_svg;
+        ]]]
+      z_ranges_alt_svg: |
+        [[[
+          const z_ranges_alt_svg = function(params){
+            const gauge = params.gauge;
+            const card = params.card;
+            const ent = params.entity;
+            const entityState = ent.state;
+            const attribute = params.attribute;
+            const _z_isPicardMode = params._z_isPicardMode || false;
+            //const _vertical = variables._vertical || false;
+            //const _gauge_style = variables._gauge_style || 'basic';
+            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
+            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
+            if (_z_isPicardMode) {
+              let ratio = gauge.range?.width_ratio || 2;
+              width = gauge.tick_line_thickness * ratio;
+            }
+            //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
+            let isActive;
+            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
+              isActive = Number(ent.attributes[attribute]) > 0;
+            } else {
+              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
+            }
+            const outerRectColor = isActive ? gauge.range.border.color.active : gauge.range.border.color.inactive;
+            // inset color and thickness - this is the stroke on range rects
+            const borderColor = gauge.range.inset.border.color || 'black';
+            const borderThickness = parseInt(gauge.range.inset.border.size);
+            let borderGap = parseInt(card.border.gap) || 5;
+            let insetGap = parseInt(gauge.range.inset.gap) || parseInt(card.border.gap);
+            // gap between ranges (set to 0 when using svg stroke)
+            const rangeGap = 0;
+            // svg offsets to start drawing
+            const startX = 0;
+            const startY = 0;
+            // Setup ranges - if enabled
+            const ranges = (gauge.range.enabled) ? (gauge.ranges || []) : [];
+            let rects = '';
+            // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
+            const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
+            // svg rect for background
+            rects += `
+                <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
+            `;
+            // Iterate through ranges - generate rects at proper positions in available range height
+            for (let i = 0; i < ranges.length; i++) {
+              const range = ranges[i];
+              const fromPercent = ((range.from - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const toPercent = ((range.to - gauge.min) / (gauge.max - gauge.min)) * 100;
+              const rangePercentHeight = toPercent - fromPercent;
+              const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
+              // set range X position and width
+              const rangeX = startX; // SIMPLE X
+              const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
+              const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
+              const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
+              rects += `
+                <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
+              `;
+            }
+            return `
+              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                ${rects}
+              </svg>
+            `;
+          }
+          return z_ranges_alt_svg;
+        ]]]
+      z_slider_bg_svg: |
+        [[[
+          const z_slider_bg_svg = function(params){
+            const slider_track = params.slider_track;
+            const card = params.card;
+            const _vertical = params._vertical;
+            const entity_match_slider_start = params.entity_match_slider_start;
+            const entity_match_slider_end = params.entity_match_slider_end;
+            const entity_color = params.entity_color;
+            try {
+              const width = parseInt(slider_track.width) || parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size) - parseInt(slider_track.padding.left) - parseInt(slider_track.padding.right);
+              const height = parseInt(slider_track.height) || parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - parseInt(slider_track.padding.top) - parseInt(slider_track.padding.bottom);
+              let barWidth, barHeight;
+              // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
+              if (width <= 0 || height <= 0) {
+                //console.error(`Invalid dimensions: width=${width}, height=${height}`);
+                // Return a placeholder or empty SVG
+                return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
+              }
+              // Defaults and overrides
+              let barSpacing = slider_track.gap ? parseInt(slider_track.gap) : 5;
+              let barOrientation = _vertical ? "vertical" : "horizontal";
+              let cornerRadius = slider_track.bar_border_radius ? parseInt(slider_track.bar_border_radius) : 0;
+              // Set defaults based on orientation
+              if (barOrientation === 'horizontal') {
+                barHeight = height; // Default to height
+                barWidth = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              } else {
+                barWidth = width; // Default to width
+                barHeight = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
+              }
+              let startColor, endColor;
+              if (_vertical) {
+                endColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                startColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              } else {
+                startColor = entity_match_slider_start
+                  ? entity_color
+                  : slider_track.gradient_start_color.trim();
+                endColor = entity_match_slider_end
+                  ? entity_color
+                  : slider_track.gradient_end_color.trim();
+              }
+              // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
+              const startRgb = variables.__parse_color(startColor,'rgb');
+              const endRgb = variables.__parse_color(endColor,'rgb');
+              function interpolateColor(color1, color2, factor) {
+                const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
+                return `rgb(${result.join(',')})`;
+              }
+              // Autocalculate numBars
+              let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
+              //numBars = numBars+1;
+              let bars = '';
+              let x = 0, y = 0;
+              for (let i = 0; i < numBars; i++) {
+                const factor = i / (numBars - 1);
+                const color = interpolateColor(startRgb, endRgb, factor);
+                bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
+                x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
+                y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
+              }
+              // Build SVG string directly
+              const svgString = `
+                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+                  <g>
+                    ${bars}
+                  </g>
+                </svg>
+              `;
+              return svgString;
+            } catch (error) {
+              return '';
+            }
+          }
+          return z_slider_bg_svg;
+        ]]]
   cb-lcars-animation-pulsewave:
     variables:
       enable_resize_observer: true
@@ -591,6 +834,95 @@ cblcars_card_templates:
     variables:
       card:
         height: 50px
+  cb-lcars-svg-bg-grid:
+    template:
+      - cb-lcars-functions
+      - cb-lcars-functions-svg
+    variables:
+      ___mulberry32: |
+        [[[
+          return function mulberry32(seed) {
+            return function() {
+              let t = seed += 0x6D2B79F5;
+              t = Math.imul(t ^ t >>> 15, t | 1);
+              t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+              return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+          }
+        ]]]
+      z_tileable_stars_seeded: |
+        [[[
+            /////////////////////////////////////////////
+            // Generate a tileable star pattern with seeded RNG for reproducibility
+            // numStars: number of stars to generate
+            // width: width of the pattern
+            // height: height of the pattern
+            // minR: minimum radius of stars
+            // maxR: maximum radius of stars
+            // minB: minimum brightness of stars (0-1)
+            // maxB: maximum brightness of stars (0-1)
+            // seed: seed for the RNG (default: 1)
+            // color: color of the stars (supports hex, rgb, rgba, CSS variables)
+            // Returns a string of SVG circles representing the stars
+          const z_tileable_stars_seeded = function(numStars, width, height, minR, maxR, minB, maxB, seed, color) {
+              let stars = '';
+              const rand = variables.___mulberry32(seed);
+              // Normalize color input to array
+              let colorArray;
+              if (Array.isArray(color)) {
+                colorArray = color.length > 0 ? color : ['#fff'];
+              } else {
+                colorArray = [color ?? '#fff'];
+              }
+              for (let i = 0; i < numStars; i++) {
+                const cx = rand() * width;
+                const cy = rand() * height;
+                const r = rand() * (maxR - minR) + minR;
+                const brightness = rand() * (maxB - minB) + minB;
+                // Pick a color from the array using the seeded RNG
+                const pickedColor = colorArray[Math.floor(rand() * colorArray.length)];
+                let fill;
+                if (pickedColor) {
+                  if (pickedColor.startsWith('#')) {
+                    // Convert hex to rgb
+                    const hex = pickedColor.replace('#', '');
+                    const bigint = parseInt(hex, 16);
+                    const rC = (hex.length === 3 ? (bigint >> 8 & 0xf) * 17 : (bigint >> 16) & 0xff);
+                    const gC = (hex.length === 3 ? (bigint >> 4 & 0xf) * 17 : (bigint >> 8) & 0xff);
+                    const bC = (hex.length === 3 ? (bigint & 0xf) * 17 : bigint & 0xff);
+                    fill = `rgba(${rC},${gC},${bC},${brightness})`;
+                  } else if (pickedColor.startsWith('rgb')) {
+                    // If rgb(a), just replace the alpha
+                    fill = pickedColor.replace(/rgba?\(([^)]+)\)/, (m, rgb) => {
+                      const parts = rgb.split(',').map(x => x.trim());
+                      return `rgba(${parts[0]},${parts[1]},${parts[2]},${brightness})`;
+                    });
+                  } else if (pickedColor.startsWith('var(') || pickedColor.startsWith('--') || /^[a-zA-Z]/.test(pickedColor)) {
+                    // Accept CSS variable or named color, just use as fill (no alpha)
+                    fill = pickedColor;
+                  } else {
+                    // Fallback to white with brightness
+                    fill = `rgba(255,255,255,${brightness})`;
+                  }
+                } else {
+                  fill = `rgba(255,255,255,${brightness})`;
+                }
+                for (let dx = -1; dx <= 1; dx++) {
+                  for (let dy = -1; dy <= 1; dy++) {
+                    if (
+                      (dx === 0 && dy === 0) ||
+                      (dx !== 0 && (cx < r || cx > width - r)) ||
+                      (dy !== 0 && (cy < r || cy > height - r))
+                    ) {
+                      stars += `<circle cx="${cx + dx * width}" cy="${cy + dy * height}" r="${r}" fill="${fill}" />`;
+                    }
+                  }
+                }
+              }
+              return stars;
+            }
+            return z_tileable_stars_seeded;
+        ]]]
   cb-lcars-button-square:
     template: cb-lcars-button-base
     show_icon: false
@@ -1472,6 +1804,47 @@ cblcars_card_templates:
           tap_action: "[[[ return variables.dpad.down_right.tap_action ]]]"
           double_tap_action: "[[[ return variables.dpad.down_right.double_tap_action ]]]"
           hold_action: "[[[ return variables.dpad.down_right.hold_action ]]]"
+  cb-lcars-animation-geo-array:
+    template:
+      - cb-lcars-functions
+      - cb-lcars-svg-geo-array
+    variables:
+      enable_resize_observer: true
+      card:
+        height: '[[[ return this.offsetHeight; ]]]'
+        width: '[[[ return this.offsetWidth; ]]]'
+      animation:
+        geo_array:
+          animation_axis: row
+          grid:
+            num_cols: null
+            gap: 8
+            num_rows: null
+          color:
+            base: var(--picard-dark-blue)
+            animation_start: var(--picard-blue)
+            animation_end: transparent
+            animation_end2: var(--picard-moonlight)
+          shape:
+            type: square
+            size: 12
+    styles:
+      label:
+        - z-index: 2
+      custom_fields:
+        animation:
+          - display: flex
+          - position: absolute
+          - align-items: center
+    custom_fields:
+      animation: |
+        [[[
+          const params = {
+            animation: variables.animation,
+            card: variables.card,
+          };
+          return variables.get_memoized_svg.call(this,'z_geo_array_svg')(params);
+        ]]]
   cb-lcars-button-picard-icon:
     template:
       - cb-lcars-button-picard-filled-dense
@@ -3552,335 +3925,6 @@ cblcars_card_templates:
                 symbiont_style = base_style + (variables.symbiont?.imprint_host ? host_style : '') + symbiont_user_style;
                 return symbiont_style;
               ]]]
-  cb-lcars-animation-geo-array:
-    template:
-      - cb-lcars-functions
-    variables:
-      enable_resize_observer: true
-      card:
-        height: "[[[ return this.offsetHeight; ]]]"
-        width: "[[[ return this.offsetWidth; ]]]"
-      animation:
-        geo_array:
-          animation_axis: row
-          grid:
-            num_cols: null
-            gap: 8
-            num_rows: null
-          color:
-            base: var(--picard-dark-blue)
-            animation_start: var(--picard-blue)
-            animation_end: transparent
-            animation_end2: var(--picard-moonlight)
-          shape:
-            type: square
-            size: 12
-    styles:
-      label:
-        - z-index: 2
-      custom_fields:
-        animation:
-          - display: flex
-          - position: absolute
-          - align-items: center
-    custom_fields:
-      animation: |
-        [[[
-          const patternDefault = [
-              { duration: 3, delay: 0.1 },
-              { duration: 3, delay: 0.2 },
-              { duration: 4, delay: 0.3 },
-              { duration: 4, delay: 0.4 },
-              { duration: 4, delay: 0.5 },
-              { duration: 2, delay: 0.6 },
-              { duration: 2, delay: 0.7 },
-              { duration: 2, delay: 0.8 }
-            ];
-            const patternNiagara = [
-              { duration: 2, delay: 0.1 },
-              { duration: 2, delay: 0.2 },
-              { duration: 2, delay: 0.3 },
-              { duration: 2, delay: 0.4 },
-              { duration: 2, delay: 0.5 },
-              { duration: 2, delay: 0.6 },
-              { duration: 2, delay: 0.7 },
-              { duration: 2, delay: 0.8 }
-            ];
-            const patternFrozen = [
-              { duration: 3, delay: 0.1 },
-              { duration: 3, delay: 0.2 },
-              { duration: 4, delay: 0.3 },
-              { duration: 4, delay: 0.4 },
-              { duration: 4, delay: 0.5 },
-              { duration: 2, delay: 0.6 },
-              { duration: 2, delay: 0.7 },
-              { duration: 2, delay: 0.8 }
-            ];
-            const customPatternInput = variables.animation.geo_array.custom_pattern;
-            let customPattern;
-            if (typeof customPatternInput === 'string') {
-              try {
-              customPattern = JSON.parse(customPatternInput);
-              } catch (e) {
-              variables.__cblcarsLog('error','Failed to parse custom_pattern as JSON:', e);
-              customPattern = patternDefault;
-              }
-            } else if (Array.isArray(customPatternInput)) {
-              customPattern = customPatternInput;
-            } else {
-              customPattern = patternDefault;
-            }
-            const patternName = variables.animation.geo_array.pattern || 'patternDefault';
-            const patternMap = {
-              default: patternDefault,
-              niagara: patternNiagara,
-              frozen: patternFrozen,
-              custom: customPattern
-            };
-            const animationSettings = patternMap[patternName] || patternDefault;
-            const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-            const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-            const align_items = variables.animation.geo_array.align_items || 'center';
-            const justify_content = variables.animation.geo_array.justify_content || 'center';
-            const shape_size = variables.animation.geo_array.shape.size || 12;
-            const shape_type = variables.animation.geo_array.shape.type || 'square';
-            const base_color = variables.animation.geo_array.color.base || '#000';
-            const animation_start_color = variables.animation.geo_array.color.animation_start || '#26f';
-            const animation_end_color = variables.animation.geo_array.color.animation_end || '#def';
-            const row_height = variables.__get_num_with_unit(variables.animation.geo_array.grid.row_height) || `${shape_size}px`;
-            const column_width = variables.__get_num_with_unit(variables.animation.geo_array.grid.column_width) || `${shape_size}px`;
-            const grid_gap = variables.__get_num_with_unit(variables.animation.geo_array.grid.gap) || '8px';
-            const animation_axis = variables.animation.geo_array.animation_axis || 'row'; // Get animation_axis, default to 'row'
-            const isRowAnimation = animation_axis === 'row'; // Boolean to check if it's row animation
-            const auto_num_cols = variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
-            const auto_num_rows = variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
-            const num_rows = variables.animation.geo_array.grid.num_rows || auto_num_rows;
-            const num_cols = variables.animation.geo_array.grid.num_cols || auto_num_cols;
-            const isFrozen = patternName === 'frozen';
-            const animationIterationCount = isFrozen ? '1' : 'infinite';
-            const animationFillMode = isFrozen ? 'forwards' : 'forwards';
-            const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
-            function getShapeSVG(color) {
-              switch (shape_type) {
-                case 'circle':
-                  return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
-                case 'triangle':
-                  return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size} 0,${shape_size}" fill="${color}" />`;
-                case 'diamond':
-                  return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size / 2} ${shape_size / 2},${shape_size} 0,${shape_size / 2}" fill="${color}" />`;
-                case 'star':
-                  // 5-pointed star
-                  const c = shape_size / 2, r = c, r2 = r * 0.5;
-                  let star = '';
-                  for (let i = 0; i < 5; i++) {
-                    let angle = (18 + i * 72) * Math.PI / 180;
-                    let x = c + r * Math.cos(angle);
-                    let y = c - r * Math.sin(angle);
-                    star += `${x},${y} `;
-                    angle += 36 * Math.PI / 180;
-                    x = c + r2 * Math.cos(angle);
-                    y = c - r2 * Math.sin(angle);
-                    star += `${x},${y} `;
-                  }
-                  return `<polygon points="${star.trim()}" fill="${color}" />`;
-                case 'pentagon':
-                  let pent = '';
-                  for (let i = 0; i < 5; i++) {
-                    let angle = (54 + i * 72) * Math.PI / 180;
-                    let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
-                    let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
-                    pent += `${x},${y} `;
-                  }
-                  return `<polygon points="${pent.trim()}" fill="${color}" />`;
-                case 'hexagon':
-                  // Centered regular hexagon, fits inside the square
-                  const cx = shape_size / 2;
-                  const cy = shape_size / 2;
-                  const r_hex = shape_size / 2 * 0.95; // 0.95 to add a small margin
-                  let hex = '';
-                  for (let i = 0; i < 6; i++) {
-                    let angle = Math.PI / 6 + i * Math.PI / 3; // Start at 30deg
-                    let x = cx + r_hex * Math.cos(angle);
-                    let y = cy + r_hex * Math.sin(angle);
-                    hex += `${x},${y} `;
-                  }
-                  return `<polygon points="${hex.trim()}" fill="${color}" />`;
-                case 'octagon':
-                  let oct = '';
-                  for (let i = 0; i < 8; i++) {
-                    let angle = (22.5 + i * 45) * Math.PI / 180;
-                    let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
-                    let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
-                    oct += `${x},${y} `;
-                  }
-                  return `<polygon points="${oct.trim()}" fill="${color}" />`;
-                case 'ellipse':
-                  return `<ellipse cx="${shape_size / 2}" cy="${shape_size / 2}" rx="${shape_size / 2}" ry="${shape_size / 3}" fill="${color}" />`;
-                case 'cross':
-                  const t = shape_size / 3;
-                  return `<rect x="${t}" y="0" width="${t}" height="${shape_size}" fill="${color}" />
-                          <rect x="0" y="${t}" width="${shape_size}" height="${t}" fill="${color}" />`;
-                case 'square':
-                default:
-                  return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
-              }
-            }
-            let rows = '';
-            let keyframes = '';
-            let animationCSSRule = ''; // Initialize animationCSSRule
-            if (isRowAnimation) { // ROW ANIMATION LOGIC
-                for (let i = 1; i <= num_rows; i++) {
-                  const { duration, delay } = animationSettings[(i - 1) % animationSettings.length];
-                  const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
-                  const animationName = isFrozen ? `colorchange-frozen-${i}` : 'colorchange'; // Determine keyframe name
-                  if (isFrozen) { // Generate frozen keyframes - only if frozen pattern is selected
-                    keyframes += `
-                      @keyframes colorchange-frozen-${i} {
-                      0% {fill: ${animation_start_color}}
-                      25% {fill: ${animation_start_color}}
-                      50% {fill: ${animation_start_color}}
-                      75% {fill: ${animation_start_color}}
-                      80% {fill: ${base_color}}
-                      90% {fill: ${base_color}}
-                      100% {fill: ${randomColor}}
-                      }
-                    `;
-                  }
-                  animationCSSRule += `
-                  svg.cell.row-anim-${i} > * {
-                    animation-name: ${animationName};
-                    animation-duration: ${duration}s;
-                    animation-delay: ${delay}s;
-                    animation-iteration-count: ${animationIterationCount};
-                    animation-fill-mode: ${animationFillMode};
-                  }
-                  `;
-                  rows += `
-                  <div class="row-${i} row">
-                    ${Array.from({ length: num_cols }, (_, j) => `
-                    <svg class="cell dc${j + 1} row-anim-${i}" width="${shape_size}" height="${shape_size}">
-                      ${getShapeSVG(randomColor)}
-                    </svg>
-                    `).join('')}
-                  </div>
-                  `;
-                }
-              } else { // COLUMN ANIMATION LOGIC (animation_axis === 'column')
-                let cols = ''; // Use 'cols' instead of 'rows' for column-based structure
-                for (let j = 1; j <= num_cols; j++) { // Loop through columns
-                  const { duration, delay } = animationSettings[(j - 1) % animationSettings.length]; // Re-use animationSettings, but index by column
-                  const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
-                  const animationName = isFrozen ? `colorchange-frozen-col-${j}` : 'colorchange'; // Unique keyframe name for columns
-                  if (isFrozen) { // Generate frozen keyframes for columns
-                    keyframes += `
-                      @keyframes colorchange-frozen-col-${j} {
-                      0% {fill: ${animation_start_color}}
-                      25% {fill: ${animation_start_color}}
-                      50% {fill: ${animation_start_color}}
-                      75% {fill: ${animation_start_color}}
-                      80% {fill: ${base_color}}
-                      90% {fill: ${base_color}}
-                      100% {fill: ${randomColor}}
-                      }
-                    `;
-                  }
-                  animationCSSRule += `
-                  svg.cell.col-anim-${j} > * {
-                    animation-name: ${animationName};
-                    animation-duration: ${duration}s;
-                    animation-delay: ${delay}s;
-                    animation-iteration-count: ${animationIterationCount};
-                    animation-fill-mode: ${animationFillMode};
-                  }
-                  `;
-                  cols += `
-                  <div class="col-${j} col">
-                    ${Array.from({ length: num_rows }, (_, i) => `
-                    <svg class="cell row-${i + 1} col-anim-${j} dc${j}" width="${shape_size}" height="${shape_size}">  /* ADD col-anim-${j} CLASS */
-                      ${getShapeSVG(randomColor)}
-                    </svg>
-                    `).join('')}
-                  </div>
-                  `;
-                }
-                rows = cols; // For column animation, effectively 'rows' becomes 'columns' in output structure
-              }
-              const defaultKeyframes = `
-                @keyframes colorchange {
-                0% {fill: ${animation_start_color}}
-                25% {fill: ${animation_start_color}}
-                50% {fill: ${animation_start_color}}
-                75% {fill: ${animation_start_color}}
-                80% {fill: ${base_color}}
-                90% {fill: ${base_color}}
-                100% {fill: ${animation_end_color}}
-                }
-              `;
-              const customKeyframes = variables.animation.geo_array.custom_keyframes || defaultKeyframes;
-                  let styleContent = `
-                  ${customKeyframes}
-                  ${isFrozen ? keyframes : ''}
-                  ${animationCSSRule}
-                  .geo-array-wrapper {
-                  flex: 1;
-                  padding-right: 1px;
-                  display: flex;
-                  flex-grow: 1;
-                  width: ${card_width};
-                  height: ${card_height};
-                  align-items: ${align_items};
-                  justify-content: ${justify_content};
-                  }
-                  .geo-array {
-                  line-height: 1;
-                  display: flex; /* Make .geo-array a flex container for columns */
-                  flex-direction: ${isRowAnimation ? 'column' : 'row'}; /* Column direction for rows, row direction for columns */
-                  }
-                  ${isRowAnimation ?
-                    Array.from({ length: num_rows }, (_, i) => `
-                    .row-${i + 1} {
-                      display: grid;
-                      grid-template-columns: repeat(${num_cols}, ${column_width});
-                      gap: ${grid_gap};
-                      margin-bottom: ${grid_gap}; /* Add spacing between rows */
-                      height: ${row_height}
-                    }
-                    `).join('')
-                  :
-                    Array.from({ length: num_cols }, (_, j) => `  /* COLUMN LAYOUT CSS */
-                    .col-${j + 1} {
-                      display: flex; /* Use flexbox for columns */
-                      flex-direction: column; /* Stack items vertically in columns */
-                      gap: ${grid_gap};
-                      margin-right: ${grid_gap}; /* Spacing between columns */
-                      width: ${column_width};
-                      align-items: center; /* Center items horizontally in columns */
-                    }
-                    `).join('')
-                  }
-                  .geo-array .row:last-child {
-                    margin-bottom: 0; /* Remove margin-bottom from the last row */
-                  }
-                  .geo-array .col:last-child {
-                    margin-right: 0; /* Remove margin-right from the last column */
-                  }
-                  .cell {
-                  text-align: right;
-                  }
-                `;
-              return `
-                <elt>
-                <style>
-                  ${styleContent.trim().replace(/\n\s*\n/g, '\n')}
-                </style>
-                <div class="geo-array-wrapper">
-                  <div class="geo-array" id="default">
-                  ${rows}
-                  </div>
-                </div>
-                </elt>
-              `;
-          ]]]
   cb-lcars-animate-press:
     variables:
       animations:
@@ -3919,244 +3963,6 @@ cblcars_card_templates:
             }
             return this._memoized_svgs[fnName];
           }
-        ]]]
-      z_gauge_svg: |
-        [[[
-          // This function generates an SVG representation of a gauge based on the provided parameters.
-          const z_gauge_svg = function(params){
-            const gauge = params.gauge;
-            const card = params.card;
-            const ent = params.entity;
-            const entityState = ent.state;
-            const attribute = params.attribute;
-            const _z_isPicardMode = variables._z_isPicardMode || false;
-            const _vertical = variables._vertical || false;
-            const _gauge_style = variables._gauge_style || 'basic';
-            const orientation = _vertical ? 'vertical' : 'horizontal';
-            const showSubticks = gauge.sub_meter.show_sub_meter !== undefined ? gauge.sub_meter.show_sub_meter : true;
-            let minVal = gauge.min;
-            let maxVal = gauge.max;
-            let increment = gauge.increment;
-            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
-            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size);
-            if (_z_isPicardMode) {
-                let percent = (gauge.picard_ratio !== undefined && !isNaN(gauge.picard_ratio)) ? gauge.picard_ratio / 100 : 40 / 100;
-              width = width * percent;
-              height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
-            }
-            let isActive;
-            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
-              isActive = Number(ent.attributes[attribute]) > 0;
-            } else {
-              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-            }
-            const meter_bg_color = isActive ? gauge.color.background.active : gauge.color.background.inactive;
-            const meter_tick_color = isActive ? gauge.color.active : gauge.color.inactive;
-            const meter_subtick_color = isActive ? gauge.sub_meter.active : gauge.sub_meter.inactive;
-            const meter_label_color = isActive ? gauge.label.active : gauge.label.inactive;
-            const meter_label_font_size = variables.__get_num_with_unit(gauge.label.font_size);
-            const meter_label_font_weight = gauge.label.font_weight || 'normal';
-            const meter_label_font_family = gauge.label.font_family || 'Antonio';
-            const meter_subtick_size = parseInt(gauge.sub_meter.tick_size) || 10;
-            const numSubticks = gauge.sub_meter.tick_count;
-            const numSegments = (maxVal - minVal) / increment; // Calculate the number of segments
-            const subTickIncrement = 100 / numSegments / (numSubticks + 1);
-            const decimal_places = gauge.label.decimal_places || 0;
-            const connect_ticks = gauge.connect_ticks || false;
-            const tick_line_thickness = gauge.tick_line_thickness || 1;
-            const _show_unit_of_measurement = params._show_unit_of_measurement;
-            const entity_unit_of_measurement = params.entity_unit_of_measurement;
-            const meterTicks = [];
-            for (let i = minVal; i <= maxVal; i += increment) {
-              const percent = orientation === 'vertical' ? 100 - ((i - minVal) / (maxVal - minVal) * 100) : (i - minVal) / (maxVal - minVal) * 100;
-              const position = percent + '%';
-              const labelOffset = orientation === 'vertical' ? 'translate(-5, 0)' : 'translate(0, -5)';
-              meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : position}" y1="${orientation === 'vertical' ? position : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? '100%' : position}" y2="${orientation === 'vertical' ? position : '100%'}" stroke="${meter_tick_color}" stroke-width="2"/>`);
-              meterTicks.push(`<text x="${orientation === 'vertical' ? '100%' : position}" y="${orientation === 'vertical' ? position : '100%'}" font-size="${meter_label_font_size}" font-weight="${meter_label_font_weight}" font-family="${meter_label_font_family}" fill="${meter_label_color}" text-anchor="end" transform="${labelOffset}" dx="${orientation === 'vertical' ? '3' : '-3'}" dy="${orientation === 'vertical' ? '18' : '3'}">${i.toFixed(decimal_places)}${_show_unit_of_measurement ? entity_unit_of_measurement : ''}</text>`);
-              if (showSubticks && i < maxVal) {
-                for (let j = 1; j <= numSubticks; j++) {
-                  const subTickPercent = orientation === 'vertical' ? percent - (j * subTickIncrement) : percent + (j * subTickIncrement);
-                  const subTickPosition = subTickPercent + '%';
-                  meterTicks.push(`<line x1="${orientation === 'vertical' ? (connect_ticks ? tick_line_thickness : '0') : subTickPosition}" y1="${orientation === 'vertical' ? subTickPosition : (connect_ticks ? tick_line_thickness : '0')}" x2="${orientation === 'vertical' ? meter_subtick_size + (connect_ticks ? tick_line_thickness : 0) : subTickPosition}" y2="${orientation === 'vertical' ? subTickPosition : meter_subtick_size + (connect_ticks ? tick_line_thickness : 0)}" stroke="${meter_subtick_color}" stroke-width="1"/>`);
-                }
-              }
-            }
-            const ranges = gauge.ranges || [];
-            let rangeBackgrounds = '';
-            if (gauge.range.enabled && (!_vertical || (_vertical && _gauge_style == 'basic'))) {
-              ranges.forEach(range => {
-                const fromPercent = ((range.from - minVal) / (maxVal - minVal)) * 100;
-                const toPercent = ((range.to - minVal) / (maxVal - minVal)) * 100;
-                const rangeWidth = toPercent - fromPercent;
-                rangeBackgrounds += `
-                  <rect x="${orientation === 'vertical' ? '0' : fromPercent + '%'}" y="${orientation === 'vertical' ? 100 - toPercent + '%' : '0'}"
-                        width="${orientation === 'vertical' ? '100%' : rangeWidth + '%'}" height="${orientation === 'vertical' ? rangeWidth + '%' : '100%'}"
-                        fill="${range.color}" />
-                `;
-              });
-            }
-            const tickLine = connect_ticks ? (orientation === 'vertical' ?
-              `<line x1="${tick_line_thickness / 2}" y1="0" x2="${tick_line_thickness / 2}" y2="100%" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />` :
-              `<line x1="0" y1="${tick_line_thickness / 2}" x2="100%" y2="${tick_line_thickness / 2}" stroke="${meter_tick_color}" stroke-width="${tick_line_thickness}" />`) : '';
-            return `
-              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-                <rect x="0" y="0" width="100%" height="100%" fill="${meter_bg_color}"/>
-                ${rangeBackgrounds}
-                ${tickLine}
-                ${meterTicks.join('')}
-              </svg>
-            `;
-          }
-          return z_gauge_svg;
-        ]]]
-      z_ranges_alt_svg: |
-        [[[
-          const z_ranges_alt_svg = function(params){
-            const gauge = params.gauge;
-            const card = params.card;
-            const ent = params.entity;
-            const entityState = ent.state;
-            const attribute = params.attribute;
-            const _z_isPicardMode = params._z_isPicardMode || false;
-            //const _vertical = variables._vertical || false;
-            //const _gauge_style = variables._gauge_style || 'basic';
-            let width = parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size);
-            let height = parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - (2 * parseInt(card.gap));
-            if (_z_isPicardMode) {
-              let ratio = gauge.range?.width_ratio || 2;
-              width = gauge.tick_line_thickness * ratio;
-            }
-            //const outerRectColor = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0)) ? variables.gauge.range.border.color.active : variables.gauge.range.border.color.inactive;
-            let isActive;
-            if (attribute && !isNaN(Number(ent.attributes?.[attribute]))) {
-              isActive = Number(ent.attributes[attribute]) > 0;
-            } else {
-              isActive = (entityState === 'on' || (entityState !== 'off' && Number(entityState) > 0));
-            }
-            const outerRectColor = isActive ? gauge.range.border.color.active : gauge.range.border.color.inactive;
-            // inset color and thickness - this is the stroke on range rects
-            const borderColor = gauge.range.inset.border.color || 'black';
-            const borderThickness = parseInt(gauge.range.inset.border.size);
-            let borderGap = parseInt(card.border.gap) || 5;
-            let insetGap = parseInt(gauge.range.inset.gap) || parseInt(card.border.gap);
-            // gap between ranges (set to 0 when using svg stroke)
-            const rangeGap = 0;
-            // svg offsets to start drawing
-            const startX = 0;
-            const startY = 0;
-            // Setup ranges - if enabled
-            const ranges = (gauge.range.enabled) ? (gauge.ranges || []) : [];
-            let rects = '';
-            // Calculate Available Range Area Height (remove rangeGap if used, and borderGap used as top/bottom padding)
-            const availableRangeHeight = height - ((ranges.length - 1) * rangeGap) - (2 * borderGap);
-            // svg rect for background
-            rects += `
-                <rect x="${startX}" y="${startY}" width="${width}" height="${height}" fill="${outerRectColor}" /> &lt;-- GRAY BACKGROUND -->
-            `;
-            // Iterate through ranges - generate rects at proper positions in available range height
-            for (let i = 0; i < ranges.length; i++) {
-              const range = ranges[i];
-              const fromPercent = ((range.from - gauge.min) / (gauge.max - gauge.min)) * 100;
-              const toPercent = ((range.to - gauge.min) / (gauge.max - gauge.min)) * 100;
-              const rangePercentHeight = toPercent - fromPercent;
-              const barHeight = (rangePercentHeight / 100) * availableRangeHeight; // SIMPLE HEIGHT CALC
-              // set range X position and width
-              const rangeX = startX; // SIMPLE X
-              const rangeWidth = width - insetGap; // SIMPLE WIDTH - Reduced by borderGap
-              const rangeY_bottom = startY + height - borderGap - ((fromPercent / 100) * availableRangeHeight); // Bottom edge - ABSOLUTE Y CALC - FROM PERCENT
-              const rangeY = rangeY_bottom - barHeight; // Top edge - ABSOLUTE Y CALC
-              rects += `
-                <rect x="${rangeX}" y="${rangeY}" width="${rangeWidth}" height="${barHeight}" fill="${range.color}" stroke="${borderColor}" stroke-width="${borderThickness}" />
-              `;
-            }
-            return `
-              <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-                ${rects}
-              </svg>
-            `;
-          }
-          return z_ranges_alt_svg;
-        ]]]
-      z_slider_bg_svg: |
-        [[[
-          const z_slider_bg_svg = function(params){
-            const slider_track = params.slider_track;
-            const card = params.card;
-            const _vertical = params._vertical;
-            const entity_match_slider_start = params.entity_match_slider_start;
-            const entity_match_slider_end = params.entity_match_slider_end;
-            const entity_color = params.entity_color;
-            try {
-              const width = parseInt(slider_track.width) || parseInt(card.width) - parseInt(card.border.left.size) - parseInt(card.border.right.size) - parseInt(slider_track.padding.left) - parseInt(slider_track.padding.right);
-              const height = parseInt(slider_track.height) || parseInt(card.height) - parseInt(card.border.top.size) - parseInt(card.border.bottom.size) - parseInt(slider_track.padding.top) - parseInt(slider_track.padding.bottom);
-              let barWidth, barHeight;
-              // Check for invalid dimensions (affects calcuations during instantiation generating invalid dimensions in the svg)
-              if (width <= 0 || height <= 0) {
-                //console.error(`Invalid dimensions: width=${width}, height=${height}`);
-                // Return a placeholder or empty SVG
-                return `<svg width="100" height="100"><text x="10" y="50" fill="red">Invalid SVG</text></svg>`;
-              }
-              // Defaults and overrides
-              let barSpacing = slider_track.gap ? parseInt(slider_track.gap) : 5;
-              let barOrientation = _vertical ? "vertical" : "horizontal";
-              let cornerRadius = slider_track.bar_border_radius ? parseInt(slider_track.bar_border_radius) : 0;
-              // Set defaults based on orientation
-              if (barOrientation === 'horizontal') {
-                barHeight = height; // Default to height
-                barWidth = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-              } else {
-                barWidth = width; // Default to width
-                barHeight = slider_track.bar_thickness ? parseInt(slider_track.bar_thickness) : 10; // Default to 10px, but user may change
-              }
-              let startColor, endColor;
-              if (_vertical) {
-                endColor = entity_match_slider_start
-                  ? entity_color
-                  : slider_track.gradient_start_color.trim();
-                startColor = entity_match_slider_end
-                  ? entity_color
-                  : slider_track.gradient_end_color.trim();
-              } else {
-                startColor = entity_match_slider_start
-                  ? entity_color
-                  : slider_track.gradient_start_color.trim();
-                endColor = entity_match_slider_end
-                  ? entity_color
-                  : slider_track.gradient_end_color.trim();
-              }
-              // Parse colors to RGB arrays.  Array values will pass to interpolateColor function
-              const startRgb = variables.__parse_color(startColor,'rgb');
-              const endRgb = variables.__parse_color(endColor,'rgb');
-              function interpolateColor(color1, color2, factor) {
-                const result = color1.map((c, i) => Math.round(c + factor * (color2[i] - c)));
-                return `rgb(${result.join(',')})`;
-              }
-              // Autocalculate numBars
-              let numBars = barOrientation === 'horizontal' ? Math.floor((width + barSpacing) / (barWidth + barSpacing)) : Math.floor((height + barSpacing) / (barHeight + barSpacing));
-              //numBars = numBars+1;
-              let bars = '';
-              let x = 0, y = 0;
-              for (let i = 0; i < numBars; i++) {
-                const factor = i / (numBars - 1);
-                const color = interpolateColor(startRgb, endRgb, factor);
-                bars += `<rect x="${barOrientation === 'horizontal' ? x : 0}" y="${barOrientation === 'horizontal' ? 0 : y}" width="${barWidth}" height="${barHeight}" rx="${cornerRadius}" ry="${cornerRadius}" fill="${color}" />`;
-                x += barOrientation === 'horizontal' ? barWidth + barSpacing : 0;
-                y += barOrientation === 'horizontal' ? 0 : barHeight + barSpacing;
-              }
-              // Build SVG string directly
-              const svgString = `
-                <svg width="100%" height="100%" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-                  <g>
-                    ${bars}
-                  </g>
-                </svg>
-              `;
-              return svgString;
-            } catch (error) {
-              return '';
-            }
-          }
-          return z_slider_bg_svg;
         ]]]
   cb-lcars-button-lozenge:
     template: cb-lcars-button-base
@@ -4215,18 +4021,20 @@ cblcars_card_templates:
   cb-lcars-animation-alert:
     template:
       - cb-lcars-functions
+      - cb-lcars-svg-alert
     variables:
       animation:
         alert:
           size: default
-          alert_text: "alert"
-          sub_text: "condition"
+          alert_text: alert
+          sub_text: condition
           preset: default
           text:
             alert_text:
               font_size: 14
               font_weight: 500
-              font_family: "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif"
+              font_family: >-
+                cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif
               align: center
               transform: uppercase
               stretch: true
@@ -4235,7 +4043,8 @@ cblcars_card_templates:
             sub_text:
               font_size: 6
               font_weight: 200
-              font_family: "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif"
+              font_family: >-
+                cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif
               align: center
               transform: uppercase
               stretch: true
@@ -4260,7 +4069,7 @@ cblcars_card_templates:
           alert_presets:
             condition_red:
               alert_text: Alert
-              sub_text: "condition: red"
+              sub_text: 'condition: red'
               color:
                 bars:
                   default: var(--lcars-alert-red)
@@ -4279,7 +4088,7 @@ cblcars_card_templates:
                     default: var(--lcars-alert-red)
             condition_blue:
               alert_text: Alert
-              sub_text: "condition: blue"
+              sub_text: 'condition: blue'
               color:
                 bars:
                   default: var(--lcars-alert-blue)
@@ -4298,7 +4107,7 @@ cblcars_card_templates:
                     default: var(--lcars-alert-blue)
             condition_green:
               alert_text: Alert
-              sub_text: "condition: green"
+              sub_text: 'condition: green'
               color:
                 bars:
                   default: var(--picard-green)
@@ -4317,7 +4126,7 @@ cblcars_card_templates:
                     default: var(--picard-green)
             condition_yellow:
               alert_text: Alert
-              sub_text: "condition: yellow"
+              sub_text: 'condition: yellow'
               color:
                 bars:
                   default: var(--lcars-alert-yellow)
@@ -4336,7 +4145,7 @@ cblcars_card_templates:
                     default: var(--lcars-alert-yellow)
             condition_grey:
               alert_text: Alert
-              sub_text: "condition: grey"
+              sub_text: 'condition: grey'
               color:
                 bars:
                   default: var(--picard-grey)
@@ -4355,7 +4164,7 @@ cblcars_card_templates:
                     default: var(--picard-dark-gray)
             condition_black:
               alert_text: Alert
-              sub_text: "condition: black"
+              sub_text: 'condition: black'
               color:
                 bars:
                   default: var(--picard-lightest-blue)
@@ -4399,445 +4208,14 @@ cblcars_card_templates:
     custom_fields:
       animation: |
         [[[
-          // --- Deep merge utility for merging settings objects
-          // Recursively merges source objects into the target, with later sources overriding earlier ones
-          function deepMerge(target, ...sources) {
-            if (!sources.length) return target;
-            const source = sources.shift();
-            if (typeof target !== 'object' || target === null) target = {};
-            if (typeof source !== 'object' || source === null) return target;
-            for (const key in source) {
-              if (
-                source[key] &&
-                typeof source[key] === 'object' &&
-                !Array.isArray(source[key])
-              ) {
-                target[key] = deepMerge(target[key], source[key]);
-              } else {
-                target[key] = source[key];
-              }
-            }
-            return deepMerge(target, ...sources);
-          }
-          const cblcarsLog = variables.__cblcarsLog;
-          // --- Pull in alert settings from variables ---
-          const alertSettings = variables.animation.alert ?? {};
-          //////////////////////////////////////////////////////////////////////////////
-          // CONDITIONAL PRESET SELECTION BASED ON ENTITY/ATTRIBUTE VALUE
-          // Supports dynamic preset selection based on entity state or attribute value
-          //////////////////////////////////////////////////////////////////////////////
-          let selectedPreset = null;
-          const rangeSettings = alertSettings.range;
-          if (rangeSettings && rangeSettings.enabled && Array.isArray(rangeSettings.ranges)) {
-            let value = null;
-            const attribute = variables.attribute;
-            if (entity) {
-              if (attribute) {
-                value = entity.attributes?.[attribute];
-                // Special handling for brightness: convert 0-255 to 0-100 percentage
-                if (attribute === 'brightness' && value !== undefined && value !== null && !isNaN(parseFloat(value))) {
-                  value = (parseFloat(value) / 256) * 100;
-                }
-              } else {
-                value = entity.state;
-              }
-              //cblcarsLog('debug',`value: ${value}`)
-            } else {
-              //cblcarsLog("debug","no entity selected");
-            }
-            let numericValue = value;
-            if (typeof value === "string" && !isNaN(Number(value))) {
-              numericValue = Number(value);
-            }
-            for (const entry of rangeSettings.ranges) {
-              if ("equals" in entry && entry.equals !== undefined) {
-                // Accept non-numeric values for equals, use loose equality for flexibility
-                if (value == entry.equals) {
-                  selectedPreset = entry.preset;
-                  break;
-                }
-              } else if ("from" in entry && "to" in entry) {
-                // Only check numeric values for from/to
-                if (typeof numericValue === "number" && !isNaN(numericValue)) {
-                  if (numericValue >= entry.from && numericValue <= entry.to) {
-                    selectedPreset = entry.preset;
-                    break;
-                  }
-                }
-              }
-            }
-          }
-          //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
-          const card_height = variables.animation.height !== undefined ? parseInt(variables.animation.height) : (parseInt(variables.card.height) - parseInt(variables.card.border.top.size) - parseInt(variables.card.border.bottom.size));
-          const card_width = variables.animation.width !== undefined ? parseInt(variables.animation.width) : (parseInt(variables.card.width) - parseInt(variables.card.border.left.size) - parseInt(variables.card.border.right.size));
-          //////////////////////////////////////////////////////////////////////////////
-          // ALERT PRESET MERGING
-          // Merge built-in and user presets, with user presets taking precedence
-          //////////////////////////////////////////////////////////////////////////////
-          const builtInPresets = alertSettings.alert_presets ?? {};
-          const userPresets = alertSettings.custom_alert_presets ?? {}; // <-- user can supply this
-          //const alertPresetName = alertSettings.preset;
-          let alertPresetName = alertSettings.preset;
-          if (selectedPreset) {
-            alertPresetName = selectedPreset;
-          }
-          //cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
-          // Merge built-in and user presets (user wins on conflicts)
-          const mergedPresets = deepMerge({}, builtInPresets, userPresets);
-          // Remove meta keys from alertSettings to get only the base/defaults
-          const { alert_presets, custom_alert_presets, preset, ...alertDefaults } = alertSettings;
-          // Get preset settings if specified
-          const presetSettings =
-            alertPresetName &&
-            mergedPresets[alertPresetName] &&
-            typeof mergedPresets[alertPresetName] === 'object'
-              ? mergedPresets[alertPresetName]
-              : {};
-          // Merge: defaults <- preset <- top-level overrides
-          const alertStyleSettings = deepMerge(
-            {},
-            alertDefaults,
-            presetSettings
-          );
-          //cblcarsLog("debug",alertStyleSettings);
-          //////////////////////////////////////////////////////////////////////////////
-          // COLOR AND ANIMATION SETTINGS
-          //////////////////////////////////////////////////////////////////////////////
-          const shape_color = alertStyleSettings.color.shape?.default || '#FF0000';
-          const bar_color = alertStyleSettings.color.bars?.default || '#FF0000';
-          const animation_base_color = alertStyleSettings.color.bars?.animation_base || '#FF0000';
-          const animation_flash_color = alertStyleSettings.color.bars?.animation_flash || '#FFFFFF';
-          const animation_duration = alertStyleSettings.animation_duration || 1;
-          const enable_bar_animation = (alertStyleSettings.animation_duration != 0 && alertStyleSettings.enable_bar_animation) ?? 'true';
-          const blink_duration = alertStyleSettings.blink_duration || 4;
-          const blink_delay = alertStyleSettings.blink_delay || 2;
-          const enable_blink = (alertStyleSettings.blink_duration != 0 && alertStyleSettings.enable_blink) ?? true;
-          // Calculate animation delays for bar spread effect
-          const delays = [
-            0,
-            0.0833 * animation_duration,
-            0.1667 * animation_duration,
-            0.25 * animation_duration,
-            0.3333 * animation_duration,
-            0.4167 * animation_duration
-          ];
-          //////////////////////////////////////////////////////////////////////////////
-          // PADDING AND VIEWBOX
-          //////////////////////////////////////////////////////////////////////////////
-          // Padding for SVG (object with top, right, bottom, left)
-          const pad = variables.animation.alert.padding || {};
-          const padTop = pad.top !== undefined ? parseInt(pad.top) : 0;
-          const padRight = pad.right !== undefined ? parseInt(pad.right) : 0;
-          const padBottom = pad.bottom !== undefined ? parseInt(pad.bottom) : 0;
-          const padLeft = pad.left !== undefined ? parseInt(pad.left) : 0;
-          // Adjusted viewBox for SVG
-          const vb_x = 0 - padLeft;
-          const vb_y = 0 - padTop;
-          const vb_w = 100 + padLeft + padRight;
-          const vb_h = 73.56 + padTop + padBottom;
-          //////////////////////////////////////////////////////////////////////////////
-          // SVG PATHS FOR ALERT SHAPE
-          // Condensed and standard SVG paths for the main alert shape
-          //////////////////////////////////////////////////////////////////////////////
-          // Condensed version based on svg provided by sparkyvision
-          const condensed_path = `
-            <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
-            M23.108 25.389
-            L15.402 17.558
-            C18.473 14.316 23.222 10.239 28.118 8.950
-            L31.047 8.950 L31.047 23.210
-            L68.953 23.210 L68.953 8.950
-            L71.882 8.950
-            C76.776 10.239 81.524 14.314 84.594 17.555
-            L76.885 25.389 L23.108 25.389Z
-            M8.889 36.834
-            C8.889 33.512 9.541 30.602 10.197 28.093
-            L16.885 28.093 L16.885 45.659
-            L10.214 45.659
-            C9.547 43.090 8.889 40.180 8.889 36.834Z
-            M91.111 36.834
-            C91.111 40.180 90.453 43.090 89.786 45.659
-            L83.176 45.659 L83.176 28.093
-            L89.803 28.093
-            C90.459 30.602 91.111 33.512 91.111 36.834Z
-            M15.399 56.090
-            C18.470 59.349 23.220 63.435 28.118 64.697
-            L31.047 64.697 L31.047 50.490
-            L68.953 50.490 L68.953 64.697
-            L71.882 64.697
-            C76.778 63.436 81.527 59.351 84.600 56.094
-            L76.953 48.347 L23.040 48.347 L15.399 56.090Z
-            " fill="${shape_color}"/>
-            `;
-          // Standard version based on svg provided by Panter (recalculated and baselined with condensed)
-          const std_path = `
-            <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
-              M30.40 0
-              V21.00
-              C30.40 21.84 31.06 22.50 31.89 22.50
-              H68.08
-              C68.91 22.50 69.57 21.84 69.57 21.00
-              V0
-              C77.94 2.90 85.08 7.63 90.35 13.59
-              L75.92 25.26
-              H24.08
-              L9.29 13.59
-              C14.62 7.63 22.01 2.90 30.40 0
-              ZM1.08 28.36
-              C0.37 31.07 0 33.84 0 36.63
-              C0 39.42 0.37 42.19 1.08 44.90
-              H15.10
-              V28.36
-              H1.08
-              ZM9.29 60.03
-              C14.62 65.90 22.01 70.62 30.40 73.56
-              V52.54
-              C30.40 51.70 31.06 51.04 31.89 51.04
-              H68.08
-              C68.91 51.04 69.57 51.70 69.57 52.54
-              V73.56
-              C77.94 70.62 85.08 65.90 90.35 60.03
-              L75.92 48.37
-              H24.08
-              L9.29 60.03
-              ZM98.67 44.90
-              C99.38 42.19 99.76 39.42 99.76 36.63
-              C99.76 33.84 99.38 31.07 98.67 28.36
-              H84.77
-              V44.90
-              H98.67Z
-            " fill="${shape_color}"></path>
-          `;
-          //////////////////////////////////////////////////////////////////////////////
-          // BAR ANIMATION LINES
-          // Define y-coordinates for condensed and standard versions
-          //////////////////////////////////////////////////////////////////////////////
-          const condensedLines1 = [
-            [8.950, 10.176],
-            [11.213, 12.439],
-            [13.476, 14.702],
-            [15.739, 16.965],
-            [17.996, 19.222],
-            [20.259, 21.485]
-          ];
-          const condensedLines2 = [
-            [52.105, 53.331],
-            [54.372, 55.598],
-            [56.635, 57.861],
-            [58.898, 60.124],
-            [61.161, 62.387],
-            [63.425, 64.651]
-          ];
-          // SVG height for condensed and standard
-          const condensedHeight = 64.697 - 8.950; // 55.747
-          const standardHeight = 85.56;
-          // Select path based on size variable
-          const alert_size = variables.animation.alert.size || "standard";
-          const selected_path = alert_size === "condensed" ? condensed_path : std_path;
-          // Helper to scale y-coordinates for standard size
-          function scaleLines(lines, fromHeight, toHeight, yOffsetFrom, yOffsetTo) {
-            const scale = toHeight / fromHeight;
-            const offset = yOffsetTo - yOffsetFrom * scale;
-            return lines.map(([y1, y2]) => [
-              y1 * scale + offset,
-              y2 * scale + offset
-            ]);
-          }
-          // Select lines based on size
-          let lines1, lines2;
-          if (alert_size === "condensed") {
-            lines1 = condensedLines1;
-            lines2 = condensedLines2;
-          } else {
-            // Scale condensed lines to standard height
-            lines1 = scaleLines(condensedLines1, condensedHeight, standardHeight, 8.95, 0);
-            lines2 = scaleLines(condensedLines2, condensedHeight, standardHeight, 8.95, -12);
-          }
-          // Generate SVG line elements for bar animation
-          function linesToSVG(lines, group) {
-            return lines.map(
-              ([y1, y2], i) =>
-                `<line id="raLines${group}_${i + 1}" x1="50.0" y1="${y1.toFixed(3)}" x2="50.0" y2="${y2.toFixed(3)}" stroke="${bar_color}" stroke-width="33.33" />`
-            ).join('\n');
-          }
-          const svgLines =
-            linesToSVG(lines2, 2) + '\n' +
-            linesToSVG(lines1, 1);
-          //////////////////////////////////////////////////////////////////////////////
-          // TEXT CONFIGURATION
-          //////////////////////////////////////////////////////////////////////////////
-          // Black box dimensions and position (user-configurable)
-          // - black_box_x: left edge of black box (default: 18)
-          // - black_box_y: top edge of black box (default: 37)
-          // - black_box_width: width of black box (default: 64)
-          // - black_box_height: height of black box (default: 32)
-          const black_box_x = alertSettings.black_box_x !== undefined ? alertSettings.black_box_x : 18;
-          const black_box_y = alertSettings.black_box_y !== undefined ? alertSettings.black_box_y : 37;
-          const black_box_width = alertSettings.black_box_width !== undefined ? alertSettings.black_box_width : 64;
-          const black_box_height = alertSettings.black_box_height !== undefined ? alertSettings.black_box_height : 32;
-          // Text box heights and gap (user-configurable)
-          const alert_text_box_height = alertSettings.alert_text_box_height !== undefined ? alertSettings.alert_text_box_height : 18;
-          const sub_text_box_height = alertSettings.sub_text_box_height !== undefined ? alertSettings.sub_text_box_height : 14;
-          const text_box_gap = alertSettings.text_box_gap !== undefined ? alertSettings.text_box_gap : 4;
-          // Calculate total text height
-          const total_text_height = alert_text_box_height + text_box_gap + sub_text_box_height;
-          // Center the text group vertically in the black box
-          const text_group_top = black_box_y + (black_box_height - total_text_height) / 2;
-          // Y positions for each line (centered in their respective boxes)
-          const alert_text_y = text_group_top + alert_text_box_height / 2;
-          const sub_text_y = text_group_top + alert_text_box_height + text_box_gap + sub_text_box_height / 2;
-          // Get text content and style for alert_text and sub_text
-          const alert_text_content = alertStyleSettings.alert_text ?? '';
-          const sub_text_content = alertStyleSettings.sub_text ?? '';
-          const alert_text_style = (alertStyleSettings.text && alertStyleSettings.text.alert_text) || {};
-          const sub_text_style = (alertStyleSettings.text && alertStyleSettings.text.sub_text) || {};
-          // Helper to get style value with fallback, fail gracefully if styleObj is missing or not an object
-          function getTextStyle(styleObj, key, fallback) {
-            if (!styleObj || typeof styleObj !== 'object') return fallback;
-            return styleObj[key] !== undefined ? styleObj[key] : fallback;
-          }
-          // Font and alignment for alert_text
-          const alert_font_size = getTextStyle(alert_text_style, 'font_size', 14);
-          const alert_font_weight = getTextStyle(alert_text_style, 'font_weight', 500);
-          const alert_font_family = getTextStyle(alert_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
-          const alert_fill = getTextStyle(alert_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
-          const alert_text_anchor = getTextStyle(alert_text_style, 'align', 'center') === 'left' ? 'start' :
-                                  getTextStyle(alert_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
-          const alert_text_transform = getTextStyle(alert_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
-          const alert_dominant_baseline = getTextStyle(alert_text_style, 'dominant_baseline', 'middle');
-          const alert_stretch = getTextStyle(alert_text_style, 'stretch', false);
-          // Font and alignment for sub_text
-          const sub_font_size = getTextStyle(sub_text_style, 'font_size', 6);
-          const sub_font_weight = getTextStyle(sub_text_style, 'font_weight', 200);
-          const sub_font_family = getTextStyle(sub_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
-          const sub_fill = getTextStyle(sub_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
-          const sub_text_anchor = getTextStyle(sub_text_style, 'align', 'center') === 'left' ? 'start' :
-                                getTextStyle(sub_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
-          const sub_text_transform = getTextStyle(sub_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
-          const sub_dominant_baseline = getTextStyle(sub_text_style, 'dominant_baseline', 'middle');
-          const sub_stretch = getTextStyle(sub_text_style, 'stretch', false);
-          // Calculate text x position based on anchor
-          function getTextX(anchor) {
-            if (anchor === 'start') return black_box_x;
-            if (anchor === 'end') return black_box_x + black_box_width;
-            return black_box_x + black_box_width / 2;
-          }
-          // SVG text elements for both lines
-          const svgTextElements = `
-            <text
-              x="${getTextX(alert_text_anchor)}"
-              y="${alert_text_y}"
-              font-size="${alert_font_size}"
-              font-weight="${alert_font_weight}"
-              font-family=${alert_font_family}
-              fill="${alert_fill}"
-              text-anchor="${alert_text_anchor}"
-              dominant-baseline="${alert_dominant_baseline}"
-              ${alert_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
-              class="redAlertBlink"
-              style="text-transform:${alert_text_transform};"
-            >${alert_text_transform === 'uppercase' ? (alert_text_content + '').toUpperCase() : alert_text_content}</text>
-            <text
-              x="${getTextX(sub_text_anchor)}"
-              y="${sub_text_y}"
-              font-size="${sub_font_size}"
-              font-weight="${sub_font_weight}"
-              font-family=${sub_font_family}
-              fill="${sub_fill}"
-              text-anchor="${sub_text_anchor}"
-              dominant-baseline="${sub_dominant_baseline}"
-              ${sub_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
-              class="redAlertBlink"
-              style="text-transform:${sub_text_transform};"
-            >${sub_text_transform === 'uppercase' ? (sub_text_content + '').toUpperCase() : sub_text_content}</text>
-          `;
-          //////////////////////////////////////////////////////////////////////////////
-          // FINAL OUTPUT: Compose SVG and CSS for alert animation
-          //////////////////////////////////////////////////////////////////////////////
-          return `
-            <elt>
-              <style>
-                .svgContainer{
-                    padding:0px;
-                    border-radius:10px;
-                    display:flex;
-                    align-items:center;
-                }
-                /* RED ALERT -- overall blinking */
-                .redAlertBlink {
-                    ${enable_blink ? `
-                    animation-delay: ${blink_delay}s;
-                    animation-duration: ${blink_duration}s;
-                    animation-iteration-count: infinite;
-                    animation-direction: normal;
-                    animation-timing-function: ease-in-out;
-                    animation-name: redAlertBlink;
-                    ` : ''};
-                }
-                div.svgContainer svg {
-                    width:100%;
-                    height:100%;
-                }
-                @keyframes redAlertBlink {
-                    0%, 100% { opacity: 1; }
-                    50% { opacity: 0.25; }
-                }
-                @keyframes flashLine {
-                    0% {
-                        stroke: ${animation_flash_color};
-                        opacity: 1;
-                    }
-                    20% {
-                        stroke: ${animation_base_color};
-                        opacity: 1;
-                    }
-                    100% {
-                        stroke: ${animation_base_color};
-                        opacity: 0.25;
-                    }
-                }
-                /* Spread animation for raLines */
-                [id^="raLines1_"], [id^="raLines2_"] {
-                    ${enable_bar_animation ? `
-                    animation-name: flashLine;
-                    animation-duration: ${animation_duration}s;
-                    animation-timing-function: ease-in-out;
-                    animation-iteration-count: infinite;
-                    animation-fill-mode: both;
-                    ` : ''};
-                }
-                /* Group 1: Top to bottom */
-                #raLines1_1 { animation-delay: ${delays[0]}s; }
-                #raLines1_2 { animation-delay: ${delays[1]}s; }
-                #raLines1_3 { animation-delay: ${delays[2]}s; }
-                #raLines1_4 { animation-delay: ${delays[3]}s; }
-                #raLines1_5 { animation-delay: ${delays[4]}s; }
-                #raLines1_6 { animation-delay: ${delays[5]}s; }
-                /* Group 2: Bottom to top */
-                #raLines2_6 { animation-delay: ${delays[0]}s; }
-                #raLines2_5 { animation-delay: ${delays[1]}s; }
-                #raLines2_4 { animation-delay: ${delays[2]}s; }
-                #raLines2_3 { animation-delay: ${delays[3]}s; }
-                #raLines2_2 { animation-delay: ${delays[4]}s; }
-                #raLines2_1 { animation-delay: ${delays[5]}s; }
-              </style>
-              <div class="svgContainer">
-                  <svg
-                    width="${card_width}"
-                    height="${card_height}"
-                    viewBox="${vb_x} ${vb_y} ${vb_w} ${vb_h}"
-                    fill="none"
-                  >
-                  <g id="redAlertSymbol">
-                  ${selected_path}
-                  ${svgLines}
-                  ${svgTextElements}
-                  </g>
-                  </svg>
-              </div>
-            </elt>
-          `;
-          ]]]
+          const params = {
+            animation: variables.animation,
+            card: variables.card,
+            entity: entity,
+            attribute: variables.attribute,
+          };
+          return variables.get_memoized_svg.call(this,'z_alert_svg')(params);
+        ]]]
   cb-lcars-button-capped:
     template: cb-lcars-button-lozenge
     variables:
@@ -6220,6 +5598,917 @@ cblcars_card_templates:
             </elt>
           `;
         ]]]
+  cb-lcars-msd:
+    template:
+      - cb-lcars-base
+    variables:
+      msd:
+        base_svg: 'builtin:test'
+        x_offset: 0
+        y_offset: 0
+        text_width_multiplier: 0.3
+        presets:
+          default:
+            text:
+              font_size: 16
+              font_weight: normal
+              font_family: Antonio
+              align: left
+              color:
+                default: var(--primary-text-color)
+                # Remove active/inactive/unavailable/unknown unless you want to support them for custom state_resolver logic
+            line:
+              width: 2
+              rounded: true
+              corner_radius: 12
+              color:
+                default: var(--lcars-orange)
+              # --- New line style options ---
+              stroke_dasharray: "none"   # e.g. "5,5" for dashed, "1,4" for dotted, "none" for solid
+              stroke_linecap: "round"    # "butt", "round", "square"
+              stroke_linejoin: "round"   # "miter", "round", "bevel"
+              corner_style: "round"      # "round" (default), "bevel", "miter", "sharp"
+              opacity: 1                 # 0.0 to 1.0
+              # --- New animation options ---
+              animation:
+                type: none               # "none", "march", "pulse", "blink"
+                speed: 2s                # e.g. "2s"
+          warning:
+            text:
+              color:
+                default: orange
+            line:
+              color:
+                default: orange
+              stroke_dasharray: "5,5"
+              animation:
+                type: march
+                speed: 1.5s
+        custom_presets:   # user-defined presets (merged over built-in)
+          # User can override or add presets here, including 'default'
+          # Example:
+          # default:
+          #   text:
+          #     font_size: 18
+          #     color:
+          #       default: var(--lcars-blue)
+          # warning:
+          #   text:
+          #     color:
+          #       default: red
+        state_resolver:
+          enabled: true
+          states: []
+        slots:
+          warp_core:
+            callout:
+              entity: sensor.warp_core_temp
+              anchor: warp_core
+              preset: default
+              text:
+                value: |
+                  [[[ return `Core Temp: ${entity.state}°C`; ]]]
+                position: warp_core_label
+                line_attach: right
+              # State resolver for dynamic styling based on any entity/attribute
+              state_resolver:
+                enabled: true
+                states:
+                  - entity: light.tv
+                    attribute: brightness
+                    from: 0
+                    to: 50
+                    preset: default
+                  - entity: light.tv
+                    attribute: brightness
+                    from: 51
+                    to: 100
+                    preset: warning
+                  - entity: light.tv
+                    attribute: brightness
+                    from: 100
+                    to: 255
+                    settings:
+                      line:
+                        rounded: false
+                      text:
+                        color:
+                          default: blue
+                  - entity: light.bed
+                    attribute: brightness
+                    from: 51
+                    to: 255
+                    settings:
+                      text:
+                        color:
+                          default: orange
+            line:
+              width: 3
+              rounded: true
+              corner_radius: 16
+              color:
+                default: green
+                active: var(--lcars-green)
+                inactive: var(--lcars-ui-tertiary)
+                unavailable: var(--lcars-card-button-unavailable)
+                unknown: var(--lcars-yellow)
+              visible: true
+              stroke_dasharray: "5,5"
+              stroke_linecap: "round"
+              stroke_linejoin: "round"
+              opacity: 1
+              animation:
+                type: march
+                speed: 2s
+          life_support:
+            callout:
+              entity: switch.life_support
+              anchor: life_support_anchor
+              preset: default
+              text:
+                value: |
+                  [[[ return entity.state === 'on'
+                    ? "Life Support: ENGAGED"
+                    : "Life Support: OFFLINE"; ]]]
+                position: life_support_label
+                line_attach: left
+                font_family: LCARS
+              line:
+                width: 3
+                rounded: true
+                corner_radius: 16
+                color:
+                  default: green
+                  active: var(--lcars-green)
+                  inactive: var(--lcars-ui-tertiary)
+                  unavailable: var(--lcars-card-button-unavailable)
+                  unknown: var(--lcars-green)
+                visible: true
+                stroke_dasharray: "1,4"
+                stroke_linecap: "round"
+                stroke_linejoin: "round"
+                opacity: 1
+                animation:
+                  type: pulse
+                  speed: 1.5s
+          vertical_end:
+            callout:
+              entity: switch.life_support
+              preset: default
+              text:
+                value: testing ve
+                position: vertical_end_label
+                font_family: LCARS
+                color:
+                  default: green
+                  active: var(--lcars-green)
+                  inactive: var(--lcars-ui-tertiary)
+                  unavailable: var(--lcars-card-button-unavailable)
+                  unknown: var(--lcars-african-violet)
+              anchor: vertical_end
+              line:
+                width: 3
+                rounded: true
+                corner_radius: 8
+                color:
+                  default: green
+                  active: var(--lcars-green)
+                  inactive: var(--lcars-ui-tertiary)
+                  unavailable: var(--lcars-card-button-unavailable)
+                  unknown: var(--lcars-african-violet)
+              visible: true
+              stroke_dasharray: "none"
+              stroke_linecap: "round"
+              stroke_linejoin: "round"
+              opacity: 1
+              animation:
+                type: none
+                speed: 2s
+    show_state: false
+    show_icon: false
+    show_label: false
+    custom_fields:
+      msd_svg_base: |
+        [[[
+          let svgContent = '';
+          let viewBox = [0, 0, 400, 200];
+          let anchorTable = {};
+          let svgKey = null;
+          if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
+            svgKey = variables.msd.base_svg.replace('builtin:', '');
+          } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/local/')) {
+            svgKey = variables.msd.base_svg.split('/').pop().replace('.svg','');
+          }
+          let svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
+          if (!svgContent) {
+            return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
+          }
+          const match = svgContent.match(/viewBox="([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)"/);
+          if (match) {
+            viewBox = [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3]), parseFloat(match[4])];
+          }
+          // Extract anchors from SVG: <circle id="..."/> and <text id="..."/>
+          anchorTable = {};
+          if (svgContent) {
+            // Circles
+            const anchorRegex = /<circle[^>]*\sid="([^"]+)"[^>]*\scx="([^"]+)"[^>]*\scy="([^"]+)"[^>]*>/g;
+            let m;
+            while ((m = anchorRegex.exec(svgContent)) !== null) {
+              anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+            }
+            // Texts
+            const textAnchorRegex = /<text[^>]*\sid="([^"]+)"[^>]*\sx="([^"]+)"[^>]*\sy="([^"]+)"[^>]*>/g;
+            while ((m = textAnchorRegex.exec(svgContent)) !== null) {
+              anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+            }
+          }
+          variables.msd._viewBox = viewBox;
+          variables.msd._anchors = anchorTable;
+          // Dynamically set aspect-ratio style based on viewBox
+          const aspect = viewBox[2] && viewBox[3] ? (viewBox[2] / viewBox[3]) : 2;
+          return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+        ]]]
+      msd_svg_overlays: |
+        [[[
+          const viewBox = variables.msd._viewBox || [0, 0, 400, 200];
+          const minX = viewBox[0], minY = viewBox[1], width = viewBox[2], height = viewBox[3];
+          const anchors = variables.msd._anchors || {};
+          // Calculate aspect ratio for overlays container
+          const aspect = width && height ? (width / height) : 2;
+          // Deep merge utility (from cb-lcars-svg-alert)
+          function deepMerge(target, ...sources) {
+            if (!sources.length) return target;
+            const source = sources.shift();
+            if (typeof target !== 'object' || target === null) target = {};
+            if (typeof source !== 'object' || source === null) return target;
+            for (const key in source) {
+              if (
+                source[key] &&
+                typeof source[key] === 'object' &&
+                !Array.isArray(source[key])
+              ) {
+                target[key] = deepMerge(target[key], source[key]);
+              } else {
+                target[key] = source[key];
+              }
+            }
+            return deepMerge(target, ...sources);
+          }
+          // --- State Resolver System (adapted from cb-lcars-base custom_states) ---
+          function resolveCalloutState(callout, hass) {
+            const stateConfig = callout.state_resolver || variables.msd.state_resolver || {};
+            if (!stateConfig.enabled || !Array.isArray(stateConfig.states) || !stateConfig.states.length) {
+              return null;
+            }
+            // Use callout.entity and callout.attribute as defaults for state matching
+            let mainEntityId = callout.entity;
+            let mainAttribute = callout.attribute;
+            let mainEntity = mainEntityId && hass && hass.states ? hass.states[mainEntityId] : undefined;
+            let mainValue = mainEntity ? mainEntity.state : undefined;
+            if (mainAttribute && mainEntity && mainEntity.attributes && mainEntity.attributes.hasOwnProperty(mainAttribute)) {
+              mainValue = mainEntity.attributes[mainAttribute];
+              if (mainAttribute === 'brightness' && mainValue !== undefined && mainValue !== null && !isNaN(parseFloat(mainValue))) {
+                mainValue = (parseFloat(mainValue) / 256) * 100;
+              }
+            }
+            for (const entry of stateConfig.states) {
+              // Use per-match entity/attribute if specified, else callout.entity/attribute
+              let matchEntity = mainEntity;
+              let matchAttribute = mainAttribute;
+              if (entry.entity && hass && hass.states && hass.states[entry.entity]) {
+                matchEntity = hass.states[entry.entity];
+              }
+              if (entry.attribute) {
+                matchAttribute = entry.attribute;
+              }
+              let matchValue = matchEntity ? matchEntity.state : undefined;
+              if (matchAttribute && matchEntity && matchEntity.attributes && matchEntity.attributes.hasOwnProperty(matchAttribute)) {
+                matchValue = matchEntity.attributes[matchAttribute];
+                if (matchAttribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
+                  matchValue = (parseFloat(matchValue) / 256) * 100;
+                }
+              }
+              // Prepare numeric value for this match
+              let matchNumericValue = matchValue;
+              if (typeof matchValue === "string" && !isNaN(Number(matchValue))) {
+                matchNumericValue = Number(matchValue);
+              }
+              // 1. equals
+              if ("equals" in entry && entry.equals !== undefined) {
+                if (matchValue == entry.equals) {
+                  console.debug('[MSD state_resolver] Matched "equals"', {entry, matchValue});
+                  return entry;
+                }
+              }
+              // 2. not_equals
+              if ("not_equals" in entry && entry.not_equals !== undefined) {
+                if (matchValue != entry.not_equals) {
+                  console.debug('[MSD state_resolver] Matched "not_equals"', {entry, matchValue});
+                  return entry;
+                }
+              }
+              // 3. from/to
+              if ("from" in entry || "to" in entry) {
+                if (typeof matchNumericValue === "number" && !isNaN(matchNumericValue)) {
+                  if (
+                    (("from" in entry ? matchNumericValue >= entry.from : true)) &&
+                    (("to" in entry ? matchNumericValue <= entry.to : true))
+                  ) {
+                    console.debug('[MSD state_resolver] Matched "from/to"', {entry, matchValue, matchNumericValue});
+                    return entry;
+                  }
+                }
+              }
+              // 4. in
+              if ("in" in entry && Array.isArray(entry.in)) {
+                if (entry.in.includes(matchValue)) {
+                  console.debug('[MSD state_resolver] Matched "in"', {entry, matchValue});
+                  return entry;
+                }
+              }
+              // 5. not_in
+              if ("not_in" in entry && Array.isArray(entry.not_in)) {
+                if (!entry.not_in.includes(matchValue)) {
+                  console.debug('[MSD state_resolver] Matched "not_in"', {entry, matchValue});
+                  return entry;
+                }
+              }
+              // 6. regex
+              if ("regex" in entry && typeof entry.regex === "string") {
+                try {
+                  const re = new RegExp(entry.regex);
+                  if (typeof matchValue === "string" && re.test(matchValue)) {
+                    console.debug('[MSD state_resolver] Matched "regex"', {entry, matchValue});
+                    return entry;
+                  }
+                } catch (e) {}
+              }
+            }
+            console.debug('[MSD state_resolver] No match', {callout, stateConfig});
+            return null;
+          }
+          // Merge built-in and custom presets (custom wins)
+          const builtInPresets = variables.msd.presets || {};
+          const userPresets = variables.msd.custom_presets || {};
+          const mergedPresets = deepMerge({}, builtInPresets, userPresets);
+          const defaultPreset = mergedPresets.default || {};
+          const overlays = (() => {
+            let arr = [];
+            if (Array.isArray(variables.msd.callouts)) {
+              arr = variables.msd.callouts.map(c => {
+                // --- State resolver logic ---
+                let stateMatch = resolveCalloutState(c, hass);
+                let presetName = c.preset;
+                let stateOverrides = {};
+                if (stateMatch) {
+                  if (stateMatch.preset) presetName = stateMatch.preset;
+                  if (stateMatch.settings) stateOverrides = stateMatch.settings;
+                  console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
+                }
+                // Merge: default <- preset (if any) <- callout <- stateOverrides
+                let merged = deepMerge(
+                  {},
+                  defaultPreset,
+                  presetName && mergedPresets[presetName] ? mergedPresets[presetName] : {},
+                  c,
+                  stateOverrides
+                );
+                console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
+                return merged;
+              });
+            }
+            if (variables.msd.slots) {
+              Object.entries(variables.msd.slots).forEach(([name, slot]) => {
+                if (slot && typeof slot.callout === 'object' && slot.callout !== null) {
+                  let c = slot.callout;
+                  // --- State resolver logic ---
+                  let stateMatch = resolveCalloutState(c, hass);
+                  let presetName = c.preset;
+                  let stateOverrides = {};
+                  if (stateMatch) {
+                    if (stateMatch.preset) presetName = stateMatch.preset;
+                    if (stateMatch.settings) stateOverrides = stateMatch.settings;
+                    console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
+                  }
+                  // Merge: default <- preset (if any) <- callout <- stateOverrides
+                  let merged = deepMerge(
+                    {},
+                    defaultPreset,
+                    presetName && mergedPresets[presetName] ? mergedPresets[presetName] : {},
+                    c,
+                    stateOverrides
+                  );
+                  merged.anchor = c.anchor || name;
+                  console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
+                  arr.push(merged);
+                }
+              });
+            }
+            return arr;
+          })();
+          function resolveColor(colorObj, state) {
+            if (!colorObj) return;
+            if (typeof colorObj === 'string') return colorObj;
+            const stateColor = colorObj[state];
+            if (stateColor) return stateColor;
+            const defaultColor = colorObj.default;
+            return defaultColor !== undefined ? defaultColor : Object.values(colorObj)[0];
+          }
+          // Add isVisible function here
+          function isVisible(callout, entityState) {
+            if (typeof callout.visible === 'string' && callout.visible.trim().startsWith('[[[')) {
+              try {
+                return eval(callout.visible.replace(/^\[\[\[|\]\]\]$/g, ''));
+              } catch (e) { return true; }
+            }
+            if (typeof callout.visible === 'boolean') return callout.visible;
+            return true;
+          }
+          function roundedPolyline(points, radius) {
+            // Simple SVG path generator for rounded corners
+            if (points.length < 2) return '';
+            let d = `M${points[0][0]},${points[0][1]}`;
+            for (let i = 1; i < points.length; i++) {
+              const [x1, y1] = points[i-1];
+              const [x2, y2] = points[i];
+              if (i < points.length - 1 && radius > 0) {
+                // Calculate next point for rounding
+                const [x3, y3] = points[i+1];
+                // Midpoint for curve
+                const mx = (x2 + x3) / 2;
+                const my = (y2 + y3) / 2;
+                d += ` L${x2},${y2} Q${x2},${y2} ${mx},${my}`;
+                i++;
+              } else {
+                d += ` L${x2},${y2}`;
+              }
+            }
+            return d;
+          }
+          function smoothPolyline(points, tension = 0.5) {
+            // Returns a smooth SVG path string through all points using cubic Bezier curves
+            if (points.length < 2) return '';
+            let d = `M${points[0][0]},${points[0][1]}`;
+            for (let i = 0; i < points.length - 1; i++) {
+              const p0 = points[i - 1] || points[i];
+              const p1 = points[i];
+              const p2 = points[i + 1] || p1;
+              const p3 = points[i + 2] || p2;
+              // Calculate control points
+              const c1x = p1[0] + (p2[0] - p0[0]) * tension / 6;
+              const c1y = p1[1] + (p2[1] - p0[1]) * tension / 6;
+              const c2x = p2[0] - (p3[0] - p1[0]) * tension / 6;
+              const c2y = p2[1] - (p3[1] - p1[1]) * tension / 6;
+              d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
+            }
+            return d;
+          }
+          // Helper: resolve a position (anchor name, percent, px)
+          function resolvePos(pos) {
+            if (typeof pos === 'string') {
+              // Anchor name
+              if (anchors[pos]) return anchors[pos];
+              // Percent string (e.g., "10%")
+              if (pos.endsWith('%')) {
+                const percent = parseFloat(pos) / 100;
+                // Default to x, caller must specify axis
+                return percent;
+              }
+              // px string
+              if (pos.endsWith('px')) return parseFloat(pos);
+              // Fallback: try to parse as number
+              return parseFloat(pos);
+            }
+            if (Array.isArray(pos)) {
+              // [x, y] array
+              return [
+                resolvePos(pos[0]),
+                resolvePos(pos[1])
+              ];
+            }
+            return pos;
+          }
+          // Helper: map resolved position to viewBox coordinates
+          function toViewBoxCoord(val, idx) {
+            // idx: 0=x, 1=y
+            if (Array.isArray(val)) {
+              return [
+                toViewBoxCoord(val[0], 0),
+                toViewBoxCoord(val[1], 1)
+              ];
+            }
+            if (typeof val === 'number') {
+              // If 0-1, treat as percent
+              if (val >= 0 && val <= 1) return idx === 0 ? minX + val * width : minY + val * height;
+              // Otherwise, treat as absolute SVG units
+              return val;
+            }
+            return val;
+          }
+          // Improved: Draw a right-angle connector with a rounded 90-degree corner
+          function rightAnglePath(start, corner, end, radius, rounded, cornerStyle = "round") {
+            // start: [x0, y0], corner: [x1, y1], end: [x2, y2]
+            // rounded: boolean, whether to draw arc or sharp elbow
+            // cornerStyle: "round" (default), "bevel", "miter", "sharp"
+            const [x0, y0] = start;
+            const [x1, y1] = corner;
+            const [x2, y2] = end;
+            let path = `M${x0},${y0} `;
+            // Only fallback if the segments are colinear (not a right angle)
+            const isColinear = ((x0 === x1 && x1 === x2) || (y0 === y1 && y1 === y2));
+            if (isColinear) {
+              path += `L${x1},${y1} L${x2},${y2}`;
+              return path;
+            }
+            // If not rounded or radius too small, draw sharp elbow
+            if (
+              cornerStyle === "sharp" ||
+              (!rounded && cornerStyle === "round") ||
+              !radius || radius < 1
+            ) {
+              path += `L${x1},${y1} L${x2},${y2}`;
+              return path;
+            }
+            // Determine direction of first and second segments
+            const dx1 = x1 - x0, dy1 = y1 - y0;
+            const dx2 = x2 - x1, dy2 = y2 - y1;
+            // Clamp radius to half the length of the shortest segment
+            const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
+            const len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
+            const maxR = Math.min(len1, len2) / 2;
+            const r = Math.min(radius, maxR);
+            // Shorten the first segment by r
+            const ux1 = dx1 / len1, uy1 = dy1 / len1;
+            const px1 = x1 - ux1 * r, py1 = y1 - uy1 * r;
+            // Shorten the second segment by r
+            const ux2 = dx2 / len2, uy2 = dy2 / len2;
+            const px2 = x1 + ux2 * r, py2 = y1 + uy2 * r;
+            if (cornerStyle === "bevel" || cornerStyle === "miter") {
+              // Draw to before-corner, then straight to after-corner, then to end
+              path += `L${px1},${py1} L${px2},${py2} L${x2},${y2}`;
+              return path;
+            }
+            // Default: rounded
+            // Sweep flag: 0 = ccw, 1 = cw (SVG spec)
+            const cross = (dx1 * dy2 - dy1 * dx2);
+            const sweep = cross < 0 ? 0 : 1;
+            path += `L${px1},${py1} `;
+            path += `A${r},${r} 0 0 ${sweep} ${px2},${py2} `;
+            path += `L${x2},${y2}`;
+            return path;
+          }
+          let overlaySvg = '';
+          // --- Collect animation CSS for all overlays ---
+          let animationCss = '';
+          overlays.forEach((callout, idx) => {
+            // Get SVG viewBox size for percent conversion
+            // For built-in SVG, you can hardcode or parse the viewBox
+            let svgWidth = 400, svgHeight = 200;
+            let svgContent = '';
+            if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/')) {
+              // Fetch or load SVG file (if possible)
+              // For now, fallback to default
+              svgContent = `<svg width="100%" height="100%"><text x="50%" y="50%" text-anchor="middle" fill="gray">[SVG Loaded Here]</text></svg>`;
+            } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
+              const key = variables.msd.base_svg.replace('builtin:', '');
+              svgContent = window.cblcars?.msd?.svg_templates?.[key] || window.cblcars?.msd?.svg_templates?.['test'] || '';
+            }
+            const match = svgContent.match(/viewBox="[^"]*([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)"/);
+            if (match) {
+              svgWidth = parseFloat(match[3]);
+              svgHeight = parseFloat(match[4]);
+            }
+            // Get entity state (simulate for now, replace with hass.states in real usage)
+            const entityId = callout.entity;
+            // Instead of defaulting to 'unknown', just use the entity state as-is.
+            // The state_resolver system will handle all styling logic.
+            const entityState = entityId && hass && hass.states && hass.states[entityId]
+              ? hass.states[entityId].state
+              : undefined;
+            // Apply conditions (deep merge)
+            let mergedCallout = { ...callout };
+            if (callout.conditions && Array.isArray(callout.conditions)) {
+              callout.conditions.forEach(cond => {
+                if (cond.entity === entityId) {
+                  let match = false;
+                  if (cond.value_above !== undefined && parseFloat(entityState) > cond.value_above) match = true;
+                  if (cond.value_below !== undefined && parseFloat(entityState) < cond.value_below) match = true;
+                  if (cond.value !== undefined && entityState === cond.value) match = true;
+                  if (match) {
+                    mergedCallout = Object.assign({}, mergedCallout, cond);
+                  }
+                }
+              });
+            }
+            // Visibility
+            if (!isVisible(mergedCallout, entityState)) return;
+            // --- Resolve label position ---
+            let labelPos = null;
+            let labelSideOffset = [0, 0];
+            let lineAttach = "center";
+            if (mergedCallout.text && mergedCallout.text.position) {
+              // Prefer anchor ID
+              if (typeof mergedCallout.text.position === 'string' && anchors[mergedCallout.text.position]) {
+                labelPos = anchors[mergedCallout.text.position];
+              } else {
+                labelPos = resolvePos(mergedCallout.text.position);
+                labelPos = toViewBoxCoord(labelPos, null);
+              }
+              // --- Smart line positioning at text ---
+              // Estimate text height from font_size (default 16)
+              let fontSize = 16;
+              if (mergedCallout.text.font_size) {
+                if (typeof mergedCallout.text.font_size === 'string' && mergedCallout.text.font_size.endsWith('px')) {
+                  fontSize = parseFloat(mergedCallout.text.font_size);
+                } else {
+                  fontSize = parseFloat(mergedCallout.text.font_size) || 16;
+                }
+              }
+              // Use line_attach if specified, otherwise default to "center"
+              lineAttach = (mergedCallout.text.line_attach || "center").toLowerCase();
+              // --- New: Determine text alignment from align property ---
+              let textAlign = (mergedCallout.text.align || "start").toLowerCase();
+              // Normalize aliases
+              if (textAlign === "left") textAlign = "start";
+              if (textAlign === "right") textAlign = "end";
+              if (textAlign === "center") textAlign = "middle";
+              // --- New: Use configurable text width multiplier ---
+              let textWidthMultiplier = 0.3;
+              if (typeof mergedCallout.text.text_width_multiplier === "number") {
+                textWidthMultiplier = mergedCallout.text.text_width_multiplier;
+              } else if (typeof variables.msd.text_width_multiplier === "number") {
+                textWidthMultiplier = variables.msd.text_width_multiplier;
+              }
+              // Estimate text width (use multiplier)
+              let textValue = mergedCallout.text.value;
+              if (typeof textValue === 'string' && textValue.trim().startsWith('[[[')) {
+                try {
+                  textValue = eval(textValue.replace(/^\[\[\[|\]\]\]$/g, ''));
+                } catch (e) {}
+              }
+              let textLen = (typeof textValue === 'string') ? textValue.length : 8;
+              let textWidth = textLen * fontSize * textWidthMultiplier;
+              // Default to vertical center of text
+              let yOffset = -fontSize / 2;
+              if (typeof mergedCallout.text.y_offset === "number") {
+                yOffset += mergedCallout.text.y_offset;
+              } else if (typeof variables.msd.y_offset === "number") {
+                yOffset += variables.msd.y_offset;
+              }
+              // --- New: Calculate xOffset based on align and line_attach ---
+              let xOffset = 0;
+              // Text anchor point (where text x is)
+              // For "start": x is left edge, for "end": x is right edge, for "middle": x is center
+              // For line_attach: "left" means attach to left edge, "right" to right edge, "center" to center
+              if (textAlign === "start") {
+                if (lineAttach === "left") xOffset = 0;
+                else if (lineAttach === "center" || lineAttach === "middle") xOffset = textWidth / 2;
+                else if (lineAttach === "right" || lineAttach === "end") xOffset = textWidth;
+              } else if (textAlign === "end") {
+                if (lineAttach === "left") xOffset = -textWidth;
+                else if (lineAttach === "center" || lineAttach === "middle") xOffset = -textWidth / 2;
+                else if (lineAttach === "right" || lineAttach === "end") xOffset = 0;
+              } else if (textAlign === "middle") {
+                if (lineAttach === "left") xOffset = -textWidth / 2;
+                else if (lineAttach === "center" || lineAttach === "middle") xOffset = 0;
+                else if (lineAttach === "right" || lineAttach === "end") xOffset = textWidth / 2;
+              }
+              // Apply user x_offset if specified
+              if (typeof mergedCallout.text.x_offset === "number") {
+                xOffset += mergedCallout.text.x_offset;
+              } else if (typeof variables.msd.x_offset === "number") {
+                xOffset += variables.msd.x_offset;
+              }
+              labelSideOffset = [xOffset, yOffset];
+            }
+            // --- Resolve anchor position ---
+            let anchorPos = null;
+            if (mergedCallout.anchor) {
+              if (typeof mergedCallout.anchor === 'string' && anchors[mergedCallout.anchor]) {
+                anchorPos = anchors[mergedCallout.anchor];
+              } else {
+                anchorPos = resolvePos(mergedCallout.anchor);
+                anchorPos = toViewBoxCoord(anchorPos, null);
+              }
+            }
+            // --- Debug: Output anchor positions for troubleshooting ---
+            // Remove/comment this in production
+             //overlaySvg += `<text x="10" y="${10 + 20 * Math.random()}" font-size="10" fill="red">DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}</text>`;
+             console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
+            // --- Line points ---
+            let linePoints = [];
+            if (mergedCallout.line && mergedCallout.line.points) {
+              linePoints = mergedCallout.line.points.map(pt => {
+                let p = resolvePos(pt);
+                return toViewBoxCoord(p, null);
+              });
+            } else if (labelPos && anchorPos) {
+              // Use smart offset for label position
+              let start = [labelPos[0] + labelSideOffset[0], labelPos[1] + labelSideOffset[1]];
+              // Elbow: always at (anchorPos[0], start[1]) for horizontal, or (start[0], anchorPos[1]) for vertical
+              // But for left/right, we want a horizontal segment from the text edge to the anchor x
+              let elbow = [anchorPos[0], start[1]];
+              linePoints = [
+                start,
+                elbow,
+                anchorPos
+              ];
+            }
+            // --- Animation settings for text and line ---
+            const textAnim = (callout.text && callout.text.animation) || {};
+            const lineAnim = (callout.line && callout.line.animation) || {};
+            // --- Unique class base for this overlay (by anchor, entity, or idx) ---
+            const slotKey = (callout.anchor || callout.entity || ('slot'+idx)).replace(/[^a-zA-Z0-9]/g, '_');
+            // Animation: type, speed, duration, color, delay
+            // Defaults
+            const textAnimType = textAnim.type || null;
+            // Accept duration/delay as number or string with/without units
+            function parseAnimTime(val, fallback) {
+              if (val === undefined || val === null) return fallback;
+              if (typeof val === 'number') return val + 's';
+              if (typeof val === 'string') {
+                if (val.match(/^[\d.]+s$/)) return val;
+                if (val.match(/^[\d.]+ms$/)) return val;
+                const num = parseFloat(val);
+                if (!isNaN(num)) return num + 's';
+              }
+              return fallback;
+            }
+            const textAnimSpeed = parseAnimTime(textAnim.speed, '1s');
+            const textAnimDuration = parseAnimTime(textAnim.duration, textAnimSpeed);
+            const textAnimColor = textAnim.color || null;
+            const textAnimDelay = parseAnimTime(textAnim.delay, '0s');
+            // --- New: Line style and animation ---
+            const lineAnimType = lineAnim.type || null;
+            const lineAnimSpeed = parseAnimTime(lineAnim.speed, '2s');
+            const lineAnimDuration = parseAnimTime(lineAnim.duration, lineAnimSpeed);
+            const lineAnimDelay = parseAnimTime(lineAnim.delay, '0s');
+            // --- March direction and dashoffset config ---
+            const marchDirection = (lineAnim.march_direction || "forward").toLowerCase(); // "forward" or "reverse"
+            let marchDashoffset = undefined;
+            if (typeof lineAnim.march_dashoffset === "number") {
+              marchDashoffset = Math.abs(lineAnim.march_dashoffset);
+            }
+            // --- New: Compose SVG style for line ---
+            let lineStyleArr = [];
+            // Support dasharray, linecap, linejoin, opacity
+            if (callout.line && callout.line.stroke_dasharray && callout.line.stroke_dasharray !== "none") {
+              lineStyleArr.push(`stroke-dasharray:${callout.line.stroke_dasharray}`);
+            }
+            if (callout.line && callout.line.stroke_linecap) {
+              lineStyleArr.push(`stroke-linecap:${callout.line.stroke_linecap}`);
+            }
+            if (callout.line && callout.line.stroke_linejoin) {
+              lineStyleArr.push(`stroke-linejoin:${callout.line.stroke_linejoin}`);
+            }
+            if (callout.line && typeof callout.line.opacity !== "undefined") {
+              lineStyleArr.push(`opacity:${callout.line.opacity}`);
+            }
+            let lineStyle = lineStyleArr.length ? lineStyleArr.join(';') : '';
+            // --- New: Line animation CSS with unique class ---
+            let lineClass = '';
+            if (lineAnimType === 'march' && callout.line && callout.line.stroke_dasharray && callout.line.stroke_dasharray !== "none") {
+              // Use a unique class per overlay
+              const dashClass = `lcars-march-line-${slotKey}`;
+              lineClass = dashClass;
+              // Calculate dash length for seamless animation
+              let dashArray = callout.line.stroke_dasharray.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+              let dashLength = dashArray.reduce((a, b) => a + b, 0) || 10;
+              // Allow override by march_dashoffset
+              let dashOffset = (typeof marchDashoffset === "number") ? marchDashoffset : dashLength;
+              // Direction: negative for forward, positive for reverse
+              let dashOffsetValue = marchDirection === "reverse" ? dashOffset : -dashOffset;
+              animationCss += `
+                .${dashClass} {
+                  animation: ${dashClass}-keyframes ${lineAnimDuration} linear infinite;
+                  stroke-dasharray: ${callout.line.stroke_dasharray};
+                  ${callout.line.stroke_linecap ? `stroke-linecap: ${callout.line.stroke_linecap};` : ''}
+                  ${callout.line.stroke_linejoin ? `stroke-linejoin: ${callout.line.stroke_linejoin};` : ''}
+                  ${typeof callout.line.opacity !== "undefined" ? `opacity: ${callout.line.opacity};` : ''}
+                }
+                @keyframes ${dashClass}-keyframes {
+                  to {
+                    stroke-dashoffset: ${dashOffsetValue};
+                  }
+                }
+              `;
+            } else if (lineAnimType === 'pulse') {
+              const pulseClass = `lcars-pulse-line-${slotKey}`;
+              lineClass = pulseClass;
+              animationCss += `
+                .${pulseClass} {
+                  animation: ${pulseClass}-keyframes ${lineAnimDuration} ease-in-out infinite;
+                  animation-delay: ${lineAnimDelay};
+                }
+                @keyframes ${pulseClass}-keyframes {
+                  0% { opacity: 1; stroke-width: ${callout.line.width || 2}; }
+                  50% { opacity: 0.5; stroke-width: ${(callout.line.width || 2) * 1.5}; }
+                  100% { opacity: 1; stroke-width: ${callout.line.width || 2}; }
+                }
+              `;
+            } else if (lineAnimType === 'blink') {
+              const blinkClass = `lcars-blink-line-${slotKey}`;
+              lineClass = blinkClass;
+              animationCss += `
+                .${blinkClass} {
+                  animation: ${blinkClass}-keyframes ${lineAnimDuration} linear infinite;
+                  animation-delay: ${lineAnimDelay};
+                }
+                @keyframes ${blinkClass}-keyframes {
+                  0% { opacity: 1; }
+                  50% { opacity: 0.3; }
+                  100% { opacity: 1; }
+                }
+              `;
+            }
+            // --- Draw line ---
+            if (linePoints.length === 3 && mergedCallout.line && mergedCallout.line.visible !== false) {
+              const radius = mergedCallout.line.corner_radius || 16;
+              const rounded = mergedCallout.line.rounded !== false; // default true
+              const cornerStyle = mergedCallout.line.corner_style || "round"; // PATCH: support corner_style
+              const lineColor = resolveColor(mergedCallout.line.color, entityState) || 'orange';
+              const d = rightAnglePath(linePoints[0], linePoints[1], linePoints[2], radius, rounded, cornerStyle);
+              overlaySvg += `<path d="${d}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
+            } else if (linePoints.length > 1 && mergedCallout.line && mergedCallout.line.visible !== false) {
+              const lineColor = resolveColor(mergedCallout.line.color, entityState) || 'orange';
+              if (mergedCallout.line.rounded && mergedCallout.line.corner_radius && linePoints.length > 2) {
+                // Use rounded polyline path
+                const tension = typeof mergedCallout.line.smooth_tension === "number"
+                  ? mergedCallout.line.smooth_tension
+                  : 0.5;
+                const d = smoothPolyline(linePoints, tension);
+                overlaySvg += `<path d="${d}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
+              } else {
+                // Fallback to straight polyline
+                const pts = linePoints.map(pt => pt.join(',')).join(' ');
+                overlaySvg += `<polyline points="${pts}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
+              }
+            }
+            // --- Draw label text ---
+            // Always initialize textClass and textStyle to avoid undefined errors
+            let textClass = '';
+            let textStyle = '';
+            if (textAnimType === 'blink') {
+              const blinkTextClass = `lcars-blink-text-${slotKey}`;
+              textClass = blinkTextClass;
+              animationCss += `
+                .${blinkTextClass} {
+                  animation: ${blinkTextClass}-keyframes ${textAnimDuration} linear infinite;
+                  animation-delay: ${textAnimDelay};
+                  ${textAnimColor ? `fill: ${textAnimColor} !important;` : ''}
+                }
+                @keyframes ${blinkTextClass}-keyframes {
+                  0% { opacity: 1; }
+                  50% { opacity: 0.3; }
+                  100% { opacity: 1; }
+                }
+              `;
+            }
+            if (labelPos && mergedCallout.text) {
+              const [x, y] = labelPos;
+              const textColor = resolveColor(mergedCallout.text.color, entityState) || 'white';
+              let textValue = mergedCallout.text.value;
+              if (typeof textValue === 'string' && textValue.trim().startsWith('[[[')) {
+                try {
+                  textValue = eval(textValue.replace(/^\[\[\[|\]\]\]$/g, ''));
+                } catch (e) {}
+              }
+              // --- Use align for SVG text-anchor ---
+              let textAlign = (mergedCallout.text.align || "start").toLowerCase();
+              if (textAlign === "left") textAlign = "start";
+              if (textAlign === "right") textAlign = "end";
+              if (textAlign === "center") textAlign = "middle";
+              overlaySvg += `<text x="${x}" y="${y}" font-family="${mergedCallout.text.font_family || 'Antonio'}" font-size="${mergedCallout.text.font_size || '16px'}" font-weight="${mergedCallout.text.font_weight || 'normal'}" fill="${textColor}" text-anchor="${textAlign}"${textClass ? ` class="${textClass}"` : ''}${textStyle ? ` style="${textStyle}"` : ''}>${textValue}</text>`;
+            }
+            // --- Scaffold for interactivity/animation ---
+            // TODO: Add event listeners, animation classes, etc. in future
+          });
+          // Key change: overlay SVG uses same viewBox as base SVG for perfect alignment
+          // Inject animation CSS if needed
+          let styleBlock = '';
+          if (animationCss.trim()) {
+            styleBlock = `<style>${animationCss}</style>`;
+          }
+          return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:absolute;top:0;left:0;aspect-ratio:${aspect};pointer-events:none;">
+            <svg viewBox="${viewBox.join(' ')}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">${styleBlock}${overlaySvg}</svg>
+          </div>`;
+        ]]]
+    styles:
+      custom_fields:
+        msd_svg_base:
+          - width: 100%
+          - height: 100%
+          - position: absolute
+          - top: 0
+          - left: 0
+          - z-index: 1
+        msd_svg_overlays:
+          - width: 100%
+          - height: 100%
+          - position: absolute
+          - top: 0
+          - left: 0
+          - z-index: 1
   cb-lcars-animation-presets:
     variables:
       animation:
@@ -7295,12 +7584,470 @@ cblcars_card_templates:
                 picard-medium-light-yellow: '#6b6b6b'
                 picard-light-yellow: '#7b7b7b'
                 picard-lightest-yellow: '#8b8b8b'
+  cb-lcars-svg-alert:
+    template:
+      - cb-lcars-functions
+      - cb-lcars-functions-svg
+    variables:
+      z_alert_svg: |
+        [[[
+          // Memoized alert SVG generator
+          const z_alert_svg = function(params) {
+            // Map all params needed (previously from variables)
+            // Example: const alertSettings = params.alertSettings;
+            // ...move all logic here, replacing variables.X with params.X...
+            // --- Deep merge utility for merging settings objects
+            // Recursively merges source objects into the target, with later sources overriding earlier ones
+            function deepMerge(target, ...sources) {
+              if (!sources.length) return target;
+              const source = sources.shift();
+              if (typeof target !== 'object' || target === null) target = {};
+              if (typeof source !== 'object' || source === null) return target;
+              for (const key in source) {
+                if (
+                  source[key] &&
+                  typeof source[key] === 'object' &&
+                  !Array.isArray(source[key])
+                ) {
+                  target[key] = deepMerge(target[key], source[key]);
+                } else {
+                  target[key] = source[key];
+                }
+              }
+              return deepMerge(target, ...sources);
+            }
+            const cblcarsLog = variables.__cblcarsLog;
+            const animationSettings = params.animation;
+            const cardSettings = params.card;
+            //const alertSettings = variables.animation.alert ?? {};
+            const alertSettings = animationSettings.alert ?? {};
+            const card_height = animationSettings.height !== undefined ? parseInt(animationSettings.height) : (parseInt(cardSettings.height) - parseInt(cardSettings.border.top.size) - parseInt(cardSettings.border.bottom.size));
+            const card_width = animationSettings.width !== undefined ? parseInt(animationSettings.width) : (parseInt(cardSettings.width) - parseInt(cardSettings.border.left.size) - parseInt(cardSettings.border.right.size));
+            const ent = params.entity;
+            const entityState = ent?.state;
+            const attribute = params.attribute;
+            //////////////////////////////////////////////////////////////////////////////
+            // CONDITIONAL PRESET SELECTION BASED ON ENTITY/ATTRIBUTE VALUE
+            // Supports dynamic preset selection based on entity state or attribute value
+            //////////////////////////////////////////////////////////////////////////////
+            let selectedPreset = null;
+            const rangeSettings = alertSettings.range;
+            if (rangeSettings && rangeSettings.enabled && Array.isArray(rangeSettings.ranges)) {
+              let value = null;
+              //const attribute = variables.attribute;
+              if (ent) {
+                if (attribute) {
+                  value = ent.attributes?.[attribute];
+                  // Special handling for brightness: convert 0-255 to 0-100 percentage
+                  if (attribute === 'brightness' && value !== undefined && value !== null && !isNaN(parseFloat(value))) {
+                    value = (parseFloat(value) / 256) * 100;
+                  }
+                } else {
+                  value = entityState;
+                }
+                //cblcarsLog('debug',`value: ${value}`)
+              } else {
+                //cblcarsLog("debug","no entity selected");
+              }
+              let numericValue = value;
+              if (typeof value === "string" && !isNaN(Number(value))) {
+                numericValue = Number(value);
+              }
+              for (const entry of rangeSettings.ranges) {
+                if ("equals" in entry && entry.equals !== undefined) {
+                  // Accept non-numeric values for equals, use loose equality for flexibility
+                  if (value == entry.equals) {
+                    selectedPreset = entry.preset;
+                    break;
+                  }
+                } else if ("from" in entry && "to" in entry) {
+                  // Only check numeric values for from/to
+                  if (typeof numericValue === "number" && !isNaN(numericValue)) {
+                    if (numericValue >= entry.from && numericValue <= entry.to) {
+                      selectedPreset = entry.preset;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            //cblcarsLog('debug',`selectedPreset: ${selectedPreset}`)
+            //////////////////////////////////////////////////////////////////////////////
+            // ALERT PRESET MERGING
+            // Merge built-in and user presets, with user presets taking precedence
+            //////////////////////////////////////////////////////////////////////////////
+            const builtInPresets = alertSettings.alert_presets ?? {};
+            const userPresets = alertSettings.custom_alert_presets ?? {}; // <-- user can supply this
+            //const alertPresetName = alertSettings.preset;
+            let alertPresetName = alertSettings.preset;
+            if (selectedPreset) {
+              alertPresetName = selectedPreset;
+            }
+            //cblcarsLog("debug",`alertPresetName: ${alertPresetName}`)
+            // Merge built-in and user presets (user wins on conflicts)
+            const mergedPresets = deepMerge({}, builtInPresets, userPresets);
+            // Remove meta keys from alertSettings to get only the base/defaults
+            const { alert_presets, custom_alert_presets, preset, ...alertDefaults } = alertSettings;
+            // Get preset settings if specified
+            const presetSettings =
+              alertPresetName &&
+              mergedPresets[alertPresetName] &&
+              typeof mergedPresets[alertPresetName] === 'object'
+                ? mergedPresets[alertPresetName]
+                : {};
+            // Merge: defaults <- preset <- top-level overrides
+            const alertStyleSettings = deepMerge(
+              {},
+              alertDefaults,
+              presetSettings
+            );
+            //cblcarsLog("debug",alertStyleSettings);
+            //////////////////////////////////////////////////////////////////////////////
+            // COLOR AND ANIMATION SETTINGS
+            //////////////////////////////////////////////////////////////////////////////
+            const shape_color = alertStyleSettings.color.shape?.default || '#FF0000';
+            const bar_color = alertStyleSettings.color.bars?.default || '#FF0000';
+            const animation_base_color = alertStyleSettings.color.bars?.animation_base || '#FF0000';
+            const animation_flash_color = alertStyleSettings.color.bars?.animation_flash || '#FFFFFF';
+            const animation_duration = alertStyleSettings.animation_duration || 1;
+            const enable_bar_animation = (alertStyleSettings.animation_duration != 0 && alertStyleSettings.enable_bar_animation) ?? 'true';
+            const blink_duration = alertStyleSettings.blink_duration || 4;
+            const blink_delay = alertStyleSettings.blink_delay || 2;
+            const enable_blink = (alertStyleSettings.blink_duration != 0 && alertStyleSettings.enable_blink) ?? true;
+            // Calculate animation delays for bar spread effect
+            const delays = [
+              0,
+              0.0833 * animation_duration,
+              0.1667 * animation_duration,
+              0.25 * animation_duration,
+              0.3333 * animation_duration,
+              0.4167 * animation_duration
+            ];
+            //////////////////////////////////////////////////////////////////////////////
+            // PADDING AND VIEWBOX
+            //////////////////////////////////////////////////////////////////////////////
+            // Padding for SVG (object with top, right, bottom, left)
+            const pad = alertSettings.padding || {};
+            const padTop = pad.top !== undefined ? parseInt(pad.top) : 0;
+            const padRight = pad.right !== undefined ? parseInt(pad.right) : 0;
+            const padBottom = pad.bottom !== undefined ? parseInt(pad.bottom) : 0;
+            const padLeft = pad.left !== undefined ? parseInt(pad.left) : 0;
+            // Adjusted viewBox for SVG
+            const vb_x = 0 - padLeft;
+            const vb_y = 0 - padTop;
+            const vb_w = 100 + padLeft + padRight;
+            const vb_h = 73.56 + padTop + padBottom;
+            //////////////////////////////////////////////////////////////////////////////
+            // SVG PATHS FOR ALERT SHAPE
+            // Condensed and standard SVG paths for the main alert shape
+            //////////////////////////////////////////////////////////////////////////////
+            // Condensed version based on svg provided by sparkyvision
+            const condensed_path = `
+              <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
+              M23.108 25.389
+              L15.402 17.558
+              C18.473 14.316 23.222 10.239 28.118 8.950
+              L31.047 8.950 L31.047 23.210
+              L68.953 23.210 L68.953 8.950
+              L71.882 8.950
+              C76.776 10.239 81.524 14.314 84.594 17.555
+              L76.885 25.389 L23.108 25.389Z
+              M8.889 36.834
+              C8.889 33.512 9.541 30.602 10.197 28.093
+              L16.885 28.093 L16.885 45.659
+              L10.214 45.659
+              C9.547 43.090 8.889 40.180 8.889 36.834Z
+              M91.111 36.834
+              C91.111 40.180 90.453 43.090 89.786 45.659
+              L83.176 45.659 L83.176 28.093
+              L89.803 28.093
+              C90.459 30.602 91.111 33.512 91.111 36.834Z
+              M15.399 56.090
+              C18.470 59.349 23.220 63.435 28.118 64.697
+              L31.047 64.697 L31.047 50.490
+              L68.953 50.490 L68.953 64.697
+              L71.882 64.697
+              C76.778 63.436 81.527 59.351 84.600 56.094
+              L76.953 48.347 L23.040 48.347 L15.399 56.090Z
+              " fill="${shape_color}"/>
+              `;
+            // Standard version based on svg provided by Panter (recalculated and baselined with condensed)
+            const std_path = `
+              <path id="raShape" fill-rule="evenodd" clip-rule="evenodd" d="
+                M30.40 0
+                V21.00
+                C30.40 21.84 31.06 22.50 31.89 22.50
+                H68.08
+                C68.91 22.50 69.57 21.84 69.57 21.00
+                V0
+                C77.94 2.90 85.08 7.63 90.35 13.59
+                L75.92 25.26
+                H24.08
+                L9.29 13.59
+                C14.62 7.63 22.01 2.90 30.40 0
+                ZM1.08 28.36
+                C0.37 31.07 0 33.84 0 36.63
+                C0 39.42 0.37 42.19 1.08 44.90
+                H15.10
+                V28.36
+                H1.08
+                ZM9.29 60.03
+                C14.62 65.90 22.01 70.62 30.40 73.56
+                V52.54
+                C30.40 51.70 31.06 51.04 31.89 51.04
+                H68.08
+                C68.91 51.04 69.57 51.70 69.57 52.54
+                V73.56
+                C77.94 70.62 85.08 65.90 90.35 60.03
+                L75.92 48.37
+                H24.08
+                L9.29 60.03
+                ZM98.67 44.90
+                C99.38 42.19 99.76 39.42 99.76 36.63
+                C99.76 33.84 99.38 31.07 98.67 28.36
+                H84.77
+                V44.90
+                H98.67Z
+              " fill="${shape_color}"></path>
+            `;
+            //////////////////////////////////////////////////////////////////////////////
+            // BAR ANIMATION LINES
+            // Define y-coordinates for condensed and standard versions
+            //////////////////////////////////////////////////////////////////////////////
+            const condensedLines1 = [
+              [8.950, 10.176],
+              [11.213, 12.439],
+              [13.476, 14.702],
+              [15.739, 16.965],
+              [17.996, 19.222],
+              [20.259, 21.485]
+            ];
+            const condensedLines2 = [
+              [52.105, 53.331],
+              [54.372, 55.598],
+              [56.635, 57.861],
+              [58.898, 60.124],
+              [61.161, 62.387],
+              [63.425, 64.651]
+            ];
+            // SVG height for condensed and standard
+            const condensedHeight = 64.697 - 8.950; // 55.747
+            const standardHeight = 85.56;
+            // Select path based on size variable
+            const alert_size = alertSettings.size || "standard";
+            const selected_path = alert_size === "condensed" ? condensed_path : std_path;
+            // Helper to scale y-coordinates for standard size
+            function scaleLines(lines, fromHeight, toHeight, yOffsetFrom, yOffsetTo) {
+              const scale = toHeight / fromHeight;
+              const offset = yOffsetTo - yOffsetFrom * scale;
+              return lines.map(([y1, y2]) => [
+                y1 * scale + offset,
+                y2 * scale + offset
+              ]);
+            }
+            // Select lines based on size
+            let lines1, lines2;
+            if (alert_size === "condensed") {
+              lines1 = condensedLines1;
+              lines2 = condensedLines2;
+            } else {
+              // Scale condensed lines to standard height
+              lines1 = scaleLines(condensedLines1, condensedHeight, standardHeight, 8.95, 0);
+              lines2 = scaleLines(condensedLines2, condensedHeight, standardHeight, 8.95, -12);
+            }
+            // Generate SVG line elements for bar animation
+            function linesToSVG(lines, group) {
+              return lines.map(
+                ([y1, y2], i) =>
+                  `<line id="raLines${group}_${i + 1}" x1="50.0" y1="${y1.toFixed(3)}" x2="50.0" y2="${y2.toFixed(3)}" stroke="${bar_color}" stroke-width="33.33" />`
+              ).join('\n');
+            }
+            const svgLines =
+              linesToSVG(lines2, 2) + '\n' +
+              linesToSVG(lines1, 1);
+            //////////////////////////////////////////////////////////////////////////////
+            // TEXT CONFIGURATION
+            //////////////////////////////////////////////////////////////////////////////
+            // Black box dimensions and position (user-configurable)
+            // - black_box_x: left edge of black box (default: 18)
+            // - black_box_y: top edge of black box (default: 37)
+            // - black_box_width: width of black box (default: 64)
+            // - black_box_height: height of black box (default: 32)
+            const black_box_x = alertSettings.black_box_x !== undefined ? alertSettings.black_box_x : 18;
+            const black_box_y = alertSettings.black_box_y !== undefined ? alertSettings.black_box_y : 37;
+            const black_box_width = alertSettings.black_box_width !== undefined ? alertSettings.black_box_width : 64;
+            const black_box_height = alertSettings.black_box_height !== undefined ? alertSettings.black_box_height : 32;
+            // Text box heights and gap (user-configurable)
+            const alert_text_box_height = alertSettings.alert_text_box_height !== undefined ? alertSettings.alert_text_box_height : 18;
+            const sub_text_box_height = alertSettings.sub_text_box_height !== undefined ? alertSettings.sub_text_box_height : 14;
+            const text_box_gap = alertSettings.text_box_gap !== undefined ? alertSettings.text_box_gap : 4;
+            // Calculate total text height
+            const total_text_height = alert_text_box_height + text_box_gap + sub_text_box_height;
+            // Center the text group vertically in the black box
+            const text_group_top = black_box_y + (black_box_height - total_text_height) / 2;
+            // Y positions for each line (centered in their respective boxes)
+            const alert_text_y = text_group_top + alert_text_box_height / 2;
+            const sub_text_y = text_group_top + alert_text_box_height + text_box_gap + sub_text_box_height / 2;
+            // Get text content and style for alert_text and sub_text
+            const alert_text_content = alertStyleSettings.alert_text ?? '';
+            const sub_text_content = alertStyleSettings.sub_text ?? '';
+            const alert_text_style = (alertStyleSettings.text && alertStyleSettings.text.alert_text) || {};
+            const sub_text_style = (alertStyleSettings.text && alertStyleSettings.text.sub_text) || {};
+            // Helper to get style value with fallback, fail gracefully if styleObj is missing or not an object
+            function getTextStyle(styleObj, key, fallback) {
+              if (!styleObj || typeof styleObj !== 'object') return fallback;
+              return styleObj[key] !== undefined ? styleObj[key] : fallback;
+            }
+            // Font and alignment for alert_text
+            const alert_font_size = getTextStyle(alert_text_style, 'font_size', 14);
+            const alert_font_weight = getTextStyle(alert_text_style, 'font_weight', 500);
+            const alert_font_family = getTextStyle(alert_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
+            const alert_fill = getTextStyle(alert_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
+            const alert_text_anchor = getTextStyle(alert_text_style, 'align', 'center') === 'left' ? 'start' :
+                                    getTextStyle(alert_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
+            const alert_text_transform = getTextStyle(alert_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
+            const alert_dominant_baseline = getTextStyle(alert_text_style, 'dominant_baseline', 'middle');
+            const alert_stretch = getTextStyle(alert_text_style, 'stretch', false);
+            // Font and alignment for sub_text
+            const sub_font_size = getTextStyle(sub_text_style, 'font_size', 6);
+            const sub_font_weight = getTextStyle(sub_text_style, 'font_weight', 200);
+            const sub_font_family = getTextStyle(sub_text_style, 'font_family', "cb-lcars_microgramma,cb-lcars_jeffries,cb-lcars_antonio,Antonio,Arial,sans-serif");
+            const sub_fill = getTextStyle(sub_text_style, 'color', {default: 'var(--primary-text-color)'}).default;
+            const sub_text_anchor = getTextStyle(sub_text_style, 'align', 'center') === 'left' ? 'start' :
+                                  getTextStyle(sub_text_style, 'align', 'center') === 'right' ? 'end' : 'middle';
+            const sub_text_transform = getTextStyle(sub_text_style, 'transform', '').toLowerCase() === 'uppercase' ? 'uppercase' : 'none';
+            const sub_dominant_baseline = getTextStyle(sub_text_style, 'dominant_baseline', 'middle');
+            const sub_stretch = getTextStyle(sub_text_style, 'stretch', false);
+            // Calculate text x position based on anchor
+            function getTextX(anchor) {
+              if (anchor === 'start') return black_box_x;
+              if (anchor === 'end') return black_box_x + black_box_width;
+              return black_box_x + black_box_width / 2;
+            }
+            // SVG text elements for both lines
+            const svgTextElements = `
+              <text
+                x="${getTextX(alert_text_anchor)}"
+                y="${alert_text_y}"
+                font-size="${alert_font_size}"
+                font-weight="${alert_font_weight}"
+                font-family=${alert_font_family}
+                fill="${alert_fill}"
+                text-anchor="${alert_text_anchor}"
+                dominant-baseline="${alert_dominant_baseline}"
+                ${alert_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
+                class="redAlertBlink"
+                style="text-transform:${alert_text_transform};"
+              >${alert_text_transform === 'uppercase' ? (alert_text_content + '').toUpperCase() : alert_text_content}</text>
+              <text
+                x="${getTextX(sub_text_anchor)}"
+                y="${sub_text_y}"
+                font-size="${sub_font_size}"
+                font-weight="${sub_font_weight}"
+                font-family=${sub_font_family}
+                fill="${sub_fill}"
+                text-anchor="${sub_text_anchor}"
+                dominant-baseline="${sub_dominant_baseline}"
+                ${sub_stretch ? `textLength="${black_box_width}" lengthAdjust="spacingAndGlyphs"` : ''}
+                class="redAlertBlink"
+                style="text-transform:${sub_text_transform};"
+              >${sub_text_transform === 'uppercase' ? (sub_text_content + '').toUpperCase() : sub_text_content}</text>
+            `;
+            //////////////////////////////////////////////////////////////////////////////
+            // FINAL OUTPUT: Compose SVG and CSS for alert animation
+            //////////////////////////////////////////////////////////////////////////////
+            return `
+              <elt>
+                <style>
+                  .svgContainer{
+                      padding:0px;
+                      border-radius:10px;
+                      display:flex;
+                      align-items:center;
+                  }
+                  /* RED ALERT -- overall blinking */
+                  .redAlertBlink {
+                      ${enable_blink ? `
+                      animation-delay: ${blink_delay}s;
+                      animation-duration: ${blink_duration}s;
+                      animation-iteration-count: infinite;
+                      animation-direction: normal;
+                      animation-timing-function: ease-in-out;
+                      animation-name: redAlertBlink;
+                      ` : ''};
+                  }
+                  div.svgContainer svg {
+                      width:100%;
+                      height:100%;
+                  }
+                  @keyframes redAlertBlink {
+                      0%, 100% { opacity: 1; }
+                      50% { opacity: 0.25; }
+                  }
+                  @keyframes flashLine {
+                      0% {
+                          stroke: ${animation_flash_color};
+                          opacity: 1;
+                      }
+                      20% {
+                          stroke: ${animation_base_color};
+                          opacity: 1;
+                      }
+                      100% {
+                          stroke: ${animation_base_color};
+                          opacity: 0.25;
+                      }
+                  }
+                  /* Spread animation for raLines */
+                  [id^="raLines1_"], [id^="raLines2_"] {
+                      ${enable_bar_animation ? `
+                      animation-name: flashLine;
+                      animation-duration: ${animation_duration}s;
+                      animation-timing-function: ease-in-out;
+                      animation-iteration-count: infinite;
+                      animation-fill-mode: both;
+                      ` : ''};
+                  }
+                  /* Group 1: Top to bottom */
+                  #raLines1_1 { animation-delay: ${delays[0]}s; }
+                  #raLines1_2 { animation-delay: ${delays[1]}s; }
+                  #raLines1_3 { animation-delay: ${delays[2]}s; }
+                  #raLines1_4 { animation-delay: ${delays[3]}s; }
+                  #raLines1_5 { animation-delay: ${delays[4]}s; }
+                  #raLines1_6 { animation-delay: ${delays[5]}s; }
+                  /* Group 2: Bottom to top */
+                  #raLines2_6 { animation-delay: ${delays[0]}s; }
+                  #raLines2_5 { animation-delay: ${delays[1]}s; }
+                  #raLines2_4 { animation-delay: ${delays[2]}s; }
+                  #raLines2_3 { animation-delay: ${delays[3]}s; }
+                  #raLines2_2 { animation-delay: ${delays[4]}s; }
+                  #raLines2_1 { animation-delay: ${delays[5]}s; }
+                </style>
+                <div class="svgContainer">
+                    <svg
+                      width="${card_width}"
+                      height="${card_height}"
+                      viewBox="${vb_x} ${vb_y} ${vb_w} ${vb_h}"
+                      fill="none"
+                    >
+                    <g id="redAlertSymbol">
+                    ${selected_path}
+                    ${svgLines}
+                    ${svgTextElements}
+                    </g>
+                    </svg>
+                </div>
+              </elt>
+            `;
+          }
+          return z_alert_svg;
+        ]]]
   cb-lcars-multimeter:
     enable_resize_observer: true
     entity: '[[[ return variables.entity ]]]'
     template:
       - cb-lcars-functions
-      - cb-lcars-functions-svg
+      - cb-lcars-svg-multimeter
       - cb-lcars-base
       - cb-lcars-actions-disable
       - cb-lcars-animation-geo-array
@@ -9629,6 +10376,314 @@ cblcars_card_templates:
                   + ")" ]]]
               - border-radius: unset !important
               - background: none
+  cb-lcars-svg-geo-array:
+    template:
+      - cb-lcars-functions
+      - cb-lcars-functions-svg
+    variables:
+      z_geo_array_svg: |
+        [[[
+          // This function generates an SVG representation of a gauge based on the provided parameters.
+          const z_geo_array_svg = function(params){
+            const animationSettings = params.animation;
+            const cardSettings = params.card;
+            const patternDefault = [
+                { duration: 3, delay: 0.1 },
+                { duration: 3, delay: 0.2 },
+                { duration: 4, delay: 0.3 },
+                { duration: 4, delay: 0.4 },
+                { duration: 4, delay: 0.5 },
+                { duration: 2, delay: 0.6 },
+                { duration: 2, delay: 0.7 },
+                { duration: 2, delay: 0.8 }
+              ];
+              const patternNiagara = [
+                { duration: 2, delay: 0.1 },
+                { duration: 2, delay: 0.2 },
+                { duration: 2, delay: 0.3 },
+                { duration: 2, delay: 0.4 },
+                { duration: 2, delay: 0.5 },
+                { duration: 2, delay: 0.6 },
+                { duration: 2, delay: 0.7 },
+                { duration: 2, delay: 0.8 }
+              ];
+              const patternFrozen = [
+                { duration: 3, delay: 0.1 },
+                { duration: 3, delay: 0.2 },
+                { duration: 4, delay: 0.3 },
+                { duration: 4, delay: 0.4 },
+                { duration: 4, delay: 0.5 },
+                { duration: 2, delay: 0.6 },
+                { duration: 2, delay: 0.7 },
+                { duration: 2, delay: 0.8 }
+              ];
+              const customPatternInput = animationSettings.geo_array.custom_pattern;
+              let customPattern;
+              if (typeof customPatternInput === 'string') {
+                try {
+                customPattern = JSON.parse(customPatternInput);
+                } catch (e) {
+                variables.__cblcarsLog('error','Failed to parse custom_pattern as JSON:', e);
+                customPattern = patternDefault;
+                }
+              } else if (Array.isArray(customPatternInput)) {
+                customPattern = customPatternInput;
+              } else {
+                customPattern = patternDefault;
+              }
+              const patternName = animationSettings.geo_array.pattern || 'patternDefault';
+              const patternMap = {
+                default: patternDefault,
+                niagara: patternNiagara,
+                frozen: patternFrozen,
+                custom: customPattern
+              };
+              const animationConfig = patternMap[patternName] || patternDefault;
+              const card_height = animationSettings.height !== undefined ? parseInt(animationSettings.height) : (parseInt(cardSettings.height) - parseInt(cardSettings.border.top.size) - parseInt(cardSettings.border.bottom.size));
+              const card_width = animationSettings.width !== undefined ? parseInt(animationSettings.width) : (parseInt(cardSettings.width) - parseInt(cardSettings.border.left.size) - parseInt(cardSettings.border.right.size));
+              const align_items = animationSettings.geo_array.align_items || 'center';
+              const justify_content = animationSettings.geo_array.justify_content || 'center';
+              const shape_size = animationSettings.geo_array.shape.size || 12;
+              const shape_type = animationSettings.geo_array.shape.type || 'square';
+              const base_color = animationSettings.geo_array.color.base || '#000';
+              const animation_start_color = animationSettings.geo_array.color.animation_start || '#26f';
+              const animation_end_color = animationSettings.geo_array.color.animation_end || '#def';
+              const row_height = variables.__get_num_with_unit(animationSettings.geo_array.grid.row_height) || `${shape_size}px`;
+              const column_width = variables.__get_num_with_unit(animationSettings.geo_array.grid.column_width) || `${shape_size}px`;
+              const grid_gap = variables.__get_num_with_unit(animationSettings.geo_array.grid.gap) || '8px';
+              const animation_axis = animationSettings.geo_array.animation_axis || 'row'; // Get animation_axis, default to 'row'
+              const isRowAnimation = animation_axis === 'row'; // Boolean to check if it's row animation
+              const auto_num_cols = variables.__calculate_grid_cells((parseInt(card_width) - parseInt(grid_gap)),column_width,grid_gap,12);
+              const auto_num_rows = variables.__calculate_grid_cells((parseInt(card_height) - parseInt(grid_gap)),row_height,grid_gap,8);
+              const num_rows = animationSettings.geo_array.grid.num_rows || auto_num_rows;
+              const num_cols = animationSettings.geo_array.grid.num_cols || auto_num_cols;
+              const isFrozen = patternName === 'frozen';
+              const animationIterationCount = isFrozen ? '1' : 'infinite';
+              const animationFillMode = isFrozen ? 'forwards' : 'forwards';
+              const keyframesName = isFrozen ? 'colorchange-frozen' : 'colorchange';
+              function getShapeSVG(color) {
+                switch (shape_type) {
+                  case 'circle':
+                    return `<circle cx="${shape_size / 2}" cy="${shape_size / 2}" r="${shape_size / 2}" fill="${color}" />`;
+                  case 'triangle':
+                    return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size} 0,${shape_size}" fill="${color}" />`;
+                  case 'diamond':
+                    return `<polygon points="${shape_size / 2},0 ${shape_size},${shape_size / 2} ${shape_size / 2},${shape_size} 0,${shape_size / 2}" fill="${color}" />`;
+                  case 'star':
+                    // 5-pointed star
+                    const c = shape_size / 2, r = c, r2 = r * 0.5;
+                    let star = '';
+                    for (let i = 0; i < 5; i++) {
+                      let angle = (18 + i * 72) * Math.PI / 180;
+                      let x = c + r * Math.cos(angle);
+                      let y = c - r * Math.sin(angle);
+                      star += `${x},${y} `;
+                      angle += 36 * Math.PI / 180;
+                      x = c + r2 * Math.cos(angle);
+                      y = c - r2 * Math.sin(angle);
+                      star += `${x},${y} `;
+                    }
+                    return `<polygon points="${star.trim()}" fill="${color}" />`;
+                  case 'pentagon':
+                    let pent = '';
+                    for (let i = 0; i < 5; i++) {
+                      let angle = (54 + i * 72) * Math.PI / 180;
+                      let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
+                      let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
+                      pent += `${x},${y} `;
+                    }
+                    return `<polygon points="${pent.trim()}" fill="${color}" />`;
+                  case 'hexagon':
+                    // Centered regular hexagon, fits inside the square
+                    const cx = shape_size / 2;
+                    const cy = shape_size / 2;
+                    const r_hex = shape_size / 2 * 0.95; // 0.95 to add a small margin
+                    let hex = '';
+                    for (let i = 0; i < 6; i++) {
+                      let angle = Math.PI / 6 + i * Math.PI / 3; // Start at 30deg
+                      let x = cx + r_hex * Math.cos(angle);
+                      let y = cy + r_hex * Math.sin(angle);
+                      hex += `${x},${y} `;
+                    }
+                    return `<polygon points="${hex.trim()}" fill="${color}" />`;
+                  case 'octagon':
+                    let oct = '';
+                    for (let i = 0; i < 8; i++) {
+                      let angle = (22.5 + i * 45) * Math.PI / 180;
+                      let x = shape_size / 2 + (shape_size / 2) * Math.cos(angle);
+                      let y = shape_size / 2 - (shape_size / 2) * Math.sin(angle);
+                      oct += `${x},${y} `;
+                    }
+                    return `<polygon points="${oct.trim()}" fill="${color}" />`;
+                  case 'ellipse':
+                    return `<ellipse cx="${shape_size / 2}" cy="${shape_size / 2}" rx="${shape_size / 2}" ry="${shape_size / 3}" fill="${color}" />`;
+                  case 'cross':
+                    const t = shape_size / 3;
+                    return `<rect x="${t}" y="0" width="${t}" height="${shape_size}" fill="${color}" />
+                            <rect x="0" y="${t}" width="${shape_size}" height="${t}" fill="${color}" />`;
+                  case 'square':
+                  default:
+                    return `<rect width="${shape_size}" height="${shape_size}" fill="${color}" />`;
+                }
+              }
+              let rows = '';
+              let keyframes = '';
+              let animationCSSRule = ''; // Initialize animationCSSRule
+              if (isRowAnimation) { // ROW ANIMATION LOGIC
+                  for (let i = 1; i <= num_rows; i++) {
+                    const { duration, delay } = animationConfig[(i - 1) % animationConfig.length];
+                    const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
+                    const animationName = isFrozen ? `colorchange-frozen-${i}` : 'colorchange'; // Determine keyframe name
+                    if (isFrozen) { // Generate frozen keyframes - only if frozen pattern is selected
+                      keyframes += `
+                        @keyframes colorchange-frozen-${i} {
+                        0% {fill: ${animation_start_color}}
+                          25% {fill: ${animation_start_color}}
+                          50% {fill: ${animation_start_color}}
+                          75% {fill: ${animation_start_color}}
+                          80% {fill: ${base_color}}
+                          90% {fill: ${base_color}}
+                          100% {fill: ${randomColor}}
+                          }
+                        `;
+                      }
+                      animationCSSRule += `
+                      svg.cell.row-anim-${i} > * {
+                        animation-name: ${animationName};
+                        animation-duration: ${duration}s;
+                        animation-delay: ${delay}s;
+                        animation-iteration-count: ${animationIterationCount};
+                        animation-fill-mode: ${animationFillMode};
+                      }
+                      `;
+                      rows += `
+                      <div class="row-${i} row">
+                        ${Array.from({ length: num_cols }, (_, j) => `
+                        <svg class="cell dc${j + 1} row-anim-${i}" width="${shape_size}" height="${shape_size}">
+                          ${getShapeSVG(randomColor)}
+                        </svg>
+                        `).join('')}
+                      </div>
+                      `;
+                    }
+                  } else { // COLUMN ANIMATION LOGIC (animation_axis === 'column')
+                    let cols = ''; // Use 'cols' instead of 'rows' for column-based structure
+                    for (let j = 1; j <= num_cols; j++) { // Loop through columns
+                      const { duration, delay } = animationConfig[(j - 1) % animationConfig.length]; // Re-use animationConfig, but index by column
+                      const randomColor = [animation_start_color, animation_end_color, base_color][Math.floor(Math.random() * 3)];
+                      const animationName = isFrozen ? `colorchange-frozen-col-${j}` : 'colorchange'; // Unique keyframe name for columns
+                      if (isFrozen) { // Generate frozen keyframes for columns
+                        keyframes += `
+                          @keyframes colorchange-frozen-col-${j} {
+                          0% {fill: ${animation_start_color}}
+                          25% {fill: ${animation_start_color}}
+                          50% {fill: ${animation_start_color}}
+                          75% {fill: ${animation_start_color}}
+                          80% {fill: ${base_color}}
+                          90% {fill: ${base_color}}
+                          100% {fill: ${randomColor}}
+                          }
+                        `;
+                      }
+                      animationCSSRule += `
+                      svg.cell.col-anim-${j} > * {
+                        animation-name: ${animationName};
+                        animation-duration: ${duration}s;
+                        animation-delay: ${delay}s;
+                        animation-iteration-count: ${animationIterationCount};
+                        animation-fill-mode: ${animationFillMode};
+                      }
+                      `;
+                      cols += `
+                      <div class="col-${j} col">
+                        ${Array.from({ length: num_rows }, (_, i) => `
+                        <svg class="cell row-${i + 1} col-anim-${j} dc${j}" width="${shape_size}" height="${shape_size}">  /* ADD col-anim-${j} CLASS */
+                          ${getShapeSVG(randomColor)}
+                        </svg>
+                        `).join('')}
+                      </div>
+                      `;
+                    }
+                    rows = cols; // For column animation, effectively 'rows' becomes 'columns' in output structure
+                  }
+                  const defaultKeyframes = `
+                    @keyframes colorchange {
+                    0% {fill: ${animation_start_color}}
+                    25% {fill: ${animation_start_color}}
+                    50% {fill: ${animation_start_color}}
+                    75% {fill: ${animation_start_color}}
+                    80% {fill: ${base_color}}
+                    90% {fill: ${base_color}}
+                    100% {fill: ${animation_end_color}}
+                    }
+                  `;
+                  const customKeyframes = animationSettings.geo_array.custom_keyframes || defaultKeyframes;
+                      let styleContent = `
+                      ${customKeyframes}
+                      ${isFrozen ? keyframes : ''}
+                      ${animationCSSRule}
+                      .geo-array-wrapper {
+                      flex: 1;
+                      padding-right: 1px;
+                      display: flex;
+                      flex-grow: 1;
+                      width: ${card_width};
+                      height: ${card_height};
+                      align-items: ${align_items};
+                      justify-content: ${justify_content};
+                      }
+                      .geo-array {
+                      line-height: 1;
+                      display: flex; /* Make .geo-array a flex container for columns */
+                      flex-direction: ${isRowAnimation ? 'column' : 'row'}; /* Column direction for rows, row direction for columns */
+                      }
+                      ${isRowAnimation ?
+                        Array.from({ length: num_rows }, (_, i) => `
+                        .row-${i + 1} {
+                          display: grid;
+                          grid-template-columns: repeat(${num_cols}, ${column_width});
+                          gap: ${grid_gap};
+                          margin-bottom: ${grid_gap}; /* Add spacing between rows */
+                          height: ${row_height}
+                        }
+                        `).join('')
+                      :
+                        Array.from({ length: num_cols }, (_, j) => `  /* COLUMN LAYOUT CSS */
+                        .col-${j + 1} {
+                          display: flex; /* Use flexbox for columns */
+                          flex-direction: column; /* Stack items vertically in columns */
+                          gap: ${grid_gap};
+                          margin-right: ${grid_gap}; /* Spacing between columns */
+                          width: ${column_width};
+                          align-items: center; /* Center items horizontally in columns */
+                        }
+                        `).join('')
+                      }
+                      .geo-array .row:last-child {
+                        margin-bottom: 0; /* Remove margin-bottom from the last row */
+                      }
+                      .geo-array .col:last-child {
+                        margin-right: 0; /* Remove margin-right from the last column */
+                      }
+                      .cell {
+                      text-align: right;
+                      }
+                    `;
+                  return `
+                    <elt>
+                    <style>
+                      ${styleContent.trim().replace(/\n\s*\n/g, '\n')}
+                    </style>
+                    <div class="geo-array-wrapper">
+                      <div class="geo-array" id="default">
+                      ${rows}
+                      </div>
+                    </div>
+                    </elt>
+                  `;
+            }
+            return z_geo_array_svg;
+          ]]]
   cb-lcars-button-picard-label-east:
     variables:
       text:
@@ -9899,6 +10954,7 @@ cblcars_card_templates:
   cb-lcars-animation-bg-grid:
     template:
       - cb-lcars-functions
+      - cb-lcars-svg-bg-grid
       - cb-lcars-animation-presets
     variables:
       animation:
@@ -10034,15 +11090,6 @@ cblcars_card_templates:
           function randomSeed() {
             return Math.floor(Math.random() * 1e9);
           }
-          // Seeded random number generator (Mulberry32)
-          function mulberry32(seed) {
-            return function() {
-              let t = seed += 0x6D2B79F5;
-              t = Math.imul(t ^ t >>> 15, t | 1);
-              t ^= t + Math.imul(t ^ t >>> 7, t | 61);
-              return ((t ^ t >>> 14) >>> 0) / 4294967296;
-            }
-          }
           /////////////////////////////////////////////
           // --- STARS BG PATTERN ---
           //  Randomized, tileable starfield pattern
@@ -10072,83 +11119,16 @@ cblcars_card_templates:
           const starColor = starSettings.color ?? '#fff';
           // Use 'fill' for compatibility
           const userBgColor = variables.animation.bg_grid.color?.fill ?? '#000';
-          /////////////////////////////////////////////
-          // Generate a tileable star pattern with seeded RNG for reproducibility
-          // numStars: number of stars to generate
-          // width: width of the pattern
-          // height: height of the pattern
-          // minR: minimum radius of stars
-          // maxR: maximum radius of stars
-          // minB: minimum brightness of stars (0-1)
-          // maxB: maximum brightness of stars (0-1)
-          // seed: seed for the RNG (default: 1)
-          // color: color of the stars (supports hex, rgb, rgba, CSS variables)
-          // Returns a string of SVG circles representing the stars
-          function generateTileableStarsSeeded(numStars, width, height, minR, maxR, minB, maxB, seed, color) {
-            let stars = '';
-            const rand = mulberry32(seed);
-            // Normalize color input to array
-            let colorArray;
-            if (Array.isArray(color)) {
-              colorArray = color.length > 0 ? color : ['#fff'];
-            } else {
-              colorArray = [color ?? '#fff'];
-            }
-            for (let i = 0; i < numStars; i++) {
-              const cx = rand() * width;
-              const cy = rand() * height;
-              const r = rand() * (maxR - minR) + minR;
-              const brightness = rand() * (maxB - minB) + minB;
-              // Pick a color from the array using the seeded RNG
-              const pickedColor = colorArray[Math.floor(rand() * colorArray.length)];
-              let fill;
-              if (pickedColor) {
-                if (pickedColor.startsWith('#')) {
-                  // Convert hex to rgb
-                  const hex = pickedColor.replace('#', '');
-                  const bigint = parseInt(hex, 16);
-                  const rC = (hex.length === 3 ? (bigint >> 8 & 0xf) * 17 : (bigint >> 16) & 0xff);
-                  const gC = (hex.length === 3 ? (bigint >> 4 & 0xf) * 17 : (bigint >> 8) & 0xff);
-                  const bC = (hex.length === 3 ? (bigint & 0xf) * 17 : bigint & 0xff);
-                  fill = `rgba(${rC},${gC},${bC},${brightness})`;
-                } else if (pickedColor.startsWith('rgb')) {
-                  // If rgb(a), just replace the alpha
-                  fill = pickedColor.replace(/rgba?\(([^)]+)\)/, (m, rgb) => {
-                    const parts = rgb.split(',').map(x => x.trim());
-                    return `rgba(${parts[0]},${parts[1]},${parts[2]},${brightness})`;
-                  });
-                } else if (pickedColor.startsWith('var(') || pickedColor.startsWith('--') || /^[a-zA-Z]/.test(pickedColor)) {
-                  // Accept CSS variable or named color, just use as fill (no alpha)
-                  fill = pickedColor;
-                } else {
-                  // Fallback to white with brightness
-                  fill = `rgba(255,255,255,${brightness})`;
-                }
-              } else {
-                fill = `rgba(255,255,255,${brightness})`;
-              }
-              for (let dx = -1; dx <= 1; dx++) {
-                for (let dy = -1; dy <= 1; dy++) {
-                  if (
-                    (dx === 0 && dy === 0) ||
-                    (dx !== 0 && (cx < r || cx > width - r)) ||
-                    (dy !== 0 && (cy < r || cy > height - r))
-                  ) {
-                    stars += `<circle cx="${cx + dx * width}" cy="${cy + dy * height}" r="${r}" fill="${fill}" />`;
-                  }
-                }
-              }
-            }
-            return stars;
-          }
           ////////////////////////////////////////////////////
           // Generate the def for the star background pattern
           // For zoom, we generate randomized layers later in buildZoomBackgroundSVGs()
+          const memoizedStars = variables.get_memoized_svg.call(this, 'z_tileable_stars_seeded');
+          //const memoizedStars = variables.__memoize(generateTileableStarsSeeded);
           let svg_bg_stars;
           svg_bg_stars = `
             <defs>
               <pattern id="starPattern" width="${starPatternWidth}" height="${starPatternHeight}" patternUnits="userSpaceOnUse">
-                ${generateTileableStarsSeeded(numStars, starPatternWidth, starPatternHeight, starMinRadius, starMaxRadius, starMinBrightness, starMaxBrightness, starSeed, starColor)}
+                ${memoizedStars(numStars, starPatternWidth, starPatternHeight, starMinRadius, starMaxRadius, starMinBrightness, starMaxBrightness, starSeed, starColor)}
               </pattern>
             </defs>
             <rect x="0" y="0" width="100%" height="100%" fill="url(#starPattern)" />
