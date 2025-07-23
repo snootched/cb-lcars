@@ -1,0 +1,81 @@
+type: custom:button-card
+template: cb-lcars-base
+variables:
+  line_id: 'msd-test-line-1'
+  x1: 40
+  y1: 40
+  x2: 260
+  y2: 120
+  stroke_color: '#00ffff'
+  stroke_width: 5
+  glow_color: '#ff00ff'
+  glow_blur: 8
+  arrow_end: true
+  dasharray: '12,6'
+  animate: true
+  animation:
+    property: 'stroke'
+    values: ['#00ffff', '#ff00ff']
+    duration: 1200
+    easing: 'easeInOutSine'
+    loop: true
+    direction: 'alternate'
+custom_fields:
+  svg: |
+    [[[
+      // Use the core utility function from window.cblcars.animSvg
+      return `<svg width="300" height="160">`
+        + window.cblcars.animSvg.renderMsdGlowLine({
+            id: variables.line_id,
+            x1: variables.x1,
+            y1: variables.y1,
+            x2: variables.x2,
+            y2: variables.y2,
+            stroke_color: variables.stroke_color,
+            stroke_width: variables.stroke_width,
+            glow_color: variables.glow_color,
+            glow_blur: variables.glow_blur,
+            arrow_end: variables.arrow_end
+          })
+        + window.cblcars.animSvg.renderMsdScanningLine({
+            id: variables.line_id + '-scan',
+            x1: variables.x1,
+            y1: variables.y1 + 20,
+            x2: variables.x2,
+            y2: variables.y2 + 20,
+            stroke_color: variables.stroke_color,
+            stroke_width: variables.stroke_width,
+            dasharray: variables.dasharray,
+            arrow_end: variables.arrow_end
+          })
+        + `</svg>`;
+    ]]]
+  animate_script: |
+    [[[
+      if (variables.animate) {
+        setTimeout(() => {
+          const el = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id);
+          if (el) {
+            window.cblcars?.animateElement?.({
+              targets: el,
+              property: variables.animation.property,
+              values: variables.animation.values,
+              duration: variables.animation.duration,
+              easing: variables.animation.easing,
+              loop: variables.animation.loop,
+              direction: variables.animation.direction
+            });
+          } else {
+            console.warn('No element found for animation:', '#' + variables.line_id);
+          }
+        }, 100);
+      }
+    ]]]
+styles:
+  custom_fields:
+    svg:
+      - position: relative
+      - width: 100%
+      - height: 100%
+    animate_script:
+      - display: none

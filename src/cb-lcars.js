@@ -8,6 +8,44 @@ import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
 import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
+import * as anime from 'animejs';
+import * as cblcarsAnimSvg from './utils/cb-lcars-anim-svg.js'; // <-- Add this line
+
+// Ensure global namespace
+window.cblcars = window.cblcars || {};
+
+// Expose anime.js
+window.cblcars.anime = anime;
+
+// Expose SVG/animation utilities
+window.cblcars.animSvg = cblcarsAnimSvg; // <-- Expose all helpers under animSvg
+
+// Placeholder for utility functions (to be implemented)
+window.cblcars.animateElement = function(opts) {
+  const el = opts.targets;
+  if (!el) {
+    console.warn('animateElement: No target element provided.');
+    return;
+  }
+  const isColor = opts.property === 'stroke' || opts.property === 'fill';
+  if (isColor) {
+    anime.animate(el, {
+      [opts.property]: opts.values,
+      duration: opts.duration,
+      direction: opts.direction,
+      loop: opts.loop,
+      easing: opts.easing
+    });
+  } else {
+    anime.animate(el, {
+      [opts.property]: opts.values,
+      duration: opts.duration,
+      direction: opts.direction,
+      loop: opts.loop,
+      easing: opts.easing
+    });
+  }
+};
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
@@ -372,7 +410,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
-        cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this, this._logLevel);
+        cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this._logLevel);
     }
 
     toggleResizeObserver() {
