@@ -1,16 +1,3 @@
-////import anime from 'animejs';
-//console.log('anime import:', anime);
-
-/*
-export function animateElement({targets, ...opts}) {
-  // targets: selector, element, or array
-  (anime.default || anime)({
-    targets,
-    ...opts
-  });
-}
-*/
-
 // Helper to resolve targets (selectors, elements, arrays) to a flat array of elements
 import { resolveAnimationTargets } from './cb-lcars-overlay-helpers.js';
 
@@ -49,70 +36,81 @@ export function waitForElement(targets, context, timeout = 2000, interval = 50) 
 }
 
 
-/////this function works as a base... before doing work on cfg
+// Animation type presets for anime.js v4+
+const animationPresets = {
+  blink: (cfg = {}) => ({
+    opacity: [
+      { value: 1, duration: (cfg.duration || 1500) / 2 },
+      { value: 0.3, duration: (cfg.duration || 1500) / 2 }
+    ],
+    loop: true,
+    direction: 'alternate',
+    easing: cfg.easing || 'linear',
+    duration: cfg.duration || 1500,
+    ...cfg
+  }),
+  march: (cfg = {}) => ({
+    strokeDashoffset: [
+      { value: 0, duration: (cfg.duration || 2000) / 2 },
+      { value: 100, duration: (cfg.duration || 2000) / 2 }
+    ],
+    loop: true,
+    easing: cfg.easing || 'linear',
+    duration: cfg.duration || 2000,
+    ...cfg
+  }),
+  pulse: (cfg = {}) => ({
+    scale: [
+      { value: 1, duration: (cfg.duration || 1200) / 2 },
+      { value: 1.2, duration: (cfg.duration || 1200) / 2 }
+    ],
+    loop: true,
+    direction: 'alternate',
+    easing: cfg.easing || 'easeInOutQuad',
+    duration: cfg.duration || 1200,
+    ...cfg
+  }),
+  // Add more types as needed...
+};
+
 // Animate helper: waits for targets and anime.js, then animates
-export function animateElement({ targets, root = document, ...opts }) {
+export function animateElement({ targets, root = document, engine = 'anime', type, ...opts }) {
   const allTargets = Array.isArray(targets) ? targets : [targets];
-  console.warn("animateElement called with targets:", allTargets, "root:", root, "opts:", opts);
+
+  // Expand type-based presets if present
+  let finalOpts = { ...opts };
+  if (type && animationPresets[type]) {
+    finalOpts = animationPresets[type]({ ...opts, type });
+  }
+
+  // Prefer anime.js unless engine is explicitly 'css'
+  if (engine === 'css') {
+    // CSS keyframes: just add class to targets (assume opts.className is provided)
+    waitForElement(allTargets, root).then(foundEls => {
+      if (finalOpts.className) {
+        foundEls.forEach(el => el.classList.add(finalOpts.className));
+      }
+    }).catch(err => {
+      console.warn("CSS animation skipped:", err);
+    });
+    return;
+  }
+
+  // anime.js v4+ logic
   Promise.all([
     waitForElement(allTargets, root)
   ])
-    //.then(([/*foundEls*/, /*animeFn*/]) => {
     .then(([]) => {
-      // Use the global resolveAnimationTargets (imported from overlay-helpers)
       const realTargets = resolveAnimationTargets(allTargets, root);
-      console.log("Targets resolved:", realTargets);
-      console.log("Animation options:", opts);
-      console.log("root:", root);
-
-
       if (realTargets.length && typeof window.cblcars.anime === "function") {
-        console.warn("Animating with targets:", realTargets, "options:", opts);
-        const animInstance = window.cblcars.anime(realTargets, {...opts });
-        console.log("anime.js animation instance:", animInstance);
-
+        // anime.js v4+: anime(targets, options)
+        window.cblcars.anime(realTargets, finalOpts);
       } else {
         throw new Error("anime.js not loaded or no targets resolved");
       }
     })
     .catch((err) => {
-      // Optionally log or handle error
       console.warn("Animation skipped:", err);
     });
 }
 
-
-
-
-
-// Animate helper: waits for targets and anime.js, then animates
-export function animateElement2({ targets, root = document, ...opts }) {
-  const allTargets = Array.isArray(targets) ? targets : [targets];
-  console.warn("animateElement called with targets:", allTargets, "root:", root, "opts:", opts);
-  Promise.all([
-    waitForElement(allTargets, root)
- //   waitForElement(allTargets, root),
- //   waitForAnimeJs()
-  ])
-    .then(([/*foundEls*/, /*animeFn*/]) => {
-      // Use the global resolveAnimationTargets (imported from overlay-helpers)
-      const realTargets = resolveAnimationTargets(allTargets, root);
-      console.log("Targets resolved:", realTargets);
-      console.log("Animation options:", opts);
-      console.log("root:", root);
-
-
-      if (realTargets.length && typeof window.cblcars.anime === "function") {
-        console.warn("Animating with targets:", realTargets, "options:", opts);
-        const animInstance = window.cblcars.anime(realTargets, {...opts });
-        console.log("anime.js animation instance:", animInstance);
-
-      } else {
-        throw new Error("anime.js not loaded or no targets resolved");
-      }
-    })
-    .catch((err) => {
-      // Optionally log or handle error
-      console.warn("Animation skipped:", err);
-    });
-}

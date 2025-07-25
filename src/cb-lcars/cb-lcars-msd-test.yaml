@@ -1,83 +1,108 @@
-type: custom:button-card
-template: cb-lcars-base
+type: custom:cb-lcars-base-card
 variables:
-  line_id: 'msd-test-line-1'
-  x1: 40
-  y1: 40
-  x2: 260
-  y2: 120
-  stroke_color: '#00ffff'
-  stroke_width: 5
-  glow_color: '#ff00ff'
-  glow_blur: 8
-  arrow_end: true
-  dasharray: '12,6'
-  animate: true
-  animation:
-    property: 'stroke'
-    values: ['#00ffff', '#ff00ff']
-    duration: 1200
-    easing: 'easeInOutSine'
-    loop: true
-    direction: 'alternate'
+  msd:
+    base_svg: 'builtin:ncc-1701-a-blue'
+    presets:
+      default:
+        text:
+          font_size: 18
+          font_family: Antonio
+          align: center
+          color:
+            default: var(--primary-text-color)
+        line:
+          width: 4
+          color:
+            default: var(--lcars-orange)
+          stroke_dasharray: "10,5"
+          animation:
+            type: march
+            duration: 2000
+    slots:
+      test_callout:
+        callout:
+          entity: sensor.test_entity
+          anchor: warp_core
+          preset: default
+          text:
+            value: "Test Overlay"
+            position: warp_core_label
+            animation:
+              type: blink
+              duration: 1200
+          line:
+            width: 4
+            color:
+              default: var(--lcars-orange)
+            stroke_dasharray: "10,5"
+            animation:
+              type: march
+              duration: 2000
 custom_fields:
-  svg: |
+  msd_svg_base: |
     [[[
-      // Use the core utility function from window.cblcars.animSvg
-      return `<svg width="300" height="160">`
-        + window.cblcars.animSvg.renderMsdGlowLine({
-            id: variables.line_id,
-            x1: variables.x1,
-            y1: variables.y1,
-            x2: variables.x2,
-            y2: variables.y2,
-            stroke_color: variables.stroke_color,
-            stroke_width: variables.stroke_width,
-            glow_color: variables.glow_color,
-            glow_blur: variables.glow_blur,
-            arrow_end: variables.arrow_end
-          })
-        + window.cblcars.animSvg.renderMsdScanningLine({
-            id: variables.line_id + '-scan',
-            x1: variables.x1,
-            y1: variables.y1 + 20,
-            x2: variables.x2,
-            y2: variables.y2 + 20,
-            stroke_color: variables.stroke_color,
-            stroke_width: variables.stroke_width,
-            dasharray: variables.dasharray,
-            arrow_end: variables.arrow_end
-          })
-        + `</svg>`;
-    ]]]
-  animate_script: |
-    [[[
-      if (variables.animate) {
-        setTimeout(() => {
-          const el1 = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id);
-          const el2 = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id + '-scan');
-          const targets = [el1, el2].filter(Boolean); // Only non-null elements
-          if (targets.length > 0) {
-            window.cblcars?.animateElement?.({
-              targets: targets,
-              property: variables.animation.property,
-              values: variables.animation.values,
-              duration: variables.animation.duration,
-              easing: variables.animation.easing,
-              loop: variables.animation.loop,
-              direction: variables.animation.direction
-            });
-          } else {
-            console.warn('No elements found for animation:', [variables.line_id, variables.line_id + '-scan']);
-          }
-        }, 100);
+      // Use the same logic as your main msd_svg_base field
+      let svgContent = '';
+      let viewBox = [0, 0, 400, 200];
+      let anchorTable = {};
+      let svgKey = null;
+      if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
+        svgKey = variables.msd.base_svg.replace('builtin:', '');
       }
+      svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
+      if (!svgContent) {
+        return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
+      }
+      const match = svgContent.match(/viewBox="([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)"/);
+      if (match) {
+        viewBox = [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3]), parseFloat(match[4])];
+      }
+      // Extract anchors from SVG: <circle id="..."/> and <text id="..."/>
+      anchorTable = {};
+      if (svgContent) {
+        const anchorRegex = /<circle[^>]*\sid="([^"]+)"[^>]*\scx="([^"]+)"[^>]*\scy="([^"]+)"[^>]*>/g;
+        let m;
+        while ((m = anchorRegex.exec(svgContent)) !== null) {
+          anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+        }
+        const textAnchorRegex = /<text[^>]*\sid="([^"]+)"[^>]*\sx="([^"]+)"[^>]*\sy="([^"]+)"[^>]*>/g;
+        while ((m = textAnchorRegex.exec(svgContent)) !== null) {
+          anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
+        }
+      }
+      variables.msd._viewBox = viewBox;
+      variables.msd._anchors = anchorTable;
+      const aspect = viewBox[2] && viewBox[3] ? (viewBox[2] / viewBox[3]) : 2;
+      return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+    ]]]
+  msd_svg_overlays: |
+    [[[
+      // Use the new helper (once exposed on window.cblcars)
+      return window.cblcars.renderMsdOverlay({
+        overlays: (() => {
+          // Merge slots/callouts as in your main config
+          const slots = variables.msd.slots || {};
+          return Object.values(slots).map(slot => slot.callout);
+        })(),
+        anchors: variables.msd._anchors,
+        styleLayers: {defaults: variables.msd.presets?.default},
+        hass,
+        root: this
+      });
     ]]]
 styles:
   custom_fields:
-    svg:
-      - position: relative
+    msd_svg_base:
       - width: 100%
       - height: 100%
-    animate_script:
-      - display: none
+      - position: absolute
+      - top: 0
+      - left: 0
+      - z-index: 1
+    msd_svg_overlays:
+      - width: 100%
+      - height: 100%
+      - position: absolute
+      - top: 0
+      - left: 0
+      - z-index: 1

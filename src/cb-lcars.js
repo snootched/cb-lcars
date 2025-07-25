@@ -58,6 +58,7 @@ async function initializeCustomCard() {
     window.cblcars.animateElement = animHelpers.animateElement;
     window.cblcars.waitForElement = animHelpers.waitForElement;
     window.cblcars.resolveAnimationTargets = overlayHelpers.resolveAnimationTargets;
+    window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
     window.cblcars.svgHelpers = svgHelpers;
     window.cblcars.styleHelpers = styleHelpers;
     window.cblcars.anchorHelpers = anchorHelpers;
