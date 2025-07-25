@@ -1,3 +1,6 @@
+//OLD FILE
+
+
 /**
  * Find anchor points in an SVG string.
  * Supports <circle> and <text> with id attributes.

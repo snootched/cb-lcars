@@ -1,3 +1,5 @@
+import * as anime from 'animejs';
+
 import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
@@ -8,44 +10,21 @@ import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
 import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
-import * as anime from 'animejs';
-import * as cblcarsAnimSvg from './utils/cb-lcars-anim-svg.js'; // <-- Add this line
+
+//old file...
+import * as cblcarsAnimSvg from './utils/cb-lcars-anim-svg.js';
+
+//import * as animeNS from 'animejs';
+// Import all modular helpers
+import * as overlayHelpers from './utils/cb-lcars-overlay-helpers.js';
+import * as animHelpers from './utils/cb-lcars-anim-helpers.js';
+import * as svgHelpers from './utils/cb-lcars-svg-helpers.js';
+import * as styleHelpers from './utils/cb-lcars-style-helpers.js';
+import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
+
 
 // Ensure global namespace
 window.cblcars = window.cblcars || {};
-
-// Expose anime.js
-window.cblcars.anime = anime;
-
-// Expose SVG/animation utilities
-window.cblcars.animSvg = cblcarsAnimSvg; // <-- Expose all helpers under animSvg
-
-// Placeholder for utility functions (to be implemented)
-window.cblcars.animateElement = function(opts) {
-  const el = opts.targets;
-  if (!el) {
-    console.warn('animateElement: No target element provided.');
-    return;
-  }
-  const isColor = opts.property === 'stroke' || opts.property === 'fill';
-  if (isColor) {
-    anime.animate(el, {
-      [opts.property]: opts.values,
-      duration: opts.duration,
-      direction: opts.direction,
-      loop: opts.loop,
-      easing: opts.easing
-    });
-  } else {
-    anime.animate(el, {
-      [opts.property]: opts.values,
-      duration: opts.duration,
-      direction: opts.direction,
-      loop: opts.loop,
-      easing: opts.easing
-    });
-  }
-};
 
 // Promises for loading the templates and stub configuration
 let templatesPromise;
@@ -57,21 +36,37 @@ let templates = {};
 let stubConfig = {};
 
 // Ensure the cblcars object exists on the window object
-window.cblcars = window.cblcars || {};
+//window.cblcars = window.cblcars || {};
 window.cblcars.loadFont = loadFont;
 
 // Utility for lazy loading user SVGs (e.g., from /local/)
-window.cblcars = window.cblcars || {};
-window.cblcars.loadUserSVG = async function(key, url) {
-    return await loadSVGToCache(key, url);
-};
-window.cblcars.getSVGFromCache = getSVGFromCache;
+//window.cblcars = window.cblcars || {};
+//window.cblcars.loadUserSVG = async function(key, url) {
+//    return await loadSVGToCache(key, url);
+//};
+//window.cblcars.getSVGFromCache = getSVGFromCache;
 
 
 async function initializeCustomCard() {
 
     // Call log banner function immediately when the script loads
     cblcarsLogBanner();
+
+    window.cblcars.animejs = window.cblcars.animejs = anime; // Expose anime.js globally
+    window.cblcars.anime = anime.animate; // shortcut for anime.animate (compatible with old code)
+    window.cblcars.overlayHelpers = overlayHelpers;
+    window.cblcars.animateElement = animHelpers.animateElement;
+    window.cblcars.waitForElement = animHelpers.waitForElement;
+    window.cblcars.resolveAnimationTargets = overlayHelpers.resolveAnimationTargets;
+    window.cblcars.svgHelpers = svgHelpers;
+    window.cblcars.styleHelpers = styleHelpers;
+    window.cblcars.anchorHelpers = anchorHelpers;
+    window.cblcars.animSvg = cblcarsAnimSvg;
+    window.cblcars.loadFont = loadFont;
+    window.cblcars.loadUserSVG = async function(key, url) {
+        return await loadSVGToCache(key, url);
+    };
+    window.cblcars.getSVGFromCache = getSVGFromCache;
 
     ///load yaml configs
     templatesPromise = loadTemplates(CBLCARS.templates_uri);
@@ -758,7 +753,8 @@ function defineCustomElement(cardType, cardClass, editorType, editorClass) {
 
 
 // delay registration of custom elements until the templates and stub configuration are loaded
-Promise.all([templatesPromise, , stubConfigPromise, themeColorsPromise])
+//Promise.all([window.cblcars.animeReady, templatesPromise, stubConfigPromise, themeColorsPromise])
+Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise])
   .then(() => {
     defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
     defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);

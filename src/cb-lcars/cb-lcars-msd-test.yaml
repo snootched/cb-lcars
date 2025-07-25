@@ -54,10 +54,12 @@ custom_fields:
     [[[
       if (variables.animate) {
         setTimeout(() => {
-          const el = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id);
-          if (el) {
+          const el1 = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id);
+          const el2 = this.shadowRoot && this.shadowRoot.querySelector('#' + variables.line_id + '-scan');
+          const targets = [el1, el2].filter(Boolean); // Only non-null elements
+          if (targets.length > 0) {
             window.cblcars?.animateElement?.({
-              targets: el,
+              targets: targets,
               property: variables.animation.property,
               values: variables.animation.values,
               duration: variables.animation.duration,
@@ -66,7 +68,7 @@ custom_fields:
               direction: variables.animation.direction
             });
           } else {
-            console.warn('No element found for animation:', '#' + variables.line_id);
+            console.warn('No elements found for animation:', [variables.line_id, variables.line_id + '-scan']);
           }
         }, 100);
       }
