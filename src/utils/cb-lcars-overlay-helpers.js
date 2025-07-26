@@ -3,6 +3,30 @@ import { splitAttrsAndStyle } from './cb-lcars-style-helpers.js';
 import { animateElement } from './cb-lcars-anim-helpers.js';
 
 /**
+ * A singleton utility to accurately measure text width using an off-screen canvas.
+ */
+const TextMeasurer = (() => {
+  let canvas;
+  let context;
+
+  function getInstance() {
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      context = canvas.getContext('2d');
+    }
+    return context;
+  }
+
+  return {
+    measure: (text, { fontSize = '16px', fontFamily = 'sans-serif', fontWeight = 'normal' } = {}) => {
+      const ctx = getInstance();
+      ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
+      return ctx.measureText(text).width;
+    },
+  };
+})();
+
+/**
  * Deeply merges source objects into a target object.
  * @param {object} target - The target object.
  * @param {...object} sources - The source objects.
@@ -77,33 +101,71 @@ function resolveCalloutState(callout, hass, globalResolver = {}) {
     return null;
   }
 
+  console.debug(`[CB-LCARS] [resolveCalloutState] Evaluating for callout with entity: ${callout.entity}`, { callout, stateConfig });
+
   for (const entry of stateConfig.states) {
     const entityId = entry.entity || callout.entity;
-    if (!entityId) continue;
+    if (!entityId) {
+        console.debug('[CB-LCARS] [resolveCalloutState] Skipping state entry, no entity_id.', { entry });
+        continue;
+    }
 
     const entity = hass.states[entityId];
-    if (!entity) continue;
+    if (!entity) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Skipping state entry, entity not found: ${entityId}`, { entry });
+        continue;
+    }
 
     const attribute = entry.attribute || callout.attribute;
     let value = attribute ? entity.attributes[attribute] : entity.state;
 
-    if (value === undefined) continue;
+    if (value === undefined) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Skipping state entry, value is undefined for entity: ${entityId}, attribute: ${attribute}`, { entry });
+        continue;
+    }
+
+    console.debug(`[CB-LCARS] [resolveCalloutState] Checking state for ${entityId}. Attribute: '${attribute}', Value: '${value}'`, { entry });
 
     let numValue = Number(value);
     if (isNaN(numValue)) numValue = undefined;
 
-    if (entry.equals !== undefined && value == entry.equals) return entry;
-    if (entry.not_equals !== undefined && value != entry.not_equals) return entry;
-    if (numValue !== undefined) {
-      if (entry.from !== undefined && entry.to !== undefined && numValue >= entry.from && numValue <= entry.to) return entry;
-      if (entry.from !== undefined && entry.to === undefined && numValue >= entry.from) return entry;
-      if (entry.to !== undefined && entry.from === undefined && numValue <= entry.to) return entry;
+    if (entry.equals !== undefined && value == entry.equals) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'equals'`, { value, entry });
+        return entry;
     }
-    if (Array.isArray(entry.in) && entry.in.includes(value)) return entry;
-    if (Array.isArray(entry.not_in) && !entry.not_in.includes(value)) return entry;
-    if (entry.regex && new RegExp(entry.regex).test(value)) return entry;
+    if (entry.not_equals !== undefined && value != entry.not_equals) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'not_equals'`, { value, entry });
+        return entry;
+    }
+    if (numValue !== undefined) {
+      if (entry.from !== undefined && entry.to !== undefined && numValue >= entry.from && numValue <= entry.to) {
+          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'from-to range'`, { numValue, entry });
+          return entry;
+      }
+      if (entry.from !== undefined && entry.to === undefined && numValue >= entry.from) {
+          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'from' range`, { numValue, entry });
+          return entry;
+      }
+      if (entry.to !== undefined && entry.from === undefined && numValue <= entry.to) {
+          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'to' range`, { numValue, entry });
+          return entry;
+      }
+    }
+    if (Array.isArray(entry.in) && entry.in.includes(value)) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'in'`, { value, entry });
+        return entry;
+    }
+    if (Array.isArray(entry.not_in) && !entry.not_in.includes(value)) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'not_in'`, { value, entry });
+        return entry;
+    }
+    if (entry.regex && new RegExp(entry.regex).test(value)) {
+        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'regex'`, { value, entry });
+        return entry;
+    }
   }
 
+  console.debug(`[CB-LCARS] [resolveCalloutState] No state match found for callout with entity: ${callout.entity}`);
   return null;
 }
 
@@ -172,6 +234,43 @@ function generateSmoothPath(points, { tension = 0.5 } = {}) {
   return d;
 }
 
+/**
+ * Resolves a point from various formats (anchor name, array of numbers/percentages)
+ * into absolute [x, y] coordinates based on the SVG viewBox.
+ * @param {string|Array<string|number>} point - The point to resolve.
+ * @param {object} context - The resolution context.
+ * @param {object} context.anchors - The table of named anchor points.
+ * @param {number[]} context.viewBox - The SVG viewBox [minX, minY, width, height].
+ * @returns {number[]|null} The resolved [x, y] coordinates or null.
+ */
+function resolvePoint(point, { anchors, viewBox }) {
+  if (!point) return null;
+
+  // Resolve anchor name
+  if (typeof point === 'string' && anchors[point]) {
+    return anchors[point];
+  }
+
+  if (Array.isArray(point) && point.length === 2) {
+    const [minX, minY, width, height] = viewBox;
+    const resolve = (val, axis) => {
+      if (typeof val === 'string' && val.endsWith('%')) {
+        const percent = parseFloat(val) / 100;
+        return axis === 'x' ? minX + percent * width : minY + percent * height;
+      }
+      return parseFloat(val);
+    };
+    const x = resolve(point[0], 'x');
+    const y = resolve(point[1], 'y');
+
+    if (!isNaN(x) && !isNaN(y)) {
+      return [x, y];
+    }
+  }
+
+  return null;
+}
+
 
 // Entry point for MSD overlays from custom button card
 export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = document, viewBox = [0, 0, 400, 200] }) {
@@ -182,19 +281,30 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
   overlays.forEach((callout, idx) => {
     // 1. --- Configuration Merging ---
-    let namedPresetName = callout.preset;
+    // Get the preset defined on the callout itself.
+    const calloutPreset = (callout.preset && presets[callout.preset]) ? presets[callout.preset] : {};
+
+    // Get the specific settings from the callout, excluding properties handled elsewhere.
+    const calloutCopy = { ...callout };
+    delete calloutCopy.preset;
+    delete calloutCopy.state_resolver;
+
+    // Check for a state match.
     const stateMatch = resolveCalloutState(callout, hass, presets.state_resolver);
-    let stateOverrides = {};
+    console.debug(`[CB-LCARS] [renderMsdOverlay] Callout ${idx} state match:`, stateMatch);
 
-    if (stateMatch) {
-      if (stateMatch.preset) namedPresetName = stateMatch.preset;
-      if (stateMatch.settings) stateOverrides = stateMatch.settings;
-    }
+    // Get the preset and settings from the state match, if any.
+    const statePreset = (stateMatch?.preset && presets[stateMatch.preset]) ? presets[stateMatch.preset] : {};
+    const stateSettings = stateMatch?.settings || {};
 
-    const namedPreset = (namedPresetName && presets[namedPresetName]) ? presets[namedPresetName] : {};
-
-    // Merge order: default -> named preset -> callout -> state overrides
-    const computed = deepMerge({}, defaultPreset, namedPreset, callout, stateOverrides);
+    // Merge with the correct precedence:
+    // 1. Default preset
+    // 2. Callout's named preset
+    // 3. Callout's specific settings
+    // 4. State-matched preset
+    // 5. State-matched settings
+    const computed = deepMerge({}, defaultPreset, calloutPreset, calloutCopy, statePreset, stateSettings);
+    console.debug(`[CB-LCARS] [renderMsdOverlay] Callout ${idx} computed config:`, computed);
 
     // Prepare context for template evaluation
     const entity = callout.entity && hass.states[callout.entity] ? hass.states[callout.entity] : null;
@@ -221,14 +331,12 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     console.debug(`[CB-LCARS] Rendering MSD overlay ${idx}`, { callout, computed });
 
     // 2. --- Position & ID Resolution ---
-    const anchorName = typeof computed.anchor === "string" ? computed.anchor : null;
-    const textAnchorName = typeof computed.text?.position === "string" ? computed.text.position : null;
+    const lineId = `msd_line_${computed.id || idx}`;
+    const textId = `msd_text_${computed.id || idx}`;
 
-    const lineId = computed.line?.id || (anchorName ? `msd_line_${anchorName}` : `msd_line_${idx}`);
-    const textId = computed.text?.id || (textAnchorName ? `msd_text_${textAnchorName}` : `msd_text_${idx}`);
-
-    let anchorPos = anchorName && anchors[anchorName] ? anchors[anchorName] : (Array.isArray(computed.anchor) ? computed.anchor : null);
-    let textPos = textAnchorName && anchors[textAnchorName] ? anchors[textAnchorName] : (Array.isArray(computed.text?.position) ? computed.text.position : null);
+    const pointContext = { anchors, viewBox };
+    const anchorPos = resolvePoint(computed.anchor, pointContext);
+    const textPos = resolvePoint(computed.text?.position, pointContext);
 
     if (!textPos) {
         console.warn(`[CB-LCARS] No valid text position for overlay ${idx}. Skipping.`);
@@ -239,34 +347,64 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     let lineStartPos = [...textPos];
     if (computed.text) {
         const fontSize = parseFloat(computed.text.font_size) || 18;
-        // 1. Evaluate the template *before* calculating width
         const textValue = evaluateTemplate(computed.text.value, templateContext);
-        const textWidthMultiplier = computed.text.text_width_multiplier || 0.5;
-        const textWidth = (textValue || '').length * fontSize * textWidthMultiplier;
 
-        const align = computed.text.align || 'start';
-        const lineAttach = computed.text.line_attach || 'center';
+        // Use canvas-based measurement for accurate width
+        const textWidth = TextMeasurer.measure(textValue || '', {
+            fontSize: `${fontSize}px`,
+            fontFamily: computed.text.font_family || 'Antonio',
+            fontWeight: computed.text.font_weight || 'normal',
+        });
 
-        let xOffset = 0;
-        if (align === 'start' || align === 'left') {
-            if (lineAttach === 'right' || lineAttach === 'end') xOffset = textWidth;
-            else if (lineAttach === 'center' || lineAttach === 'middle') xOffset = textWidth / 2;
-        } else if (align === 'end' || align === 'right') {
-            if (lineAttach === 'left' || lineAttach === 'start') xOffset = -textWidth;
-            else if (lineAttach === 'center' || lineAttach === 'middle') xOffset = -textWidth / 2;
-        } else { // middle/center
-            if (lineAttach === 'left' || lineAttach === 'start') xOffset = -textWidth / 2;
-            else if (lineAttach === 'right' || lineAttach === 'end') xOffset = textWidth / 2;
+        const align = computed.text.align || 'start'; // start, middle, end
+        let lineAttach = computed.text.line_attach || 'auto'; // auto, left, right, center
+
+        // Automatic line attachment logic
+        if (lineAttach === 'auto' && anchorPos) {
+            lineAttach = textPos[0] < anchorPos[0] ? 'right' : 'left';
+        } else if (lineAttach === 'auto') {
+            lineAttach = 'center'; // Fallback if no anchor to compare against
         }
 
-        // 2. Add explicit user offsets
-        xOffset += computed.text.x_offset || 0;
-        // The SVG <text> y attribute refers to the baseline. A small adjustment
-        // moves the line start to the visual center of the text.
-        const yOffset = (computed.text.y_offset || 0) - (fontSize / 3);
+        // Calculate text block boundaries based on alignment
+        let textLeft, textCenter, textRight;
+        if (align === 'start' || align === 'left') {
+            textLeft = textPos[0];
+            textCenter = textPos[0] + textWidth / 2;
+            textRight = textPos[0] + textWidth;
+        } else if (align === 'end' || align === 'right') {
+            textLeft = textPos[0] - textWidth;
+            textCenter = textPos[0] - textWidth / 2;
+            textRight = textPos[0];
+        } else { // middle/center
+            textLeft = textPos[0] - textWidth / 2;
+            textCenter = textPos[0];
+            textRight = textPos[0] + textWidth / 2;
+        }
 
-        lineStartPos[0] += xOffset;
-        lineStartPos[1] += yOffset;
+        // Determine line start X based on attachment point
+        let lineStartX = textCenter; // Default to center
+        if (lineAttach === 'left' || lineAttach === 'start') {
+            lineStartX = textLeft;
+        } else if (lineAttach === 'right' || lineAttach === 'end') {
+            lineStartX = textRight;
+        }
+
+        // Apply offsets. Start with user-defined, then apply automatic if undefined.
+        let xOffset = computed.text.x_offset;
+        if (xOffset === undefined) {
+            if (lineAttach === 'right' || lineAttach === 'end') {
+                xOffset = fontSize / 2; // Automatic padding
+            } else if (lineAttach === 'left' || lineAttach === 'start') {
+                xOffset = -fontSize / 2; // Automatic padding
+            } else {
+                xOffset = 0;
+            }
+        }
+        const yOffset = (computed.text.y_offset || 0) - (fontSize / 2.5); // Better vertical centering
+
+        lineStartPos[0] = lineStartX + xOffset;
+        lineStartPos[1] = textPos[1] + yOffset;
     }
 
 
@@ -277,10 +415,9 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
       // Check for explicit polyline points first
       if (Array.isArray(computed.line.points) && computed.line.points.length > 1) {
-        const resolvedPoints = computed.line.points.map(p => {
-            if (typeof p === 'string' && anchors[p]) return anchors[p];
-            return p;
-        }).filter(p => Array.isArray(p));
+        const resolvedPoints = computed.line.points
+            .map(p => resolvePoint(p, pointContext))
+            .filter(p => p !== null);
 
         if (resolvedPoints.length > 1) {
             if (computed.line.rounded) {
