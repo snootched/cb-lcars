@@ -197,6 +197,7 @@ text:
 | width            | number  | Line width (px)                               |
 | rounded          | bool    | Rounded elbows/corners (default: true)        |
 | corner_radius    | number  | Radius for rounded corners                    |
+| smooth_tension   | number  | Tension for smoothed polyline curves (0-1, default 0.5) |
 | color            | object  | Per-state line color (see below)              |
 | stroke_dasharray | string  | SVG dash/gap pattern (e.g. `"5,5"` for dashed, `"1,6"` for dotted, `"none"` for solid) |
 | stroke_linecap   | string  | `"butt"`, `"round"`, `"square"`               |
@@ -241,16 +242,20 @@ line:
 
 | Key      | Type   | Description                                         |
 |----------|--------|-----------------------------------------------------|
-| type     | string | `blink`, `pulse`, `march`                           |
+| type     | string | `blink`, `pulse`, `march`, `draw`                   |
 | duration | string/number | Animation duration (e.g. `'1s'`, `2`)        |
 | delay    | string/number | Animation delay before start (optional)      |
 | color    | string | Animation color override (optional)                 |
+| direction| string | For `march`: `'forward'` (default) or `'reverse'`   |
+| min_opacity | number | For `blink`: minimum opacity (0-1, default `0.3`) |
+| max_opacity | number | For `blink`: maximum opacity (0-1, default `1.0`) |
 
 #### Supported Types
 
 - `march`: Animated dashed/dotted lines ("marching ants")
 - `pulse`: Pulses opacity/width
 - `blink`: Blinks on/off (can be used for fade effects via keyframes)
+- `draw`: Animates the line as if it is being drawn
 
 #### Example: Blinking Text
 
@@ -740,7 +745,7 @@ variables:
             active: var(--lcars-blue)
             inactive: var(--lcars-ui-tertiary)
             unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
+            unknown: var(--lcars.yellow)
         anchor: [90%, 15%]
         line:
           points: [[88%, 12%], [90%, 15%]]
@@ -751,7 +756,7 @@ variables:
             active: var(--lcars-blue)
             inactive: var(--lcars-ui-tertiary)
             unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
+            unknown: var(--lcars.yellow)
         visible: true
         tap_action:
           action: more-info
@@ -767,7 +772,7 @@ variables:
             active: var(--lcars-yellow)
             inactive: var(--lcars-ui-tertiary)
             unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
+            unknown: var(--lcars.yellow)
         anchor: [80%, 25%]
         line:
           points: [[70%, 15%], [76%, 20%], [80%, 25%]]
@@ -778,7 +783,7 @@ variables:
             active: var(--lcars-yellow)
             inactive: var(--lcars-ui-tertiary)
             unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
+            unknown: var(--lcars.yellow)
         visible: true
         tap_action:
           action: toggle

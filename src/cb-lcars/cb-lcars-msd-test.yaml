@@ -24,8 +24,9 @@ variables:
           entity: sensor.test_entity
           anchor: warp_core
           preset: default
+          visible: true
           text:
-            value: "Test Overlay"
+            value: "Test Callout"
             position: warp_core_label
             animation:
               type: blink
@@ -38,6 +39,78 @@ variables:
             animation:
               type: march
               duration: 2000
+      test_smooth_line:
+        callout:
+          text:
+            value: "Smooth Polyline"
+            position: [50, 150]
+            color:
+              default: var(--lcars-blue)
+          line:
+            points:
+              - [150, 150]
+              - [200, 100]
+              - [250, 150]
+            rounded: true
+            smooth_tension: 0.7
+            width: 3
+            color:
+              default: var(--lcars-blue)
+      test_draw_line:
+        callout:
+          text:
+            value: "Draw Animation"
+            position: [50, 180]
+            color:
+              default: var(--lcars-red)
+          line:
+            points:
+              - [150, 180]
+              - [250, 180]
+            width: 3
+            color:
+              default: var(--lcars-red)
+            animation:
+              type: draw
+              duration: 3000
+      test_reverse_march:
+        callout:
+          text:
+            value: "Reverse March"
+            position: [50, 210]
+            color:
+              default: var(--lcars-golden-tanoi)
+          line:
+            points:
+              - [150, 210]
+              - [250, 210]
+            width: 3
+            color:
+              default: var(--lcars-golden-tanoi)
+            stroke_dasharray: "5,10"
+            animation:
+              type: march
+              duration: 1500
+              direction: reverse
+      test_blink_line:
+        callout:
+          text:
+            value: "Blinking Line"
+            position: [50, 240]
+            color:
+              default: var(--lcars-lilac)
+          line:
+            points:
+              - [150, 240]
+              - [250, 240]
+            width: 3
+            color:
+              default: var(--lcars-lilac)
+            animation:
+              type: blink
+              duration: 1200ms
+              min_opacity: 0.5
+              max_opacity: 0.9
 custom_fields:
   msd_svg_base: |
     [[[
@@ -85,9 +158,10 @@ custom_fields:
           return Object.values(slots).map(slot => slot.callout);
         })(),
         anchors: variables.msd._anchors,
-        styleLayers: {defaults: variables.msd.presets?.default},
+        styleLayers: variables.msd.presets,
         hass,
-        root: this
+        root: this,
+        viewBox: variables.msd._viewBox
       });
     ]]]
 styles:

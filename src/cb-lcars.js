@@ -70,22 +70,27 @@ async function initializeCustomCard() {
     window.cblcars.getSVGFromCache = getSVGFromCache;
 
     ///load yaml configs
+    // Await YAML configs
     templatesPromise = loadTemplates(CBLCARS.templates_uri);
     stubConfigPromise = loadStubConfig(CBLCARS.stub_config_uri);
     themeColorsPromise = loadThemeColors(CBLCARS.theme_colors_uri);
 
-    // Preload built-in SVGs for the MSD card
-    preloadSVGs(CBLCARS.builtin_svg_keys, CBLCARS.builtin_svg_basepath)
+    // Await SVG preload
+    await preloadSVGs(CBLCARS.builtin_svg_keys, CBLCARS.builtin_svg_basepath)
         .catch(error => cblcarsLog('error', 'Error preloading built-in SVGs:', error));
 
-    // Import and wait for 3rd party card dependencies
+    // Await card dependencies
     const cardImports = [
         customElements.whenDefined('cblcars-button-card'),
         customElements.whenDefined('my-slider-v2')
     ];
     await Promise.all(cardImports);
 
-    loadCoreFonts();
+    // Await font loading if loadCoreFonts is async
+    await loadCoreFonts();
+
+    // Await YAML config loading
+    await Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise]);
 
     // Checks that custom element dependencies are defined for use in the cards
     if (!customElements.get('cblcars-button-card')) {
@@ -97,11 +102,21 @@ async function initializeCustomCard() {
 }
 
 
-// Initialize the custom card
-initializeCustomCard().catch(error => {
-    cblcarsLog('error','Error initializing custom card:', error);
-});
-
+// Initialize the custom card and register elements only after setup is complete
+initializeCustomCard()
+    .then(() => {
+        defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-elbow-card', CBLCARSElbowCard, 'cb-lcars-elbow-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-double-elbow-card', CBLCARSDoubleElbowCard, 'cb-lcars-double-elbow-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-multimeter-card', CBLCARSMultimeterCard, 'cb-lcars-multimeter-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-dpad-card', CBLCARSDPADCard, 'cb-lcars-dpad-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-button-card', CBLCARSButtonCard, 'cb-lcars-button-card-editor', CBLCARSCardEditor);
+        defineCustomElement('cb-lcars-msd-card', CBLCARSMSDCard, 'cb-lcars-msd-card-editor', CBLCARSCardEditor);
+    })
+    .catch(error => {
+        cblcarsLog('error','Error initializing custom card:', error);
+    });
 
 
 async function loadTemplates(filePath) {
@@ -741,7 +756,6 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
 }
 
 
-
 // Helper function to define custom elements and their editors
 function defineCustomElement(cardType, cardClass, editorType, editorClass) {
     customElements.define(cardType, cardClass);
@@ -752,9 +766,9 @@ function defineCustomElement(cardType, cardClass, editorType, editorClass) {
     });
 }
 
-
 // delay registration of custom elements until the templates and stub configuration are loaded
 //Promise.all([window.cblcars.animeReady, templatesPromise, stubConfigPromise, themeColorsPromise])
+/*
 Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise])
   .then(() => {
     defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
@@ -769,7 +783,7 @@ Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise])
   .catch(error => {
     cblcarsLog('error', 'Error loading YAML configuration:', error);
   });
-
+*/
 
 
 // Register the cards to be available in the GUI editor

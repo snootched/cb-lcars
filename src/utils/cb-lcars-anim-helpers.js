@@ -1,5 +1,5 @@
 // Helper to resolve targets (selectors, elements, arrays) to a flat array of elements
-import { resolveAnimationTargets } from './cb-lcars-overlay-helpers.js';
+import { resolveAnimationTargets } from './cb-lcars-shared-helpers.js';
 
 // Wait for an element or multiple selectors/elements
 export function waitForElement(targets, context, timeout = 2000, interval = 50) {
@@ -39,25 +39,14 @@ export function waitForElement(targets, context, timeout = 2000, interval = 50) 
 // Animation type presets for anime.js v4+
 const animationPresets = {
   blink: (cfg = {}) => ({
-    opacity: [
-      { value: 1, duration: (cfg.duration || 1500) / 2 },
-      { value: 0.3, duration: (cfg.duration || 1500) / 2 }
-    ],
-    loop: true,
-    direction: 'alternate',
+    engine: 'css', // Use the CSS animation engine for blink
+    duration: cfg.duration || '1.5s',
     easing: cfg.easing || 'linear',
-    duration: cfg.duration || 1500,
-    ...cfg
   }),
   march: (cfg = {}) => ({
-    strokeDashoffset: [
-      { value: 0, duration: (cfg.duration || 2000) / 2 },
-      { value: 100, duration: (cfg.duration || 2000) / 2 }
-    ],
-    loop: true,
+    engine: 'css', // Use the CSS animation engine for march
+    duration: cfg.duration || '2s',
     easing: cfg.easing || 'linear',
-    duration: cfg.duration || 2000,
-    ...cfg
   }),
   pulse: (cfg = {}) => ({
     scale: [
@@ -68,7 +57,25 @@ const animationPresets = {
     direction: 'alternate',
     easing: cfg.easing || 'easeInOutQuad',
     duration: cfg.duration || 1200,
-    ...cfg
+  }),
+  draw: (cfg = {}) => ({
+    begin: (anim) => {
+      anim.targets.forEach(el => {
+        if (typeof el.getTotalLength !== 'function') return;
+        const len = el.getTotalLength();
+        el.style.strokeDasharray = len;
+        el.style.strokeDashoffset = len;
+      });
+    },
+    strokeDashoffset: [
+      (el) => {
+        if (typeof el.getTotalLength !== 'function') return 0;
+        return el.getTotalLength();
+      },
+      0
+    ],
+    easing: 'easeInOutSine',
+    duration: cfg.duration || 2000,
   }),
   // Add more types as needed...
 };
@@ -80,7 +87,11 @@ export function animateElement({ targets, root = document, engine = 'anime', typ
   // Expand type-based presets if present
   let finalOpts = { ...opts };
   if (type && animationPresets[type]) {
-    finalOpts = animationPresets[type]({ ...opts, type });
+    const presetConf = animationPresets[type](opts);
+    // The preset can specify its preferred engine
+    if (presetConf.engine) engine = presetConf.engine;
+    // User-provided opts override any defaults from the preset
+    finalOpts = { ...presetConf, ...opts };
   }
 
   // Prefer anime.js unless engine is explicitly 'css'
