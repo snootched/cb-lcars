@@ -13,11 +13,11 @@ export class CBLCARSDashboardStrategy {
                 hass.callWS({ type: "config/entity_registry/list" }),
                 ]);
 
-            //cblcarsLog('debug areas:',areas);
-            //cblcarsLog('debug devices:',devices);
-            //cblcarsLog('debug entities:',entities);
+            //cblcarsLog.debug('areas:',areas);
+            //cblcarsLog.debug('devices:',devices);
+            //cblcarsLog.debug('entities:',entities);
 
-            cblcarsLog('info','Generating CB-LCARS dashboard strategy...');
+            cblcarsLog.info('Generating CB-LCARS dashboard strategy...');
 
             // Load the main CB-LCARS button card templates
             //const buttonTemplates = await readYamlFile(CBLCARS.templates_uri);
@@ -59,7 +59,7 @@ export class CBLCARSDashboardStrategy {
 
             };
         } catch (error) {
-            cblcarsLog('error', `Error generating CB-LCARS dashboard strategy: ${error.message}`);
+            cblcarsLog.error(`Error generating CB-LCARS dashboard strategy: ${error.message}`);
             throw error;
         }
     }
@@ -69,14 +69,14 @@ export class CBLCARSDashboardStrategy {
 export class CBLCARSViewStrategyAirlock {
     static async generate(config, hass) {
         try {
-            cblcarsLog('info','Generating CB-LCARS Airlock strategy view...');
+            cblcarsLog.info('Generating CB-LCARS Airlock strategy view...');
             const jsObject = await readYamlFile(CBLCARS.airlock_uri);
 
             return {
                 ...jsObject
             };
         } catch (error) {
-            cblcarsLog('error', `Error loading CB-LCARS Airlock strategy view: ${error.message}`);
+            cblcarsLog.error(`Error loading CB-LCARS Airlock strategy view: ${error.message}`);
             throw error;
         }
     }
@@ -86,14 +86,14 @@ export class CBLCARSViewStrategy {
     static async generate(config, hass) {
         try {
             const { path } = config;
-            cblcarsLog('info',`Generating CB-LCARS strategy view from path: ${path}...`);
+            cblcarsLog.info(`Generating CB-LCARS strategy view from path: ${path}...`);
             const jsObject = await readYamlFile(path);
 
             return {
                 ...jsObject
             };
         } catch (error) {
-            cblcarsLog('error', `Error loading CB-LCARS strategy view: ${error.message}`);
+            cblcarsLog.error(`Error loading CB-LCARS strategy view: ${error.message}`);
             throw error;
         }
     }

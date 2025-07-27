@@ -4,7 +4,7 @@ let cblcarsGlobalLogLevel = 'info';
 
 export function cblcarsSetGlobalLogLevel(level) {
   cblcarsGlobalLogLevel = level;
-  cblcarsLog('info',`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
+  cblcarsLog.info(`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
 }
 export function cblcarsGetGlobalLogLevel() {
   return cblcarsGlobalLogLevel;
@@ -15,59 +15,97 @@ window.cblcars = window.cblcars || {};
 // Attach the functions to the cblcars object
 window.cblcars.setGlobalLogLevel = cblcarsSetGlobalLogLevel;
 window.cblcars.getGlobalLogLevel = cblcarsGetGlobalLogLevel;
+// Add shortcut properties for each log level
+['error', 'warn', 'info', 'debug'].forEach(level => {
+  window.cblcars.setGlobalLogLevel[level] = () => cblcarsSetGlobalLogLevel(level);
+});
 
+export function baseLogger(level, ...args) {
+  const levels = ['error', 'warn', 'info', 'debug'];
+  const currentLevelIndex = levels.indexOf(cblcarsGlobalLogLevel);
+  const messageLevelIndex = levels.indexOf(level);
 
+  if (messageLevelIndex > currentLevelIndex) return;
 
-export function cblcarsLog(level, message, obj = {}, currentLogLevel = cblcarsGlobalLogLevel) {
+  const commonStyles = 'color: white; padding: 1px 4px; border-radius: 15px;';
+  const levelStyles = {
+    info: 'background-color: #37a6d1',
+    warn: 'background-color: #ff6753',
+    error: 'background-color: #ef1d10',
+    debug: 'background-color: #8e44ad',
+    default: 'background-color: #6d748c',
+  };
 
-    const levels = ['error', 'warn', 'info', 'debug'];
-    const currentLevelIndex = levels.indexOf(currentLogLevel);
-    const messageLevelIndex = levels.indexOf(level);
+  const logMessage = `%c    CB-LCARS | ${level} `;
+  const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
 
-    if (messageLevelIndex > currentLevelIndex) {
-        return; // Do not log the message if its level is lower than the current log level
-    }
-
-    const commonStyles = 'color: white; padding: 1px 4px; border-radius: 15px;';
-    const levelStyles = {
-      info: 'background-color: #37a6d1', // Blue
-      warn: 'background-color: #ff6753', // Orange
-      error: 'background-color: #ef1d10', // Red
-      debug: 'background-color: #8e44ad', // Purple
-      default: 'background-color: #6d748c', // Gray for unknown levels
-    };
-
-    // Capture the stack trace for caller information
-    //const stack = new Error().stack;
-    //const caller = stack.split('\n')[2].trim(); // Get the caller from the stack trace
-    // Create a formatted log message with the specified level, caller, and message
-    //remove caller cuz of webpack..
-
-    //const logMessage = `%c    CB-LCARS | ${level} | ${caller} `;
-    const logMessage = `%c    CB-LCARS | ${level} `;
-
-    // Choose the appropriate style based on the level
-    const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
-
-    // Log the message using the chosen style and console method
-    switch (level) {
-      case 'info':
-        console.log(logMessage, style, message, obj);
-        break;
-      case 'warn':
-        console.warn(logMessage, style, message, obj);
-        break;
-      case 'error':
-        console.error(logMessage, style, message, obj);
-        break;
-      case 'debug':
-        console.debug(logMessage, style, message, obj);
-        break;
-      default:
-        console.log(logMessage, style, message, obj);
-        break;
-    }
+  // Use spread to pass all args after the styled prefix
+  switch (level) {
+    case 'info':
+      console.log(logMessage, style, ...args);
+      break;
+    case 'warn':
+      console.warn(logMessage, style, ...args);
+      break;
+    case 'error':
+      console.error(logMessage, style, ...args);
+      break;
+    case 'debug':
+      console.debug(logMessage, style, ...args);
+      break;
+    default:
+      console.log(logMessage, style, ...args);
+      break;
   }
+}
+
+/**
+ * Centralized CB-LCARS logging utility.
+ *
+ * Supports log level filtering and styled output.
+ * Functions as a drop-in replacement for `console.log`, `console.warn`, etc.
+ *
+ * **Preferred usage:**
+ *   `cblcarsLog.info('message');`
+ *   `cblcarsLog.warn('message');`
+ *   `cblcarsLog.error('message');`
+ *   `cblcarsLog.debug('message');`
+ *   `cblcarsLog.log('message');`
+ *
+ * *Legacy usage (not recommended):*
+ *   `cblcarsLog('warn', 'message');`
+ *
+ * **Log level filtering:**
+ *
+ *   Only messages at or above the global log level are printed.
+ *   For example, if the global log level is 'warn', only 'warn' and 'error' messages are shown.
+ *
+ * **Setting the global log level:**
+ *
+ *   Use the function `cblcarsSetGlobalLogLevel(level)`, or
+ *   `window.cblcars.setGlobalLogLevel(level)`
+ *   Valid levels: `'error'`, `'warn'`, `'info'`, `'debug'`
+ *
+ * @param {'error'|'warn'|'info'|'debug'} level - The log level.
+ * @param {...any} args - Arguments to log.
+ * @returns {void}
+ *
+ * @property {function(...any):void} log   - Log an info-level message.
+ * @property {function(...any):void} info  - Log an info-level message.
+ * @property {function(...any):void} warn  - Log a warning message.
+ * @property {function(...any):void} error - Log an error message.
+ * @property {function(...any):void} debug - Log a debug message.
+ */
+function cblcarsLog(level, ...args) {
+  return baseLogger(level, ...args);
+}
+cblcarsLog.log   = (...args) => baseLogger('info', ...args);
+cblcarsLog.info  = (...args) => baseLogger('info', ...args);
+cblcarsLog.warn  = (...args) => baseLogger('warn', ...args);
+cblcarsLog.error = (...args) => baseLogger('error', ...args);
+cblcarsLog.debug = (...args) => baseLogger('debug', ...args);
+export { cblcarsLog };
+
 
 export function cblcarsLogGroup(level, title) {
     console.groupCollapsed(); // Create a collapsed group
@@ -76,9 +114,9 @@ export function cblcarsLogGroup(level, title) {
 
 export function logImportStatus(importName, importedValue) {
     if (importedValue === undefined) {
-        cblcarsLog('error', `Import error: ${importName} is not imported correctly.`);
+        cblcarsLog.error(`Import error: ${importName} is not imported correctly.`);
     } else {
-        console.debug(`${importName} imported successfully.`);
+        cblcarsLog.debug(`${importName} imported successfully.`);
     }
 }
 

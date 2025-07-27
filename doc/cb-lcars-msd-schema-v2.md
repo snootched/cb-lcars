@@ -240,32 +240,121 @@ line:
 
 ### Animation Object
 
-| Key      | Type   | Description                                         |
-|----------|--------|-----------------------------------------------------|
-| type     | string | `blink`, `pulse`, `march`, `draw`                   |
-| duration | string/number | Animation duration (e.g. `'1s'`, `2`)        |
-| delay    | string/number | Animation delay before start (optional)      |
-| color    | string | Animation color override (optional)                 |
-| direction| string | For `march`: `'forward'` (default) or `'reverse'`   |
-| min_opacity | number | For `blink`: minimum opacity (0-1, default `0.3`) |
-| max_opacity | number | For `blink`: maximum opacity (0-1, default `1.0`) |
+The `animation` object allows you to bring your MSD overlays to life. Animations can be applied to both `line` and `text` objects within a callout.
 
-#### Supported Types
+#### Common Animation Properties
 
-- `march`: Animated dashed/dotted lines ("marching ants")
-- `pulse`: Pulses opacity/width
-- `blink`: Blinks on/off (can be used for fade effects via keyframes)
-- `draw`: Animates the line as if it is being drawn
+All animation types share these common optional properties:
 
-#### Example: Blinking Text
+| Key       | Type          | Description                                                              |
+|-----------|---------------|--------------------------------------------------------------------------|
+| `duration`  | string/number | The length of the animation (e.g., `2000` for ms, or `'2s'`). Default: `1000`. |
+| `delay`     | string/number | A delay before the animation starts (e.g., `500`).                       |
+| `easing`    | string        | The animation timing function (e.g., `'linear'`, `'easeInOutQuad'`).      |
+| `loop`      | boolean       | Set to `true` to make the animation repeat indefinitely.                 |
+| `direction` | string        | Can be `'reverse'` or `'alternate'`.                                     |
 
-```yaml
-text:
-  value: "ALERT"
-  animation:
-    type: blink
-    duration: 0.5s
-```
+---
+
+#### Supported Animation Types
+
+##### 1. `draw`
+*   **Description:** Animates the stroke of a solid line, making it appear as if it's being drawn on the screen.
+*   **Applies to:** Lines.
+*   **Example:**
+    ```yaml
+    line:
+      animation:
+        type: draw
+        duration: 3000
+        # To "undraw" the line, use direction: 'reverse'
+    ```
+
+##### 2. `march`
+*   **Description:** Creates the classic "marching ants" effect for dashed or dotted lines.
+*   **Applies to:** Lines with a `stroke_dasharray` defined.
+*   **Example:**
+    ```yaml
+    line:
+      stroke_dasharray: "10,5" # A 10px dash followed by a 5px gap
+      animation:
+        type: march
+        duration: 2000
+        easing: 'linear' # Recommended for a smooth, continuous effect
+    ```
+
+##### 3. `blink`
+*   **Description:** Causes an element to smoothly fade between two opacity values.
+*   **Applies to:** Lines and text.
+*   **Specific Options:**
+    *   `min_opacity`: The lowest opacity value (defaults to `0.3`).
+    *   `max_opacity`: The highest opacity value (defaults to `1`).
+*   **Example:**
+    ```yaml
+    text:
+      animation:
+        type: blink
+        duration: 1500
+        min_opacity: 0.2
+    ```
+
+##### 4. `fade`
+*   **Description:** A simple fade-in animation, from fully transparent to fully opaque.
+*   **Applies to:** Lines and text.
+*   **Example:**
+    ```yaml
+    text:
+      animation:
+        type: fade
+        duration: 1000
+        delay: 500
+        # To fade out, use direction: 'reverse'
+    ```
+
+##### 5. `motionPath`
+*   **Description:** Moves a "tracer" element along the callout's line path.
+*   **Applies to:** The `line` object's animation.
+*   **Required Option:**
+    *   `tracer`: An object that defines the tracer's appearance.
+*   **Tracer Options:**
+    *   `shape`: `'circle'` (default) or `'rect'`.
+    *   `size`: For `rect`, the width and height.
+    *   `r`: For `circle`, the radius.
+    *   Any other valid SVG attributes (`fill`, `stroke`, `stroke_width`, etc.).
+*   **Example:**
+    ```yaml
+    line:
+      # The line itself is just a path for the tracer to follow
+      color: var(--lcars-gray)
+      animation:
+        type: motionpath
+        duration: 5000
+        loop: true
+        tracer:
+          shape: circle
+          r: 5
+          fill: var(--lcars-red)
+    ```
+
+##### 6. `morph`
+*   **Description:** Transforms the shape of one line path into the shape of another.
+*   **Applies to:** Lines.
+*   **Required Option:**
+    *   `morph_to_selector`: A CSS selector (e.g., `'#target-shape-id'`) that points to the destination `<path>` shape. The target path must exist in the SVG (it can be another callout's line).
+*   **Specific Options:**
+    *   `precision`: A number that defines the number of points for both paths, ensuring a smoother animation. Higher numbers are more precise but can be less performant. A value around `10` is a good starting point.
+*   **Example:**
+    ```yaml
+    # This line will morph into the shape of the line with id="msd_line_1"
+    line:
+      animation:
+        type: morph
+        morph_to_selector: '#msd_line_1'
+        precision: 10
+        duration: 2000
+        direction: alternate # Morphs back and forth
+        loop: true
+    ```
 
 ---
 

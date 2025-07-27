@@ -6,21 +6,18 @@ import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 import { preloadSVGs, loadSVGToCache, getSVGFromCache } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
 import { CBLCARSCardEditor } from './editor/cb-lcars-editor.js';
-import { loadFont, loadCoreFonts } from './utils/cb-lcars-theme.js';
+import { loadFont, loadCoreFonts, loadAllFontsFromConfig } from './utils/cb-lcars-theme.js';
 import { getLovelace, checkLovelaceTemplates } from './utils/cb-helpers.js';
 import { ButtonCard } from "./cblcars-button-card.js"
 import { html } from 'lit';
 
-//old file...
-import * as cblcarsAnimSvg from './utils/cb-lcars-anim-svg.js';
-
-//import * as animeNS from 'animejs';
 // Import all modular helpers
 import * as overlayHelpers from './utils/cb-lcars-overlay-helpers.js';
 import * as animHelpers from './utils/cb-lcars-anim-helpers.js';
 import * as svgHelpers from './utils/cb-lcars-svg-helpers.js';
 import * as styleHelpers from './utils/cb-lcars-style-helpers.js';
 import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
+import { load } from 'js-yaml';
 
 
 // Ensure global namespace
@@ -39,30 +36,22 @@ let stubConfig = {};
 //window.cblcars = window.cblcars || {};
 window.cblcars.loadFont = loadFont;
 
-// Utility for lazy loading user SVGs (e.g., from /local/)
-//window.cblcars = window.cblcars || {};
-//window.cblcars.loadUserSVG = async function(key, url) {
-//    return await loadSVGToCache(key, url);
-//};
-//window.cblcars.getSVGFromCache = getSVGFromCache;
-
 
 async function initializeCustomCard() {
 
     // Call log banner function immediately when the script loads
     cblcarsLogBanner();
-
-    window.cblcars.animejs = window.cblcars.animejs = anime; // Expose anime.js globally
-    window.cblcars.anime = anime.animate; // shortcut for anime.animate (compatible with old code)
+    window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
+    window.cblcars.animejs = anime; // Expose the full anime.js module
+    window.cblcars.anime = anime.animate; // shortcut for anime.animate
     window.cblcars.overlayHelpers = overlayHelpers;
     window.cblcars.animateElement = animHelpers.animateElement;
     window.cblcars.waitForElement = animHelpers.waitForElement;
-    window.cblcars.resolveAnimationTargets = overlayHelpers.resolveAnimationTargets;
+    //window.cblcars.resolveAnimationTargets = overlayHelpers.resolveAnimationTargets;
     window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
     window.cblcars.svgHelpers = svgHelpers;
     window.cblcars.styleHelpers = styleHelpers;
     window.cblcars.anchorHelpers = anchorHelpers;
-    window.cblcars.animSvg = cblcarsAnimSvg;
     window.cblcars.loadFont = loadFont;
     window.cblcars.loadUserSVG = async function(key, url) {
         return await loadSVGToCache(key, url);
@@ -77,7 +66,7 @@ async function initializeCustomCard() {
 
     // Await SVG preload
     await preloadSVGs(CBLCARS.builtin_svg_keys, CBLCARS.builtin_svg_basepath)
-        .catch(error => cblcarsLog('error', 'Error preloading built-in SVGs:', error));
+        .catch(error => cblcarsLog.error('[initializeCustomCard] Error preloading built-in SVGs:', error));
 
     // Await card dependencies
     const cardImports = [
@@ -94,10 +83,10 @@ async function initializeCustomCard() {
 
     // Checks that custom element dependencies are defined for use in the cards
     if (!customElements.get('cblcars-button-card')) {
-        cblcarsLog('error',`Custom Button Card for LCARS [cblcars-button-card] was not found!`);
+        cblcarsLog.error(`[initializeCustomCard] Custom Button Card for LCARS [cblcars-button-card] was not found!`);
     }
     if (!customElements.get('my-slider-v2')) {
-        cblcarsLog('error',`'My Cards' MySliderV2 Custom Card [my-slider-v2] was not found!`);
+        cblcarsLog.error(`[initializeCustomCard] 'My Cards' MySliderV2 Custom Card [my-slider-v2] was not found!`);
     }
 }
 
@@ -115,7 +104,7 @@ initializeCustomCard()
         defineCustomElement('cb-lcars-msd-card', CBLCARSMSDCard, 'cb-lcars-msd-card-editor', CBLCARSCardEditor);
     })
     .catch(error => {
-        cblcarsLog('error','Error initializing custom card:', error);
+        cblcarsLog.error('[initializeCustomCard.then()] Error initializing custom card:', error);
     });
 
 
@@ -135,9 +124,9 @@ async function loadTemplates(filePath) {
         }
 
         templates = yamlContent || {};
-        cblcarsLog('debug', `CB-LCARS dashboard templates loaded from source file [${filePath}]`, templates);
+        cblcarsLog.debug(`[loadTemplates] CB-LCARS dashboard templates loaded from source file [${filePath}]`, templates);
     } catch (error) {
-        cblcarsLog('error', 'Failed to get the CB-LCARS lovelace templates from source file.', error);
+        cblcarsLog.error('[loadTemplates] Failed to get the CB-LCARS lovelace templates from source file.', error);
     }
 }
 
@@ -152,17 +141,17 @@ async function loadThemeColors(filePath) {
                 ...yamlContent.cblcars
             };
         }
-        cblcarsLog('info', `CB-LCARS theme colors loaded from source file [${filePath}]`, yamlContent);
+        cblcarsLog.info(`[loadThemeColors] CB-LCARS theme colors loaded from source file [${filePath}]`, yamlContent);
         setThemeColors(window.cblcars.themes, 'green');
     } catch (error) {
-        cblcarsLog('error', 'Failed to get the CB-LCARS theme colors from source file.', error);
+        cblcarsLog.error('[loadThemeColors] Failed to get the CB-LCARS theme colors from source file.', error);
     }
 }
 
 function setThemeColors(themes, alertCondition = 'green', clobber = false) {
     const selectedTheme = themes[`${alertCondition}_alert`];
     if (!selectedTheme) {
-        cblcarsLog('error', `Theme for alert condition ${alertCondition} is not defined.`, '', cblcarsGetGlobalLogLevel());
+        cblcarsLog.error(`[setThemeColors] Theme for alert condition ${alertCondition} is not defined.`, '', cblcarsGetGlobalLogLevel());
         return;
     }
 
@@ -174,10 +163,10 @@ function setThemeColors(themes, alertCondition = 'green', clobber = false) {
             const existingValue = getComputedStyle(document.documentElement).getPropertyValue(cssVarName).trim();
 
             if (clobber || !existingValue) {
-                cblcarsLog('warn', `Color undefined or overridden - Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
+                cblcarsLog.warn(`[setThemeColors] Color undefined or overridden - Setting ${cssVarName}=${colorValue}`, '', cblcarsGetGlobalLogLevel());
                 document.documentElement.style.setProperty(cssVarName, colorValue);
             } else {
-                cblcarsLog('debug', `Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
+                cblcarsLog.debug(`[setThemeColors] Skipping ${cssVarName} as it is already defined with value ${existingValue}`, '', cblcarsGetGlobalLogLevel());
             }
         }
     }
@@ -192,9 +181,9 @@ async function loadStubConfig(filePath) {
     try {
         const yamlContent = await readYamlFile(filePath);
         stubConfig = yamlContent || {};
-        cblcarsLog('debug',`CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`,stubConfig);
+        cblcarsLog.debug(`[loadStubConfig] CB-LCARS stub configuration loaded from source file [${CBLCARS.stub_config_uri}]`, stubConfig);
     } catch (error) {
-        cblcarsLog('error','Failed to get the CB-LCARS stub configuration from source file.',error);
+        cblcarsLog.error('[loadStubConfig] Failed to get the CB-LCARS stub configuration from source file.', error);
     }
 }
 
@@ -219,7 +208,7 @@ class CBLCARSBaseCard extends ButtonCard {
         this._resizeObserverTolerance = window.cblcars.resizeObserverTolerance || this._resizeObserverTolerance;
         this._debounceWait = window.cblcars.debounceWait || this._debounceWait;
         this._resizeObserver = new ResizeObserver(() => {
-            cblcarsLog('debug','Resize observer fired', this, this._logLevel);
+            cblcarsLog.debug('[CBLCARSBaseCard.constructor()] Resize observer fired', this, this._logLevel);
             this._debouncedResizeHandler();
         });
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
@@ -247,6 +236,8 @@ class CBLCARSBaseCard extends ButtonCard {
             template: mergedTemplates,
         };
 
+        // Load all fonts from the config (dynamically loads fonts based on the config)
+        loadAllFontsFromConfig(this._config);
 
         // Check if the card is using a template from the dashboard's yaml.
         // this will override the card's configuration
@@ -258,7 +249,7 @@ class CBLCARSBaseCard extends ButtonCard {
         // Log a warning if the card is using a template from the dashboard's yaml
         // add the card to a list of tainted cards
         if(isUsingLovelaceTemplate) {
-            cblcarsLog('warn',`Card configuration templates are being overridden with local dashboard YAML configuration.  Templates: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
+            cblcarsLog.warn(`[CBLCARSBaseCard.setConfig()] Card configuration templates are being overridden with local dashboard YAML configuration.  Templates: ${overriddenTemplates.join(', ')}`, this, this._logLevel);
             window.cblcars.taintedCards = window.cblcars.taintedCards || [];
             window.cblcars.taintedCards.push({card: this, templates: overriddenTemplates});
         }
@@ -281,7 +272,7 @@ class CBLCARSBaseCard extends ButtonCard {
         }
 
         super.setConfig(this._config);
-        cblcarsLog('debug',`${this.constructor.name}.setConfig() called with:`, this._config, this._logLevel);
+        cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] called with:`, this._config, this._logLevel);
     }
 
     static get editorType() {
@@ -304,14 +295,14 @@ class CBLCARSBaseCard extends ButtonCard {
 
         try {
             if (!customElements.get(editorType)) {
-                cblcarsLog('error',`${this.constructor.name}.getConfigElement() Graphical editor element [${editorType}] is not defined defined in Home Assistant!`,null ,this._logLevel);
+                cblcarsLog.error(`[CBLCARSBaseCard.getConfigElement()] Graphical editor element [${editorType}] is not defined defined in Home Assistant!`, null, this._logLevel);
                 return null;
             }
             const element = document.createElement(editorType);
             //console.log('Element created:', element);
             return element;
         } catch (error) {
-            cblcarsLog('error',`${this.constructor.name}.getConfigElement() Error creating element ${editorType}: `,error, this._logLevel);
+            cblcarsLog.error(`[CBLCARSBaseCard.getConfigElement()] Error creating element ${editorType}: `, error, this._logLevel);
             return null;
         }
     }
@@ -370,7 +361,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         const parentWidth = this.parentElement.offsetWidth;
         const parentHeight = this.parentElement.offsetHeight;
-        cblcarsLog('debug',`Going with dimensions: ${parentWidth} x ${parentHeight}`, this, this._logLevel);
+        //cblcarsLog.debug(`Going with dimensions: ${parentWidth} x ${parentHeight}`, this, this._logLevel);
 
         const significantChange = this._resizeObserverTolerance;
         // Only update if there is a significant change
@@ -384,7 +375,7 @@ class CBLCARSBaseCard extends ButtonCard {
             this.style.setProperty('--button-card-height', `${parentHeight}px`);
 
             if (!this._config) {
-                cblcarsLog('debug','Config is not defined. Skipping resize handling.', this, this._logLevel);
+                cblcarsLog.debug('[CBLCARSBaseCard._updateCardSize()] Config is not defined. Skipping resize handling.', this, this._logLevel);
                 return;
             }
 
@@ -413,7 +404,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         if (targetElement && this.isConnected) {
             this._resizeObserver.observe(targetElement);
-            cblcarsLog('debug',`${this.constructor.name}.enableResizeObserver() Resize observer enabled on [${this._resizeObserverTarget}]`, this, this._logLevel);
+            cblcarsLog.debug(`[CBLCARSBaseCard.enableResizeObserver()] Resize observer enabled on [${this._resizeObserverTarget}]`, this, this._logLevel);
         }
     }
 
@@ -421,7 +412,7 @@ class CBLCARSBaseCard extends ButtonCard {
         if (this._resizeObserver) {
             this._resizeObserver.disconnect();
         }
-        cblcarsLog('debug',`${this.constructor.name}.disableResizeObserver() Resize observer disabled`, this._logLevel);
+        cblcarsLog.debug(`[CBLCARSBaseCard.disableResizeObserver()] Resize observer disabled`, this._logLevel);
     }
 
     toggleResizeObserver() {
@@ -781,7 +772,7 @@ Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise])
     defineCustomElement('cb-lcars-msd-card', CBLCARSMSDCard, 'cb-lcars-msd-card-editor', CBLCARSCardEditor);
   })
   .catch(error => {
-    cblcarsLog('error', 'Error loading YAML configuration:', error);
+    cblcarsLog.error('Error loading YAML configuration:', error);
   });
 */
 

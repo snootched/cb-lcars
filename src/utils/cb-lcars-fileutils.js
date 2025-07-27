@@ -7,14 +7,14 @@ export async function fetchYAML(url) {
         const response = await fetch(url);
         if (response.ok) {
             const yamlContent = await response.text();
-            //cblcarsLog('debug',`Fetched yaml file ${url}`);
+            //cblcarsLog.debug(`Fetched yaml file ${url}`);
 
             return yamlContent;
         } //else {
           //  throw new Error(`Error fetching YAML: ${response.status} ${response.statusText}`);
         //}
     } catch (error) {
-        cblcarsLog('error', 'Error fetching YAML file ',error);
+        cblcarsLog.error('[fetchYAML] Error fetching YAML file ',error);
         throw error;
     }
 }
@@ -24,11 +24,11 @@ export async function readYamlFile(url) {
     try {
         const response = await fetchYAML(url);
         const jsObject = jsyaml.load(response);
-        //await cblcarsLog('info',`Processed YAML file: ${url}`);
-        //await cblcarsLog('debug', jsObject);
+        //await cblcarsLog.info(`Processed YAML file: ${url}`);
+        //await cblcarsLog.debug(jsObject);
         return jsObject;
     } catch (error) {
-        cblcarsLog('error', 'Failed to parse YAML file',error.message);
+        cblcarsLog.error('[readYamlFile] Failed to parse YAML file',error.message);
         throw error; // Re-throw the error after logging it
     }
 }
@@ -56,15 +56,15 @@ export async function loadSVGToCache(key, url) {
     try {
         const response = await fetch(url);
         if (!response.ok) {
-            cblcarsLog('error', `Failed to fetch SVG [${url}] for key [${key}]: ${response.status} ${response.statusText}`);
+            cblcarsLog.error(`[loadSVGToCache] Failed to fetch SVG [${url}] for key [${key}]: ${response.status} ${response.statusText}`);
             return undefined;
         }
         const svgText = await response.text();
         cache[key] = svgText;
-        cblcarsLog('debug', `Loaded SVG [${key}] from [${url}]`);
+        cblcarsLog.debug(`[loadSVGToCache] Loaded SVG [${key}] from [${url}]`);
         return svgText;
     } catch (error) {
-        cblcarsLog('error', `Error loading SVG [${key}] from [${url}]`, error);
+        cblcarsLog.error(`[loadSVGToCache] Error loading SVG [${key}] from [${url}]`, error);
         return undefined;
     }
 }
@@ -89,5 +89,5 @@ export async function preloadSVGs(svgList, basePath) {
         return loadSVGToCache(key, url);
     });
     await Promise.all(promises);
-    cblcarsLog('info', `Preloaded SVGs: ${svgList.join(', ')} from ${basePath}`);
+    cblcarsLog.info(`[preloadSVGs] Preloaded SVGs: ${svgList.join(', ')} from ${basePath}`);
 }

@@ -25,6 +25,18 @@ export function drawText({ x, y, text, id, attrs = {}, style = {} }) {
   return `<text id="${id || ''}" x="${x}" y="${y}"${attrsStr}${styleStr}>${text}</text>`;
 }
 
+export function drawCircle({ cx, cy, r, id, attrs = {}, style = {} }) {
+  const attrsStr = attrsToString(attrs);
+  const styleStr = styleToString(style);
+  return `<circle id="${id || ''}" cx="${cx}" cy="${cy}" r="${r}"${attrsStr}${styleStr} />`;
+}
+
+export function drawRect({ x, y, width, height, id, attrs = {}, style = {} }) {
+  const attrsStr = attrsToString(attrs);
+  const styleStr = styleToString(style);
+  return `<rect id="${id || ''}" x="${x}" y="${y}" width="${width}" height="${height}"${attrsStr}${styleStr} />`;
+}
+
 // --- Utility helpers ---
 
 export function attrsToString(attrs) {

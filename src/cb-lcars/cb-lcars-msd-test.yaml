@@ -3,6 +3,27 @@ variables:
   msd:
     base_svg: 'builtin:ncc-1701-a-blue'
     presets:
+      state_resolver:
+        enabled: true
+        states:
+          - entity: input_number.num_test
+            from: 0
+            to: 10
+            preset: default
+          - entity: input_number.num_test
+            from: 10
+            to: 1000
+            preset: warning
+      warning:
+        text:
+          color: var(--lcars-red)
+          value: "[[[ return `WARNING: ${entity.state}` ]]]"
+        line:
+          color: var(--lcars-red)
+          stroke_dasharray: "2,8"
+          animation:
+            type: march
+            duration: 500
       default:
         text:
           font_size: 18
@@ -21,7 +42,7 @@ variables:
     slots:
       test_callout:
         callout:
-          entity: sensor.test_entity
+          entity: input_number.num_test
           anchor: warp_core
           preset: default
           visible: true
@@ -111,6 +132,60 @@ variables:
               duration: 1200ms
               min_opacity: 0.5
               max_opacity: 0.9
+      test_motion_path:
+        callout:
+          text:
+            value: "Motion Path"
+            position: [50, 270]
+          line:
+            points:
+              - [150, 270]
+              - [200, 240]
+              - [250, 270]
+            width: 2
+            color:
+              default: var(--lcars-gray)
+            # This animation will create and move a tracer along the line
+            animation:
+              type: motionpath
+              duration: 4000
+              loop: true
+              tracer:
+                shape: circle
+                r: 5
+                fill: var(--lcars-red)
+      morph_target:
+        callout:
+          # This callout defines the shape we will morph TO.
+          # It is made invisible so only the animation is seen.
+          id: morph_target # This gives the line a predictable ID: msd_line_morph_target
+          line:
+            points:
+              - [50, 300]
+              - [150, 350]
+              - [250, 300]
+            width: 3
+            color: transparent # Make the target path invisible
+      morph_source:
+        callout:
+          # This is the line that will perform the morph animation.
+          text:
+            value: "Morph Animation"
+            position: [50, 290]
+          line:
+            points:
+              - [50, 325]
+              - [250, 325] # A straight horizontal line
+            width: 3
+            color:
+              default: var(--lcars-teal)
+            animation:
+              type: morph
+              # The selector points to the ID of the target line.
+              morph_to_selector: '#msd_line_morph_target'
+              duration: 2500
+              loop: true
+              direction: alternate
 custom_fields:
   msd_svg_base: |
     [[[
@@ -119,9 +194,14 @@ custom_fields:
       let viewBox = [0, 0, 400, 200];
       let anchorTable = {};
       let svgKey = null;
+
+
       if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
         svgKey = variables.msd.base_svg.replace('builtin:', '');
+      } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/local/')) {
+        svgKey = variables.msd.base_svg.split('/').pop().replace('.svg','');
       }
+
       svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
       if (!svgContent) {
         return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
@@ -150,19 +230,28 @@ custom_fields:
     ]]]
   msd_svg_overlays: |
     [[[
-      // Use the new helper (once exposed on window.cblcars)
-      return window.cblcars.renderMsdOverlay({
+      // The renderMsdOverlay helper now returns the markup and a list of animations to run.
+      const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
         overlays: (() => {
-          // Merge slots/callouts as in your main config
           const slots = variables.msd.slots || {};
           return Object.values(slots).map(slot => slot.callout);
         })(),
         anchors: variables.msd._anchors,
         styleLayers: variables.msd.presets,
         hass,
-        root: this,
+        root: this.shadowRoot, // Pass shadowRoot for element queries
         viewBox: variables.msd._viewBox
       });
+
+      // Schedule the animations to run after the card has rendered the SVG markup.
+      if (animationsToRun.length > 0) {
+        requestAnimationFrame(() => {
+          animationsToRun.forEach(anim => window.cblcars.animateElement(anim));
+        });
+      }
+
+      // Return only the SVG markup for the card to render.
+      return svgMarkup;
     ]]]
 styles:
   custom_fields:

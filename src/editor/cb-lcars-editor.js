@@ -17,7 +17,7 @@ export class CBLCARSCardEditor extends EditorForm {
         this._cardType = "";
         this._cardType = cardType;
 
-        //cblcarsLog('debug',`Setting up editor for ${cardType}`);
+        //cblcarsLog.debug(`Setting up editor for ${cardType}`);
 
         this._initializationPromise = this._initialize();
     }
@@ -28,7 +28,7 @@ export class CBLCARSCardEditor extends EditorForm {
             const response = await fetch(`${CBLCARS.card_editor_uri}/${this._cardType}.json`);
             if (!response.ok) throw new Error(`Form definition not found for card type: ${this._cardType}`);
             const formControls = await response.json();
-            cblcarsLog('debug', 'Loaded formControls:', formControls);
+            cblcarsLog.debug('Loaded formControls:', formControls);
             this._formControls = formControls;
 
             // Handle user styles if present
@@ -37,7 +37,7 @@ export class CBLCARSCardEditor extends EditorForm {
 
             this.requestUpdate();
         } catch(error) {
-            cblcarsLog('error','Error fetching editor form definition: ', error);
+            cblcarsLog.error('Error fetching editor form definition: ', error);
         }
     }
 
@@ -68,7 +68,7 @@ export class CBLCARSCardEditor extends EditorForm {
             const returnForm = this.generateForm(formContent);
             return returnForm;
         } catch (error) {
-            cblcarsLog('error','Error rendering configuration form:', error);
+            cblcarsLog.error('Error rendering configuration form:', error);
             return html`<ha-alert alert-type="error" title="Error">Error rendering form: ${error.message}</ha-alert>`;
         }
     }

@@ -1,6 +1,7 @@
-import { drawLine, drawPolyline, drawText } from './cb-lcars-svg-helpers.js';
+import * as svgHelpers from './cb-lcars-svg-helpers.js';
 import { splitAttrsAndStyle } from './cb-lcars-style-helpers.js';
 import { animateElement } from './cb-lcars-anim-helpers.js';
+import { cblcarsLog } from './cb-lcars-logging.js';
 
 /**
  * A singleton utility to accurately measure text width using an off-screen canvas.
@@ -69,7 +70,7 @@ function evaluateTemplate(template, context = {}) {
     const func = new Function(...Object.keys(context), `return ${code}`);
     return func(...Object.values(context));
   } catch (e) {
-    console.error('[CB-LCARS] Error evaluating template:', { template, context, error: e });
+    cblcarsLog.error('[evaluateTemplate] Error evaluating template:', { template, context, error: e });
     return 'TEMPLATE_ERROR';
   }
 }
@@ -101,18 +102,18 @@ function resolveCalloutState(callout, hass, globalResolver = {}) {
     return null;
   }
 
-  console.debug(`[CB-LCARS] [resolveCalloutState] Evaluating for callout with entity: ${callout.entity}`, { callout, stateConfig });
+  cblcarsLog.debug(`[resolveCalloutState] Evaluating for callout with entity: ${callout.entity}`, { callout, stateConfig });
 
   for (const entry of stateConfig.states) {
     const entityId = entry.entity || callout.entity;
     if (!entityId) {
-        console.debug('[CB-LCARS] [resolveCalloutState] Skipping state entry, no entity_id.', { entry });
+        cblcarsLog.debug('[resolveCalloutState] Skipping state entry, no entity_id.', { entry });
         continue;
     }
 
     const entity = hass.states[entityId];
     if (!entity) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Skipping state entry, entity not found: ${entityId}`, { entry });
+        cblcarsLog.debug(`[resolveCalloutState] Skipping state entry, entity not found: ${entityId}`, { entry });
         continue;
     }
 
@@ -120,52 +121,52 @@ function resolveCalloutState(callout, hass, globalResolver = {}) {
     let value = attribute ? entity.attributes[attribute] : entity.state;
 
     if (value === undefined) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Skipping state entry, value is undefined for entity: ${entityId}, attribute: ${attribute}`, { entry });
+        cblcarsLog.debug(`[resolveCalloutState] Skipping state entry, value is undefined for entity: ${entityId}, attribute: ${attribute}`, { entry });
         continue;
     }
 
-    console.debug(`[CB-LCARS] [resolveCalloutState] Checking state for ${entityId}. Attribute: '${attribute}', Value: '${value}'`, { entry });
+    cblcarsLog.debug(`[resolveCalloutState] Checking state for ${entityId}. Attribute: '${attribute}', Value: '${value}'`, { entry });
 
     let numValue = Number(value);
     if (isNaN(numValue)) numValue = undefined;
 
     if (entry.equals !== undefined && value == entry.equals) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'equals'`, { value, entry });
+        cblcarsLog.debug(`[resolveCalloutState] Match found: 'equals'`, { value, entry });
         return entry;
     }
     if (entry.not_equals !== undefined && value != entry.not_equals) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'not_equals'`, { value, entry });
+        cblcarsLog.debug(`[resolveCalloutState] Match found: 'not_equals'`, { value, entry });
         return entry;
     }
     if (numValue !== undefined) {
       if (entry.from !== undefined && entry.to !== undefined && numValue >= entry.from && numValue <= entry.to) {
-          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'from-to range'`, { numValue, entry });
+          cblcarsLog.debug(`[resolveCalloutState] Match found: 'from-to range'`, { numValue, entry });
           return entry;
       }
       if (entry.from !== undefined && entry.to === undefined && numValue >= entry.from) {
-          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'from' range`, { numValue, entry });
+          cblcarsLog.debug(`[resolveCalloutState] Match found: 'from' range`, { numValue, entry });
           return entry;
       }
       if (entry.to !== undefined && entry.from === undefined && numValue <= entry.to) {
-          console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'to' range`, { numValue, entry });
+          cblcarsLog.debug(`[resolveCalloutState] Match found: 'to' range`, { numValue, entry });
           return entry;
       }
     }
     if (Array.isArray(entry.in) && entry.in.includes(value)) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'in'`, { value, entry });
+        cblcarsLog.debug(`[resolveCalloutState] Match found: 'in'`, { value, entry });
         return entry;
     }
     if (Array.isArray(entry.not_in) && !entry.not_in.includes(value)) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'not_in'`, { value, entry });
+        cblcarsLog.debug(`[resolveCalloutState] Match found: 'not_in'`, { value, entry });
         return entry;
     }
     if (entry.regex && new RegExp(entry.regex).test(value)) {
-        console.debug(`[CB-LCARS] [resolveCalloutState] Match found: 'regex'`, { value, entry });
+        cblcarsLog.debug(`[resolveCalloutState] Match found: 'regex'`, { value, entry });
         return entry;
     }
   }
 
-  console.debug(`[CB-LCARS] [resolveCalloutState] No state match found for callout with entity: ${callout.entity}`);
+  cblcarsLog.debug(`[resolveCalloutState] No state match found for callout with entity: ${callout.entity}`);
   return null;
 }
 
@@ -275,7 +276,7 @@ function resolvePoint(point, { anchors, viewBox }) {
 // Entry point for MSD overlays from custom button card
 export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = document, viewBox = [0, 0, 400, 200] }) {
   let svgElements = [];
-  let cssAnimations = ''; // Store CSS keyframes
+  let animationsToRun = []; // Store animation configs to run after rendering
   const presets = styleLayers || {};
   const defaultPreset = presets.default || {};
 
@@ -291,7 +292,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
     // Check for a state match.
     const stateMatch = resolveCalloutState(callout, hass, presets.state_resolver);
-    console.debug(`[CB-LCARS] [renderMsdOverlay] Callout ${idx} state match:`, stateMatch);
+    cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} state match:`, stateMatch);
 
     // Get the preset and settings from the state match, if any.
     const statePreset = (stateMatch?.preset && presets[stateMatch.preset]) ? presets[stateMatch.preset] : {};
@@ -304,7 +305,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     // 4. State-matched preset
     // 5. State-matched settings
     const computed = deepMerge({}, defaultPreset, calloutPreset, calloutCopy, statePreset, stateSettings);
-    console.debug(`[CB-LCARS] [renderMsdOverlay] Callout ${idx} computed config:`, computed);
+    cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} computed config:`, computed);
 
     // Prepare context for template evaluation
     const entity = callout.entity && hass.states[callout.entity] ? hass.states[callout.entity] : null;
@@ -328,7 +329,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
       }
     }
 
-    console.debug(`[CB-LCARS] Rendering MSD overlay ${idx}`, { callout, computed });
+    cblcarsLog.debug(`[renderMsdOverlay] Rendering MSD overlay ${idx}`, { callout, computed });
 
     // 2. --- Position & ID Resolution ---
     const lineId = `msd_line_${computed.id || idx}`;
@@ -338,14 +339,18 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     const anchorPos = resolvePoint(computed.anchor, pointContext);
     const textPos = resolvePoint(computed.text?.position, pointContext);
 
-    if (!textPos) {
-        console.warn(`[CB-LCARS] No valid text position for overlay ${idx}. Skipping.`);
-        return;
+    // A callout is valid if it has text to render, or a line with an anchor, or a line with explicit points.
+    const hasText = !!textPos;
+    const hasLine = computed.line && (anchorPos || (Array.isArray(computed.line.points) && computed.line.points.length > 1));
+
+    if (!hasText && !hasLine) {
+      cblcarsLog.warn(`[renderMsdOverlay] No valid text or line definition for overlay ${idx}. Skipping.`);
+      return;
     }
 
     // 3. --- Line & Text Smart Positioning ---
-    let lineStartPos = [...textPos];
-    if (computed.text) {
+    let lineStartPos = hasText ? [...textPos] : null;
+    if (computed.text && hasText) {
         const fontSize = parseFloat(computed.text.font_size) || 18;
         const textValue = evaluateTemplate(computed.text.value, templateContext);
 
@@ -410,7 +415,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
     // 4. --- Line Rendering ---
     let lineSvg = '';
-    if (computed.line && (anchorPos || (Array.isArray(computed.line.points) && computed.line.points.length > 1))) {
+    if (hasLine) {
       const { attrs, style } = splitAttrsAndStyle(computed.line);
 
       // Check for explicit polyline points first
@@ -420,22 +425,20 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
             .filter(p => p !== null);
 
         if (resolvedPoints.length > 1) {
+            const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
+            const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+
             if (computed.line.rounded) {
                 const pathData = generateSmoothPath(resolvedPoints, { tension: computed.line.smooth_tension });
-                const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
-                const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
                 lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
             } else {
-                lineSvg = drawPolyline({
-                    points: resolvedPoints,
-                    id: lineId,
-                    attrs,
-                    style,
-                });
+                // Convert polyline to path for animation compatibility (e.g., draw, motionPath)
+                const pathData = `M ${resolvedPoints.map(p => p.join(',')).join(' L ')}`;
+                lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
             }
         }
 
-      } else if (anchorPos) {
+      } else if (anchorPos && lineStartPos) {
         // Fallback to right-angle path if no points are defined but an anchor exists
         const pathData = generateRightAnglePath(lineStartPos, anchorPos, {
           radius: computed.line.corner_radius,
@@ -454,7 +457,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
     // 5. --- Text Rendering ---
     let textSvg = '';
-    if (computed.text) {
+    if (computed.text && hasText) {
       // Ensure 'fill' is set from 'color' for text elements and stroke is 'none'.
       if (computed.text.color && !computed.text.fill) {
         computed.text.fill = computed.text.color;
@@ -463,10 +466,19 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
         computed.text.stroke = 'none';
       }
 
-      const { attrs, style } = splitAttrsAndStyle(computed.text);
+      const textConfig = { ...computed.text };
+      delete textConfig.animation; // Remove animation object before processing attributes
+      const { attrs, style } = splitAttrsAndStyle(textConfig);
+
+      // If the text has a pulse animation, ensure it scales from the center.
+      if (computed.text.animation?.type === 'pulse') {
+        style['transform-origin'] = 'center';
+        style['transform-box'] = 'fill-box';
+      }
+
       const textValue = evaluateTemplate(computed.text.value, templateContext);
 
-      textSvg = drawText({
+      textSvg = svgHelpers.drawText({
         x: textPos[0], y: textPos[1],
         text: textValue,
         id: textId,
@@ -477,53 +489,42 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     }
 
     // 6. --- Animation ---
-    const lineAnim = computed.line?.animation || {};
-    const textAnim = computed.text?.animation || {};
+    const lineAnim = computed.line?.animation;
+    const textAnim = computed.text?.animation;
 
-    if (lineAnim.type === 'march') {
-      const dashArray = computed.line.stroke_dasharray;
-      if (dashArray && dashArray !== 'none') {
-        const dashLength = String(dashArray).split(/[\s,]+/).reduce((acc, val) => acc + parseFloat(val || 0), 0);
-        const direction = (lineAnim.direction || 'forward').toLowerCase();
-        const offset = direction === 'reverse' ? dashLength : -dashLength;
-        const animName = `march-${lineId}`;
-        const duration = typeof lineAnim.duration === 'number' ? `${lineAnim.duration}ms` : lineAnim.duration || '2s';
-        const delay = typeof lineAnim.delay === 'number' ? `${lineAnim.delay}ms` : lineAnim.delay || '0s';
-        cssAnimations += `
-          @keyframes ${animName} { to { stroke-dashoffset: ${offset}; } }
-          #${lineId} { animation: ${animName} ${duration} ${lineAnim.easing || 'linear'} ${delay} infinite; }
-        `;
+    if (lineAnim && lineAnim.type) {
+      if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
+        const tracerId = `msd_tracer_${computed.id || idx}`;
+        const tracerConfig = { ...lineAnim.tracer };
+        const shape = tracerConfig.shape || 'circle';
+        delete tracerConfig.shape;
+        let tracerSvg = '';
+        if (shape === 'circle') {
+          const tracerOptions = { fill: 'var(--lcars-orange)', r: 4, ...tracerConfig };
+          const { attrs, style } = splitAttrsAndStyle(tracerOptions);
+          tracerSvg = svgHelpers.drawCircle({ cx: 0, cy: 0, r: tracerOptions.r, id: tracerId, attrs, style });
+        } else if (shape === 'rect') {
+          const tracerOptions = { fill: 'var(--lcars-orange)', width: 8, height: 8, ...tracerConfig };
+          const { attrs, style } = splitAttrsAndStyle(tracerOptions);
+          tracerSvg = svgHelpers.drawRect({ x: -tracerOptions.width / 2, y: -tracerOptions.height / 2, width: tracerOptions.width, height: tracerOptions.height, id: tracerId, attrs, style });
+        }
+        if (tracerSvg) {
+          svgElements.push(tracerSvg);
+          animationsToRun.push({ ...lineAnim, targets: `#${tracerId}`, path_selector: `#${lineId}`, root });
+        }
+      } else {
+        animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
       }
-    } else if (lineAnim.type === 'blink') {
-      const animName = `blink-${lineId}`;
-      const duration = typeof lineAnim.duration === 'number' ? `${lineAnim.duration}ms` : lineAnim.duration || '1.5s';
-      const delay = typeof lineAnim.delay === 'number' ? `${lineAnim.delay}ms` : lineAnim.delay || '0s';
-      const minOpacity = lineAnim.min_opacity ?? 0.3;
-      const maxOpacity = lineAnim.max_opacity ?? 1;
-      cssAnimations += `
-        @keyframes ${animName} { 0%, 100% { opacity: ${maxOpacity}; } 50% { opacity: ${minOpacity}; } }
-        #${lineId} { animation: ${animName} ${duration} ${lineAnim.easing || 'linear'} ${delay} infinite; }
-      `;
-    } else if (lineAnim.type) {
-      animateElement({ ...lineAnim, targets: `#${lineId}`, root });
     }
 
-    if (textAnim.type === 'blink') {
-      const animName = `blink-${textId}`;
-      const duration = typeof textAnim.duration === 'number' ? `${textAnim.duration}ms` : textAnim.duration || '1.5s';
-      const delay = typeof textAnim.delay === 'number' ? `${textAnim.delay}ms` : textAnim.delay || '0s';
-      const minOpacity = textAnim.min_opacity ?? 0.3;
-      const maxOpacity = textAnim.max_opacity ?? 1;
-      cssAnimations += `
-        @keyframes ${animName} { 0%, 100% { opacity: ${maxOpacity}; } 50% { opacity: ${minOpacity}; } }
-        #${textId} { animation: ${animName} ${duration} ${textAnim.easing || 'linear'} ${delay} infinite; }
-      `;
-    } else if (textAnim.type) {
-      animateElement({ ...textAnim, targets: `#${textId}`, root });
+    if (textAnim && textAnim.type) {
+      animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
     }
   });
 
   // Wrap all overlay elements in a single SVG container
-  const styleBlock = cssAnimations ? `<style>${cssAnimations}</style>` : '';
-  return `<svg viewBox="${viewBox.join(' ')}" width="100%" height="100%" style="pointer-events:none;">${styleBlock}${svgElements.join('')}</svg>`;
+  const svgMarkup = `<svg viewBox="${viewBox.join(' ')}" width="100%" height="100%" style="pointer-events:none;">${svgElements.join('')}</svg>`;
+
+  // Return both the markup and the animations to be run
+  return { svgMarkup, animationsToRun };
 }

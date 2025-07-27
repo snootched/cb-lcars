@@ -70,9 +70,9 @@ cb-lcars-svg-alert:
               } else {
                 value = entityState;
               }
-              //cblcarsLog('debug',`value: ${value}`)
+              //cblcarsLog.debug(`value: ${value}`)
             } else {
-              //cblcarsLog("debug","no entity selected");
+              //cblcarsLog.debug("no entity selected");
             }
             let numericValue = value;
             if (typeof value === "string" && !isNaN(Number(value))) {

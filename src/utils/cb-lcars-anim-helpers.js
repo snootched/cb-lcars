@@ -1,127 +1,188 @@
-// Helper to resolve targets (selectors, elements, arrays) to a flat array of elements
-import { resolveAnimationTargets } from './cb-lcars-shared-helpers.js';
+import { cblcarsLog } from './cb-lcars-logging.js';
 
-// Wait for an element or multiple selectors/elements
-export function waitForElement(targets, context, timeout = 2000, interval = 50) {
+/**
+ * Waits for an element to be present in the DOM.
+ * @param {string} selector - The CSS selector for the element.
+ * @param {Element} root - The root element to search within.
+ * @param {number} timeout - The maximum time to wait in milliseconds.
+ * @returns {Promise<Element>} A promise that resolves with the element when found.
+ */
+export function waitForElement(selector, root = document, timeout = 2000) {
   return new Promise((resolve, reject) => {
-    console.warn("waitForElement called with targets:", targets, "context:", context);
-    //if (!targets) return resolve([]); // No targets, resolve immediately
-    const start = Date.now();
-    const allTargets = Array.isArray(targets) ? targets : [targets];
-    function check() {
-      let allFound = true;
-      let foundEls = [];
-      for (const t of allTargets) {
-        let els = [];
-        if (typeof t === 'string') {
-          // Use context.shadowRoot if present, else context, else document
-          let root = context?.shadowRoot || context || document;
-          els = root.querySelectorAll(t);
-          //els = (context?.shadowRoot || document).querySelectorAll(t);
-        } else if (t instanceof Element) {
-          els = [t];
-        }
-        if (!els.length) allFound = false;
-        foundEls.push(...els);
-      }
-      if (allFound) {
-        console.warn("waitForElement found targets:", foundEls);
-        return resolve(foundEls);
-        }
-      if (Date.now() - start > timeout) return reject(new Error('Timeout waiting for targets'));
-      setTimeout(check, interval);
+    const element = root.querySelector(selector);
+    if (element) {
+      resolve(element);
+      return;
     }
-    check();
+
+    const observer = new MutationObserver(() => {
+      const el = root.querySelector(selector);
+      if (el) {
+        observer.disconnect();
+        resolve(el);
+      }
+    });
+
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+    });
+
+    setTimeout(() => {
+      observer.disconnect();
+      reject(new Error(`[CB-LCARS] Timeout waiting for element: ${selector}`));
+    }, timeout);
   });
 }
 
+/**
+ * Animates an element using anime.js with special handling for SVG animations.
+ * @param {object} options - The animation options.
+ * @param {string} options.type - The type of animation (e.g., 'draw', 'fade', 'motionPath', 'morph').
+ * @param {string} options.targets - The CSS selector for the target element(s).
+ * @param {Element} [options.root=document] - The root element for the selector query.
+ */
+export async function animateElement(options) {
+  const { type, targets, root = document, ...animOptions } = options;
 
-// Animation type presets for anime.js v4+
-const animationPresets = {
-  blink: (cfg = {}) => ({
-    engine: 'css', // Use the CSS animation engine for blink
-    duration: cfg.duration || '1.5s',
-    easing: cfg.easing || 'linear',
-  }),
-  march: (cfg = {}) => ({
-    engine: 'css', // Use the CSS animation engine for march
-    duration: cfg.duration || '2s',
-    easing: cfg.easing || 'linear',
-  }),
-  pulse: (cfg = {}) => ({
-    scale: [
-      { value: 1, duration: (cfg.duration || 1200) / 2 },
-      { value: 1.2, duration: (cfg.duration || 1200) / 2 }
-    ],
-    loop: true,
-    direction: 'alternate',
-    easing: cfg.easing || 'easeInOutQuad',
-    duration: cfg.duration || 1200,
-  }),
-  draw: (cfg = {}) => ({
-    begin: (anim) => {
-      anim.targets.forEach(el => {
-        if (typeof el.getTotalLength !== 'function') return;
-        const len = el.getTotalLength();
-        el.style.strokeDasharray = len;
-        el.style.strokeDashoffset = len;
-      });
-    },
-    strokeDashoffset: [
-      (el) => {
-        if (typeof el.getTotalLength !== 'function') return 0;
-        return el.getTotalLength();
-      },
-      0
-    ],
-    easing: 'easeInOutSine',
-    duration: cfg.duration || 2000,
-  }),
-  // Add more types as needed...
-};
-
-// Animate helper: waits for targets and anime.js, then animates
-export function animateElement({ targets, root = document, engine = 'anime', type, ...opts }) {
-  const allTargets = Array.isArray(targets) ? targets : [targets];
-
-  // Expand type-based presets if present
-  let finalOpts = { ...opts };
-  if (type && animationPresets[type]) {
-    const presetConf = animationPresets[type](opts);
-    // The preset can specify its preferred engine
-    if (presetConf.engine) engine = presetConf.engine;
-    // User-provided opts override any defaults from the preset
-    finalOpts = { ...presetConf, ...opts };
-  }
-
-  // Prefer anime.js unless engine is explicitly 'css'
-  if (engine === 'css') {
-    // CSS keyframes: just add class to targets (assume opts.className is provided)
-    waitForElement(allTargets, root).then(foundEls => {
-      if (finalOpts.className) {
-        foundEls.forEach(el => el.classList.add(finalOpts.className));
-      }
-    }).catch(err => {
-      console.warn("CSS animation skipped:", err);
-    });
+  if (!type || !targets) {
+    cblcarsLog.warn('[animateElement] Animation missing type or targets.', { options });
     return;
   }
 
-  // anime.js v4+ logic
-  Promise.all([
-    waitForElement(allTargets, root)
-  ])
-    .then(([]) => {
-      const realTargets = resolveAnimationTargets(allTargets, root);
-      if (realTargets.length && typeof window.cblcars.anime === "function") {
-        // anime.js v4+: anime(targets, options)
-        window.cblcars.anime(realTargets, finalOpts);
-      } else {
-        throw new Error("anime.js not loaded or no targets resolved");
+  try {
+    // Wait for the target element and, crucially, capture the resolved element.
+    const element = await waitForElement(targets, root);
+
+    // Base anime.js parameters. Use the resolved element as the target.
+    const params = {
+      targets: element,
+      duration: 1000,
+      easing: 'easeInOutQuad',
+      ...animOptions,
+    };
+
+    // --- Animation Type Presets ---
+    switch (type.toLowerCase()) {
+      case 'draw':
+        // Draws a solid line from start to finish. Does not loop by default.
+        Object.assign(params, {
+          strokeDashoffset: (el) => {
+            const pathLength = el.getTotalLength();
+            el.style.strokeDasharray = pathLength;
+            return [pathLength, 0];
+          },
+        });
+        break;
+
+      case 'march': {
+        // Creates a "marching ants" effect on a dashed line. Loops by default.
+        const dashArray = element.getAttribute('stroke-dasharray');
+        if (!dashArray || dashArray === 'none') {
+          cblcarsLog.warn('[animateElement] "march" animation requires a stroke-dasharray to be set on the line.');
+          break;
+        }
+        const patternLength = dashArray.split(/[\s,]+/).reduce((acc, len) => acc + parseFloat(len), 0);
+        if (patternLength === 0) break;
+
+        // Set the initial offset to 0 before the animation starts.
+        element.style.strokeDashoffset = '0';
+
+        // Animate from 0 to the negative pattern length for a seamless loop.
+        const endValue = params.direction === 'reverse' ? patternLength : -patternLength;
+
+        Object.assign(params, {
+          strokeDashoffset: [0, endValue],
+        });
+
+        // Marching ants should loop and be linear by default
+        if (params.loop === undefined) params.loop = true;
+        if (params.easing === 'easeInOutQuad') params.easing = 'linear';
+        break;
       }
-    })
-    .catch((err) => {
-      console.warn("Animation skipped:", err);
-    });
+
+      case 'fade':
+        // Simple fade in/out.
+        // `direction: 'reverse'` fades out.
+        Object.assign(params, {
+          opacity: [0, 1],
+        });
+        break;
+
+      case 'pulse':
+        // A gentle scaling and fading effect.
+        Object.assign(params, {
+          scale: [1, 1.1],
+          opacity: [1, 0.7],
+          direction: 'alternate',
+          loop: true,
+          easing: 'easeInOutSine',
+        });
+        break;
+
+      case 'blink':
+        // Blinking effect.
+        Object.assign(params, {
+            opacity: [options.max_opacity ?? 1, options.min_opacity ?? 0.3],
+            direction: 'alternate',
+            loop: true,
+            easing: options.easing || 'easeInOutSine', // Smoother default easing
+        });
+        break;
+
+      case 'motionpath': {
+        // Moves the target element along an SVG path.
+        // Requires `path_selector` to be defined in the animation options.
+        if (!options.path_selector) {
+          cblcarsLog.error('[animateElement] motionPath animation requires a `path_selector`.', { options });
+          return;
+        }
+        const pathElement = await waitForElement(options.path_selector, root);
+
+        if (!pathElement) {
+          cblcarsLog.error(`[animateElement] motionPath could not find path element for selector: ${options.path_selector}`);
+          return;
+        }
+
+        // Correct v4 implementation using svg.createMotionPath()
+        const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathElement);
+        Object.assign(params, { translateX, translateY, rotate });
+        break;
+      }
+
+      case 'morph': {
+        // Morphs one SVG shape into another.
+        // Requires `morph_to_selector` to be defined.
+        if (!options.morph_to_selector) {
+          cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
+          return;
+        }
+        const morphTarget = await waitForElement(options.morph_to_selector, root);
+        if (!morphTarget) {
+          cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
+          return;
+        }
+
+        // Use anime.js's built-in morphTo utility, passing the precision parameter.
+        const precision = options.precision ? parseInt(options.precision, 10) : undefined;
+        Object.assign(params, {
+          d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
+        });
+        break;
+      }
+
+      default:
+        // For any other animation type, assume it's a standard anime.js property.
+        // This allows for direct use of anime.js features like `translateX`, `scale`, etc.
+        cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
+        break;
+    }
+
+    // Execute the animation with the correct signature (targets, options)
+    const { targets: finalTargets, ...finalParams } = params;
+    window.cblcars.anime(finalTargets, finalParams);
+  } catch (error) {
+    cblcarsLog.error('[animateElement] Failed to animate element:', { targets, type, error });
+  }
 }
 
