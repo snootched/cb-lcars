@@ -52,7 +52,13 @@ async function initializeCustomCard() {
     window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
     window.cblcars.svgHelpers = svgHelpers;
     window.cblcars.styleHelpers = styleHelpers;
+
     window.cblcars.anchorHelpers = anchorHelpers;
+    window.cblcars.findSvgAnchors = anchorHelpers.findSvgAnchors;
+    window.cblcars.getSvgContent = anchorHelpers.getSvgContent;
+    window.cblcars.getSvgViewBox = anchorHelpers.getSvgViewBox;
+    window.cblcars.getSvgAspectRatio = anchorHelpers.getSvgAspectRatio;
+
     window.cblcars.loadFont = loadFont;
     window.cblcars.loadUserSVG = async function(key, url) {
         return await loadSVGToCache(key, url);
