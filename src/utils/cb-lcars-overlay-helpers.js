@@ -1,5 +1,5 @@
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
-import { splitAttrsAndStyle } from './cb-lcars-style-helpers.js';
+import { resolveCalloutStyles, splitAttrsAndStyle, resolveAllDynamicValues } from './cb-lcars-style-helpers.js';
 import { animateElement } from './cb-lcars-anim-helpers.js';
 import { cblcarsLog } from './cb-lcars-logging.js';
 
@@ -27,33 +27,6 @@ const TextMeasurer = (() => {
   };
 })();
 
-/**
- * Deeply merges source objects into a target object.
- * @param {object} target - The target object.
- * @param {...object} sources - The source objects.
- * @returns {object} The merged object.
- */
-function deepMerge(target, ...sources) {
-  if (!sources.length) return target;
-  const source = sources.shift();
-
-  if (isObject(target) && isObject(source)) {
-    for (const key in source) {
-      if (isObject(source[key])) {
-        if (!target[key]) Object.assign(target, { [key]: {} });
-        deepMerge(target[key], source[key]);
-      } else {
-        Object.assign(target, { [key]: source[key] });
-      }
-    }
-  }
-
-  return deepMerge(target, ...sources);
-}
-
-function isObject(item) {
-  return (item && typeof item === 'object' && !Array.isArray(item));
-}
 
 /**
  * Safely evaluates a JS template string.
@@ -73,20 +46,6 @@ function evaluateTemplate(template, context = {}) {
     cblcarsLog.error('[evaluateTemplate] Error evaluating template:', { template, context, error: e });
     return 'TEMPLATE_ERROR';
   }
-}
-
-/**
- * Resolves the final color from a color object based on entity state.
- * Used for simple state-based color changes when state_resolver is not active.
- * @param {object|string} colorObj - The color configuration object or a color string.
- * @param {string} state - The current state of the entity.
- * @returns {string} The resolved color string.
- */
-function resolveColor(colorObj, state) {
-  if (typeof colorObj !== 'object' || colorObj === null) {
-    return colorObj; // It's already a color string or invalid
-  }
-  return colorObj[state] || colorObj.default || 'currentColor';
 }
 
 /**
@@ -304,28 +263,26 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     // 3. Callout's specific settings
     // 4. State-matched preset
     // 5. State-matched settings
-    const computed = deepMerge({}, defaultPreset, calloutPreset, calloutCopy, statePreset, stateSettings);
+    let computed = resolveCalloutStyles({
+      defaults: defaultPreset,
+      preset: calloutPreset,
+      customPreset: statePreset,
+      callout: calloutCopy,
+      stateOverrides: stateSettings
+    });
+    // Recursively resolve all dynamic values (e.g., for animation durations)
+    computed = resolveAllDynamicValues(computed, hass);
     cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} computed config:`, computed);
 
     // Prepare context for template evaluation
     const entity = callout.entity && hass.states[callout.entity] ? hass.states[callout.entity] : null;
-    const templateContext = { entity, hass, callout };
+    const templateContext = { entity, hass, callout, computed };
 
     // Visibility Check
     if (computed.visible !== undefined) {
       const isVisible = evaluateTemplate(computed.visible, templateContext);
       if (isVisible === false) {
         return; // Skip rendering this callout
-      }
-    }
-
-    // Resolve simple state-based colors if a state_resolver did not match
-    if (!stateMatch && entity) {
-      if (computed.line?.color) {
-        computed.line.color = resolveColor(computed.line.color, entity.state);
-      }
-      if (computed.text?.color) {
-        computed.text.color = resolveColor(computed.text.color, entity.state);
       }
     }
 
@@ -416,7 +373,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     // 4. --- Line Rendering ---
     let lineSvg = '';
     if (hasLine) {
-      const { attrs, style } = splitAttrsAndStyle(computed.line);
+      const { attrs, style } = splitAttrsAndStyle(computed.line, 'line');
 
       // Check for explicit polyline points first
       if (Array.isArray(computed.line.points) && computed.line.points.length > 1) {
@@ -468,7 +425,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
       const textConfig = { ...computed.text };
       delete textConfig.animation; // Remove animation object before processing attributes
-      const { attrs, style } = splitAttrsAndStyle(textConfig);
+      const { attrs, style } = splitAttrsAndStyle(textConfig, 'text');
 
       // If the text has a pulse animation, ensure it scales from the center.
       if (computed.text.animation?.type === 'pulse') {
@@ -501,11 +458,11 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
         let tracerSvg = '';
         if (shape === 'circle') {
           const tracerOptions = { fill: 'var(--lcars-orange)', r: 4, ...tracerConfig };
-          const { attrs, style } = splitAttrsAndStyle(tracerOptions);
+          const { attrs, style } = splitAttrsAndStyle(tracerOptions, 'line');
           tracerSvg = svgHelpers.drawCircle({ cx: 0, cy: 0, r: tracerOptions.r, id: tracerId, attrs, style });
         } else if (shape === 'rect') {
           const tracerOptions = { fill: 'var(--lcars-orange)', width: 8, height: 8, ...tracerConfig };
-          const { attrs, style } = splitAttrsAndStyle(tracerOptions);
+          const { attrs, style } = splitAttrsAndStyle(tracerOptions, 'line');
           tracerSvg = svgHelpers.drawRect({ x: -tracerOptions.width / 2, y: -tracerOptions.height / 2, width: tracerOptions.width, height: tracerOptions.height, id: tracerId, attrs, style });
         }
         if (tracerSvg) {

@@ -32,9 +32,8 @@ variables:
             position: warp_core_label   # Anchor id from SVG
             font_size: 18px
             align: left
-            color:
-              default: var(--primary-text-color)
-              active: var(--lcars-orange)
+            text_transform: uppercase     # 'uppercase', 'lowercase', 'capitalize'
+            color: var(--primary-text-color)
           anchor: warp_core            # Anchor id from SVG
           line:
             width: 2
@@ -108,7 +107,7 @@ Each callout is a deeply customizable overlay, defined either in `slots` (named)
 
 ```yaml
 callout:
-  entity: sensor.hull_integrity  # Used when doing simple state matching
+  entity: sensor.hull_integrity  # Used by state_resolver as a default
   attribute: null                # Use state by default
   preset: warning                # Use the 'warning' preset for styling
   text:
@@ -119,12 +118,8 @@ callout:
     font_weight: bold
     font_family: 'Antonio'
     align: left                   # Align text to the left in the box
-    color:
-      default: blue
-      "on": var(--lcars-blue)     # Simple state matching values here
-      "off": var(--lcars-ui-tertiary)
-      unavailable: var(--lcars-card-button-unavailable)
-      unknown: var(--lcars-yellow)
+    text_transform: uppercase     # 'uppercase', 'lowercase', 'capitalize'
+    color: blue
     line_attach: right
     x_offset: 8
     y_offset: 0
@@ -134,12 +129,7 @@ callout:
     width: 2
     rounded: true
     corner_radius: 12
-    color:
-      default: blue
-      active: var(--lcars-blue)
-      inactive: var(--lcars-ui-tertiary)
-      unavailable: var(--lcars-card-button-unavailable)
-      unknown: var(--lcars-yellow)
+    color: blue
     stroke_dasharray: "5,5"       # Dashed line: 5px dash, 5px gap
     stroke_linecap: "round"
     stroke_linejoin: "round"
@@ -165,8 +155,9 @@ callout:
 | font_size   | string    | Font size (e.g., `16px`)             |
 | font_weight | string    | Font weight                          |
 | font_family | string    | Font family                          |
-| color       | object    | Per-state text color (only 'default' used when using custom state matching - see below)                |
+| color       | string    | Text color. For state-based colors, use `state_resolver`.                |
 | align       | string    | `left`, `right`, `center`, `start`, `end`, `middle` |
+| text_transform | string | CSS `text-transform` property (`uppercase`, `lowercase`, etc.). Note: Do not use `transform`, which is for geometric operations. |
 | line_attach | string    | Where line meets text: `left`, `right`, `center`, etc. |
 | x_offset    | number    | Additional x offset for line attachment |
 | y_offset    | number    | Additional y offset for line attachment |
@@ -182,9 +173,7 @@ text:
   align: left
   line_attach: right
   x_offset: 8
-  color:
-    default: var(--primary-text-color)
-    active: var(--lcars-orange)
+  color: var(--primary-text-color)
 ```
 
 ---
@@ -198,7 +187,7 @@ text:
 | rounded          | bool    | Rounded elbows/corners (default: true)        |
 | corner_radius    | number  | Radius for rounded corners                    |
 | smooth_tension   | number  | Tension for smoothed polyline curves (0-1, default 0.5) |
-| color            | object  | Per-state line color (see below)              |
+| color            | string  | Line color. For state-based colors, use `state_resolver`.              |
 | stroke_dasharray | string  | SVG dash/gap pattern (e.g. `"5,5"` for dashed, `"1,6"` for dotted, `"none"` for solid) |
 | stroke_linecap   | string  | `"butt"`, `"round"`, `"square"`               |
 | stroke_linejoin  | string  | `"miter"`, `"round"`, `"bevel"`               |
@@ -206,13 +195,12 @@ text:
 | opacity          | number  | Line opacity (0.0 to 1.0)                     |
 | animation        | object  | Animation for the line                        |
 
-**Note on the `color` object:**
+**Note on the `color` property:**
 
-- The `color` object can have keys for `default` and for any explicit state value (e.g. `on`, `off`, `open`, `closed`, `active`, `inactive`, `unavailable`, `unknown`, etc).
-- **When `state_resolver` is enabled:** Only the `default` key is used and may be overridden by the state resolver logic. All other keys are ignored.
-- **When `state_resolver` is not enabled:** The card will use the key matching the entity's current state value (e.g. `on`, `off`, `open`, `closed`, etc.) if present, otherwise it falls back to `default`. This allows for simple, explicit color changes based on state without needing to use `state_resolver`. This is a shortcut for simple cases where only color needs to change and no other preset/settings logic is required.
+- The `color` property is a string representing a valid CSS color.
+- All state-based color changes must be handled by the `state_resolver`. The `state_resolver` can override the `color` value based on entity state.
 
-This applies to both `text.color` and `line.color` objects.
+This applies to both `text.color` and `line.color`.
 
 #### Example: Animated Dotted Line
 
@@ -221,20 +209,13 @@ line:
   width: 3
   stroke_dasharray: "1,6"   # 1px dot, 6px gap
   stroke_linecap: "round"
-  color:
-    default: orange
-    on: green
-    off: red
-    active: var(--lcars-orange)
-    inactive: var(--lcars-ui-tertiary)
-    unavailable: var(--lcars-card-button-unavailable)
-    unknown: var(--lcars-yellow)
+  color: orange
   animation:
     type: march
     duration: 2s
 ```
 
-> **Tip:** If you use `state_resolver`, only set the `default` color key, as the others will not be used. If you want simple color changes based on state (and nothing else), you can use state keys directly in the color object and omit `state_resolver`.
+> **Tip:** Always use `state_resolver` for any dynamic styling, including color changes based on an entity's state.
 
 ---
 
@@ -376,19 +357,16 @@ presets:
   default:
     text:
       font_size: 16
-      color:
-        default: var(--primary-text-color)
+      color: var(--primary-text-color)
+      text_transform: uppercase
     line:
       width: 2
-      color:
-        default: var(--lcars-orange)
+      color: var(--lcars-orange)
   warning:
     text:
-      color:
-        default: orange
+      color: orange
     line:
-      color:
-        default: orange
+      color: orange
 
 # Usage in callout:
 callout:
@@ -457,8 +435,7 @@ state_resolver:
       regex: "^armed_.*$"
       settings:
         line:
-          color:
-            default: var(--lcars-orange)
+          color: var(--lcars-orange)
 ```
 
 - The first matching rule is applied.
@@ -480,8 +457,7 @@ Each matcher can use one of the following operators (evaluated in this order):
    - not_equals: "off"
      settings:
        text:
-         color:
-           default: red
+         color: red
    ```
 3. **from** / **to**
    Matches if value is within (inclusive) numeric range.
@@ -503,8 +479,7 @@ Each matcher can use one of the following operators (evaluated in this order):
    - not_in: ["unavailable", "unknown"]
      settings:
        line:
-         color:
-           default: green
+         color: green
    ```
 6. **regex**
    Matches if value matches provided regular expression (string).
@@ -549,8 +524,7 @@ state_resolver:
       to: 50
       settings:
         text:
-          color:
-            default: var(--lcars-blue)
+          color: var(--lcars-blue)
     - entity: sensor.outdoor_temp
       from: 80
       to: 100
@@ -560,8 +534,7 @@ state_resolver:
       regex: "^armed_.*$"
       settings:
         line:
-          color:
-            default: var(--lcars-orange)
+          color: var(--lcars-orange)
 ```
 
 ### Benefits
@@ -621,8 +594,7 @@ state_resolver:
       to: 1000
       settings:
         text:
-          color:
-            default: red
+          color: red
         line:
           animation:
             type: blink
@@ -645,6 +617,7 @@ state_resolver:
 
 - All v1 features are supported, but `state_resolver` is now the preferred way to handle state-based styling.
 - The `conditions` array is no longer supported or documented; use `state_resolver` for all dynamic styling.
+- The simple state-to-color mapping (e.g., `color: { on: 'red' }`) is removed. All state-based color changes must use `state_resolver`.
 - Preset merging order is now explicit and supports user overrides.
 
 ---
@@ -673,39 +646,16 @@ variables:
       default:
         text:
           font_size: 16
-          font_weight: normal
-          font_family: Antonio
-          align: left
-          color:
-            default: var(--primary-text-color)
-            active: var(--lcars-orange)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
+          color: var(--primary-text-color)
+          text_transform: uppercase
         line:
           width: 2
-          rounded: true
-          corner_radius: 12
-          color:
-            default: var(--lcars-orange)
-            active: var(--lcars-orange)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars-yellow)
-          stroke_dasharray: "none"
-          stroke_linecap: "round"
-          stroke_linejoin: "round"
-          opacity: 1
-          animation:
-            type: none
-            duration: 2s
+          color: var(--lcars-orange)
       warning:
         text:
-          color:
-            default: orange
+          color: orange
         line:
-          color:
-            default: orange
+          color: orange
           stroke_dasharray: "5,5"
           animation:
             type: march
@@ -713,11 +663,9 @@ variables:
     custom_presets:
       info:
         text:
-          color:
-            default: var(--lcars-blue)
+          color: var(--lcars-blue)
         line:
-          color:
-            default: var(--lcars-blue)
+          color: var(--lcars-blue)
     state_resolver:
       enabled: true
       states:
@@ -738,9 +686,8 @@ variables:
             position: warp_core_label
             font_size: 18px
             align: left
-            color:
-              default: var(--primary-text-color)
-              active: var(--lcars-orange)
+            text_transform: uppercase
+            color: var(--primary-text-color)
             line_attach: right
             x_offset: 8
           anchor: warp_core
@@ -748,12 +695,7 @@ variables:
             width: 3
             rounded: true
             corner_radius: 16
-            color:
-              default: green
-              active: var(--lcars-green)
-              inactive: var(--lcars-ui-tertiary)
-              unavailable: var(--lcars-card-button-unavailable)
-              unknown: var(--lcars-yellow)
+            color: green
             visible: true
             stroke_dasharray: "5,5"
             stroke_linecap: "round"
@@ -793,12 +735,7 @@ variables:
                 : "Life Support: OFFLINE"; ]]]
             position: life_support_label
             font_family: LCARS
-            color:
-              default: green
-              active: var(--lcars-green)
-              inactive: var(--lcars-ui-tertiary)
-              unavailable: var(--lcars-card-button-unavailable)
-              unknown: var(--lcars-green)
+            color: green
             align: left
             line_attach: left
           anchor: life_support_anchor
@@ -806,12 +743,7 @@ variables:
             width: 3
             rounded: true
             corner_radius: 16
-            color:
-              default: green
-              active: var(--lcars-green)
-              inactive: var(--lcars-ui-tertiary)
-              unavailable: var(--lcars-card-button-unavailable)
-              unknown: var(--lcars-green)
+            color: green
             visible: true
             stroke_dasharray: "1,4"
             stroke_linecap: "round"
@@ -829,23 +761,13 @@ variables:
             [[[ return `Hull: ${entity.state}%`; ]]]
           position: [88%, 12%]
           font_family: 'Antonio'
-          color:
-            default: blue
-            active: var(--lcars-blue)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars.yellow)
+          color: blue
         anchor: [90%, 15%]
         line:
           points: [[88%, 12%], [90%, 15%]]
           width: 2
           rounded: true
-          color:
-            default: blue
-            active: var(--lcars-blue)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars.yellow)
+          color: blue
         visible: true
         tap_action:
           action: more-info
@@ -856,23 +778,13 @@ variables:
             [[[ return `Engines: ${entity.state}`; ]]]
           position: [70%, 15%]
           font_family: 'Antonio'
-          color:
-            default: yellow
-            active: var(--lcars-yellow)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars.yellow)
+          color: yellow
         anchor: [80%, 25%]
         line:
           points: [[70%, 15%], [76%, 20%], [80%, 25%]]
           width: 2
           rounded: true
-          color:
-            default: yellow
-            active: var(--lcars-yellow)
-            inactive: var(--lcars-ui-tertiary)
-            unavailable: var(--lcars-card-button-unavailable)
-            unknown: var(--lcars.yellow)
+          color: yellow
         visible: true
         tap_action:
           action: toggle
@@ -935,6 +847,94 @@ slots:
           [[[ return `Core Temp: ${entity.state}°C`; ]]]
         position: warp_core_label
         font_size: 18px
+        align: left
+        text_transform: uppercase
+        color: var(--primary-text-color)  # Base color
+      anchor: warp_core
+      line:
+        width: 3
+        stroke_dasharray: "1,6"
+        stroke_linecap: "round"
+        color: var(--lcars-orange)        # Base color
+        animation:
+          type: march
+          duration: 2s
+      state_resolver:
+        enabled: true
+        states:
+          - from: 0
+            to: 300
+            settings:
+              text:
+                color: var(--primary-text-color)  # Use default color for normal range
+              line:
+                color: var(--lcars-orange)
+          - from: 301
+            to: 1000
+            settings:
+              text:
+                color: red                        # Override color when temp is high
+              line:
+                color: red
+      # When state_resolver is enabled, it can override the base color property.
+      # This allows for complex, multi-property, or multi-entity logic.
+```
+
+**What this shows:**
+- The `airlock` callout demonstrates simple color switching by matching the entity's state directly to keys in the `color` object. No `state_resolver` is needed for this.
+- The `warp_core` callout demonstrates advanced state-based styling using `state_resolver`, which allows for more complex logic and can override any style property, but only uses the `default` color key.
+
+> **Tip:** Use direct color keys for fast, simple state-based color changes. Use `state_resolver` for more advanced, multi-property, or multi-entity state logic.
+    callout:
+      entity: sensor.warp_core_temp
+      text:
+        value: |
+          [[[ return `Core Temp: ${entity.state}°C`; ]]]
+        position: warp_core_label
+        font_size: 18px
+        align: left
+        color:
+          default: var(--primary-text-color)  # Only 'default' is used when state_resolver is enabled
+      anchor: warp_core
+      line:
+        width: 3
+        stroke_dasharray: "1,6"
+        stroke_linecap: "round"
+        color:
+          default: var(--lcars-orange)        # Only 'default' is used when state_resolver is enabled
+        animation:
+          type: march
+          duration: 2s
+      state_resolver:
+        enabled: true
+        states:
+          - from: 0
+            to: 300
+            settings:
+              text:
+                color:
+                  default: var(--primary-text-color)  # Use default color for normal range
+              line:
+                color:
+                  default: var(--lcars-orange)
+          - from: 301
+            to: 1000
+            settings:
+              text:
+                color:
+                  default: red                        # Override color when temp is high
+              line:
+                color:
+                  default: red
+      # When state_resolver is enabled, only the 'default' color key is used and can be overridden by state_resolver logic.
+      # This allows for complex, multi-property, or multi-entity logic.
+```
+
+**What this shows:**
+- The `airlock` callout demonstrates simple color switching by matching the entity's state directly to keys in the `color` object. No `state_resolver` is needed for this.
+- The `warp_core` callout demonstrates advanced state-based styling using `state_resolver`, which allows for more complex logic and can override any style property, but only uses the `default` color key.
+
+> **Tip:** Use direct color keys for fast, simple state-based color changes. Use `state_resolver` for more advanced, multi-property, or multi-entity state logic.
         align: left
         color:
           default: var(--primary-text-color)  # Only 'default' is used when state_resolver is enabled

@@ -59,7 +59,16 @@ export async function loadSVGToCache(key, url) {
             cblcarsLog.error(`[loadSVGToCache] Failed to fetch SVG [${url}] for key [${key}]: ${response.status} ${response.statusText}`);
             return undefined;
         }
-        const svgText = await response.text();
+        let svgText = await response.text();
+
+        // Find the opening <svg> tag and its attributes.
+        svgText = svgText.replace(/<svg([^>]*)>/i, (match, attributes) => {
+            // Remove existing width and height attributes.
+            let newAttributes = attributes.replace(/\s(width|height)=["'][^"']*["']/gi, '');
+            // Add width="100%" and height="100%".
+            return `<svg width="100%" height="100%"${newAttributes}>`;
+        });
+
         cache[key] = svgText;
         cblcarsLog.debug(`[loadSVGToCache] Loaded SVG [${key}] from [${url}]`);
         return svgText;

@@ -36,6 +36,30 @@ export function waitForElement(selector, root = document, timeout = 2000) {
 }
 
 /**
+ * A generic wrapper for anime.js that resolves targets within a given root element.
+ * This is useful for animations within a shadow DOM.
+ * @param {object} options - The anime.js animation options.
+ * @param {string|Element} options.targets - The CSS selector for the target element(s) or the element itself.
+ * @param {Element} [options.root=document] - The root element for the selector query.
+ */
+export async function animateWithRoot(options) {
+  const { targets, root = document, ...animOptions } = options;
+
+  if (!targets) {
+    cblcarsLog.warn('[animateWithRoot] Animation missing targets.', { options });
+    return;
+  }
+
+  try {
+    const element = await waitForElement(targets, root);
+    // Correct v4 signature: anime(targets, options)
+    window.cblcars.anime(element, animOptions);
+  } catch (error) {
+    cblcarsLog.error('[animateWithRoot] Failed to animate element:', { targets, error });
+  }
+}
+
+/**
  * Animates an element using anime.js with special handling for SVG animations.
  * @param {object} options - The animation options.
  * @param {string} options.type - The type of animation (e.g., 'draw', 'fade', 'motionPath', 'morph').
