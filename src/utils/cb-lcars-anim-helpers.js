@@ -1,4 +1,5 @@
 import { cblcarsLog } from './cb-lcars-logging.js';
+import { animPresets } from './cb-lcars-anim-presets.js';
 
 /**
  * Waits for an element to be present in the DOM.
@@ -75,10 +76,8 @@ export async function animateElement(options) {
   }
 
   try {
-    // Wait for the target element and, crucially, capture the resolved element.
     const element = await waitForElement(targets, root);
 
-    // Base anime.js parameters. Use the resolved element as the target.
     const params = {
       targets: element,
       duration: 1000,
@@ -86,127 +85,33 @@ export async function animateElement(options) {
       ...animOptions,
     };
 
-    // --- Animation Type Presets ---
-    switch (type.toLowerCase()) {
-      case 'draw':
-        // Draws a solid line from start to finish. Does not loop by default.
-        Object.assign(params, {
-          strokeDashoffset: (el) => {
-            const pathLength = el.getTotalLength();
-            el.style.strokeDasharray = pathLength;
-            return [pathLength, 0];
-          },
-        });
-        break;
-
-      case 'march': {
-        // Creates a "marching ants" effect on a dashed line. Loops by default.
-        const dashArray = element.getAttribute('stroke-dasharray');
-        if (!dashArray || dashArray === 'none') {
-          cblcarsLog.warn('[animateElement] "march" animation requires a stroke-dasharray to be set on the line.');
-          break;
-        }
-        const patternLength = dashArray.split(/[\s,]+/).reduce((acc, len) => acc + parseFloat(len), 0);
-        if (patternLength === 0) break;
-
-        // Set the initial offset to 0 before the animation starts.
-        element.style.strokeDashoffset = '0';
-
-        // Animate from 0 to the negative pattern length for a seamless loop.
-        const endValue = params.direction === 'reverse' ? patternLength : -patternLength;
-
-        Object.assign(params, {
-          strokeDashoffset: [0, endValue],
-        });
-
-        // Marching ants should loop and be linear by default
-        if (params.loop === undefined) params.loop = true;
-        if (params.easing === 'easeInOutQuad') params.easing = 'linear';
-        break;
+    // --- Use preset if available ---
+    const presetFn = animPresets[type.toLowerCase()];
+    if (presetFn) {
+      await presetFn(params, element, options);
+    } else if (type.toLowerCase() === 'morph') {
+      // Special case: morph
+      if (!options.morph_to_selector) {
+        cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
+        return;
       }
-
-      case 'fade':
-        // Simple fade in/out.
-        // `direction: 'reverse'` fades out.
-        Object.assign(params, {
-          opacity: [0, 1],
-        });
-        break;
-
-      case 'pulse':
-        // A gentle scaling and fading effect.
-        Object.assign(params, {
-          scale: [1, 1.1],
-          opacity: [1, 0.7],
-          direction: 'alternate',
-          loop: true,
-          easing: 'easeInOutSine',
-        });
-        break;
-
-      case 'blink':
-        // Blinking effect.
-        Object.assign(params, {
-            opacity: [options.max_opacity ?? 1, options.min_opacity ?? 0.3],
-            direction: 'alternate',
-            loop: true,
-            easing: options.easing || 'easeInOutSine', // Smoother default easing
-        });
-        break;
-
-      case 'motionpath': {
-        // Moves the target element along an SVG path.
-        // Requires `path_selector` to be defined in the animation options.
-        if (!options.path_selector) {
-          cblcarsLog.error('[animateElement] motionPath animation requires a `path_selector`.', { options });
-          return;
-        }
-        const pathElement = await waitForElement(options.path_selector, root);
-
-        if (!pathElement) {
-          cblcarsLog.error(`[animateElement] motionPath could not find path element for selector: ${options.path_selector}`);
-          return;
-        }
-
-        // Correct v4 implementation using svg.createMotionPath()
-        const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathElement);
-        Object.assign(params, { translateX, translateY, rotate });
-        break;
+      const morphTarget = await waitForElement(options.morph_to_selector, root);
+      if (!morphTarget) {
+        cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
+        return;
       }
-
-      case 'morph': {
-        // Morphs one SVG shape into another.
-        // Requires `morph_to_selector` to be defined.
-        if (!options.morph_to_selector) {
-          cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
-          return;
-        }
-        const morphTarget = await waitForElement(options.morph_to_selector, root);
-        if (!morphTarget) {
-          cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
-          return;
-        }
-
-        // Use anime.js's built-in morphTo utility, passing the precision parameter.
-        const precision = options.precision ? parseInt(options.precision, 10) : undefined;
-        Object.assign(params, {
-          d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
-        });
-        break;
-      }
-
-      default:
-        // For any other animation type, assume it's a standard anime.js property.
-        // This allows for direct use of anime.js features like `translateX`, `scale`, etc.
-        cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
-        break;
+      const precision = options.precision ? parseInt(options.precision, 10) : undefined;
+      Object.assign(params, {
+        d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
+      });
+    } else {
+      // Fallback: treat as standard anime.js property
+      cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
     }
 
-    // Execute the animation with the correct signature (targets, options)
     const { targets: finalTargets, ...finalParams } = params;
     window.cblcars.anime(finalTargets, finalParams);
   } catch (error) {
     cblcarsLog.error('[animateElement] Failed to animate element:', { targets, type, error });
   }
 }
-

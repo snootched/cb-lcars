@@ -1,0 +1,228 @@
+/**
+ * Deeply merges properties from one or more source objects into a target object.
+ * Note: This function mutates the target object.
+ * @param {object} target - The object to merge properties into.
+ * @param {...object} sources - The source objects to merge properties from.
+ * @returns {object} The mutated target object.
+ */
+export function deepMerge(target, ...sources) {
+  for (const src of sources) {
+    if (typeof src !== 'object' || src === null) continue;
+    for (const key in src) {
+      if (
+        src[key] && typeof src[key] === 'object' &&
+        !Array.isArray(src[key])
+      ) {
+        if (!target[key]) target[key] = {};
+        deepMerge(target[key], src[key]);
+      } else {
+        target[key] = src[key];
+      }
+    }
+  }
+  return target;
+}
+
+/**
+ * Merges multiple configuration objects for a callout with a specific precedence.
+ * The merge order is: defaults -> preset -> customPreset -> callout -> stateOverrides.
+ * It performs a deep merge for each top-level key (e.g., 'text', 'line').
+ * @param {object} options - The configuration objects to merge.
+ * @param {object} [options.defaults={}] - The base default configuration.
+ * @param {object} [options.preset={}] - The named preset configuration.
+ * @param {object} [options.customPreset={}] - The user-defined custom preset.
+ * @param {object} [options.callout={}] - The specific callout configuration.
+ * @param {object} [options.stateOverrides={}] - The overrides from a state_resolver match.
+ * @returns {object} The final, merged configuration object for the callout.
+ */
+export function resolveCalloutStyles({defaults, preset, customPreset, callout, stateOverrides}) {
+  // Deep merge each sub-object (text, line, etc.) individually
+  const result = {};
+  const keys = new Set([
+    ...Object.keys(defaults || {}),
+    ...Object.keys(preset || {}),
+    ...Object.keys(customPreset || {}),
+    ...Object.keys(callout || {}),
+    ...Object.keys(stateOverrides || {})
+  ]);
+  keys.forEach(key => {
+    result[key] = deepMerge(
+      {},
+      defaults?.[key],
+      preset?.[key],
+      customPreset?.[key],
+      callout?.[key],
+      stateOverrides?.[key]
+    );
+  });
+  return result;
+}
+
+/**
+ * Checks if a value is a dynamic mapping object.
+ * @param {*} v - The value to check.
+ * @returns {boolean} True if it's a valid dynamic mapping object.
+ */
+function isDynamicMapping(v) {
+  return (
+    v &&
+    typeof v === 'object' &&
+    !Array.isArray(v) &&
+    v.entity_id &&
+    Array.isArray(v.input_range) &&
+    Array.isArray(v.output_range)
+  );
+}
+
+/**
+ * Linear interpolation function.
+ * @param {number} x - The input value.
+ * @param {number} x1 - The start of the input range.
+ * @param {number} x2 - The end of the input range.
+ * @param {number} y1 - The start of the output range.
+ * @param {number} y2 - The end of the output range.
+ * @returns {number} The interpolated value.
+ */
+function interpolate(x, x1, x2, y1, y2) {
+  if (x1 === x2) return y1; // Avoid division by zero
+  const t = (x - x1) / (x2 - x1);
+  return y1 + t * (y2 - y1);
+}
+
+/**
+ * Resolves a dynamic value based on entity state.
+ * @param {object} mapping - The mapping configuration.
+ * @param {object} hass - The Home Assistant hass object.
+ * @returns {string|number|null} The resolved value or null if resolution fails.
+ */
+function resolveDynamicValue(mapping, hass) {
+  if (!hass || !hass.states) return null;
+
+  const entity = hass.states[mapping.entity_id];
+  if (!entity) {
+    console.warn(`Dynamic mapping: entity not found: ${mapping.entity_id}`);
+    return null;
+  }
+
+  const sourceValue = parseFloat(entity[mapping.attribute || 'state']);
+  if (isNaN(sourceValue)) return null;
+
+  const [inputMin, inputMax] = mapping.input_range;
+  const [outputMin, outputMax] = mapping.output_range;
+
+  // Clamp the source value to the input range
+  const clampedValue = Math.max(inputMin, Math.min(sourceValue, inputMax));
+
+  // Simple numeric interpolation
+  if (typeof outputMin === 'number' && typeof outputMax === 'number') {
+    return interpolate(clampedValue, inputMin, inputMax, outputMin, outputMax);
+  }
+
+  // For string values with units (e.g., '2s', '8px'), we just handle the numbers for now.
+  // A more robust solution could use anime.js's interpolate if available here.
+  const re = /(-?\d*\.?\d+)(\D*)/;
+  const outMinMatch = String(outputMin).match(re);
+  const outMaxMatch = String(outputMax).match(re);
+
+  if (outMinMatch && outMaxMatch) {
+    const numMin = parseFloat(outMinMatch[1]);
+    const unit = outMinMatch[2] || '';
+    const numMax = parseFloat(outMaxMatch[1]);
+    const result = interpolate(clampedValue, inputMin, inputMax, numMin, numMax);
+    // Preserve precision of the output range
+    const precision = Math.max(
+        (String(outputMin).split('.')[1] || '').length,
+        (String(outputMax).split('.')[1] || '').length
+    );
+    return `${result.toFixed(precision)}${unit}`;
+  }
+
+  return null; // Fallback if output range is not numbers or parsable strings
+}
+
+
+// Split style vs. SVG attribute
+const SVG_ATTRS = [
+  'stroke', 'stroke-width', 'stroke-dasharray', 'stroke-linecap', 'stroke-linejoin',
+  'fill', 'fill-opacity', 'filter', 'marker-end', 'marker-start', 'marker-mid',
+  'font-size', 'font-family', 'font-weight', 'font-style', 'text-anchor', 'dominant-baseline'
+];
+
+// Helper: map config keys to SVG attribute names
+function mapKeyToSvgAttr(key, context = '') {
+  // Common mappings
+  const keyMap = {
+    font_size: 'font-size',
+    font_family: 'font-family',
+    font_weight: 'font-weight',
+    font_style: 'font-style',
+    align: 'text-anchor',
+    stroke_dasharray: 'stroke-dasharray',
+    stroke_linecap: 'stroke-linecap',
+    stroke_linejoin: 'stroke-linejoin',
+    corner_radius: 'rx', // for rects, not used here
+    color: context === 'text' ? 'fill' : 'stroke',
+    // Always map width to stroke-width except for text context
+    width: context === 'text' ? undefined : 'stroke-width',
+    opacity: 'opacity'
+    // Add more as needed
+  };
+  if (keyMap[key]) return keyMap[key];
+  // Convert camelCase or underscore to kebab-case
+  return key.replace(/_/g, '-').replace(/[A-Z]/g, m => '-' + m.toLowerCase());
+}
+
+/**
+ * Splits a configuration object's properties into SVG attributes and CSS styles.
+ * It uses a predefined list (`SVG_ATTRS`) and key mappings (`mapKeyToSvgAttr`)
+ * to determine if a property should be an attribute or a style.
+ * @param {object} obj - The configuration object to process (e.g., `computed.line`).
+ * @param {string} [context=''] - The context ('text' or 'line') to resolve ambiguous keys like 'color'.
+ * @param {object} [hass] - The Home Assistant hass object, for resolving dynamic values.
+ * @returns {{attrs: object, style: object}} An object containing separated attributes and styles.
+ */
+export function splitAttrsAndStyle(obj, context = '', hass) {
+  const attrs = {};
+  const style = {};
+  if (!obj || typeof obj !== "object") return {attrs, style};
+  for (let [k, v] of Object.entries(obj)) {
+    // Resolve dynamic value if necessary
+    if (isDynamicMapping(v)) {
+      const resolved = resolveDynamicValue(v, hass);
+      // If resolution fails, we might want to skip this attribute
+      // or use a default. For now, we'll just skip it.
+      if (resolved === null) continue;
+      v = resolved;
+    }
+
+    const svgKey = mapKeyToSvgAttr(k, context);
+
+    // 1. Check if the key is a standard SVG presentation attribute.
+    // These are properties that can be set directly as attributes on an SVG element.
+    // The `SVG_ATTRS` array contains a list of these known attributes.
+    if (SVG_ATTRS.includes(svgKey) || svgKey.startsWith('data-')) {
+      // Special handling for color object
+      if (k === 'color' && typeof v === 'object' && v !== null) {
+        attrs[svgKey] = v.default ?? Object.values(v)[0];
+      } else {
+        attrs[svgKey] = v;
+      }
+    // 2. Check if the key is a property that must be an inline CSS style.
+    // These properties are not valid as direct SVG attributes but work inside a `style` attribute.
+    // To make a property a style, add its original key (e.g., "text_transform") to this list.
+    } else if (
+      k === "opacity" ||
+      k === "display" ||
+      k === "visibility" ||
+      k === "pointer-events" ||
+      k === "text_transform"
+    ) {
+      style[svgKey] = v;
+    // 3. As a fallback, treat any other simple value as a non-standard attribute.
+    // This allows for custom data attributes or other less common SVG attributes.
+    } else if (typeof v === "string" || typeof v === "number") {
+      attrs[svgKey] = v;
+    }
+  }
+  return { attrs, style };
+}

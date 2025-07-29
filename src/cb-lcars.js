@@ -18,6 +18,7 @@ import * as svgHelpers from './utils/cb-lcars-svg-helpers.js';
 import * as styleHelpers from './utils/cb-lcars-style-helpers.js';
 import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
 import { load } from 'js-yaml';
+import { animPresets } from './utils/cb-lcars-anim-presets.js';
 
 
 // Ensure global namespace
@@ -42,13 +43,26 @@ async function initializeCustomCard() {
     // Call log banner function immediately when the script loads
     cblcarsLogBanner();
     window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
-    window.cblcars.animejs = anime; // Expose the full anime.js module
-    window.cblcars.anime = anime.animate; // shortcut for anime.animate
+
+    // Animation namespace organization
+    window.cblcars.anim = {
+        animejs: anime, // full animejs module
+        anime: anime.animate, // shortcut for anime.animate
+        animateElement: animHelpers.animateElement,
+        animateWithRoot: animHelpers.animateWithRoot,
+        waitForElement: animHelpers.waitForElement,
+        presets: animPresets,
+        // utils: {} // add as needed
+    };
+
+    // Backward-compatible shortcuts (to be deprecated)
+    window.cblcars.animejs = window.cblcars.anim.animejs;
+    window.cblcars.anime = window.cblcars.anim.anime;
+    window.cblcars.animateElement = window.cblcars.anim.animateElement;
+    window.cblcars.animateWithRoot = window.cblcars.anim.animateWithRoot;
+    window.cblcars.waitForElement = window.cblcars.anim.waitForElement;
+
     window.cblcars.overlayHelpers = overlayHelpers;
-    window.cblcars.animateElement = animHelpers.animateElement;
-    window.cblcars.waitForElement = animHelpers.waitForElement;
-    window.cblcars.animateWithRoot = animHelpers.animateWithRoot;
-    //window.cblcars.resolveAnimationTargets = overlayHelpers.resolveAnimationTargets;
     window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
     window.cblcars.svgHelpers = svgHelpers;
     window.cblcars.styleHelpers = styleHelpers;

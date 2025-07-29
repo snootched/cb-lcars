@@ -1,976 +1,473 @@
-cb-lcars-msd:
-  template:
-    - cb-lcars-header
-  variables:
-    msd:
-      base_svg: 'builtin:ncc-1701-blue'   # Use 'builtin:' for built-in SVGs, or '/local/' for custom SVGs
-      x_offset: 0
-      y_offset: 0
-      text_width_multiplier: 0.3          # Multiplier for text width estimation in px (when needed)
-      presets:
-        default:
+type: custom:cb-lcars-base-card
+triggers_update:
+  - input_number.num_test
+  - light.tv
+variables:
+  card:
+    height: 70vw
+    color:
+      background:
+        default: black
+  msd:
+    base_svg: builtin:ncc-1701-a-blue
+    base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
+    presets:
+      default:
+        line:
+          width: 10
+          corner_style: bevel
+          corner_radius: 50
+          color: var(--picard-orange)
+          animation:
+            type: motionpath
+            duration2: 1200
+            playbackRate2: 1
+            playbackEase2: inOut(3)
+            loop: false
+            alternate: false
+            trail: true
+            duration:
+              entity_id: light.tv
+              attribute: brightness
+              input_range:
+                - 0
+                - 255
+              output_range:
+                - 4000
+                - 1001
+            tracer:
+              shape: circle
+              height: 25
+              width: 25
+              r: 15
+        text:
+          font_size: 56
+          font_family: antonio
+          text_transform: uppercase
+          color: var(--picard-moonlight)
+          animation:
+            type: fade
+            duration: 4000
+    slots:
+      wc:
+        callout:
+          preset: default
+          anchor: wc
           text:
-            font_size: 16
-            font_weight: normal
-            font_family: Antonio
-            align: left
-            color:
-              default: var(--primary-text-color)
-              # Remove active/inactive/unavailable/unknown unless you want to support them for custom state_resolver logic
-          line:
-            width: 2
-            rounded: true
-            corner_radius: 12
-            color:
-              default: var(--lcars-moonlight)
-            # --- New line style options ---
-            stroke_dasharray: "none"   # e.g. "5,5" for dashed, "1,4" for dotted, "none" for solid
-            stroke_linecap: "round"    # "butt", "round", "square"
-            stroke_linejoin: "round"   # "miter", "round", "bevel"
-            corner_style: "round"      # "round" (default), "bevel", "miter", "sharp"
-            opacity: 1                 # 0.0 to 1.0
-            # --- New animation options ---
-            animation:
-              type: none               # "none", "march", "pulse", "blink"
-              speed: 2s                # e.g. "2s"
-        warning:
-          text:
-            color:
-              default: var(--lcars-orange)
-          line:
-            color:
-              default: var(--lcars-orange)
-            stroke_dasharray: "5,5"
-            animation:
-              type: march
-              speed: 1.5s
-        error:
-          text:
-            color:
-              default: var(--lcars-red)
-          line:
-            color:
-              default: var(--lcars-red)
-            stroke_dasharray: "5,5"
+            position: wc_label
+            value: warp core
             animation:
               type: blink
-              speed: 1s
-      custom_presets:   # user-defined presets (merged over built-in)
-        # User can override or add presets here, including 'default'
-        # Example:
-        # default:
-        #   text:
-        #     font_size: 18
-        #     color:
-        #       default: var(--lcars-blue)
-        # warning:
-        #   text:
-        #     color:
-        #       default: red
-      state_resolver:
-        enabled: true
-        states: []
-      slots:
-        warp_core:
-          callout:
-            entity: sensor.warp_core_temp
-            anchor: warp_core
-            preset: default
-            text:
-              value: |
-                [[[ return `Core Temp: ${entity.state}°C`; ]]]
-              position: warp_core_label
-              line_attach: right
-            # State resolver for dynamic styling based on any entity/attribute
-            state_resolver:
-              enabled: true
-              states:
-                - entity: light.tv
-                  attribute: brightness
-                  from: 0
-                  to: 50
-                  preset: default
-                - entity: light.tv
-                  attribute: brightness
-                  from: 51
-                  to: 100
-                  preset: warning
-                - entity: light.tv
-                  attribute: brightness
-                  from: 100
-                  to: 255
-                  settings:
-                    line:
-                      rounded: false
-                    text:
-                      color:
-                        default: blue
-                - entity: light.bed
-                  attribute: brightness
-                  from: 51
-                  to: 255
-                  settings:
-                    text:
-                      color:
-                        default: orange
+              duration: 1200
+              opacity:
+                - 1
+                - 0.3
+              loop: true
+              ease: linear
+              alternate: true
           line:
-            width: 3
-            rounded: true
-            corner_radius: 16
-            color:
-              default: green
-              active: var(--lcars-green)
-              inactive: var(--lcars-ui-tertiary)
-              unavailable: var(--lcars-card-button-unavailable)
-              unknown: var(--lcars-yellow)
-            visible: true
-            stroke_dasharray: "5,5"
-            stroke_linecap: "round"
-            stroke_linejoin: "round"
-            opacity: 1
+            corner_style: round
+            stroke_dasharray:
+              - 25
+              - 25
+            animation:
+              reversed: true
+              type: march
+              alternate: false
+              easing: linear
+              loop: true
+              duation:
+                entity_id: light.tv
+                attribute: brightness
+                input_range:
+                  - 0
+                  - 255
+                output_range:
+                  - 200
+                  - 100
+      sb:
+        callout:
+          preset: default
+          anchor: sb
+          text:
+            position: sb_label
+            value: shuttle bay
+      pn_1:
+        callout:
+          preset: default
+          anchor: pn_1
+          text:
+            position: pn_3_label
+            value: port 1
+      pn_2:
+        callout:
+          preset: default
+          anchor: pn_2
+          text:
+            position: pn_2_label
+            value: port 2
+      pn_3:
+        callout:
+          preset: default
+          anchor: pn_3
+          text:
+            position: pn_1_label
+            value: port 3
+      sbn_1:
+        callout:
+          preset: default
+          anchor: sbn_3
+          text:
+            position: sbn_3_label
+            value: sb 3
+      nsb_2:
+        callout:
+          preset: default
+          anchor: sbn_2
+          text:
+            position: sbn_2_label
+            value: sb 2
+      sbn_3:
+        callout:
+          preset: default
+          anchor: sbn_1
+          text:
+            position: sbn_1_label
+            value: port 1
+      br:
+        callout:
+          preset: default
+          anchor: br
+          text:
+            position: br_label
+            value: bridge
+      scr_nw:
+        callout:
+          preset: default
+          anchor: scr_nw
+          text:
+            position: scr_nw_label
+            value: scr nw
+      scr_ne:
+        callout:
+          preset: default
+          anchor: scr_ne
+          text:
+            position: scr_ne_label
+            value: scr ne
+      scr_se:
+        callout:
+          preset: default
+          anchor: scr_se
+          text:
+            position: scr_se_label
+            value: scr se
+      scr_sw:
+        callout:
+          preset: default
+          anchor: scr_sw
+          text:
+            position: scr_sw_label
+            value: scr sw
+  msd1:
+    base_svg: builtin:ncc-1701-a-blue
+    base_svg2: /local/cblcars/shuttle_test.svg
+    presets:
+      default:
+        text:
+          font_size: 50
+          font_family: Antonio
+          color: var(--primary-text-color)
+        line:
+          width: 14
+          rounded: true
+          corner_radius: 50
+          color:
+            default: var(--lcars-orange)
+          stroke_dasharray2: 10,5
+      warning:
+        text:
+          color: var(--lcars-yellow)
+        line:
+          color:
+            default: var(--lcars-yellow)
+          animation:
+            type: blink
+            duration: 750ms
+    slots:
+      static_position:
+        callout:
+          anchor:
+            - 90%
+            - 90%
+          preset: default
+          line:
             animation:
               type: march
-              speed: 2s
-        life_support:
-          callout:
-            entity: switch.life_support
-            anchor: life_support_anchor
-            preset: default
-            text:
-              value: |
-                [[[ return entity.state === 'on'
-                  ? "Life Support: ENGAGED"
-                  : "Life Support: OFFLINE"; ]]]
-              position: life_support_label
-              line_attach: left
-              font_family: Antonio
-            line:
-              width: 3
-              rounded: true
-              corner_radius: 16
-              color:
-                default: green
-                active: var(--lcars-green)
-                inactive: var(--lcars-ui-tertiary)
-                unavailable: var(--lcars-card-button-unavailable)
-                unknown: var(--lcars-green)
-              visible: true
-              stroke_dasharray: "1,4"
-              stroke_linecap: "round"
-              stroke_linejoin: "round"
-              opacity: 1
-              animation:
-                type: pulse
-                speed: 1.5s
-        vertical_end:
-          callout:
-            entity: switch.life_support
-            preset: default
-            text:
-              value: testing ve
-              position: vertical_end_label
-              font_family: Antonio
-              color:
-                default: green
-                active: var(--lcars-green)
-                inactive: var(--lcars-ui-tertiary)
-                unavailable: var(--lcars-card-button-unavailable)
-                unknown: var(--lcars-african-violet)
-            anchor: vertical_end
-            line:
-              width: 3
-              rounded: true
-              corner_radius: 8
-              color:
-                default: green
-                active: var(--lcars-green)
-                inactive: var(--lcars-ui-tertiary)
-                unavailable: var(--lcars-card-button-unavailable)
-                unknown: var(--lcars-african-violet)
-            visible: true
-            stroke_dasharray: "none"
-            stroke_linecap: "round"
-            stroke_linejoin: "round"
-            opacity: 1
+              duration: 1001
+          text:
+            position:
+              - 10
+              - 10%
+            value: shiiiiit
+            font_family: cb-lcars_millenium_extended_bold
+      test_callout:
+        callout:
+          entity: input_number.num_test
+          anchor: warp_core
+          preset: default
+          visible: true
+          state_resolver:
+            enabled: true
+            states:
+              - entity: input_number.num_test
+                from: 0
+                to: 10
+                preset: default
+                settings:
+                  text:
+                    value: ssjsffdjsa
+                    animation:
+                      type: fade
+                      duration: 400
+              - entity: input_number.num_test
+                from: 10
+                to: 1000
+                preset: warning
+                settings:
+                  text:
+                    value: fuck brof
+          text:
+            value: Test Calljkljl
+            color: red
+            position: warp_core_label
             animation:
-              type: none
-              speed: 2s
+              type: blink
+              delay: 5s
+              duration: 2s
+              min_opacity: 0
+              max_opacity: 1
+          line:
+            width: 14
+            color:
+              default: var(--lcars-orange)
+            stroke_dasharray:
+              - 30
+              - 25
+            opacity: 0.3
+            stroke_linecap: round
+            stroke_linejoin: round
+            corner_style: bevel
+            corner_radius: 90
+            rounded: false
+            animation:
+              type: march
+              duration: 2000
+            animation2:
+              type: motionpath
+              duration: 4000
+              loop: true
+              tracer:
+                shape: rect
+                size: 15
+                fill: var(--lcars-red)
+      saucer_1:
+        callout:
+          entity: input_number.num_test
+          anchor: saucer_1
+          preset: default
+          visible: true
+          state_resolver:
+            enabled: true
+            states:
+              - entity: input_number.num_test
+                from: 0
+                to: 10
+                preset: default
+                settings:
+                  text:
+                    value: fdasf
+                    animation:
+                      type: blink
+              - entity: input_number.num_test
+                from: 10
+                to: 1000
+                preset: warning
+                settings:
+                  text:
+                    value: fuck brof
+          text:
+            value: Test Calljkljl
+            color: red
+            position: saucer_1_label
+            animation:
+              type: blink
+              delay: 5s
+              duration: 2s
+              min_opacity: 0
+              max_opacity: 1
+          line:
+            width: 14
+            color:
+              default: var(--lcars-orange)
+            stroke_dasharray2:
+              - 30
+              - 25
+            opacity: 0.3
+            stroke_linecap: round
+            stroke_linejoin: round
+            corner_style: bevel
+            corner_radius: 90
+            rounded: false
+            animation:
+              type: draw
+              duration: 2300
+              direction: forward
+  msd4:
+    base_svg: builtin:ncc-1701-a-blue
+    slots:
+      morph_target:
+        callout:
+          id: morph_target
+          line:
+            points:
+              - - 50
+                - 300
+              - - 150
+                - 350
+              - - 250
+                - 300
+            width: 3
+            color: red
+      morph_source:
+        callout:
+          text:
+            value: Morph Animation
+            position:
+              - 50
+              - 290
+          line:
+            points:
+              - - 50
+                - 325
+              - - 250
+                - 325
+            width: 3
+            color:
+              default: var(--lcars-teal)
+            animation:
+              type: morph
+              morph_to_selector2: "#msd_line_morph_target"
+              morph_to_selector: "#bridge"
+              duration: 2500
+              precision: 0.2
+              loop: true
+              direction: alternate
+  msd2:
+    base_svg: builtin:ncc-1701-a-blue
+    base_svg2: /local/cblcars/shuttle_test.svg
+    presets:
+      default:
+        text:
+          font_size: 50
+          font_family: Antonio
+          color: var(--primary-text-color)
+        line:
+          width: 14
+          rounded: true
+          corner_radius: 50
+          stroke_dasharray:
+            - 25
+            - 25
+          color:
+            default: var(--lcars-orange)
+      warning:
+        text:
+          color: var(--lcars-yellow)
+        line:
+          color:
+            default: var(--lcars-yellow)
+          animation:
+            - type: draw
+              duration: 1500
+            - type: pulse
+              duration: 1750ms
+              direction: reverse
+              ease: easeInOut
+    slots:
+      static_position:
+        callout:
+          anchor:
+            - 90%
+            - 90%
+          preset: default
+          line:
+            animation:
+              type: motionpath
+              tracer:
+                shape: circle
+                r: 15
+              loop: true
+          text:
+            position:
+              - 10
+              - 10%
+            value: shiiiiit
+            animation:
+              type: blink
+custom_fields:
+  msd_svg_base: |
+    [[[
+      let svgContent = window.cblcars.getSvgContent(variables.msd.base_svg);
+      if (!svgContent) {
+        return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
+      }
+      let viewBox = window.cblcars.getSvgViewBox(svgContent);
+      let anchorTable = window.cblcars.findSvgAnchors(svgContent);
+      variables.msd._viewBox = viewBox;
+      variables.msd._anchors = anchorTable;
+      const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+      return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+    ]]]
+  msd_svg_overlays: |
+    [[[
+      // The renderMsdOverlay helper now returns the markup and a list of animations to run.
+      const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
+        overlays: (() => {
+          const slots = variables.msd.slots || {};
+          return Object.values(slots).map(slot => slot.callout);
+        })(),
+        anchors: variables.msd._anchors,
+        styleLayers: variables.msd.presets,
+        hass,
+        root: this.shadowRoot, // Pass shadowRoot for element queries
+        viewBox: variables.msd._viewBox
+      });
 
-  show_state: false
-  show_icon: false
-  show_label: false
-  custom_fields:
-    msd_svg_base: |
-      [[[
-        let svgContent = '';
-        let viewBox = [0, 0, 400, 200];
-        let anchorTable = {};
-        let svgKey = null;
-        if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
-          svgKey = variables.msd.base_svg.replace('builtin:', '');
-        } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/local/')) {
-          svgKey = variables.msd.base_svg.split('/').pop().replace('.svg','');
-        }
-        svgContent = svgKey && window.cblcars?.msd?.svg_templates?.[svgKey];
-        if (!svgContent) {
-          return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
-        }
-        const match = svgContent.match(/viewBox="([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)\s+([0-9.\-]+)"/);
-        if (match) {
-          viewBox = [parseFloat(match[1]), parseFloat(match[2]), parseFloat(match[3]), parseFloat(match[4])];
-        }
-        // Extract anchors from SVG: <circle id="..."/> and <text id="..."/>
-        anchorTable = {};
-        if (svgContent) {
-          // Circles
-          const anchorRegex = /<circle[^>]*\sid="([^"]+)"[^>]*\scx="([^"]+)"[^>]*\scy="([^"]+)"[^>]*>/g;
-          let m;
-          while ((m = anchorRegex.exec(svgContent)) !== null) {
-            anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
-          }
-          // Texts
-          const textAnchorRegex = /<text[^>]*\sid="([^"]+)"[^>]*\sx="([^"]+)"[^>]*\sy="([^"]+)"[^>]*>/g;
-          while ((m = textAnchorRegex.exec(svgContent)) !== null) {
-            anchorTable[m[1]] = [parseFloat(m[2]), parseFloat(m[3])];
-          }
-        }
-        variables.msd._viewBox = viewBox;
-        variables.msd._anchors = anchorTable;
-        // Dynamically set aspect-ratio style based on viewBox
-        const aspect = viewBox[2] && viewBox[3] ? (viewBox[2] / viewBox[3]) : 2;
-        return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
-      ]]]
-    msd_svg_overlays: |
-      [[[
-        const viewBox = variables.msd._viewBox || [0, 0, 400, 200];
-        const minX = viewBox[0], minY = viewBox[1], width = viewBox[2], height = viewBox[3];
-        const anchors = variables.msd._anchors || {};
-        // Calculate aspect ratio for overlays container
-        const aspect = width && height ? (width / height) : 2;
-
-        // Deep merge utility (from cb-lcars-svg-alert)
-        function deepMerge(target, ...sources) {
-          if (!sources.length) return target;
-          const source = sources.shift();
-          if (typeof target !== 'object' || target === null) target = {};
-          if (typeof source !== 'object' || source === null) return target;
-          for (const key in source) {
-            if (
-              source[key] &&
-              typeof source[key] === 'object' &&
-              !Array.isArray(source[key])
-            ) {
-              target[key] = deepMerge(target[key], source[key]);
-            } else {
-              target[key] = source[key];
-            }
-          }
-          return deepMerge(target, ...sources);
-        }
-
-        // --- State Resolver System (adapted from cb-lcars-base custom_states) ---
-        function resolveCalloutState(callout, hass) {
-          const stateConfig = callout.state_resolver || variables.msd.state_resolver || {};
-          if (!stateConfig.enabled || !Array.isArray(stateConfig.states) || !stateConfig.states.length) {
-            return null;
-          }
-          // Use callout.entity and callout.attribute as defaults for state matching
-          let mainEntityId = callout.entity;
-          let mainAttribute = callout.attribute;
-          let mainEntity = mainEntityId && hass && hass.states ? hass.states[mainEntityId] : undefined;
-          let mainValue = mainEntity ? mainEntity.state : undefined;
-          if (mainAttribute && mainEntity && mainEntity.attributes && mainEntity.attributes.hasOwnProperty(mainAttribute)) {
-            mainValue = mainEntity.attributes[mainAttribute];
-            if (mainAttribute === 'brightness' && mainValue !== undefined && mainValue !== null && !isNaN(parseFloat(mainValue))) {
-              mainValue = (parseFloat(mainValue) / 256) * 100;
-            }
-          }
-
-          for (const entry of stateConfig.states) {
-            // Use per-match entity/attribute if specified, else callout.entity/attribute
-            let matchEntity = mainEntity;
-            let matchAttribute = mainAttribute;
-            if (entry.entity && hass && hass.states && hass.states[entry.entity]) {
-              matchEntity = hass.states[entry.entity];
-            }
-            if (entry.attribute) {
-              matchAttribute = entry.attribute;
-            }
-            let matchValue = matchEntity ? matchEntity.state : undefined;
-            if (matchAttribute && matchEntity && matchEntity.attributes && matchEntity.attributes.hasOwnProperty(matchAttribute)) {
-              matchValue = matchEntity.attributes[matchAttribute];
-              if (matchAttribute === 'brightness' && matchValue !== undefined && matchValue !== null && !isNaN(parseFloat(matchValue))) {
-                matchValue = (parseFloat(matchValue) / 256) * 100;
-              }
-            }
-            // Prepare numeric value for this match
-            let matchNumericValue = matchValue;
-            if (typeof matchValue === "string" && !isNaN(Number(matchValue))) {
-              matchNumericValue = Number(matchValue);
-            }
-            // 1. equals
-            if ("equals" in entry && entry.equals !== undefined) {
-              if (matchValue == entry.equals) {
-                //console.debug('[MSD state_resolver] Matched "equals"', {entry, matchValue});
-                return entry;
-              }
-            }
-            // 2. not_equals
-            if ("not_equals" in entry && entry.not_equals !== undefined) {
-              if (matchValue != entry.not_equals) {
-                //console.debug('[MSD state_resolver] Matched "not_equals"', {entry, matchValue});
-                return entry;
-              }
-            }
-            // 3. from/to
-            if ("from" in entry || "to" in entry) {
-              if (typeof matchNumericValue === "number" && !isNaN(matchNumericValue)) {
-                if (
-                  (("from" in entry ? matchNumericValue >= entry.from : true)) &&
-                  (("to" in entry ? matchNumericValue <= entry.to : true))
-                ) {
-                  //console.debug('[MSD state_resolver] Matched "from/to"', {entry, matchValue, matchNumericValue});
-                  return entry;
-                }
-              }
-            }
-            // 4. in
-            if ("in" in entry && Array.isArray(entry.in)) {
-              if (entry.in.includes(matchValue)) {
-                //console.debug('[MSD state_resolver] Matched "in"', {entry, matchValue});
-                return entry;
-              }
-            }
-            // 5. not_in
-            if ("not_in" in entry && Array.isArray(entry.not_in)) {
-              if (!entry.not_in.includes(matchValue)) {
-                //console.debug('[MSD state_resolver] Matched "not_in"', {entry, matchValue});
-                return entry;
-              }
-            }
-            // 6. regex
-            if ("regex" in entry && typeof entry.regex === "string") {
-              try {
-                const re = new RegExp(entry.regex);
-                if (typeof matchValue === "string" && re.test(matchValue)) {
-                  //console.debug('[MSD state_resolver] Matched "regex"', {entry, matchValue});
-                  return entry;
-                }
-              } catch (e) {}
-            }
-          }
-          //console.debug('[MSD state_resolver] No match', {callout, stateConfig});
-          return null;
-        }
-
-        // Merge built-in and custom presets (custom wins)
-        const builtInPresets = variables.msd.presets || {};
-        const userPresets = variables.msd.custom_presets || {};
-        const mergedPresets = deepMerge({}, builtInPresets, userPresets);
-        const defaultPreset = mergedPresets.default || {};
-
-        const overlays = (() => {
-          let arr = [];
-          if (Array.isArray(variables.msd.callouts)) {
-            arr = variables.msd.callouts.map(c => {
-              // --- State resolver logic ---
-              let stateMatch = resolveCalloutState(c, hass);
-              let presetName = c.preset;
-              let stateOverrides = {};
-              if (stateMatch) {
-                if (stateMatch.preset) presetName = stateMatch.preset;
-                if (stateMatch.settings) stateOverrides = stateMatch.settings;
-                //console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
-              }
-              // Merge: default <- preset (if any) <- callout <- stateOverrides
-              let merged = deepMerge(
-                {},
-                defaultPreset,
-                presetName && mergedPresets[presetName] ? mergedPresets[presetName] : {},
-                c,
-                stateOverrides
-              );
-              //console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
-              return merged;
-            });
-          }
-          if (variables.msd.slots) {
-            Object.entries(variables.msd.slots).forEach(([name, slot]) => {
-              if (slot && typeof slot.callout === 'object' && slot.callout !== null) {
-                let c = slot.callout;
-                // --- State resolver logic ---
-                let stateMatch = resolveCalloutState(c, hass);
-                let presetName = c.preset;
-                let stateOverrides = {};
-                if (stateMatch) {
-                  if (stateMatch.preset) presetName = stateMatch.preset;
-                  if (stateMatch.settings) stateOverrides = stateMatch.settings;
-                  //console.debug('[MSD state_resolver] Applying stateMatch', {entity: c.entity, stateMatch, presetName, stateOverrides});
-                }
-                // Merge: default <- preset (if any) <- callout <- stateOverrides
-                let merged = deepMerge(
-                  {},
-                  defaultPreset,
-                  presetName && mergedPresets[presetName] ? mergedPresets[presetName] : {},
-                  c,
-                  stateOverrides
-                );
-                merged.anchor = c.anchor || name;
-                //console.debug('[MSD state_resolver] Final merged callout', {entity: c.entity, merged});
-                arr.push(merged);
-              }
-            });
-          }
-          return arr;
-        })();
-
-        function resolveColor(colorObj, state) {
-          if (!colorObj) return;
-          if (typeof colorObj === 'string') return colorObj;
-          const stateColor = colorObj[state];
-          if (stateColor) return stateColor;
-          const defaultColor = colorObj.default;
-          return defaultColor !== undefined ? defaultColor : Object.values(colorObj)[0];
-        }
-
-        // Add isVisible function here
-        function isVisible(callout, entityState) {
-          if (typeof callout.visible === 'string' && callout.visible.trim().startsWith('[[[')) {
-            try {
-              return eval(callout.visible.replace(/^\[\[\[|\]\]\]$/g, ''));
-            } catch (e) { return true; }
-          }
-          if (typeof callout.visible === 'boolean') return callout.visible;
-          return true;
-        }
-
-        function roundedPolyline(points, radius) {
-          // Simple SVG path generator for rounded corners
-          if (points.length < 2) return '';
-          let d = `M${points[0][0]},${points[0][1]}`;
-          for (let i = 1; i < points.length; i++) {
-            const [x1, y1] = points[i-1];
-            const [x2, y2] = points[i];
-            if (i < points.length - 1 && radius > 0) {
-              // Calculate next point for rounding
-              const [x3, y3] = points[i+1];
-              // Midpoint for curve
-              const mx = (x2 + x3) / 2;
-              const my = (y2 + y3) / 2;
-              d += ` L${x2},${y2} Q${x2},${y2} ${mx},${my}`;
-              i++;
-            } else {
-              d += ` L${x2},${y2}`;
-            }
-          }
-          return d;
-        }
-
-        function smoothPolyline(points, tension = 0.5) {
-          // Returns a smooth SVG path string through all points using cubic Bezier curves
-          if (points.length < 2) return '';
-          let d = `M${points[0][0]},${points[0][1]}`;
-          for (let i = 0; i < points.length - 1; i++) {
-            const p0 = points[i - 1] || points[i];
-            const p1 = points[i];
-            const p2 = points[i + 1] || p1;
-            const p3 = points[i + 2] || p2;
-
-            // Calculate control points
-            const c1x = p1[0] + (p2[0] - p0[0]) * tension / 6;
-            const c1y = p1[1] + (p2[1] - p0[1]) * tension / 6;
-            const c2x = p2[0] - (p3[0] - p1[0]) * tension / 6;
-            const c2y = p2[1] - (p3[1] - p1[1]) * tension / 6;
-
-            d += ` C${c1x},${c1y} ${c2x},${c2y} ${p2[0]},${p2[1]}`;
-          }
-          return d;
-        }
-
-        // Helper: resolve a position (anchor name, percent, px)
-        function resolvePos(pos) {
-          if (typeof pos === 'string') {
-            // Anchor name
-            if (anchors[pos]) return anchors[pos];
-            // Percent string (e.g., "10%")
-            if (pos.endsWith('%')) {
-              const percent = parseFloat(pos) / 100;
-              // Default to x, caller must specify axis
-              return percent;
-            }
-            // px string
-            if (pos.endsWith('px')) return parseFloat(pos);
-            // Fallback: try to parse as number
-            return parseFloat(pos);
-          }
-          if (Array.isArray(pos)) {
-            // [x, y] array
-            return [
-              resolvePos(pos[0]),
-              resolvePos(pos[1])
-            ];
-          }
-          return pos;
-        }
-
-        // Helper: map resolved position to viewBox coordinates
-        function toViewBoxCoord(val, idx) {
-          // idx: 0=x, 1=y
-          if (Array.isArray(val)) {
-            return [
-              toViewBoxCoord(val[0], 0),
-              toViewBoxCoord(val[1], 1)
-            ];
-          }
-          if (typeof val === 'number') {
-            // If 0-1, treat as percent
-            if (val >= 0 && val <= 1) return idx === 0 ? minX + val * width : minY + val * height;
-            // Otherwise, treat as absolute SVG units
-            return val;
-          }
-          return val;
-        }
-
-        // Improved: Draw a right-angle connector with a rounded 90-degree corner
-        function rightAnglePath(start, corner, end, radius, rounded, cornerStyle = "round") {
-          // start: [x0, y0], corner: [x1, y1], end: [x2, y2]
-          // rounded: boolean, whether to draw arc or sharp elbow
-          // cornerStyle: "round" (default), "bevel", "miter", "sharp"
-
-          const [x0, y0] = start;
-          const [x1, y1] = corner;
-          const [x2, y2] = end;
-
-          let path = `M${x0},${y0} `;
-
-          // Only fallback if the segments are colinear (not a right angle)
-          const isColinear = ((x0 === x1 && x1 === x2) || (y0 === y1 && y1 === y2));
-          if (isColinear) {
-            path += `L${x1},${y1} L${x2},${y2}`;
-            return path;
-          }
-
-          // If not rounded or radius too small, draw sharp elbow
-          if (
-            cornerStyle === "sharp" ||
-            (!rounded && cornerStyle === "round") ||
-            !radius || radius < 1
-          ) {
-            path += `L${x1},${y1} L${x2},${y2}`;
-            return path;
-          }
-
-          // Determine direction of first and second segments
-          const dx1 = x1 - x0, dy1 = y1 - y0;
-          const dx2 = x2 - x1, dy2 = y2 - y1;
-
-          // Clamp radius to half the length of the shortest segment
-          const len1 = Math.sqrt(dx1*dx1 + dy1*dy1);
-          const len2 = Math.sqrt(dx2*dx2 + dy2*dy2);
-          const maxR = Math.min(len1, len2) / 2;
-          const r = Math.min(radius, maxR);
-
-          // Shorten the first segment by r
-          const ux1 = dx1 / len1, uy1 = dy1 / len1;
-          const px1 = x1 - ux1 * r, py1 = y1 - uy1 * r;
-
-          // Shorten the second segment by r
-          const ux2 = dx2 / len2, uy2 = dy2 / len2;
-          const px2 = x1 + ux2 * r, py2 = y1 + uy2 * r;
-
-          if (cornerStyle === "bevel" || cornerStyle === "miter") {
-            // Draw to before-corner, then straight to after-corner, then to end
-            path += `L${px1},${py1} L${px2},${py2} L${x2},${y2}`;
-            return path;
-          }
-
-          // Default: rounded
-          // Sweep flag: 0 = ccw, 1 = cw (SVG spec)
-          const cross = (dx1 * dy2 - dy1 * dx2);
-          const sweep = cross < 0 ? 0 : 1;
-
-          path += `L${px1},${py1} `;
-          path += `A${r},${r} 0 0 ${sweep} ${px2},${py2} `;
-          path += `L${x2},${y2}`;
-          return path;
-        }
-
-        let overlaySvg = '';
-        // --- Collect animation CSS for all overlays ---
-        let animationCss = '';
-        overlays.forEach((callout, idx) => {
-          // Get SVG viewBox size for percent conversion
-          // For built-in SVG, you can hardcode or parse the viewBox
-          let svgWidth = 400, svgHeight = 200;
-          let svgContent = '';
-          if (variables.msd.base_svg && variables.msd.base_svg.startsWith('/')) {
-            // Fetch or load SVG file (if possible)
-            // For now, fallback to default
-            svgContent = `<svg width="100%" height="100%"><text x="50%" y="50%" text-anchor="middle" fill="gray">[SVG Loaded Here]</text></svg>`;
-          } else if (variables.msd.base_svg && variables.msd.base_svg.startsWith('builtin:')) {
-            const key = variables.msd.base_svg.replace('builtin:', '');
-            svgContent = window.cblcars?.msd?.svg_templates?.[key] || window.cblcars?.msd?.svg_templates?.['test'] || '';
-          }
-          const match = svgContent.match(/viewBox="[^"]*([0-9]+)\s+([0-9]+)\s+([0-9]+)\s+([0-9]+)"/);
-          if (match) {
-            svgWidth = parseFloat(match[3]);
-            svgHeight = parseFloat(match[4]);
-          }
-
-          // Get entity state (simulate for now, replace with hass.states in real usage)
-          const entityId = callout.entity;
-          // Instead of defaulting to 'unknown', just use the entity state as-is.
-          // The state_resolver system will handle all styling logic.
-          const entityState = entityId && hass && hass.states && hass.states[entityId]
-            ? hass.states[entityId].state
-            : undefined;
-
-          // Apply conditions (deep merge)
-          let mergedCallout = { ...callout };
-          if (callout.conditions && Array.isArray(callout.conditions)) {
-            callout.conditions.forEach(cond => {
-              if (cond.entity === entityId) {
-                let match = false;
-                if (cond.value_above !== undefined && parseFloat(entityState) > cond.value_above) match = true;
-                if (cond.value_below !== undefined && parseFloat(entityState) < cond.value_below) match = true;
-                if (cond.value !== undefined && entityState === cond.value) match = true;
-                if (match) {
-                  mergedCallout = Object.assign({}, mergedCallout, cond);
-                }
-              }
-            });
-          }
-
-          // Visibility
-          if (!isVisible(mergedCallout, entityState)) return;
-
-          // --- Resolve label position ---
-          let labelPos = null;
-          let labelSideOffset = [0, 0];
-          let lineAttach = "center";
-          if (mergedCallout.text && mergedCallout.text.position) {
-            // Prefer anchor ID
-            if (typeof mergedCallout.text.position === 'string' && anchors[mergedCallout.text.position]) {
-              labelPos = anchors[mergedCallout.text.position];
-            } else {
-              labelPos = resolvePos(mergedCallout.text.position);
-              labelPos = toViewBoxCoord(labelPos, null);
-            }
-
-            // --- Smart line positioning at text ---
-            // Estimate text height from font_size (default 16)
-            let fontSize = 16;
-            if (mergedCallout.text.font_size) {
-              if (typeof mergedCallout.text.font_size === 'string' && mergedCallout.text.font_size.endsWith('px')) {
-                fontSize = parseFloat(mergedCallout.text.font_size);
-              } else {
-                fontSize = parseFloat(mergedCallout.text.font_size) || 16;
-              }
-            }
-            // Use line_attach if specified, otherwise default to "center"
-            lineAttach = (mergedCallout.text.line_attach || "center").toLowerCase();
-
-            // --- New: Determine text alignment from align property ---
-            let textAlign = (mergedCallout.text.align || "start").toLowerCase();
-            // Normalize aliases
-            if (textAlign === "left") textAlign = "start";
-            if (textAlign === "right") textAlign = "end";
-            if (textAlign === "center") textAlign = "middle";
-
-            // --- New: Use configurable text width multiplier ---
-            let textWidthMultiplier = 0.3;
-            if (typeof mergedCallout.text.text_width_multiplier === "number") {
-              textWidthMultiplier = mergedCallout.text.text_width_multiplier;
-            } else if (typeof variables.msd.text_width_multiplier === "number") {
-              textWidthMultiplier = variables.msd.text_width_multiplier;
-            }
-
-            // Estimate text width (use multiplier)
-            let textValue = mergedCallout.text.value;
-            if (typeof textValue === 'string' && textValue.trim().startsWith('[[[')) {
-              try {
-                textValue = eval(textValue.replace(/^\[\[\[|\]\]\]$/g, ''));
-              } catch (e) {}
-            }
-            let textLen = (typeof textValue === 'string') ? textValue.length : 8;
-            let textWidth = textLen * fontSize * textWidthMultiplier;
-
-            // Default to vertical center of text
-            let yOffset = -fontSize / 2;
-            if (typeof mergedCallout.text.y_offset === "number") {
-              yOffset += mergedCallout.text.y_offset;
-            } else if (typeof variables.msd.y_offset === "number") {
-              yOffset += variables.msd.y_offset;
-            }
-
-            // --- New: Calculate xOffset based on align and line_attach ---
-            let xOffset = 0;
-            // Text anchor point (where text x is)
-            // For "start": x is left edge, for "end": x is right edge, for "middle": x is center
-            // For line_attach: "left" means attach to left edge, "right" to right edge, "center" to center
-            if (textAlign === "start") {
-              if (lineAttach === "left") xOffset = 0;
-              else if (lineAttach === "center" || lineAttach === "middle") xOffset = textWidth / 2;
-              else if (lineAttach === "right" || lineAttach === "end") xOffset = textWidth;
-            } else if (textAlign === "end") {
-              if (lineAttach === "left") xOffset = -textWidth;
-              else if (lineAttach === "center" || lineAttach === "middle") xOffset = -textWidth / 2;
-              else if (lineAttach === "right" || lineAttach === "end") xOffset = 0;
-            } else if (textAlign === "middle") {
-              if (lineAttach === "left") xOffset = -textWidth / 2;
-              else if (lineAttach === "center" || lineAttach === "middle") xOffset = 0;
-              else if (lineAttach === "right" || lineAttach === "end") xOffset = textWidth / 2;
-            }
-            // Apply user x_offset if specified
-            if (typeof mergedCallout.text.x_offset === "number") {
-              xOffset += mergedCallout.text.x_offset;
-            } else if (typeof variables.msd.x_offset === "number") {
-              xOffset += variables.msd.x_offset;
-            }
-            labelSideOffset = [xOffset, yOffset];
-          }
-
-          // --- Resolve anchor position ---
-          let anchorPos = null;
-          if (mergedCallout.anchor) {
-            if (typeof mergedCallout.anchor === 'string' && anchors[mergedCallout.anchor]) {
-              anchorPos = anchors[mergedCallout.anchor];
-            } else {
-              anchorPos = resolvePos(mergedCallout.anchor);
-              anchorPos = toViewBoxCoord(anchorPos, null);
-            }
-          }
-
-          // --- Debug: Output anchor positions for troubleshooting ---
-          //overlaySvg += `<text x="10" y="${10 + 20 * Math.random()}" font-size="10" fill="red">DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}</text>`;
-          //console.debug(`DEBUG: ${callout.entity || ''} labelPos=${JSON.stringify(labelPos)} anchorPos=${JSON.stringify(anchorPos)}`);
-
-          // --- Line points ---
-          let linePoints = [];
-          if (mergedCallout.line && mergedCallout.line.points) {
-            linePoints = mergedCallout.line.points.map(pt => {
-              let p = resolvePos(pt);
-              return toViewBoxCoord(p, null);
-            });
-          } else if (labelPos && anchorPos) {
-            // Use smart offset for label position
-            let start = [labelPos[0] + labelSideOffset[0], labelPos[1] + labelSideOffset[1]];
-            // Elbow: always at (anchorPos[0], start[1]) for horizontal, or (start[0], anchorPos[1]) for vertical
-            // But for left/right, we want a horizontal segment from the text edge to the anchor x
-            let elbow = [anchorPos[0], start[1]];
-            linePoints = [
-              start,
-              elbow,
-              anchorPos
-            ];
-          }
-
-          // --- Animation settings for text and line ---
-          const textAnim = (callout.text && callout.text.animation) || {};
-          const lineAnim = (callout.line && callout.line.animation) || {};
-
-          // --- Unique class base for this overlay (by anchor, entity, or idx) ---
-          //const slotKey = (callout.anchor || callout.entity || ('slot'+idx)).replace(/[^a-zA-Z0-9]/g, '_');
-          const slotKeyRaw = callout.anchor || callout.entity || ('slot'+idx);
-          const slotKey = (typeof slotKeyRaw === 'string'
-            ? slotKeyRaw
-            : JSON.stringify(slotKeyRaw)
-          ).replace(/[^a-zA-Z0-9]/g, '_');
-
-          // Animation: type, speed, duration, color, delay
-          // Defaults
-          const textAnimType = textAnim.type || null;
-          // Accept duration/delay as number or string with/without units
-          function parseAnimTime(val, fallback) {
-            if (val === undefined || val === null) return fallback;
-            if (typeof val === 'number') return val + 's';
-            if (typeof val === 'string') {
-              if (val.match(/^[\d.]+s$/)) return val;
-              if (val.match(/^[\d.]+ms$/)) return val;
-              const num = parseFloat(val);
-              if (!isNaN(num)) return num + 's';
-            }
-            return fallback;
-          }
-          const textAnimSpeed = parseAnimTime(textAnim.speed, '1s');
-          const textAnimDuration = parseAnimTime(textAnim.duration, textAnimSpeed);
-          const textAnimColor = textAnim.color || null;
-          const textAnimDelay = parseAnimTime(textAnim.delay, '0s');
-
-          // --- New: Line style and animation ---
-          const lineAnimType = lineAnim.type || null;
-          const lineAnimSpeed = parseAnimTime(lineAnim.speed, '2s');
-          const lineAnimDuration = parseAnimTime(lineAnim.duration, lineAnimSpeed);
-          const lineAnimDelay = parseAnimTime(lineAnim.delay, '0s');
-          // --- March direction and dashoffset config ---
-          const marchDirection = (lineAnim.march_direction || "forward").toLowerCase(); // "forward" or "reverse"
-          let marchDashoffset = undefined;
-          if (typeof lineAnim.march_dashoffset === "number") {
-            marchDashoffset = Math.abs(lineAnim.march_dashoffset);
-          }
-
-          // --- New: Compose SVG style for line ---
-          let lineStyleArr = [];
-          // Support dasharray, linecap, linejoin, opacity
-          if (callout.line && callout.line.stroke_dasharray && callout.line.stroke_dasharray !== "none") {
-            lineStyleArr.push(`stroke-dasharray:${callout.line.stroke_dasharray}`);
-          }
-          if (callout.line && callout.line.stroke_linecap) {
-            lineStyleArr.push(`stroke-linecap:${callout.line.stroke_linecap}`);
-          }
-          if (callout.line && callout.line.stroke_linejoin) {
-            lineStyleArr.push(`stroke-linejoin:${callout.line.stroke_linejoin}`);
-          }
-          if (callout.line && typeof callout.line.opacity !== "undefined") {
-            lineStyleArr.push(`opacity:${callout.line.opacity}`);
-          }
-          let lineStyle = lineStyleArr.length ? lineStyleArr.join(';') : '';
-
-          // --- New: Line animation CSS with unique class ---
-          let lineClass = '';
-          if (lineAnimType === 'march' && callout.line && callout.line.stroke_dasharray && callout.line.stroke_dasharray !== "none") {
-            // Use a unique class per overlay
-            const dashClass = `lcars-march-line-${slotKey}`;
-            lineClass = dashClass;
-            // Calculate dash length for seamless animation
-            let dashArray = callout.line.stroke_dasharray.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
-            let dashLength = dashArray.reduce((a, b) => a + b, 0) || 10;
-            // Allow override by march_dashoffset
-            let dashOffset = (typeof marchDashoffset === "number") ? marchDashoffset : dashLength;
-            // Direction: negative for forward, positive for reverse
-            let dashOffsetValue = marchDirection === "reverse" ? dashOffset : -dashOffset;
-            animationCss += `
-              .${dashClass} {
-                animation: ${dashClass}-keyframes ${lineAnimDuration} linear infinite;
-                stroke-dasharray: ${callout.line.stroke_dasharray};
-                ${callout.line.stroke_linecap ? `stroke-linecap: ${callout.line.stroke_linecap};` : ''}
-                ${callout.line.stroke_linejoin ? `stroke-linejoin: ${callout.line.stroke_linejoin};` : ''}
-                ${typeof callout.line.opacity !== "undefined" ? `opacity: ${callout.line.opacity};` : ''}
-              }
-              @keyframes ${dashClass}-keyframes {
-                to {
-                  stroke-dashoffset: ${dashOffsetValue};
-                }
-              }
-            `;
-          } else if (lineAnimType === 'pulse') {
-            const pulseClass = `lcars-pulse-line-${slotKey}`;
-            lineClass = pulseClass;
-            animationCss += `
-              .${pulseClass} {
-                animation: ${pulseClass}-keyframes ${lineAnimDuration} ease-in-out infinite;
-                animation-delay: ${lineAnimDelay};
-              }
-              @keyframes ${pulseClass}-keyframes {
-                0% { opacity: 1; stroke-width: ${callout.line.width || 2}; }
-                50% { opacity: 0.5; stroke-width: ${(callout.line.width || 2) * 1.5}; }
-                100% { opacity: 1; stroke-width: ${callout.line.width || 2}; }
-              }
-            `;
-          } else if (lineAnimType === 'blink') {
-            const blinkClass = `lcars-blink-line-${slotKey}`;
-            lineClass = blinkClass;
-            animationCss += `
-              .${blinkClass} {
-                animation: ${blinkClass}-keyframes ${lineAnimDuration} linear infinite;
-                animation-delay: ${lineAnimDelay};
-              }
-              @keyframes ${blinkClass}-keyframes {
-                0% { opacity: 1; }
-                50% { opacity: 0.3; }
-                100% { opacity: 1; }
-              }
-            `;
-          }
-
-          // --- Draw line ---
-          if (linePoints.length === 3 && mergedCallout.line && mergedCallout.line.visible !== false) {
-            const radius = mergedCallout.line.corner_radius || 16;
-            const rounded = mergedCallout.line.rounded !== false; // default true
-            const cornerStyle = mergedCallout.line.corner_style || "round"; // PATCH: support corner_style
-            const lineColor = resolveColor(mergedCallout.line.color, entityState) || 'orange';
-            const d = rightAnglePath(linePoints[0], linePoints[1], linePoints[2], radius, rounded, cornerStyle);
-            overlaySvg += `<path d="${d}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
-          } else if (linePoints.length > 1 && mergedCallout.line && mergedCallout.line.visible !== false) {
-            const lineColor = resolveColor(mergedCallout.line.color, entityState) || 'orange';
-            if (mergedCallout.line.rounded && mergedCallout.line.corner_radius && linePoints.length > 2) {
-              // Use rounded polyline path
-              const tension = typeof mergedCallout.line.smooth_tension === "number"
-                ? mergedCallout.line.smooth_tension
-                : 0.5;
-              const d = smoothPolyline(linePoints, tension);
-              overlaySvg += `<path d="${d}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
-            } else {
-              // Fallback to straight polyline
-              const pts = linePoints.map(pt => pt.join(',')).join(' ');
-              overlaySvg += `<polyline points="${pts}" stroke="${lineColor}" stroke-width="${mergedCallout.line.width || 2}" fill="none"${lineClass ? ` class="${lineClass}"` : ''}${lineStyle ? ` style="${lineStyle}"` : ''} />`;
-            }
-          }
-
-          // --- Draw label text ---
-          // Always initialize textClass and textStyle to avoid undefined errors
-          let textClass = '';
-          let textStyle = '';
-          if (textAnimType === 'blink') {
-            const blinkTextClass = `lcars-blink-text-${slotKey}`;
-            textClass = blinkTextClass;
-            animationCss += `
-              .${blinkTextClass} {
-                animation: ${blinkTextClass}-keyframes ${textAnimDuration} linear infinite;
-                animation-delay: ${textAnimDelay};
-                ${textAnimColor ? `fill: ${textAnimColor} !important;` : ''}
-              }
-              @keyframes ${blinkTextClass}-keyframes {
-                0% { opacity: 1; }
-                50% { opacity: 0.3; }
-                100% { opacity: 1; }
-              }
-            `;
-          }
-          if (labelPos && mergedCallout.text) {
-            const [x, y] = labelPos;
-            const textColor = resolveColor(mergedCallout.text.color, entityState) || 'white';
-            let textValue = mergedCallout.text.value;
-            if (typeof textValue === 'string' && textValue.trim().startsWith('[[[')) {
-              try {
-                textValue = eval(textValue.replace(/^\[\[\[|\]\]\]$/g, ''));
-              } catch (e) {}
-            }
-            // --- Use align for SVG text-anchor ---
-            let textAlign = (mergedCallout.text.align || "start").toLowerCase();
-            if (textAlign === "left") textAlign = "start";
-            if (textAlign === "right") textAlign = "end";
-            if (textAlign === "center") textAlign = "middle";
-            overlaySvg += `<text x="${x}" y="${y}" font-family="${mergedCallout.text.font_family || 'Antonio'}" font-size="${mergedCallout.text.font_size || '16px'}" font-weight="${mergedCallout.text.font_weight || 'normal'}" fill="${textColor}" text-anchor="${textAlign}"${textClass ? ` class="${textClass}"` : ''}${textStyle ? ` style="${textStyle}"` : ''}>${textValue}</text>`;
-          }
-
-          // --- Scaffold for interactivity/animation ---
-          // TODO: Add event listeners, animation classes, etc. in future
+      // Schedule the animations to run after the card has rendered the SVG markup.
+      if (animationsToRun.length > 0) {
+        requestAnimationFrame(() => {
+          animationsToRun.forEach(anim => window.cblcars.animateElement(anim));
         });
+      }
 
-        // Key change: overlay SVG uses same viewBox as base SVG for perfect alignment
-        // Inject animation CSS if needed
-        let styleBlock = '';
-        if (animationCss.trim()) {
-          styleBlock = `<style>${animationCss}</style>`;
-        }
-        return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:absolute;top:0;left:0;aspect-ratio:${aspect};pointer-events:none;">
-          <svg viewBox="${viewBox.join(' ')}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">${styleBlock}${overlaySvg}</svg>
-        </div>`;
-      ]]]
-  styles:
-    custom_fields:
-      msd_svg_base:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 1
-      msd_svg_overlays:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 1
+      // Return only the SVG markup for the card to render.
+      return svgMarkup;
+    ]]]
+styles:
+  custom_fields:
+    msd_svg_base:
+      - width: 100%
+      - height: 100%
+      - position: absolute
+      - top: 0
+      - left: 0
+      - z-index: 1
+    msd_svg_overlays:
+      - width: 100%
+      - height: 100%
+      - position: absolute
+      - top: 0
+      - left: 0
+      - z-index: 1
+

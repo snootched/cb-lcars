@@ -451,24 +451,8 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
     if (lineAnim && lineAnim.type) {
       if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
-        const tracerId = `msd_tracer_${computed.id || idx}`;
-        const tracerConfig = { ...lineAnim.tracer };
-        const shape = tracerConfig.shape || 'circle';
-        delete tracerConfig.shape;
-        let tracerSvg = '';
-        if (shape === 'circle') {
-          const tracerOptions = { fill: 'var(--lcars-orange)', r: 4, ...tracerConfig };
-          const { attrs, style } = splitAttrsAndStyle(tracerOptions, 'line');
-          tracerSvg = svgHelpers.drawCircle({ cx: 0, cy: 0, r: tracerOptions.r, id: tracerId, attrs, style });
-        } else if (shape === 'rect') {
-          const tracerOptions = { fill: 'var(--lcars-orange)', width: 8, height: 8, ...tracerConfig };
-          const { attrs, style } = splitAttrsAndStyle(tracerOptions, 'line');
-          tracerSvg = svgHelpers.drawRect({ x: -tracerOptions.width / 2, y: -tracerOptions.height / 2, width: tracerOptions.width, height: tracerOptions.height, id: tracerId, attrs, style });
-        }
-        if (tracerSvg) {
-          svgElements.push(tracerSvg);
-          animationsToRun.push({ ...lineAnim, targets: `#${tracerId}`, path_selector: `#${lineId}`, root });
-        }
+        // No longer create tracer SVG here; just pass tracer config to animation
+        animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
       } else {
         animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
       }
