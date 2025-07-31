@@ -230,10 +230,13 @@ export function splitAttrsAndStyle(obj, context = '') {
 }
 
 /**
- * Checks if an entity (optionally with attribute) matches a range.
+ * Checks if an entity (optionally with attribute) matches a range or a mapped range.
+ * Supports a 'map_range' operator for advanced matching.
  * @param {object} hass - Home Assistant hass object.
- * @param {object} stateObj - State resolver object {entity, attribute, from, to, preset}
- * @returns {boolean}
+ * @param {object} stateObj - State resolver object {entity, attribute, from, to, preset, map_range}
+ * @param {string} fallbackEntity
+ * @param {string} fallbackAttribute
+ * @returns {object|boolean} If matched, returns {matched: true, mappedValue}, else false.
  */
 export function entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute) {
   const entityId = stateObj.entity || fallbackEntity;
@@ -242,12 +245,45 @@ export function entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttri
   if (!entity) return false;
   let value = (stateObj.attribute || fallbackAttribute) ? entity.attributes[stateObj.attribute || fallbackAttribute] : entity.state;
   value = parseFloat(value);
+
+  // --- map_range operator ---
+  if (stateObj.map_range && Array.isArray(stateObj.map_range.input_range) && Array.isArray(stateObj.map_range.output_range)) {
+    const inputMin = stateObj.map_range.input_range[0];
+    const inputMax = stateObj.map_range.input_range[1];
+    const outputMin = stateObj.map_range.output_range[0];
+    const outputMax = stateObj.map_range.output_range[1];
+    if (window.cblcars?.animejs?.utils?.mapRange) {
+      const mapper = window.cblcars.animejs.utils.mapRange(inputMin, inputMax, outputMin, outputMax);
+      const mappedValue = mapper(value);
+      // Use mappedValue for matching
+      if (
+        (stateObj.from !== undefined && stateObj.to !== undefined && mappedValue >= stateObj.from && mappedValue <= stateObj.to) ||
+        (stateObj.from !== undefined && stateObj.to === undefined && mappedValue >= stateObj.from) ||
+        (stateObj.to !== undefined && stateObj.from === undefined && mappedValue <= stateObj.to)
+      ) {
+        return { matched: true, mappedValue };
+      }
+      return false;
+    }
+  }
+
+  // --- standard matching ---
   if (isNaN(value)) return false;
-  return value >= stateObj.from && value <= stateObj.to;
+  if (stateObj.from !== undefined && stateObj.to !== undefined && value >= stateObj.from && value <= stateObj.to) {
+    return { matched: true, mappedValue: value };
+  }
+  if (stateObj.from !== undefined && stateObj.to === undefined && value >= stateObj.from) {
+    return { matched: true, mappedValue: value };
+  }
+  if (stateObj.to !== undefined && stateObj.from === undefined && value <= stateObj.to) {
+    return { matched: true, mappedValue: value };
+  }
+  return false;
 }
 
 /**
  * Given a callout config and hass, resolve state_resolver and merge the correct preset.
+ * Supports map_range operator and exposes mappedValue in stateOverrides if matched.
  * @param {object} callout - The callout config (with state_resolver).
  * @param {object} presets - All available presets.
  * @param {object} hass - Home Assistant hass object.
@@ -259,11 +295,18 @@ export function resolveStatePreset(callout, presets, hass) {
   const fallbackAttribute = (callout.state_resolver && callout.state_resolver.attribute) || callout.attribute;
   if (!callout || !callout.state_resolver || !Array.isArray(callout.state_resolver.states)) return {};
   for (const stateObj of callout.state_resolver.states) {
-    if (entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute)) {
+    const matchResult = entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute);
+    if (matchResult && matchResult.matched) {
       const presetName = stateObj.preset;
+      let overrides = {};
       if (presetName && presets[presetName]) {
-        return presets[presetName];
+        overrides = { ...presets[presetName] };
       }
+      // Optionally expose mappedValue in stateOverrides for use in templates/animation
+      if (matchResult.mappedValue !== undefined) {
+        overrides._mappedValue = matchResult.mappedValue;
+      }
+      return overrides;
     }
   }
   return {};
