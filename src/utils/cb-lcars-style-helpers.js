@@ -228,3 +228,43 @@ export function splitAttrsAndStyle(obj, context = '') {
   }
   return { attrs, style };
 }
+
+/**
+ * Checks if an entity (optionally with attribute) matches a range.
+ * @param {object} hass - Home Assistant hass object.
+ * @param {object} stateObj - State resolver object {entity, attribute, from, to, preset}
+ * @returns {boolean}
+ */
+export function entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute) {
+  const entityId = stateObj.entity || fallbackEntity;
+  if (!hass || !hass.states || !entityId) return false;
+  const entity = hass.states[entityId];
+  if (!entity) return false;
+  let value = (stateObj.attribute || fallbackAttribute) ? entity.attributes[stateObj.attribute || fallbackAttribute] : entity.state;
+  value = parseFloat(value);
+  if (isNaN(value)) return false;
+  return value >= stateObj.from && value <= stateObj.to;
+}
+
+/**
+ * Given a callout config and hass, resolve state_resolver and merge the correct preset.
+ * @param {object} callout - The callout config (with state_resolver).
+ * @param {object} presets - All available presets.
+ * @param {object} hass - Home Assistant hass object.
+ * @returns {object} stateOverrides to pass to resolveCalloutStyles
+ */
+export function resolveStatePreset(callout, presets, hass) {
+  // Prefer state_resolver.entity/attribute over callout.entity/attribute
+  const fallbackEntity = (callout.state_resolver && callout.state_resolver.entity) || callout.entity;
+  const fallbackAttribute = (callout.state_resolver && callout.state_resolver.attribute) || callout.attribute;
+  if (!callout || !callout.state_resolver || !Array.isArray(callout.state_resolver.states)) return {};
+  for (const stateObj of callout.state_resolver.states) {
+    if (entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute)) {
+      const presetName = stateObj.preset;
+      if (presetName && presets[presetName]) {
+        return presets[presetName];
+      }
+    }
+  }
+  return {};
+}

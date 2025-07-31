@@ -1,5 +1,5 @@
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
-import { resolveCalloutStyles, splitAttrsAndStyle, resolveAllDynamicValues } from './cb-lcars-style-helpers.js';
+import { resolveCalloutStyles, splitAttrsAndStyle, resolveAllDynamicValues, resolveStatePreset } from './cb-lcars-style-helpers.js';
 import { animateElement } from './cb-lcars-anim-helpers.js';
 import { cblcarsLog } from './cb-lcars-logging.js';
 
@@ -46,87 +46,6 @@ function evaluateTemplate(template, context = {}) {
     cblcarsLog.error('[evaluateTemplate] Error evaluating template:', { template, context, error: e });
     return 'TEMPLATE_ERROR';
   }
-}
-
-/**
- * Processes state_resolver rules to find a matching state and return its overrides.
- * @param {object} callout - The callout configuration.
- * @param {object} hass - The Home Assistant hass object.
- * @param {object} globalResolver - The global state_resolver config.
- * @returns {object|null} The matching state entry or null.
- */
-function resolveCalloutState(callout, hass, globalResolver = {}) {
-  const stateConfig = callout.state_resolver || globalResolver;
-  if (!stateConfig.enabled || !Array.isArray(stateConfig.states) || !stateConfig.states.length) {
-    return null;
-  }
-
-  cblcarsLog.debug(`[resolveCalloutState] Evaluating for callout with entity: ${callout.entity}`, { callout, stateConfig });
-
-  for (const entry of stateConfig.states) {
-    const entityId = entry.entity || callout.entity;
-    if (!entityId) {
-        cblcarsLog.debug('[resolveCalloutState] Skipping state entry, no entity_id.', { entry });
-        continue;
-    }
-
-    const entity = hass.states[entityId];
-    if (!entity) {
-        cblcarsLog.debug(`[resolveCalloutState] Skipping state entry, entity not found: ${entityId}`, { entry });
-        continue;
-    }
-
-    const attribute = entry.attribute || callout.attribute;
-    let value = attribute ? entity.attributes[attribute] : entity.state;
-
-    if (value === undefined) {
-        cblcarsLog.debug(`[resolveCalloutState] Skipping state entry, value is undefined for entity: ${entityId}, attribute: ${attribute}`, { entry });
-        continue;
-    }
-
-    cblcarsLog.debug(`[resolveCalloutState] Checking state for ${entityId}. Attribute: '${attribute}', Value: '${value}'`, { entry });
-
-    let numValue = Number(value);
-    if (isNaN(numValue)) numValue = undefined;
-
-    if (entry.equals !== undefined && value == entry.equals) {
-        cblcarsLog.debug(`[resolveCalloutState] Match found: 'equals'`, { value, entry });
-        return entry;
-    }
-    if (entry.not_equals !== undefined && value != entry.not_equals) {
-        cblcarsLog.debug(`[resolveCalloutState] Match found: 'not_equals'`, { value, entry });
-        return entry;
-    }
-    if (numValue !== undefined) {
-      if (entry.from !== undefined && entry.to !== undefined && numValue >= entry.from && numValue <= entry.to) {
-          cblcarsLog.debug(`[resolveCalloutState] Match found: 'from-to range'`, { numValue, entry });
-          return entry;
-      }
-      if (entry.from !== undefined && entry.to === undefined && numValue >= entry.from) {
-          cblcarsLog.debug(`[resolveCalloutState] Match found: 'from' range`, { numValue, entry });
-          return entry;
-      }
-      if (entry.to !== undefined && entry.from === undefined && numValue <= entry.to) {
-          cblcarsLog.debug(`[resolveCalloutState] Match found: 'to' range`, { numValue, entry });
-          return entry;
-      }
-    }
-    if (Array.isArray(entry.in) && entry.in.includes(value)) {
-        cblcarsLog.debug(`[resolveCalloutState] Match found: 'in'`, { value, entry });
-        return entry;
-    }
-    if (Array.isArray(entry.not_in) && !entry.not_in.includes(value)) {
-        cblcarsLog.debug(`[resolveCalloutState] Match found: 'not_in'`, { value, entry });
-        return entry;
-    }
-    if (entry.regex && new RegExp(entry.regex).test(value)) {
-        cblcarsLog.debug(`[resolveCalloutState] Match found: 'regex'`, { value, entry });
-        return entry;
-    }
-  }
-
-  cblcarsLog.debug(`[resolveCalloutState] No state match found for callout with entity: ${callout.entity}`);
-  return null;
 }
 
 /**
@@ -249,26 +168,20 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     delete calloutCopy.preset;
     delete calloutCopy.state_resolver;
 
-    // Check for a state match.
-    const stateMatch = resolveCalloutState(callout, hass, presets.state_resolver);
-    cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} state match:`, stateMatch);
-
-    // Get the preset and settings from the state match, if any.
-    const statePreset = (stateMatch?.preset && presets[stateMatch.preset]) ? presets[stateMatch.preset] : {};
-    const stateSettings = stateMatch?.settings || {};
+    // Use resolveStatePreset to get state-based overrides
+    const stateOverrides = resolveStatePreset(callout, presets, hass);
 
     // Merge with the correct precedence:
     // 1. Default preset
     // 2. Callout's named preset
     // 3. Callout's specific settings
-    // 4. State-matched preset
-    // 5. State-matched settings
+    // 4. State-matched preset/settings (via stateOverrides)
     let computed = resolveCalloutStyles({
       defaults: defaultPreset,
       preset: calloutPreset,
-      customPreset: statePreset,
+      customPreset: {},
       callout: calloutCopy,
-      stateOverrides: stateSettings
+      stateOverrides
     });
     // Recursively resolve all dynamic values (e.g., for animation durations)
     computed = resolveAllDynamicValues(computed, hass);
