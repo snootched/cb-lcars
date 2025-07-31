@@ -67,14 +67,17 @@ export const animPresets = {
     motionpath: async function (params, element, options) {
         const { path_selector, root = document, trail, tracer } = options;
         if (!path_selector) {
-            window.cblcars.cblcarsLog.error('[motionpath preset] Missing path_selector.', { options });
+            cblcarsLog.error('[motionpath preset] Missing path_selector.', { options });
             return;
         }
         const pathElement = await window.cblcars.waitForElement(path_selector, root);
         if (!pathElement) {
-            window.cblcars.cblcarsLog.error('[motionpath preset] Could not find path element.', { path_selector });
+            cblcarsLog.error('[motionpath preset] Could not find path element.', { path_selector });
             return;
         }
+
+        // The preset is now called from within a scope.add() callback.
+        // It should modify the `params` object or, in this case, create new animations.
 
         // Animate trail if requested
         if (trail) {
@@ -84,6 +87,7 @@ export const animPresets = {
                 if (trailTarget instanceof SVGElement) {
                     const trailOptions = typeof trail === 'object' && trail !== null ? trail : {};
                     const animeConfig = {
+                        targets: trailTarget,
                         draw: '0 1',
                         duration: trailOptions.duration ?? params.duration ?? 1000,
                         easing: trailOptions.easing ?? params.easing ?? 'easeInOutQuad',
@@ -92,12 +96,14 @@ export const animPresets = {
                     if (trailOptions && Object.prototype.toString.call(trailOptions) === '[object Object]') {
                         Object.assign(animeConfig, trailOptions);
                     }
-                    window.cblcars.anime(trailTarget, animeConfig);
+                    // This animation is created inside the scope.add() context, so it's automatically managed.
+                    const { targets: trailTargets, ...trailVars } = animeConfig;
+                    window.cblcars.anim.anime(trailTargets, trailVars);
                 } else {
-                    window.cblcars.cblcarsLog.error('[motionpath preset] Trail target is not a valid SVGElement.', { trailTarget });
+                    cblcarsLog.error('[motionpath preset] Trail target is not a valid SVGElement.', { trailTarget });
                 }
             } catch (trailerError) {
-                window.cblcars.cblcarsLog.error('[motionpath preset] Failed to animate trail:', { trailerError });
+                cblcarsLog.error('[motionpath preset] Failed to animate trail:', { trailerError });
             }
         }
 
@@ -140,11 +146,10 @@ export const animPresets = {
             }
             if (svgRoot) {
                 svgRoot.appendChild(tracerNode);
-                window.cblcars.cblcarsLog.debug('[motionpath preset] Tracer SVG appended', { tracerId, svgRoot });
+                cblcarsLog.debug('[motionpath preset] Tracer SVG appended', { tracerId, svgRoot });
             } else {
-                // fallback: append to path parent
                 pathElement.parentNode.appendChild(tracerNode);
-                window.cblcars.cblcarsLog.warn('[motionpath preset] Could not find SVG root, appended tracer to path parent.', { tracerId });
+                cblcarsLog.warn('[motionpath preset] Could not find SVG root, appended tracer to path parent.', { tracerId });
             }
 
             // Prepare animation options for tracer
@@ -160,14 +165,16 @@ export const animPresets = {
                 if (!exclude.includes(k)) merged[k] = options[k];
             }
 
-            window.cblcars.cblcarsLog.debug('[motionpath preset] Animating tracer', { tracerId, merged });
-            window.cblcars.anime(tracerNode, {
+            cblcarsLog.debug('[motionpath preset] Animating tracer', { tracerId, merged });
+            window.cblcars.anim.anime(tracerNode, {
                 ...merged,
                 translateX,
                 translateY,
                 rotate,
             });
-            return; // Do not animate the line itself
+            // Prevent the original animation from running on the path itself
+            params.targets = null;
+            return;
         }
 
         // If no tracer, animate the line itself (legacy/fallback)

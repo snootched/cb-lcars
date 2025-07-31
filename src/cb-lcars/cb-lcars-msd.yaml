@@ -442,12 +442,16 @@ custom_fields:
         hass,
         root: this.shadowRoot, // Pass shadowRoot for element queries
         viewBox: variables.msd._viewBox
+        // No longer need to pass scope here, we'll call it from the scope object itself.
       });
 
       // Schedule the animations to run after the card has rendered the SVG markup.
       if (animationsToRun.length > 0) {
         requestAnimationFrame(() => {
-          animationsToRun.forEach(anim => window.cblcars.animateElement(anim));
+          animationsToRun.forEach(animConfig => {
+            // Call the animate method on the card's scope object.
+            this._animationScope.animate(animConfig);
+          });
         });
       }
 

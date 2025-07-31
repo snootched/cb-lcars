@@ -210,6 +210,35 @@ async function loadStubConfig(filePath) {
 
 
 
+// --- Anime.js v4 Scopes Manager ---
+class CBLCARSAnimationScope {
+    constructor(id) {
+        this.id = id;
+        this.scope = window.cblcars.animejs.createScope(); // anime.js v4 syntax
+    }
+
+    /**
+     * Adds an animation to the scope using the v4 `scope.add()` pattern.
+     * @param {object} options - The animation options for animateElement.
+     */
+    animate(options) {
+        // Call the global animateElement helper, passing this instance as the scope.
+        window.cblcars.anim.animateElement(this, options);
+    }
+
+    destroy() {
+        // Revert removes all inline styles set by animations within the scope.
+        // It effectively stops and cleans up the animations.
+        this.scope.revert();
+    }
+}
+
+// Global map of all scopes
+window.cblcars.anim = window.cblcars.anim || {};
+window.cblcars.anim.scopes = new Map();
+
+
+
 class CBLCARSBaseCard extends ButtonCard {
 
     _isResizeObserverEnabled = false;
@@ -351,6 +380,10 @@ class CBLCARSBaseCard extends ButtonCard {
 
     connectedCallback() {
         super.connectedCallback();
+        // --- Anime.js Scope creation ---
+        this._animationScopeId = `card-${this.id || this.cardType || Math.random().toString(36).slice(2)}`;
+        this._animationScope = new CBLCARSAnimationScope(this._animationScopeId);
+        window.cblcars.anim.scopes.set(this._animationScopeId, this._animationScope);
 
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
@@ -370,6 +403,12 @@ class CBLCARSBaseCard extends ButtonCard {
 
     disconnectedCallback() {
         super.disconnectedCallback();
+        // --- Anime.js Scope cleanup ---
+        const animationScope = window.cblcars.anim.scopes.get(this._animationScopeId);
+        if (animationScope) {
+            animationScope.destroy();
+            window.cblcars.anim.scopes.delete(this._animationScopeId);
+        }
         this.disableResizeObserver();
         window.removeEventListener('resize', this._debouncedResizeHandler)
     }

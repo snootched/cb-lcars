@@ -364,7 +364,6 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
     if (lineAnim && lineAnim.type) {
       if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
-        // No longer create tracer SVG here; just pass tracer config to animation
         animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
       } else {
         animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
