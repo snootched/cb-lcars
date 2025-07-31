@@ -215,6 +215,7 @@ class CBLCARSAnimationScope {
     constructor(id) {
         this.id = id;
         this.scope = window.cblcars.animejs.createScope(); // anime.js v4 syntax
+        this.animations = []; // Array to hold animation instances for inspection
     }
 
     /**
@@ -223,13 +224,19 @@ class CBLCARSAnimationScope {
      */
     animate(options) {
         // Call the global animateElement helper, passing this instance as the scope.
-        window.cblcars.anim.animateElement(this, options);
+        const animation = window.cblcars.anim.animateElement(this, options);
+        if (animation) {
+            this.animations.push({ config: options, animation: animation });
+        }
     }
 
     destroy() {
         // Revert removes all inline styles set by animations within the scope.
         // It effectively stops and cleans up the animations.
-        this.scope.revert();
+        if (this.scope && typeof this.scope.revert === 'function') {
+            this.scope.revert();
+        }
+        this.animations = []; // Clear the animations array
     }
 }
 
