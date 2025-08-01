@@ -41,6 +41,10 @@ function evaluateTemplate(template, context = {}) {
   try {
     const code = template.substring(3, template.length - 3);
     const func = new Function(...Object.keys(context), `return ${code}`);
+    // Check if callout exists in the context before calling the function
+    if (!context || !context.callout == null) {
+      return 'CALLOUT_MISSING'; // Or any other suitable default value
+    }
     return func(...Object.values(context));
   } catch (e) {
     cblcarsLog.error('[evaluateTemplate] Error evaluating template:', { template, context, error: e });
@@ -166,93 +170,112 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     anchors = {};
   }
 
+  // Check if overlays is a valid array
+  if (!Array.isArray(overlays)) {
+    cblcarsLog.warn('[renderMsdOverlay] overlays is not a valid array, skipping.');
+    return { svgMarkup: '', animationsToRun: [] }; // Return default values
+  }
+
   // --- Graceful error handling for missing anchors/IDs ---
   const errorMessages = [];
 
   overlays.forEach((callout, idx) => {
-    // 1. --- Configuration Merging ---
-    // Get the preset defined on the callout itself.
-    const calloutPreset = (callout.preset && presets[callout.preset]) ? presets[callout.preset] : {};
+    // Check for required keys
+    if (!callout) {
+      const message = `Callout ${idx} is missing, skipping.`;
+      cblcarsLog.warn(`[renderMsdOverlay] ${message}`);
+      errorMessages.push(message);
+      // Create a default templateContext without callout
+      const templateContext = { entity: null, hass: hass, computed: {} };
+      // Skip to the next callout
+      return;
+    }
 
-    // Get the specific settings from the callout, excluding properties handled elsewhere.
-    const calloutCopy = { ...callout };
-    delete calloutCopy.preset;
-    delete calloutCopy.state_resolver;
+    // All callout processing logic should be inside this if block
+    if (callout) {
+      // 1. --- Configuration Merging ---
+      // Get the preset defined on the callout itself.
+      const calloutPreset = (callout.preset && presets[callout.preset]) ? presets[callout.preset] : {};
 
-    // Use resolveStatePreset to get state-based overrides
-    const stateOverrides = resolveStatePreset(callout, presets, hass);
+      // Get the specific settings from the callout, excluding properties handled elsewhere.
+      const calloutCopy = { ...callout };
+      delete calloutCopy.preset;
+      delete calloutCopy.state_resolver;
 
-    // Merge with the correct precedence:
-    // 1. Default preset
-    // 2. Callout's named preset
-    // 3. Callout's specific settings
-    // 4. State-matched preset/settings (via stateOverrides)
-    let computed = resolveCalloutStyles({
-      defaults: defaultPreset,
-      preset: calloutPreset,
-      customPreset: {},
-      callout: calloutCopy,
-      stateOverrides
-    });
-    // Recursively resolve all dynamic values (e.g., for animation durations)
-    computed = resolveAllDynamicValues(computed, hass);
-    cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} computed config:`, computed);
+      // Use resolveStatePreset to get state-based overrides
+      const stateOverrides = resolveStatePreset(callout, presets, hass);
 
-    // Prepare context for template evaluation
-    const entity = callout.entity && hass.states[callout.entity] ? hass.states[callout.entity] : null;
-    const templateContext = { entity, hass, callout, computed };
+      // Merge with the correct precedence:
+      // 1. Default preset
+      // 2. Callout's named preset
+      // 3. Callout's specific settings
+      // 4. State-matched preset/settings (via stateOverrides)
+      let computed = resolveCalloutStyles({
+        defaults: defaultPreset,
+        preset: calloutPreset,
+        customPreset: {},
+        callout: calloutCopy,
+        stateOverrides
+      });
+      // Recursively resolve all dynamic values (e.g., for animation durations)
+      computed = resolveAllDynamicValues(computed, hass);
+      cblcarsLog.debug(`[renderMsdOverlay] Callout ${idx} computed config:`, computed);
 
-    // Visibility Check
-    if (computed.visible !== undefined) {
-      const isVisible = evaluateTemplate(computed.visible, templateContext);
-      if (isVisible === false) {
-        return; // Skip rendering this callout
+      // Prepare context for template evaluation
+      const entity = callout.entity && hass.states[callout.entity] ? hass.states[callout.entity] : null;
+      const templateContext = { entity, hass, callout, computed };
+
+      // Visibility Check
+      if (computed.visible !== undefined) {
+        const isVisible = evaluateTemplate(computed.visible, templateContext);
+        if (isVisible === false) {
+          return; // Skip rendering this callout
+        }
       }
-    }
 
-    cblcarsLog.debug(`[renderMsdOverlay] Rendering MSD overlay ${idx}`, { callout, computed });
+      cblcarsLog.debug(`[renderMsdOverlay] Rendering MSD overlay ${idx}`, { callout, computed });
 
-    // 2. --- Position & ID Resolution ---
-    const lineId = `msd_line_${computed.id || idx}`;
-    const textId = `msd_text_${computed.id || idx}`;
+      // 2. --- Position & ID Resolution ---
+      const lineId = `msd_line_${computed.id || idx}`;
+      const textId = `msd_text_${computed.id || idx}`;
 
-    const pointContext = { anchors, viewBox };
-    const anchorPos = resolvePoint(computed.anchor, pointContext);
-    const textPos = resolvePoint(computed.text?.position, pointContext);
+      const pointContext = { anchors, viewBox };
+      const anchorPos = resolvePoint(computed.anchor, pointContext);
+      const textPos = resolvePoint(computed.text?.position, pointContext);
 
-    if (computed.anchor && !anchorPos) {
-      errorMessages.push(`Anchor "${computed.anchor}" not found`);
-      cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
-    }
-    if (computed.text?.position && !textPos) {
-      errorMessages.push(`Text position "${computed.text.position}" not found`);
-      cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
-    }
+      if (computed.anchor && !anchorPos) {
+        errorMessages.push(`Anchor "${computed.anchor}" not found`);
+        cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+      }
+      if (computed.text?.position && !textPos) {
+        errorMessages.push(`Text position "${computed.text.position}" not found`);
+        cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+      }
 
-    // A callout is valid if it has text to render, or a line with an anchor, or a line with explicit points.
-    const hasText = !!textPos;
-    const hasLine = computed.line && (anchorPos || (Array.isArray(computed.line.points) && computed.line.points.length > 1));
+      // A callout is valid if it has text to render, or a line with an anchor, or a line with explicit points.
+      const hasText = !!textPos;
+      const hasLine = computed.line && (anchorPos || (Array.isArray(computed.line.points) && computed.line.points.length > 1));
 
-    if ((!hasText && !hasLine)/* || errorMessages.length > 0*/) {
-      // Stack error messages vertically using <tspan>, 36px apart
-      // const errorText = `<text x="${viewBox[0] + 10}" y="${viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
-      //     ${errorMessages.map((msg, i) => `<tspan x="${viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
-      // </text>`;
-      // svgElements.push(errorText);
-      // return;
-    }
+      if ((!hasText && !hasLine)/* || errorMessages.length > 0*/) {
+        // Stack error messages vertically using <tspan>, 36px apart
+        // const errorText = `<text x="${viewBox[0] + 10}" y="${viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
+        //     ${errorMessages.map((msg, i) => `<tspan x="${viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
+        // </text>`;
+        // svgElements.push(errorText);
+        // return;
+      }
 
-    // 3. --- Line & Text Smart Positioning ---
-    let lineStartPos = hasText ? [...textPos] : null;
-    if (computed.text && hasText) {
+      // 3. --- Line & Text Smart Positioning ---
+      let lineStartPos = hasText ? [...textPos] : null;
+      if (computed.text && hasText) {
         const fontSize = parseFloat(computed.text.font_size) || 18;
         const textValue = evaluateTemplate(computed.text.value, templateContext);
 
         // Use canvas-based measurement for accurate width
         const textWidth = TextMeasurer.measure(textValue || '', {
-            fontSize: `${fontSize}px`,
-            fontFamily: computed.text.font_family || 'Antonio',
-            fontWeight: computed.text.font_weight || 'normal',
+          fontSize: `${fontSize}px`,
+          fontFamily: computed.text.font_family || 'Antonio',
+          fontWeight: computed.text.font_weight || 'normal',
         });
 
         const align = computed.text.align || 'start'; // start, middle, end
@@ -260,142 +283,143 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
         // Automatic line attachment logic
         if (lineAttach === 'auto' && anchorPos) {
-            lineAttach = textPos[0] < anchorPos[0] ? 'right' : 'left';
+          lineAttach = textPos[0] < anchorPos[0] ? 'right' : 'left';
         } else if (lineAttach === 'auto') {
-            lineAttach = 'center'; // Fallback if no anchor to compare against
+          lineAttach = 'center'; // Fallback if no anchor to compare against
         }
 
         // Calculate text block boundaries based on alignment
         let textLeft, textCenter, textRight;
         if (align === 'start' || align === 'left') {
-            textLeft = textPos[0];
-            textCenter = textPos[0] + textWidth / 2;
-            textRight = textPos[0] + textWidth;
+          textLeft = textPos[0];
+          textCenter = textPos[0] + textWidth / 2;
+          textRight = textPos[0] + textWidth;
         } else if (align === 'end' || align === 'right') {
-            textLeft = textPos[0] - textWidth;
-            textCenter = textPos[0] - textWidth / 2;
-            textRight = textPos[0];
+          textLeft = textPos[0] - textWidth;
+          textCenter = textPos[0] - textWidth / 2;
+          textRight = textPos[0];
         } else { // middle/center
-            textLeft = textPos[0] - textWidth / 2;
-            textCenter = textPos[0];
-            textRight = textPos[0] + textWidth / 2;
+          textLeft = textPos[0] - textWidth / 2;
+          textCenter = textPos[0];
+          textRight = textPos[0] + textWidth / 2;
         }
 
         // Determine line start X based on attachment point
         let lineStartX = textCenter; // Default to center
         if (lineAttach === 'left' || lineAttach === 'start') {
-            lineStartX = textLeft;
+          lineStartX = textLeft;
         } else if (lineAttach === 'right' || lineAttach === 'end') {
-            lineStartX = textRight;
+          lineStartX = textRight;
         }
 
         // Apply offsets. Start with user-defined, then apply automatic if undefined.
         let xOffset = computed.text.x_offset;
         if (xOffset === undefined) {
-            if (lineAttach === 'right' || lineAttach === 'end') {
-                xOffset = fontSize / 2; // Automatic padding
-            } else if (lineAttach === 'left' || lineAttach === 'start') {
-                xOffset = -fontSize / 2; // Automatic padding
-            } else {
-                xOffset = 0;
-            }
+          if (lineAttach === 'right' || lineAttach === 'end') {
+            xOffset = fontSize / 2; // Automatic padding
+          } else if (lineAttach === 'left' || lineAttach === 'start') {
+            xOffset = -fontSize / 2; // Automatic padding
+          } else {
+            xOffset = 0;
+          }
         }
         const yOffset = (computed.text.y_offset || 0) - (fontSize / 2.5); // Better vertical centering
 
         lineStartPos[0] = lineStartX + xOffset;
         lineStartPos[1] = textPos[1] + yOffset;
-    }
+      }
 
 
-    // 4. --- Line Rendering ---
-    let lineSvg = '';
-    if (hasLine) {
-      const { attrs, style } = splitAttrsAndStyle(computed.line, 'line');
+      // 4. --- Line Rendering ---
+      let lineSvg = '';
+      if (hasLine) {
+        const { attrs, style } = splitAttrsAndStyle(computed.line, 'line');
 
-      // Check for explicit polyline points first
-      if (Array.isArray(computed.line.points) && computed.line.points.length > 1) {
-        const resolvedPoints = computed.line.points
+        // Check for explicit polyline points first
+        if (Array.isArray(computed.line.points) && computed.line.points.length > 1) {
+          const resolvedPoints = computed.line.points
             .map(p => resolvePoint(p, pointContext))
             .filter(p => p !== null);
 
-        if (resolvedPoints.length > 1) {
+          if (resolvedPoints.length > 1) {
             const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
             const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
 
             if (computed.line.rounded) {
-                const pathData = generateSmoothPath(resolvedPoints, { tension: computed.line.smooth_tension });
-                lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
+              const pathData = generateSmoothPath(resolvedPoints, { tension: computed.line.smooth_tension });
+              lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
             } else {
-                // Convert polyline to path for animation compatibility (e.g., draw, motionPath)
-                const pathData = `M ${resolvedPoints.map(p => p.join(',')).join(' L ')}`;
-                lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
+              // Convert polyline to path for animation compatibility (e.g., draw, motionPath)
+              const pathData = `M ${resolvedPoints.map(p => p.join(',')).join(' L ')}`;
+              lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
             }
+          }
+
+        } else if (anchorPos && lineStartPos) {
+          // Fallback to right-angle path if no points are defined but an anchor exists
+          const pathData = generateRightAnglePath(lineStartPos, anchorPos, {
+            radius: computed.line.corner_radius,
+            cornerStyle: computed.line.corner_style,
+          });
+
+          // We build the path element manually since we have the `d` attribute
+          const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
+          const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+
+          lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
         }
 
-      } else if (anchorPos && lineStartPos) {
-        // Fallback to right-angle path if no points are defined but an anchor exists
-        const pathData = generateRightAnglePath(lineStartPos, anchorPos, {
-          radius: computed.line.corner_radius,
-          cornerStyle: computed.line.corner_style,
+        if (lineSvg) svgElements.push(lineSvg);
+      }
+
+      // 5. --- Text Rendering ---
+      let textSvg = '';
+      if (computed.text && hasText) {
+        // Ensure 'fill' is set from 'color' for text elements and stroke is 'none'.
+        if (computed.text.color && !computed.text.fill) {
+          computed.text.fill = computed.text.color;
+        }
+        if (computed.text.stroke === undefined) {
+          computed.text.stroke = 'none';
+        }
+
+        const textConfig = { ...computed.text };
+        delete textConfig.animation; // Remove animation object before processing attributes
+        const { attrs, style } = splitAttrsAndStyle(textConfig, 'text');
+
+        // If the text has a pulse animation, ensure it scales from the center.
+        if (computed.text.animation?.type === 'pulse') {
+          style['transform-origin'] = 'center';
+          style['transform-box'] = 'fill-box';
+        }
+
+        const textValue = evaluateTemplate(computed.text.value, templateContext);
+
+        textSvg = svgHelpers.drawText({
+          x: textPos[0], y: textPos[1],
+          text: textValue,
+          id: textId,
+          attrs,
+          style,
         });
-
-        // We build the path element manually since we have the `d` attribute
-        const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
-        const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
-
-        lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
+        if (textSvg) svgElements.push(textSvg);
       }
 
-      if (lineSvg) svgElements.push(lineSvg);
-    }
+      // 6. --- Animation ---
+      const lineAnim = computed.line?.animation;
+      const textAnim = computed.text?.animation;
 
-    // 5. --- Text Rendering ---
-    let textSvg = '';
-    if (computed.text && hasText) {
-      // Ensure 'fill' is set from 'color' for text elements and stroke is 'none'.
-      if (computed.text.color && !computed.text.fill) {
-        computed.text.fill = computed.text.color;
-      }
-      if (computed.text.stroke === undefined) {
-        computed.text.stroke = 'none';
+      if (lineAnim && lineAnim.type && hasLine) {
+        if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
+          animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
+        } else {
+          animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
+        }
       }
 
-      const textConfig = { ...computed.text };
-      delete textConfig.animation; // Remove animation object before processing attributes
-      const { attrs, style } = splitAttrsAndStyle(textConfig, 'text');
-
-      // If the text has a pulse animation, ensure it scales from the center.
-      if (computed.text.animation?.type === 'pulse') {
-        style['transform-origin'] = 'center';
-        style['transform-box'] = 'fill-box';
+      if (textAnim && textAnim.type && hasText) {
+        animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
       }
-
-      const textValue = evaluateTemplate(computed.text.value, templateContext);
-
-      textSvg = svgHelpers.drawText({
-        x: textPos[0], y: textPos[1],
-        text: textValue,
-        id: textId,
-        attrs,
-        style,
-      });
-      if (textSvg) svgElements.push(textSvg);
-    }
-
-    // 6. --- Animation ---
-    const lineAnim = computed.line?.animation;
-    const textAnim = computed.text?.animation;
-
-    if (lineAnim && lineAnim.type) {
-      if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
-        animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
-      } else {
-        animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
-      }
-    }
-
-    if (textAnim && textAnim.type) {
-      animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
     }
   });
 

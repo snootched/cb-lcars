@@ -230,14 +230,44 @@ class CBLCARSAnimationScope {
         }
     }
 
+
+    destroy() {
+        // Instead of calling revert(), which can fail on disconnected elements,
+        // we will manually stop and remove all animations associated with this scope.
+        if (this.scope && typeof this.scope.remove === 'function') {
+            // Get all active animations within this scope
+            const activeAnimations = window.cblcars.animejs.get(this.scope);
+
+            // Remove all targets from all active animations.
+            // This is a safer way to clean up than revert().
+            if (activeAnimations) {
+                this.scope.remove(activeAnimations.map(anim => anim.targets).flat());
+            }
+        }
+        // Clear our internal tracking array
+        this.animations = [];
+    }
+
+
+    /*
     destroy() {
         // Revert removes all inline styles set by animations within the scope.
         // It effectively stops and cleans up the animations.
         if (this.scope && typeof this.scope.revert === 'function') {
+            // First, stop any active animations on the card's elements.
+            if (typeof this.scope.remove === 'function') {
+                const cardElement = document.getElementById(this.id.replace('card-', ''));
+                if (cardElement) {
+                    this.scope.remove(cardElement.querySelectorAll('*'));
+                    this.scope.remove(cardElement);
+                }
+            }
             this.scope.revert();
         }
         this.animations = []; // Clear the animations array
     }
+    */
+
 }
 
 // Global map of all scopes
@@ -413,6 +443,7 @@ class CBLCARSBaseCard extends ButtonCard {
         // --- Anime.js Scope cleanup ---
         const animationScope = window.cblcars.anim.scopes.get(this._animationScopeId);
         if (animationScope) {
+            //animationScope.destroy();
             animationScope.destroy();
             window.cblcars.anim.scopes.delete(this._animationScopeId);
         }
