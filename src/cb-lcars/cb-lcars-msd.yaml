@@ -1,477 +1,474 @@
-type: custom:cb-lcars-base-card
-triggers_update:
-  - input_number.num_test
-  - light.tv
-variables:
-  card:
-    height: 70vw
-    color:
-      background:
-        default: black
-  msd:
-    base_svg: builtin:ncc-1701-a-blue
-    base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
-    presets:
-      default:
-        line:
-          width: 10
-          corner_style: bevel
-          corner_radius: 50
-          color: var(--picard-orange)
-          animation:
-            type: motionpath
-            duration2: 1200
-            playbackRate2: 1
-            playbackEase2: inOut(3)
-            loop: false
-            alternate: false
-            trail: true
-            duration:
-              entity_id: light.tv
-              attribute: brightness
-              input_range:
-                - 0
-                - 255
-              output_range:
-                - 4000
-                - 1001
-            tracer:
-              shape: circle
-              height: 25
-              width: 25
-              r: 15
-        text:
-          font_size: 56
-          font_family: antonio
-          text_transform: uppercase
-          color: var(--picard-moonlight)
-          animation:
-            type: fade
-            duration: 4000
-    slots:
-      wc:
-        callout:
-          preset: default
-          anchor: wc
-          text:
-            position: wc_label
-            value: warp core
-            animation:
-              type: blink
-              duration: 1200
-              opacity:
-                - 1
-                - 0.3
-              loop: true
-              ease: linear
-              alternate: true
+cb-lcars-msd:
+  variables:
+    card:
+      height: 70vw
+      color:
+        background:
+          default: black
+    msd:
+      base_svg: builtin:ncc-1701-a-blue
+      base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
+      presets:
+        default:
           line:
-            corner_style: round
-            stroke_dasharray:
-              - 25
-              - 25
+            width: 10
+            corner_style: bevel
+            corner_radius: 50
+            color: var(--picard-orange)
             animation:
-              reversed: true
-              type: march
+              type: motionpath
+              duration2: 1200
+              playbackRate2: 1
+              playbackEase2: inOut(3)
+              loop: false
               alternate: false
-              easing: linear
-              loop: true
-              duation:
+              trail: true
+              duration:
                 entity_id: light.tv
                 attribute: brightness
                 input_range:
                   - 0
                   - 255
                 output_range:
-                  - 200
-                  - 100
-      sb:
-        callout:
-          preset: default
-          anchor: sb
-          text:
-            position: sb_label
-            value: shuttle bay
-      pn_1:
-        callout:
-          preset: default
-          anchor: pn_1
-          text:
-            position: pn_3_label
-            value: port 1
-      pn_2:
-        callout:
-          preset: default
-          anchor: pn_2
-          text:
-            position: pn_2_label
-            value: port 2
-      pn_3:
-        callout:
-          preset: default
-          anchor: pn_3
-          text:
-            position: pn_1_label
-            value: port 3
-      sbn_1:
-        callout:
-          preset: default
-          anchor: sbn_3
-          text:
-            position: sbn_3_label
-            value: sb 3
-      nsb_2:
-        callout:
-          preset: default
-          anchor: sbn_2
-          text:
-            position: sbn_2_label
-            value: sb 2
-      sbn_3:
-        callout:
-          preset: default
-          anchor: sbn_1
-          text:
-            position: sbn_1_label
-            value: port 1
-      br:
-        callout:
-          preset: default
-          anchor: br
-          text:
-            position: br_label
-            value: bridge
-      scr_nw:
-        callout:
-          preset: default
-          anchor: scr_nw
-          text:
-            position: scr_nw_label
-            value: scr nw
-      scr_ne:
-        callout:
-          preset: default
-          anchor: scr_ne
-          text:
-            position: scr_ne_label
-            value: scr ne
-      scr_se:
-        callout:
-          preset: default
-          anchor: scr_se
-          text:
-            position: scr_se_label
-            value: scr se
-      scr_sw:
-        callout:
-          preset: default
-          anchor: scr_sw
-          text:
-            position: scr_sw_label
-            value: scr sw
-  msd1:
-    base_svg: builtin:ncc-1701-a-blue
-    base_svg2: /local/cblcars/shuttle_test.svg
-    presets:
-      default:
-        text:
-          font_size: 50
-          font_family: Antonio
-          color: var(--primary-text-color)
-        line:
-          width: 14
-          rounded: true
-          corner_radius: 50
-          color:
-            default: var(--lcars-orange)
-          stroke_dasharray2: 10,5
-      warning:
-        text:
-          color: var(--lcars-yellow)
-        line:
-          color:
-            default: var(--lcars-yellow)
-          animation:
-            type: blink
-            duration: 750ms
-    slots:
-      static_position:
-        callout:
-          anchor:
-            - 90%
-            - 90%
-          preset: default
-          line:
-            animation:
-              type: march
-              duration: 1001
-          text:
-            position:
-              - 10
-              - 10%
-            value: shiiiiit
-            font_family: cb-lcars_millenium_extended_bold
-      test_callout:
-        callout:
-          entity: input_number.num_test
-          anchor: warp_core
-          preset: default
-          visible: true
-          state_resolver:
-            enabled: true
-            states:
-              - entity: input_number.num_test
-                from: 0
-                to: 10
-                preset: default
-                settings:
-                  text:
-                    value: ssjsffdjsa
-                    animation:
-                      type: fade
-                      duration: 400
-              - entity: input_number.num_test
-                from: 10
-                to: 1000
-                preset: warning
-                settings:
-                  text:
-                    value: fuck brof
-          text:
-            value: Test Calljkljl
-            color: red
-            position: warp_core_label
-            animation:
-              type: blink
-              delay: 5s
-              duration: 2s
-              min_opacity: 0
-              max_opacity: 1
-          line:
-            width: 14
-            color:
-              default: var(--lcars-orange)
-            stroke_dasharray:
-              - 30
-              - 25
-            opacity: 0.3
-            stroke_linecap: round
-            stroke_linejoin: round
-            corner_style: bevel
-            corner_radius: 90
-            rounded: false
-            animation:
-              type: march
-              duration: 2000
-            animation2:
-              type: motionpath
-              duration: 4000
-              loop: true
-              tracer:
-                shape: rect
-                size: 15
-                fill: var(--lcars-red)
-      saucer_1:
-        callout:
-          entity: input_number.num_test
-          anchor: saucer_1
-          preset: default
-          visible: true
-          state_resolver:
-            enabled: true
-            states:
-              - entity: input_number.num_test
-                from: 0
-                to: 10
-                preset: default
-                settings:
-                  text:
-                    value: fdasf
-                    animation:
-                      type: blink
-              - entity: input_number.num_test
-                from: 10
-                to: 1000
-                preset: warning
-                settings:
-                  text:
-                    value: fuck brof
-          text:
-            value: Test Calljkljl
-            color: red
-            position: saucer_1_label
-            animation:
-              type: blink
-              delay: 5s
-              duration: 2s
-              min_opacity: 0
-              max_opacity: 1
-          line:
-            width: 14
-            color:
-              default: var(--lcars-orange)
-            stroke_dasharray2:
-              - 30
-              - 25
-            opacity: 0.3
-            stroke_linecap: round
-            stroke_linejoin: round
-            corner_style: bevel
-            corner_radius: 90
-            rounded: false
-            animation:
-              type: draw
-              duration: 2300
-              direction: forward
-  msd4:
-    base_svg: builtin:ncc-1701-a-blue
-    slots:
-      morph_target:
-        callout:
-          id: morph_target
-          line:
-            points:
-              - - 50
-                - 300
-              - - 150
-                - 350
-              - - 250
-                - 300
-            width: 3
-            color: red
-      morph_source:
-        callout:
-          text:
-            value: Morph Animation
-            position:
-              - 50
-              - 290
-          line:
-            points:
-              - - 50
-                - 325
-              - - 250
-                - 325
-            width: 3
-            color:
-              default: var(--lcars-teal)
-            animation:
-              type: morph
-              morph_to_selector2: "#msd_line_morph_target"
-              morph_to_selector: "#bridge"
-              duration: 2500
-              precision: 0.2
-              loop: true
-              direction: alternate
-  msd2:
-    base_svg: builtin:ncc-1701-a-blue
-    base_svg2: /local/cblcars/shuttle_test.svg
-    presets:
-      default:
-        text:
-          font_size: 50
-          font_family: Antonio
-          color: var(--primary-text-color)
-        line:
-          width: 14
-          rounded: true
-          corner_radius: 50
-          stroke_dasharray:
-            - 25
-            - 25
-          color:
-            default: var(--lcars-orange)
-      warning:
-        text:
-          color: var(--lcars-yellow)
-        line:
-          color:
-            default: var(--lcars-yellow)
-          animation:
-            - type: draw
-              duration: 1500
-            - type: pulse
-              duration: 1750ms
-              direction: reverse
-              ease: easeInOut
-    slots:
-      static_position:
-        callout:
-          anchor:
-            - 90%
-            - 90%
-          preset: default
-          line:
-            animation:
-              type: motionpath
+                  - 4000
+                  - 1001
               tracer:
                 shape: circle
+                height: 25
+                width: 25
                 r: 15
-              loop: true
           text:
-            position:
-              - 10
-              - 10%
-            value: shiiiiit
+            font_size: 56
+            font_family: antonio
+            text_transform: uppercase
+            color: var(--picard-moonlight)
+            animation:
+              type: fade
+              duration: 4000
+      slots:
+        wc:
+          callout:
+            preset: default
+            anchor: wc
+            text:
+              position: wc_label
+              value: warp core
+              animation:
+                type: blink
+                duration: 1200
+                opacity:
+                  - 1
+                  - 0.3
+                loop: true
+                ease: linear
+                alternate: true
+            line:
+              corner_style: round
+              stroke_dasharray:
+                - 25
+                - 25
+              animation:
+                reversed: true
+                type: march
+                alternate: false
+                easing: linear
+                loop: true
+                duation:
+                  entity_id: light.tv
+                  attribute: brightness
+                  input_range:
+                    - 0
+                    - 255
+                  output_range:
+                    - 200
+                    - 100
+        sb:
+          callout:
+            preset: default
+            anchor: sb
+            text:
+              position: sb_label
+              value: shuttle bay
+        pn_1:
+          callout:
+            preset: default
+            anchor: pn_1
+            text:
+              position: pn_3_label
+              value: port 1
+        pn_2:
+          callout:
+            preset: default
+            anchor: pn_2
+            text:
+              position: pn_2_label
+              value: port 2
+        pn_3:
+          callout:
+            preset: default
+            anchor: pn_3
+            text:
+              position: pn_1_label
+              value: port 3
+        sbn_1:
+          callout:
+            preset: default
+            anchor: sbn_3
+            text:
+              position: sbn_3_label
+              value: sb 3
+        nsb_2:
+          callout:
+            preset: default
+            anchor: sbn_2
+            text:
+              position: sbn_2_label
+              value: sb 2
+        sbn_3:
+          callout:
+            preset: default
+            anchor: sbn_1
+            text:
+              position: sbn_1_label
+              value: port 1
+        br:
+          callout:
+            preset: default
+            anchor: br
+            text:
+              position: br_label
+              value: bridge
+        scr_nw:
+          callout:
+            preset: default
+            anchor: scr_nw
+            text:
+              position: scr_nw_label
+              value: scr nw
+        scr_ne:
+          callout:
+            preset: default
+            anchor: scr_ne
+            text:
+              position: scr_ne_label
+              value: scr ne
+        scr_se:
+          callout:
+            preset: default
+            anchor: scr_se
+            text:
+              position: scr_se_label
+              value: scr se
+        scr_sw:
+          callout:
+            preset: default
+            anchor: scr_sw
+            text:
+              position: scr_sw_label
+              value: scr sw
+    msd1:
+      base_svg: builtin:ncc-1701-a-blue
+      base_svg2: /local/cblcars/shuttle_test.svg
+      presets:
+        default:
+          text:
+            font_size: 50
+            font_family: Antonio
+            color: var(--primary-text-color)
+          line:
+            width: 14
+            rounded: true
+            corner_radius: 50
+            color:
+              default: var(--lcars-orange)
+            stroke_dasharray2: 10,5
+        warning:
+          text:
+            color: var(--lcars-yellow)
+          line:
+            color:
+              default: var(--lcars-yellow)
             animation:
               type: blink
-custom_fields:
-  msd_svg_base: |
-    [[[
-      let svgContent = window.cblcars.getSvgContent(variables.msd.base_svg);
-      if (!svgContent) {
-        return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
-      }
-      let viewBox = window.cblcars.getSvgViewBox(svgContent);
-      let anchorTable = window.cblcars.findSvgAnchors(svgContent);
-      variables.msd._viewBox = viewBox;
-      variables.msd._anchors = anchorTable;
-      const aspect = window.cblcars.getSvgAspectRatio(viewBox);
-      return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
-    ]]]
-  msd_svg_overlays: |
-    [[[
-      // The renderMsdOverlay helper now returns the markup and a list of animations to run.
-      const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
-        overlays: (() => {
-          const slots = variables.msd.slots || {};
-          return Object.values(slots).map(slot => slot.callout);
-        })(),
-        anchors: variables.msd._anchors,
-        styleLayers: variables.msd.presets,
-        hass,
-        root: this.shadowRoot, // Pass shadowRoot for element queries
-        viewBox: variables.msd._viewBox
-        // No longer need to pass scope here, we'll call it from the scope object itself.
-      });
-
-      // Schedule the animations to run after the card has rendered the SVG markup.
-      if (animationsToRun.length > 0) {
-        requestAnimationFrame(() => {
-          animationsToRun.forEach(animConfig => {
-            // Call the animate method on the card's scope object.
-            this._animationScope.animate(animConfig);
-          });
-        });
-      }
-
-      // Return only the SVG markup for the card to render.
-      return svgMarkup;
-    ]]]
-styles:
+              duration: 750ms
+      slots:
+        static_position:
+          callout:
+            anchor:
+              - 90%
+              - 90%
+            preset: default
+            line:
+              animation:
+                type: march
+                duration: 1001
+            text:
+              position:
+                - 10
+                - 10%
+              value: shiiiiit
+              font_family: cb-lcars_millenium_extended_bold
+        test_callout:
+          callout:
+            entity: input_number.num_test
+            anchor: warp_core
+            preset: default
+            visible: true
+            state_resolver:
+              enabled: true
+              states:
+                - entity: input_number.num_test
+                  from: 0
+                  to: 10
+                  preset: default
+                  settings:
+                    text:
+                      value: ssjsffdjsa
+                      animation:
+                        type: fade
+                        duration: 400
+                - entity: input_number.num_test
+                  from: 10
+                  to: 1000
+                  preset: warning
+                  settings:
+                    text:
+                      value: fuck brof
+            text:
+              value: Test Calljkljl
+              color: red
+              position: warp_core_label
+              animation:
+                type: blink
+                delay: 5s
+                duration: 2s
+                min_opacity: 0
+                max_opacity: 1
+            line:
+              width: 14
+              color:
+                default: var(--lcars-orange)
+              stroke_dasharray:
+                - 30
+                - 25
+              opacity: 0.3
+              stroke_linecap: round
+              stroke_linejoin: round
+              corner_style: bevel
+              corner_radius: 90
+              rounded: false
+              animation:
+                type: march
+                duration: 2000
+              animation2:
+                type: motionpath
+                duration: 4000
+                loop: true
+                tracer:
+                  shape: rect
+                  size: 15
+                  fill: var(--lcars-red)
+        saucer_1:
+          callout:
+            entity: input_number.num_test
+            anchor: saucer_1
+            preset: default
+            visible: true
+            state_resolver:
+              enabled: true
+              states:
+                - entity: input_number.num_test
+                  from: 0
+                  to: 10
+                  preset: default
+                  settings:
+                    text:
+                      value: fdasf
+                      animation:
+                        type: blink
+                - entity: input_number.num_test
+                  from: 10
+                  to: 1000
+                  preset: warning
+                  settings:
+                    text:
+                      value: fuck brof
+            text:
+              value: Test Calljkljl
+              color: red
+              position: saucer_1_label
+              animation:
+                type: blink
+                delay: 5s
+                duration: 2s
+                min_opacity: 0
+                max_opacity: 1
+            line:
+              width: 14
+              color:
+                default: var(--lcars-orange)
+              stroke_dasharray2:
+                - 30
+                - 25
+              opacity: 0.3
+              stroke_linecap: round
+              stroke_linejoin: round
+              corner_style: bevel
+              corner_radius: 90
+              rounded: false
+              animation:
+                type: draw
+                duration: 2300
+                direction: forward
+    msd4:
+      base_svg: builtin:ncc-1701-a-blue
+      slots:
+        morph_target:
+          callout:
+            id: morph_target
+            line:
+              points:
+                - - 50
+                  - 300
+                - - 150
+                  - 350
+                - - 250
+                  - 300
+              width: 3
+              color: red
+        morph_source:
+          callout:
+            text:
+              value: Morph Animation
+              position:
+                - 50
+                - 290
+            line:
+              points:
+                - - 50
+                  - 325
+                - - 250
+                  - 325
+              width: 3
+              color:
+                default: var(--lcars-teal)
+              animation:
+                type: morph
+                morph_to_selector2: "#msd_line_morph_target"
+                morph_to_selector: "#bridge"
+                duration: 2500
+                precision: 0.2
+                loop: true
+                direction: alternate
+    msd2:
+      base_svg: builtin:ncc-1701-a-blue
+      base_svg2: /local/cblcars/shuttle_test.svg
+      presets:
+        default:
+          text:
+            font_size: 50
+            font_family: Antonio
+            color: var(--primary-text-color)
+          line:
+            width: 14
+            rounded: true
+            corner_radius: 50
+            stroke_dasharray:
+              - 25
+              - 25
+            color:
+              default: var(--lcars-orange)
+        warning:
+          text:
+            color: var(--lcars-yellow)
+          line:
+            color:
+              default: var(--lcars-yellow)
+            animation:
+              - type: draw
+                duration: 1500
+              - type: pulse
+                duration: 1750ms
+                direction: reverse
+                ease: easeInOut
+      slots:
+        static_position:
+          callout:
+            anchor:
+              - 90%
+              - 90%
+            preset: default
+            line:
+              animation:
+                type: motionpath
+                tracer:
+                  shape: circle
+                  r: 15
+                loop: true
+            text:
+              position:
+                - 10
+                - 10%
+              value: shiiiiit
+              animation:
+                type: blink
   custom_fields:
-    msd_svg_base:
-      - width: 100%
-      - height: 100%
-      - position: absolute
-      - top: 0
-      - left: 0
-      - z-index: 1
-    msd_svg_overlays:
-      - width: 100%
-      - height: 100%
-      - position: absolute
-      - top: 0
-      - left: 0
-      - z-index: 1
+    msd_svg_base: |
+      [[[
+        let svgContent = window.cblcars.getSvgContent(variables.msd.base_svg);
+        if (!svgContent) {
+          return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
+        }
+        let viewBox = window.cblcars.getSvgViewBox(svgContent);
+        let anchorTable = window.cblcars.findSvgAnchors(svgContent);
+        variables.msd._viewBox = viewBox;
+        variables.msd._anchors = anchorTable;
+        const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+        return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+      ]]]
+    msd_svg_overlays: |
+      [[[
+        // The renderMsdOverlay helper now returns the markup and a list of animations to run.
+        const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
+          overlays: (() => {
+            const slots = variables.msd.slots || {};
+            return Object.values(slots).map(slot => slot.callout);
+          })(),
+          anchors: variables.msd._anchors,
+          styleLayers: variables.msd.presets,
+          hass,
+          root: this.shadowRoot, // Pass shadowRoot for element queries
+          viewBox: variables.msd._viewBox
+          // No longer need to pass scope here, we'll call it from the scope object itself.
+        });
+
+        // Schedule the animations to run after the card has rendered the SVG markup.
+        if (animationsToRun.length > 0) {
+          requestAnimationFrame(() => {
+            animationsToRun.forEach(animConfig => {
+              // Call the animate method on the card's scope object.
+              this._animationScope.animate(animConfig);
+            });
+          });
+        }
+
+        // Return only the SVG markup for the card to render.
+        return svgMarkup;
+      ]]]
+  styles:
+    custom_fields:
+      msd_svg_base:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 1
+      msd_svg_overlays:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 1
 

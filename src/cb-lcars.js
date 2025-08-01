@@ -52,6 +52,7 @@ async function initializeCustomCard() {
         animateWithRoot: animHelpers.animateWithRoot,
         waitForElement: animHelpers.waitForElement,
         presets: animPresets,
+        scopes: new Map(), // Global map of all animation scopes
         // utils: {} // add as needed
     };
 
@@ -247,33 +248,7 @@ class CBLCARSAnimationScope {
         // Clear our internal tracking array
         this.animations = [];
     }
-
-
-    /*
-    destroy() {
-        // Revert removes all inline styles set by animations within the scope.
-        // It effectively stops and cleans up the animations.
-        if (this.scope && typeof this.scope.revert === 'function') {
-            // First, stop any active animations on the card's elements.
-            if (typeof this.scope.remove === 'function') {
-                const cardElement = document.getElementById(this.id.replace('card-', ''));
-                if (cardElement) {
-                    this.scope.remove(cardElement.querySelectorAll('*'));
-                    this.scope.remove(cardElement);
-                }
-            }
-            this.scope.revert();
-        }
-        this.animations = []; // Clear the animations array
-    }
-    */
-
 }
-
-// Global map of all scopes
-window.cblcars.anim = window.cblcars.anim || {};
-window.cblcars.anim.scopes = new Map();
-
 
 
 class CBLCARSBaseCard extends ButtonCard {

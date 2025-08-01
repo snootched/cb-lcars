@@ -236,8 +236,10 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
       cblcarsLog.debug(`[renderMsdOverlay] Rendering MSD overlay ${idx}`, { callout, computed });
 
       // 2. --- Position & ID Resolution ---
-      const lineId = `msd_line_${computed.id || idx}`;
-      const textId = `msd_text_${computed.id || idx}`;
+      //const lineId = `msd_line_${computed.id || idx}`;
+      //const textId = `msd_text_${computed.id || idx}`;
+      const lineId = computed.line?.id || `msd_line_${computed.id || idx}`;
+      const textId = computed.text?.id || `msd_text_${computed.id || idx}`;
 
       const pointContext = { anchors, viewBox };
       const anchorPos = resolvePoint(computed.anchor, pointContext);
