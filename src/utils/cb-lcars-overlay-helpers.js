@@ -123,10 +123,12 @@ function generateSmoothPath(points, { tension = 0.5 } = {}) {
  * @returns {number[]|null} The resolved [x, y] coordinates or null.
  */
 function resolvePoint(point, { anchors, viewBox }) {
+  // Ensure anchors is always an object
+  anchors = anchors || {};
   if (!point) return null;
 
   // Resolve anchor name
-  if (typeof point === 'string' && anchors[point]) {
+  if (typeof point === 'string' && anchors && typeof anchors === 'object' && anchors[point]) {
     return anchors[point];
   }
 
@@ -157,6 +159,15 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
   let animationsToRun = []; // Store animation configs to run after rendering
   const presets = styleLayers || {};
   const defaultPreset = presets.default || {};
+
+  // Ensure anchors is always an object to avoid undefined errors
+  if (!anchors || typeof anchors !== 'object') {
+    cblcarsLog.warn('[renderMsdOverlay] anchors is missing or not an object. Overlays may not render correctly.', { anchors });
+    anchors = {};
+  }
+
+  // --- Graceful error handling for missing anchors/IDs ---
+  const errorMessages = [];
 
   overlays.forEach((callout, idx) => {
     // 1. --- Configuration Merging ---
@@ -209,13 +220,26 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
     const anchorPos = resolvePoint(computed.anchor, pointContext);
     const textPos = resolvePoint(computed.text?.position, pointContext);
 
+    if (computed.anchor && !anchorPos) {
+      errorMessages.push(`Anchor "${computed.anchor}" not found`);
+      cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+    }
+    if (computed.text?.position && !textPos) {
+      errorMessages.push(`Text position "${computed.text.position}" not found`);
+      cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+    }
+
     // A callout is valid if it has text to render, or a line with an anchor, or a line with explicit points.
     const hasText = !!textPos;
     const hasLine = computed.line && (anchorPos || (Array.isArray(computed.line.points) && computed.line.points.length > 1));
 
-    if (!hasText && !hasLine) {
-      cblcarsLog.warn(`[renderMsdOverlay] No valid text or line definition for overlay ${idx}. Skipping.`);
-      return;
+    if ((!hasText && !hasLine)/* || errorMessages.length > 0*/) {
+      // Stack error messages vertically using <tspan>, 36px apart
+      // const errorText = `<text x="${viewBox[0] + 10}" y="${viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
+      //     ${errorMessages.map((msg, i) => `<tspan x="${viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
+      // </text>`;
+      // svgElements.push(errorText);
+      // return;
     }
 
     // 3. --- Line & Text Smart Positioning ---
@@ -374,6 +398,13 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
       animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
     }
   });
+
+  if (errorMessages.length > 0) {
+    const errorText = `<text x="${viewBox[0] + 10}" y="${viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
+        ${errorMessages.map((msg, i) => `<tspan x="${viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
+    </text>`;
+    svgElements.push(errorText);
+  }
 
   // Wrap all overlay elements in a single SVG container
   const svgMarkup = `<svg viewBox="${viewBox.join(' ')}" width="100%" height="100%" style="pointer-events:none;">${svgElements.join('')}</svg>`;
