@@ -2,6 +2,13 @@ import { cblcarsLog } from './cb-lcars-logging.js';
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
 
 export const animPresets = {
+    /**
+     * @preset draw
+     * Animates the drawing of an SVG path.
+     * @param {object} params - Anime.js v4 params object.
+     * @param {Element} element - SVG path element.
+     * @param {object} options - Animation config.
+     */
     draw: (params, element, options) => {
         Object.assign(params, {
             strokeDashoffset: (el) => {
@@ -29,25 +36,46 @@ export const animPresets = {
         Object.assign(params, { opacity: [0, 1] });
     },
     */
+    /**
+     * @preset pulse
+     * Pulses scale and opacity for a "breathing" effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
     pulse: (params) => {
         Object.assign(params, {
             scale: [1, 1.1],
             opacity: [1, 0.7],
-            direction: 'alternate',
+            alternate: true,
             loop: true,
             easing: 'easeInOutSine',
         });
     },
+    /**
+     * @preset pulse_line
+     * Pulses the stroke width of a line.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
     pulse_line: (params, element, options) => {
         const width = element.getAttribute('stroke-width') || params['stroke-width'] || 4;
         Object.assign(params, {
             'stroke-width': [parseFloat(width), parseFloat(width) * 1.5],
-            direction: 'alternate',
+            alternate: true,
             loop: true,
             easing: 'easeInOutSine',
             duration: options.duration ?? 1200
         });
     },
+    /**
+     * @preset blink
+     * Blinks opacity between two values.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
     blink: (params, element, options) => {
         Object.assign(params, {
             opacity: [options.max_opacity ?? 1, options.min_opacity ?? 0.3],
@@ -58,11 +86,11 @@ export const animPresets = {
         });
     },
     /**
-     * MotionPath animation preset.
-     * Handles tracer and trail options.
-     * @param {object} params - Anime.js animation params (will be mutated).
-     * @param {Element} element - The target element to animate (should be the path).
-     * @param {object} options - The original animation config (may include path_selector, tracer, trail, etc).
+     * @preset motionpath
+     * Animates an element along a path, with optional tracer and trail.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
      */
     motionpath: async function (params, element, options) {
         const { path_selector, root = document, trail, tracer } = options;
@@ -231,11 +259,11 @@ export const animPresets = {
     },
     */
     /**
-     * CSS-based smooth marching dashed line, adapting the technique from cb-lcars-msd-orig.yaml
-     * This creates a CSS animation and assigns it to the element instead of using anime.js animation
-     * @param {object} params - AnimateJS params object (will be filled with dummy values)
-     * @param {Element} element - DOM element to animate
-     * @param {object} options - Configuration options
+     * @preset march
+     * CSS-based marching dashed line animation.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
      */
     march: (params, element, options = {}) => {
         // Get dash pattern from stroke_dasharray
@@ -344,6 +372,120 @@ export const animPresets = {
             duration: 1,
             loop: false,
             autoplay: false
+        });
+    },
+
+    /**
+     * @preset glow
+     * Animates stroke color and drop-shadow for a glowing effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    glow: (params, element, options = {}) => {
+        const color = options.color || 'var(--lcars-blue-light)';
+        const intensity = options.intensity ?? 0.8;
+        Object.assign(params, {
+            stroke: [element.getAttribute('stroke') || color, color],
+            alternate: true,
+            loop: true,
+            easing: 'easeInOutSine',
+            duration: options.duration ?? 900,
+            opacity: [1, intensity]
+        });
+        element.style.filter = `drop-shadow(0 0 8px ${color})`;
+    },
+
+    /**
+     * @preset shimmer
+     * Animates fill and opacity for a shimmering effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    shimmer: (params, element, options = {}) => {
+        const color = options.color || 'var(--lcars-yellow)';
+        Object.assign(params, {
+            opacity: [1, 0.5, 1],
+            fill: [element.getAttribute('fill') || color, color],
+            alternate: true,
+            loop: true,
+            easing: 'easeInOutSine',
+            duration: options.duration ?? 1200
+        });
+    },
+
+    /**
+     * @preset strobe
+     * Rapidly toggles opacity for a strobe effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    strobe: (params, element, options = {}) => {
+        Object.assign(params, {
+            opacity: [1, 0.1],
+            alternate: true,
+            loop: true,
+            easing: 'steps(2, end)',
+            duration: options.duration ?? 400
+        });
+    },
+
+    /**
+     * @preset cascade
+     * Staggers opacity animation for multiple elements.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    cascade: (params, element, options = {}) => {
+        Object.assign(params, {
+            opacity: [0, 1],
+            delay: window.cblcars.animejs.stagger(options.stagger ?? 100),
+            easing: 'easeOutQuad',
+            duration: options.duration ?? 800
+        });
+    },
+
+    /**
+     * @preset ripple
+     * Animates scale and opacity for a ripple effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    ripple: (params, element, options = {}) => {
+        Object.assign(params, {
+            scale: [1, options.max_scale ?? 2, 1],
+            opacity: [1, 0.3, 1],
+            alternate: true,
+            loop: true,
+            easing: 'easeInOutSine',
+            duration: options.duration ?? 1200
+        });
+    },
+
+    /**
+     * @preset flicker
+     * Randomizes opacity for a flicker effect.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    flicker: (params, element, options = {}) => {
+        Object.assign(params, {
+            opacity: [
+                1,
+                0.7 + Math.random() * 0.3,
+                0.4 + Math.random() * 0.3,
+                1
+            ],
+            //alternate: true,
+            alternate: false,
+            loop: true,
+            easing: 'steps(4, end)',
+            duration: options.duration ?? 600
         });
     },
 

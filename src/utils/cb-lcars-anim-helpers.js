@@ -98,35 +98,40 @@ export async function animateElement(scope, options) {
         ...animOptions,
       };
 
-      const presetFn = animPresets[type.toLowerCase()];
-      if (presetFn) {
-        await presetFn(params, element, options);
-      } else if (type.toLowerCase() === 'morph') {
-        if (!options.morph_to_selector) {
-          cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
-          return;
-        }
-        const morphTarget = await waitForElement(options.morph_to_selector, root);
-        if (!morphTarget) {
-          cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
-          return;
-        }
-        const precision = options.precision ? parseInt(options.precision, 10) : undefined;
-        Object.assign(params, {
-          d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
-        });
+      // Support stacking/chaining: type can be string or array
+      if (Array.isArray(type)) {
+        applyPresets(type, params, element, options);
       } else {
-        cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
+        const presetFn = animPresets[type.toLowerCase()];
+        if (presetFn) {
+          await presetFn(params, element, options);
+        } else if (type.toLowerCase() === 'morph') {
+          if (!options.morph_to_selector) {
+            cblcarsLog.error('[animateElement] morph animation requires a `morph_to_selector`.', { options });
+            return;
+          }
+          const morphTarget = await waitForElement(options.morph_to_selector, root);
+          if (!morphTarget) {
+            cblcarsLog.error(`[animateElement] morph could not find target shape for selector: ${options.morph_to_selector}`);
+            return;
+          }
+          const precision = options.precision ? parseInt(options.precision, 10) : undefined;
+          Object.assign(params, {
+            d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
+          });
+        } else {
+          cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
+        }
       }
 
       // Don't create an animation if the preset is CSS-based
       if (params._cssAnimation) {
-          return;
+        return;
       }
 
       // If the preset nulled the targets (e.g. motionpath with tracer), don't create the animation.
       if (!params.targets) {
-          return;
+        return;
       }
 
       // The animate call is now inside the scope.add() callback.
@@ -161,5 +166,23 @@ export async function createTimeline(timelineConfig, scopeId, root = document) {
     }
     if (scopeObj) scopeObj.addAnimation(timeline);
     return timeline;
+}
+
+/**
+ * Applies one or more animation presets to the anime.js params object.
+ * Each preset mutates/augments params for stacking/chaining.
+ * @param {string|string[]} types - Preset name(s) to apply.
+ * @param {object} params - Anime.js params object to mutate.
+ * @param {Element} element - Target element.
+ * @param {object} options - Animation config (per-preset config supported).
+ */
+export function applyPresets(types, params, element, options) {
+    const presetList = Array.isArray(types) ? types : [types];
+    for (const type of presetList) {
+        const presetFn = animPresets[type];
+        if (presetFn) {
+            presetFn(params, element, options?.[type] || options);
+        }
+    }
 }
 
