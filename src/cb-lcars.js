@@ -397,6 +397,24 @@ class CBLCARSBaseCard extends ButtonCard {
         this._animationScope = new CBLCARSAnimationScope(this._animationScopeId);
         window.cblcars.anim.scopes.set(this._animationScopeId, this._animationScope);
 
+        // --- Timeline orchestration (async, safe here) ---
+        cblcarsLog.debug('connectedCallback timelines:', this._config && this._config.timelines);
+        if (this._config && this._config.timelines) {
+            (async () => {
+                try {
+                    this._timelines = await animHelpers.createTimelines(
+                        this._config.timelines,
+                        this._animationScopeId,
+                        this.shadowRoot,
+                        this._config.overlays || {},
+                        this.hass || null
+                    );
+                } catch (e) {
+                    cblcarsLog.error('[CBLCARSBaseCard.connectedCallback] Error creating timelines:', e);
+                }
+            })();
+        }
+
         // Check if the parent element has the class 'preview'
         if (this.parentElement && this.parentElement.classList.contains('preview')) {
             this.style.height = '60px';

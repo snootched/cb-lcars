@@ -11,12 +11,9 @@ export const animPresets = {
      */
     draw: (params, element, options) => {
         Object.assign(params, {
-            strokeDashoffset: (el) => {
-                const pathLength = el.getTotalLength();
-                el.style.strokeDasharray = pathLength;
-                return [pathLength, 0];
-            },
+            strokeDashoffset: [element.getTotalLength(), 0]
         });
+        element.style.strokeDasharray = element.getTotalLength();
     },
     /* //stutters on loop with anime.js .. use css version for now
     march: (params, element, options) => {
@@ -43,7 +40,7 @@ export const animPresets = {
      * @param {Element} element
      * @param {object} options
      */
-    pulse: (params) => {
+    pulse: (params, element, options) => {
         Object.assign(params, {
             scale: [1, 1.1],
             opacity: [1, 0.7],
@@ -51,6 +48,7 @@ export const animPresets = {
             loop: true,
             easing: 'easeInOutSine',
         });
+        console.debug('[pulse preset] params after mutation:', params, element);
     },
     /**
      * @preset pulse_line
@@ -394,6 +392,7 @@ export const animPresets = {
             opacity: [1, intensity]
         });
         element.style.filter = `drop-shadow(0 0 8px ${color})`;
+        cblcarsLog.debug('[glow preset] params after mutation:', params, element);
     },
 
     /**

@@ -158,7 +158,7 @@ function resolvePoint(point, { anchors, viewBox }) {
 
 
 // Entry point for MSD overlays from custom button card
-export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = document, viewBox = [0, 0, 400, 200] }) {
+export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = document, viewBox = [0, 0, 400, 200], timelines = {} }) {
   let svgElements = [];
   let animationsToRun = []; // Store animation configs to run after rendering
   const presets = styleLayers || {};
@@ -174,6 +174,20 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
   if (!Array.isArray(overlays)) {
     cblcarsLog.warn('[renderMsdOverlay] overlays is not a valid array, skipping.');
     return { svgMarkup: '', animationsToRun: [] }; // Return default values
+  }
+
+  // Collect all timeline targets for suppression
+  const timelineTargets = new Set();
+  if (timelines && typeof timelines === 'object') {
+    Object.values(timelines).forEach(tl => {
+      if (Array.isArray(tl.steps)) {
+        tl.steps.forEach(step => {
+          if (step.targets) {
+            timelineTargets.add(step.targets.replace(/^#/, ''));
+          }
+        });
+      }
+    });
   }
 
   // --- Graceful error handling for missing anchors/IDs ---
@@ -390,7 +404,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
         const { attrs, style } = splitAttrsAndStyle(textConfig, 'text');
 
         // If the text has a pulse animation, ensure it scales from the center.
-        if (computed.text.animation?.type === 'pulse') {
+        if (computed.text.animation?.type === 'pulse' || computed.text.animation?.type === 'glow') {
           style['transform-origin'] = 'center';
           style['transform-box'] = 'fill-box';
         }
@@ -411,7 +425,8 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
       const lineAnim = computed.line?.animation;
       const textAnim = computed.text?.animation;
 
-      if (lineAnim && lineAnim.type && hasLine) {
+      // Only push element-level animation if not suppressed by timeline
+      if (lineAnim && lineAnim.type && hasLine && !timelineTargets.has(lineId)) {
         if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
           animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
         } else {
@@ -419,7 +434,7 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
         }
       }
 
-      if (textAnim && textAnim.type && hasText) {
+      if (textAnim && textAnim.type && hasText && !timelineTargets.has(textId)) {
         animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
       }
     }

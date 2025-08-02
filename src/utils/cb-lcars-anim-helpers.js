@@ -159,13 +159,106 @@ export async function createTimeline(timelineConfig, scopeId, root = document) {
     for (const step of timelineConfig) {
         const { targets, ...animOptions } = step;
         const element = await window.cblcars.anim.waitForElement(targets, root);
-        timeline.add({
-            targets: element,
-            ...animOptions
-        });
+        timeline.add(element, animOptions);
     }
     if (scopeObj) scopeObj.addAnimation(timeline);
     return timeline;
+}
+
+/**
+ * Creates multiple anime.js timelines from a config object, supporting global params and step merging.
+ * @param {object} timelinesConfig - Object of timelines keyed by name.
+ * @param {string} scopeId - The scope ID to use.
+ * @param {Element} root - The root element for selectors.
+ * @param {object} overlayConfigs - Overlay configs for element-level animation merging.
+ * @param {object} hass - Home Assistant context for dynamic value resolution.
+ * @returns {Promise<object>} Object of timelines keyed by name.
+ */
+export async function createTimelines(timelinesConfig, scopeId, root = document, overlayConfigs = {}, hass = null) {
+    const scopeObj = window.cblcars.anim.scopes.get(scopeId);
+    if (!scopeObj) {
+        cblcarsLog.error('[createTimelines] Scope not found:', scopeId);
+        return {};
+    }
+    const timelines = {};
+    for (const [timelineName, timelineConfig] of Object.entries(timelinesConfig)) {
+        const { steps, ...timelineGlobals } = timelineConfig;
+        // Dynamic value resolution for timeline globals
+        const resolvedGlobals = window.cblcars.styleHelpers?.resolveAllDynamicValues
+            ? window.cblcars.styleHelpers.resolveAllDynamicValues(timelineGlobals, hass)
+            : timelineGlobals;
+
+        // Create timeline with scope and global params
+        const timeline = window.cblcars.anim.animejs.createTimeline({
+            scope: scopeObj.scope,
+            ...resolvedGlobals
+        });
+
+        if (!steps || !Array.isArray(steps)) {
+            cblcarsLog.warn(`[createTimelines] Timeline "${timelineName}" has no steps array.`);
+            timelines[timelineName] = timeline;
+            continue;
+        }
+
+        for (const step of steps) {
+            // Merge: element animation block → timeline globals → step params (step wins)
+            const targetId = (typeof step.targets === 'string' && step.targets.startsWith('#'))
+                ? step.targets.slice(1)
+                : step.targets;
+            const elementAnim = overlayConfigs?.[targetId]?.animation || {};
+            let mergedParams = { ...elementAnim, ...resolvedGlobals, ...step };
+            mergedParams = window.cblcars.styleHelpers?.resolveAllDynamicValues
+                ? window.cblcars.styleHelpers.resolveAllDynamicValues(mergedParams, hass)
+                : mergedParams;
+
+            let element;
+            try {
+                element = await window.cblcars.anim.waitForElement(step.targets, root);
+            } catch (error) {
+                cblcarsLog.error(`[createTimelines] Failed to find target element in "${timelineName}":`, { targets: step.targets, error });
+                continue;
+            }
+            if (!element) {
+                cblcarsLog.warn(`[createTimelines] Element not found for timeline "${timelineName}" step:`, { targets: step.targets });
+                continue;
+            }
+
+            // Apply preset if type is specified
+            if (mergedParams.type && animPresets[mergedParams.type]) {
+                await animPresets[mergedParams.type](mergedParams, element, mergedParams);
+                cblcarsLog.debug(`[createTimelines] After preset "${mergedParams.type}" for "${timelineName}" step:`, mergedParams);
+            }
+
+            const { targets, offset, ...animeParams } = mergedParams;
+            timeline.add(element, animeParams, offset);
+            cblcarsLog.debug(`[createTimelines] Added step to timeline "${timelineName}":`, { targets: element, animeParams, offset });
+        }
+
+        // Remove or comment out this line:
+        // console.debug(`[createTimelines] Created timeline "${timelineName}" with steps:`, timeline.steps);
+        // Optionally, just log the timeline object:
+        console.debug(`[createTimelines] Created timeline "${timelineName}":`, timeline);
+
+        // Only call addAnimation if scopeObj has it (i.e., is CBLCARSAnimationScope)
+        if (typeof scopeObj.addAnimation === 'function') {
+            scopeObj.addAnimation(timeline);
+        }
+        timelines[timelineName] = timeline;
+        if (timeline && typeof timeline.play === 'function') {
+            timeline.play();
+            cblcarsLog.info(`[createTimelines] Timeline "${timelineName}" play() called.`);
+            console.debug(`[createTimelines] Timeline:`, timeline);
+            console.debug(`[createTimelines] Timeline "${timelineName}" state:`, {
+                paused: timeline.paused,
+                children: timeline.children,
+                duration: timeline.duration,
+                animations: timeline.animations,
+                id: timeline.id
+            });
+
+        }
+    }
+    return timelines;
 }
 
 /**
