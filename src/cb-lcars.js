@@ -222,10 +222,11 @@ class CBLCARSAnimationScope {
     /**
      * Adds an animation to the scope using the v4 `scope.add()` pattern.
      * @param {object} options - The animation options for animateElement.
+     * @param {object} hass - The Home Assistant hass object.
      */
-    animate(options) {
+    animate(options, hass = null) {
         // Call the global animateElement helper, passing this instance as the scope.
-        const animation = window.cblcars.anim.animateElement(this, options);
+        const animation = window.cblcars.anim.animateElement(this, options, hass);
         if (animation) {
             this.animations.push({ config: options, animation: animation });
         }
@@ -399,6 +400,13 @@ class CBLCARSBaseCard extends ButtonCard {
 
         // --- Timeline orchestration (async, safe here) ---
         cblcarsLog.debug('connectedCallback timelines:', this._config && this._config.timelines);
+
+        // CLEANUP: Stop previous timelines if any
+        if (this._timelines && Array.isArray(this._timelines)) {
+            this._timelines.forEach(tl => tl && typeof tl.pause === 'function' && tl.pause());
+            this._timelines = null;
+        }
+
         if (this._config && this._config.timelines) {
             (async () => {
                 try {

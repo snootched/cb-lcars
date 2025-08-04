@@ -4,6 +4,89 @@ import { animateElement } from './cb-lcars-anim-helpers.js';
 import { cblcarsLog } from './cb-lcars-logging.js';
 
 /**
+ * Manages and renders SVG overlay errors.
+ * This class ensures that errors can be pushed from anywhere and are rendered
+ * into a dedicated container in the SVG overlay.
+ */
+class SvgOverlayErrorManager {
+    constructor() {
+        this.errors = [];
+        this.containerId = 'cblcars-overlay-errors';
+        this.viewBox = [0, 0, 400, 200];
+        this.root = null; // The root element (e.g., shadowRoot) to search within
+    }
+
+    /**
+     * Sets the root element for DOM queries. Essential for Shadow DOM.
+     * @param {Element} root The root element.
+     */
+    setRoot(root) {
+        this.root = root;
+    }
+
+    /**
+     * Clears all current errors.
+     */
+    clear() {
+        this.errors = [];
+        this.render(); // Re-render to clear the display
+    }
+
+    /**
+     * Adds an error message and triggers a re-render.
+     * @param {string} msg The error message to display.
+     */
+    push(msg) {
+        if (!this.errors.includes(msg)) {
+            this.errors.push(msg);
+            this.render();
+        }
+    }
+
+    /**
+     * Renders the collected errors into the SVG container.
+     * If no errors are present, the container is cleared.
+     */
+    render() {
+        // Use the stored root, default to document if not set.
+        const searchRoot = this.root || document;
+
+        // Delay rendering to allow the DOM to update first. This is crucial for
+        // errors pushed during the initial render cycle before the container exists.
+        setTimeout(() => {
+            const container = searchRoot.querySelector(`#${this.containerId}`);
+            if (!container) {
+                // This can happen if the overlay is removed before the timeout fires.
+                return;
+            }
+
+            if (this.errors.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const errorText = `<text x="${this.viewBox[0] + 10}" y="${this.viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
+                ${this.errors.map((msg, i) => `<tspan x="${this.viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
+            </text>`;
+            container.innerHTML = errorText;
+        }, 0);
+    }
+
+    /**
+     * Updates the viewBox used for positioning error messages.
+     * @param {number[]} viewBox The new viewBox array.
+     */
+    setViewBox(viewBox) {
+        if (Array.isArray(viewBox) && viewBox.length === 4) {
+            this.viewBox = viewBox;
+        }
+    }
+}
+
+// Export a single instance to act as a global singleton
+export const svgOverlayManager = new SvgOverlayErrorManager();
+
+/**
  * A singleton utility to accurately measure text width using an off-screen canvas.
  */
 const TextMeasurer = (() => {
@@ -156,13 +239,109 @@ function resolvePoint(point, { anchors, viewBox }) {
   return null;
 }
 
+/**
+ * Converts steps (horizontal/vertical) to waypoints based on the initial anchor position.
+ * @param {string|Array} anchor - Anchor name or position.
+ * @param {Array} steps - Array of step objects.
+ * @param {object} context - {anchors, viewBox}
+ * @returns {Array} Array of [x, y] waypoints.
+ */
+function generateWaypointsFromSteps(anchor, steps, context) {
+  let pos = resolvePoint(anchor, context);
+  if (!pos) return [];
+  const points = [pos.slice()];
+  for (const step of steps) {
+    if (step.direction === 'horizontal' && step.to_x !== undefined) {
+      pos = [parseFloat(step.to_x), pos[1]];
+    } else if (step.direction === 'vertical' && step.to_y !== undefined) {
+      pos = [pos[0], parseFloat(step.to_y)];
+    }
+    points.push(pos.slice());
+  }
+  return points;
+}
+
+/**
+ * Builds an SVG path string using right-angle turns and corner style.
+ * Supports round, square, bevel, miter corners.
+ * @param {Array} points - Array of [x, y] points.
+ * @param {object} options - {cornerStyle, cornerRadius}
+ * @returns {string} SVG path data.
+ */
+function generateMultiSegmentPath(points, { cornerStyle = 'round', cornerRadius = 12 } = {}) {
+  if (points.length < 2) return '';
+
+  let d = `M${points[0][0]},${points[0][1]}`;
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i]; // This is the elbow point
+    const [x2, y2] = points[i + 1];
+
+    // Check for a right-angle turn. If not, just draw a line to the elbow.
+    const isRightAngle = (x0 === x1 && y1 === y2) || (y0 === y1 && x1 === x2);
+
+    if (!isRightAngle || cornerStyle === 'sharp' || cornerStyle === 'square') {
+      d += ` L${x1},${y1}`;
+      continue;
+    }
+
+    const dx1 = x1 - x0;
+    const dy1 = y1 - y0;
+    const dx2 = x2 - x1;
+    const dy2 = y2 - y1;
+
+    // Radius should not be more than half the length of the shortest segment from the corner
+    const r = Math.min(cornerRadius, Math.abs(dx1 || dy1) / 2, Math.abs(dx2 || dy2) / 2);
+
+    // Points on the segments before and after the corner
+    const p1 = [x1 - Math.sign(dx1) * r, y1 - Math.sign(dy1) * r];
+    const p2 = [x1 + Math.sign(dx2) * r, y1 + Math.sign(dy2) * r];
+
+    d += ` L${p1[0]},${p1[1]}`;
+
+    if (cornerStyle === 'round') {
+      // Determine sweep flag for the arc
+      const sweep = ((dx1 > 0 && dy2 > 0) || (dx1 < 0 && dy2 < 0) || (dy1 > 0 && dx2 < 0) || (dy1 < 0 && dx2 > 0)) ? 1 : 0;
+      d += ` A${r},${r} 0 0 ${sweep} ${p2[0]},${p2[1]}`;
+    } else if (cornerStyle === 'bevel' || cornerStyle === 'miter') {
+      // For bevel and miter, just draw a line to the next point on the segment
+      d += ` L${p2[0]},${p2[1]}`;
+    }
+  }
+
+  // Add the final line segment to the last point
+  d += ` L${points[points.length - 1][0]},${points[points.length - 1][1]}`;
+
+  return d;
+}
+
+
+// --- Centralized SVG Overlay Error Manager ---
+// REMOVED OLD IMPLEMENTATION
 
 // Entry point for MSD overlays from custom button card
-export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = document, viewBox = [0, 0, 400, 200], timelines = {} }) {
+export function renderMsdOverlay({
+  overlays,
+  anchors,
+  styleLayers,
+  hass,
+  root = document,
+  viewBox = [0, 0, 400, 200],
+  timelines = {},
+  animations = [] // <-- Add animations param, default to []
+}) {
   let svgElements = [];
   let animationsToRun = []; // Store animation configs to run after rendering
   const presets = styleLayers || {};
   const defaultPreset = presets.default || {};
+
+  // --- Merge user anchors with SVG anchors if svgContent is provided ---
+  // import { getMergedAnchors } from './cb-lcars-anchor-helpers.js'
+  // anchors = getMergedAnchors(userAnchors, svgContent);
+  // For now, just a comment to show where to use it:
+  // If you have svgContent and user anchors, merge them here:
+  // anchors = getMergedAnchors(anchors, svgContent);
 
   // Ensure anchors is always an object to avoid undefined errors
   if (!anchors || typeof anchors !== 'object') {
@@ -191,17 +370,17 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
   }
 
   // --- Graceful error handling for missing anchors/IDs ---
-  const errorMessages = [];
+  // Use centralized error manager
+  svgOverlayManager.setRoot(root);
+  svgOverlayManager.clear();
+  svgOverlayManager.setViewBox(viewBox);
 
   overlays.forEach((callout, idx) => {
     // Check for required keys
     if (!callout) {
       const message = `Callout ${idx} is missing, skipping.`;
       cblcarsLog.warn(`[renderMsdOverlay] ${message}`);
-      errorMessages.push(message);
-      // Create a default templateContext without callout
-      const templateContext = { entity: null, hass: hass, computed: {} };
-      // Skip to the next callout
+      svgOverlayManager.push(message);
       return;
     }
 
@@ -260,12 +439,14 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
       const textPos = resolvePoint(computed.text?.position, pointContext);
 
       if (computed.anchor && !anchorPos) {
-        errorMessages.push(`Anchor "${computed.anchor}" not found`);
-        cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+        const msg = `Anchor "${computed.anchor}" not found`;
+        svgOverlayManager.push(msg);
+        cblcarsLog.warn(`[MSD Overlay] ${msg}`, { callout, computed, anchors });
       }
       if (computed.text?.position && !textPos) {
-        errorMessages.push(`Text position "${computed.text.position}" not found`);
-        cblcarsLog.warn(`[MSD Overlay] ${errorMessages[errorMessages.length - 1]}`, { callout, computed, anchors });
+        const msg = `Text position "${computed.text.position}" not found`;
+        svgOverlayManager.push(msg);
+        cblcarsLog.warn(`[MSD Overlay] ${msg}`, { callout, computed, anchors });
       }
 
       // A callout is valid if it has text to render, or a line with an anchor, or a line with explicit points.
@@ -348,44 +529,63 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
       // 4. --- Line Rendering ---
       let lineSvg = '';
-      if (hasLine) {
-        const { attrs, style } = splitAttrsAndStyle(computed.line, 'line');
+      let points = [];
+      let useSmooth = false;
+      // Use computed values for corner style and radius
+      let cornerStyle = computed.line?.corner_style || 'round';
+      let cornerRadius = computed.line?.corner_radius || 12;
 
-        // Check for explicit polyline points first
-        if (Array.isArray(computed.line.points) && computed.line.points.length > 1) {
-          const resolvedPoints = computed.line.points
-            .map(p => resolvePoint(p, pointContext))
-            .filter(p => p !== null);
+      // Determine the target point for the line to connect to.
+      // Priority: explicit attach_to > smart text position.
+      const attachToPoint = resolvePoint(computed.attach_to, { anchors, viewBox }) || lineStartPos;
 
-          if (resolvedPoints.length > 1) {
-            const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
-            const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+      // Prefer waypoints, then steps, then auto right-angle
+      if (computed.line?.waypoints) {
+        const waypointPoints = computed.line.waypoints.map(p => resolvePoint(p, { anchors, viewBox })).filter(Boolean);
+        const startPoint = resolvePoint(computed.anchor, { anchors, viewBox });
 
-            if (computed.line.rounded) {
-              const pathData = generateSmoothPath(resolvedPoints, { tension: computed.line.smooth_tension });
-              lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
-            } else {
-              // Convert polyline to path for animation compatibility (e.g., draw, motionPath)
-              const pathData = `M ${resolvedPoints.map(p => p.join(',')).join(' L ')}`;
-              lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
-            }
-          }
-
-        } else if (anchorPos && lineStartPos) {
-          // Fallback to right-angle path if no points are defined but an anchor exists
-          const pathData = generateRightAnglePath(lineStartPos, anchorPos, {
-            radius: computed.line.corner_radius,
-            cornerStyle: computed.line.corner_style,
-          });
-
-          // We build the path element manually since we have the `d` attribute
-          const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
-          const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
-
-          lineSvg = `<path id="${lineId}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
+        if (startPoint) {
+          points = [startPoint, ...waypointPoints];
+        } else {
+          points = waypointPoints;
         }
 
-        if (lineSvg) svgElements.push(lineSvg);
+        if (attachToPoint) {
+          points.push(attachToPoint);
+        }
+
+        useSmooth = !!(computed.line.rounded || computed.line.smooth);
+      } else if (computed.line?.steps) {
+        points = generateWaypointsFromSteps(computed.anchor, computed.line.steps, { anchors, viewBox });
+        if (attachToPoint) {
+          points.push(attachToPoint);
+        }
+        useSmooth = !!(computed.line.rounded || computed.line.smooth);
+      } else if (computed.anchor && attachToPoint) {
+        // Auto right-angle
+        const anchorPt = resolvePoint(computed.anchor, { anchors, viewBox });
+        if (anchorPt) {
+          // Create points for a single elbow path from anchor to text.
+          // The elbow is at [anchor.x, text.y] to ensure the segment
+          // connected to the text is always horizontal.
+          points = [anchorPt, [anchorPt[0], attachToPoint[1]], attachToPoint];
+        }
+      }
+
+      // If points are valid, render the connector
+      if (points.length > 1) {
+        const { attrs, style } = splitAttrsAndStyle(computed.line, 'line');
+        let pathData = '';
+        if (useSmooth) {
+          pathData = generateSmoothPath(points, { tension: computed.line.smooth_tension });
+        } else {
+          pathData = generateMultiSegmentPath(points, { cornerStyle, cornerRadius });
+        }
+        const styleString = Object.entries(style).map(([k, v]) => `${k}:${v}`).join(';');
+        const attrsString = Object.entries(attrs).map(([k, v]) => `${k}="${v}"`).join(' ');
+        // Only standard SVG attributes, no pathLength
+        lineSvg = `<path id="${computed.line?.id || `msd_line_${idx}`}" d="${pathData}" ${attrsString} style="${styleString}" fill="none" />`;
+        svgElements.push(lineSvg);
       }
 
       // 5. --- Text Rendering ---
@@ -427,29 +627,49 @@ export function renderMsdOverlay({ overlays, anchors, styleLayers, hass, root = 
 
       // Only push element-level animation if not suppressed by timeline
       if (lineAnim && lineAnim.type && hasLine && !timelineTargets.has(lineId)) {
+        // Pass the entire computed line config as options to the animation preset
+        const animConfig = { ...lineAnim, targets: `#${lineId}`, root, ...computed.line };
+
         if (lineAnim.type === 'motionpath' && lineAnim.tracer) {
-          animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, path_selector: `#${lineId}`, root });
-        } else {
-          animationsToRun.push({ ...lineAnim, targets: `#${lineId}`, root });
+          animConfig.path_selector = `#${lineId}`;
         }
+        animationsToRun.push(animConfig);
       }
 
       if (textAnim && textAnim.type && hasText && !timelineTargets.has(textId)) {
-        animationsToRun.push({ ...textAnim, targets: `#${textId}`, root });
+        // Pass the entire computed text config as options
+        animationsToRun.push({ ...textAnim, targets: `#${textId}`, root, ...computed.text });
       }
     }
   });
 
-  if (errorMessages.length > 0) {
-    const errorText = `<text x="${viewBox[0] + 10}" y="${viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
-        ${errorMessages.map((msg, i) => `<tspan x="${viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
-    </text>`;
-    svgElements.push(errorText);
-  }
+  // Add a dedicated container for error messages
+  svgElements.push(`<g id="${svgOverlayManager.containerId}"></g>`);
 
   // Wrap all overlay elements in a single SVG container
   const svgMarkup = `<svg viewBox="${viewBox.join(' ')}" width="100%" height="100%" style="pointer-events:none;">${svgElements.join('')}</svg>`;
 
+  // --- NEW: Merge standalone animations ---
+  if (Array.isArray(animations)) {
+    // Filter out animations whose targets are suppressed by timelineTargets
+    animations.forEach(anim => {
+      // If targets is a selector string, remove leading '#' for comparison
+      let targetId = '';
+      if (typeof anim.targets === 'string' && anim.targets.startsWith('#')) {
+        targetId = anim.targets.slice(1);
+      }
+      // Only add if not suppressed by timeline
+      if (!timelineTargets.has(targetId)) {
+        animationsToRun.push({ ...anim, root });
+      }
+    });
+  }
+
   // Return both the markup and the animations to be run
   return { svgMarkup, animationsToRun };
+}
+
+// In splitAttrsAndStyle, ensure stroke_width is mapped to stroke-width
+function mapKeyToSvgAttr(key, context = '') {
+  // ...existing code...
 }

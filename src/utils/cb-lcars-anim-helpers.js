@@ -74,12 +74,13 @@ export async function animateWithRoot(options) {
  * @param {string} options.targets - The CSS selector for the target element(s).
  * @param {Element} [options.root=document] - The root element for the selector query.
  */
-export async function animateElement(scope, options) {
+export async function animateElement(scope, options, hass = null) {
   const { type, targets, root = document, ...animOptions } = options;
   if (!type || !targets || !scope) {
     cblcarsLog.warn('[animateElement] Animation missing type, targets, or scope.', { options, scope });
     return;
   }
+  cblcarsLog.debug('[animateElement] Received options:', { options });
 
   // Use the scope's .add() method to register an animation constructor.
   // This is the idiomatic way to create animations within a scope in anime.js v4.
@@ -90,6 +91,7 @@ export async function animateElement(scope, options) {
         cblcarsLog.error('[animateElement] Target element not found:', { targets });
         return;
       }
+      cblcarsLog.debug('[animateElement] Target element found:', { element });
 
       const params = {
         targets: element,
@@ -97,6 +99,18 @@ export async function animateElement(scope, options) {
         easing: 'easeInOutQuad',
         ...animOptions,
       };
+
+      // --- Process state_resolver if it exists ---
+      if (options.state_resolver && options.entity && window.cblcars.styleHelpers?.resolveStateStyles) {
+          const resolvedStyles = window.cblcars.styleHelpers.resolveStateStyles(
+              options.state_resolver,
+              hass,
+              options.entity
+          );
+          Object.assign(params, resolvedStyles);
+      }
+
+      // Remove legacy pathLength logic for draw animations
 
       // Support stacking/chaining: type can be string or array
       if (Array.isArray(type)) {
@@ -248,7 +262,8 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
             if (mergedParams.type && animPresets[mergedParams.type]) {
                 const presetOptions = step[mergedParams.type] || {};
                 cblcarsLog.debug(`[createTimelines] Before preset "${mergedParams.type}" mutation:`, { mergedParams, presetOptions });
-                await animPresets[mergedParams.type](mergedParams, element, presetOptions);
+                //await animPresets[mergedParams.type](mergedParams, element, presetOptions);
+                await animPresets[mergedParams.type](mergedParams, element, mergedParams);
                 cblcarsLog.debug(`[createTimelines] After preset "${mergedParams.type}" mutation:`, { mergedParams, element });
             }
 
@@ -315,10 +330,11 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
 export function applyPresets(types, params, element, options) {
     const presetList = Array.isArray(types) ? types : [types];
     for (const type of presetList) {
-        const presetFn = animPresets[type];
+        const presetFn = animPresets[type.toLowerCase()];
         if (presetFn) {
             presetFn(params, element, options?.[type] || options);
         }
     }
 }
+
 

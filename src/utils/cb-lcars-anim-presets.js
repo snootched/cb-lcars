@@ -1,5 +1,6 @@
 import { cblcarsLog } from './cb-lcars-logging.js';
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
+import { svgOverlayManager } from './cb-lcars-overlay-helpers.js';
 
 export const animPresets = {
     /**
@@ -10,9 +11,17 @@ export const animPresets = {
      * @param {object} options - Animation config.
      */
     draw: (params, element, options = {}) => {
+        // Use animejs v4 createDrawable for robust SVG path drawing
+        const [drawable] = window.cblcars.animejs.svg.createDrawable(element);
+
+        // Standard anime.js options
+        const duration = params.duration ?? options.duration ?? 1200;
+        const easing = params.easing ?? options.easing ?? 'easeInOutSine';
+        const loop = params.loop ?? options.loop ?? false;
+        const alternate = params.alternate ?? options.alternate ?? false;
+
         // Draw-specific config: prefer params.draw, then options.draw, then default
         const drawCfg = params.draw || options.draw || {};
-        // If drawCfg is an array, use it directly; if it's an object, use its .values property; else default
         let drawValues;
         if (Array.isArray(drawCfg)) {
             drawValues = drawCfg;
@@ -22,16 +31,9 @@ export const animPresets = {
             drawValues = ['0 0', '0 1'];
         }
 
-        // Standard anime.js options
-        const duration = params.duration ?? options.duration ?? 1200;
-        const easing = params.easing ?? options.easing ?? 'easeInOutSine';
-        const loop = params.loop ?? options.loop ?? false;
-        const alternate = params.alternate ?? options.alternate ?? false;
-
-        // Use animejs v4 createDrawable for robust SVG path drawing
-        const drawable = window.cblcars.animejs.svg.createDrawable(element);
-
+        // Set the anime.js params for draw animation
         Object.assign(params, {
+            targets: drawable,
             draw: drawValues,
             duration,
             easing,
@@ -39,10 +41,9 @@ export const animPresets = {
             alternate
         });
 
-        // Optionally, set strokeDasharray for visual consistency
-        if (element instanceof SVGPathElement) {
-            element.style.strokeDasharray = element.getTotalLength();
-        }
+        // Remove any conflicting opacity/stroke-width from params
+        delete params.opacity;
+        delete params['stroke-width'];
     },
     /* //stutters on loop with anime.js .. use css version for now
     march: (params, element, options) => {
@@ -164,6 +165,15 @@ export const animPresets = {
         const trail = options.trail;
         const tracer = options.tracer;
 
+        // --- Require tracer for motionpath ---
+        if (!tracer) {
+            const msg = '[motionpath] tracer is required';
+            cblcarsLog.warn(msg, { element });
+            svgOverlayManager.push(msg);
+            params.targets = null;
+            return;
+        }
+
         let pathElement;
         if (path_selector) {
             pathElement = await window.cblcars.waitForElement(path_selector, root);
@@ -171,7 +181,9 @@ export const animPresets = {
             pathElement = element;
         }
         if (!pathElement) {
-            cblcarsLog.error('[motionpath preset] Could not find path element.', { path_selector });
+            const errorMsg = `Motionpath: path not found for selector "${path_selector}"`;
+            cblcarsLog.error(errorMsg);
+            svgOverlayManager.push(errorMsg);
             return;
         }
 
@@ -183,7 +195,8 @@ export const animPresets = {
                     ? trail
                     : {
                         stroke: 'var(--lcars-yellow)',
-                        'stroke-width': pathElement.getAttribute('stroke-width') || 4,
+                        // Use stroke-width from the computed options, then the element, then default
+                        'stroke-width': options['stroke-width'] ?? pathElement.getAttribute('stroke-width') ?? 4,
                         duration: params.duration ?? 1000,
                         easing: params.easing ?? 'easeInOutQuad',
                         loop: params.loop,
@@ -199,7 +212,9 @@ export const animPresets = {
 
                     // Set trail color and stroke-width
                     if (trailOptions.stroke) trailPath.setAttribute('stroke', trailOptions.stroke);
-                    if (trailOptions['stroke-width']) trailPath.setAttribute('stroke-width', trailOptions['stroke-width']);
+                    // Use the stroke-width from the original path if not specified in trail options
+                    const trailStrokeWidth = trailOptions['stroke-width'] ?? options['stroke-width'] ?? pathElement.getAttribute('stroke-width');
+                    if (trailStrokeWidth) trailPath.setAttribute('stroke-width', trailStrokeWidth);
                     if (trailOptions.opacity !== undefined) trailPath.setAttribute('opacity', trailOptions.opacity);
 
                     // Insert trail path after the original
@@ -281,7 +296,12 @@ export const animPresets = {
             const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathElement);
 
             // Merge all standard anime.js options (from params and options), but exclude tracer/trail/path_selector/root/targets/type
-            const exclude = ['tracer', 'trail', 'path_selector', 'root', 'targets', 'type'];
+            // and any line-specific styling that shouldn't apply to the tracer.
+            const exclude = [
+                'tracer', 'trail', 'path_selector', 'root', 'targets', 'type', 'animation',
+                'stroke', 'stroke-width', 'corner_style', 'corner_radius', 'waypoints',
+                'steps', 'rounded', 'smooth', 'smooth_tension', 'id'
+            ];
             const merged = {};
             for (const k of Object.keys(params)) {
                 if (!exclude.includes(k)) merged[k] = params[k];
@@ -616,6 +636,38 @@ export const animPresets = {
             easing: 'steps(4, end)',
             duration: options.duration ?? 600
         });
+    },
+
+    /**
+     * @preset set
+     * Directly sets properties/attributes/styles on the element.
+     * @param {object} params
+     * @param {Element} element
+     * @param {object} options
+     */
+    set: (params, element, options = {}) => {
+        const ignoreKeys = ['type', 'targets', 'root', 'animation', 'id', 'offset'];
+        const allParams = { ...params, ...options };
+
+        Object.entries(allParams).forEach(([key, value]) => {
+            if (ignoreKeys.includes(key) || value === undefined) return;
+
+            try {
+                // Prioritize setting style properties, as they override attributes.
+                // This is crucial for properties like 'fill' which can be in an inline style attribute.
+                if (key in element.style) {
+                    element.style[key] = value;
+                } else {
+                    // Fallback to setting as an attribute for other properties (e.g., 'd' for paths).
+                    element.setAttribute(key, value);
+                }
+            } catch (e) {
+                cblcarsLog.warn(`[set preset] Could not set property '${key}' on element`, { element, e });
+            }
+        });
+        // Prevent anime.js from running an animation
+        params._cssAnimation = true;
+        params.targets = null;
     },
 
     // Add more presets as needed...

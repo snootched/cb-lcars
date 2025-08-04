@@ -420,7 +420,12 @@ cb-lcars-msd:
           return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
         }
         let viewBox = window.cblcars.getSvgViewBox(svgContent);
-        let anchorTable = window.cblcars.findSvgAnchors(svgContent);
+        // Extract anchors from SVG
+        let svgAnchors = window.cblcars.findSvgAnchors(svgContent);
+        // Get user anchors from config (if present)
+        let userAnchors = variables.msd.anchors || {};
+        // Merge user anchors with SVG anchors (user anchors take precedence)
+        let anchorTable = { ...svgAnchors, ...userAnchors };
         variables.msd._viewBox = viewBox;
         variables.msd._anchors = anchorTable;
         const aspect = window.cblcars.getSvgAspectRatio(viewBox);
@@ -441,7 +446,8 @@ cb-lcars-msd:
           hass,
           root: this.shadowRoot, // Pass shadowRoot for element queries
           viewBox: variables.msd._viewBox,
-          timelines // <-- Pass timelines here!
+          timelines, // <-- Pass timelines here!
+          animations: variables.msd.animations // <-- Pass user animations array here!
         });
 
         // Schedule the animations to run after the card has rendered the SVG markup.
@@ -473,4 +479,8 @@ cb-lcars-msd:
         - top: 0
         - left: 0
         - z-index: 1
+  animations:
+    - type: set
+      targets: "#ship"
+      fill: red
 
