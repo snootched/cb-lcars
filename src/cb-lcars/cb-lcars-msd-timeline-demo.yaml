@@ -1,0 +1,103 @@
+cb-lcars-msd-timeline-demo:
+  variables:
+    card:
+      height: 70vw
+      color:
+        background:
+          default: black
+    msd:
+    base_svg: builtin:ncc-1701-a-blue
+    timeline:
+      loop: true
+      direction: alternate
+      steps:
+        - targets: "#bridge_line"
+          duration: 1500
+          easing: easeInOutSine
+        - targets: "#bridge_text"
+          duration: 500
+          easing: easeInQuad
+          offset: "-=500"
+        - targets: "#wc_line"
+          duration: 2000
+          offset: +=200
+        - targets: "#wc_text"
+          duration: 1000
+          min_opacity: 0.4
+          offset: "-=200"
+        - targets: "#sb_line"
+          offset: +=500
+          duration:
+            entity_id: light.tv
+            attribute: brightness
+            input_range:
+              - 0
+              - 255
+            output_range:
+              - 4000
+              - 1000
+    slots:
+      bridge:
+        callout:
+          anchor: br
+          line:
+            id: bridge_line
+            width: 10
+            color: var(--picard-orange)
+            animation:
+              type: draw
+          text:
+            id: bridge_text
+            position: br_label
+            value: bridge
+            font_size: 56
+            font_family: antonio
+            text_transform: uppercase
+            color: var(--picard-moonlight)
+            animation:
+              type: fade
+      warp_core:
+        callout:
+          anchor: wc
+          line:
+            id: wc_line
+            width: 10
+            color: var(--picard-blue)
+            animation:
+              type: draw
+          text:
+            id: wc_text
+            position: wc_label
+            value: warp core
+            font_size: 56
+            font_family: antonio
+            text_transform: uppercase
+            color: var(--picard-moonlight)
+            animation:
+              type: blink
+      shuttle_bay:
+        callout:
+          anchor: sb
+          line:
+            id: sb_line
+            width: 10
+            color: var(--picard-orange)
+            animation:
+              type: march
+              reversed: false
+              alternate: false
+              loop: true
+              stroke_linecap: round
+              stroke_dasharray:
+                - 25
+                - 50
+          text:
+            id: sb_text
+            position: sb_label
+            value: shuttle bay
+            font_size: 56
+            font_family: antonio
+            text_transform: uppercase
+            color: var(--picard-moonlight)
+            animation:
+              type: fade

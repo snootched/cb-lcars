@@ -223,15 +223,58 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
                 continue;
             }
 
-            // Apply preset if type is specified
-            if (mergedParams.type && animPresets[mergedParams.type]) {
-                await animPresets[mergedParams.type](mergedParams, element, mergedParams);
-                cblcarsLog.debug(`[createTimelines] After preset "${mergedParams.type}" for "${timelineName}" step:`, mergedParams);
+            // Debug: log element info before preset
+            cblcarsLog.debug(`[createTimelines] Step "${timelineName}" target resolved:`, {
+                targets: step.targets,
+                element,
+                tagName: element.tagName,
+                mergedParams
+            });
+
+            // --- Ensure transform-origin for text elements with pulse/glow ---
+            if (
+                (mergedParams.type === 'pulse' || mergedParams.type === 'glow') &&
+                (element.tagName === 'text' || element.tagName === 'TEXT')
+            ) {
+                element.style.transformOrigin = 'center';
+                element.style.transformBox = 'fill-box';
+                cblcarsLog.debug(`[createTimelines] Set transformOrigin/transformBox for text element:`, {
+                    id: element.id,
+                    style: element.style.cssText
+                });
             }
+
+            // --- Apply preset if type is specified ---
+            if (mergedParams.type && animPresets[mergedParams.type]) {
+                const presetOptions = step[mergedParams.type] || {};
+                cblcarsLog.debug(`[createTimelines] Before preset "${mergedParams.type}" mutation:`, { mergedParams, presetOptions });
+                await animPresets[mergedParams.type](mergedParams, element, presetOptions);
+                cblcarsLog.debug(`[createTimelines] After preset "${mergedParams.type}" mutation:`, { mergedParams, element });
+            }
+
+            // Remove timeline-level properties before adding to timeline
+            delete mergedParams.loop;
+            delete mergedParams.direction;
+            delete mergedParams.alternate;
+
+            // Debug: log final params before timeline.add
+            cblcarsLog.debug(`[createTimelines] Final animeParams for timeline.add:`, {
+                timelineName,
+                targets: element,
+                animeParams: mergedParams,
+                offset: mergedParams.offset
+            });
 
             const { targets, offset, ...animeParams } = mergedParams;
             timeline.add(element, animeParams, offset);
-            cblcarsLog.debug(`[createTimelines] Added step to timeline "${timelineName}":`, { targets: element, animeParams, offset });
+
+            cblcarsLog.debug(`[createTimelines] Added step to timeline "${timelineName}":`, {
+                targets: element,
+                animeParams,
+                offset,
+                tagName: element.tagName,
+                style: element.style.cssText
+            });
         }
 
         // Remove or comment out this line:

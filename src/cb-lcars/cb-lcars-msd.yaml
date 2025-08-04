@@ -428,7 +428,9 @@ cb-lcars-msd:
       ]]]
     msd_svg_overlays: |
       [[[
-        // The renderMsdOverlay helper now returns the markup and a list of animations to run.
+        // Extract timelines from the card config (if present)
+        const timelines = this._config && this._config.timelines ? this._config.timelines : {};
+
         const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
           overlays: (() => {
             const slots = variables.msd.slots || {};
@@ -438,8 +440,8 @@ cb-lcars-msd:
           styleLayers: variables.msd.presets,
           hass,
           root: this.shadowRoot, // Pass shadowRoot for element queries
-          viewBox: variables.msd._viewBox
-          // No longer need to pass scope here, we'll call it from the scope object itself.
+          viewBox: variables.msd._viewBox,
+          timelines // <-- Pass timelines here!
         });
 
         // Schedule the animations to run after the card has rendered the SVG markup.

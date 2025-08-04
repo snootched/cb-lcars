@@ -9,11 +9,40 @@ export const animPresets = {
      * @param {Element} element - SVG path element.
      * @param {object} options - Animation config.
      */
-    draw: (params, element, options) => {
+    draw: (params, element, options = {}) => {
+        // Draw-specific config: prefer params.draw, then options.draw, then default
+        const drawCfg = params.draw || options.draw || {};
+        // If drawCfg is an array, use it directly; if it's an object, use its .values property; else default
+        let drawValues;
+        if (Array.isArray(drawCfg)) {
+            drawValues = drawCfg;
+        } else if (drawCfg && Array.isArray(drawCfg.values)) {
+            drawValues = drawCfg.values;
+        } else {
+            drawValues = ['0 0', '0 1'];
+        }
+
+        // Standard anime.js options
+        const duration = params.duration ?? options.duration ?? 1200;
+        const easing = params.easing ?? options.easing ?? 'easeInOutSine';
+        const loop = params.loop ?? options.loop ?? false;
+        const alternate = params.alternate ?? options.alternate ?? false;
+
+        // Use animejs v4 createDrawable for robust SVG path drawing
+        const drawable = window.cblcars.animejs.svg.createDrawable(element);
+
         Object.assign(params, {
-            strokeDashoffset: [element.getTotalLength(), 0]
+            draw: drawValues,
+            duration,
+            easing,
+            loop,
+            alternate
         });
-        element.style.strokeDasharray = element.getTotalLength();
+
+        // Optionally, set strokeDasharray for visual consistency
+        if (element instanceof SVGPathElement) {
+            element.style.strokeDasharray = element.getTotalLength();
+        }
     },
     /* //stutters on loop with anime.js .. use css version for now
     march: (params, element, options) => {
@@ -35,37 +64,75 @@ export const animPresets = {
     */
     /**
      * @preset pulse
-     * Pulses scale and opacity for a "breathing" effect.
+     * Pulses scale and opacity for a "breathing" effect (text), or stroke-width and opacity for lines.
      * @param {object} params
      * @param {Element} element
      * @param {object} options
      */
-    pulse: (params, element, options) => {
-        Object.assign(params, {
-            scale: [1, 1.1],
-            opacity: [1, 0.7],
-            alternate: true,
-            loop: true,
-            easing: 'easeInOutSine',
-        });
-        console.debug('[pulse preset] params after mutation:', params, element);
-    },
-    /**
-     * @preset pulse_line
-     * Pulses the stroke width of a line.
-     * @param {object} params
-     * @param {Element} element
-     * @param {object} options
-     */
-    pulse_line: (params, element, options) => {
-        const width = element.getAttribute('stroke-width') || params['stroke-width'] || 4;
-        Object.assign(params, {
-            'stroke-width': [parseFloat(width), parseFloat(width) * 1.5],
-            alternate: true,
-            loop: true,
-            easing: 'easeInOutSine',
-            duration: options.duration ?? 1200
-        });
+    pulse: (params, element, options = {}) => {
+        cblcarsLog.debug('[pulse preset] Before mutation:', { params, element, options });
+
+        // Prefer pulse config from params.pulse, then options.pulse, then options, then defaults
+        const pulseCfg = params.pulse || options.pulse || options || {};
+        const maxScale = pulseCfg.max_scale !== undefined
+            ? pulseCfg.max_scale
+            : (element.tagName === 'text' || element.tagName === 'TEXT' ? 1.1 : 1.5);
+        const minOpacity = pulseCfg.min_opacity !== undefined
+            ? pulseCfg.min_opacity
+            : 0.7;
+
+        // Remove any previous stroke-width/opacity assignments to avoid conflicts
+        delete params['stroke-width'];
+        delete params.opacity;
+
+        // Generic anime.js options from main animation key
+        const duration = params.duration ?? options.duration ?? 1200;
+        const easing = params.easing ?? options.easing ?? 'easeInOutSine';
+        const loop = params.loop ?? options.loop ?? true;
+        const alternate = params.alternate ?? options.alternate ?? true;
+
+        if (element.tagName === 'text' || element.tagName === 'TEXT') {
+            Object.assign(params, {
+                scale: [1, maxScale],
+                opacity: [1, minOpacity],
+                easing,
+                duration,
+                loop,
+                alternate
+            });
+            element.style.transformOrigin = 'center';
+            element.style.transformBox = 'fill-box';
+            cblcarsLog.debug('[pulse preset] Set transformOrigin/transformBox for text:', {
+                id: element.id,
+                style: element.style.cssText
+            });
+        } else if (element.hasAttribute('stroke-width')) {
+            // Pulse lines: animate stroke-width and opacity
+            const width = parseFloat(element.getAttribute('stroke-width')) || 4;
+            Object.assign(params, {
+                'stroke-width': [width, width * maxScale],
+                opacity: [1, minOpacity],
+                easing,
+                duration,
+                loop,
+                alternate
+            });
+            cblcarsLog.debug('[pulse preset] Pulsing line:', {
+                id: element.id,
+                strokeWidth: width,
+                maxScale
+            });
+        } else {
+            // Fallback: just animate opacity
+            Object.assign(params, {
+                opacity: [1, minOpacity],
+                easing,
+                duration,
+                loop,
+                alternate
+            });
+        }
+        cblcarsLog.debug('[pulse preset] After mutation:', { params, element });
     },
     /**
      * @preset blink
@@ -91,27 +158,62 @@ export const animPresets = {
      * @param {object} options
      */
     motionpath: async function (params, element, options) {
-        const { path_selector, root = document, trail, tracer } = options;
-        if (!path_selector) {
-            cblcarsLog.error('[motionpath preset] Missing path_selector.', { options });
-            return;
+        // Default path_selector to element's own selector if not provided
+        let path_selector = options.path_selector;
+        let root = options.root ?? document;
+        const trail = options.trail;
+        const tracer = options.tracer;
+
+        let pathElement;
+        if (path_selector) {
+            pathElement = await window.cblcars.waitForElement(path_selector, root);
+        } else {
+            pathElement = element;
         }
-        const pathElement = await window.cblcars.waitForElement(path_selector, root);
         if (!pathElement) {
             cblcarsLog.error('[motionpath preset] Could not find path element.', { path_selector });
             return;
         }
 
-        // The preset is now called from within a scope.add() callback.
-        // It should modify the `params` object or, in this case, create new animations.
-
         // Animate trail if requested
         if (trail) {
             try {
-                const drawable = window.cblcars.animejs.svg.createDrawable(pathElement);
-                const trailTarget = Array.isArray(drawable) ? drawable[0] : drawable;
-                if (trailTarget instanceof SVGElement) {
-                    const trailOptions = typeof trail === 'object' && trail !== null ? trail : {};
+                // Determine trail mode
+                const trailOptions = (typeof trail === 'object' && trail !== null)
+                    ? trail
+                    : {
+                        stroke: 'var(--lcars-yellow)',
+                        'stroke-width': pathElement.getAttribute('stroke-width') || 4,
+                        duration: params.duration ?? 1000,
+                        easing: params.easing ?? 'easeInOutQuad',
+                        loop: params.loop,
+                        mode: 'overlay'
+                    };
+                const mode = trailOptions.mode || 'overlay';
+
+                let trailPath;
+                if (pathElement.cloneNode) {
+                    trailPath = pathElement.cloneNode(true);
+                    trailPath.removeAttribute('id');
+                    trailPath.id = (pathElement.id ? pathElement.id + '_trail' : 'msd_trail_' + Math.random().toString(36).slice(2));
+
+                    // Set trail color and stroke-width
+                    if (trailOptions.stroke) trailPath.setAttribute('stroke', trailOptions.stroke);
+                    if (trailOptions['stroke-width']) trailPath.setAttribute('stroke-width', trailOptions['stroke-width']);
+                    if (trailOptions.opacity !== undefined) trailPath.setAttribute('opacity', trailOptions.opacity);
+
+                    // Insert trail path after the original
+                    pathElement.parentNode.insertBefore(trailPath, pathElement.nextSibling);
+
+                    // If mode is 'single', hide the base line
+                    if (mode === 'single') {
+                        pathElement.setAttribute('opacity', '0');
+                        pathElement.setAttribute('stroke', 'none');
+                    }
+
+                    // Animate the trail path only
+                    const drawable = window.cblcars.animejs.svg.createDrawable(trailPath);
+                    const trailTarget = Array.isArray(drawable) ? drawable[0] : drawable;
                     const animeConfig = {
                         targets: trailTarget,
                         draw: '0 1',
@@ -119,14 +221,11 @@ export const animPresets = {
                         easing: trailOptions.easing ?? params.easing ?? 'easeInOutQuad',
                         loop: trailOptions.loop ?? params.loop,
                     };
-                    if (trailOptions && Object.prototype.toString.call(trailOptions) === '[object Object]') {
-                        Object.assign(animeConfig, trailOptions);
-                    }
-                    // This animation is created inside the scope.add() context, so it's automatically managed.
+                    Object.assign(animeConfig, trailOptions);
                     const { targets: trailTargets, ...trailVars } = animeConfig;
                     window.cblcars.anim.anime(trailTargets, trailVars);
                 } else {
-                    cblcarsLog.error('[motionpath preset] Trail target is not a valid SVGElement.', { trailTarget });
+                    cblcarsLog.error('[motionpath preset] Could not clone path for trail.', { pathElement });
                 }
             } catch (trailerError) {
                 cblcarsLog.error('[motionpath preset] Failed to animate trail:', { trailerError });
@@ -275,7 +374,7 @@ export const animPresets = {
         element.style.strokeDasharray = `${dashLength} ${gapLength}`;
         element.style.strokeDashoffset = 0;
 
-        // Apply stroke linecap if specified
+        // Apply ststroberoke linecap if specified
         const linecap = params.stroke_linecap ?? options.stroke_linecap;
         if (linecap) {
             element.style.strokeLinecap = linecap;
@@ -381,18 +480,49 @@ export const animPresets = {
      * @param {object} options
      */
     glow: (params, element, options = {}) => {
-        const color = options.color || 'var(--lcars-blue-light)';
-        const intensity = options.intensity ?? 0.8;
+        cblcarsLog.debug('[glow preset] Before mutation:', { params, element, options });
+
+        // Configurable values with defaults
+        const glowCfg = options.glow || {};
+        const color = glowCfg.color || options.color || 'var(--picard-light-blue)';
+        const intensity = glowCfg.intensity ?? options.intensity ?? 0.8;
+        const blurMin = glowCfg.blur_min ?? 0;
+        const blurMax = glowCfg.blur_max ?? 12;
+        const opacityMin = glowCfg.opacity_min ?? 0.4;
+        const opacityMax = glowCfg.opacity_max ?? intensity;
+        const duration = options.duration ?? glowCfg.duration ?? 900;
+        const easing = options.easing ?? glowCfg.easing ?? 'easeInOutSine';
+        const loop = options.loop ?? glowCfg.loop ?? true;
+        const alternate = options.alternate ?? glowCfg.alternate ?? true;
+
+        const glowState = { blur: blurMin, opacity: opacityMin };
+
         Object.assign(params, {
-            stroke: [element.getAttribute('stroke') || color, color],
-            alternate: true,
-            loop: true,
-            easing: 'easeInOutSine',
-            duration: options.duration ?? 900,
-            opacity: [1, intensity]
+            targets: glowState,
+            blur: [blurMin, blurMax, blurMin],
+            opacity: [opacityMin, opacityMax, opacityMin],
+            duration,
+            easing,
+            loop,
+            alternate,
+            onUpdate() {
+                if (element.tagName === 'text' || element.tagName === 'TEXT') {
+                    // For text, animate both blur and opacity
+                    element.style.filter = `drop-shadow(0 0 ${glowState.blur}px ${color}) opacity(${glowState.opacity})`;
+                } else {
+                    // For lines, only animate blur, do not affect element opacity
+                    element.style.filter = `drop-shadow(0 0 ${glowState.blur}px ${color})`;
+                }
+            }
         });
-        element.style.filter = `drop-shadow(0 0 8px ${color})`;
-        cblcarsLog.debug('[glow preset] params after mutation:', params, element);
+        // Remove fill/stroke animation
+        delete params.fill;
+        delete params.stroke;
+        element.style.transformOrigin = 'center';
+        element.style.transformBox = 'fill-box';
+        cblcarsLog.debug('[glow preset] Animating drop-shadow:', { color, intensity, blurMin, blurMax, opacityMin, opacityMax, duration, easing, loop, alternate });
+
+        cblcarsLog.debug('[glow preset] After mutation:', { params, element });
     },
 
     /**
