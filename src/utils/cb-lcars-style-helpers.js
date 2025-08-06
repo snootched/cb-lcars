@@ -41,21 +41,21 @@ export function deepMerge(target, ...sources) {
 }
 
 /**
- * Merges multiple configuration objects for a callout with a specific precedence.
- * The merge order is: defaults -> preset -> customPreset -> callout -> stateOverrides.
+ * Merges multiple configuration objects for an overlay with a specific precedence.
+ * The merge order is: defaults -> preset -> customPreset -> overlay -> stateOverrides.
  * It performs a deep merge for each top-level key (e.g., 'text', 'line').
  * @param {object} options - The configuration objects to merge.
  * @param {object} [options.defaults={}] - The base default configuration.
  * @param {object} [options.preset={}] - The named preset configuration.
  * @param {object} [options.customPreset={}] - The user-defined custom preset.
- * @param {object} [options.callout={}] - The specific callout configuration.
+ * @param {object} [options.overlay={}] - The specific overlay configuration.
  * @param {object} [options.stateOverrides={}] - The overrides from a state_resolver match.
- * @returns {object} The final, merged configuration object for the callout.
+ * @returns {object} The final, merged configuration object for the overlay.
  */
-export function resolveCalloutStyles({defaults, preset, customPreset, callout, stateOverrides}) {
+export function resolveOverlayStyles({defaults, preset, customPreset, overlay, stateOverrides}) {
   // Perform a single deep merge with the correct precedence.
   // This correctly handles top-level primitive values like 'anchor'.
-  return deepMerge({}, defaults, preset, customPreset, callout, stateOverrides);
+  return deepMerge({}, defaults, preset, customPreset, overlay, stateOverrides);
 }
 
 /**
@@ -282,19 +282,19 @@ export function entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttri
 }
 
 /**
- * Given a callout config and hass, resolve state_resolver and merge the correct preset.
+ * Given an overlay config and hass, resolve state_resolver and merge the correct preset.
  * Supports map_range operator and exposes mappedValue in stateOverrides if matched.
- * @param {object} callout - The callout config (with state_resolver).
+ * @param {object} overlay - The overlay config (with state_resolver).
  * @param {object} presets - All available presets.
  * @param {object} hass - Home Assistant hass object.
- * @returns {object} stateOverrides to pass to resolveCalloutStyles
+ * @returns {object} stateOverrides to pass to resolveOverlayStyles
  */
-export function resolveStatePreset(callout, presets, hass) {
-  // Prefer state_resolver.entity/attribute over callout.entity/attribute
-  const fallbackEntity = (callout.state_resolver && callout.state_resolver.entity) || callout.entity;
-  const fallbackAttribute = (callout.state_resolver && callout.state_resolver.attribute) || callout.attribute;
-  if (!callout || !callout.state_resolver || !Array.isArray(callout.state_resolver.states)) return {};
-  for (const stateObj of callout.state_resolver.states) {
+export function resolveStatePreset(overlay, presets, hass) {
+  // Prefer state_resolver.entity/attribute over overlay.entity/attribute
+  const fallbackEntity = (overlay.state_resolver && overlay.state_resolver.entity) || overlay.entity;
+  const fallbackAttribute = (overlay.state_resolver && overlay.state_resolver.attribute) || overlay.attribute;
+  if (!overlay || !overlay.state_resolver || !Array.isArray(overlay.state_resolver.states)) return {};
+  for (const stateObj of overlay.state_resolver.states) {
     const matchResult = entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute);
     if (matchResult && matchResult.matched) {
       const presetName = stateObj.preset;

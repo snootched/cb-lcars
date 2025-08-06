@@ -82,11 +82,12 @@ export async function animateElement(scope, options, hass = null) {
   }
   cblcarsLog.debug('[animateElement] Received options:', { options });
 
-  // Use the scope's .add() method to register an animation constructor.
-  // This is the idiomatic way to create animations within a scope in anime.js v4.
   scope.scope.add(async () => {
     try {
-      const element = await waitForElement(targets, root);
+      // Always resolve the selector to an element
+      const element = typeof targets === 'string'
+        ? await waitForElement(targets, root)
+        : targets;
       if (!element) {
         cblcarsLog.error('[animateElement] Target element not found:', { targets });
         return;
@@ -94,7 +95,6 @@ export async function animateElement(scope, options, hass = null) {
       cblcarsLog.debug('[animateElement] Target element found:', { element });
 
       const params = {
-        targets: element,
         duration: 1000,
         easing: 'easeInOutQuad',
         ...animOptions,
@@ -144,14 +144,12 @@ export async function animateElement(scope, options, hass = null) {
       }
 
       // If the preset nulled the targets (e.g. motionpath with tracer), don't create the animation.
-      if (!params.targets) {
+      if (params.targets === null) {
         return;
       }
 
-      // The animate call is now inside the scope.add() callback.
-      // It will be automatically managed by the scope.
-      const { targets: finalTargets, ...finalParams } = params;
-      window.cblcars.anim.anime(finalTargets, finalParams);
+      // Pass the element as the first argument to anime.js
+      window.cblcars.anim.anime(element, params);
       cblcarsLog.debug(`[animateElement] Animation constructor added to scope: ${scope.id}`, { params });
 
     } catch (error) {
