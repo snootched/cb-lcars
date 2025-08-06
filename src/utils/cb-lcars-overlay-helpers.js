@@ -630,7 +630,7 @@ export function renderMsdOverlay({
         if (points.length > 1) {
           // Only remove animation for attribute/style splitting, not from computed
           const lineConfig = { ...computed };
-          delete lineConfig.animation;
+          // delete lineConfig.animation;  <-- REMOVE THIS LINE
           if (lineConfig.color && !lineConfig.stroke) {
             lineConfig.stroke = lineConfig.color;
           }
@@ -656,7 +656,7 @@ export function renderMsdOverlay({
       if (hasText) {
         // Only remove animation for attribute/style splitting, not from computed
         const textConfig = { ...computed };
-        delete textConfig.animation;
+        // delete textConfig.animation;  <-- REMOVE THIS LINE
         if (textConfig.color && !textConfig.fill) {
           textConfig.fill = textConfig.color;
         }
