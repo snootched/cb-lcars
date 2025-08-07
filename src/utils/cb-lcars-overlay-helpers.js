@@ -410,6 +410,15 @@ export function renderMsdOverlay({
       return;
     }
 
+    // --- ID Conflict Check: Overlay ID vs. Anchor Table ---
+    const elementId = overlay.id;
+    if (elementId && anchors && Object.prototype.hasOwnProperty.call(anchors, elementId)) {
+      const msg = `Overlay ID "${elementId}" conflicts with anchorTable entry. Overlay IDs must be unique.`;
+      cblcarsLog.error(`[renderMsdOverlay] ${msg}`, { overlay, anchors });
+      svgOverlayManager.push(msg);
+      return; // Skip rendering this overlay
+    }
+
     // All overlay processing logic should be inside this if block
     if (overlay) {
       // 1. --- Configuration Merging ---
@@ -524,6 +533,8 @@ export function renderMsdOverlay({
           const targetMetrics = textMetrics[targetId];
           const targetOverlayConfig = overlays.find(o => o.id === targetId);
 
+
+          /*
           if (targetOverlayConfig) {
             attachToPoint = resolvePoint(targetOverlayConfig.position, pointContext);
             if (attachToPoint && targetMetrics) {
@@ -567,6 +578,59 @@ export function renderMsdOverlay({
 
               attachToPoint[1] = attachToPoint[1] + finalYOffset;
             }
+            */
+
+
+          if (targetOverlayConfig) {
+            const textAnchorPoint = resolvePoint(targetOverlayConfig.position, pointContext);
+            if (textAnchorPoint && targetMetrics) {
+              // Smart attachment logic using pre-calculated metrics
+              const { width, align, font_size, y_offset, x_offset } = targetMetrics;
+              let lineAttach = targetMetrics.line_attach;
+              const lineStartAnchor = resolvePoint(computed.anchor, pointContext);
+
+              if (lineAttach === 'auto' && lineStartAnchor) {
+                lineAttach = textAnchorPoint[0] < lineStartAnchor[0] ? 'right' : 'left';
+              } else if (lineAttach === 'auto') {
+                lineAttach = 'center';
+              }
+
+              let textLeft, textCenter, textRight;
+              if (align === 'start' || align === 'left') {
+                textLeft = textAnchorPoint[0];
+                textCenter = textAnchorPoint[0] + width / 2;
+                textRight = textAnchorPoint[0] + width;
+              } else if (align === 'end' || align === 'right') {
+                textLeft = textAnchorPoint[0] - width;
+                textCenter = textAnchorPoint[0] - width / 2;
+                textRight = textAnchorPoint[0];
+              } else { // middle/center
+                textLeft = textAnchorPoint[0] - width / 2;
+                textCenter = textAnchorPoint[0];
+                textRight = textAnchorPoint[0] + width / 2;
+              }
+
+              // Define a default gap, which can be overridden by x_offset
+              const gap = x_offset === undefined ? font_size / 2 : x_offset;
+              const finalYOffset = (y_offset || 0) - (font_size / 2.5);
+
+              // Use a new variable for the line's attachment point
+              attachToPoint = [...textAnchorPoint]; // Start with the text's anchor
+              attachToPoint[1] += finalYOffset;
+
+              if (lineAttach === 'left' || lineAttach === 'start') {
+                attachToPoint[0] = textLeft - gap;
+              } else if (lineAttach === 'right' || lineAttach === 'end') {
+                attachToPoint[0] = textRight + gap;
+              } else { // center
+                attachToPoint[0] = textCenter; // No horizontal gap for center attach
+              }
+            } else {
+               // Fallback if metrics or position are missing but config exists
+               attachToPoint = resolvePoint(targetOverlayConfig.position, pointContext);
+            }
+
+
           } else {
             // Fallback to resolving as a point/anchor if not an ID
             attachToPoint = resolvePoint(computed.attach_to, pointContext);
@@ -630,7 +694,7 @@ export function renderMsdOverlay({
         if (points.length > 1) {
           // Only remove animation for attribute/style splitting, not from computed
           const lineConfig = { ...computed };
-          // delete lineConfig.animation;  <-- REMOVE THIS LINE
+          // delete lineConfig.animation;  <-- THIS LINE WAS REMOVED
           if (lineConfig.color && !lineConfig.stroke) {
             lineConfig.stroke = lineConfig.color;
           }
@@ -656,7 +720,7 @@ export function renderMsdOverlay({
       if (hasText) {
         // Only remove animation for attribute/style splitting, not from computed
         const textConfig = { ...computed };
-        // delete textConfig.animation;  <-- REMOVE THIS LINE
+        // delete textConfig.animation;  <-- THIS LINE WAS REMOVED
         if (textConfig.color && !textConfig.fill) {
           textConfig.fill = textConfig.color;
         }
