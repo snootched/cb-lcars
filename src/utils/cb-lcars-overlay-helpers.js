@@ -65,7 +65,12 @@ class SvgOverlayErrorManager {
                 return;
             }
 
-            const errorText = `<text x="${this.viewBox[0] + 10}" y="${this.viewBox[1] + 30}" fill="red" font-size="36" font-family="monospace" opacity="0.8">
+            // Dynamically determine font size based on viewBox height
+            const [, , , viewBoxHeight] = this.viewBox;
+            // Use 12% of viewBox height, clamp between 8 and 48
+            const fontSize = Math.max(8, Math.min(48, Math.round(viewBoxHeight * 0.12)));
+
+            const errorText = `<text x="${this.viewBox[0] + 10}" y="${this.viewBox[1] + fontSize}" fill="red" font-size="${fontSize}" font-family="monospace" opacity="0.8">
                 ${this.errors.map((msg, i) => `<tspan x="${this.viewBox[0] + 10}" dy="${i === 0 ? 0 : '1.2em'}">${msg}</tspan>`).join('')}
             </text>`;
             container.innerHTML = errorText;
@@ -314,8 +319,6 @@ function generateMultiSegmentPath(points, { cornerStyle = 'round', cornerRadius 
 }
 
 
-// --- Centralized SVG Overlay Error Manager ---
-// REMOVED OLD IMPLEMENTATION
 
 // Entry point for MSD overlays from custom button card
 export function renderMsdOverlay({
