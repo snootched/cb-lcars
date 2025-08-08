@@ -362,7 +362,15 @@ export function renderMsdOverlay({
       if (Array.isArray(tl.steps)) {
         tl.steps.forEach(step => {
           if (step.targets) {
-            timelineTargets.add(step.targets.replace(/^#/, ''));
+            if (Array.isArray(step.targets)) {
+              step.targets.forEach(t => {
+                if (typeof t === 'string' && t.startsWith('#')) {
+                  timelineTargets.add(t.slice(1));
+                }
+              });
+            } else if (typeof step.targets === 'string') {
+              timelineTargets.add(step.targets.replace(/^#/, ''));
+            }
           }
         });
       }
@@ -476,7 +484,6 @@ export function renderMsdOverlay({
       // NEW: Free overlay (no SVG, only animation / mutation)
       const isFree = computed.type === 'free';
       if (isFree) {
-        // Allow either explicit targets or use #id if id provided
         const freeTarget = computed.targets || (computed.id ? `#${computed.id}` : null);
         if (!freeTarget) {
           const msg = `Free overlay "${computed.id || `free_${idx}`}" requires 'targets' or 'id'.`;
@@ -484,14 +491,27 @@ export function renderMsdOverlay({
           cblcarsLog.warn(`[MSD Overlay] ${msg}`, { overlay, computed });
           return;
         }
-        const targetIdNoHash = freeTarget.replace(/^#/, '');
-        if (!timelineTargets.has(targetIdNoHash)) {
-          // Prefer explicit animation block; fallback to "set" with remaining props
+
+        // Normalize to array and filter out IDs owned by timelines
+        const targetsArr = Array.isArray(freeTarget) ? freeTarget : [freeTarget];
+        const filteredTargets = targetsArr.filter(sel => {
+          if (typeof sel === 'string' && sel.startsWith('#')) {
+            const id = sel.slice(1);
+            return !timelineTargets.has(id);
+          }
+          // Keep non-ID selectors or Element references
+          return true;
+        });
+
+        if (filteredTargets.length > 0) {
           let animCfg = computed.animation && computed.animation.type
             ? { ...computed.animation }
             : { type: 'set' };
-
-          animationsToRun.push({ ...animCfg, targets: freeTarget, root });
+          animationsToRun.push({
+            ...animCfg,
+            targets: filteredTargets.length === 1 ? filteredTargets[0] : filteredTargets,
+            root
+          });
         }
         return; // Skip normal text/line rendering
       }
@@ -787,15 +807,12 @@ export function renderMsdOverlay({
   // --- NEW: Merge standalone animations ---
   if (Array.isArray(animations)) {
     animations.forEach(anim => {
-      // Resolve state-based overrides for animations too
       let animCfg = { ...anim };
 
-      // If animation config is provided under .animation, normalize to top-level
       if (!animCfg.type && animCfg.animation && animCfg.animation.type) {
         animCfg = { ...animCfg.animation, targets: animCfg.targets ?? animCfg.animation.targets, id: animCfg.id ?? animCfg.animation.id };
       }
 
-      // Apply state resolver (same as overlays)
       try {
         const overrides = resolveStatePreset(animCfg, presets, hass);
         if (overrides && typeof overrides === 'object') {
@@ -805,22 +822,28 @@ export function renderMsdOverlay({
         cblcarsLog.warn('[renderMsdOverlay] state_resolver failed on animation entry', { animCfg, e });
       }
 
-      // Resolve templates/dynamic values within the animation config
       animCfg = resolveAllDynamicValues(animCfg, hass);
 
-      // Determine suppression by timelineTargets
-      let targetId = '';
-      const targetsSelector = typeof animCfg.targets === 'string' ? animCfg.targets : '';
-      if (targetsSelector && targetsSelector.startsWith('#')) {
-        targetId = targetsSelector.slice(1);
-      } else if (!targetsSelector && animCfg.id) {
-        // Allow id-only animations (we’ll target by #id)
-        animCfg.targets = `#${animCfg.id}`;
-        targetId = animCfg.id;
+      // Normalize/derive targets
+      let targetsArr = [];
+      if (animCfg.targets) {
+        targetsArr = Array.isArray(animCfg.targets) ? animCfg.targets : [animCfg.targets];
+      } else if (animCfg.id) {
+        targetsArr = [`#${animCfg.id}`];
       }
 
-      if (!timelineTargets.has(targetId)) {
-        animationsToRun.push({ ...animCfg, root });
+      // Filter out targets owned by timelines (only for #id selectors)
+      const filteredTargets = targetsArr.filter(sel => {
+        if (typeof sel === 'string' && sel.startsWith('#')) {
+          const id = sel.slice(1);
+          return !timelineTargets.has(id);
+        }
+        return true;
+      });
+
+      if (filteredTargets.length > 0) {
+        const finalTargets = filteredTargets.length === 1 ? filteredTargets[0] : filteredTargets;
+        animationsToRun.push({ ...animCfg, targets: finalTargets, root });
       }
     });
   }
