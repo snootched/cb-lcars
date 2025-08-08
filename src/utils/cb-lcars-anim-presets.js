@@ -645,30 +645,62 @@ export const animPresets = {
      * @param {Element} element
      * @param {object} options
      */
-    set: (params, element, options = {}) => {
-        const ignoreKeys = ['type', 'targets', 'root', 'animation', 'id', 'offset'];
-        const allParams = { ...params, ...options };
+  set: (params, element, options = {}) => {
+    /**
+     * Keys to ignore for property setting (non-style/attribute keys).
+     * - These are reserved configuration keys, not element properties.
+     */
+    const ignoreKeys = [
+      'type', 'targets', 'root', 'animation', 'id', 'offset'
+    ];
 
-        Object.entries(allParams).forEach(([key, value]) => {
-            if (ignoreKeys.includes(key) || value === undefined) return;
+    // Merge params and options, filter out ignored keys.
+    const allParams = { ...params, ...options };
+    const propsToSet = {};
+    Object.entries(allParams).forEach(([key, value]) => {
+      if (ignoreKeys.includes(key) || value === undefined) return;
+      propsToSet[key] = value;
+    });
 
-            try {
-                // Prioritize setting style properties, as they override attributes.
-                // This is crucial for properties like 'fill' which can be in an inline style attribute.
-                if (key in element.style) {
-                    element.style[key] = value;
-                } else {
-                    // Fallback to setting as an attribute for other properties (e.g., 'd' for paths).
-                    element.setAttribute(key, value);
-                }
-            } catch (e) {
-                cblcarsLog.warn(`[set preset] Could not set property '${key}' on element`, { element, e });
+    // --- Step 1: Attempt anime.js v4 utils.set() ---
+    // If anime.js is present and exposes utils.set, use it.
+    let animeSetWorked = false;
+    try {
+      if (window.cblcars?.animejs?.utils?.set) {
+        window.cblcars.animejs.utils.set(element, propsToSet);
+        animeSetWorked = true;
+        cblcarsLog.debug('[set preset] Used animejs.utils.set()', { element, propsToSet });
+      }
+    } catch (e) {
+      cblcarsLog.warn('[set preset] animejs.utils.set() failed, will fallback to manual mutation.', { element, propsToSet, error: e });
+      animeSetWorked = false;
+    }
+
+    // --- Step 2: Fallback to manual mutation if needed ---
+    if (!animeSetWorked) {
+      Object.entries(propsToSet).forEach(([key, value]) => {
+        try {
+          if (key in element.style) {
+            element.style[key] = value;
+            cblcarsLog.debug(`[set preset] Set style "${key}"="${value}"`, { element });
+          } else {
+            // Only set as attribute if not already present (animejs requirement)
+            if (!element.hasAttribute(key)) {
+              element.setAttribute(key, value);
+              cblcarsLog.debug(`[set preset] Set attribute "${key}"="${value}"`, { element });
             }
-        });
-        // Prevent anime.js from running an animation
-        params._cssAnimation = true;
-        params.targets = null;
-    },
+          }
+        } catch (e) {
+          cblcarsLog.warn(`[set preset] Could not set "${key}"="${value}" manually`, { element, error: e });
+        }
+      });
+    }
+
+    // Prevent anime.js from running an animation (this is a synchronous update).
+    params._cssAnimation = true;
+    params.targets = null;
+  },
+
 
     // Add more presets as needed...
 };

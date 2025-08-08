@@ -294,6 +294,8 @@ export function resolveStatePreset(overlay, presets, hass) {
   const fallbackEntity = (overlay.state_resolver && overlay.state_resolver.entity) || overlay.entity;
   const fallbackAttribute = (overlay.state_resolver && overlay.state_resolver.attribute) || overlay.attribute;
   if (!overlay || !overlay.state_resolver || !Array.isArray(overlay.state_resolver.states)) return {};
+
+  /*
   for (const stateObj of overlay.state_resolver.states) {
     const matchResult = entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute);
     if (matchResult && matchResult.matched) {
@@ -309,5 +311,27 @@ export function resolveStatePreset(overlay, presets, hass) {
       return overrides;
     }
   }
+  */
+
+  //allow deep merge of preset and individual settings
+  for (const stateObj of overlay.state_resolver.states) {
+    const matchResult = entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttribute);
+    if (matchResult && matchResult.matched) {
+      const presetName = stateObj.preset;
+      let overrides = {};
+      if (presetName && presets[presetName]) {
+        overrides = deepMerge({}, presets[presetName]);
+      }
+      // Merge in individual settings if provided
+      if (stateObj.settings && typeof stateObj.settings === 'object') {
+        overrides = deepMerge(overrides, stateObj.settings);
+      }
+      if (matchResult.mappedValue !== undefined) {
+        overrides._mappedValue = matchResult.mappedValue;
+      }
+      return overrides;
+    }
+  }
+
   return {};
 }

@@ -473,6 +473,29 @@ export function renderMsdOverlay({
       const isText = computed.type === 'text';
       const isLine = computed.type === 'line';
 
+      // NEW: Free overlay (no SVG, only animation / mutation)
+      const isFree = computed.type === 'free';
+      if (isFree) {
+        // Allow either explicit targets or use #id if id provided
+        const freeTarget = computed.targets || (computed.id ? `#${computed.id}` : null);
+        if (!freeTarget) {
+          const msg = `Free overlay "${computed.id || `free_${idx}`}" requires 'targets' or 'id'.`;
+          svgOverlayManager.push(msg);
+          cblcarsLog.warn(`[MSD Overlay] ${msg}`, { overlay, computed });
+          return;
+        }
+        const targetIdNoHash = freeTarget.replace(/^#/, '');
+        if (!timelineTargets.has(targetIdNoHash)) {
+          // Prefer explicit animation block; fallback to "set" with remaining props
+          let animCfg = computed.animation && computed.animation.type
+            ? { ...computed.animation }
+            : { type: 'set' };
+
+          animationsToRun.push({ ...animCfg, targets: freeTarget, root });
+        }
+        return; // Skip normal text/line rendering
+      }
+
       const elementId = computed.id || `${computed.type}_${idx}`;
 
       let textPos = null;
@@ -763,16 +786,41 @@ export function renderMsdOverlay({
 
   // --- NEW: Merge standalone animations ---
   if (Array.isArray(animations)) {
-    // Filter out animations whose targets are suppressed by timelineTargets
     animations.forEach(anim => {
-      // If targets is a selector string, remove leading '#' for comparison
-      let targetId = '';
-      if (typeof anim.targets === 'string' && anim.targets.startsWith('#')) {
-        targetId = anim.targets.slice(1);
+      // Resolve state-based overrides for animations too
+      let animCfg = { ...anim };
+
+      // If animation config is provided under .animation, normalize to top-level
+      if (!animCfg.type && animCfg.animation && animCfg.animation.type) {
+        animCfg = { ...animCfg.animation, targets: animCfg.targets ?? animCfg.animation.targets, id: animCfg.id ?? animCfg.animation.id };
       }
-      // Only add if not suppressed by timeline
+
+      // Apply state resolver (same as overlays)
+      try {
+        const overrides = resolveStatePreset(animCfg, presets, hass);
+        if (overrides && typeof overrides === 'object') {
+          Object.assign(animCfg, overrides);
+        }
+      } catch (e) {
+        cblcarsLog.warn('[renderMsdOverlay] state_resolver failed on animation entry', { animCfg, e });
+      }
+
+      // Resolve templates/dynamic values within the animation config
+      animCfg = resolveAllDynamicValues(animCfg, hass);
+
+      // Determine suppression by timelineTargets
+      let targetId = '';
+      const targetsSelector = typeof animCfg.targets === 'string' ? animCfg.targets : '';
+      if (targetsSelector && targetsSelector.startsWith('#')) {
+        targetId = targetsSelector.slice(1);
+      } else if (!targetsSelector && animCfg.id) {
+        // Allow id-only animations (we’ll target by #id)
+        animCfg.targets = `#${animCfg.id}`;
+        targetId = animCfg.id;
+      }
+
       if (!timelineTargets.has(targetId)) {
-        animationsToRun.push({ ...anim, root });
+        animationsToRun.push({ ...animCfg, root });
       }
     });
   }
