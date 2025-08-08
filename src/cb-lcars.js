@@ -217,36 +217,117 @@ class CBLCARSAnimationScope {
         this.id = id;
         this.scope = window.cblcars.animejs.createScope(); // anime.js v4 syntax
         this.animations = []; // Array to hold animation instances for inspection
+        this._runningByTarget = new Map(); // Map<targetId, animation>
+    }
+
+    // Resolve the root for DOM operations
+    _getRoot(options) {
+        return (options && options.root) || document;
+    }
+
+    // Normalize targets into Element[]
+    _resolveTargets(options) {
+        const root = this._getRoot(options);
+        const t = options && options.targets;
+        if (!t) return [];
+        if (t instanceof Element) return [t];
+        if (Array.isArray(t)) return t.filter(Boolean);
+        if (typeof t === 'string') {
+            // Prefer ID fast-path
+            if (t.startsWith('#')) {
+                const el = root.querySelector(t);
+                return el ? [el] : [];
+            }
+            return Array.from(root.querySelectorAll(t));
+        }
+        return [];
+    }
+
+    // Remove artifacts created by previous animation runs for a given baseId
+    _cleanupArtifactsForTargetId(root, baseId) {
+        if (!baseId) return;
+        // Remove all trails/tracers (handle duplicates if present)
+        const trails = root.querySelectorAll(`#${baseId}_trail`);
+        trails.forEach(n => n.parentElement && n.parentElement.removeChild(n));
+        const tracers = root.querySelectorAll(`#${baseId}_tracer`);
+        tracers.forEach(n => n.parentElement && n.parentElement.removeChild(n));
+        // Also clear any inline march CSS animation state on the base target (if it exists)
+        const baseEl = root.getElementById(baseId);
+        if (baseEl) {
+            baseEl.style && (baseEl.style.animation = '');
+            baseEl.removeAttribute('data-march-anim-id');
+        }
+    }
+
+    // Stop anime.js animations for the given targets and cleanup artifacts
+    _cancelAndCleanupTargets(options) {
+        const root = this._getRoot(options);
+        const targets = this._resolveTargets(options);
+        targets.forEach(el => {
+            const id = el && el.id;
+            if (!id) return;
+
+            // Stop prior animations on this element (if any)
+            if (this.scope && typeof this.scope.remove === 'function') {
+                try { this.scope.remove(el); } catch (_) {}
+            }
+
+            // Remove previously created artifacts for this target
+            this._cleanupArtifactsForTargetId(root, id);
+
+            // Clear inline CSS animation remnants
+            el.style && (el.style.animation = '');
+
+            // Forget previous tracking entry
+            this._runningByTarget.delete(id);
+        });
+        return targets;
     }
 
     /**
      * Adds an animation to the scope using the v4 `scope.add()` pattern.
+     * De-duplicates by target: cancels prior animations and removes artifacts before starting a new one.
      * @param {object} options - The animation options for animateElement.
      * @param {object} hass - The Home Assistant hass object.
      */
     animate(options, hass = null) {
+        const targets = this._cancelAndCleanupTargets(options);
+
         // Call the global animateElement helper, passing this instance as the scope.
         const animation = window.cblcars.anim.animateElement(this, options, hass);
         if (animation) {
-            this.animations.push({ config: options, animation: animation });
+            this.animations.push({ config: options, animation: animation, targets });
+            // Track per-target so future runs can be canceled/cleaned deterministically
+            targets.forEach(el => el && el.id && this._runningByTarget.set(el.id, animation));
         }
     }
 
-
     destroy() {
-        // Instead of calling revert(), which can fail on disconnected elements,
-        // we will manually stop and remove all animations associated with this scope.
+        // Stop and remove all animations associated with this scope.
         if (this.scope && typeof this.scope.remove === 'function') {
-            // Get all active animations within this scope
-            const activeAnimations = window.cblcars.animejs.get(this.scope);
-
-            // Remove all targets from all active animations.
-            // This is a safer way to clean up than revert().
-            if (activeAnimations) {
-                this.scope.remove(activeAnimations.map(anim => anim.targets).flat());
-            }
+            try {
+                const activeAnimations = window.cblcars.animejs.get(this.scope);
+                if (activeAnimations) {
+                    this.scope.remove(activeAnimations.map(anim => anim.targets).flat());
+                }
+            } catch (_) {}
         }
-        // Clear our internal tracking array
+
+        // Cleanup artifacts for all tracked targets
+        try {
+            this.animations.forEach(entry => {
+                const root = this._getRoot(entry.config);
+                (entry.targets || []).forEach(el => {
+                    if (el && el.id) {
+                        this._cleanupArtifactsForTargetId(root, el.id);
+                        el.style && (el.style.animation = '');
+                    }
+                });
+            });
+        } catch (_) {}
+
+        // Clear internal tracking
+        this._runningByTarget.clear();
         this.animations = [];
     }
 }
@@ -293,10 +374,20 @@ class CBLCARSBaseCard extends ButtonCard {
         // Set the _logLevel property from the config
         this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
 
+        // --- Add all found 'entity' values to triggers_update ---
+        const foundEntities = collectEntities(config);
+        let triggersUpdate = Array.isArray(config.triggers_update) ? config.triggers_update : [];
+        if (foundEntities.length > 0) {
+            triggersUpdate = Array.from(new Set([...triggersUpdate, ...foundEntities]));
+            cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] Found entities for triggers_update:`, foundEntities);
+            cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] Updated triggers_update:`, triggersUpdate);
+        }
+
         // Create a new object to avoid modifying the original config
         this._config = {
             ...config,
             template: mergedTemplates,
+            triggers_update: triggersUpdate
         };
 
         // Load all fonts from the config (dynamically loads fonts based on the config)
@@ -536,6 +627,22 @@ class CBLCARSBaseCard extends ButtonCard {
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
     }
+}
+
+// Helper: Recursively collect all 'entity' and 'entity_id' values in an object
+function collectEntities(obj, entities = []) {
+    if (Array.isArray(obj)) {
+        obj.forEach(item => collectEntities(item, entities));
+    } else if (obj && typeof obj === 'object') {
+        for (const [key, value] of Object.entries(obj)) {
+            if ((key === 'entity' || key === 'entity_id') && typeof value === 'string') {
+                entities.push(value);
+            } else {
+                collectEntities(value, entities);
+            }
+        }
+    }
+    return entities;
 }
 
 class CBLCARSLabelCard extends CBLCARSBaseCard {

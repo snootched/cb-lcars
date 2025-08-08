@@ -124,10 +124,7 @@ function evaluateTemplate(template, context = {}) {
   try {
     const code = template.substring(3, template.length - 3);
     const func = new Function(...Object.keys(context), `return ${code}`);
-    // Check if callout exists in the context before calling the function
-    if (!context || !context.callout == null) {
-      return 'CALLOUT_MISSING'; // Or any other suitable default value
-    }
+    // Execute with provided context; avoid premature "callout" checks
     return func(...Object.values(context));
   } catch (e) {
     cblcarsLog.error('[evaluateTemplate] Error evaluating template:', { template, context, error: e });
@@ -780,3 +777,4 @@ export function renderMsdOverlay({
   // Return both the markup and the animations to be run
   return { svgMarkup, animationsToRun };
 }
+
