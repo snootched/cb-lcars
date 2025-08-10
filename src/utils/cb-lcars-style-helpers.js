@@ -76,13 +76,13 @@ function isDynamicMapping(v) {
 
 /**
  * Resolves a dynamic value based on entity state using interpolation.
- * @param {object} mapping - The mapping configuration.
- * @param {object} hass - The Home Assistant hass object.
- * @returns {string|number|null} The resolved value or null if resolution fails.
+ * Uses canonical anime utils when available.
  */
 function resolveDynamicValue(mapping, hass) {
   if (!hass || !hass.states) return null;
-  if (!anime.utils || typeof anime.utils.mapRange !== 'function') {
+
+  const utils = (window?.cblcars?.animejs?.utils) || (anime?.utils);
+  if (!utils || typeof utils.mapRange !== 'function') {
     console.warn('Dynamic mapping: anime.js utils.mapRange function not available.');
     return null;
   }
@@ -94,35 +94,25 @@ function resolveDynamicValue(mapping, hass) {
   }
 
   const rawValue = mapping.attribute ? entity.attributes[mapping.attribute] : entity.state;
-  // Use a fallback of 0 if the value is null or undefined (e.g., brightness of an 'off' light)
   const sourceValue = parseFloat(rawValue ?? 0);
-
   if (isNaN(sourceValue)) {
     console.warn(`Dynamic mapping: source value is not a number for entity ${mapping.entity_id}`, { rawValue });
     return null;
   }
 
   const [inputMin, inputMax] = mapping.input_range;
-  // Ensure output range values are parsed as numbers for interpolation.
   const outputMin = parseFloat(mapping.output_range[0]);
   const outputMax = parseFloat(mapping.output_range[1]);
-
   if (isNaN(outputMin) || isNaN(outputMax)) {
     console.warn(`Dynamic mapping: output_range values are not valid numbers for entity ${mapping.entity_id}`, { mapping });
     return null;
   }
 
-  // Use anime.js utils.mapRange which handles clamping and interpolation in one step.
-  const mapper = anime.utils.mapRange(inputMin, inputMax, outputMin, outputMax);
+  const mapper = utils.mapRange(inputMin, inputMax, outputMin, outputMax);
   let result = mapper(sourceValue);
-
-  // If the output was numeric, we can add rounding and a unit if specified.
-  if (typeof result === 'number') {
-    if (mapping.round !== undefined) {
-      result = parseFloat(result.toFixed(mapping.round));
-    }
+  if (typeof result === 'number' && mapping.round !== undefined) {
+    result = parseFloat(result.toFixed(mapping.round));
   }
-
   return result;
 }
 
@@ -199,19 +189,12 @@ export function splitAttrsAndStyle(obj, context = '') {
   for (const [k, v] of Object.entries(obj)) {
     const svgKey = mapKeyToSvgAttr(k, context);
 
-    // 1. Check if the key is a standard SVG presentation attribute.
-    // These are properties that can be set directly as attributes on an SVG element.
-    // The `SVG_ATTRS` array contains a list of these known attributes.
     if (SVG_ATTRS.includes(svgKey) || svgKey.startsWith('data-')) {
-      // Special handling for color object
       if (k === 'color' && typeof v === 'object' && v !== null) {
         attrs[svgKey] = v.default ?? Object.values(v)[0];
       } else {
         attrs[svgKey] = v;
       }
-    // 2. Check if the key is a property that must be an inline CSS style.
-    // These properties are not valid as direct SVG attributes but work inside a `style` attribute.
-    // To make a property a style, add its original key (e.g., "text_transform") to this list.
     } else if (
       k === "opacity" ||
       k === "display" ||
@@ -220,9 +203,8 @@ export function splitAttrsAndStyle(obj, context = '') {
       k === "text_transform"
     ) {
       style[svgKey] = v;
-    // 3. As a fallback, treat any other simple value as a non-standard attribute.
-    // This allows for custom data attributes or other less common SVG attributes.
-    } else if (typeof v === "string" || typeof v === "number") {
+    } else if ((typeof v === "string" || typeof v === "number") && !k.startsWith('_')) {
+      // Skip internal/meta keys like _mappedValue
       attrs[svgKey] = v;
     }
   }
@@ -252,8 +234,8 @@ export function entityMatchesRange(hass, stateObj, fallbackEntity, fallbackAttri
     const inputMax = stateObj.map_range.input_range[1];
     const outputMin = stateObj.map_range.output_range[0];
     const outputMax = stateObj.map_range.output_range[1];
-    if (window.cblcars?.animejs?.utils?.mapRange) {
-      const mapper = window.cblcars.animejs.utils.mapRange(inputMin, inputMax, outputMin, outputMax);
+    if (window.cblcars?.anim?.utils?.mapRange) {
+      const mapper = window.cblcars.anim.utils.mapRange(inputMin, inputMax, outputMin, outputMax);
       const mappedValue = mapper(value);
       // Use mappedValue for matching
       if (

@@ -151,182 +151,244 @@ export const animPresets = {
             duration: options.duration ?? 1200
         });
     },
+
+    fade: (params, element, options = {}) => {
+    const duration = params.duration ?? options.duration ?? 1000;
+    const easing = params.easing ?? options.easing ?? 'linear';
+    const loop = params.loop ?? options.loop ?? false;
+    const alternate = params.alternate ?? options.alternate ?? false;
+    Object.assign(params, {
+        opacity: [0, 1],
+        duration,
+        easing,
+        loop,
+        alternate
+    });
+    },
+
     /**
      * @preset motionpath
-     * Animates an element along a path, with optional tracer and trail.
-     * @param {object} params
-     * @param {Element} element
-     * @param {object} options
+     * Animates a tracer along a path, with optional trail.
+     * Contract:
+     *  - tracer is required; if missing, the preset aborts and surfaces an overlay error.
+     *  - Waits until the target <path> has a valid 'd' before building transforms.
+     *  - If the path has data-cblcars-pending="true" (sparkline baseline), trail is hidden until real data arrives.
+     *  - Listens for 'd' and 'data-cblcars-pending' changes, re-binding tracer and syncing trail as the path updates.
+     *
+     * Anime.js v4 notes:
+     *  - Use window.cblcars.anim.anime(targets, vars)
+     *  - Use window.cblcars.animejs.svg.createMotionPath(pathEl) → { translateX, translateY, rotate }
+     *  - Use window.cblcars.animejs.svg.createDrawable(pathEl) for draw animations
+     *
+     * Required external helpers (already in this project):
+     *  - window.cblcars.waitForElement(selector, root)
+     *  - svgOverlayManager.push(msg) for user-visible overlay errors
      */
-    motionpath: async function (params, element, options) {
-        // Default path_selector to element's own selector if not provided
-        let path_selector = options.path_selector;
-        let root = options.root ?? document;
+    motionpath: async function motionpathPreset(params, element, options = {}) {
+    try {
+        const root = options.root ?? document;
+        const path_selector = options.path_selector;
         const trail = options.trail;
         const tracer = options.tracer;
 
-        // --- Require tracer for motionpath ---
+        // Enforce tracer requirement
         if (!tracer) {
-            const msg = '[motionpath] tracer is required';
-            cblcarsLog.warn(msg, { element });
-            svgOverlayManager.push(msg);
-            params.targets = null;
-            return;
+        const msg = '[motionpath] tracer is required';
+        cblcarsLog.warn(msg, { element });
+        svgOverlayManager.push(msg);
+        params.targets = null;
+        return;
         }
 
-        let pathElement;
+        // Resolve path element
+        let pathElement = null;
         if (path_selector) {
-            pathElement = await window.cblcars.waitForElement(path_selector, root);
+        pathElement = await window.cblcars.waitForElement(path_selector, root);
         } else {
-            pathElement = element;
+        pathElement = element;
         }
         if (!pathElement) {
-            const errorMsg = `Motionpath: path not found for selector "${path_selector}"`;
-            cblcarsLog.error(errorMsg);
-            svgOverlayManager.push(errorMsg);
-            return;
+        const errorMsg = `Motionpath: path not found for selector "${path_selector || '(self)'}"`;
+        cblcarsLog.error(errorMsg);
+        svgOverlayManager.push(errorMsg);
+        params.targets = null;
+        return;
+        }
+        if (String(pathElement.tagName).toLowerCase() !== 'path') {
+        const msg = '[motionpath] Target is not an SVG <path>; cannot create motion path.';
+        cblcarsLog.warn(msg, { id: pathElement.id, tag: pathElement.tagName });
+        svgOverlayManager.push(msg);
+        params.targets = null;
+        return;
         }
 
-        // Animate trail if requested
+        // Wait until the path has a valid 'd'
+        const hasCommands = (d) => !!d && /[MLCQAZmlcqaz]/.test(d);
+        let tries = 60; // ~1s with rAF cadence
+        let dAttr = pathElement.getAttribute('d');
+        while (!hasCommands(dAttr) && tries-- > 0) {
+        await new Promise((r) => requestAnimationFrame(r));
+        dAttr = pathElement.getAttribute('d');
+        }
+        if (!hasCommands(dAttr)) {
+        const msg = `[motionpath] Path "${pathElement.id || '(no id)'}" has no valid 'd' yet. Aborting animation.`;
+        cblcarsLog.warn(msg);
+        svgOverlayManager.push(msg);
+        params.targets = null;
+        return;
+        }
+
+        // Helper: detect sparkline "pending" status (flat baseline) via attribute flag
+        const isPendingSpark = () => pathElement.getAttribute('data-cblcars-pending') === 'true';
+
+        // Optional trail (draw animation)
+        const baseId = pathElement.id || 'msd_path';
+        let trailPath = null;
         if (trail) {
-            try {
-                // Determine trail mode
-                const trailOptions = (typeof trail === 'object' && trail !== null)
-                    ? trail
-                    : {
-                        stroke: 'var(--lcars-yellow)',
-                        // Use stroke-width from the computed options, then the element, then default
-                        'stroke-width': options['stroke-width'] ?? pathElement.getAttribute('stroke-width') ?? 4,
-                        duration: params.duration ?? 1000,
-                        easing: params.easing ?? 'easeInOutQuad',
-                        loop: params.loop,
-                        mode: 'overlay'
-                    };
-                const mode = trailOptions.mode || 'overlay';
+        try {
+            const trailOptions = (typeof trail === 'object' && trail !== null) ? trail : { stroke: 'var(--lcars-yellow)' };
 
-                let trailPath;
-                if (pathElement.cloneNode) {
-                    trailPath = pathElement.cloneNode(true);
-                    trailPath.removeAttribute('id');
-                    trailPath.id = (pathElement.id ? pathElement.id + '_trail' : 'msd_trail_' + Math.random().toString(36).slice(2));
+            trailPath = pathElement.cloneNode(true);
+            trailPath.removeAttribute('id');
+            trailPath.id = `${baseId}_trail`;
+            trailPath.setAttribute('data-cblcars-owned', 'motionpath'); // mark as preset-owned for safe cleanup
 
-                    // Set trail color and stroke-width
-                    if (trailOptions.stroke) trailPath.setAttribute('stroke', trailOptions.stroke);
-                    // Use the stroke-width from the original path if not specified in trail options
-                    const trailStrokeWidth = trailOptions['stroke-width'] ?? options['stroke-width'] ?? pathElement.getAttribute('stroke-width');
-                    if (trailStrokeWidth) trailPath.setAttribute('stroke-width', trailStrokeWidth);
-                    if (trailOptions.opacity !== undefined) trailPath.setAttribute('opacity', trailOptions.opacity);
+            // Style the trail
+            if (trailOptions.stroke) trailPath.setAttribute('stroke', trailOptions.stroke);
+            const sw = trailOptions['stroke-width'] ?? options['stroke-width'] ?? pathElement.getAttribute('stroke-width') ?? 4;
+            if (sw) trailPath.setAttribute('stroke-width', sw);
+            if (trailOptions.opacity !== undefined) trailPath.setAttribute('opacity', trailOptions.opacity);
 
-                    // Insert trail path after the original
-                    pathElement.parentNode.insertBefore(trailPath, pathElement.nextSibling);
+            // Insert right after the base path
+            pathElement.parentNode.insertBefore(trailPath, pathElement.nextSibling);
 
-                    // If mode is 'single', hide the base line
-                    if (mode === 'single') {
-                        pathElement.setAttribute('opacity', '0');
-                        pathElement.setAttribute('stroke', 'none');
-                    }
-
-                    // Animate the trail path only
-                    const drawable = window.cblcars.animejs.svg.createDrawable(trailPath);
-                    const trailTarget = Array.isArray(drawable) ? drawable[0] : drawable;
-                    const animeConfig = {
-                        targets: trailTarget,
-                        draw: '0 1',
-                        duration: trailOptions.duration ?? params.duration ?? 1000,
-                        easing: trailOptions.easing ?? params.easing ?? 'easeInOutQuad',
-                        loop: trailOptions.loop ?? params.loop,
-                    };
-                    Object.assign(animeConfig, trailOptions);
-                    const { targets: trailTargets, ...trailVars } = animeConfig;
-                    window.cblcars.anim.anime(trailTargets, trailVars);
-                } else {
-                    cblcarsLog.error('[motionpath preset] Could not clone path for trail.', { pathElement });
-                }
-            } catch (trailerError) {
-                cblcarsLog.error('[motionpath preset] Failed to animate trail:', { trailerError });
+            // Mode: 'overlay' (default) draws over base; 'single' hides base
+            const mode = trailOptions.mode || 'overlay';
+            if (mode === 'single') {
+            pathElement.setAttribute('opacity', '0');
+            pathElement.setAttribute('stroke', 'none');
             }
+
+            // If sparkline is pending baseline, hide the trail to avoid duplicate flat line
+            if (isPendingSpark()) {
+            trailPath.setAttribute('visibility', 'hidden');
+            }
+
+            // Start draw animation on trail
+            const [drawable] = window.cblcars.animejs.svg.createDrawable(trailPath);
+            const trailVars = {
+            draw: '0 1',
+            duration: trailOptions.duration ?? params.duration ?? 1000,
+            easing: trailOptions.easing ?? params.easing ?? 'linear',
+            loop: trailOptions.loop ?? params.loop ?? true
+            };
+            window.cblcars.anim.anime(drawable, trailVars);
+        } catch (e) {
+            cblcarsLog.error('[motionpath] Failed to set up trail:', { e });
+        }
         }
 
-        // --- Tracer logic ---
-        if (tracer) {
-            // Use svgHelpers to create the tracer SVG element
-            // Use the path's ID as a base for tracer ID if possible
-            let baseId = pathElement.id || 'msd_tracer';
-            const tracerId = tracer.id || `${baseId}_tracer`;
-            let tracerEl;
-            if (tracer.shape === 'rect') {
-                tracerEl = svgHelpers.drawRect({
-                    x: -(tracer.width || 8) / 2,
-                    y: -(tracer.height || 8) / 2,
-                    width: tracer.width || 8,
-                    height: tracer.height || 8,
-                    id: tracerId,
-                    attrs: { fill: tracer.fill || 'var(--lcars-orange)' },
-                    style: tracer.style || {},
-                });
-            } else {
-                tracerEl = svgHelpers.drawCircle({
-                    cx: 0,
-                    cy: 0,
-                    r: tracer.r || 4,
-                    id: tracerId,
-                    attrs: { fill: tracer.fill || 'var(--lcars-orange)' },
-                    style: tracer.style || {},
-                });
-            }
-            // tracerEl is a string, so parse it to an SVG element
-            const temp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            temp.innerHTML = tracerEl;
-            const tracerNode = temp.firstElementChild;
-
-            // Find the top-level SVG container to append the tracer
-            let svgRoot = pathElement.ownerSVGElement;
-            if (!svgRoot) {
-                svgRoot = pathElement.closest('svg');
-            }
-            if (svgRoot) {
-                svgRoot.appendChild(tracerNode);
-                cblcarsLog.debug('[motionpath preset] Tracer SVG appended', { tracerId, svgRoot });
-            } else {
-                pathElement.parentNode.appendChild(tracerNode);
-                cblcarsLog.warn('[motionpath preset] Could not find SVG root, appended tracer to path parent.', { tracerId });
-            }
-
-            // Prepare animation options for tracer
-            const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathElement);
-
-            // Merge all standard anime.js options (from params and options), but exclude tracer/trail/path_selector/root/targets/type
-            // and any line-specific styling that shouldn't apply to the tracer.
-            const exclude = [
-                'tracer', 'trail', 'path_selector', 'root', 'targets', 'type', 'animation',
-                'stroke', 'stroke-width', 'corner_style', 'corner_radius', 'waypoints',
-                'steps', 'rounded', 'smooth', 'smooth_tension', 'id'
-            ];
-            const merged = {};
-            for (const k of Object.keys(params)) {
-                if (!exclude.includes(k)) merged[k] = params[k];
-            }
-            for (const k of Object.keys(options)) {
-                if (!exclude.includes(k)) merged[k] = options[k];
-            }
-
-            cblcarsLog.debug('[motionpath preset] Animating tracer', { tracerId, merged });
-            window.cblcars.anim.anime(tracerNode, {
-                ...merged,
-                translateX,
-                translateY,
-                rotate,
-            });
-            // Prevent the original animation from running on the path itself
-            params.targets = null;
-            return;
+        // Create tracer element (circle or rect) and append to SVG root
+        const tracerId = tracer.id || `${baseId}_tracer`;
+        let tracerMarkup;
+        if (tracer.shape === 'rect') {
+        tracerMarkup = svgHelpers.drawRect({
+            x: -((tracer.width || 8) / 2),
+            y: -((tracer.height || 8) / 2),
+            width: tracer.width || 8,
+            height: tracer.height || 8,
+            id: tracerId,
+            attrs: { fill: tracer.fill || 'var(--lcars-orange)' },
+            style: tracer.style || {}
+        });
+        } else {
+        tracerMarkup = svgHelpers.drawCircle({
+            cx: 0, cy: 0, r: tracer.r || 4,
+            id: tracerId,
+            attrs: { fill: tracer.fill || 'var(--lcars-orange)' },
+            style: tracer.style || {}
+        });
         }
+        const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        tmp.innerHTML = tracerMarkup;
+        const tracerNode = tmp.firstElementChild;
+        tracerNode.setAttribute('data-cblcars-owned', 'motionpath'); // mark as preset-owned
 
-        // If no tracer, animate the line itself (legacy/fallback)
+        let svgRoot = pathElement.ownerSVGElement || pathElement.closest('svg') || pathElement.parentNode;
+        if (svgRoot) svgRoot.appendChild(tracerNode);
+
+        // Helper to start/restart tracer animation bound to current path geometry
+        const startTracer = () => {
         const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathElement);
-        Object.assign(params, { translateX, translateY, rotate });
-    },
 
+        // Merge anime options, excluding non-anime keys and builder-only keys
+        const exclude = new Set([
+            'tracer', 'trail', 'path_selector', 'root', 'targets', 'type', 'animation',
+            'stroke', 'stroke-width', 'corner_style', 'corner_radius', 'waypoints',
+            'steps', 'rounded', 'smooth', 'smooth_tension', 'id'
+        ]);
+        const merged = {};
+        Object.entries(params).forEach(([k, v]) => { if (!exclude.has(k)) merged[k] = v; });
+        Object.entries(options).forEach(([k, v]) => { if (!exclude.has(k)) merged[k] = v; });
+
+        // Stop prior tracer animation if exists
+        try {
+            if (tracerNode.__cblcars_mp && typeof tracerNode.__cblcars_mp.pause === 'function') {
+            tracerNode.__cblcars_mp.pause();
+            }
+        } catch (_) {}
+
+        tracerNode.__cblcars_mp = window.cblcars.anim.anime(tracerNode, {
+            ...merged,
+            translateX,
+            translateY,
+            rotate
+        });
+        };
+
+        // First run
+        startTracer();
+
+        // Observe updates to path geometry and pending flag; rebind tracer and resync trail
+        try {
+        if (tracerNode.__cblcars_mp_observer) {
+            tracerNode.__cblcars_mp_observer.disconnect();
+        }
+        const obs = new MutationObserver(() => {
+            const newD = pathElement.getAttribute('d') || '';
+
+            // Sync trail geometry and (un)hide based on pending state
+            if (trailPath && trailPath.isConnected) {
+            trailPath.setAttribute('d', newD);
+            if (!isPendingSpark()) {
+                trailPath.removeAttribute('visibility'); // unhide once real data arrives
+            }
+            try {
+                const [drawable] = window.cblcars.animejs.svg.createDrawable(trailPath);
+                window.cblcars.anim.anime(drawable, {
+                draw: '0 1',
+                duration: (trail?.duration ?? params.duration ?? 1000),
+                easing: (trail?.easing ?? params.easing ?? 'linear'),
+                loop: (trail?.loop ?? params.loop ?? true)
+                });
+            } catch (_) {}
+            }
+
+            // Rebind tracer to the updated path on next frame
+            requestAnimationFrame(() => startTracer());
+        });
+        obs.observe(pathElement, { attributes: true, attributeFilter: ['d', 'data-cblcars-pending'] });
+        tracerNode.__cblcars_mp_observer = obs;
+        } catch (_) {}
+
+        // Prevent scheduling on the path itself by this call
+        params.targets = null;
+    } catch (e) {
+        cblcarsLog.error('[motionpath] Unhandled error', e);
+        svgOverlayManager.push(`[motionpath] ${e?.message || e}`);
+        params.targets = null;
+    }
+    },
     /* //stutters on loop with anime.js .. use css version for now
     march_smooth: (params, element, options = {}) => {
         // Prefer stroke_dasharray from params, then options, then default
@@ -640,67 +702,53 @@ export const animPresets = {
 
     /**
      * @preset set
-     * Directly sets properties/attributes/styles on the element.
-     * @param {object} params
-     * @param {Element} element
-     * @param {object} options
+     * Sets properties/attributes/styles.
+     * Behavior:
+     * - In timeline steps: leave params as-is so anime.js applies them at the step time (no immediate mutation).
+     * - Outside timelines (free/overlay animations): mutate immediately via utils.set() and skip scheduling.
      */
-  set: (params, element, options = {}) => {
-    /**
-     * Keys to ignore for property setting (non-style/attribute keys).
-     * - These are reserved configuration keys, not element properties.
-     */
-    const ignoreKeys = [
-      'type', 'targets', 'root', 'animation', 'id', 'offset'
-    ];
-
-    // Merge params and options, filter out ignored keys.
-    const allParams = { ...params, ...options };
-    const propsToSet = {};
-    Object.entries(allParams).forEach(([key, value]) => {
-      if (ignoreKeys.includes(key) || value === undefined) return;
-      propsToSet[key] = value;
-    });
-
-    // --- Step 1: Attempt anime.js v4 utils.set() ---
-    // If anime.js is present and exposes utils.set, use it.
-    let animeSetWorked = false;
-    try {
-      if (window.cblcars?.animejs?.utils?.set) {
-        window.cblcars.animejs.utils.set(element, propsToSet);
-        animeSetWorked = true;
-        cblcarsLog.debug('[set preset] Used animejs.utils.set()', { element, propsToSet });
-      }
-    } catch (e) {
-      cblcarsLog.warn('[set preset] animejs.utils.set() failed, will fallback to manual mutation.', { element, propsToSet, error: e });
-      animeSetWorked = false;
-    }
-
-    // --- Step 2: Fallback to manual mutation if needed ---
-    if (!animeSetWorked) {
-      Object.entries(propsToSet).forEach(([key, value]) => {
-        try {
-          if (key in element.style) {
-            element.style[key] = value;
-            cblcarsLog.debug(`[set preset] Set style "${key}"="${value}"`, { element });
-          } else {
-            // Only set as attribute if not already present (animejs requirement)
-            if (!element.hasAttribute(key)) {
-              element.setAttribute(key, value);
-              cblcarsLog.debug(`[set preset] Set attribute "${key}"="${value}"`, { element });
-            }
-          }
-        } catch (e) {
-          cblcarsLog.warn(`[set preset] Could not set "${key}"="${value}" manually`, { element, error: e });
+    set: (params, element, options = {}) => {
+        // Timeline context: do not immediately set; let the step apply at its offset.
+        if (options && options.__timeline) {
+        return; // no-op; keep params as-is for anime step
         }
-      });
-    }
 
-    // Prevent anime.js from running an animation (this is a synchronous update).
-    params._cssAnimation = true;
-    params.targets = null;
-  },
+        const ignoreKeys = ['type', 'targets', 'root', 'animation', 'id', 'offset', '__timeline'];
+        const allParams = { ...params, ...options };
+        const propsToSet = {};
+        Object.entries(allParams).forEach(([key, value]) => {
+        if (ignoreKeys.includes(key) || value === undefined) return;
+        propsToSet[key] = value;
+        });
 
+        let animeSetWorked = false;
+        try {
+        if (window.cblcars?.anim?.utils?.set) {
+            window.cblcars.anim.utils.set(element, propsToSet);
+            animeSetWorked = true;
+        }
+        } catch (e) {
+        cblcarsLog.warn('[set preset] animejs.utils.set() failed, will fallback to manual mutation.', { e });
+        }
+
+        if (!animeSetWorked) {
+        for (const [key, value] of Object.entries(propsToSet)) {
+            try {
+            if (key in element.style) {
+                element.style[key] = value;
+            } else {
+                element.setAttribute(key, value);
+            }
+            } catch (e) {
+            cblcarsLog.warn(`[set preset] Could not set "${key}"="${value}" manually`, { e });
+            }
+        }
+        }
+
+        // Prevent anime scheduling for non-timeline set
+        params._cssAnimation = true;
+        params.targets = null;
+    },
 
     // Add more presets as needed...
 };

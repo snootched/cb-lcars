@@ -20,6 +20,8 @@ import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
 import { load } from 'js-yaml';
 import { animPresets } from './utils/cb-lcars-anim-presets.js';
 
+import { DataBus } from './utils/cb-lcars-data.js';
+
 
 // Ensure global namespace
 window.cblcars = window.cblcars || {};
@@ -44,16 +46,18 @@ async function initializeCustomCard() {
     cblcarsLogBanner();
     window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
 
+
+
     // Animation namespace organization
     window.cblcars.anim = {
-        animejs: anime, // full animejs module
-        anime: anime.animate, // shortcut for anime.animate
+        animejs: anime,                // full animejs module
+        anime: anime.animate,          // shortcut for anime.animate
+        utils: anime.utils,            // CENTRAL canonical utils reference
         animateElement: animHelpers.animateElement,
         animateWithRoot: animHelpers.animateWithRoot,
         waitForElement: animHelpers.waitForElement,
         presets: animPresets,
-        scopes: new Map(), // Global map of all animation scopes
-        // utils: {} // add as needed
+        scopes: new Map(),
     };
 
     // Backward-compatible shortcuts (to be deprecated)
@@ -62,6 +66,9 @@ async function initializeCustomCard() {
     window.cblcars.animateElement = window.cblcars.anim.animateElement;
     window.cblcars.animateWithRoot = window.cblcars.anim.animateWithRoot;
     window.cblcars.waitForElement = window.cblcars.anim.waitForElement;
+
+    // Ensure legacy reference also points at the canonical utils (for any older modules)
+    //window.cblcars.animejs.utils = window.cblcars.anim.utils;
 
     window.cblcars.overlayHelpers = overlayHelpers;
     window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
@@ -73,6 +80,8 @@ async function initializeCustomCard() {
     window.cblcars.getSvgContent = anchorHelpers.getSvgContent;
     window.cblcars.getSvgViewBox = anchorHelpers.getSvgViewBox;
     window.cblcars.getSvgAspectRatio = anchorHelpers.getSvgAspectRatio;
+
+    window.cblcars.data = window.cblcars.data || new DataBus();
 
     window.cblcars.loadFont = loadFont;
     window.cblcars.loadUserSVG = async function(key, url) {
@@ -246,19 +255,19 @@ class CBLCARSAnimationScope {
     // Remove artifacts created by previous animation runs for a given baseId
     _cleanupArtifactsForTargetId(root, baseId) {
         if (!baseId) return;
-        // Remove all trails/tracers (handle duplicates if present)
-        const trails = root.querySelectorAll(`#${baseId}_trail`);
+        // Only remove preset-owned artifacts
+        const trails = root.querySelectorAll(`#${baseId}_trail[data-cblcars-owned]`);
         trails.forEach(n => n.parentElement && n.parentElement.removeChild(n));
-        const tracers = root.querySelectorAll(`#${baseId}_tracer`);
+        const tracers = root.querySelectorAll(`#${baseId}_tracer[data-cblcars-owned]`);
         tracers.forEach(n => n.parentElement && n.parentElement.removeChild(n));
-        // Also clear any inline march CSS animation state on the base target (if it exists)
+
+        // Clear CSS animation residue on the base element (e.g., march)
         const baseEl = root.getElementById(baseId);
         if (baseEl) {
-            baseEl.style && (baseEl.style.animation = '');
+            if (baseEl.style) baseEl.style.animation = '';
             baseEl.removeAttribute('data-march-anim-id');
         }
     }
-
     // Stop anime.js animations for the given targets and cleanup artifacts
     _cancelAndCleanupTargets(options) {
         const root = this._getRoot(options);
@@ -482,6 +491,7 @@ class CBLCARSBaseCard extends ButtonCard {
         };
       }
 
+
     connectedCallback() {
         super.connectedCallback();
         // --- Anime.js Scope creation ---
@@ -489,8 +499,65 @@ class CBLCARSBaseCard extends ButtonCard {
         this._animationScope = new CBLCARSAnimationScope(this._animationScopeId);
         window.cblcars.anim.scopes.set(this._animationScopeId, this._animationScope);
 
-        // --- Timeline orchestration (async, safe here) ---
-        cblcarsLog.debug('connectedCallback timelines:', this._config && this._config.timelines);
+        // CLEANUP: Stop previous timelines if any
+        if (this._timelines && Array.isArray(this._timelines)) {
+            this._timelines.forEach(tl => tl && typeof tl.pause === 'function' && tl.pause());
+            this._timelines = null;
+        }
+
+        // NEW: Timelines now live under this._config.variables.msd.timelines
+        // Build overlay config map from variables.msd.overlays for element-level merge
+        const msdVars = this._config?.variables?.msd || {};
+        const timelinesCfg = msdVars.timelines || null;
+        const overlaysArr = Array.isArray(msdVars.overlays) ? msdVars.overlays : [];
+        const overlayConfigsById = overlaysArr.reduce((acc, o) => {
+            if (o && o.id) acc[o.id] = o;
+            return acc;
+        }, {});
+
+        // Defer timeline creation until after the SVG/overlays have been stamped into the shadowRoot
+        if (timelinesCfg) {
+            requestAnimationFrame(() => {
+            requestAnimationFrame(async () => {
+                try {
+                this._timelines = await animHelpers.createTimelines(
+                    timelinesCfg,
+                    this._animationScopeId,
+                    this.shadowRoot,
+                    overlayConfigsById,
+                    this.hass || null,
+                    msdVars.presets || {}      // <-- pass presets for state_resolver in timeline steps
+                );
+                // Do not force play(); let autoplay govern start/paused state
+                } catch (e) {
+                cblcarsLog.error('[CBLCARSBaseCard.connectedCallback] Error creating timelines:', e);
+                }
+            });
+            });
+        }
+
+        // Check if the parent element has the class 'preview'
+        if (this.parentElement && this.parentElement.classList.contains('preview')) {
+            this.style.height = '60px';
+            this.style.minHeight = '60px';
+        } else {
+            this.style.height = '100%';
+
+            // Enable the resize observer when the card is connected to the DOM
+            // but only if not in preview mode
+            if (this._isResizeObserverEnabled) {
+            this.enableResizeObserver();
+            window.addEventListener('resize', this._debouncedResizeHandler);
+            }
+        }
+    }
+
+    connectedCallback2() {
+        super.connectedCallback();
+        // --- Anime.js Scope creation ---
+        this._animationScopeId = `card-${this.id || this.cardType || Math.random().toString(36).slice(2)}`;
+        this._animationScope = new CBLCARSAnimationScope(this._animationScopeId);
+        window.cblcars.anim.scopes.set(this._animationScopeId, this._animationScope);
 
         // CLEANUP: Stop previous timelines if any
         if (this._timelines && Array.isArray(this._timelines)) {
@@ -498,14 +565,25 @@ class CBLCARSBaseCard extends ButtonCard {
             this._timelines = null;
         }
 
-        if (this._config && this._config.timelines) {
+        // NEW: Timelines now live under this._config.variables.msd.timelines
+        // Build overlay config map from variables.msd.overlays for element-level merge
+        const msdVars = this._config?.variables?.msd || {};
+        const timelinesCfg = msdVars.timelines || null;
+        cblcarsLog.debug('connectedCallback timelines:', timelinesCfg);
+        const overlaysArr = Array.isArray(msdVars.overlays) ? msdVars.overlays : [];
+        const overlayConfigsById = overlaysArr.reduce((acc, o) => {
+            if (o && o.id) acc[o.id] = o;
+            return acc;
+        }, {});
+
+        if (timelinesCfg) {
             (async () => {
                 try {
                     this._timelines = await animHelpers.createTimelines(
-                        this._config.timelines,
+                        timelinesCfg,
                         this._animationScopeId,
                         this.shadowRoot,
-                        this._config.overlays || {},
+                        overlayConfigsById,
                         this.hass || null
                     );
                 } catch (e) {
@@ -626,6 +704,50 @@ class CBLCARSBaseCard extends ButtonCard {
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
+    }
+
+    /**
+     * Rebuild timelines for this card instance.
+     * Safe to call after overlays have been stamped; uses double-rAF for DOM availability.
+     * @param {object} timelinesCfg
+     * @param {object} overlayConfigsById
+     * @param {object} presets
+     */
+    _rebuildTimelines(timelinesCfg, overlayConfigsById = {}, presets = {}) {
+        if (!timelinesCfg) return;
+
+        // Stop previous timelines
+        if (this._timelines && Array.isArray(this._timelines)) {
+        this._timelines.forEach(tl => tl && typeof tl.pause === 'function' && tl.pause());
+        this._timelines = null;
+        }
+
+        // Defer to next paints to ensure DOM is present
+        requestAnimationFrame(() => {
+        requestAnimationFrame(async () => {
+            try {
+            this._timelines = await window.cblcars.anim.createTimelines
+                ? window.cblcars.anim.createTimelines(
+                    timelinesCfg,
+                    this._animationScopeId,
+                    this.shadowRoot,
+                    overlayConfigsById,
+                    this.hass || null,
+                    presets || {}
+                )
+                : (await import('./utils/cb-lcars-anim-helpers.js')).createTimelines(
+                    timelinesCfg,
+                    this._animationScopeId,
+                    this.shadowRoot,
+                    overlayConfigsById,
+                    this.hass || null,
+                    presets || {}
+                );
+            } catch (e) {
+            cblcarsLog.error('[CBLCARSBaseCard._rebuildTimelines] Error creating timelines:', e);
+            }
+        });
+        });
     }
 }
 

@@ -4,33 +4,27 @@ import { animPresets } from './cb-lcars-anim-presets.js';
 /**
  * Waits for an element to be present in the DOM.
  * @param {string} selector - The CSS selector for the element.
- * @param {Element} root - The root element to search within.
+ * @param {Element|Document} root - The root element to search within.
  * @param {number} timeout - The maximum time to wait in milliseconds.
- * @returns {Promise<Element>} A promise that resolves with the element when found.
+ * @returns {Promise<Element>}
  */
 export function waitForElement(selector, root = document, timeout = 2000) {
   return new Promise((resolve, reject) => {
-    const element = root.querySelector(selector);
-    if (element) {
-      resolve(element);
-      return;
-    }
+    const found = root.querySelector(selector);
+    if (found) return resolve(found);
 
     const observer = new MutationObserver(() => {
       const el = root.querySelector(selector);
       if (el) {
-        observer.disconnect();
+        try { observer.disconnect(); } catch(_) {}
+        clearTimeout(to);
         resolve(el);
       }
     });
+    observer.observe(root, { childList: true, subtree: true });
 
-    observer.observe(root, {
-      childList: true,
-      subtree: true,
-    });
-
-    setTimeout(() => {
-      observer.disconnect();
+    const to = setTimeout(() => {
+      try { observer.disconnect(); } catch(_) {}
       reject(new Error(`[CB-LCARS] Timeout waiting for element: ${selector}`));
     }, timeout);
   });
@@ -38,17 +32,20 @@ export function waitForElement(selector, root = document, timeout = 2000) {
 
 /**
  * Resolves one or many targets into an array of Elements.
- * Supports string selector, Element, NodeList, and arrays of the above.
- * @param {string|Element|Array<string|Element>|NodeList} targets
- * @param {Element} root
+ * Enhancements:
+ * - Supports comma-separated selector strings: "#a, .b, svg path"
+ * - Expands NodeList/HTMLCollection into elements
+ * - For selector strings, resolves first match by waiting, and also includes any currently matching additional elements
+ * @param {string|Element|Array<string|Element>|NodeList|HTMLCollection} targets
+ * @param {Element|Document} root
  * @param {number} timeout
  * @returns {Promise<Element[]>}
  */
 export async function waitForElements(targets, root = document, timeout = 2000) {
   const toArray = (v) => Array.isArray(v)
     ? v
-    : (v && typeof v.length === 'number' && typeof v.item === 'function') // NodeList/HTMLCollection
-      ? Array.from(v)
+    : (v && typeof v.length === 'number' && typeof v.item === 'function')
+      ? Array.from(v) // NodeList/HTMLCollection
       : [v];
 
   const items = toArray(targets).filter(Boolean);
@@ -58,13 +55,26 @@ export async function waitForElements(targets, root = document, timeout = 2000) 
     try {
       if (item instanceof Element) {
         results.push(item);
-      } else if (typeof item === 'string') {
-        // Wait for the first element that matches each selector
-        const el = await waitForElement(item, root, timeout);
-        if (el) results.push(el);
-      } else {
-        cblcarsLog.warn('[waitForElements] Unsupported target type, skipping.', { item });
+        continue;
       }
+
+      if (typeof item === 'string') {
+        // Split comma-separated selector lists
+        const selectors = item.split(',').map(s => s.trim()).filter(Boolean);
+        for (const sel of selectors) {
+          // Wait for first appearance of this selector
+          const first = await waitForElement(sel, root, timeout);
+          if (first) results.push(first);
+          // Also include any additional matches that are already present
+          const allNow = root.querySelectorAll(sel);
+          for (const el of Array.from(allNow)) {
+            if (!results.includes(el)) results.push(el);
+          }
+        }
+        continue;
+      }
+
+      cblcarsLog.warn('[waitForElements] Unsupported target type, skipping.', { item });
     } catch (e) {
       cblcarsLog.error('[waitForElements] Failed to resolve target:', { item, error: e });
     }
@@ -114,12 +124,7 @@ export async function animateWithRoot(options) {
 
 /**
  * Animates element(s) using anime.js with special handling for SVG animations.
- * If scopeId is provided, add the animation to the scope.
- * @param {CBLCARSAnimationScope} scope - The scope object to use.
- * @param {object} options - The animation options.
- * @param {string|string[]} options.type - The type of animation (preset) to apply.
- * @param {string|Element|Array} options.targets - Selector(s) or element(s).
- * @param {Element} [options.root=document] - The root element for the selector query.
+ * Unchanged behavior, v4-native through window.cblcars.anim.anime
  */
 export async function animateElement(scope, options, hass = null) {
   const { type, targets, root = document, ...animOptions } = options;
@@ -144,7 +149,7 @@ export async function animateElement(scope, options, hass = null) {
           ...animOptions,
         };
 
-        // Optional: state_resolver (kept as-is)
+        // state_resolver hook (left as-is)
         if (options.state_resolver && options.entity && window.cblcars.styleHelpers?.resolveStateStyles) {
           const resolvedStyles = window.cblcars.styleHelpers.resolveStateStyles(
             options.state_resolver,
@@ -172,15 +177,13 @@ export async function animateElement(scope, options, hass = null) {
               continue;
             }
             const precision = options.precision ? parseInt(options.precision, 10) : undefined;
-            Object.assign(params, {
-              d: window.cblcars.animejs.svg.morphTo(morphTarget, precision),
-            });
+            Object.assign(params, { d: window.cblcars.animejs.svg.morphTo(morphTarget, precision) });
           } else {
             cblcarsLog.debug(`[animateElement] Using standard animation for type: ${type}`, { params });
           }
         }
 
-        // Skip creating an animation if the preset used CSS or nulled targets
+        // Skip if preset handled via CSS or nulled targets
         if (params._cssAnimation || params.targets === null) {
           continue;
         }
@@ -194,46 +197,66 @@ export async function animateElement(scope, options, hass = null) {
   });
 }
 
+
 /**
- * Creates an anime.js timeline within a given scope.
- * @param {Array} timelineConfig - Array of timeline steps.
- * @param {string} scopeId - The scope ID to use.
- * @param {Element} root - The root element for selectors.
- * @returns {anime.Timeline} The created timeline.
+ * v4: Create a single timeline from an array of steps.
+ * Uses createTimeline consistently and add(targets, vars, offset).
+ * @param {Array} timelineConfig - [{ targets, ...vars, offset? }]
+ * @param {string} scopeId
+ * @param {Element|Document} root
  */
 export async function createTimeline(timelineConfig, scopeId, root = document) {
   const scopeObj = window.cblcars.anim.scopes.get(scopeId);
-  const timeline = window.cblcars.animejs.timeline({ scope: scopeObj?.scope });
+  const timeline = window.cblcars.anim.animejs.createTimeline({ scope: scopeObj?.scope });
+
+  if (!Array.isArray(timelineConfig)) return timeline;
+
   for (const step of timelineConfig) {
-    const { targets, ...animOptions } = step;
+    const { targets, offset, ...vars } = step || {};
+    if (!targets) continue;
     const element = await window.cblcars.anim.waitForElement(targets, root);
-    timeline.add(element, animOptions);
+    if (!element) continue;
+    timeline.add(element, vars, offset);
   }
-  if (scopeObj) scopeObj.addAnimation(timeline);
+  if (scopeObj) scopeObj.addAnimation?.(timeline);
   return timeline;
 }
 
 /**
  * Creates multiple anime.js timelines from a config object, supporting global params and step merging.
- * @param {object} timelinesConfig - Object of timelines keyed by name.
- * @param {string} scopeId - The scope ID to use.
- * @param {Element} root - The root element for selectors.
- * @param {object} overlayConfigs - Overlay configs for element-level animation merging.
- * @param {object} hass - Home Assistant context for dynamic value resolution.
- * @returns {Promise<object>} Object of timelines keyed by name.
+ * Enhancements:
+ * - Supports step.state_resolver using variables.msd.presets (stylePresets).
+ * - Only strips 'direction' (v4 removed); keeps 'alternate' and 'loop'.
+ * - Respects autoplay: does not force timeline.play() when autoplay === false.
+ * - Marks preset calls with __timeline for timeline-friendly behavior.
+ *
+ * @param {object} timelinesConfig
+ * @param {string} scopeId
+ * @param {Element|Document} root
+ * @param {object} overlayConfigs
+ * @param {object|null} hass
+ * @param {object} stylePresets - variables.msd.presets
+ * @returns {Promise<object>} timelines by name
  */
-export async function createTimelines(timelinesConfig, scopeId, root = document, overlayConfigs = {}, hass = null) {
+export async function createTimelines(
+  timelinesConfig,
+  scopeId,
+  root = document,
+  overlayConfigs = {},
+  hass = null,
+  stylePresets = {}
+) {
   const scopeObj = window.cblcars.anim.scopes.get(scopeId);
   if (!scopeObj) {
     cblcarsLog.error('[createTimelines] Scope not found:', scopeId);
     return {};
   }
   const timelines = {};
-  for (const [timelineName, timelineConfig] of Object.entries(timelinesConfig)) {
-    const { steps, ...timelineGlobals } = timelineConfig;
-    const resolvedGlobals = window.cblcars.styleHelpers?.resolveAllDynamicValues
-      ? window.cblcars.styleHelpers.resolveAllDynamicValues(timelineGlobals, hass)
-      : timelineGlobals;
+  const resolveAll = window.cblcars.styleHelpers?.resolveAllDynamicValues;
+
+  for (const [timelineName, timelineConfig] of Object.entries(timelinesConfig || {})) {
+    const { steps, ...timelineGlobals } = timelineConfig || {};
+    const resolvedGlobals = resolveAll ? resolveAll(timelineGlobals, hass) : timelineGlobals;
 
     const timeline = window.cblcars.anim.animejs.createTimeline({
       scope: scopeObj.scope,
@@ -247,12 +270,11 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
     }
 
     for (const step of steps) {
-      // Resolve all target elements for this step (supports arrays)
       let elements = [];
       try {
         elements = await waitForElements(step.targets, root);
       } catch (error) {
-        cblcarsLog.error(`[createTimelines] Failed to find target element(s) in "${timelineName}":`, { targets: step.targets, error });
+        cblcarsLog.error(`[createTimelines] Failed to find target(s) for "${timelineName}":`, { targets: step.targets, error });
         continue;
       }
       if (!elements || elements.length === 0) {
@@ -261,82 +283,102 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
       }
 
       for (const element of elements) {
-        // Merge: element animation block → timeline globals → step params (step wins)
         const elementAnim = overlayConfigs?.[element.id]?.animation || {};
         let mergedParams = { ...elementAnim, ...resolvedGlobals, ...step };
-        mergedParams = window.cblcars.styleHelpers?.resolveAllDynamicValues
-          ? window.cblcars.styleHelpers.resolveAllDynamicValues(mergedParams, hass)
-          : mergedParams;
 
-        // Debug: log element info before preset
-        cblcarsLog.debug(`[createTimelines] Step "${timelineName}" target resolved:`, {
-          targets: step.targets,
-          element,
-          tagName: element.tagName,
-          mergedParams
-        });
+        // State resolver on steps
+        if (step?.state_resolver && window.cblcars.styleHelpers?.resolveStatePreset) {
+          try {
+            const overrides = window.cblcars.styleHelpers.resolveStatePreset(
+              { state_resolver: step.state_resolver, entity: step.entity, attribute: step.attribute },
+              stylePresets,
+              hass
+            );
+            if (overrides && typeof overrides === 'object') {
+              if (overrides.animation && typeof overrides.animation === 'object') {
+                mergedParams = { ...mergedParams, ...overrides.animation };
+              } else {
+                mergedParams = { ...mergedParams, ...overrides };
+              }
+            }
+          } catch (e) {
+            cblcarsLog.warn('[createTimelines] step.state_resolver failed', { timelineName, step, error: e });
+          }
+        }
 
+        // Resolve dynamic values
+        mergedParams = resolveAll ? resolveAll(mergedParams, hass) : mergedParams;
+
+        // Defaults for text transforms in some presets
         if (
           (mergedParams.type === 'pulse' || mergedParams.type === 'glow') &&
           (element.tagName === 'text' || element.tagName === 'TEXT')
         ) {
           element.style.transformOrigin = 'center';
           element.style.transformBox = 'fill-box';
-          cblcarsLog.debug(`[createTimelines] Set transformOrigin/transformBox for text element:`, {
-            id: element.id,
-            style: element.style.cssText
-          });
         }
 
-        // Apply preset if type is specified
+        // Apply preset, marking timeline context
         if (mergedParams.type && animPresets[mergedParams.type]) {
-          const presetOptions = step[mergedParams.type] || {};
-          cblcarsLog.debug(`[createTimelines] Before preset "${mergedParams.type}" mutation:`, { mergedParams, presetOptions });
+          mergedParams.__timeline = true;
           await animPresets[mergedParams.type](mergedParams, element, mergedParams);
-          cblcarsLog.debug(`[createTimelines] After preset "${mergedParams.type}" mutation:`, { mergedParams, element });
         }
 
-        // Remove timeline-level properties before adding to timeline
-        const { targets, offset, ...animeParams } = mergedParams;
-        delete animeParams.loop;
-        delete animeParams.direction;
-        delete animeParams.alternate;
+        // Strip non-anime keys
+        const {
+          targets, offset, direction,
+          state_resolver, preset, entity, attribute, __timeline,
+          // NEW: strip these flags from anime params
+          deep, descendants, apply_to,
+          ...animeParams
+        } = mergedParams;
 
-        cblcarsLog.debug(`[createTimelines] Final animeParams for timeline.add:`, {
-          timelineName,
-          targets: element,
-          animeParams,
-          offset
-        });
+        // Determine whether to apply immediate props to descendants
+        const applyToDescendants =
+          mergedParams.descendants === true ||
+          mergedParams.deep === true ||
+          mergedParams.apply_to === 'descendants';
 
+        // Ensure non-animated properties are applied at the step start
+        const immediateKeys = ['fill', 'stroke', 'stroke-width', 'filter', 'color', 'opacity'];
+        const immediateSet = {};
+        for (const k of immediateKeys) {
+          if (animeParams[k] !== undefined && !Array.isArray(animeParams[k]) && typeof animeParams[k] !== 'object') {
+            immediateSet[k] = animeParams[k];
+          }
+        }
+        if (Object.keys(immediateSet).length) {
+          const userOnBegin = animeParams.onBegin;
+          animeParams.onBegin = () => {
+            try {
+              const nodes = applyToDescendants ? element.querySelectorAll('*') : [element];
+              if (window.cblcars?.anim?.utils?.set) {
+                nodes.forEach((n) => window.cblcars.anim.utils.set(n, immediateSet));
+              } else {
+                nodes.forEach((n) => {
+                  for (const [prop, val] of Object.entries(immediateSet)) {
+                    if (prop in n.style) n.style[prop] = val;
+                    else n.setAttribute(prop, val);
+                  }
+                });
+              }
+            } catch (_) {}
+            if (typeof userOnBegin === 'function') userOnBegin();
+          };
+        }
+
+        // v4 add(targets, vars, offset)
         timeline.add(element, animeParams, offset);
-
-        cblcarsLog.debug(`[createTimelines] Added step to timeline "${timelineName}":`, {
-          targets: element,
-          animeParams,
-          offset,
-          tagName: element.tagName,
-          style: element.style.cssText
-        });
       }
     }
 
-    console.debug(`[createTimelines] Created timeline "${timelineName}":`, timeline);
     if (typeof scopeObj.addAnimation === 'function') {
       scopeObj.addAnimation(timeline);
     }
     timelines[timelineName] = timeline;
-    if (timeline && typeof timeline.play === 'function') {
-      timeline.play();
-      cblcarsLog.info(`[createTimelines] Timeline "${timelineName}" play() called.`);
-      console.debug(`[createTimelines] Timeline:`, timeline);
-      console.debug(`[createTimelines] Timeline "${timelineName}" state:`, {
-        paused: timeline.paused,
-        children: timeline.children,
-        duration: timeline.duration,
-        animations: timeline.animations,
-        id: timeline.id
-      });
+
+    if (resolvedGlobals?.autoplay === false) {
+      cblcarsLog.info(`[createTimelines] Timeline "${timelineName}" created with autoplay: false.`);
     }
   }
   return timelines;
@@ -344,20 +386,15 @@ export async function createTimelines(timelinesConfig, scopeId, root = document,
 
 /**
  * Applies one or more animation presets to the anime.js params object.
- * Each preset mutates/augments params for stacking/chaining.
- * @param {string|string[]} types - Preset name(s) to apply.
- * @param {object} params - Anime.js params object to mutate.
- * @param {Element} element - Target element.
- * @param {object} options - Animation config (per-preset config supported).
  */
 export function applyPresets(types, params, element, options) {
-    const presetList = Array.isArray(types) ? types : [types];
-    for (const type of presetList) {
-        const presetFn = animPresets[type.toLowerCase()];
-        if (presetFn) {
-            presetFn(params, element, options?.[type] || options);
-        }
+  const presetList = Array.isArray(types) ? types : [types];
+  for (const type of presetList) {
+    const presetFn = animPresets[type.toLowerCase()];
+    if (presetFn) {
+      presetFn(params, element, options?.[type] || options);
     }
+  }
 }
 
 

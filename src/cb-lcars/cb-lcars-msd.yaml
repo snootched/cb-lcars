@@ -45,6 +45,16 @@ cb-lcars-msd:
             animation:
               type: fade
               duration: 4000
+        # Add named presets used by state_resolver
+        wc_core_blue:
+          animation:
+            fill: 'blue'
+        wc_core_yellow:
+          animation:
+            fill: 'var(--lcars-yellow)'
+        wc_core_red:
+          animation:
+            fill: 'red'
       overlays:
         # Warp Core
         - type: text
@@ -210,6 +220,61 @@ cb-lcars-msd:
           anchor: scr_sw
           attach_to: scr_sw_label
           preset: default
+        # Optional: same behavior as a free overlay (no SVG, just mutate an existing element)
+        - type: free
+          id: wc_core
+          targets: '#wc_core'
+          animation:
+            type: set
+          state_resolver:
+            entity: light.desk          # was entity_id
+            attribute: brightness
+            states:                      # was cases
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 0
+                to: 29                   # 0–29% => blue
+                preset: wc_core_blue
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 30
+                to: 79                   # 30–79% => yellow
+                preset: wc_core_yellow
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 80
+                to: 100                  # 80–100% => red
+                preset: wc_core_red
+      animations:
+        # Use the same resolver for standalone animations (now supported)
+        - id: wc_core_fill
+          type: set
+          targets: '#wc_core'
+          state_resolver:
+            entity: light.desk
+            attribute: brightness
+            states:
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 0
+                to: 29
+                preset: wc_core_blue
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 30
+                to: 79
+                preset: wc_core_yellow
+              - map_range:
+                  input_range: [0, 255]
+                  output_range: [0, 100]
+                from: 80
+                to: 100
+                preset: wc_core_red
   custom_fields:
     msd_svg_base: |
       [[[
@@ -231,10 +296,7 @@ cb-lcars-msd:
       ]]]
     msd_svg_overlays: |
       [[[
-        // Extract timelines from the card config (if present)
-        const timelines = this._config && this._config.timelines ? this._config.timelines : {};
-
-        // Use the new overlays array directly
+        const timelines = variables.msd?.timelines || {};
         const overlays = variables.msd.overlays || [];
 
         const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
@@ -242,22 +304,28 @@ cb-lcars-msd:
           anchors: variables.msd._anchors,
           styleLayers: variables.msd.presets,
           hass,
-          root: this.shadowRoot, // Pass shadowRoot for element queries
+          root: this.shadowRoot,
           viewBox: variables.msd._viewBox,
           timelines,
-          animations: variables.msd.animations
+          animations: variables.msd.animations,
+          dataSources: variables.msd.data_sources || {}    // <--- add this
         });
 
-        // Ensure SVG markup is rendered before running animations
+        const overlayConfigsById = Array.isArray(overlays)
+          ? overlays.reduce((acc, o) => { if (o && o.id) acc[o.id] = o; return acc; }, {})
+          : {};
+
         requestAnimationFrame(() => {
           if (animationsToRun.length > 0) {
             animationsToRun.forEach(animConfig => {
               this._animationScope.animate(animConfig);
             });
           }
+          if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
+            this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
+          }
         });
 
-        // Return only the SVG markup for the card to render.
         return svgMarkup;
       ]]]
   styles:
