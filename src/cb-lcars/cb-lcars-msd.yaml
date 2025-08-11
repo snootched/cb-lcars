@@ -8,30 +8,244 @@ cb-lcars-msd:
     msd:
       base_svg: builtin:ncc-1701-a-blue
       base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
+      data_sources:
+        toronto_temp:
+          entity: sensor.toronto_temperature
+          windowSeconds: 72h
+          sampleMs: 150
+          history:
+            hours: 72
+            preload: true
+        desk_brightness:
+          entity: light.tv
+          attribute: brightness
+          windowSeconds: 120
+          sampleMs: 150
+          history:
+            hours: 72
+            preload: true
+      overlays:
+        - type: text
+          id: br_label
+          position: br_label
+          value: bridge
+          preset: default
+          tap_action:
+            action: more-info
+            entity: light.tv
+          hold_action:
+            action: call-service
+            service: light.toggle
+            service_data:
+              entity_id: light.tv
+          double_tap_action:
+            action: url
+            url_path: https://example.com
+        - type: control
+          id: br_button_control
+          position:
+            - 78%
+            - 22%
+          size:
+            - 15%
+            - 10%
+          z_index: 32
+          card:
+            type: button
+            entity: light.tv
+            name: Bridge
+            icon: mdi:lightbulb
+            tap_action:
+              action: toggle
+        - type: text
+          id: wc_label_rt
+          position: wc_label
+          value: warp core
+          preset: default
+          state_resolver:
+            entity: light.desk
+            attribute: brightness
+            states:
+              - map_range:
+                  input_range:
+                    - 0
+                    - 255
+                  output_range:
+                    - 0
+                    - 100
+                from: 0
+                to: 29
+                settings:
+                  text:
+                    fill: blue
+              - map_range:
+                  input_range:
+                    - 0
+                    - 255
+                  output_range:
+                    - 0
+                    - 100
+                from: 30
+                to: 79
+                settings:
+                  text:
+                    fill: var(--lcars-yellow)
+              - map_range:
+                  input_range:
+                    - 0
+                    - 255
+                  output_range:
+                    - 0
+                    - 100
+                from: 80
+                to: 100
+                settings:
+                  text:
+                    color: red
+          realtime:
+            source: desk_brightness
+            bind:
+              - prop: opacity
+                map_range:
+                  input_range:
+                    - 0
+                    - 255
+                  output_range:
+                    - 0.1
+                    - 1
+        - type: sparkline
+          id: tor_temp_trend
+          position:
+            - 10%
+            - 10%
+          size:
+            - 80%
+            - 25%
+          source: toronto_temp
+          windowSeconds: 48h
+          color: var(--lcars-yellow)
+          width: 8
+          area_fill: rgba(255,255,0,0.2)
+          x_mode: index
+          extend_to_edges: true
+          markers:
+            r: 4
+            fill: var(--lcars-blue)
+            max: 300
+          ignore_zero_for_scale: true
+          stair_step: false
+          smooth: true
+          smooth_tension: 0.9
+          fade_tail:
+            start_opacity: 0
+            end_opacity: 1
+          animation:
+            type: motionpath
+            duration: 4000
+            easing: easeInOutSine
+            loop: true
+            tracer:
+              r: 6
+              fill: var(--lcars-orange)
+            trail:
+              stroke: var(--lcars-yellow)
+              stroke-width: 6
+              duration: 4000
+              easing: linear
+              loop: true
+          grid:
+            x: 8
+            "y": 4
+            color: rgba(255,255,255,0.18)
+            opacity: 0.9
+            width: 2
+          label_last:
+            decimals: 1
+            fill: var(--lcars-yellow)
+            font_size: 68
+            offset:
+              - 8
+              - -8
+            format: "{v}°"
+          tracer:
+            r: 80
+            fill: var(--lcars-red)
+        - type: ribbon
+          id: door_state_ribbon
+          position:
+            - 10%
+            - 70%
+          size:
+            - 80%
+            - 6%
+          source: binary_sensor.desk_sensor_motion
+          windowSeconds: 24h
+          threshold: 0.5
+          on_color: var(--lcars-yellow)
+          off_color: rgba(255,255,255,0.08)
+          rx: 6
+        - type: ribbon
+          id: env_ribbons
+          position:
+            - 10%
+            - 78%
+          size:
+            - 80%
+            - 12%
+          sources:
+            - binary_sensor.garage_open
+            - binary_sensor.front_door
+            - binary_sensor.kitchen_motion
+          windowSeconds: 12h
+          threshold: 0.5
+          on_color: var(--lcars-yellow)
+          off_color: rgba(255,255,255,0.06)
+          rx: 4
+          lane_gap: 3
+        - type: sparkline
+          id: tor_temp_live
+          position:
+            - 10%
+            - 40%
+          size:
+            - 80%
+            - 20%
+          source: toronto_temp
+          windowSeconds: 10m
+          color: var(--lcars-yellow)
+          width: 5
+          area_fill: rgba(255,255,0,0.15)
+          markers:
+            r: 2
+          grid:
+            x: 6
+            "y": 3
+            opacity: 0.35
       presets:
         default:
           line:
             width: 10
             corner_style: bevel
             corner_radius: 50
-            color: var(--picard-orange)
+            stroke: var(--picard-orange)
             animation:
               type: motionpath
               duration2: 1200
               playbackRate2: 1
               playbackEase2: inOut(3)
-              loop: false
+              loop: true
               alternate: false
-              trail: true
+              trail:
+                stroke: blue
               duration:
-                entity_id: light.tv
+                entity_id: light.bed
                 attribute: brightness
                 input_range:
                   - 0
                   - 255
                 output_range:
-                  - 4000
-                  - 1001
+                  - 8000
+                  - 500
               tracer:
                 shape: circle
                 height: 25
@@ -42,239 +256,6 @@ cb-lcars-msd:
             font_family: antonio
             text_transform: uppercase
             color: var(--picard-moonlight)
-            animation:
-              type: fade
-              duration: 4000
-        # Add named presets used by state_resolver
-        wc_core_blue:
-          animation:
-            fill: 'blue'
-        wc_core_yellow:
-          animation:
-            fill: 'var(--lcars-yellow)'
-        wc_core_red:
-          animation:
-            fill: 'red'
-      overlays:
-        # Warp Core
-        - type: text
-          id: wc_label
-          position: wc_label
-          value: warp core
-          preset: default
-          animation:
-            type: blink
-            duration: 1200
-            opacity:
-              - 1
-              - 0.3
-            loop: true
-            ease: linear
-            alternate: true
-        - type: line
-          id: wc_connector
-          anchor: wc
-          attach_to: wc_label
-          preset: default
-          corner_style: round
-          stroke_dasharray:
-            - 25
-            - 25
-          animation:
-            reversed: true
-            type: march
-            alternate: false
-            easing: linear
-            loop: true
-            duration:
-              entity_id: light.tv
-              attribute: brightness
-              input_range:
-                - 0
-                - 255
-              output_range:
-                - 200
-                - 100
-        # Shuttle Bay
-        - type: text
-          id: sb_label
-          position: sb_label
-          value: shuttle bay
-          preset: default
-        - type: line
-          id: sb_connector
-          anchor: sb
-          attach_to: sb_label
-          preset: default
-        # Port Nodes
-        - type: text
-          id: pn_3_label
-          position: pn_3_label
-          value: port 1
-          preset: default
-        - type: line
-          id: pn_1_connector
-          anchor: pn_1
-          attach_to: pn_3_label
-          preset: default
-        - type: text
-          id: pn_2_label
-          position: pn_2_label
-          value: port 2
-          preset: default
-        - type: line
-          id: pn_2_connector
-          anchor: pn_2
-          attach_to: pn_2_label
-          preset: default
-        - type: text
-          id: pn_1_label
-          position: pn_1_label
-          value: port 3
-          preset: default
-        - type: line
-          id: pn_3_connector
-          anchor: pn_3
-          attach_to: pn_1_label
-          preset: default
-        # SBN Nodes
-        - type: text
-          id: sbn_3_label
-          position: sbn_3_label
-          value: sb 3
-          preset: default
-        - type: line
-          id: sbn_3_connector
-          anchor: sbn_3
-          attach_to: sbn_3_label
-          preset: default
-        - type: text
-          id: sbn_2_label
-          position: sbn_2_label
-          value: sb 2
-          preset: default
-        - type: line
-          id: nsb_2_connector
-          anchor: sbn_2
-          attach_to: sbn_2_label
-          preset: default
-        - type: text
-          id: sbn_1_label
-          position: sbn_1_label
-          value: port 1
-          preset: default
-        - type: line
-          id: sbn_1_connector
-          anchor: sbn_1
-          attach_to: sbn_1_label
-          preset: default
-        # Bridge
-        - type: text
-          id: br_label
-          position: br_label
-          value: bridge
-          preset: default
-        - type: line
-          id: br_connector
-          anchor: br
-          attach_to: br_label
-          preset: default
-        # SCR Nodes
-        - type: text
-          id: scr_nw_label
-          position: scr_nw_label
-          value: scr nw
-          preset: default
-        - type: line
-          id: scr_nw_connector
-          anchor: scr_nw
-          attach_to: scr_nw_label
-          preset: default
-        - type: text
-          id: scr_ne_label
-          position: scr_ne_label
-          value: scr ne
-          preset: default
-        - type: line
-          id: scr_ne_connector
-          anchor: scr_ne
-          attach_to: scr_ne_label
-          preset: default
-        - type: text
-          id: scr_se_label
-          position: scr_se_label
-          value: scr se
-          preset: default
-        - type: line
-          id: scr_se_connector
-          anchor: scr_se
-          attach_to: scr_se_label
-          preset: default
-        - type: text
-          id: scr_sw_label
-          position: scr_sw_label
-          value: scr sw
-          preset: default
-        - type: line
-          id: scr_sw_connector
-          anchor: scr_sw
-          attach_to: scr_sw_label
-          preset: default
-        # Optional: same behavior as a free overlay (no SVG, just mutate an existing element)
-        - type: free
-          id: wc_core
-          targets: '#wc_core'
-          animation:
-            type: set
-          state_resolver:
-            entity: light.desk          # was entity_id
-            attribute: brightness
-            states:                      # was cases
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 0
-                to: 29                   # 0–29% => blue
-                preset: wc_core_blue
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 30
-                to: 79                   # 30–79% => yellow
-                preset: wc_core_yellow
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 80
-                to: 100                  # 80–100% => red
-                preset: wc_core_red
-      animations:
-        # Use the same resolver for standalone animations (now supported)
-        - id: wc_core_fill
-          type: set
-          targets: '#wc_core'
-          state_resolver:
-            entity: light.desk
-            attribute: brightness
-            states:
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 0
-                to: 29
-                preset: wc_core_blue
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 30
-                to: 79
-                preset: wc_core_yellow
-              - map_range:
-                  input_range: [0, 255]
-                  output_range: [0, 100]
-                from: 80
-                to: 100
-                preset: wc_core_red
   custom_fields:
     msd_svg_base: |
       [[[
@@ -282,17 +263,15 @@ cb-lcars-msd:
         if (!svgContent) {
           return `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:gray;">Loading SVG...</div>`;
         }
-        let viewBox = window.cblcars.getSvgViewBox(svgContent);
-        // Extract anchors from SVG
-        let svgAnchors = window.cblcars.findSvgAnchors(svgContent);
-        // Get user anchors from config (if present)
-        let userAnchors = variables.msd.anchors || {};
-        // Merge user anchors with SVG anchors (user anchors take precedence)
-        let anchorTable = { ...svgAnchors, ...userAnchors };
+        const viewBox = window.cblcars.getSvgViewBox(svgContent);
+        const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
+        const userAnchors = variables.msd.anchors || {};
+        const anchorTable = { ...svgAnchors, ...userAnchors };
         variables.msd._viewBox = viewBox;
         variables.msd._anchors = anchorTable;
         const aspect = window.cblcars.getSvgAspectRatio(viewBox);
-        return `<div style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+        // Stable wrapper id for controls and layout
+        return `<div id="cblcars-msd-wrapper" style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
       ]]]
     msd_svg_overlays: |
       [[[
@@ -308,25 +287,75 @@ cb-lcars-msd:
           viewBox: variables.msd._viewBox,
           timelines,
           animations: variables.msd.animations,
-          dataSources: variables.msd.data_sources || {}    // <--- add this
+          dataSources: variables.msd.data_sources || {}
         });
 
         const overlayConfigsById = Array.isArray(overlays)
           ? overlays.reduce((acc, o) => { if (o && o.id) acc[o.id] = o; return acc; }, {})
           : {};
 
-        requestAnimationFrame(() => {
-          if (animationsToRun.length > 0) {
-            animationsToRun.forEach(animConfig => {
-              this._animationScope.animate(animConfig);
-            });
-          }
-          if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
-            this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
-          }
-        });
+        // Throttle to one post-stamp pass per frame
+        if (!this.__cblcars_postStamp) {
+          this.__cblcars_postStamp = true;
+          requestAnimationFrame(() => {
+            this.__cblcars_postStamp = false;
+
+            // Queue overlay animations
+            try {
+              if (Array.isArray(animationsToRun) && animationsToRun.length > 0) {
+                animationsToRun.forEach(anim => this._animationScope.animate(anim, this.hass));
+              }
+            } catch (_) {}
+
+            // Rebuild timelines
+            try {
+              if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
+                this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
+              }
+            } catch (_) {}
+
+            // 1) Refresh HTML control overlays every render (mount into top 'msd_controls' layer)
+            try {
+              const controls = overlays.filter(o => o && o.type === 'control');
+              if (controls.length && window.cblcars.renderMsdControls) {
+                window.cblcars.renderMsdControls({
+                  overlays: controls,
+                  viewBox: variables.msd._viewBox,
+                  anchors: variables.msd._anchors,
+                  root: this.shadowRoot,
+                  hass,
+                  hostId: 'cblcars-controls-layer',
+                  hostParentSelector: '#msd_controls'   // mount into the top field container
+                });
+              }
+            } catch (_) {}
+
+            // 2) Bind actions to interactive SVG overlays (text/line/etc.)
+            try {
+              const interactives = overlays.filter(o => o && o.id && (o.tap_action || o.hold_action || o.double_tap_action || o.actions));
+              if (interactives.length && window.cblcars.overlayHelpers?.bindOverlayActions) {
+                interactives.forEach(o => window.cblcars.overlayHelpers.bindOverlayActions({
+                  root: this.shadowRoot,
+                  id: o.id,
+                  actions: o.actions || {
+                    tap_action: o.tap_action,
+                    hold_action: o.hold_action,
+                    double_tap_action: o.double_tap_action
+                  },
+                  hass,
+                  entity: o.entity
+                }));
+              }
+            } catch (_) {}
+          });
+        }
 
         return svgMarkup;
+      ]]]
+    msd_controls: |
+      [[[
+        // Nothing to render here; the JS will mount the controls host into this field
+        return '';
       ]]]
   styles:
     custom_fields:
@@ -336,7 +365,7 @@ cb-lcars-msd:
         - position: absolute
         - top: 0
         - left: 0
-        - z-index: 1
+        - z-index: 0
       msd_svg_overlays:
         - width: 100%
         - height: 100%
@@ -344,3 +373,12 @@ cb-lcars-msd:
         - top: 0
         - left: 0
         - z-index: 1
+        - pointer-events: auto
+      msd_controls:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 2
+        - pointer-events: none

@@ -21,6 +21,7 @@ import { load } from 'js-yaml';
 import { animPresets } from './utils/cb-lcars-anim-presets.js';
 
 import { DataBus } from './utils/cb-lcars-data.js';
+import * as controlsHelpers from './utils/cb-lcars-controls-helpers.js';
 
 
 // Ensure global namespace
@@ -66,6 +67,9 @@ async function initializeCustomCard() {
     window.cblcars.animateElement = window.cblcars.anim.animateElement;
     window.cblcars.animateWithRoot = window.cblcars.anim.animateWithRoot;
     window.cblcars.waitForElement = window.cblcars.anim.waitForElement;
+
+    window.cblcars.controlsHelpers = controlsHelpers;
+    window.cblcars.renderMsdControls = controlsHelpers.renderMsdControls;
 
     // Ensure legacy reference also points at the canonical utils (for any older modules)
     //window.cblcars.animejs.utils = window.cblcars.anim.utils;
