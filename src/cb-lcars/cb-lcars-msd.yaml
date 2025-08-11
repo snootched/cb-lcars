@@ -273,90 +273,70 @@ cb-lcars-msd:
         // Stable wrapper id for controls and layout
         return `<div id="cblcars-msd-wrapper" style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
       ]]]
-    msd_svg_overlays: |
-      [[[
-        const timelines = variables.msd?.timelines || {};
-        const overlays = variables.msd.overlays || [];
+  msd_svg_overlays: |
+    [[[
+      const timelines = variables.msd?.timelines || {};
+      const overlays = variables.msd.overlays || [];
 
-        const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
-          overlays,
-          anchors: variables.msd._anchors,
-          styleLayers: variables.msd.presets,
-          hass,
-          root: this.shadowRoot,
-          viewBox: variables.msd._viewBox,
-          timelines,
-          animations: variables.msd.animations,
-          dataSources: variables.msd.data_sources || {}
+      const { svgMarkup, animationsToRun } = window.cblcars.renderMsdOverlay({
+        overlays,
+        anchors: variables.msd._anchors,
+        styleLayers: variables.msd.presets,
+        hass,
+        root: this.shadowRoot,
+        viewBox: variables.msd._viewBox,
+        timelines,
+        animations: variables.msd.animations,
+        dataSources: variables.msd.data_sources || {}
+      });
+
+      const overlayConfigsById = Array.isArray(overlays)
+        ? overlays.reduce((acc, o) => { if (o && o.id) acc[o.id] = o; return acc; }, {})
+        : {};
+
+      if (!this.__cblcars_postStamp) {
+        this.__cblcars_postStamp = true;
+        requestAnimationFrame(() => {
+          this.__cblcars_postStamp = false;
+
+          try {
+            if (Array.isArray(animationsToRun) && animationsToRun.length > 0) {
+              animationsToRun.forEach(anim => this._animationScope.animate(anim, this.hass));
+            }
+          } catch (_) {}
+
+          try {
+            if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
+              this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
+            }
+          } catch (_) {}
+
+          // Controls: mount under msd_controls (z-index), but measure against #cblcars-msd-wrapper (aspect)
+          try {
+            const controls = overlays.filter(o => o && o.type === 'control');
+            if (controls.length && window.cblcars.renderMsdControls) {
+              window.cblcars.renderMsdControls({
+                overlays: controls,
+                viewBox: variables.msd._viewBox,
+                anchors: variables.msd._anchors,
+                root: this.shadowRoot,
+                hass,
+                hostId: 'cblcars-controls-layer',
+                hostParentSelector: '#msd_controls',          // Keep z-order and click layer
+                measureSelector: '#cblcars-msd-wrapper'       // Align to aspect-locked box
+              });
+            }
+          } catch (_) {}
         });
+      }
 
-        const overlayConfigsById = Array.isArray(overlays)
-          ? overlays.reduce((acc, o) => { if (o && o.id) acc[o.id] = o; return acc; }, {})
-          : {};
-
-        // Throttle to one post-stamp pass per frame
-        if (!this.__cblcars_postStamp) {
-          this.__cblcars_postStamp = true;
-          requestAnimationFrame(() => {
-            this.__cblcars_postStamp = false;
-
-            // Queue overlay animations
-            try {
-              if (Array.isArray(animationsToRun) && animationsToRun.length > 0) {
-                animationsToRun.forEach(anim => this._animationScope.animate(anim, this.hass));
-              }
-            } catch (_) {}
-
-            // Rebuild timelines
-            try {
-              if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
-                this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
-              }
-            } catch (_) {}
-
-            // 1) Refresh HTML control overlays every render (mount into top 'msd_controls' layer)
-            try {
-              const controls = overlays.filter(o => o && o.type === 'control');
-              if (controls.length && window.cblcars.renderMsdControls) {
-                window.cblcars.renderMsdControls({
-                  overlays: controls,
-                  viewBox: variables.msd._viewBox,
-                  anchors: variables.msd._anchors,
-                  root: this.shadowRoot,
-                  hass,
-                  hostId: 'cblcars-controls-layer',
-                  hostParentSelector: '#msd_controls'   // mount into the top field container
-                });
-              }
-            } catch (_) {}
-
-            // 2) Bind actions to interactive SVG overlays (text/line/etc.)
-            try {
-              const interactives = overlays.filter(o => o && o.id && (o.tap_action || o.hold_action || o.double_tap_action || o.actions));
-              if (interactives.length && window.cblcars.overlayHelpers?.bindOverlayActions) {
-                interactives.forEach(o => window.cblcars.overlayHelpers.bindOverlayActions({
-                  root: this.shadowRoot,
-                  id: o.id,
-                  actions: o.actions || {
-                    tap_action: o.tap_action,
-                    hold_action: o.hold_action,
-                    double_tap_action: o.double_tap_action
-                  },
-                  hass,
-                  entity: o.entity
-                }));
-              }
-            } catch (_) {}
-          });
-        }
-
-        return svgMarkup;
-      ]]]
-    msd_controls: |
-      [[[
-        // Nothing to render here; the JS will mount the controls host into this field
-        return '';
-      ]]]
+      return svgMarkup;
+    ]]]
+  msd_controls: |
+    [[[
+      // Nothing to render here; the JS will mount the controls host into this field
+      return '';
+    ]]]
   styles:
     custom_fields:
       msd_svg_base:
