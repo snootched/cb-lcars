@@ -5,6 +5,196 @@ import { sliceWindow, computeYRange, mapToRect, pathFromPoints, areaPathFromPoin
 import { resolveSize } from './cb-lcars-size-helpers.js';
 import { parseTimeWindowMs } from './cb-lcars-time-utils.js';
 
+
+/**
+ * Return the SVG element used to compute CTM for the overlay layer.
+ */
+function getReferenceSvg(root) {
+  return (
+    root.querySelector?.('#msd_svg_overlays svg') ||
+    root.querySelector?.('#cblcars-msd-wrapper svg') ||
+    null
+  );
+}
+
+/**
+ * Convert a viewport DOMRect (CSS pixels) into viewBox units using the SVG's screen CTM.
+ * Falls back to ratio mapping if CTM is unavailable.
+ * @param {DOMRect} pxRect
+ * @param {SVGSVGElement} svgEl
+ * @param {number[]} viewBox [minX,minY,vw,vh]
+ */
+function rectPxToViewBoxViaCTM(pxRect, svgEl, viewBox = [0,0,100,100]) {
+  if (!svgEl || !svgEl.getScreenCTM) return null;
+
+  let ctm;
+  try { ctm = svgEl.getScreenCTM(); } catch (_) { ctm = null; }
+  if (!ctm || typeof ctm.inverse !== 'function') return null;
+
+  const inv = ctm.inverse();
+
+  const makePoint = (x, y) => {
+    if (window.DOMPoint) return new DOMPoint(x, y).matrixTransform(inv);
+    if (svgEl.createSVGPoint) {
+      const p = svgEl.createSVGPoint(); p.x = x; p.y = y;
+      return p.matrixTransform(inv);
+    }
+    return null;
+  };
+
+  // Map corners from screen → user (viewBox) units
+  const tl = makePoint(pxRect.left,  pxRect.top);
+  const br = makePoint(pxRect.right, pxRect.bottom);
+  if (!tl || !br) return null;
+
+  const x = Math.min(tl.x, br.x);
+  const y = Math.min(tl.y, br.y);
+  const w = Math.abs(br.x - tl.x);
+  const h = Math.abs(br.y - tl.y);
+
+  return { x, y, w, h };
+}
+
+
+// ViewBox helpers
+function getVbDims(viewBox = [0,0,100,100]) {
+  const [minX, minY, w, h] = Array.isArray(viewBox) ? viewBox : [0,0,100,100];
+  return { minX, minY, vw: w, vh: h };
+}
+function pxRectToVbRect(pxRect, hostRect, viewBox) {
+  const { minX, minY, vw, vh } = getVbDims(viewBox);
+  const sx = vw / (hostRect?.width || 1);
+  const sy = vh / (hostRect?.height || 1);
+  return {
+    x: minX + (pxRect.left - hostRect.left) * sx,
+    y: minY + (pxRect.top - hostRect.top) * sy,
+    w: pxRect.width * sx,
+    h: pxRect.height * sy
+  };
+}
+function isSvgNode(el) {
+  return !!el && typeof el.namespaceURI === 'string' && el.namespaceURI.includes('svg');
+}
+function getOverlaySvg(root) {
+  return root.querySelector?.('#msd_svg_overlays svg') || root.querySelector?.('#cblcars-msd-wrapper svg') || null;
+}
+
+/**
+ * Resolve a target element's bounding box into viewBox units.
+ * Supports:
+ *  - SVG overlay nodes (getBBox -> already in user/viewBox units)
+ *  - HTML controls (map viewport rect via SVG CTM inverse)
+ * Falls back to hostRect ratio mapping only when CTM is unavailable.
+ */
+function resolveTargetBoxInViewBox(targetId, root, viewBox) {
+  const el = root.getElementById?.(targetId);
+  if (!el) return null;
+
+  // SVG node: native viewBox units
+  const isSvgNode = !!el.namespaceURI && String(el.namespaceURI).includes('svg');
+  if (isSvgNode && typeof el.getBBox === 'function') {
+    try {
+      const bb = el.getBBox();
+      return { x: bb.x, y: bb.y, w: bb.width, h: bb.height };
+    } catch (_) {}
+  }
+
+  // HTML control: map via CTM
+  const svg = getReferenceSvg(root);
+  const pxRect = el.getBoundingClientRect?.();
+  if (svg && pxRect && pxRect.width > 0 && pxRect.height > 0) {
+    const vbRect = rectPxToViewBoxViaCTM(pxRect, svg, viewBox);
+    if (vbRect) return vbRect;
+  }
+
+  // Fallback (ratio) – only if CTM path failed
+  const host = root.getElementById?.('cblcars-controls-layer');
+  const hostRect = host?.getBoundingClientRect?.();
+  if (hostRect && pxRect && hostRect.width > 0 && hostRect.height > 0) {
+    const [minX, minY, vw, vh] = viewBox || [0,0,100,100];
+    return {
+      x: minX + ((pxRect.left - hostRect.left) / hostRect.width) * vw,
+      y: minY + ((pxRect.top  - hostRect.top)  / hostRect.height) * vh,
+      w: (pxRect.width  / hostRect.width) * vw,
+      h: (pxRect.height / hostRect.height) * vh
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Compute a connector endpoint on a target box with side and gap.
+ * side: 'auto'|'left'|'right'|'top'|'bottom'
+ * align: 'center' (future: 'toward-anchor')
+ * gap: number (viewBox units) or string with 'px' (converted via CTM when available)
+ */
+function endpointOnBox(anchor, box, { side = 'auto', align = 'center', gap = 12 } = {}) {
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+
+  let pick = side;
+  if (pick === 'auto') {
+    const dx = anchor[0] - cx;
+    const dy = anchor[1] - cy;
+    pick = Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'top' : 'bottom');
+  }
+
+  let x = cx;
+  let y = cy;
+  if (pick === 'left')  { x = box.x - gap; y = align === 'center' ? cy : y; }
+  if (pick === 'right') { x = box.x + box.w + gap; y = align === 'center' ? cy : y; }
+  if (pick === 'top')   { y = box.y - gap; x = align === 'center' ? cx : x; }
+  if (pick === 'bottom'){ y = box.y + box.h + gap; x = align === 'center' ? cx : x; }
+  return [x, y];
+}
+
+/**
+ * Re-layout any deferred connectors (paths with data-cblcars-attach-to=...) after DOM/controls settle.
+ * Uses CTM to resolve HTML control boxes into viewBox units, so endpoints line up exactly.
+ */
+export function layoutPendingConnectors(root, viewBox = [0,0,100,100]) {
+  try {
+    const svg = getReferenceSvg(root);
+    const paths = Array.from(root.querySelectorAll('path[data-cblcars-attach-to]'));
+    if (!paths.length) return;
+
+    for (const p of paths) {
+      const targetId = p.getAttribute('data-cblcars-attach-to');
+      const sx = parseFloat(p.getAttribute('data-cblcars-start-x'));
+      const sy = parseFloat(p.getAttribute('data-cblcars-start-y'));
+      if (!targetId || !isFinite(sx) || !isFinite(sy)) continue;
+
+      const side = (p.getAttribute('data-cblcars-side') || 'auto').toLowerCase();
+      const align = (p.getAttribute('data-cblcars-align') || 'center').toLowerCase();
+
+      // gap: accept number (viewBox units) or '12px'
+      let gapRaw = p.getAttribute('data-cblcars-gap') || '12';
+      let gap = parseFloat(gapRaw);
+      if (String(gapRaw).trim().endsWith('px') && svg?.getScreenCTM) {
+        // Convert px gap to viewBox units via CTM scale
+        const ctm = svg.getScreenCTM();
+        if (ctm && ctm.a) gap = gap / ctm.a;
+      }
+      if (!isFinite(gap)) gap = 12;
+
+      const box = resolveTargetBoxInViewBox(targetId, root, viewBox);
+      if (!box) continue;
+
+      const end = endpointOnBox([sx, sy], box, { side, align, gap });
+
+      const radius = Math.max(0, parseFloat(p.getAttribute('data-cblcars-radius')) || 12);
+      const cornerStyle = (p.getAttribute('data-cblcars-corner-style') || 'round').toLowerCase();
+
+      // Build right-angle with corner
+      const d = generateRightAnglePath([sx, sy], end, { radius, cornerStyle });
+      p.setAttribute('d', d);
+    }
+  } catch (e) {
+    cblcarsLog.warn('[layoutPendingConnectors] failed', e);
+  }
+}
+
 /**
  * Error overlay manager (unchanged)
  */
@@ -290,8 +480,26 @@ export function bindOverlayActions({ root = document, id, actions = {}, hass, en
   };
 }
 
+
 /**
- * Entry point for MSD overlays: stamps SVG and returns queued animations.
+ * Stamps MSD overlays into an SVG string and returns queued animations to run after DOM insert.
+ * Patched: supports "smart attach_to" for lines where attach_to can be an element id
+ * (SVG overlay id or HTML control id). In that case, the path 'd' is deferred and
+ * a placeholder <path> is stamped with data-cblcars-* attributes for a later
+ * layout pass (layoutPendingConnectors) to compute and set the actual 'd'
+ * based on the target element's bounding box, with optional side/align/gap.
+ *
+ * @param {object} args
+ * @param {Array} args.overlays
+ * @param {object} args.anchors
+ * @param {object} args.styleLayers
+ * @param {object} args.hass
+ * @param {Element|ShadowRoot} [args.root=document]
+ * @param {number[]} [args.viewBox=[0,0,400,200]]
+ * @param {object} [args.timelines={}]
+ * @param {Array} [args.animations=[]]
+ * @param {object} [args.dataSources={}]
+ * @returns {{ svgMarkup: string, animationsToRun: Array }}
  */
 export function renderMsdOverlay({
   overlays,
@@ -356,6 +564,7 @@ export function renderMsdOverlay({
         delete stateOverrides[typeKey];
       }
     }
+
     const type = overlay.type;
     const defaultTypePreset = (defaultPreset && defaultPreset[type]) ? defaultPreset[type] : {};
     const overlayTypePreset = (overlayPreset && overlayPreset[type]) ? overlayPreset[type] : {};
@@ -385,7 +594,7 @@ export function renderMsdOverlay({
     const isRibbon = computed.type === 'ribbon';
     const isFree = computed.type === 'free';
 
-    // SPARKLINE (non-interactive by default)
+    // SPARKLINE (unchanged logic)
     if (isSparkline) {
       const srcName = computed.source;
       if (!srcName) { svgOverlayManager.push(`Sparkline "${computed.id || `spark_${idx}`}" requires "source".`); return; }
@@ -474,7 +683,7 @@ export function renderMsdOverlay({
         animationsToRun.push({ ...computed.animation, targets: `#${elementId}`, root });
       }
 
-      // Data wire-up, with pending-visibility handling to avoid flashing a flat baseline
+      // Data wire-up (unchanged; done after DOM insert by subscribers)
       requestAnimationFrame(() => {
         requestAnimationFrame(async () => {
           try {
@@ -643,7 +852,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    // RIBBON (non-interactive)
+    // RIBBON (unchanged logic)
     if (isRibbon) {
       const posPt = resolvePoint(computed.position, pointContext);
       const sizeAbs = resolveSize(computed.size, viewBox);
@@ -746,7 +955,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    // TEXT (interactive only when actions defined)
+    // TEXT
     if (isText) {
       const posPt = resolvePoint(computed.position, pointContext);
       if (!posPt) { svgOverlayManager.push(`Text overlay "${elementId || `text_${idx}`}" has invalid position.`); return; }
@@ -772,7 +981,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    // LINE (interactive only when actions defined)
+    // LINE (patched to support attach_to as element id with deferred path)
     if (isLine) {
       const thisId = elementId || `line_${idx}`;
       let d = '';
@@ -786,11 +995,65 @@ export function renderMsdOverlay({
         const pts = generateWaypointsFromSteps(computed.anchor ?? overlay.anchor, computed.steps, pointContext);
         if (pts.length >= 2) d = generateMultiSegmentPath(pts, { cornerStyle, cornerRadius });
       } else {
+        // Start: must be resolvable
         const start = resolvePoint(computed.anchor ?? overlay.anchor, pointContext);
-        const end = resolvePoint(computed.attach_to ?? overlay.attach_to, pointContext);
-        if (!start || !end) { svgOverlayManager.push(`Line overlay "${thisId}" requires valid "anchor" and "attach_to".`); return; }
-        d = generateRightAnglePath(start, end, { radius: cornerRadius, cornerStyle });
+
+        // End: try to resolve as coordinate/anchor first
+        let end = resolvePoint(computed.attach_to ?? overlay.attach_to, pointContext);
+
+        // If not resolved, and attach_to is a non-empty string, treat as element id (SVG/Control)
+        const attachRaw = computed.attach_to ?? overlay.attach_to;
+        const attachIsElementId =
+          !end &&
+          typeof attachRaw === 'string' &&
+          attachRaw.trim().length > 0;
+
+        if (!start) {
+          svgOverlayManager.push(`Line overlay "${thisId}" requires valid "anchor".`);
+          return;
+        }
+
+        if (end) {
+          // Standard elbow path (anchor/point → anchor/point)
+          d = generateRightAnglePath(start, end, { radius: cornerRadius, cornerStyle });
+        } else if (attachIsElementId) {
+          // Defer: stamp placeholder and tag for post-layout connector computation
+          d = ''; // computed later by layoutPendingConnectors
+
+          // Build attributes/style as usual
+          const { attrs, style } = splitAttrsAndStyle(computed, 'line');
+          attrs.fill = 'none';
+          if (!attrs.stroke && computed.color) attrs.stroke = computed.color;
+          if (!attrs['stroke-width'] && computed.width) attrs['stroke-width'] = computed.width;
+
+          const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action || overlay.actions);
+          style['pointer-events'] = hasActions ? 'auto' : 'none';
+          if (hasActions) style['cursor'] = 'pointer';
+
+          // Connector metadata for later layout
+          attrs['data-cblcars-attach-to'] = String(attachRaw);
+          attrs['data-cblcars-start-x'] = String(start[0]);
+          attrs['data-cblcars-start-y'] = String(start[1]);
+          if (computed.attach_side) attrs['data-cblcars-side'] = String(computed.attach_side);
+          if (computed.attach_align) attrs['data-cblcars-align'] = String(computed.attach_align);
+          if (computed.attach_gap !== undefined) attrs['data-cblcars-gap'] = String(computed.attach_gap);
+          attrs['data-cblcars-radius'] = String(cornerRadius);
+          attrs['data-cblcars-corner-style'] = cornerStyle;
+
+          // Stamp the placeholder path
+          svgElements.push(svgHelpers.drawPath({ d, id: thisId, attrs, style }));
+
+          // Queue animation if any (note: CSS 'march' is fine with late 'd' updates)
+          if (computed.animation && computed.animation.type && !timelineTargets.has(thisId)) {
+            animationsToRun.push({ ...computed.animation, targets: `#${thisId}`, root });
+          }
+          return;
+        } else {
+          svgOverlayManager.push(`Line overlay "${thisId}" requires valid "attach_to".`);
+          return;
+        }
       }
+
       if (!d) { svgOverlayManager.push(`Line overlay "${thisId}" failed to compute path.`); return; }
 
       const { attrs, style } = splitAttrsAndStyle(computed, 'line');

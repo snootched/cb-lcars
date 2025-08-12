@@ -361,4 +361,12 @@ export async function renderMsdControls({
   for (const node of Array.from(host.children)) {
     if (node instanceof HTMLElement && node.id && !wantedIds.has(node.id)) node.remove();
   }
+
+  // NEW: After controls move/resize, re-layout any pending connectors
+  try {
+    if (window.cblcars?.overlayHelpers?.layoutPendingConnectors) {
+      window.cblcars.overlayHelpers.layoutPendingConnectors(root, viewBox);
+    }
+  } catch (_) {}
+
 }
