@@ -27,6 +27,10 @@ import * as geometryUtils from './utils/cb-lcars-geometry-utils.js';
 import * as introspection from './utils/cb-lcars-introspection.js';
 import * as perf from './utils/cb-lcars-perf.js';
 
+import './utils/cb-lcars-routing-core.js';
+import './utils/cb-lcars-routing-grid.js';
+import './utils/cb-lcars-routing-channels.js';
+
 
 /**
  * Apply MSD debug flags as early as possible so first overlay render
@@ -1008,6 +1012,15 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         // 4. Existing SVG lazy-loading logic (unchanged)
         const msdVars = specialConfig.variables && specialConfig.variables.msd;
+
+        if (msdVars && msdVars.routing) {
+        try {
+            window.cblcars.routing?.setGlobalConfig(msdVars.routing);
+        } catch (e) {
+            cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Failed applying routing config', e);
+        }
+        }
+
         if (msdVars && msdVars.base_svg) {
         let svgKey = null, svgUrl = null;
         if (msdVars.base_svg.startsWith('builtin:')) {

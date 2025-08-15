@@ -1,10 +1,11 @@
 /* PHASE A (Auto Router) + prior phases (P2/P3/P4 + Phase C) +
-   Adds:
-   - route:auto for line connectors
-   - Avoid list + route_mode (xy|yx|auto)
-   - Perf counters: connectors.route.recomputed / connectors.route.skipped
-   - Hash includes route signature & obstacle bbox footprints
-   - Optional bridging call at end of render to auto refresh debug layer when perf or overlay flags set
+   Adds / current state:
+   - route:auto for line connectors (Manhattan + obstacle avoidance)
+   - Optional grid routing (data-cblcars-route-mode-full="grid") with validation + fallback
+   - Sparkline pending path race fix (reveal after final geometry)
+   - Perf counters (layout + route)
+   - Endpoint validation for grid; fallback if off-target
+   - Debug auto-refresh (connectors / geometry / overlay / perf)
 */
 
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
@@ -16,10 +17,77 @@ import { parseTimeWindowMs } from './cb-lcars-time-utils.js';
 import * as geo from './cb-lcars-geometry-utils.js';
 import { validateOverlays } from './cb-lcars-validation.js';
 import * as scheduler from './cb-lcars-scheduler.js';
+import { selectMode, collectObstacles, registerResult } from './cb-lcars-routing-core.js';
+import { routeViaGrid } from './cb-lcars-routing-grid.js';
 
 /* ---------------- Connector diff infra ---------------- */
-const CONNECTOR_CACHE_VERSION = 2; // bump for route:auto
+const CONNECTOR_CACHE_VERSION = 2;
 const connectorMetaMap = new WeakMap();
+
+
+function ensureEffectiveViewBox(root, providedVB) {
+  // 1. If provided exists and looks plausible (width & height large enough for existing geometry), keep it
+  let vb = Array.isArray(providedVB) && providedVB.length === 4 ? [...providedVB] : null;
+
+  // Quick scan: find max coordinate we need to cover
+  let maxX = 0, maxY = 0;
+  try {
+    const paths = root.querySelectorAll?.('path[data-cblcars-start-x]');
+    for (const p of paths) {
+      const sx = parseFloat(p.getAttribute('data-cblcars-start-x')) || 0;
+      const sy = parseFloat(p.getAttribute('data-cblcars-start-y')) || 0;
+      if (sx > maxX) maxX = sx;
+      if (sy > maxY) maxY = sy;
+    }
+    // Also sample overlay bbox elements
+    const nodes = root.querySelectorAll?.('[data-cblcars-root="true"]');
+    for (const n of nodes) {
+      if (typeof n.getBBox === 'function') {
+        try {
+          const bb = n.getBBox();
+            if (bb.x + bb.width > maxX) maxX = bb.x + bb.width;
+            if (bb.y + bb.height > maxY) maxY = bb.y + bb.height;
+        } catch(_) {}
+      }
+    }
+  } catch(_) {}
+
+  const looksTooSmall = vb
+    ? (vb[2] < maxX * 0.8 || vb[3] < maxY * 0.8)  // width/height significantly smaller than geometry
+    : true;
+
+  if (!vb || looksTooSmall) {
+    // Derive from live SVG
+    try {
+      const svg = root.querySelector('#msd_svg_overlays svg') ||
+                  root.querySelector('#cblcars-msd-wrapper svg');
+      if (svg) {
+        const attr = svg.getAttribute('viewBox');
+        if (attr) {
+          const parts = attr.trim().split(/\s+/).map(Number);
+          if (parts.length === 4 && parts.every(n => Number.isFinite(n))) {
+            vb = parts;
+          }
+        }
+      }
+    } catch(_) {}
+  }
+
+  // Last resort fallback
+  if (!vb) vb = [0,0,100,100];
+
+  // Persist back to card config if possible
+  try {
+    const card = root.host; // shadowRoot.host is the MSD card
+    if (card && card._config?.variables?.msd) {
+      card._config.variables.msd._viewBox = vb;
+    }
+  } catch(_) {}
+
+  return vb;
+}
+
+
 function getDirtySet() {
   window.cblcars = window.cblcars || {};
   window.cblcars.connectors = window.cblcars.connectors || {};
@@ -30,6 +98,16 @@ function quickHash(str){let h=0,i=0,l=str.length;while(i<l){h=(h<<5)-h+str.charC
 function buildConnectorHash(sig){return quickHash(JSON.stringify(sig));}
 function roundBBoxValue(v){return Math.round(v*4)/4;}
 function bboxHash(bb){if(!bb)return'none';return quickHash(`${roundBBoxValue(bb.x)},${roundBBoxValue(bb.y)},${roundBBoxValue(bb.w)},${roundBBoxValue(bb.h)}`);}
+
+function markPathPending(pathEl) {
+  if (!pathEl) return;
+  pathEl.setAttribute('data-cblcars-pending', 'true');
+  if (!pathEl.getAttribute('d')) pathEl.setAttribute('d', 'M0 0');
+}
+function clearPathPending(pathEl) {
+  if (!pathEl) return;
+  if (pathEl.hasAttribute('data-cblcars-pending')) pathEl.removeAttribute('data-cblcars-pending');
+}
 
 /* ---------------- Shared helpers ---------------- */
 function resolveTargetBoxInViewBox(targetId, root, viewBox){
@@ -46,21 +124,16 @@ function resolveTargetBoxInViewBox(targetId, root, viewBox){
         if (bb && (bb.width > 0 || bb.height > 0)) {
           return { x: bb.x, y: bb.y, w: bb.width, h: bb.height };
         }
-        // Width/height zero => treat as invalid for our purposes
       } catch (_) {}
     }
     return null;
   }
 
   primaryBox = bboxFromEl(el);
-
-  // Ribbon: fallback to backdrop rect if group empty
   if (!primaryBox) {
     const backdrop = root.getElementById?.(`${targetId}_backdrop`);
     primaryBox = bboxFromEl(backdrop);
   }
-
-  // Config fallback (position + size) if still no bbox
   if (!primaryBox) {
     try {
       const cfg = root.__cblcars_overlayConfigsById?.[targetId];
@@ -100,16 +173,15 @@ function resolveTargetBoxInViewBox(targetId, root, viewBox){
 
   if (primaryBox) return primaryBox;
 
-  // Final pixel-space fallback (original logic)
   const svg = geo.getReferenceSvg(root);
   const pxRect = el?.getBoundingClientRect?.();
   if (svg && pxRect && pxRect.width>0 && pxRect.height>0) {
     const vbRect = geo.screenRectToViewBox(svg, pxRect);
     if (vbRect) return vbRect;
   }
-
   return null;
 }
+
 function endpointOnBox(anchor, box, {side='auto',align='center',gap=12}={}){
   const cx=box.x+box.w/2, cy=box.y+box.h/2;
   let pick=side;
@@ -134,6 +206,7 @@ function endpointOnBox(anchor, box, {side='auto',align='center',gap=12}={}){
   else {y=box.y+box.h+gap;x=box.x+t*box.w;}
   return [x,y,pick];
 }
+
 function generateRightAnglePath(start,end,{radius=12,cornerStyle='round'}={}){
   const [x0,y0]=start,[x2,y2]=end,[x1,y1]=[x2,y0];
   if((x0===x1&&x1===x2)||(y0===y1&&y1===y2)||cornerStyle==='sharp'||cornerStyle==='square')
@@ -148,27 +221,16 @@ function generateRightAnglePath(start,end,{radius=12,cornerStyle='round'}={}){
   return`M${x0},${y0} L${p1[0]},${p1[1]} A${r},${r} 0 0 ${sweep} ${p2[0]},${p2[1]} L${x2},${y2}`;
 }
 
-/* ---------------- Auto Route Helper ---------------- */
-/**
- * Compute an auto-routed connector path (simple Manhattan with optional obstacle avoidance).
- * @param {number} sx
- * @param {number} sy
- * @param {{x:number,y:number,w:number,h:number}} targetBox
- * @param {[number,number,'left'|'right'|'top'|'bottom']} endpointTriplet [ex, ey, side]
- * @param {object} opts { radius, cornerStyle, routeMode, obstacles: Array<{x,y,w,h}>, margin }
- * @returns {{d:string, signature:any}}
- */
+/* ---------------- Auto Route Helper (Manhattan) ---------------- */
 function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
   const { radius=12, cornerStyle='round', routeMode='auto', obstacles=[], margin=2 } = opts;
   const ex = endpointTriplet[0];
   const ey = endpointTriplet[1];
 
-  // Two candidate elbow points
   const candXY = [ex, sy]; // horizontal then vertical
   const candYX = [sx, ey]; // vertical then horizontal
 
   const segBoxes = (start, elbow, end) => {
-    // Represent segments as bounding boxes with a small thickness (so intersection test is easy).
     const thick = 0.0001;
     const a = {
       x: Math.min(start[0], elbow[0]) - thick,
@@ -188,19 +250,19 @@ function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
   const intersects = (a,b) => !(a.x+a.w < b.x || b.x+b.w < a.x || a.y+a.h < b.y || b.y+b.h < a.y);
 
   const obstacleSet = obstacles.map(o => inflate(o, margin));
-
   function candidateValid(elbow) {
     const segs = segBoxes([sx,sy], elbow, [ex,ey]);
     return segs.every(sb => obstacleSet.every(ob => !intersects(sb, ob)));
   }
 
-  const dist = (elbow) => Math.abs(sx - elbow[0]) + Math.abs(sy - elbow[1]) + Math.abs(elbow[0] - ex) + Math.abs(elbow[1] - ey);
+  const dist = (elbow) =>
+    Math.abs(sx - elbow[0]) + Math.abs(sy - elbow[1]) +
+    Math.abs(elbow[0] - ex) + Math.abs(elbow[1] - ey);
 
   let chosen = null;
   let chosenMode = null;
   const wantXY = routeMode === 'xy' || routeMode === 'auto';
   const wantYX = routeMode === 'yx' || routeMode === 'auto';
-
   const validXY = wantXY && candidateValid(candXY);
   const validYX = wantYX && candidateValid(candYX);
 
@@ -211,7 +273,6 @@ function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
     chosenMode = (chosen === candXY) ? 'xy' : 'yx';
   }
 
-  // Fallback: if both invalid, choose shorter ignoring obstacles
   if (!chosen) {
     if (wantXY && wantYX) {
       chosen = dist(candXY) <= dist(candYX) ? candXY : candYX;
@@ -221,16 +282,13 @@ function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
   }
 
   if (!chosen) {
-    // Absolute fallback to direct right-angle
     return {
       d: generateRightAnglePath([sx,sy],[ex,ey],{radius,cornerStyle}),
       signature: { fallback:true }
     };
   }
 
-  // Build multi-segment path with elbow smoothing similar to generateRightAnglePath logic but two segments.
   const points = [[sx,sy], chosen, [ex,ey]];
-  // If corner style round/bevel/square apply at elbow
   let d = `M${sx},${sy}`;
   const [p0,p1,p2] = points;
   const dx1 = p1[0]-p0[0], dy1=p1[1]-p0[1], dx2=p2[0]-p1[0], dy2=p2[1]-p1[1];
@@ -263,7 +321,7 @@ function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
   };
 }
 
-/* ---------------- Sparkline helpers (unchanged from previous phase) ---------------- */
+/* ---------------- Sparkline helpers (unchanged logic aside from end-of-refresh reveal) ---------------- */
 function sanitizePoints(points){
   if(!Array.isArray(points)) return [];
   const out=[]; let lastX,lastY,have=false;
@@ -305,11 +363,8 @@ function generateMonotonePath(pts){
   t[0]=m[0]; t[n-1]=m[n-2];
   for(let i=1;i<n-1;i++) t[i]=m[i-1]*m[i]<=0?0:(m[i-1]+m[i])/2;
   for(let i=0;i<n-1;i++){
-    const a=t[i]/m[i], b=t[i+1]/m[i], s=a*a+b*b;
-    if(s>9){
-      const tau=3/Math.sqrt(s);
-      t[i]=tau*a*m[i]; t[i+1]=tau*b*m[i];
-    }
+    const x0=xs[i], y0=ys[i], x1=xs[i+1], y1=ys[i+1], h=x1-x0||1e-9;
+    d+=` C${x0+h/3},${y0+(t[i]*h)/3} ${x1-h/3},${y1-(t[i+1]*h)/3} ${x1},${y1}`;
   }
   let d=`M${xs[0]},${ys[0]}`;
   for(let i=0;i<n-1;i++){
@@ -365,7 +420,7 @@ function generateMultiSegmentPath(points,{cornerStyle='round',cornerRadius=12}={
   return d;
 }
 
-/* ---------------- Error manager (unchanged) ---------------- */
+/* ---------------- Error manager ---------------- */
 class SvgOverlayErrorManager {
   constructor(){this.errors=[];this.containerId='cblcars-overlay-errors';this.viewBox=[0,0,400,200];this.root=null;}
   setRoot(r){this.root=r;}
@@ -465,8 +520,21 @@ export function bindOverlayActions(opts){
   };
 }
 
-/* ---------------- Connector layout with diff + auto-route ---------------- */
+
+/* --- OPTIONAL: Add a quick console marker once per session --- */
+try {
+  if (!window.cblcars.__vbHealNoted) {
+    window.cblcars.__vbHealNoted = true;
+    console.info('[overlay-helpers] ViewBox auto-heal patch active');
+  }
+} catch(_) {}
+
+/* ---------------- Connector layout with diff + auto-route + grid validation ---------------- */
 export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
+
+  // Heal/expand viewBox if it is too small for existing geometry
+  viewBox = ensureEffectiveViewBox(root, viewBox);
+
   const dbgPerf = window.cblcars?.debug?.perf;
   const dbgEnd = dbgPerf?.start ? dbgPerf.start('connectors.layout.timer') : null;
   const perf=window.cblcars?.perf;
@@ -477,7 +545,7 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
   let recomputed=0, skipped=0, routeRecomputed=0, routeSkipped=0;
   const debug=!!(window.cblcars?._debugFlags?.connectors||root.__cblcars_debugFlags?.connectors);
 
-  // Collect obstacle bboxes once (for route:auto) – only id-based overlays
+  // Collect obstacle bboxes once
   const obstacleMap = new Map();
   const obstacleEls = Array.from(root.querySelectorAll('[data-cblcars-root="true"]'));
   for (const el of obstacleEls) {
@@ -507,9 +575,20 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
     if(!isFinite(gap)) gap=12;
     const radius=Math.max(0,parseFloat(p.getAttribute('data-cblcars-radius'))||12);
     const cornerStyle=(p.getAttribute('data-cblcars-corner-style')||'round').toLowerCase();
-    const routeModeAttr = p.getAttribute('data-cblcars-route') || ''; // '' or 'auto'
+    const routeModeAttr = p.getAttribute('data-cblcars-route') || '';
     const routeMode = routeModeAttr === 'auto' ? 'auto' : null;
     const forcedRouteMode = p.getAttribute('data-cblcars-route-mode'); // xy|yx|auto
+    const explicitMode = p.getAttribute('data-cblcars-route-mode-full'); // grid|smart|manhattan
+    const gridResAttr = p.getAttribute('data-cblcars-route-grid-res');
+    let gridResolution = null;
+    if (gridResAttr) {
+      gridResolution = gridResAttr.includes(',')
+        ? gridResAttr.split(',').map(v => parseInt(v.trim(), 10)).filter(n => Number.isFinite(n))
+        : parseInt(gridResAttr, 10);
+    }
+    const clearanceAttr = p.getAttribute('data-cblcars-route-clearance');
+    const routeClearance = Number.isFinite(parseFloat(clearanceAttr)) ? parseFloat(clearanceAttr) : null;
+
     let avoidList = [];
     try {
       const rawAvoid = p.getAttribute('data-cblcars-avoid');
@@ -519,7 +598,7 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
     const box=resolveTargetBoxInViewBox(targetId,root,viewBox);
     if(!box){skipped++;continue;}
 
-    // Build route signature base
+    // Build signature
     const obstaclesSignature = avoidList
       .map(id => {
         const ob = obstacleMap.get(id);
@@ -556,20 +635,155 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
     try{
       const endpoint = endpointOnBox([sx,sy],box,{side,align,gap});
       let d;
+
       if (routeMode === 'auto') {
-        const obstacles = avoidList.map(id => obstacleMap.get(id)).filter(Boolean);
-        const { d: autoD } = computeAutoRoute(sx,sy,box,endpoint,{
-          radius, cornerStyle,
+        const globalCfg = window.cblcars?.routing?.getGlobalConfig
+          ? window.cblcars.routing.getGlobalConfig()
+          : { default_mode: 'manhattan', grid_resolution: 56, cost_defaults: {}, clearance: 0 };
+
+        const forcedFull = (p.getAttribute('data-cblcars-route-mode-full') || '').toLowerCase().trim();
+        const explicitMode = forcedFull || 'auto';
+
+        let effectiveMode;
+        if (forcedFull === 'grid') {
+          effectiveMode = 'grid';
+        } else {
+          try {
+            effectiveMode = typeof selectMode === 'function'
+              ? selectMode(explicitMode || 'auto', globalCfg.default_mode)
+              : null;
+          } catch {
+            effectiveMode = null;
+          }
+          if (!effectiveMode || effectiveMode === 'auto') {
+            if (forcedFull === 'smart') effectiveMode = 'smart';
+            else effectiveMode = globalCfg.default_mode || 'manhattan';
+          }
+        }
+
+        const obstaclesRaw = avoidList.map(id => obstacleMap.get(id)).filter(Boolean);
+        const clearance = routeClearance != null ? routeClearance : globalCfg.clearance || 0;
+        const { rects: inflatedObstacles } = collectObstacles(root, avoidList, clearance);
+
+        let d;
+        let gridAccepted = false;
+        let gridAttempts = [];
+        let gridReason = 'not_tried';
+
+        const baseResolution = gridResolution || globalCfg.grid_resolution || 56;
+
+        // Build escalation list (only if forced grid)
+        const resolutionsToTry = effectiveMode === 'grid'
+          ? [...new Set([
+              baseResolution,
+              Math.round(baseResolution * 1.5),
+              Math.round(baseResolution * 2)
+            ])].filter(r => r > 0 && r <= 400) // simple cap
+          : [];
+
+        let chosenMeta = null;
+
+        if (effectiveMode === 'grid') {
+          for (const res of resolutionsToTry) {
+            const meta = routeViaGrid({
+              root,
+              viewBox,
+              start: [sx, sy],
+              end: [endpoint[0], endpoint[1]],
+              obstacles: inflatedObstacles,
+              resolution: res,
+              costParams: globalCfg.cost_defaults,
+              connectorId: p.id
+            });
+            gridAttempts.push({
+              res,
+              failed: !!meta?.failed,
+              reason: meta?.reason || (meta?.failed ? 'fail' : 'ok'),
+              endDelta: meta?.endDelta
+            });
+
+            if (!meta || meta.failed) {
+              gridReason = meta?.reason || 'fail';
+              continue;
+            }
+            // Acceptance check already passed within meta (endpoint validated there)
+            chosenMeta = meta;
+            gridAccepted = true;
+            gridReason = 'ok';
+            break;
+          }
+        }
+
+        if (gridAccepted && chosenMeta && chosenMeta.points?.length >= 2) {
+          const pts = chosenMeta.points;
+          let pathStr = `M${pts[0][0]},${pts[0][1]}`;
+          for (let i = 1; i < pts.length; i++) pathStr += ` L${pts[i][0]},${pts[i][1]}`;
+          d = pathStr;
+          registerResult(p.id, {
+            strategy: 'grid',
+            expansions: chosenMeta.expansions,
+            cost: chosenMeta.cost,
+            bends: chosenMeta.cost?.bends,
+            pathHash: chosenMeta.pathHash,
+            endDelta: chosenMeta.endDelta,
+            resolution: chosenMeta.resolution
+          });
+          perf?.count && perf.count('connectors.route.grid.calls');
+          perf?.count && perf.count('connectors.route.grid.success');
+          try {
+            if (window.cblcars?._debugFlags?.connectors || window.cblcars?._debugFlags?.geometry) {
+              window.cblcars.routing.grid.debugRenderGridPath(root, chosenMeta);
+            }
+          } catch {}
+        }
+
+        if (!d) {
+          // Manhattan fallback
+          const { d: autoD } = computeAutoRoute(sx, sy, box, endpoint, {
+            radius, cornerStyle,
             routeMode: forcedRouteMode || 'auto',
-          obstacles
-        });
-        d = autoD;
-        perf?.count&&perf.count('connectors.route.recomputed');
+            obstacles: obstaclesRaw
+          });
+          d = autoD;
+          if (effectiveMode === 'grid') {
+            perf?.count && perf.count('connectors.route.grid.fallback');
+          }
+          perf?.count && perf.count('connectors.route.recomputed');
+        }
+
+        // Status / telemetry attributes
+        try {
+          p.setAttribute('data-cblcars-route-effective', effectiveMode);
+          if (effectiveMode === 'grid') {
+            p.setAttribute('data-cblcars-route-grid-status', gridAccepted ? 'success' : `fallback`);
+            p.setAttribute('data-cblcars-route-grid-reason', gridReason);
+            p.setAttribute('data-cblcars-route-grid-attempts', gridAttempts.map(a => `${a.res}:${a.reason}`).join(','));
+          } else {
+            p.setAttribute('data-cblcars-route-grid-status', 'manhattan');
+            p.removeAttribute('data-cblcars-route-grid-reason');
+            p.removeAttribute('data-cblcars-route-grid-attempts');
+          }
+        } catch {}
+
         routeRecomputed++;
-      } else {
-        d=generateRightAnglePath([sx,sy],[endpoint[0],endpoint[1]],{radius,cornerStyle});
+        if (!d || typeof d !== 'string' || !d.startsWith('M')) {
+          if (debug) cblcarsLog.warn('[connectors] Invalid d after routing, trivial fallback', { id: p.id, d });
+          d = `M${sx},${sy} L${sx},${sy}`;
+        }
+        p.setAttribute('d', d);
+        if (p.hasAttribute('data-cblcars-pending')) p.removeAttribute('data-cblcars-pending');
+        connectorMetaMap.set(p, { hash: cfgHash, bboxHash: bbHash, version: CONNECTOR_CACHE_VERSION });
+        perf?.count && perf.count('connectors.layout.recomputed'); recomputed++;
+        continue;
       }
+      // Paranoid guard (should not trigger normally)
+      if (!d || typeof d !== 'string' || !d.startsWith('M')) {
+        if (debug) cblcarsLog.warn('[connectors] Invalid path "d" fallback', { id: p.id, d });
+        d = `M${sx},${sy} L${sx},${sy}`;
+      }
+
       p.setAttribute('d',d);
+      if (p.hasAttribute('data-cblcars-pending')) p.removeAttribute('data-cblcars-pending');
       connectorMetaMap.set(p,{hash:cfgHash,bboxHash:bbHash,version:CONNECTOR_CACHE_VERSION});
       perf?.count&&perf.count('connectors.layout.recomputed'); recomputed++;
     }catch(e){
@@ -589,7 +803,7 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
   });
   endPerf&&endPerf();
   if (dbgEnd) window.cblcars.debug.perf.end('connectors.layout.timer');
-  // Auto-refresh debug layer if connectors flag active
+
   try {
     if (window.cblcars?._debugFlags &&
         (window.cblcars._debugFlags.connectors ||
@@ -601,7 +815,7 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
   } catch (_) {}
 }
 
-/* ---------------- Main Renderer (only line section changed for route:auto) ---------------- */
+/* ---------------- Main Renderer (includes sparkline pending fix + line route:auto) ---------------- */
 export function renderMsdOverlay({
   overlays,
   anchors,
@@ -613,6 +827,9 @@ export function renderMsdOverlay({
   animations=[],
   dataSources={}
 }){
+  // HEAL viewBox early
+  viewBox = ensureEffectiveViewBox(root, viewBox);
+
   const dbgPerf = window.cblcars?.debug?.perf;
   const dbgEnd = dbgPerf?.start ? dbgPerf.start('msd.render') : null;
   let svgElements=[]; let animationsToRun=[];
@@ -685,8 +902,7 @@ export function renderMsdOverlay({
     const isLine=computed.type==='line';
     const isFree=computed.type==='free';
 
-
-    /* --------------- SPARKLINE (with min_change_pct addition) --------------- */
+    /* SPARKLINE */
     if(isSparkline){
       const srcName=computed.source;
       if(!srcName){svgOverlayManager.push(`Sparkline "${computed.id||`spark_${idx}`}" requires "source".`);return;}
@@ -717,7 +933,7 @@ export function renderMsdOverlay({
       const smoothTension=Number.isFinite(computed.smooth_tension)?Math.max(0,Math.min(1,computed.smooth_tension)):0.5;
       const minChangeCfg=Number.isFinite(computed.min_change)?Number(computed.min_change):null;
       const minIntervalMsCfg=Number.isFinite(computed.min_interval_ms)?Number(computed.min_interval_ms):0;
-      const minChangePctCfg=Number.isFinite(computed.min_change_pct)?Math.max(0,Number(computed.min_change_pct)):null; // NEW
+      const minChangePctCfg=Number.isFinite(computed.min_change_pct)?Math.max(0,Number(computed.min_change_pct)):null;
 
       const gridCfg = computed.grid && typeof computed.grid==='object'?computed.grid:null;
       if(gridCfg){
@@ -729,7 +945,7 @@ export function renderMsdOverlay({
         let grid=`<g id="${elementId}_grid" data-cblcars-owned="sparkline" opacity="${gOpacity}" stroke="${gStroke}" stroke-width="${gWidth}" style="pointer-events:none;">`;
         if(gx>0){
           const dx=rect.w/gx;
-            for(let i=1;i<gx;i++){const x=rect.x+i*dx;grid+=`<line x1="${x}" y1="${rect.y}" x2="${x}" y2="${rect.y+rect.h}" />`;}
+          for(let i=1;i<gx;i++){const x=rect.x+i*dx;grid+=`<line x1="${x}" y1="${rect.y}" x2="${x}" y2="${rect.y+rect.h}" />`;}
         }
         if(gy>0){
           const dy=rect.h/gy;
@@ -825,18 +1041,11 @@ export function renderMsdOverlay({
                   endPerf&&endPerf(); return;
                 }
 
-                pathEl.removeAttribute('data-cblcars-pending');
-                pathEl.style.visibility='';
-                if(areaEl) areaEl.style.visibility='';
-                if(labelEl) labelEl.style.visibility='';
-                if(markersEl) markersEl.style.visibility='';
-
                 const lastTs=t[t.length-1];
                 const lastVal=v[v.length-1];
                 const meta=pathEl.__cblcars_meta||{};
                 const now=performance.now();
 
-                // Compute thresholds
                 let dynamicYr=null;
                 let effectiveMinChange=minChangeCfg;
                 if(effectiveMinChange==null){
@@ -845,7 +1054,6 @@ export function renderMsdOverlay({
                   const span=(dynamicYr.max-dynamicYr.min)||1;
                   effectiveMinChange=span*1e-4;
                 }
-                // NEW: min_change_pct applies as span * pct
                 if(minChangePctCfg!=null){
                   const yrForPct = dynamicYr || (()=> {
                     const vScale=ignoreZeroForScale?v.filter(n=>n!==0):v;
@@ -945,6 +1153,15 @@ export function renderMsdOverlay({
                   labelEl.setAttribute('y',String(lastPt[1]+(offset[1]??0)));
                 }
 
+                // Reveal AFTER final geometry update
+                if (pathEl.hasAttribute('data-cblcars-pending')) {
+                  pathEl.removeAttribute('data-cblcars-pending');
+                }
+                pathEl.style.visibility='';
+                if (areaEl) areaEl.style.visibility='';
+                if (labelEl) labelEl.style.visibility='';
+                if (markersEl) markersEl.style.visibility='';
+
                 pathEl.__cblcars_meta={
                   lastTs,lastVal,lastRenderTime:now,
                   hasDrawn:true,
@@ -969,7 +1186,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    /* --------------- RIBBON (now diff-skipping HTML) --------------- */
+    /* RIBBON */
     if(isRibbon){
       const posPt=resolvePoint(computed.position,pointContext);
       const sizeAbs=resolveSize(computed.size,viewBox);
@@ -1051,18 +1268,13 @@ export function renderMsdOverlay({
             groupEl.__cblcars_lastHtml=html;
             groupEl.innerHTML=html;
 
-
-            // Invalidate connectors if first meaningful geometry (placeholder was present)
-            try {
-              if (!groupEl.__cblcars_geom_ready) {
-                groupEl.__cblcars_geom_ready = true;
-                window.cblcars?.connectors?.invalidate && window.cblcars.connectors.invalidate(); // invalidate all
-                // Schedule relayout next frame
-                requestAnimationFrame(() => {
-                  window.cblcars?.overlayHelpers?.layoutPendingConnectors?.(root, viewBox);
-                });
-              }
-            } catch (_) {}
+            if (!groupEl.__cblcars_geom_ready) {
+              groupEl.__cblcars_geom_ready = true;
+              window.cblcars?.connectors?.invalidate && window.cblcars.connectors.invalidate();
+              requestAnimationFrame(() => {
+                window.cblcars?.overlayHelpers?.layoutPendingConnectors?.(root, viewBox);
+              });
+            }
 
             window.cblcars?.perf?.count&&window.cblcars.perf.count('ribbon.refresh.exec');
           };
@@ -1080,11 +1292,10 @@ export function renderMsdOverlay({
           setTimeout(refresh,100);
         }catch{}
       });});
-
       return;
     }
 
-    /* --------------- TEXT --------------- */
+    /* TEXT */
     if(isText){
       const posPt=resolvePoint(computed.position,pointContext);
       if(!posPt){svgOverlayManager.push(`Text overlay "${elementId||`text_${idx}`}" invalid position.`);return;}
@@ -1108,7 +1319,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    /* --------------- LINE (route:auto integration) --------------- */
+    /* LINE */
     if(isLine){
       const thisId=elementId||`line_${idx}`;
       let d='';
@@ -1133,7 +1344,6 @@ export function renderMsdOverlay({
         if(end && !routeAuto){
           d=generateRightAnglePath(start,end,{radius:cornerRadius,cornerStyle});
         }else if(attachIsId){
-          // Defer layout via data attributes; include route flags
           const {attrs,style}=splitAttrsAndStyle(computed,'line');
           attrs.fill='none';
           if(!attrs.stroke&&computed.color) attrs.stroke=computed.color;
@@ -1156,6 +1366,7 @@ export function renderMsdOverlay({
           }
           attrs['data-cblcars-type']='line';
           attrs['data-cblcars-root']='true';
+          attrs['data-cblcars-pending']='true';
           svgElements.push(svgHelpers.drawPath({d:'',id:thisId,attrs,style}));
           if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
             window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
@@ -1163,8 +1374,35 @@ export function renderMsdOverlay({
           }
           return;
         }else if(routeAuto && end){
-          // If route:auto but direct endpoint provided as coords, just do normal path (rare)
           d=generateRightAnglePath(start,end,{radius:cornerRadius,cornerStyle});
+        } else if(routeAuto && attachIsId){
+          const {attrs,style}=splitAttrsAndStyle(computed,'line');
+          attrs.fill='none';
+          if(!attrs.stroke&&computed.color) attrs.stroke=computed.color;
+          if(!attrs['stroke-width']&&computed.width) attrs['stroke-width']=computed.width;
+          const hasActions=!!(overlay.tap_action||overlay.hold_action||overlay.double_tap_action||overlay.actions);
+          style['pointer-events']=hasActions?'auto':'none';
+          if(hasActions) style.cursor='pointer';
+          attrs['data-cblcars-attach-to']=String(attachRaw);
+          attrs['data-cblcars-start-x']=String(start[0]);
+          attrs['data-cblcars-start-y']=String(start[1]);
+          if(computed.attach_side) attrs['data-cblcars-side']=String(computed.attach_side);
+          if(computed.attach_align) attrs['data-cblcars-align']=String(computed.attach_align);
+          if(computed.attach_gap!==undefined) attrs['data-cblcars-gap']=String(computed.attach_gap);
+          attrs['data-cblcars-radius']=String(cornerRadius);
+          attrs['data-cblcars-corner-style']=cornerStyle;
+          attrs['data-cblcars-route']='auto';
+          if(routeMode) attrs['data-cblcars-route-mode']=routeMode;
+          if(avoid.length) attrs['data-cblcars-avoid']=avoid.join(',');
+          attrs['data-cblcars-type']='line';
+          attrs['data-cblcars-root']='true';
+          attrs['data-cblcars-pending']='true';
+          svgElements.push(svgHelpers.drawPath({d:'',id:thisId,attrs,style}));
+          if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
+            window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
+            animationsToRun.push({...computed.animation,targets:`#${thisId}`,root});
+          }
+          return;
         } else {
           svgOverlayManager.push(`Line "${thisId}" requires valid "attach_to".`);
           return;
@@ -1188,7 +1426,7 @@ export function renderMsdOverlay({
       return;
     }
 
-    /* FREE unchanged */
+    /* FREE */
     if(isFree){
       if(computed.animation && computed.animation.type && computed.targets && !timelineTargets.has(elementId)){
         window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
@@ -1227,9 +1465,8 @@ export function renderMsdOverlay({
     });
   }
 
-  // Optional: auto-refresh debug layer if flags active (perf / overlay)
   try {
-  if (window.cblcars?._debugFlags && (
+    if (window.cblcars?._debugFlags && (
         window.cblcars._debugFlags.perf ||
         window.cblcars._debugFlags.overlay ||
         window.cblcars._debugFlags.connectors ||
@@ -1240,6 +1477,7 @@ export function renderMsdOverlay({
         });
     }
   } catch (_) {}
+
   if (dbgEnd) window.cblcars.debug.perf.end('msd.render');
   return { svgMarkup, animationsToRun };
 }

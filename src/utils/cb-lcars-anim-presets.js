@@ -2,6 +2,15 @@ import { cblcarsLog } from './cb-lcars-logging.js';
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
 import { svgOverlayManager } from './cb-lcars-overlay-helpers.js';
 
+/**
+ * Utility: test if a path 'd' string has drawable geometry beyond a single move.
+ */
+function hasUsablePathD(d) {
+  if (!d || typeof d !== 'string') return false;
+  // Must contain at least one command beyond the initial M (e.g., L,C,Q,A,Z)
+  return /[MLCQAHVZmlcqahvz].*[MLCQAHVZmlcqahvz]/.test(d) || /[LCAHVQZlca hvqz]/.test(d);
+}
+
 export const animPresets = {
     /**
      * @preset draw
@@ -186,365 +195,329 @@ export const animPresets = {
      */
 
 
+    /**
+     * @preset motionpath  (UPDATED MOTIONPATH PRESET – Option D)
+     * Robust wait for usable path + pending flag, tracer & trail support, auto rebind.
+     */
     motionpath: async function motionpathPreset(params, element, options = {}) {
-        /**
-         * Enhanced version:
-         * - Resilient to late path d population (no hard abort).
-         * - Rebinds automatically if path updates from empty -> real.
-         * - Cleans old tracer/trail on re-run (id collisions).
-         * - Observes later d / pending changes; re-hides trail while pending.
-         * - Survives overlay re-renders (if path node replaced with same id).
-         */
         try {
-        const root = options.root ?? document;
+            const root = options.root ?? document;
 
-        // Backward compatibility: if global waitForElement alias not present, provide it.
-        if (!window.cblcars.waitForElement && window.cblcars.anim?.waitForElement) {
-            window.cblcars.waitForElement = window.cblcars.anim.waitForElement;
-        }
-
-        const tracerCfg = options.tracer;
-        if (!tracerCfg) {
-            const msg = '[motionpath] tracer is required';
-            cblcarsLog.warn(msg, { element });
-            svgOverlayManager.push(msg);
-            params.targets = null;
-            return;
-        }
-
-        // Resolve target path
-        const pathSelector = options.path_selector;
-        let pathEl = pathSelector
-            ? (await window.cblcars.waitForElement(pathSelector, root).catch(() => null))
-            : element;
-
-        if (!pathEl) {
-            const errorMsg = `Motionpath: path not found for selector "${pathSelector || '(self)'}"`;
-            cblcarsLog.error(errorMsg);
-            svgOverlayManager.push(errorMsg);
-            params.targets = null;
-            return;
-        }
-        if (String(pathEl.tagName).toLowerCase() !== 'path') {
-            const msg = '[motionpath] Target is not an SVG <path>; cannot create motion path.';
-            cblcarsLog.warn(msg, { id: pathEl.id, tag: pathEl.tagName });
-            svgOverlayManager.push(msg);
-            params.targets = null;
-            return;
-        }
-
-        const baseId = pathEl.id || 'msd_path';
-
-        // Utility: remove any prior artifacts for this baseId (in re-renders)
-        const cleanupArtifacts = () => {
-            const svgRoot = pathEl.ownerSVGElement || pathEl.closest('svg') || root;
-            if (!svgRoot) return;
-            const priorTracer = svgRoot.querySelector(`#${baseId}_tracer[data-cblcars-owned="motionpath"]`);
-            const priorTrail = svgRoot.querySelector(`#${baseId}_trail[data-cblcars-owned="motionpath"]`);
-            if (priorTracer?.parentNode) priorTracer.parentNode.removeChild(priorTracer);
-            if (priorTrail?.parentNode) priorTrail.parentNode.removeChild(priorTrail);
-        };
-
-        // Recognize sparkline "pending" state
-        const isPendingSpark = (p) => p?.getAttribute('data-cblcars-pending') === 'true';
-        const hasCommands = (d) => !!d && /[MLCQAZmlcqaz]/.test(d);
-
-        cleanupArtifacts();
-
-        // Create (or re-create) trail + tracer
-        let trailPath = null;
-        let tracerNode = null;
-        let tracerObserver = null;
-        let pathMutationObserver = null;
-
-        const buildTrail = () => {
-            const trailOpt = options.trail;
-            if (!trailOpt) return;
-            try {
-            trailPath = pathEl.cloneNode(true);
-            trailPath.id = `${baseId}_trail`;
-            trailPath.setAttribute('data-cblcars-owned', 'motionpath');
-            // Style
-                const stroke = trailOpt.stroke || pathEl.getAttribute('stroke') || 'var(--lcars-yellow)';
-                const sw = trailOpt['stroke-width']
-                ?? options['stroke-width']
-                ?? pathEl.getAttribute('stroke-width')
-                ?? 4;
-                trailPath.setAttribute('stroke', stroke);
-                trailPath.setAttribute('stroke-width', sw);
-                if (trailOpt.opacity !== undefined) trailPath.setAttribute('opacity', trailOpt.opacity);
-
-            // Mode
-            const mode = trailOpt.mode || 'overlay';
-            if (mode === 'single') {
-                pathEl.setAttribute('opacity', '0');
-                pathEl.setAttribute('stroke', 'none');
+            // Provide waitForElement alias if missing
+            if (!window.cblcars.waitForElement && window.cblcars.anim?.waitForElement) {
+                window.cblcars.waitForElement = window.cblcars.anim.waitForElement;
             }
 
-            // Hide while pending baseline (sparkline)
-            if (isPendingSpark(pathEl)) {
-                trailPath.setAttribute('visibility', 'hidden');
-            }
-
-            pathEl.parentNode.insertBefore(trailPath, pathEl.nextSibling);
-
-            // Draw trail animation
-            const [drawable] = window.cblcars.animejs.svg.createDrawable(trailPath);
-            const trailVars = {
-                draw: '0 1',
-                duration: trailOpt.duration ?? params.duration ?? 1000,
-                easing: trailOpt.easing ?? params.easing ?? 'linear',
-                loop: trailOpt.loop ?? params.loop ?? true
-            };
-            window.cblcars.anim.anime(drawable, trailVars);
-            } catch (e) {
-            cblcarsLog.error('[motionpath] Trail setup failed:', e);
-            }
-        };
-
-        const buildTracer = () => {
-            // Desired base id
-            let tid = tracerCfg.id || `${baseId}_tracer`;
-
-            // Look for an existing element with same id that is NOT owned by motionpath (e.g., static sparkline tracer)
-            const svgRoot = pathEl.ownerSVGElement || pathEl.closest('svg') || pathEl.parentNode;
-            const existing = svgRoot ? svgRoot.getElementById?.(tid) : null;
-            if (existing && existing.getAttribute('data-cblcars-owned') !== 'motionpath') {
-                tid = `${tid}_mptrc`; // rename ours to avoid id collision
-            }
-
-            let tracerMarkup;
-            if (tracerCfg.shape === 'rect') {
-                tracerMarkup = svgHelpers.drawRect({
-                    x: -((tracerCfg.width || 8) / 2),
-                    y: -((tracerCfg.height || 8) / 2),
-                    width: tracerCfg.width || 8,
-                    height: tracerCfg.height || 8,
-                    id: tid,
-                    attrs: { fill: tracerCfg.fill || 'var(--lcars-orange)' },
-                    style: tracerCfg.style || {}
-                });
-            } else {
-                tracerMarkup = svgHelpers.drawCircle({
-                    cx: 0,
-                    cy: 0,
-                    r: tracerCfg.r || 4,
-                    id: tid,
-                    attrs: { fill: tracerCfg.fill || 'var(--lcars-orange)' },
-                    style: tracerCfg.style || {}
-                });
-            }
-            const temp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            temp.innerHTML = tracerMarkup;
-            tracerNode = temp.firstElementChild;
-            tracerNode.setAttribute('data-cblcars-owned', 'motionpath');
-
-            (svgRoot || pathEl.parentNode).appendChild(tracerNode);
-        };
-
-        const bindTracerAnimation = () => {
-            if (!tracerNode || !pathEl) return;
-            const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathEl);
-
-            // Collect anime params excluding builder/preset keys
-            const exclude = new Set([
-            'tracer', 'trail', 'path_selector', 'root', 'targets', 'type', 'animation',
-            'stroke', 'stroke-width', 'corner_style', 'corner_radius', 'waypoints',
-            'steps', 'rounded', 'smooth', 'smooth_tension', 'id'
-            ]);
-            const merged = {};
-            Object.entries({ ...params, ...options }).forEach(([k, v]) => {
-            if (!exclude.has(k)) merged[k] = v;
-            });
-
-            // Stop previous
-            try {
-            if (tracerNode.__cblcars_motion && typeof tracerNode.__cblcars_motion.pause === 'function') {
-                tracerNode.__cblcars_motion.pause();
-            }
-            } catch (_) {}
-
-            tracerNode.__cblcars_motion = window.cblcars.anim.anime(tracerNode, {
-            ...merged,
-            translateX,
-                translateY,
-                rotate
-            });
-        };
-
-        const rebindAll = (reason = '') => {
-            try {
-            if (!hasCommands(pathEl.getAttribute('d'))) return;
-            if (trailPath) {
-                // Sync trail path geometry & redraw (optional)
-                trailPath.setAttribute('d', pathEl.getAttribute('d') || '');
-                if (!isPendingSpark(pathEl)) {
-                trailPath.removeAttribute('visibility');
-                } else {
-                trailPath.setAttribute('visibility', 'hidden');
-                }
-            }
-            bindTracerAnimation();
-            } catch (e) {
-            cblcarsLog.warn('[motionpath] rebind failed', { reason, e });
-            }
-        };
-
-        const initWhenReady = () => {
-            // (Re)create artifacts (cleanup already done)
-            buildTrail();
-            buildTracer();
-            rebindAll('initial');
-        };
-
-        // If d already valid, initialize immediately; else wait via MutationObserver
-        const ensureInitialized = () => {
-            if (hasCommands(pathEl.getAttribute('d'))) {
-            initWhenReady();
-            } else {
-            // Passive wait until d becomes valid
-            let waitedMs = 0;
-            const startTime = performance.now();
-            const maxMs = 8000; // safety cap
-            const tick = () => {
-                if (hasCommands(pathEl.getAttribute('d'))) {
-                initWhenReady();
+            const tracerCfg = options.tracer;
+            if (!tracerCfg) {
+                const msg = '[motionpath] tracer is required';
+                cblcarsLog.warn(msg, { element });
+                svgOverlayManager.push(msg);
+                params.targets = null;
                 return;
+            }
+
+            const pathSelector = options.path_selector;
+            let pathEl = pathSelector
+                ? (await window.cblcars.waitForElement(pathSelector, root).catch(() => null))
+                : element;
+
+            if (!pathEl) {
+                const errorMsg = `Motionpath: path not found for selector "${pathSelector || '(self)'}"`;
+                cblcarsLog.error(errorMsg);
+                svgOverlayManager.push(errorMsg);
+                params.targets = null;
+                return;
+            }
+            if (String(pathEl.tagName).toLowerCase() !== 'path') {
+                const msg = '[motionpath] Target is not an SVG <path>';
+                cblcarsLog.warn(msg, { id: pathEl.id });
+                svgOverlayManager.push(msg);
+                params.targets = null;
+                return;
+            }
+
+            const baseId = pathEl.id || 'msd_path';
+
+            // Helper: determine if path 'd' is actually usable (not just single move or zero length)
+            const hasUsablePathD = (p) => {
+                if (!p || typeof p !== 'string') return false;
+                // Require at least one command beyond initial M and a second coordinate
+                // Simpler: must contain an 'L','C','Q','A','H','V','Z' (besides the opening M)
+                return /[LCHQAVZlchqavz]/.test(p);
+            };
+            const pathLengthOk = (el) => {
+                try {
+                    return el.getTotalLength() > 0.5;
+                } catch (_) {
+                    return false;
                 }
-                waitedMs = performance.now() - startTime;
-                if (waitedMs > maxMs) {
-                const msg = `[motionpath] Timed out waiting for path d commands (id=${pathEl.id})`;
+            };
+            const isPending = (el) => el?.getAttribute('data-cblcars-pending') === 'true';
+
+            const cleanupArtifacts = () => {
+                const svgRoot = pathEl.ownerSVGElement || pathEl.closest('svg') || root;
+                if (!svgRoot) return;
+                const priorTracer = svgRoot.querySelector(`#${baseId}_tracer[data-cblcars-owned="motionpath"]`);
+                const priorTrail = svgRoot.querySelector(`#${baseId}_trail[data-cblcars-owned="motionpath"]`);
+                if (priorTracer?.parentNode) priorTracer.parentNode.removeChild(priorTracer);
+                if (priorTrail?.parentNode) priorTrail.parentNode.removeChild(priorTrail);
+            };
+
+            let trailPath = null;
+            let tracerNode = null;
+            let pathMutationObserver = null;
+            let alive = true;
+
+            // Build trail (draw effect) if configured
+            const buildTrail = () => {
+                const trailOpt = options.trail;
+                if (!trailOpt) return;
+                try {
+                    trailPath = pathEl.cloneNode(true);
+                    trailPath.id = `${baseId}_trail`;
+                    trailPath.setAttribute('data-cblcars-owned', 'motionpath');
+                    const stroke = trailOpt.stroke || pathEl.getAttribute('stroke') || 'var(--lcars-yellow)';
+                    const sw = trailOpt['stroke-width']
+                        ?? options['stroke-width']
+                        ?? pathEl.getAttribute('stroke-width')
+                        ?? 4;
+                    trailPath.setAttribute('stroke', stroke);
+                    trailPath.setAttribute('stroke-width', sw);
+                    if (trailOpt.opacity !== undefined) trailPath.setAttribute('opacity', trailOpt.opacity);
+
+                    const mode = trailOpt.mode || 'overlay';
+                    if (mode === 'single') {
+                        pathEl.setAttribute('opacity', '0');
+                        pathEl.setAttribute('stroke', 'none');
+                    }
+                    if (isPending(pathEl)) {
+                        trailPath.setAttribute('visibility', 'hidden');
+                    }
+
+                    pathEl.parentNode.insertBefore(trailPath, pathEl.nextSibling);
+
+                    const [drawable] = window.cblcars.animejs.svg.createDrawable(trailPath);
+                    const trailVars = {
+                        draw: '0 1',
+                        duration: trailOpt.duration ?? params.duration ?? 1000,
+                        easing: trailOpt.easing ?? params.easing ?? 'linear',
+                        loop: trailOpt.loop ?? params.loop ?? true
+                    };
+                    window.cblcars.anim.anime(drawable, trailVars);
+                } catch (e) {
+                    cblcarsLog.error('[motionpath] Trail setup failed:', e);
+                }
+            };
+
+            // Build tracer node (circle or rect)
+            const buildTracer = () => {
+                let tid = tracerCfg.id || `${baseId}_tracer`;
+                const svgRoot = pathEl.ownerSVGElement || pathEl.closest('svg') || pathEl.parentNode;
+                const existing = svgRoot ? svgRoot.getElementById?.(tid) : null;
+                if (existing && existing.getAttribute('data-cblcars-owned') !== 'motionpath') {
+                    tid = `${tid}_mptrc`;
+                }
+
+                let tracerMarkup;
+                if (tracerCfg.shape === 'rect') {
+                    tracerMarkup = svgHelpers.drawRect({
+                        x: -((tracerCfg.width || 8) / 2),
+                        y: -((tracerCfg.height || 8) / 2),
+                        width: tracerCfg.width || 8,
+                        height: tracerCfg.height || 8,
+                        id: tid,
+                        attrs: { fill: tracerCfg.fill || 'var(--lcars-orange)' },
+                        style: tracerCfg.style || {}
+                    });
+                } else {
+                    tracerMarkup = svgHelpers.drawCircle({
+                        cx: 0,
+                        cy: 0,
+                        r: tracerCfg.r || 4,
+                        id: tid,
+                        attrs: { fill: tracerCfg.fill || 'var(--lcars-orange)' },
+                        style: tracerCfg.style || {}
+                    });
+                }
+                const temp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                temp.innerHTML = tracerMarkup;
+                tracerNode = temp.firstElementChild;
+                tracerNode.setAttribute('data-cblcars-owned', 'motionpath');
+                (svgRoot || pathEl.parentNode).appendChild(tracerNode);
+            };
+
+            const bindTracerAnimation = () => {
+                if (!tracerNode || !pathEl) return;
+                const { translateX, translateY, rotate } = window.cblcars.animejs.svg.createMotionPath(pathEl);
+
+                const exclude = new Set([
+                    'tracer', 'trail', 'path_selector', 'root', 'targets', 'type', 'animation',
+                    'stroke', 'stroke-width', 'corner_style', 'corner_radius', 'waypoints',
+                    'steps', 'rounded', 'smooth', 'smooth_tension', 'id'
+                ]);
+                const merged = {};
+                Object.entries({ ...params, ...options }).forEach(([k, v]) => {
+                    if (!exclude.has(k)) merged[k] = v;
+                });
+
+                try {
+                    if (tracerNode.__cblcars_motion && typeof tracerNode.__cblcars_motion.pause === 'function') {
+                        tracerNode.__cblcars_motion.pause();
+                    }
+                } catch (_) {}
+
+                tracerNode.__cblcars_motion = window.cblcars.anim.anime(tracerNode, {
+                    ...merged,
+                    translateX,
+                    translateY,
+                    rotate
+                });
+            };
+
+            const rebindAll = (reason = '') => {
+                try {
+                    if (!hasUsablePathD(pathEl.getAttribute('d')) || !pathLengthOk(pathEl)) {
+                        return;
+                    }
+                    if (trailPath) {
+                        trailPath.setAttribute('d', pathEl.getAttribute('d') || '');
+                        if (isPending(pathEl)) {
+                            trailPath.setAttribute('visibility', 'hidden');
+                        } else {
+                            trailPath.removeAttribute('visibility');
+                        }
+                    }
+                    bindTracerAnimation();
+                } catch (e) {
+                    cblcarsLog.warn('[motionpath] rebind failed', { reason, e });
+                }
+            };
+
+            const initArtifacts = () => {
+                buildTrail();
+                buildTracer();
+                rebindAll('initial');
+            };
+
+            // Robust wait logic
+            const waitMaxMs = Number.isFinite(options.wait_max_ms) ? options.wait_max_ms : 12000;
+            const pollInterval = 120;
+            const startTime = performance.now();
+
+            const waitForReady = () => new Promise((resolve) => {
+                const tick = () => {
+                    // If path replaced externally, bail (outer loop handles reattach)
+                    if (!alive) return resolve(false);
+
+                    const d = pathEl.getAttribute('d') || '';
+                    const pending = isPending(pathEl);
+                    const usable = hasUsablePathD(d) && pathLengthOk(pathEl);
+
+                    if (!pending && usable) return resolve(true);
+
+                    // Only count timeout time AFTER pending cleared
+                    if (!pending && (performance.now() - startTime) >= waitMaxMs) {
+                        return resolve(false);
+                    }
+                    setTimeout(tick, pollInterval);
+                };
+                tick();
+            });
+
+            // Initial cleanup & wait
+            cleanupArtifacts();
+            const ready = await waitForReady();
+
+            if (!ready) {
+                const msg = `[motionpath] Timed out waiting for usable path geometry (id=${pathEl.id})`;
                 cblcarsLog.warn(msg);
                 svgOverlayManager.push(msg);
+                params.targets = null;
                 return;
-                }
-                requestAnimationFrame(tick);
-            };
-            requestAnimationFrame(tick);
             }
-        };
 
-        ensureInitialized();
+            initArtifacts();
 
-        // Observe path d & pending flag changes
-        try {
-            pathMutationObserver = new MutationObserver((muts) => {
-            let needs = false;
-            for (const m of muts) {
-                if (m.type === 'attributes' && (m.attributeName === 'd' || m.attributeName === 'data-cblcars-pending')) {
-                needs = true;
-                break;
-                }
-            }
-            if (needs) {
-                rebindAll('mutation');
-            }
-            });
-            pathMutationObserver.observe(pathEl, { attributes: true, attributeFilter: ['d', 'data-cblcars-pending'] });
-        } catch (_) {}
-
-        // (Optional) Watch for path element replacement (overlay re-render). Lightweight poll.
-        let alive = true;
-        const pathId = pathEl.id;
-        const pollReattach = () => {
-            if (!alive) return;
-            const current = (root.getElementById && root.getElementById(pathId)) || pathEl;
-            if (current !== pathEl && current instanceof SVGPathElement) {
-            // Path replaced
-            cblcarsLog.debug('[motionpath] Path element replaced, reinitializing tracer/trail', { id: pathId });
-            // Cleanup old observers / artifacts
-            try { pathMutationObserver?.disconnect(); } catch (_) {}
-            pathEl = current;
-            cleanupArtifacts();
-            trailPath = null;
-            tracerNode = null;
-            ensureInitialized();
-            // Re-observe
+            // Observe path for d / pending changes
             try {
                 pathMutationObserver = new MutationObserver((muts) => {
-                let needs = false;
-                for (const m of muts) {
-                    if (m.type === 'attributes' && (m.attributeName === 'd' || m.attributeName === 'data-cblcars-pending')) {
-                    needs = true;
-                    break;
+                    let needs = false;
+                    for (const m of muts) {
+                        if (m.type === 'attributes' &&
+                            (m.attributeName === 'd' || m.attributeName === 'data-cblcars-pending')) {
+                            needs = true;
+                            break;
+                        }
                     }
-                }
-                if (needs) rebindAll('mutation');
+                    if (needs) {
+                        // If pending turned back on, hide trail again
+                        if (trailPath && isPending(pathEl)) {
+                            trailPath.setAttribute('visibility', 'hidden');
+                        }
+                        rebindAll('mutation');
+                    }
                 });
                 pathMutationObserver.observe(pathEl, { attributes: true, attributeFilter: ['d', 'data-cblcars-pending'] });
             } catch (_) {}
-            }
-            setTimeout(pollReattach, 2000);
-        };
-        setTimeout(pollReattach, 2000);
 
-        // Make sure anime.js does not try to animate path directly
-        params.targets = null;
+            // Lightweight poll for element replacement
+            const pathId = pathEl.id;
+            const reattachPoll = () => {
+                if (!alive) return;
+                const current = (root.getElementById && root.getElementById(pathId)) || pathEl;
+                if (current !== pathEl && current instanceof SVGPathElement) {
+                    cblcarsLog.debug('[motionpath] Path element replaced; reinitializing', { id: pathId });
+                    try { pathMutationObserver?.disconnect(); } catch (_) {}
+                    pathEl = current;
+                    cleanupArtifacts();
+                    trailPath = null;
+                    tracerNode = null;
+                    // Wait again for readiness of the new path
+                    waitForReady().then((ok) => {
+                        if (ok) {
+                            initArtifacts();
+                            try {
+                                pathMutationObserver = new MutationObserver((muts) => {
+                                    let needs = false;
+                                    for (const m of muts) {
+                                        if (m.type === 'attributes' &&
+                                            (m.attributeName === 'd' || m.attributeName === 'data-cblcars-pending')) {
+                                            needs = true;
+                                            break;
+                                        }
+                                    }
+                                    if (needs) rebindAll('mutation(replaced)');
+                                });
+                                pathMutationObserver.observe(pathEl, { attributes: true, attributeFilter: ['d', 'data-cblcars-pending'] });
+                            } catch (_) {}
+                        }
+                    });
+                }
+                setTimeout(reattachPoll, 2000);
+            };
+            setTimeout(reattachPoll, 2000);
 
-        // Cleanup hook (if caller ever wants to cancel)
-        element.__cblcars_motionpath_cleanup = () => {
-            alive = false;
-            try { pathMutationObserver?.disconnect(); } catch (_) {}
-            try {
-            if (tracerNode?.__cblcars_motion?.pause) tracerNode.__cblcars_motion.pause();
-            } catch (_) {}
-            try { cleanupArtifacts(); } catch (_) {}
-        };
+            // Prevent base animateElement from adding another animation
+            params.targets = null;
+
+            // Cleanup hook if needed later
+            element.__cblcars_motionpath_cleanup = () => {
+                alive = false;
+                try { pathMutationObserver?.disconnect(); } catch (_) {}
+                try {
+                    if (tracerNode?.__cblcars_motion?.pause) tracerNode.__cblcars_motion.pause();
+                } catch (_) {}
+                try { cleanupArtifacts(); } catch (_) {}
+            };
+
         } catch (e) {
-        cblcarsLog.error('[motionpath] Unhandled error', e);
-        svgOverlayManager.push(`[motionpath] ${e?.message || e}`);
-        params.targets = null;
+            cblcarsLog.error('[motionpath] Unhandled error', e);
+            svgOverlayManager.push(`[motionpath] ${e?.message || e}`);
+            params.targets = null;
         }
     },
 
-    /* //stutters on loop with anime.js .. use css version for now
-    march_smooth: (params, element, options = {}) => {
-        // Prefer stroke_dasharray from params, then options, then default
-        let dashArray = params.stroke_dasharray ?? options.stroke_dasharray ?? [25, 15];
-        if (!Array.isArray(dashArray) || dashArray.length < 2) {
-            dashArray = [25, 15];
-        }
-        const [dashLength, gapLength] = dashArray;
-
-        // Set the stroke-dasharray for the dashed pattern
-        element.style.strokeDasharray = `${dashLength} ${gapLength}`;
-        element.style.strokeDashoffset = 0;
-
-        // Animate over many cycles for seamless loop
-        const cycleLength = dashLength + gapLength;
-        const numberOfCycles = params.numberOfCycles ?? options.numberOfCycles ?? 500;
-
-        // If duration is provided, use it as total duration; else fallback to durationPerCycle * numberOfCycles
-        let totalAnimationDuration;
-        if (typeof params.duration === 'number') {
-            totalAnimationDuration = params.duration;
-        } else if (typeof options.duration === 'number') {
-            totalAnimationDuration = options.duration;
-        } else {
-            const durationPerCycle = params.durationPerCycle ?? options.durationPerCycle ?? 2000;
-            totalAnimationDuration = durationPerCycle * numberOfCycles;
-        }
-
-        // Direction: use params.reversed, else options.reversed, else params.direction/options.direction
-        let reversed = params.reversed ?? options.reversed ?? false;
-        let direction = reversed ? 'reverse' : (params.direction ?? options.direction ?? 'normal');
-
-        // Animate offset over many cycles
-        const totalOffsetTarget = direction === 'reverse'
-            ? cycleLength * numberOfCycles
-            : -cycleLength * numberOfCycles;
-
-        Object.assign(params, {
-            strokeDashoffset: [0, totalOffsetTarget],
-            easing: params.easing ?? 'linear',
-            duration: totalAnimationDuration,
-            loop: true,
-            loopDelay: 0,
-            direction,
-            playbackRate: params.playbackRate ?? options.playbackRate ?? 1
-        });
-    },
-    */
     /**
      * @preset march
      * CSS-based marching dashed line animation.
