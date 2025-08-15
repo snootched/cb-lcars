@@ -345,7 +345,58 @@ If both `points` and `anchor`/`attach_to` are present:
 - Use either manual OR smart mode for clarity.
 
 ### 3) Sparkline
-(unchanged)
+
+## Sparkline (Update: Baseline + Motionpath Behavior)
+
+New rendering pipeline:
+1. Immediately after stamping, a baseline path (`M x0, bottom L x1, bottom`) is written and marked `data-cblcars-pending="true"` with `visibility:hidden`.
+2. If a motionpath animation is configured, it initializes at once (no more waiting for history preload).
+3. When history/live data arrives, the path `d` is replaced with real geometry, pending flag removed, elements unhidden, motionpath rebinds.
+
+Implications:
+- Motionpath no longer times out before data appears.
+- Trail stays hidden until real data is available.
+- Static `tracer:` is suppressed if `animation.tracer` exists (prevent duplicate ids); add `force: true` or relax guard if you need both.
+
+### Minimal Sparkline with Motionpath
+
+```yaml
+- type: sparkline
+  id: temp_trend
+  position: [10%, 10%]
+  size: [80%, 24%]
+  source: toronto_temp
+  windowSeconds: 48h
+  color: var(--lcars-yellow)
+  width: 6
+  smooth: true
+  animation:
+    type: motionpath
+    duration: 4000
+    loop: true
+    tracer:
+      r: 6
+      fill: var(--lcars-orange)
+    trail:
+      stroke: var(--lcars-yellow)
+      stroke-width: 6
+      duration: 1200
+      easing: linear
+      loop: true
+```
+
+### Dual Tracer (Optional)
+
+See `msd-motionpath-guide.md` for enabling both a static and a moving tracer.
+
+## Troubleshooting (Updated Rows)
+
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| Motionpath timeout | Baseline logic not applied | Ensure updated overlay helper file deployed. |
+| Only static tracer visible | Guard active, no animation.tracer | Add animation.tracer or remove static tracer. |
+| No tracer at all | Animation not enqueued | Confirm sparkline branch pushes `animationsToRun`. |
+| Trail never shows | Path stuck pending | Data source not resolving; inspect data bus. |
 
 ### 4) Ribbon
 (unchanged)

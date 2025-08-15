@@ -229,3 +229,141 @@ Other presets follow similar tables: `blink`, `fade`, `shimmer`, `strobe`, `casc
 - Use expanded YAML blocks (no inline `{ ... }`) to keep the Home Assistant editor happy.
 
 — End of Animation Presets —
+
+
+# LCARS MSD Animation Presets (Updated – Motionpath & Sparkline Enhancements)
+
+(Only sections that changed are highlighted; unchanged preset tables retained for completeness.)
+
+## Key Updates (Summary)
+
+- Sparkline + motionpath is now baseline-first: a flat path is stamped immediately so motionpath never times out.
+- Trail hides while the sparkline is pending (`data-cblcars-pending="true"`).
+- Static sparkline tracer suppressed automatically when an `animation.tracer` exists (guard).
+- Collision-safe tracer creation: if an existing non-motionpath element already uses `<pathId>_tracer`, the motionpath tracer re-ids to `<pathId>_tracer_mptrc`.
+- Path replacement (re-render) automatically re-initializes tracer + trail.
+- Dual tracer mode supported with small guard tweak (see Motionpath notes).
+
+---
+
+## Motionpath (Updated)
+
+Move a tracer along a path (path must be an SVG `<path>`). The tracer is required.
+
+| Key             | Type    | Default         | Description |
+|-----------------|---------|-----------------|-------------|
+| `duration`      | number  | `1000`          | Total time per loop. |
+| `easing`        | string  | `easeInOutSine` | Easing function. |
+| `loop`          | boolean | `false`         | Repeat indefinitely if `true`. |
+| `path_selector` | string  | target element  | Optional alternative path selector. |
+| `tracer`        | object  | required        | Circle/rect marker that moves along path. |
+| `trail`         | object  | —               | Secondary path clone to animate drawing. |
+
+Tracer options (unchanged + id collision logic):
+
+| Key    | Type    | Default                  | Description |
+|--------|---------|--------------------------|-------------|
+| `id`   | string  | `<pathId>_tracer`        | Auto; may be renamed to `<id>_mptrc` if collision detected. |
+| `shape`| string  | `circle`                 | `circle` or `rect`. |
+| `r`    | number  | `4`                      | Circle radius. |
+| `width`| number  | `8`                      | Rect width. |
+| `height`| number | `8`                      | Rect height. |
+| `fill` | string  | var(--lcars-orange)      | Tracer fill color. |
+| `style`| object  | `{}`                     | Inline styles. |
+
+Trail options:
+
+| Key            | Type    | Default              | Description |
+|----------------|---------|----------------------|-------------|
+| `stroke`       | string  | var(--lcars-yellow)  | Trail stroke color. |
+| `stroke-width` | number  | `4`                  | Trail stroke width. |
+| `opacity`      | number  | `1`                  | Trail opacity. |
+| `duration`     | number  | `1000`               | Draw cycle duration. |
+| `easing`       | string  | `linear`             | Draw easing. |
+| `loop`         | boolean | `true`               | Repeat draw animation. |
+| `mode`         | string  | `overlay`            | `overlay` or `single` (hide base path stroke). |
+
+### New Behavior Notes
+
+1. Baseline-first sparkline: motionpath initializes immediately (no spinner / timeout).
+2. Pending State: While `data-cblcars-pending="true"`, trail is `visibility:hidden`; tracer moves along baseline.
+3. Rebind triggers: changes to `d`, changes to `data-cblcars-pending`, path node replacement.
+4. Collision Avoidance: If a static tracer exists (id `<pathId>_tracer`), motionpath tracer becomes `<pathId>_tracer_mptrc`.
+5. Cleanup: Each run removes prior motionpath-owned artifacts (trails, tracers) before creating new ones.
+
+### Dual Tracer Strategy
+
+Default guard prevents static + motionpath tracer duplication. To intentionally show both:
+- Give motionpath tracer an explicit `id`.
+- Relax or adjust guard in sparkline renderer (`!motionpathHasTracer` check) or introduce a `force: true` flag on static tracer.
+
+### Sparkline Motionpath Example (Single Moving Tracer)
+
+```yaml
+- type: sparkline
+  id: tor_temp_trend
+  position: [10%, 10%]
+  size: [80%, 25%]
+  source: toronto_temp
+  windowSeconds: 48h
+  color: var(--lcars-yellow)
+  width: 8
+  smooth: true
+  animation:
+    type: motionpath
+    duration: 4000
+    easing: easeInOutSine
+    loop: true
+    tracer:
+      r: 6
+      fill: var(--lcars-orange)
+    trail:
+      stroke: var(--lcars-yellow)
+      stroke-width: 6
+      duration: 1200
+      easing: linear
+      loop: true
+```
+
+### Dual Tracer Example (Static + Moving)
+
+```yaml
+- type: sparkline
+  id: tor_temp_trend
+  position: [10%, 10%]
+  size: [80%, 25%]
+  source: toronto_temp
+  windowSeconds: 48h
+  color: var(--lcars-yellow)
+  width: 8
+  tracer:
+    r: 40
+    fill: var(--lcars-blue)
+    force: true        # Requires code guard tweak to honor force
+  animation:
+    type: motionpath
+    duration: 4000
+    loop: true
+    tracer:
+      id: tor_temp_trend_pathtracer
+      r: 10
+      fill: var(--lcars-orange)
+    trail:
+      stroke: var(--lcars-yellow)
+      stroke-width: 6
+      duration: 1200
+      easing: linear
+      loop: true
+```
+
+### Troubleshooting (Updated)
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Timeout warning | Baseline block missing | Ensure renderer patch applied. |
+| Tracer missing | Guard suppressed static tracer but motionpath tracer failed to create | Check console for motionpath errors; ensure animation enqueued. |
+| Tracer not moving | Path never advanced past baseline | Verify data source; open `window.cblcars.data.getSource('name')`. |
+| Duplicate tracer | Guard disabled + no id differentiation | Provide explicit `id` or re-enable guard. |
+| Trail invisible | Still pending | Confirm pending removed after first real data refresh. |
+
+(Other preset tables—draw, march, pulse, glow, etc.—remain as previously documented.)

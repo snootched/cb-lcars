@@ -1,11 +1,12 @@
 /**
- * MSD Control Overlays – host real Lovelace cards above the SVG overlay layer.
- * (existing header unchanged)
+ * MSD Control Overlays – host Lovelace cards above SVG layer (CTM mapped).
+ * P1 + P2 (perf instrumentation + scheduler batching)
  */
+import * as geo from './cb-lcars-geometry-utils.js';
+import * as scheduler from './cb-lcars-scheduler.js'; // P2
 
 /**
- * Resolve a position into absolute viewBox units.
- * (unchanged)
+ * Resolve position into viewBox units (anchor name or [x,y] with % allowed).
  */
 function resolvePointLike(point, anchors = {}, viewBox = [0, 0, 400, 200]) {
   const [minX, minY, vw, vh] = viewBox;
@@ -26,119 +27,35 @@ function resolvePointLike(point, anchors = {}, viewBox = [0, 0, 400, 200]) {
 }
 
 /**
- * Resolve [w, h] into absolute viewBox units. Entries may be numbers or percentage strings.
- * (unchanged)
+ * Resolve size [w,h] into viewBox units (numbers or % strings).
  */
 function resolveSizeLike(size, viewBox = [0, 0, 400, 200]) {
   if (!Array.isArray(size) || size.length !== 2) return null;
   const [, , vw, vh] = viewBox;
   const toDim = (val, max) =>
-    typeof val === 'string' && val.trim().endsWith('%') ? (parseFloat(val) / 100) * max : Number(val);
+    typeof val === 'string' && val.trim().endsWith('%')
+      ? (parseFloat(val) / 100) * max
+      : Number(val);
   const w = toDim(size[0], vw);
   const h = toDim(size[1], vh);
   if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
   return { w, h };
 }
 
-/**
- * Fallback: simple ratio mapping (kept as a backup).
- */
-function mapToPixelsRatio(pos, size, viewBox, rect) {
-  const [minX, minY, vw, vh] = Array.isArray(viewBox) ? viewBox : [0, 0, 400, 200];
-  const [x, y] = pos || [0, 0];
-  const [w, h] = size || [0, 0];
-  const left = ((x - minX) / vw) * rect.width;
-  const top = ((y - minY) / vh) * rect.height;
-  const width = (w / vw) * rect.width;
-  const height = (h / vh) * rect.height;
-  return {
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${Math.max(0, width)}px`,
-    height: `${Math.max(0, height)}px`,
-  };
-}
-
-/**
- * Locate the wrapper or fallback containers.
- * (unchanged)
- */
 function findMsdWrapper(root, selector) {
   if (selector) {
-    const el = root.querySelector(selector);
+    const el = root.querySelector?.(selector);
     if (el) return el;
   }
-  let wrapper = root.querySelector('#cblcars-msd-wrapper');
+  let wrapper = root.querySelector?.('#cblcars-msd-wrapper');
   if (wrapper) return wrapper;
 
   const fieldContainer = root.getElementById?.('msd_svg_base');
   if (fieldContainer && fieldContainer.firstElementChild) return fieldContainer.firstElementChild;
   if (fieldContainer) return fieldContainer;
-
   return null;
 }
 
-/**
- * Best reference SVG to compute CTM from (overlays SVG first, then base).
- */
-function getReferenceSvg(root) {
-  return (
-    root.querySelector?.('#msd_svg_overlays svg') ||
-    root.querySelector?.('#cblcars-msd-wrapper svg') ||
-    null
-  );
-}
-
-/**
- * Map a position/size in viewBox units to CSS pixels using the SVG's screen CTM.
- * Falls back to ratio mapping if CTM not available.
- * Returns { left, top, width, height } as CSS pixel strings relative to hostRect.
- */
-function mapToPixelsViaCTM(pos, size, viewBox, svgEl, hostRect) {
-  if (!svgEl || !svgEl.getScreenCTM || !hostRect) return mapToPixelsRatio(pos, size, viewBox, hostRect);
-
-  const [x, y] = pos || [0, 0];
-  const [w, h] = size || [0, 0];
-
-  let ctm;
-  try { ctm = svgEl.getScreenCTM(); } catch (_) { ctm = null; }
-  if (!ctm) return mapToPixelsRatio(pos, size, viewBox, hostRect);
-
-  // Use DOMPoint if available; otherwise createSVGPoint
-  const makePoint = (px, py) => {
-    if (window.DOMPoint) {
-      const p = new DOMPoint(px, py);
-      return p.matrixTransform ? p.matrixTransform(ctm) : p;
-    }
-    if (svgEl.createSVGPoint) {
-      const p = svgEl.createSVGPoint();
-      p.x = px; p.y = py;
-      return p.matrixTransform(ctm);
-    }
-    return null;
-  };
-
-  const p0 = makePoint(x, y);
-  const p1 = makePoint(x + w, y + h);
-  if (!p0 || !p1) return mapToPixelsRatio(pos, size, viewBox, hostRect);
-
-  const left = p0.x - hostRect.left;
-  const top = p0.y - hostRect.top;
-  const width = p1.x - p0.x;
-  const height = p1.y - p0.y;
-
-  return {
-    left: `${left}px`,
-    top: `${top}px`,
-    width: `${Math.max(0, width)}px`,
-    height: `${Math.max(0, height)}px`,
-  };
-}
-
-/**
- * Map a Lovelace card config.type to a concrete custom element tag.
- * (unchanged)
- */
 function typeToTag(type = '') {
   if (!type || typeof type !== 'string') return '';
   const t = type.trim();
@@ -146,10 +63,6 @@ function typeToTag(type = '') {
   return `hui-${t}-card`;
 }
 
-/**
- * Create or update a child Lovelace card inside the container.
- * (unchanged)
- */
 async function ensureChildCard(container, cardConfig, hass) {
   if (!container || !cardConfig || !cardConfig.type) return null;
 
@@ -180,7 +93,7 @@ async function ensureChildCard(container, cardConfig, hass) {
       }
       el = document.createElement(tag);
       if (typeof el.setConfig === 'function') el.setConfig(cardConfig);
-    } catch (e) {
+    } catch {
       const err = document.createElement('ha-alert');
       err.setAttribute('alert-type', 'error');
       err.setAttribute('title', 'MSD Control Overlay');
@@ -202,15 +115,13 @@ async function ensureChildCard(container, cardConfig, hass) {
     el.style.pointerEvents = 'auto';
     el.style.boxSizing = 'border-box';
   } catch (_) {}
-
   container.innerHTML = '';
   container.appendChild(el);
   return el;
 }
 
 /**
- * Render/update the controls layer.
- * (UPDATED: no rounding, CTM mapping)
+ * Render / update controls layer
  */
 export async function renderMsdControls({
   overlays = [],
@@ -223,26 +134,30 @@ export async function renderMsdControls({
   hostParentSelector = '#cblcars-msd-wrapper',
   measureSelector = '#cblcars-msd-wrapper',
 }) {
-  if (!root) return;
+  const dbgPerf = window.cblcars?.debug?.perf;
+  const dbgEnd = dbgPerf?.start ? dbgPerf.start('controls.render') : null;
+  const endPerf = window.cblcars?.perf?.timeStart ? window.cblcars.perf.timeStart('controls.render.exec') : null;
+  if (!root) { endPerf && endPerf(); return; }
 
-  // 1) Mount parent (z-order/pointer-events container)
+  // 1) Mount parent
   let mountParent = findMsdWrapper(root, hostParentSelector);
   if (!mountParent) {
     const mo = new MutationObserver(() => {
       mountParent = findMsdWrapper(root, hostParentSelector);
       if (mountParent) {
-        try { mo.disconnect(); } catch (_) {}
+        try { mo.disconnect(); } catch(_) {}
         requestAnimationFrame(() => {
           renderMsdControls({ overlays, viewBox, anchors, root, hass, hostId, baseZ, hostParentSelector, measureSelector });
         });
       }
     });
     mo.observe(root, { childList: true, subtree: true });
+    endPerf && endPerf();
     return;
   }
 
-  // 2) Ensure host under mount parent
-  let host = root.getElementById(hostId);
+  // 2) Ensure host
+  let host = root.getElementById?.(hostId);
   if (!host || host.parentElement !== mountParent) {
     host?.parentElement?.removeChild(host);
     host = document.createElement('div');
@@ -256,46 +171,46 @@ export async function renderMsdControls({
     mountParent.appendChild(host);
   }
 
-  // 3) Measure the aspect-locked wrapper box
+  // 3) Measure
   const measureEl = findMsdWrapper(root, measureSelector) || mountParent;
   if (!measureEl) {
     const mo2 = new MutationObserver(() => {
       const candidate = findMsdWrapper(root, measureSelector);
       if (candidate) {
-        try { mo2.disconnect(); } catch (_) {}
+        try { mo2.disconnect(); } catch(_) {}
         requestAnimationFrame(() => {
           renderMsdControls({ overlays, viewBox, anchors, root, hass, hostId, baseZ, hostParentSelector, measureSelector });
         });
       }
     });
     mo2.observe(root, { childList: true, subtree: true });
+    endPerf && endPerf();
     return;
   }
 
   const m = measureEl.getBoundingClientRect?.();
   const p = mountParent.getBoundingClientRect?.();
-  if (!m || !p || m.width === 0 || m.height === 0) return;
+  if (!m || !p || m.width === 0 || m.height === 0) { endPerf && endPerf(); return; }
 
-  // 4) Size and position the host to match the wrapper box (no rounding)
+  // 4) Host sizing
   const same = measureEl === mountParent;
   const dx = same ? 0 : (m.left - p.left);
   const dy = same ? 0 : (m.top - p.top);
   const w = m.width;
   const h = m.height;
-
   if (!host.__cblcars_host_metrics ||
       host.__cblcars_host_metrics.dx !== dx ||
       host.__cblcars_host_metrics.dy !== dy ||
       host.__cblcars_host_metrics.w !== w ||
       host.__cblcars_host_metrics.h !== h) {
     host.style.left = `${dx}px`;
-    host.style.top = `${dy}px`;
-    host.style.width = `${w}px`;
+    host.style.top  = `${dy}px`;
+    host.style.width  = `${w}px`;
     host.style.height = `${h}px`;
     host.__cblcars_host_metrics = { dx, dy, w, h };
   }
 
-  // 5) Observe the measure element (wrapper) for size changes → relayout controls
+  // 5) Resize observer
   if (!measureEl.__cblcars_controls_ro) {
     const ro = new ResizeObserver(() => {
       if (measureEl.__cblcars_controls_sched) return;
@@ -309,18 +224,14 @@ export async function renderMsdControls({
     measureEl.__cblcars_controls_ro = ro;
   }
 
-  // 6) Use the reference SVG's CTM for pixel mapping
-  const refSvg = getReferenceSvg(root);
-  const hr = host.getBoundingClientRect?.();
-  if (!hr || hr.width === 0 || hr.height === 0) return;
-
-  // 7) Lay out controls within the sized host
+  // 6) Lay out controls
   const wantedIds = new Set();
+  const hostRect = host.getBoundingClientRect?.();
   for (const ov of overlays) {
     if (!ov || ov.type !== 'control' || !ov.id || !Array.isArray(ov.size) || !ov.card) continue;
     wantedIds.add(ov.id);
 
-    let c = root.getElementById(ov.id);
+    let c = root.getElementById?.(ov.id);
     if (!c) {
       c = document.createElement('div');
       c.id = ov.id;
@@ -337,19 +248,31 @@ export async function renderMsdControls({
       display: 'block',
       overflow: 'visible',
       boxSizing: 'border-box',
+      margin: '0',
+      padding: '0'
     });
 
     const posAbs = resolvePointLike(ov.position, anchors, viewBox);
     const sizeAbs = resolveSizeLike(ov.size, viewBox);
     if (posAbs && sizeAbs) {
-      const px = refSvg
-        ? mapToPixelsViaCTM(posAbs, [sizeAbs.w, sizeAbs.h], viewBox, refSvg, hr)
-        : mapToPixelsRatio(posAbs, [sizeAbs.w, sizeAbs.h], viewBox, hr);
-
-      c.style.left = px.left;
-      c.style.top = px.top;
-      c.style.width = px.width;
-      c.style.height = px.height;
+      const vbRect = { x: posAbs[0], y: posAbs[1], w: sizeAbs.w, h: sizeAbs.h };
+      const css = geo.mapViewBoxRectToHostCss(root, vbRect, hostRect);
+      if (css) {
+        c.style.left = css.left;
+        c.style.top = css.top;
+        c.style.width = css.width;
+        c.style.height = css.height;
+      } else {
+        // ratio fallback
+        const left = ((vbRect.x - viewBox[0]) / viewBox[2]) * m.width;
+        const top = ((vbRect.y - viewBox[1]) / viewBox[3]) * m.height;
+        const width = (vbRect.w / viewBox[2]) * m.width;
+        const height = (vbRect.h / viewBox[3]) * m.height;
+        c.style.left = `${left}px`;
+        c.style.top = `${top}px`;
+        c.style.width = `${width}px`;
+        c.style.height = `${height}px`;
+      }
     } else {
       console.warn('[MSD controls] Invalid position/size:', ov.id, ov.position, ov.size);
     }
@@ -357,16 +280,20 @@ export async function renderMsdControls({
     await ensureChildCard(c, ov.card, hass);
   }
 
-  // Cleanup removed controls
+  // 7) Cleanup removed
   for (const node of Array.from(host.children)) {
     if (node instanceof HTMLElement && node.id && !wantedIds.has(node.id)) node.remove();
   }
 
-  // NEW: After controls move/resize, re-layout any pending connectors
+  // 8) Batch connector layout (P2)
   try {
-    if (window.cblcars?.overlayHelpers?.layoutPendingConnectors) {
-      window.cblcars.overlayHelpers.layoutPendingConnectors(root, viewBox);
-    }
+    scheduler.queue('connectors', () => {
+      window.cblcars?.overlayHelpers?.layoutPendingConnectors?.(root, viewBox);
+    });
+    window.cblcars?.perf?.count && window.cblcars.perf.count('connectors.layout.sched');
   } catch (_) {}
 
+  window.cblcars?.perf?.count && window.cblcars.perf.count('controls.render');
+  endPerf && endPerf();
+  if (dbgEnd) window.cblcars.debug.perf.end('controls.render');
 }

@@ -1,7 +1,7 @@
 import * as anime from 'animejs';
 
 import * as CBLCARS from './cb-lcars-vars.js'
-import { cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
+import { cblcarsSetGlobalLogLevel, cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 import { preloadSVGs, loadSVGToCache, getSVGFromCache } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
@@ -19,9 +19,54 @@ import * as styleHelpers from './utils/cb-lcars-style-helpers.js';
 import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
 import { load } from 'js-yaml';
 import { animPresets } from './utils/cb-lcars-anim-presets.js';
+import * as debugHelpers from './utils/cb-lcars-debug-helpers.js';
 
 import { DataBus } from './utils/cb-lcars-data.js';
 import * as controlsHelpers from './utils/cb-lcars-controls-helpers.js';
+import * as geometryUtils from './utils/cb-lcars-geometry-utils.js';
+import * as introspection from './utils/cb-lcars-introspection.js';
+import * as perf from './utils/cb-lcars-perf.js';
+
+
+/**
+ * Apply MSD debug flags as early as possible so first overlay render
+ * (renderMsdOverlay) can auto-render the debug layer (geometry/connectors/perf/etc).
+ * - Merges (logical OR for true flags) with any existing global flags.
+ * - If debug API not yet attached, retries automatically.
+ * @param {object} msdDebugCfg  variables.msd.debug from card config
+ */
+function applyEarlyMsdDebugFlags(msdDebugCfg) {
+  if (!msdDebugCfg || typeof msdDebugCfg !== 'object') return;
+  const { level, ...flagCandidates } = msdDebugCfg;
+
+  let retries = 0;
+  const MAX_RETRIES = 20; // ~600ms worst case (20 * 30ms)
+
+  const tryApply = () => {
+    const dbg = window.cblcars?.debug;
+    if (!dbg || typeof dbg.setFlags !== 'function') {
+      if (retries++ < MAX_RETRIES) {
+        setTimeout(tryApply, 30);
+      }
+      return;
+    }
+
+    // Merge semantics: do not turn an existing true into false
+    const existing = window.cblcars._debugFlags || {};
+    const merged = { ...existing };
+    for (const [k, v] of Object.entries(flagCandidates)) {
+      if (v === true) merged[k] = true;
+      else if (!(k in merged)) merged[k] = v; // preserve explicit false only if key absent
+    }
+
+    dbg.setFlags(merged);
+    if (level && typeof dbg.setLevel === 'function') {
+      dbg.setLevel(level);
+    }
+  };
+
+  tryApply();
+}
 
 
 // Ensure global namespace
@@ -47,7 +92,13 @@ async function initializeCustomCard() {
     cblcarsLogBanner();
     window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
 
-
+    // Expose debug helpers (the module already attaches API; this ensures references exist)
+    window.cblcars.debug = window.cblcars.debug || {};
+    window.cblcars.debug.render = debugHelpers.renderDebugLayer;
+    window.cblcars.debug.clear = debugHelpers.clearDebugLayer;
+    window.cblcars.debug.logGeometry = debugHelpers.logGeometry;
+    //window.cblcars.debug.setLevel = debugHelpers.setGlobalLogLevel;
+    window.cblcars.debug.setLevel = cblcarsSetGlobalLogLevel;
 
     // Animation namespace organization
     window.cblcars.anim = {
@@ -74,10 +125,31 @@ async function initializeCustomCard() {
     // Ensure legacy reference also points at the canonical utils (for any older modules)
     //window.cblcars.animejs.utils = window.cblcars.anim.utils;
 
+    window.cblcars.geometry = geometryUtils;
+    window.cblcars.geometryUtils = geometryUtils; // alias
+
     window.cblcars.overlayHelpers = overlayHelpers;
     window.cblcars.renderMsdOverlay = overlayHelpers.renderMsdOverlay;
     window.cblcars.svgHelpers = svgHelpers;
     window.cblcars.styleHelpers = styleHelpers;
+    window.cblcars.connectors = window.cblcars.connectors || {};
+    window.cblcars.connectors.relayout = (root, viewBox) =>
+        window.cblcars.overlayHelpers?.layoutPendingConnectors?.(root || document, viewBox);
+
+    // After existing connectors.relayout definition:
+    window.cblcars.connectors.invalidate = (id) => {
+    // id optional; if omitted invalidates all connectors
+        try {
+            const helper = window.cblcars.overlayHelpers;
+            if (!helper) return;
+            // Use internal markDirty via public API hook:
+            // We cannot import the function directly here, so we piggy-back by setting a _dirty set:
+            window.cblcars.connectors._dirty = window.cblcars.connectors._dirty || new Set();
+            if (!id) window.cblcars.connectors._dirty.add('*');
+            else window.cblcars.connectors._dirty.add(id);
+        } catch (_) {}
+    };
+
 
     window.cblcars.anchorHelpers = anchorHelpers;
     window.cblcars.findSvgAnchors = anchorHelpers.findSvgAnchors;
@@ -85,7 +157,34 @@ async function initializeCustomCard() {
     window.cblcars.getSvgViewBox = anchorHelpers.getSvgViewBox;
     window.cblcars.getSvgAspectRatio = anchorHelpers.getSvgAspectRatio;
 
+    // MSD Introspection API
+    window.cblcars.msd = window.cblcars.msd || {};
+    window.cblcars.msd.listOverlays = (root) => introspection.listOverlays(root || document);
+    window.cblcars.msd.listAnchors = (root) => introspection.listAnchors(root || document);
+    window.cblcars.msd.getOverlayBBox = (id, root) => introspection.getOverlayBBox(id, root || document);
+    window.cblcars.msd.highlight = (ids, opts) => introspection.highlight(ids, opts);
+
     window.cblcars.data = window.cblcars.data || new DataBus();
+
+    // Pre-seed some common counters so perf HUD has stable rows immediately
+    try {
+      window.cblcars.debug?.perf?.preseed?.([
+        'msd.render',
+        'connectors.layout.recomputed',
+        'sparkline.refresh',
+        'ribbon.refresh.exec'
+      ]);
+    } catch(_) {}
+
+    // PERF helper aliases (added)
+    if (!window.cblcars.perfDump) {
+    window.cblcars.perfDump = () => {
+        try { return window.cblcars.perf.dump(); } catch { return {}; }
+    };
+    }
+    if (!window.cblcars.perfdump) {
+    window.cblcars.perfdump = window.cblcars.perfDump;
+    }
 
     window.cblcars.loadFont = loadFont;
     window.cblcars.loadUserSVG = async function(key, url) {
@@ -873,37 +972,56 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
-
         const defaultTemplates = ['cb-lcars-msd'];
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
-        const specialConfig = {
-            ...config,
-            template: mergedTemplates,
-        };
+        const specialConfig = { ...config, template: mergedTemplates };
+
+        // 1. EARLY: pull debug flags from raw config BEFORE super.setConfig
+        try {
+        const earlyDbg = specialConfig?.variables?.msd?.debug;
+        applyEarlyMsdDebugFlags(earlyDbg);
+        // Optional: pre-seed counters if perf flag true
+        if (earlyDbg?.perf && window.cblcars?.debug?.perf?.preseed) {
+            window.cblcars.debug.perf.preseed([
+            'msd.render',
+            'connectors.layout.recomputed',
+            'sparkline.refresh',
+            'ribbon.refresh.exec'
+            ]);
+        }
+        } catch (e) {
+        cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Early debug flags apply failed', e);
+        }
+
+        // 2. Base card setConfig (will trigger first render later)
         super.setConfig(specialConfig);
 
-        // --- SVG Lazy Loading Logic ---
+        // 3. SAFETY: if (for any reason) global flags still undefined after super, retry once shortly
+        try {
+        if (!window.cblcars?._debugFlags) {
+            const lateDbg = this._config?.variables?.msd?.debug;
+            if (lateDbg) setTimeout(() => applyEarlyMsdDebugFlags(lateDbg), 40);
+        }
+        } catch (_) {}
+
+        // 4. Existing SVG lazy-loading logic (unchanged)
         const msdVars = specialConfig.variables && specialConfig.variables.msd;
         if (msdVars && msdVars.base_svg) {
-            let svgKey = null, svgUrl = null;
-            if (msdVars.base_svg.startsWith('builtin:')) {
-                svgKey = msdVars.base_svg.replace('builtin:', '');
-                // Preloaded, nothing to do
-            } else if (msdVars.base_svg.startsWith('/local/')) {
-                // User SVG: derive key from filename
-                svgKey = msdVars.base_svg.split('/').pop().replace('.svg','');
-                svgUrl = msdVars.base_svg;
-                // Lazy load if not cached (fire-and-forget, do not await)
-                if (!window.cblcars.getSVGFromCache(svgKey)) {
-                    window.cblcars.loadUserSVG(svgKey, svgUrl)
-                        .then(() => this.requestUpdate && this.requestUpdate())
-                        .catch(() => {}); // Error already logged
-                }
+        let svgKey = null, svgUrl = null;
+        if (msdVars.base_svg.startsWith('builtin:')) {
+            svgKey = msdVars.base_svg.replace('builtin:', '');
+        } else if (msdVars.base_svg.startsWith('/local/')) {
+            svgKey = msdVars.base_svg.split('/').pop().replace('.svg','');
+            svgUrl = msdVars.base_svg;
+            if (!window.cblcars.getSVGFromCache(svgKey)) {
+            window.cblcars.loadUserSVG(svgKey, svgUrl)
+                .then(() => this.requestUpdate && this.requestUpdate())
+                .catch(() => {});
             }
-            // Optionally, store svgKey for use in render/template
-            this._svgKey = svgKey;
+        }
+        this._svgKey = svgKey;
         }
     }
 

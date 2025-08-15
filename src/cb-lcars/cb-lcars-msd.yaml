@@ -6,6 +6,10 @@ cb-lcars-msd:
         background:
           default: black
     msd:
+      debug:
+        geometry: false
+        connectors: false
+        overlay: false
       base_svg: builtin:ncc-1701-a-blue
       base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
       data_sources:
@@ -267,10 +271,16 @@ cb-lcars-msd:
         const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
         const userAnchors = variables.msd.anchors || {};
         const anchorTable = { ...svgAnchors, ...userAnchors };
+
+        // Persist for renderers
         variables.msd._viewBox = viewBox;
         variables.msd._anchors = anchorTable;
+
+        // Expose anchors on ShadowRoot so debug/introspection can see them
+        try { this.shadowRoot.__cblcars_anchors = anchorTable; } catch (_) {}
+
         const aspect = window.cblcars.getSvgAspectRatio(viewBox);
-        // Stable wrapper id for controls and layout
+        // Keep: base wrapper defines the truth box for SVG
         return `<div id="cblcars-msd-wrapper" style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
       ]]]
     msd_svg_overlays: |
@@ -294,24 +304,32 @@ cb-lcars-msd:
           ? overlays.reduce((acc, o) => { if (o && o.id) acc[o.id] = o; return acc; }, {})
           : {};
 
+        // Persist for introspection/highlight helpers
+        try {
+          this.shadowRoot.__cblcars_overlayConfigsById = overlayConfigsById;
+          this.shadowRoot.__cblcars_anchors = variables.msd._anchors;
+        } catch (_) {}
+
         if (!this.__cblcars_postStamp) {
           this.__cblcars_postStamp = true;
           requestAnimationFrame(() => {
             this.__cblcars_postStamp = false;
 
+            /* Run overlay-level animations (anime.js v4 scopes) */
             try {
               if (Array.isArray(animationsToRun) && animationsToRun.length > 0) {
                 animationsToRun.forEach(anim => this._animationScope.animate(anim, this.hass));
               }
             } catch (_) {}
 
+            /* Rebuild timelines (double-rAF already satisfied upstream in createTimelines) */
             try {
               if (timelines && Object.keys(timelines).length > 0 && typeof this._rebuildTimelines === 'function') {
                 this._rebuildTimelines(timelines, overlayConfigsById, variables.msd.presets || {});
               }
             } catch (_) {}
 
-            // Controls: mount under msd_controls (z-index), but measure against #cblcars-msd-wrapper (aspect)
+            /* Mount controls (HTML card overlays) */
             try {
               const controls = overlays.filter(o => o && o.type === 'control');
               if (controls.length && window.cblcars.renderMsdControls) {
@@ -328,9 +346,23 @@ cb-lcars-msd:
               }
             } catch (_) {}
 
-            // NEW: First-pass connector layout (covers attach_to SVG overlays immediately)
+            /* Initial connector layout */
             try {
               window.cblcars.overlayHelpers?.layoutPendingConnectors?.(this.shadowRoot, variables.msd._viewBox);
+            } catch (_) {}
+
+            /* Safety delayed debug renders (covers late-applied flags) */
+            try {
+              const redrawIfFlags = () => {
+                if (window.cblcars?._debugFlags?.overlay ||
+                    window.cblcars?._debugFlags?.connectors ||
+                    window.cblcars?._debugFlags?.perf ||
+                    window.cblcars?._debugFlags?.geometry) {
+                  window.cblcars.debug?.render?.(this.shadowRoot, variables.msd._viewBox, { anchors: variables.msd._anchors });
+                }
+              };
+              setTimeout(redrawIfFlags, 60);
+              setTimeout(redrawIfFlags, 350);
             } catch (_) {}
           });
         }
@@ -339,8 +371,14 @@ cb-lcars-msd:
       ]]]
     msd_controls: |
       [[[
-        // Nothing to render here; the JS will mount the controls host into this field
-        return '';
+        // Mirror the base wrapper's aspect-locked box in the controls field
+        const vb = variables.msd?._viewBox || [0,0,1920,1200];
+        const aspect = window.cblcars.getSvgAspectRatio(vb);
+        return `
+          <div id="cblcars-controls-wrapper"
+              style="width:100%;height:100%;display:flex;justify-content:center;align-items:center;position:relative;aspect-ratio:${aspect};pointer-events:none;">
+            <div id="cblcars-controls-box" style="position:relative;width:100%;height:100%;pointer-events:none;"></div>
+          </div>`;
       ]]]
   styles:
     custom_fields:
