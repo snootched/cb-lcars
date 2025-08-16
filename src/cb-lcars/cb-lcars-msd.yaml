@@ -7,259 +7,181 @@ cb-lcars-msd:
           default: black
     msd:
       debug:
-        geometry: false
-        connectors: false
-        overlay: false
+        geometry: true
+        connectors: true
+        overlay: true
+        perf: true
+        level: debug
       base_svg: builtin:ncc-1701-a-blue
-      base_svg2: builtin:enterprise-d-shuttlecraft15-anomaly
-      data_sources:
-        toronto_temp:
-          entity: sensor.toronto_temperature
-          windowSeconds: 72h
-          sampleMs: 150
-          history:
-            hours: 72
-            preload: true
-        desk_brightness:
-          entity: light.tv
-          attribute: brightness
-          windowSeconds: 120
-          sampleMs: 150
-          history:
-            hours: 72
-            preload: true
+      anchors:
+        smart_clear_anchor:
+          - 200
+          - 200
+        smart_far_anchor:
+          - 200
+          - 320
+        smart_blocked_anchor:
+          - 200
+          - 500
+        smart_forced_xy_anchor:
+          - 200
+          - 650
+        grid_forced_anchor:
+          - 200
+          - 830
+        manhattan_anchor:
+          - 200
+          - 960
+      data_sources: {}
       overlays:
-        - type: text
-          id: br_label
-          position: br_label
-          value: bridge
-          preset: default
-          tap_action:
-            action: more-info
-            entity: light.tv
-          hold_action:
-            action: call-service
-            service: light.toggle
-            service_data:
-              entity_id: light.tv
-          double_tap_action:
-            action: url
-            url_path: https://example.com
-        - type: control
-          id: br_button_control
-          position:
-            - 78%
-            - 22%
-          size:
-            - 15%
-            - 10%
-          z_index: 32
-          card:
-            type: button
-            entity: light.tv
-            name: Bridge
-            icon: mdi:lightbulb
-            tap_action:
-              action: toggle
-        - type: text
-          id: wc_label_rt
-          position: wc_label
-          value: warp core
-          preset: default
-          state_resolver:
-            entity: light.desk
-            attribute: brightness
-            states:
-              - map_range:
-                  input_range:
-                    - 0
-                    - 255
-                  output_range:
-                    - 0
-                    - 100
-                from: 0
-                to: 29
-                settings:
-                  text:
-                    fill: blue
-              - map_range:
-                  input_range:
-                    - 0
-                    - 255
-                  output_range:
-                    - 0
-                    - 100
-                from: 30
-                to: 79
-                settings:
-                  text:
-                    fill: var(--lcars-yellow)
-              - map_range:
-                  input_range:
-                    - 0
-                    - 255
-                  output_range:
-                    - 0
-                    - 100
-                from: 80
-                to: 100
-                settings:
-                  text:
-                    color: red
-          realtime:
-            source: desk_brightness
-            bind:
-              - prop: opacity
-                map_range:
-                  input_range:
-                    - 0
-                    - 255
-                  output_range:
-                    - 0.1
-                    - 1
-        - type: sparkline
-          id: tor_temp_trend
-          position:
-            - 10%
-            - 10%
-          size:
-            - 80%
-            - 25%
-          source: toronto_temp
-          windowSeconds: 48h
-          color: var(--lcars-yellow)
-          width: 8
-          area_fill: rgba(255,255,0,0.2)
-          x_mode: index
-          extend_to_edges: true
-          markers:
-            r: 4
-            fill: var(--lcars-blue)
-            max: 300
-          ignore_zero_for_scale: true
-          stair_step: false
-          smooth: true
-          smooth_tension: 0.9
-          fade_tail:
-            start_opacity: 0
-            end_opacity: 1
-          animation:
-            type: motionpath
-            duration: 4000
-            easing: easeInOutSine
-            loop: true
-            tracer:
-              r: 6
-              fill: var(--lcars-orange)
-            trail:
-              stroke: var(--lcars-yellow)
-              stroke-width: 6
-              duration: 4000
-              easing: linear
-              loop: true
-          grid:
-            x: 8
-            "y": 4
-            color: rgba(255,255,255,0.18)
-            opacity: 0.9
-            width: 2
-          label_last:
-            decimals: 1
-            fill: var(--lcars-yellow)
-            font_size: 68
-            offset:
-              - 8
-              - -8
-            format: "{v}°"
-          tracer:
-            r: 80
-            fill: var(--lcars-red)
         - type: ribbon
-          id: door_state_ribbon
+          id: target_box
           position:
-            - 10%
-            - 70%
+            - 1500
+            - 460
           size:
-            - 80%
-            - 6%
-          source: binary_sensor.desk_sensor_motion
-          windowSeconds: 24h
+            - 260
+            - 200
+          source: binary_sensor.any_motion
           threshold: 0.5
-          on_color: var(--lcars-yellow)
+          rx: 18
           off_color: rgba(255,255,255,0.08)
-          rx: 6
+          on_color: rgba(255,255,120,0.25)
         - type: ribbon
-          id: env_ribbons
+          id: obstacle_vertical
           position:
-            - 10%
-            - 78%
+            - 700
+            - 120
           size:
-            - 80%
-            - 12%
-          sources:
-            - binary_sensor.garage_open
-            - binary_sensor.front_door
-            - binary_sensor.kitchen_motion
-          windowSeconds: 12h
+            - 120
+            - 820
+          source: binary_sensor.any_motion
           threshold: 0.5
-          on_color: var(--lcars-yellow)
-          off_color: rgba(255,255,255,0.06)
-          rx: 4
-          lane_gap: 3
-        - type: sparkline
-          id: tor_temp_live
+          rx: 12
+          off_color: rgba(255,128,0,0.10)
+          on_color: rgba(255,128,0,0.18)
+        - type: ribbon
+          id: obstacle_mid
           position:
-            - 10%
-            - 40%
+            - 900
+            - 420
           size:
-            - 80%
-            - 20%
-          source: toronto_temp
-          windowSeconds: 10m
-          color: var(--lcars-yellow)
-          width: 5
-          area_fill: rgba(255,255,0,0.15)
-          markers:
-            r: 2
-          grid:
-            x: 6
-            "y": 3
-            opacity: 0.35
-      presets:
-        default:
-          line:
-            width: 10
-            corner_style: bevel
-            corner_radius: 50
-            stroke: var(--picard-orange)
-            animation:
-              type: motionpath
-              duration2: 1200
-              playbackRate2: 1
-              playbackEase2: inOut(3)
-              loop: true
-              alternate: false
-              trail:
-                stroke: blue
-              duration:
-                entity_id: light.bed
-                attribute: brightness
-                input_range:
-                  - 0
-                  - 255
-                output_range:
-                  - 8000
-                  - 500
-              tracer:
-                shape: circle
-                height: 25
-                width: 25
-                r: 15
-          text:
-            font_size: 56
-            font_family: antonio
-            text_transform: uppercase
-            color: var(--picard-moonlight)
+            - 180
+            - 180
+          source: binary_sensor.any_motion
+          threshold: 0.5
+          rx: 10
+          off_color: rgba(180,0,255,0.10)
+          on_color: rgba(180,0,255,0.18)
+        - type: ribbon
+          id: obstacle_far
+          position:
+            - 1100
+            - 780
+          size:
+            - 220
+            - 180
+          source: binary_sensor.any_motion
+          threshold: 0.5
+          rx: 10
+          off_color: rgba(0,180,255,0.10)
+          on_color: rgba(0,180,255,0.18)
+        - type: line
+          id: line_smart_clear
+          anchor: smart_clear_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: smart
+          stroke: var(--lcars-yellow)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+        - type: line
+          id: line_smart_far_avoid
+          anchor: smart_far_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: smart
+          avoid:
+            - obstacle_far
+          stroke: var(--lcars-teal)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+        - type: line
+          id: line_smart_blocked
+          anchor: smart_blocked_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: smart
+          avoid:
+            - obstacle_mid
+          smart_proximity: 24
+          stroke: var(--lcars-orange)
+          width: 12
+          corner_style: round
+          corner_radius: 46
+        - type: line
+          id: line_smart_forced_xy
+          anchor: smart_forced_xy_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: smart
+          route_mode: xy
+          avoid:
+            - obstacle_vertical
+          smart_proximity: 24
+          stroke: var(--lcars-purple)
+          width: 12
+          corner_style: round
+          corner_radius: 46
+        - type: line
+          id: line_grid_forced
+          anchor: grid_forced_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: grid
+          avoid:
+            - obstacle_vertical
+            - obstacle_mid
+          stroke: var(--lcars-blue)
+          width: 12
+          corner_style: round
+          corner_radius: 50
+        - type: line
+          id: line_manhattan_baseline
+          anchor: manhattan_anchor
+          attach_to: target_box
+          route: auto
+          stroke: var(--lcars-green)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+  styles:
+    custom_fields:
+      msd_svg_base:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 0
+      msd_svg_overlays:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 1
+        - pointer-events: auto
+      msd_controls:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 2
+        - pointer-events: none
   custom_fields:
     msd_svg_base: |
       [[[
@@ -348,8 +270,13 @@ cb-lcars-msd:
 
             /* Initial connector layout */
             try {
+              window.cblcars.connectors.invalidate && window.cblcars.connectors.invalidate('*');
               window.cblcars.overlayHelpers?.layoutPendingConnectors?.(this.shadowRoot, variables.msd._viewBox);
             } catch (_) {}
+            setTimeout(() => {
+              window.cblcars.connectors.invalidate && window.cblcars.connectors.invalidate('*');
+              window.cblcars.overlayHelpers?.layoutPendingConnectors?.(this.shadowRoot, variables.msd._viewBox);
+            }, 120);
 
             /* Safety delayed debug renders (covers late-applied flags) */
             try {
@@ -380,28 +307,3 @@ cb-lcars-msd:
             <div id="cblcars-controls-box" style="position:relative;width:100%;height:100%;pointer-events:none;"></div>
           </div>`;
       ]]]
-  styles:
-    custom_fields:
-      msd_svg_base:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 0
-      msd_svg_overlays:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 1
-        - pointer-events: auto
-      msd_controls:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 2
-        - pointer-events: none

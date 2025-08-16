@@ -291,7 +291,7 @@ function computeAutoRoute(sx, sy, targetBox, endpointTriplet, opts={}) {
   const points = [[sx,sy], chosen, [ex,ey]];
   let d = `M${sx},${sy}`;
   const [p0,p1,p2] = points;
-  const dx1 = p1[0]-p0[0], dy1=p1[1]-p0[1], dx2=p2[0]-p1[0], dy2=p2[1]-p1[1];
+  const dx1 = p1[0]-p0[0], dy1=p1[1]-p0[1], dx2 = p2[0]-p1[0], dy2=p2[1]-p1[1];
   const useCorner = !(cornerStyle==='sharp'||cornerStyle==='square');
   const r = Math.min(radius, Math.abs(dx1||dy1)/2, Math.abs(dx2||dy2)/2);
   if (useCorner && r>0) {
@@ -530,55 +530,97 @@ try {
 } catch(_) {}
 
 /* ---------------- Connector layout with diff + auto-route + grid validation ---------------- */
+/* ---------------- Connector layout with diff + auto-route + smart + grid validation ---------------- */
 export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
+  /* SMART PATCH v2 marker */
+  if (!root.__cblcars_smartPatchNoted) {
+    root.__cblcars_smartPatchNoted = true;
+    try { console.info('[connectors] SMART PATCH v2 active'); } catch(_) {}
+  }
 
   // Heal/expand viewBox if it is too small for existing geometry
   viewBox = ensureEffectiveViewBox(root, viewBox);
 
   const dbgPerf = window.cblcars?.debug?.perf;
   const dbgEnd = dbgPerf?.start ? dbgPerf.start('connectors.layout.timer') : null;
-  const perf=window.cblcars?.perf;
-  const endPerf=perf?.timeStart?perf.timeStart('connectors.layout.exec'):null;
-  const paths=Array.from(root.querySelectorAll('path[data-cblcars-attach-to]'));
-  if(!paths.length){endPerf&&endPerf();return;}
-  const dirty=getDirtySet(); const forceAll=dirty.has('*');
-  let recomputed=0, skipped=0, routeRecomputed=0, routeSkipped=0;
-  const debug=!!(window.cblcars?._debugFlags?.connectors||root.__cblcars_debugFlags?.connectors);
+  const perf = window.cblcars?.perf;
+  const endPerf = perf?.timeStart ? perf.timeStart('connectors.layout.exec') : null;
 
-  // Collect obstacle bboxes once
+  const paths = Array.from(root.querySelectorAll('path[data-cblcars-attach-to]'));
+  if (!paths.length) { endPerf && endPerf(); return; }
+
+  const dirty = getDirtySet();
+  const forceAll = dirty.has('*');
+
+  let recomputed=0, skipped=0, routeRecomputed=0, routeSkipped=0;
+  const debug = !!(window.cblcars?._debugFlags?.connectors || root.__cblcars_debugFlags?.connectors);
+
+  // Collect obstacle bboxes once (only overlays; lines ARE NOT obstacles by default)
   const obstacleMap = new Map();
   const obstacleEls = Array.from(root.querySelectorAll('[data-cblcars-root="true"]'));
   for (const el of obstacleEls) {
     if (!el.id) continue;
+    let bb = null;
     try {
       if (typeof el.getBBox === 'function') {
-        const bb = el.getBBox();
-        obstacleMap.set(el.id, { x: bb.x, y: bb.y, w: bb.width, h: bb.height });
+        bb = el.getBBox();
+        // If bbox is 0,0,0,0, fallback to config geometry if available
+        if (bb && bb.x === 0 && bb.y === 0 && bb.width === 0 && bb.height === 0) {
+          const cfg = root.__cblcars_overlayConfigsById?.[el.id];
+          if (cfg && cfg.position && cfg.size) {
+            const anchors = root.__cblcars_anchors || {};
+            const vb = viewBox || [0,0,100,100];
+            const pos = Array.isArray(cfg.position) ? cfg.position : [0,0];
+            const sz = Array.isArray(cfg.size) ? cfg.size : [0,0];
+            const x = typeof pos[0] === 'string' && anchors[pos[0]] ? anchors[pos[0]][0] : Number(pos[0]);
+            const y = typeof pos[1] === 'string' && anchors[pos[1]] ? anchors[pos[1]][1] : Number(pos[1]);
+            const w = Number(sz[0]);
+            const h = Number(sz[1]);
+            if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(w) && Number.isFinite(h)) {
+              bb = { x, y, width: w, height: h };
+            }
+          }
+        }
+        if (bb && (bb.width > 0 || bb.height > 0)) {
+          obstacleMap.set(el.id, { x: bb.x, y: bb.y, w: bb.width, h: bb.height });
+        }
       }
     } catch(_) {}
   }
 
-  for(const p of paths){
-    perf?.count&&perf.count('connectors.layout.considered');
-    const targetId=p.getAttribute('data-cblcars-attach-to');
-    const sx=parseFloat(p.getAttribute('data-cblcars-start-x'));
-    const sy=parseFloat(p.getAttribute('data-cblcars-start-y'));
-    if(!targetId||!isFinite(sx)||!isFinite(sy)){skipped++;continue;}
-    const side=(p.getAttribute('data-cblcars-side')||'auto').toLowerCase();
-    const align=(p.getAttribute('data-cblcars-align')||'center').toLowerCase();
-    let gapRaw=p.getAttribute('data-cblcars-gap')||'12';
-    let gap=parseFloat(gapRaw);
-    if(String(gapRaw).trim().endsWith('px')){
-      const conv=geo.pxGapToViewBox(root,gap);
-      if(Number.isFinite(conv)) gap=conv;
+  // Helper: format bbox
+  function fmtBb(bb){
+    if(!bb) return 'none';
+    return `${roundBBoxValue(bb.x)},${roundBBoxValue(bb.y)},${roundBBoxValue(bb.w)},${roundBBoxValue(bb.h)}`;
+  }
+
+  for (const p of paths) {
+    perf?.count && perf.count('connectors.layout.considered');
+
+    const targetId = p.getAttribute('data-cblcars-attach-to');
+    const sx = parseFloat(p.getAttribute('data-cblcars-start-x'));
+    const sy = parseFloat(p.getAttribute('data-cblcars-start-y'));
+
+    if (!targetId || !isFinite(sx) || !isFinite(sy)) { skipped++; continue; }
+
+    const side  = (p.getAttribute('data-cblcars-side')  || 'auto').toLowerCase();
+    const align = (p.getAttribute('data-cblcars-align') || 'center').toLowerCase();
+
+    let gapRaw = p.getAttribute('data-cblcars-gap') || '12';
+    let gap = parseFloat(gapRaw);
+    if (String(gapRaw).trim().endsWith('px')) {
+      const conv = geo.pxGapToViewBox(root, gap);
+      if (Number.isFinite(conv)) gap = conv;
     }
-    if(!isFinite(gap)) gap=12;
-    const radius=Math.max(0,parseFloat(p.getAttribute('data-cblcars-radius'))||12);
-    const cornerStyle=(p.getAttribute('data-cblcars-corner-style')||'round').toLowerCase();
+    if (!isFinite(gap)) gap = 12;
+
+    const radius = Math.max(0, parseFloat(p.getAttribute('data-cblcars-radius')) || 12);
+    const cornerStyle = (p.getAttribute('data-cblcars-corner-style') || 'round').toLowerCase();
+
     const routeModeAttr = p.getAttribute('data-cblcars-route') || '';
-    const routeMode = routeModeAttr === 'auto' ? 'auto' : null;
-    const forcedRouteMode = p.getAttribute('data-cblcars-route-mode'); // xy|yx|auto
-    const explicitMode = p.getAttribute('data-cblcars-route-mode-full'); // grid|smart|manhattan
+    const routeMode = routeModeAttr === 'auto' ? 'auto' : null;        // only 'auto' gets advanced logic
+    const forcedRouteMode = p.getAttribute('data-cblcars-route-mode'); // xy|yx|auto (preferred elbow orientation hint)
+
     const gridResAttr = p.getAttribute('data-cblcars-route-grid-res');
     let gridResolution = null;
     if (gridResAttr) {
@@ -586,69 +628,119 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
         ? gridResAttr.split(',').map(v => parseInt(v.trim(), 10)).filter(n => Number.isFinite(n))
         : parseInt(gridResAttr, 10);
     }
+
     const clearanceAttr = p.getAttribute('data-cblcars-route-clearance');
     const routeClearance = Number.isFinite(parseFloat(clearanceAttr)) ? parseFloat(clearanceAttr) : null;
 
+    // NEW: read optional smart proximity + stroke width (for later)
+    const smartProxAttr = p.getAttribute('data-cblcars-smart-proximity');
+    const lineSmartProx = Number.isFinite(parseFloat(smartProxAttr)) ? parseFloat(smartProxAttr) : null;
+    const strokeWidthAttr = p.getAttribute('stroke-width') || p.getAttribute('data-stroke-width') || p.style.strokeWidth;
+    const strokeWidth = Number.isFinite(parseFloat(strokeWidthAttr)) ? parseFloat(strokeWidthAttr) : 0;
+
+    // Avoid list
     let avoidList = [];
     try {
       const rawAvoid = p.getAttribute('data-cblcars-avoid');
       if (rawAvoid) avoidList = rawAvoid.split(',').map(s=>s.trim()).filter(Boolean);
-    } catch(_){}
+    } catch(_) {}
 
-    const box=resolveTargetBoxInViewBox(targetId,root,viewBox);
-    if(!box){skipped++;continue;}
+    // --- DEBUG: Always stamp obstacle info if debug flags and avoid list ---
+    try {
+      if ((window.cblcars?._debugFlags?.smart || window.cblcars?._debugFlags?.connectors) && avoidList.length) {
+        const rawMapPairs = avoidList.map(id=>{
+          const ob = obstacleMap.get(id);
+          return `${id}:${fmtBb(ob)}`;
+        });
+        p.setAttribute('data-cblcars-smart-avoid-list', avoidList.join(','));
+        p.setAttribute('data-cblcars-smart-obstacle-bboxes', rawMapPairs.join('|'));
+        const missing = rawMapPairs.filter(s=>s.endsWith(':none')).map(s=>s.split(':')[0]);
+        if (missing.length) p.setAttribute('data-cblcars-smart-missing', missing.join(','));
+        else p.removeAttribute('data-cblcars-smart-missing');
+      } else {
+        p.removeAttribute('data-cblcars-smart-avoid-list');
+        p.removeAttribute('data-cblcars-smart-obstacle-bboxes');
+        p.removeAttribute('data-cblcars-smart-missing');
+      }
+    } catch(_) {}
 
-    // Build signature
+    const box = resolveTargetBoxInViewBox(targetId, root, viewBox);
+    if (!box) { skipped++; continue; }
+
+    // Signature for diff / caching
     const obstaclesSignature = avoidList
       .map(id => {
         const ob = obstacleMap.get(id);
         return ob ? bboxHash(ob) : 'missing';
       });
 
-    const cfgSig={
-      id:p.id||null,targetId,
-      sx:roundBBoxValue(sx),sy:roundBBoxValue(sy),
-      side,align,gap:roundBBoxValue(gap),
-      radius:roundBBoxValue(radius),
-      style:cornerStyle,
+    const cfgSig = {
+      id: p.id || null,
+      targetId,
+      sx: roundBBoxValue(sx),
+      sy: roundBBoxValue(sy),
+      side,
+      align,
+      gap: roundBBoxValue(gap),
+      radius: roundBBoxValue(radius),
+      style: cornerStyle,
       rmode: routeMode || 'none',
       rforced: forcedRouteMode || 'none',
       avoid: avoidList.join('|'),
-      obs: obstaclesSignature.join(',')
+      obs: obstaclesSignature.join(','),
+      smartProx: lineSmartProx != null ? roundBBoxValue(lineSmartProx) : 0  // NEW include in signature
     };
-    const cfgHash=buildConnectorHash(cfgSig);
-    const bbHash=bboxHash(box);
-    const meta=connectorMetaMap.get(p);
-    const isDirtyId=(!forceAll && p.id && dirty.has(p.id))||forceAll;
-    const needs = isDirtyId || !meta || meta.version!==CONNECTOR_CACHE_VERSION || meta.hash!==cfgHash || meta.bboxHash!==bbHash;
+    const cfgHash = buildConnectorHash(cfgSig);
+    const bbHash = bboxHash(box);
+    const meta = connectorMetaMap.get(p);
+    const isDirtyId = (!forceAll && p.id && dirty.has(p.id)) || forceAll;
+    const needs = isDirtyId ||
+                  !meta ||
+                  meta.version !== CONNECTOR_CACHE_VERSION ||
+                  meta.hash !== cfgHash ||
+                  meta.bboxHash !== bbHash;
 
-    if(!needs){
-      perf?.count&&perf.count('connectors.layout.skipped');
+    if (!needs) {
+      perf?.count && perf.count('connectors.layout.skipped');
       skipped++;
-      if(routeMode) {
-        perf?.count&&perf.count('connectors.route.skipped');
+      if (routeMode) {
+        perf?.count && perf.count('connectors.route.skipped');
         routeSkipped++;
       }
       continue;
     }
 
-    try{
-      const endpoint = endpointOnBox([sx,sy],box,{side,align,gap});
+    try {
+      const endpoint = endpointOnBox([sx,sy], box, { side, align, gap });
       let d;
 
       if (routeMode === 'auto') {
+        // Global routing config (fallback defaults)
         const globalCfg = window.cblcars?.routing?.getGlobalConfig
           ? window.cblcars.routing.getGlobalConfig()
-          : { default_mode: 'manhattan', grid_resolution: 56, cost_defaults: {}, clearance: 0 };
+          : { default_mode: 'manhattan', grid_resolution: 56, cost_defaults: {}, clearance: 0, smart_proximity: 0 };
 
-        const forcedFull = (p.getAttribute('data-cblcars-route-mode-full') || '').toLowerCase().trim();
+        // Determine full mode (smart / grid / manhattan / auto)
+        const forcedFullRaw = (p.getAttribute('data-cblcars-route-mode-full') || '').toLowerCase().trim();
+        const forcedFull =
+          forcedFullRaw === 'grid'      ? 'grid' :
+          forcedFullRaw === 'smart'     ? 'smart' :
+          forcedFullRaw === 'manhattan' ? 'manhattan' :
+          '';  // treat anything else as "auto" → selectMode fallback
+
         const explicitMode = forcedFull || 'auto';
 
+        // Compute effectiveMode
         let effectiveMode;
         if (forcedFull === 'grid') {
           effectiveMode = 'grid';
+        } else if (forcedFull === 'smart') {
+          effectiveMode = 'smart';
+        } else if (forcedFull === 'manhattan') {
+          effectiveMode = 'manhattan';
         } else {
           try {
+            // selectMode may return 'auto' again
             effectiveMode = typeof selectMode === 'function'
               ? selectMode(explicitMode || 'auto', globalCfg.default_mode)
               : null;
@@ -656,8 +748,7 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
             effectiveMode = null;
           }
           if (!effectiveMode || effectiveMode === 'auto') {
-            if (forcedFull === 'smart') effectiveMode = 'smart';
-            else effectiveMode = globalCfg.default_mode || 'manhattan';
+            effectiveMode = globalCfg.default_mode || 'manhattan';
           }
         }
 
@@ -665,31 +756,141 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
         const clearance = routeClearance != null ? routeClearance : globalCfg.clearance || 0;
         const { rects: inflatedObstacles } = collectObstacles(root, avoidList, clearance);
 
-        let d;
+        // Normalize obstacle rectangles defensively (fields may differ).
+        const normObs = inflatedObstacles.map(o=>{
+          if(!o) return null;
+          const x = Number.isFinite(o.x)?o.x:(Number.isFinite(o.left)?o.left:0);
+            const y = Number.isFinite(o.y)?o.y:(Number.isFinite(o.top)?o.top:0);
+          const w = Number.isFinite(o.w)?o.w:
+            (Number.isFinite(o.width)?o.width:
+              (Number.isFinite(o.right)&&Number.isFinite(o.left)?(o.right-o.left):0));
+          const h = Number.isFinite(o.h)?o.h:
+            (Number.isFinite(o.height)?o.height:
+              (Number.isFinite(o.bottom)&&Number.isFinite(o.top)?(o.bottom-o.top):0));
+          return { x,y,w,h };
+        }).filter(Boolean);
+
+        // Keep a local debug toggle
+        const smartDebugActive = !!(window.cblcars?._debugFlags?.smart || p.hasAttribute('data-cblcars-smart-debug-force'));
+        // ---- SMART proximity ----
+        const globalSmartProx = Number.isFinite(parseFloat(globalCfg.smart_proximity)) ? parseFloat(globalCfg.smart_proximity) : 0;
+        const effectiveSmartProx = Math.max(0, lineSmartProx != null ? lineSmartProx : globalSmartProx, strokeWidth/2);
+        // Define grid attempt vars EARLY (were missing → crashes)
+        let dPath = null;
         let gridAccepted = false;
         let gridAttempts = [];
         let gridReason = 'not_tried';
-
-        const baseResolution = gridResolution || globalCfg.grid_resolution || 56;
-
-        // Build escalation list (only if forced grid)
-        const resolutionsToTry = effectiveMode === 'grid'
-          ? [...new Set([
-              baseResolution,
-              Math.round(baseResolution * 1.5),
-              Math.round(baseResolution * 2)
-            ])].filter(r => r > 0 && r <= 400) // simple cap
-          : [];
-
         let chosenMeta = null;
 
-        if (effectiveMode === 'grid') {
+        function manhattanIntersectsObstacles(sx0, sy0, ex, ey, obstacles, forcedOrientation, prox) {
+          const debugInfo = { elbows: [], corridors: [], obstacles: [], decision: 'none', mode: 'none' };
+          if (smartDebugActive) {
+            try { debugInfo.obstacles = obstacles.slice(0,12).map(o=>`${roundBBoxValue(o.x)},${roundBBoxValue(o.y)},${roundBBoxValue(o.w)},${roundBBoxValue(o.h)}`); } catch(_) {}
+          }
+          if (!obstacles || !obstacles.length) return { hit:false, mode:'none', debugInfo };
+          const elbows=[];
+          if (forcedOrientation==='xy') elbows.push([ex,sy0]);
+          else if (forcedOrientation==='yx') elbows.push([sx0,ey]);
+          else { elbows.push([ex,sy0]); elbows.push([sx0,ey]); }
+          const epsilon=0.0001;
+          const overlaps=(a,b)=>!(a.x+a.w<b.x||b.x+b.w<a.x||a.y+a.h<b.y||b.y+b.h<a.y);
+          function segmentDistanceHit(start, mid, end, ob, prox){
+            const segs=[[start,mid],[mid,end]];
+            for(const [A,B] of segs){
+              if(A[0]===B[0]&&A[1]===B[1]) continue;
+              const horiz=A[1]===B[1];
+              if(horiz){
+                const y=A[1]; const minX=Math.min(A[0],B[0]), maxX=Math.max(A[0],B[0]);
+                const obX0=ob.x, obX1=ob.x+ob.w;
+                const xOverlap=!(maxX<obX0||obX1<minX);
+                const yDist=(y<ob.y)?(ob.y-y):(y>ob.y+ob.h?(y-(ob.y+ob.h)):0);
+                if(xOverlap && yDist<=prox) return true;
+              } else {
+                const x=A[0]; const minY=Math.min(A[1],B[1]), maxY=Math.max(A[1],B[1]);
+                const obY0=ob.y, obY1=ob.y+ob.h;
+                const yOverlap=!(maxY<obY0||obY1<minY);
+                const xDist=(x<ob.x)?(ob.x-x):(x>ob.x+ob.w?(x-(ob.x+ob.w)):0);
+                if(yOverlap && xDist<=prox) return true;
+              }
+            }
+            return false;
+          }
+          for(const elbow of elbows){
+            if(smartDebugActive) debugInfo.elbows.push(`${roundBBoxValue(elbow[0])},${roundBBoxValue(elbow[1])}`);
+            const segs=[
+              { x:Math.min(sx0,elbow[0])-(epsilon+prox), y:Math.min(sy0,elbow[1])-(epsilon+prox),
+                w:Math.abs(sx0-elbow[0])+(epsilon+prox)*2, h:Math.abs(sy0-elbow[1])+(epsilon+prox)*2 },
+              { x:Math.min(elbow[0],ex)-(epsilon+prox), y:Math.min(elbow[1],ey)-(epsilon+prox),
+                w:Math.abs(elbow[0]-ex)+(epsilon+prox)*2, h:Math.abs(elbow[1]-ey)+(epsilon+prox)*2 }
+            ];
+            if(smartDebugActive){
+              debugInfo.corridors.push(segs.map(s=>`${roundBBoxValue(s.x)},${roundBBoxValue(s.y)},${roundBBoxValue(s.w)},${roundBBoxValue(s.h)}`).join('|'));
+            }
+            let bboxHit=false;
+            for(const seg of segs){
+              for(const ob of obstacles){ if(overlaps(seg,ob)){bboxHit=true; break;} }
+              if(bboxHit) break;
+            }
+            if(bboxHit){ debugInfo.decision='hit'; debugInfo.mode='bbox'; return {hit:true,mode:'bbox',debugInfo}; }
+            for(const ob of obstacles){
+              if(segmentDistanceHit([sx0,sy0],elbow,[ex,ey],ob,prox)){
+                debugInfo.decision='hit'; debugInfo.mode='distance'; return {hit:true,mode:'distance',debugInfo};
+              }
+            }
+          }
+          debugInfo.decision='clear';
+          return { hit:false, mode:'none', debugInfo };
+        }
+
+        let smartShouldTryGrid=false, smartSkipped=false, smartHit=false, smartHitMode='none';
+        if (effectiveMode==='smart') {
+          const res = manhattanIntersectsObstacles(sx,sy,endpoint[0],endpoint[1],normObs,forcedRouteMode,effectiveSmartProx);
+            smartHit=res.hit; smartHitMode=res.mode;
+          if(smartHit) smartShouldTryGrid=true; else smartSkipped=true;
+          // Always stamp debug geometry when smart + debug active
+          if(res.debugInfo && smartDebugActive){
+            p.setAttribute('data-cblcars-smart-elbows', res.debugInfo.elbows.join(';'));
+            p.setAttribute('data-cblcars-smart-corridors', res.debugInfo.corridors.join(';'));
+            p.setAttribute('data-cblcars-smart-obstacles', res.debugInfo.obstacles.join('|'));
+            p.setAttribute('data-cblcars-smart-start', `${roundBBoxValue(sx)},${roundBBoxValue(sy)}`);
+            p.setAttribute('data-cblcars-smart-end', `${roundBBoxValue(endpoint[0])},${roundBBoxValue(endpoint[1])}`);
+            p.setAttribute('data-cblcars-smart-decision', res.debugInfo.decision);
+          } else if (smartDebugActive){
+            // Ensure geometry baseline present even if no obstacles
+            p.setAttribute('data-cblcars-smart-start', `${roundBBoxValue(sx)},${roundBBoxValue(sy)}`);
+            p.setAttribute('data-cblcars-smart-end', `${roundBBoxValue(endpoint[0])},${roundBBoxValue(endpoint[1])}`);
+          } else {
+            p.removeAttribute('data-cblcars-smart-elbows');
+            p.removeAttribute('data-cblcars-smart-corridors');
+            p.removeAttribute('data-cblcars-smart-obstacles');
+            p.removeAttribute('data-cblcars-smart-start');
+            p.removeAttribute('data-cblcars-smart-end');
+            p.removeAttribute('data-cblcars-smart-decision');
+          }
+        } else {
+          // Clear debug attrs if not smart
+          p.removeAttribute('data-cblcars-smart-elbows');
+          p.removeAttribute('data-cblcars-smart-corridors');
+          p.removeAttribute('data-cblcars-smart-obstacles');
+          p.removeAttribute('data-cblcars-smart-start');
+          p.removeAttribute('data-cblcars-smart-end');
+          p.removeAttribute('data-cblcars-smart-decision');
+        }
+
+        // Decide if grid route attempted
+        const baseResolution = gridResolution || globalCfg.grid_resolution || 56;
+        const attemptGrid = (effectiveMode==='grid') || (effectiveMode==='smart' && smartShouldTryGrid);
+        const resolutionsToTry = attemptGrid
+          ? [...new Set([baseResolution, Math.round(baseResolution*1.5), Math.round(baseResolution*2)])]
+              .filter(r=>r>0 && r<=400)
+          : [];
+
+        if (attemptGrid) {
           for (const res of resolutionsToTry) {
             const meta = routeViaGrid({
-              root,
-              viewBox,
-              start: [sx, sy],
-              end: [endpoint[0], endpoint[1]],
+              root, viewBox,
+              start:[sx,sy],
+              end:[endpoint[0],endpoint[1]],
               obstacles: inflatedObstacles,
               resolution: res,
               costParams: globalCfg.cost_defaults,
@@ -698,15 +899,10 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
             gridAttempts.push({
               res,
               failed: !!meta?.failed,
-              reason: meta?.reason || (meta?.failed ? 'fail' : 'ok'),
+              reason: meta?.reason || (meta?.failed?'fail':'ok'),
               endDelta: meta?.endDelta
             });
-
-            if (!meta || meta.failed) {
-              gridReason = meta?.reason || 'fail';
-              continue;
-            }
-            // Acceptance check already passed within meta (endpoint validated there)
+            if(!meta || meta.failed){ gridReason = meta?.reason || 'fail'; continue; }
             chosenMeta = meta;
             gridAccepted = true;
             gridReason = 'ok';
@@ -714,105 +910,121 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
           }
         }
 
-        if (gridAccepted && chosenMeta && chosenMeta.points?.length >= 2) {
+        if (gridAccepted && chosenMeta?.points?.length>=2){
           const pts = chosenMeta.points;
-          let pathStr = `M${pts[0][0]},${pts[0][1]}`;
-          for (let i = 1; i < pts.length; i++) pathStr += ` L${pts[i][0]},${pts[i][1]}`;
-          d = pathStr;
-          registerResult(p.id, {
-            strategy: 'grid',
-            expansions: chosenMeta.expansions,
-            cost: chosenMeta.cost,
-            bends: chosenMeta.cost?.bends,
-            pathHash: chosenMeta.pathHash,
-            endDelta: chosenMeta.endDelta,
-            resolution: chosenMeta.resolution
+          let pathStr=`M${pts[0][0]},${pts[0][1]}`;
+          for(let i=1;i<pts.length;i++) pathStr += ` L${pts[i][0]},${pts[i][1]}`;
+          dPath = pathStr;
+          registerResult(p.id,{
+            strategy:'grid',
+            expansions:chosenMeta.expansions,
+            cost:chosenMeta.cost,
+            bends:chosenMeta.cost?.bends,
+            pathHash:chosenMeta.pathHash,
+            endDelta:chosenMeta.endDelta,
+            resolution:chosenMeta.resolution
           });
-          perf?.count && perf.count('connectors.route.grid.calls');
-          perf?.count && perf.count('connectors.route.grid.success');
-          try {
-            if (window.cblcars?._debugFlags?.connectors || window.cblcars?._debugFlags?.geometry) {
-              window.cblcars.routing.grid.debugRenderGridPath(root, chosenMeta);
-            }
-          } catch {}
         }
 
-        if (!d) {
-          // Manhattan fallback
-          const { d: autoD } = computeAutoRoute(sx, sy, box, endpoint, {
+        if(!dPath){
+          // Manhattan fallback/primary
+          const { d: autoD } = computeAutoRoute(sx,sy,box,endpoint,{
             radius, cornerStyle,
             routeMode: forcedRouteMode || 'auto',
             obstacles: obstaclesRaw
           });
-          d = autoD;
-          if (effectiveMode === 'grid') {
-            perf?.count && perf.count('connectors.route.grid.fallback');
-          }
-          perf?.count && perf.count('connectors.route.recomputed');
+          dPath = autoD;
         }
 
-        // Status / telemetry attributes
+        // Telemetry
         try {
           p.setAttribute('data-cblcars-route-effective', effectiveMode);
-          if (effectiveMode === 'grid') {
-            p.setAttribute('data-cblcars-route-grid-status', gridAccepted ? 'success' : `fallback`);
+          if (effectiveMode==='grid') {
+            p.setAttribute('data-cblcars-route-grid-status', gridAccepted?'success':'fallback');
             p.setAttribute('data-cblcars-route-grid-reason', gridReason);
-            p.setAttribute('data-cblcars-route-grid-attempts', gridAttempts.map(a => `${a.res}:${a.reason}`).join(','));
+            p.setAttribute('data-cblcars-route-grid-attempts', gridAttempts.map(a=>`${a.res}:${a.reason}`).join(','));
+            p.removeAttribute('data-cblcars-smart-hit');
+            p.removeAttribute('data-cblcars-smart-proximity');
+            p.removeAttribute('data-cblcars-smart-hit-mode');
+          } else if (effectiveMode==='smart') {
+            p.setAttribute('data-cblcars-smart-proximity', String(effectiveSmartProx));
+            p.setAttribute('data-cblcars-smart-hit', smartHit?'true':'false');
+            p.setAttribute('data-cblcars-smart-hit-mode', smartHitMode);
+            if (smartSkipped){
+              p.setAttribute('data-cblcars-route-grid-status','skipped');
+              p.setAttribute('data-cblcars-route-grid-reason','no_obstacle');
+              p.removeAttribute('data-cblcars-route-grid-attempts');
+            } else {
+              p.setAttribute('data-cblcars-route-grid-status', gridAccepted?'success':'fallback');
+              p.setAttribute('data-cblcars-route-grid-reason', gridReason);
+              if(gridAttempts.length){
+                p.setAttribute('data-cblcars-route-grid-attempts', gridAttempts.map(a=>`${a.res}:${a.reason}`).join(','));
+              } else p.removeAttribute('data-cblcars-route-grid-attempts');
+            }
           } else {
-            p.setAttribute('data-cblcars-route-grid-status', 'manhattan');
+            p.setAttribute('data-cblcars-route-grid-status','manhattan');
             p.removeAttribute('data-cblcars-route-grid-reason');
             p.removeAttribute('data-cblcars-route-grid-attempts');
+            p.removeAttribute('data-cblcars-smart-hit');
+            p.removeAttribute('data-cblcars-smart-proximity');
+            p.removeAttribute('data-cblcars-smart-hit-mode');
           }
-        } catch {}
+        } catch(_) {}
 
+        // Apply path + cache
+        if(!dPath || typeof dPath!=='string' || !dPath.startsWith('M')) dPath=`M${sx},${sy} L${sx},${sy}`;
+        p.setAttribute('d', dPath);
+        p.removeAttribute('data-cblcars-pending');
+        connectorMetaMap.set(p,{hash:cfgHash,bboxHash:bbHash,version:CONNECTOR_CACHE_VERSION});
         routeRecomputed++;
-        if (!d || typeof d !== 'string' || !d.startsWith('M')) {
-          if (debug) cblcarsLog.warn('[connectors] Invalid d after routing, trivial fallback', { id: p.id, d });
-          d = `M${sx},${sy} L${sx},${sy}`;
-        }
-        p.setAttribute('d', d);
-        if (p.hasAttribute('data-cblcars-pending')) p.removeAttribute('data-cblcars-pending');
-        connectorMetaMap.set(p, { hash: cfgHash, bboxHash: bbHash, version: CONNECTOR_CACHE_VERSION });
-        perf?.count && perf.count('connectors.layout.recomputed'); recomputed++;
+        recomputed++;
         continue;
       }
-      // Paranoid guard (should not trigger normally)
+
+      // Non-auto legacy path (should rarely happen here)
       if (!d || typeof d !== 'string' || !d.startsWith('M')) {
         if (debug) cblcarsLog.warn('[connectors] Invalid path "d" fallback', { id: p.id, d });
         d = `M${sx},${sy} L${sx},${sy}`;
       }
-
-      p.setAttribute('d',d);
+      p.setAttribute('d', d);
       if (p.hasAttribute('data-cblcars-pending')) p.removeAttribute('data-cblcars-pending');
-      connectorMetaMap.set(p,{hash:cfgHash,bboxHash:bbHash,version:CONNECTOR_CACHE_VERSION});
-      perf?.count&&perf.count('connectors.layout.recomputed'); recomputed++;
-    }catch(e){
-      try{
-        const endpoint = endpointOnBox([sx,sy],box,{side,align,gap});
-        p.setAttribute('d',generateRightAnglePath([sx,sy],[endpoint[0],endpoint[1]],{radius,cornerStyle}));
-      }catch(_) {}
-      perf?.count&&perf.count('connectors.layout.recomputed'); recomputed++;
-      if(debug) cblcarsLog.warn('[connectors] recompute failed fallback',{id:p.id,error:e});
+      connectorMetaMap.set(p, { hash: cfgHash, bboxHash: bbHash, version: CONNECTOR_CACHE_VERSION });
+      perf?.count && perf.count('connectors.layout.recomputed');
+      recomputed++;
+    } catch(e) {
+      try {
+        const endpoint = endpointOnBox([sx,sy], box, { side, align, gap });
+        p.setAttribute('d', generateRightAnglePath([sx,sy],[endpoint[0],endpoint[1]], { radius, cornerStyle }));
+      } catch(_) {}
+      perf?.count && perf.count('connectors.layout.recomputed');
+      recomputed++;
+      if (debug) cblcarsLog.warn('[connectors] recompute failed fallback', { id: p.id, error: e });
     }
   }
-  if(dirty.size) dirty.clear();
-  perf?.count&&perf.count('connectors.layout');
-  if(debug) cblcarsLog.info('[connectors] layout pass',{
-    considered:paths.length,recomputed,skipped,
-    routeRecomputed,routeSkipped
+
+  if (dirty.size) dirty.clear();
+  perf?.count && perf.count('connectors.layout');
+  if (debug) cblcarsLog.info('[connectors] layout pass', {
+    considered: paths.length,
+    recomputed,
+    skipped,
+    routeRecomputed,
+    routeSkipped
   });
-  endPerf&&endPerf();
+  endPerf && endPerf();
   if (dbgEnd) window.cblcars.debug.perf.end('connectors.layout.timer');
 
   try {
     if (window.cblcars?._debugFlags &&
-        (window.cblcars._debugFlags.connectors ||
-         window.cblcars._debugFlags.overlay ||
-         window.cblcars._debugFlags.perf ||
-         window.cblcars._debugFlags.geometry)) {
-      requestAnimationFrame(() => window.cblcars.debug.render(root, viewBox, { anchors: root.__cblcars_anchors }));
+       (window.cblcars._debugFlags.connectors ||
+        window.cblcars._debugFlags.overlay ||
+        window.cblcars._debugFlags.perf ||
+        window.cblcars._debugFlags.geometry)) {
+      requestAnimationFrame(() =>
+        window.cblcars.debug.render(root, viewBox, { anchors: root.__cblcars_anchors })
+      );
     }
-  } catch (_) {}
+  } catch(_) {}
 }
 
 /* ---------------- Main Renderer (includes sparkline pending fix + line route:auto) ---------------- */
@@ -1154,6 +1366,9 @@ export function renderMsdOverlay({
                 }
 
                 // Reveal AFTER final geometry update
+
+
+
                 if (pathEl.hasAttribute('data-cblcars-pending')) {
                   pathEl.removeAttribute('data-cblcars-pending');
                 }
@@ -1328,7 +1543,6 @@ export function renderMsdOverlay({
       const routeAuto = String(computed.route||'').toLowerCase()==='auto';
       const routeMode = computed.route_mode ? String(computed.route_mode).toLowerCase() : undefined;
       const avoid = Array.isArray(computed.avoid)?computed.avoid:[];
-
       if(Array.isArray(computed.points)&&computed.points.length>=2 && !routeAuto){
         const pts=computed.points.map(p=>resolvePoint(p,pointContext)).filter(Boolean);
         if(pts.length>=2) d=generateMultiSegmentPath(pts,{cornerStyle,cornerRadius});
@@ -1343,42 +1557,44 @@ export function renderMsdOverlay({
         if(!start){svgOverlayManager.push(`Line "${thisId}" requires valid "anchor".`);return;}
         if(end && !routeAuto){
           d=generateRightAnglePath(start,end,{radius:cornerRadius,cornerStyle});
-        }else if(attachIsId){
-          const {attrs,style}=splitAttrsAndStyle(computed,'line');
+        }else if (attachIsId) {
+          const { attrs, style } = splitAttrsAndStyle(computed,'line');
           attrs.fill='none';
-          if(!attrs.stroke&&computed.color) attrs.stroke=computed.color;
-          if(!attrs['stroke-width']&&computed.width) attrs['stroke-width']=computed.width;
+          if(!attrs.stroke && computed.color) attrs.stroke=computed.color;
+          if(!attrs['stroke-width'] && computed.width) attrs['stroke-width']=computed.width;
           const hasActions=!!(overlay.tap_action||overlay.hold_action||overlay.double_tap_action||overlay.actions);
           style['pointer-events']=hasActions?'auto':'none';
           if(hasActions) style.cursor='pointer';
           attrs['data-cblcars-attach-to']=String(attachRaw);
           attrs['data-cblcars-start-x']=String(start[0]);
           attrs['data-cblcars-start-y']=String(start[1]);
-          if(computed.attach_side) attrs['data-cblcars-side']=String(computed.attach_side);
+          if(computed.attach_side)  attrs['data-cblcars-side']=String(computed.attach_side);
           if(computed.attach_align) attrs['data-cblcars-align']=String(computed.attach_align);
           if(computed.attach_gap!==undefined) attrs['data-cblcars-gap']=String(computed.attach_gap);
           attrs['data-cblcars-radius']=String(cornerRadius);
           attrs['data-cblcars-corner-style']=cornerStyle;
-          if(routeAuto) {
+          if(routeAuto){
             attrs['data-cblcars-route']='auto';
             if(routeMode) attrs['data-cblcars-route-mode']=routeMode;
-            if(avoid.length) attrs['data-cblcars-avoid']=avoid.join(',');
+            const fullMode = computed.route_mode_full || overlay.route_mode_full;
+            if(fullMode) attrs['data-cblcars-route-mode-full']=String(fullMode).toLowerCase();
+            attrs['data-cblcars-avoid'] = avoid.length ? avoid.join(',') : '';
           }
           attrs['data-cblcars-type']='line';
           attrs['data-cblcars-root']='true';
           attrs['data-cblcars-pending']='true';
-          svgElements.push(svgHelpers.drawPath({d:'',id:thisId,attrs,style}));
+          svgElements.push(svgHelpers.drawPath({ d:'', id:thisId, attrs, style }));
           if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
             window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
-            animationsToRun.push({...computed.animation,targets:`#${thisId}`,root});
+            animationsToRun.push({ ...computed.animation, targets:`#${thisId}`, root });
           }
           return;
         }else if(routeAuto && end){
           d=generateRightAnglePath(start,end,{radius:cornerRadius,cornerStyle});
-        } else if(routeAuto && attachIsId){
-          const {attrs,style}=splitAttrsAndStyle(computed,'line');
+        } else if (routeAuto && attachIsId) {
+          const { attrs, style } = splitAttrsAndStyle(computed,'line');
           attrs.fill='none';
-          if(!attrs.stroke&&computed.color) attrs.stroke=computed.color;
+          if(!attrs.stroke && computed.color) attrs.stroke=computed.color;
           if(!attrs['stroke-width']&&computed.width) attrs['stroke-width']=computed.width;
           const hasActions=!!(overlay.tap_action||overlay.hold_action||overlay.double_tap_action||overlay.actions);
           style['pointer-events']=hasActions?'auto':'none';
@@ -1386,23 +1602,26 @@ export function renderMsdOverlay({
           attrs['data-cblcars-attach-to']=String(attachRaw);
           attrs['data-cblcars-start-x']=String(start[0]);
           attrs['data-cblcars-start-y']=String(start[1]);
-          if(computed.attach_side) attrs['data-cblcars-side']=String(computed.attach_side);
+          if(computed.attach_side)  attrs['data-cblcars-side']=String(computed.attach_side);
           if(computed.attach_align) attrs['data-cblcars-align']=String(computed.attach_align);
           if(computed.attach_gap!==undefined) attrs['data-cblcars-gap']=String(computed.attach_gap);
           attrs['data-cblcars-radius']=String(cornerRadius);
           attrs['data-cblcars-corner-style']=cornerStyle;
           attrs['data-cblcars-route']='auto';
           if(routeMode) attrs['data-cblcars-route-mode']=routeMode;
-          if(avoid.length) attrs['data-cblcars-avoid']=avoid.join(',');
+          const fullMode2 = computed.route_mode_full || overlay.route_mode_full;
+          if(fullMode2) attrs['data-cblcars-route-mode-full']=String(fullMode2).toLowerCase();
+          attrs['data-cblcars-avoid'] = avoid.length ? avoid.join(',') : '';
           attrs['data-cblcars-type']='line';
           attrs['data-cblcars-root']='true';
           attrs['data-cblcars-pending']='true';
-          svgElements.push(svgHelpers.drawPath({d:'',id:thisId,attrs,style}));
+          svgElements.push(svgHelpers.drawPath({ d:'', id:thisId, attrs, style }));
           if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
             window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
-            animationsToRun.push({...computed.animation,targets:`#${thisId}`,root});
+            animationsToRun.push({ ...computed.animation, targets:`#${thisId}`, root });
           }
           return;
+
         } else {
           svgOverlayManager.push(`Line "${thisId}" requires valid "attach_to".`);
           return;
