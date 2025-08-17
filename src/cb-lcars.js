@@ -63,6 +63,9 @@ function applyEarlyMsdDebugFlags(msdDebugCfg) {
       else if (!(k in merged)) merged[k] = v; // preserve explicit false only if key absent
     }
 
+    // Ensure new validation flag is merged (even if not present earlier)
+    if (flagCandidates.validation === true) merged.validation = true;
+
     dbg.setFlags(merged);
     if (level && typeof dbg.setLevel === 'function') {
       dbg.setLevel(level);
@@ -139,6 +142,25 @@ async function initializeCustomCard() {
     window.cblcars.connectors = window.cblcars.connectors || {};
     window.cblcars.connectors.relayout = (root, viewBox) =>
         window.cblcars.overlayHelpers?.layoutPendingConnectors?.(root || document, viewBox);
+
+
+    // NEW: controls.relayout alias backed by last stored args
+    window.cblcars.controls = window.cblcars.controls || {};
+    window.cblcars.controls.relayout = (rootLike) => {
+      try {
+        const rootNode = (rootLike && rootLike.shadowRoot) ? rootLike.shadowRoot : (rootLike || document);
+        const last = rootNode && rootNode.__cblcars_lastControlsArgs;
+        if (!last) {
+          console.warn('[controls.relayout] No previous controls render arguments found.');
+          return;
+        }
+       // Re-run render with stored args (fresh hass pulled if card host still present)
+        if (last.root?.host?.hass) last.hass = last.root.host.hass;
+        window.cblcars.renderMsdControls(last);
+      } catch (e) {
+        console.warn('[controls.relayout] failed', e);
+      }
+    };
 
     // After existing connectors.relayout definition:
     window.cblcars.connectors.invalidate = (id) => {

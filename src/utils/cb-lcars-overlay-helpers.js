@@ -423,21 +423,41 @@ function generateMultiSegmentPath(points,{cornerStyle='round',cornerRadius=12}={
 
 /* ---------------- Error manager ---------------- */
 class SvgOverlayErrorManager {
-  constructor(){this.errors=[];this.containerId='cblcars-overlay-errors';this.viewBox=[0,0,400,200];this.root=null;}
+  constructor(){
+    this.errors=[];
+    this.warnings=[];
+    this.containerId='cblcars-overlay-errors';
+    this.viewBox=[0,0,400,200];
+    this.root=null;
+  }
+
   setRoot(r){this.root=r;}
-  clear(){this.errors=[];this.render();}
-  push(msg){if(!this.errors.includes(msg)){this.errors.push(msg);this.render();}}
+
+  clear(){this.errors=[];this.warnings=[];this.render();}
+  push(msg){ if(!this.errors.includes(msg)){ this.errors.push(msg); this.render(); } }
+  pushWarning(msg){ if(!this.warnings.includes(msg)){ this.warnings.push(msg); this.render(); } }
+
   render(){
     const searchRoot=this.root||document;
     requestAnimationFrame(()=>{requestAnimationFrame(()=>{
       const c=searchRoot.querySelector(`#${this.containerId}`);
       if(!c)return;
-      if(!this.errors.length){c.innerHTML='';return;}
+      if(!this.errors.length && !this.warnings.length){c.innerHTML='';return;}
       const [, , , vh]=this.viewBox;
       const fs=Math.max(8,Math.min(48,Math.round(vh*0.12)));
-      c.innerHTML=`<text x="${this.viewBox[0]+10}" y="${this.viewBox[1]+fs}" fill="red" font-size="${fs}" font-family="monospace" opacity="0.8">
-        ${this.errors.map((m,i)=>`<tspan x="${this.viewBox[0]+10}" dy="${i===0?0:'1.2em'}">${m}</tspan>`).join('')}
-      </text>`;
+
+      const warnLines = this.warnings.map((m,i)=>`<tspan x="${this.viewBox[0]+10}" dy="${i===0?0:'1.2em'}">${m}</tspan>`).join('');
+      const errLines = this.errors.map((m,i)=>`<tspan x="${this.viewBox[0]+10}" dy="${i===0&& !this.warnings.length?0:'1.2em'}">${m}</tspan>`).join('');
+      let yStart = this.viewBox[1]+fs;
+      let markup = '';
+      if (this.warnings.length) {
+        markup += `<text x="${this.viewBox[0]+10}" y="${yStart}" fill="#ffcc33" font-size="${fs}" font-family="monospace" opacity="0.95">${warnLines}</text>`;
+        yStart += (this.warnings.length+0.2)*fs*1.2;
+      }
+      if (this.errors.length) {
+        markup += `<text x="${this.viewBox[0]+10}" y="${yStart}" fill="red" font-size="${fs}" font-family="monospace" opacity="0.9">${errLines}</text>`;
+      }
+      c.innerHTML = markup;
     });});
   }
   setViewBox(vb){if(Array.isArray(vb)&&vb.length===4)this.viewBox=vb;}
@@ -805,6 +825,32 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
       );
     }
   } catch(_) {}
+
+  /* Unresolved connector warnings (post-layout) */
+  try {
+    const flags = window.cblcars?._debugFlags || {};
+    const unresolved = [];
+    for (const p of paths) {
+      const attachTo = p.getAttribute('data-cblcars-attach-to');
+      if (!attachTo) continue;
+      const d = p.getAttribute('d') || '';
+      const geomPending = p.getAttribute('data-cblcars-geom-pending') === 'true';
+      const trivial = !d || /^M\s*0[, ]0\s*L?\s*0[, ]0$/i.test(d);
+      if (geomPending || trivial) {
+        unresolved.push({ id: p.id || '(anon)', target: attachTo });
+      }
+    }
+    if (unresolved.length) {
+      const msgPrefix = `[connectors] ${unresolved.length} unresolved: `;
+      const list = unresolved.map(u => `${u.id}->${u.target}`).join(', ');
+      if (flags.validation) {
+        svgOverlayManager.pushWarning(`${msgPrefix}${list}`);
+      } else {
+        console.warn(msgPrefix + list);
+      }
+    }
+  } catch(_) {}
+
 }
 
 /* ---------------- Main Renderer (includes sparkline pending fix + line route:auto) ---------------- */
@@ -833,6 +879,15 @@ export function renderMsdOverlay({
     const {errors,warnings,detailsById}=validateOverlays({overlays,anchors,viewBox});
     warnings?.forEach(w=>cblcarsLog.warn(`[validation] ${w}`));
     errors?.forEach(e=>svgOverlayManager.push(e));
+
+    // Escalate warnings if debug.validation flag set
+    try {
+      const flags = window.cblcars?._debugFlags || {};
+      if (flags.validation && Array.isArray(warnings)) {
+        warnings.forEach(w => svgOverlayManager.pushWarning(w));
+      }
+    } catch(_) {}
+
     try{
       root.__cblcars_validationCounts={errors:errors?.length||0,warnings:warnings?.length||0};
       root.__cblcars_validationById=detailsById||{};
@@ -1481,6 +1536,10 @@ export function renderMsdOverlay({
           window.cblcars.debug?.render?.(root, viewBox, { anchors });
         });
     }
+
+    // Auto geometry self-test (after first overlay stamp)
+    try { window.cblcars?.geometry?.runAutoSelfTest?.(root); } catch(_) {}
+
   } catch (_) {}
 
   if (dbgEnd) window.cblcars.debug.perf.end('msd.render');

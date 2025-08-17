@@ -293,6 +293,21 @@ export async function renderMsdControls({
     window.cblcars?.perf?.count && window.cblcars.perf.count('connectors.layout.sched');
   } catch (_) {}
 
+  // 9) Store last arguments for controls.relayout alias
+  try {
+    root.__cblcars_lastControlsArgs = {
+      overlays,
+      viewBox,
+      anchors,
+      root,
+      hass,
+      hostId,
+      baseZ,
+      hostParentSelector,
+      measureSelector
+    };
+  } catch (_) {}
+
   window.cblcars?.perf?.count && window.cblcars.perf.count('controls.render');
   endPerf && endPerf();
   if (dbgEnd) window.cblcars.debug.perf.end('controls.render');

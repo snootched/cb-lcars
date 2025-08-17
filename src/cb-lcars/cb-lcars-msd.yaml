@@ -11,6 +11,7 @@ cb-lcars-msd:
         connectors: true
         overlay: true
         perf: true
+        validation: true
         level: debug
       base_svg: builtin:ncc-1701-a-blue
       anchors:

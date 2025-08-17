@@ -198,3 +198,107 @@ export function pxGapToViewBox(root, px) {
   const sx = pair.ctm.a || 1; // scaleX
   return px / sx;
 }
+
+/**
+ * Geometry self-test
+ * Performs round-trip (viewBox -> screen -> viewBox) tests on a small sample
+ * of points & a rect, reporting maximum delta in viewBox units and in pixels.
+ *
+ * @param {Element|ShadowRoot|Document} root
+ * @param {{samples?:number, pxThreshold?:number, log?:boolean}} [opts]
+ * @returns {{ok:boolean,maxDeltaPx:number,thresholdPx:number,details:Array}} summary
+ */
+export function selfTest(root, opts = {}) {
+  const res = {
+    ok: true,
+    maxDeltaPx: 0,
+    thresholdPx: Number.isFinite(opts.pxThreshold) ? opts.pxThreshold : 0.75,
+    details: []
+  };
+  try {
+    const svg = getReferenceSvg(root);
+    if (!svg) {
+      res.ok = false;
+      res.details.push('No reference SVG found.');
+      return res;
+    }
+    const vb = getViewBox(root, svg);
+    if (!vb) {
+      res.ok = false;
+      res.details.push('No viewBox available.');
+      return res;
+    }
+    const [minX, minY, w, h] = vb;
+    const pts = [];
+    // corners + center + quarter points
+    pts.push([minX, minY]);
+    pts.push([minX + w, minY]);
+    pts.push([minX, minY + h]);
+    pts.push([minX + w, minY + h]);
+    pts.push([minX + w / 2, minY + h / 2]);
+    pts.push([minX + w * 0.25, minY + h * 0.25]);
+    pts.push([minX + w * 0.75, minY + h * 0.75]);
+    const pair = getCtmPair(svg);
+    if (!pair) {
+      res.ok = false;
+      res.details.push('CTM not available.');
+      return res;
+    }
+    // Build a helper to measure pixel delta
+    const testPoint = (vx, vy) => {
+      const scr = viewBoxPointToScreen(svg, vx, vy);
+      if (!scr) return;
+      const back = screenPointToViewBox(svg, scr.x, scr.y);
+      if (!back) return;
+      const dx = back.x - vx;
+      const dy = back.y - vy;
+      // Convert viewBox delta to approximate px (forward map both points)
+      const scr2 = viewBoxPointToScreen(svg, back.x, back.y);
+      if (!scr2) return;
+      const pxDelta = Math.hypot(scr2.x - scr.x, scr2.y - scr.y);
+      res.maxDeltaPx = Math.max(res.maxDeltaPx, pxDelta);
+      res.details.push(`pt(${vx.toFixed(2)},${vy.toFixed(2)}) -> Δpx=${pxDelta.toFixed(3)}`);
+    };
+    pts.forEach(p => testPoint(p[0], p[1]));
+    res.ok = res.maxDeltaPx <= res.thresholdPx;
+    if (opts.log !== false) {
+      const logFn = res.ok ? console.info : console.warn;
+      logFn(`[geometry.selfTest] maxΔ=${res.maxDeltaPx.toFixed(3)}px (threshold ${res.thresholdPx}px) ok=${res.ok}`);
+      if (!res.ok) console.warn('[geometry.selfTest] Details:', res.details);
+    }
+  } catch (e) {
+    res.ok = false;
+    res.details.push(`Exception: ${e?.message || e}`);
+    console.warn('[geometry.selfTest] error', e);
+  }
+  return res;
+}
+
+// Auto self-test once per root if debug.geometry enabled
+const _autoTested = new WeakSet();
+/**
+ * Run selfTest automatically if debug.geometry flag is true and not yet run for this root.
+ * @param {Element|ShadowRoot|Document} root
+ */
+export function runAutoSelfTest(root) {
+  try {
+    if (!root || _autoTested.has(root)) return;
+    const flags = window.cblcars?._debugFlags || {};
+    if (!flags.geometry) return;
+    _autoTested.add(root);
+    // Delay slightly to ensure layout
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => selfTest(root));
+    });
+  } catch (_) {}
+}
+
+// Attach to global namespace if not already
+try {
+  window.cblcars = window.cblcars || {};
+  window.cblcars.geometry = window.cblcars.geometry || {};
+  if (!window.cblcars.geometry.selfTest) {
+    window.cblcars.geometry.selfTest = selfTest;
+    window.cblcars.geometry.runAutoSelfTest = runAutoSelfTest;
+  }
+} catch (_) {}
