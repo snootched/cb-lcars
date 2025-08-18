@@ -1,11 +1,24 @@
 /**
- * CB-LCARS Grid Routing – Step 1.1 (Validation & Safety)
- * Adds:
- *  - Endpoint proximity validation (reject truncated / off-target paths)
- *  - Explicit failure (null) so caller falls back to Manhattan auto-route
- *  - Light debug logging (debug level) for failure reasons
+ * CB-LCARS Grid Routing (with Rect Channel + Proximity Integration)
  *
- * Still intentionally minimal (no channel costs / spacing yet).
+ * Provides:
+ *  - Grid build + caching
+ *  - A* orthogonal pathfinding (4‑dir)
+ *  - Endpoint proximity validation (rejects far-off end)
+ *  - Simple proximity penalty (3×3 neighbor blocked scan)
+ *  - Channel corridor cost bias (rectangle channels; multiplier <1 lowers step cost)
+ *  - Require mode: fail attempt if no preferred channel traversed
+ *  - Occupancy accounting (unique raw path cells)
+ *  - Cost breakdown placeholder (distance + bends now; proximity/channel fields reserved)
+ *  - Structured failure reasons for fallback logic
+ *
+ * Deferred (future sets):
+ *  - Two-elbow heuristic (pre-grid)
+ *  - Rounded corner post-processing for grid paths
+ *  - Spacing / parallel penalty & re-route
+ *  - Polyline + radius channels
+ *  - Channel capacity / aesthetic styling
+ *  - Explicit proximityCost accumulation (currently folded into gCost)
  */
 
 import { cblcarsLog } from './cb-lcars-logging.js';
@@ -16,6 +29,7 @@ import {
   pathHash,
   quantizePoint
 } from './cb-lcars-routing-core.js';
+import { buildChannelMasks, channelsHit, incrementOccupancy } from './cb-lcars-routing-channels.js';
 
 /** @typedef {{cols:number,rows:number,cellW:number,cellH:number,blocked:Uint8Array,signature:string,viewBox:[number,number,number,number]}} Grid */
 
@@ -45,8 +59,8 @@ function gridSignature(viewBox, resolution, obstacles, clearance) {
 
 /**
  * Build / fetch cached grid.
- * Resolution:
- *   number => cols, rows scaled by aspect
+ * resolution:
+ *   number => columns, rows scaled by aspect
  *   [cols, rows] => explicit
  */
 export function buildGrid(root, opts) {
@@ -109,9 +123,19 @@ function cellCenter(grid, gx, gy) {
 }
 
 /**
- * A* 4-dir with tiny turn penalty.
+ * A* 4-dir with:
+ *  - tiny directional turn penalty (for path shape preference)
+ *  - proximity penalty (3×3 scan)
+ *  - channel multiplier (cost reduction)
+ *
+ * channelCtx: {
+ *   masks: Record<channelId, Uint8Array>,
+ *   preferred: Set<string>,
+ *   mode: 'allow'|'prefer'|'require',
+ *   weightsById: Record<string,number>
+ * }
  */
-export function aStar(grid, startPt, endPt, costParams = {}, limits = {}) {
+export function aStar(grid, startPt, endPt, costParams = {}, limits = {}, channelCtx = null) {
   if (!grid) return { points: [], expansions: 0, success: false, reason: 'no_grid', open: 0, closed: 0 };
   const maxExp = Math.max(50, limits.maxExpansions || grid?.max_expansions || 6000);
 
@@ -135,6 +159,15 @@ export function aStar(grid, startPt, endPt, costParams = {}, limits = {}) {
   const CLOSED = new Uint8Array(cols * rows);
 
   const h = (gx, gy) => Math.abs(gx - ex) + Math.abs(gy - ey);
+
+  // Channel context (optional)
+  const {
+    masks = null,
+    preferred = null,
+    mode = 'allow',
+    weightsById = null
+  } = channelCtx || {};
+
   gCost[startIdx] = 0;
   fCost[startIdx] = h(sx, sy);
   openSet.push(startIdx, fCost[startIdx]);
@@ -147,6 +180,9 @@ export function aStar(grid, startPt, endPt, costParams = {}, limits = {}) {
   let expansions = 0;
   let openCount = 1;
   let closedCount = 0;
+
+  // Step-level proximity (simple bool). We don't record proximityCost yet; reserved for future.
+  const proximityWeight = Number.isFinite(costParams.proximity) ? costParams.proximity : 0;
 
   while (!openSet.empty()) {
     const current = openSet.pop();
@@ -185,9 +221,46 @@ export function aStar(grid, startPt, endPt, costParams = {}, limits = {}) {
       const ni = ny * cols + nx;
       if (blocked[ni] || CLOSED[ni]) continue;
 
-      let tentative = gCost[current] + 1;
-      if (prevDir !== -1 && prevDir !== di) tentative += 0.001;
+      // Base distance
+      let stepCost = 1;
+      // Tiny turn penalty for queue ordering (final bend cost computed later)
+      if (prevDir !== -1 && prevDir !== di) stepCost += 0.001;
 
+      // Proximity penalty (simple 3x3 neighbor scan)
+      if (proximityWeight > 0) {
+        let proxHit = false;
+        for (let py = ny - 1; !proxHit && py <= ny + 1; py++) {
+          if (py < 0 || py >= rows) continue;
+            const rowOff2 = py * cols;
+            for (let px = nx - 1; px <= nx + 1; px++) {
+              if (px < 0 || px >= cols) continue;
+              if (blocked[rowOff2 + px]) {
+                proxHit = true;
+                break;
+              }
+            }
+        }
+        if (proxHit) stepCost += proximityWeight;
+      }
+
+      // Channel multiplier (cost reducer) – choose smallest preferred channel weight
+      if (masks && preferred && preferred.size) {
+        let matched = false;
+        let bestWeight = 1;
+        for (const [id, arr] of Object.entries(masks)) {
+          if (!preferred.has(id)) continue;
+          if (arr[ni]) {
+            matched = true;
+            const w = weightsById?.[id] ?? 1;
+            if (w < bestWeight) bestWeight = w;
+          }
+        }
+        if (matched && bestWeight < 1) {
+          stepCost *= bestWeight;
+        }
+      }
+
+      const tentative = gCost[current] + stepCost;
       if (tentative < gCost[ni]) {
         came[ni] = current;
         gCost[ni] = tentative;
@@ -209,7 +282,13 @@ export function aStar(grid, startPt, endPt, costParams = {}, limits = {}) {
 function sqDist(a, b) { const dx = a[0] - b[0]; const dy = a[1] - b[1]; return dx * dx + dy * dy; }
 
 /**
- * Grid routing wrapper with endpoint validation.
+ * Grid routing wrapper.
+ * Returns meta object:
+ *  {
+ *    failed, reason, mode, points, rawPoints, expansions, cost,
+ *    pathHash, gridSignature, endDelta, resolution,
+ *    hitChannels, routeChannelMode
+ *  }
  */
 export function routeViaGrid(ctx) {
   try {
@@ -223,15 +302,36 @@ export function routeViaGrid(ctx) {
       costParams = {},
       connectorId,
       clearance = 0,
-      maxExpansions
+      maxExpansions,
+      channels = [],
+      routeChannels = [],
+      routeChannelMode = 'allow'
     } = ctx || {};
     if (!start || !end) return { failed: true, reason: 'missing_start_end' };
 
     const grid = buildGrid(root, { viewBox, resolution, obstacles, clearance });
-    const res = aStar(grid, start, end, costParams, { maxExpansions });
+
+    // Channel prep (rectangles only)
+    const channelList = Array.isArray(channels) ? channels : [];
+    const preferredSet = new Set((routeChannels || []).filter(Boolean));
+    const masks = channelList.length ? buildChannelMasks(grid, channelList) : null;
+    const weightsById = channelList.reduce((m, c) => { m[c.id] = c.weight || 1; return m; }, {});
+
+    const res = aStar(
+      grid,
+      start,
+      end,
+      costParams,
+      { maxExpansions },
+      {
+        masks,
+        preferred: preferredSet,
+        mode: routeChannelMode,
+        weightsById
+      }
+    );
 
     if (!res.success) {
-      // Return structured failure instead of null
       cblcarsLog.debug('[routing.grid] A* failed', { connectorId, reason: res.reason, expansions: res.expansions, resolution });
       return {
         failed: true,
@@ -263,9 +363,39 @@ export function routeViaGrid(ctx) {
       };
     }
 
+    // Raw + compressed path
     const polyRaw = res.points;
     const poly = compressOrthogonal(polyRaw.map(p => quantizePoint(p, 0.5)));
     const cost = scorePath(poly, costParams);
+
+    // Channel traversal
+    let hitChannels = [];
+    if (channelList.length && masks) {
+      hitChannels = channelsHit(grid, polyRaw, masks);
+      if (routeChannelMode === 'require' && preferredSet.size > 0) {
+        const satisfied = hitChannels.some(id => preferredSet.has(id));
+        if (!satisfied) {
+          return {
+            failed: true,
+            reason: 'no_required_channel',
+            resolution,
+            expansions: res.expansions,
+            open: res.open,
+            closed: res.closed
+          };
+        }
+      }
+    }
+
+    if (hitChannels.length) {
+      incrementOccupancy(hitChannels, polyRaw.length);
+    }
+
+    // Reserve fields for future explicit accounting (proximityCost / channelFactorAvg)
+    cost.proximityCost = cost.proximityCost ?? 0;
+    cost.channelFactorAvg = cost.channelFactorAvg ?? 1;
+    cost.total = cost.total; // (future: + proximityCost + channel adjustments)
+
     const hash = pathHash(poly);
 
     return {
@@ -280,6 +410,8 @@ export function routeViaGrid(ctx) {
       gridSignature: grid.signature,
       endDelta,
       resolution,
+      hitChannels,
+      routeChannelMode,
       failed: false,
       reason: 'ok'
     };
@@ -291,6 +423,8 @@ export function routeViaGrid(ctx) {
 
 /**
  * Optional debug overlay path (dashed path + raw points).
+ * @param {ShadowRoot|Element} root
+ * @param {{rawPoints:[number,number][]}} meta
  */
 export function debugRenderGridPath(root, meta) {
   try {
@@ -327,7 +461,7 @@ export function debugRenderGridPath(root, meta) {
   } catch (_) {}
 }
 
-/* ---------- MinHeap ---------- */
+/* ---------- MinHeap (A* open set) ---------- */
 class MinHeap {
   constructor() {
     this.ids = [];
@@ -402,6 +536,9 @@ function attachGlobal() {
     routeViaGrid,
     debugRenderGridPath
   });
-  cblcarsLog.info('[routing.grid] Upgraded grid module (A* Step 1.1 w/ validation)');
+  if (!ns._gridUpgradedLogged) {
+    cblcarsLog.info('[routing.grid] Grid router (channels + proximity) active');
+    ns._gridUpgradedLogged = true;
+  }
 }
 attachGlobal();

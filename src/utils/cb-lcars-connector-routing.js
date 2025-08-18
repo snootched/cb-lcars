@@ -61,6 +61,165 @@ function normalizeRect(o){
       (Number.isFinite(o.bottom)&&Number.isFinite(o.top)?(o.bottom-o.top):0));
   return { x,y,w,h };
 }
+
+
+/* ---------------- C1 Two-Elbow Detour Helpers ---------------- */
+/**
+ * Axis-aligned rectangle intersection test.
+ * @param {{x:number,y:number,w:number,h:number}} a
+ * @param {{x:number,y:number,w:number,h:number}} b
+ * @returns {boolean}
+ */
+function rectsIntersect(a,b){
+  return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+}
+
+/**
+ * Expand a segment (orthogonal) into a thin rectangle for intersection testing.
+ * @param {[number,number]} p1
+ * @param {[number,number]} p2
+ * @param {number} pad
+ * @returns {{x:number,y:number,w:number,h:number}}
+ */
+function segmentToRect(p1,p2,pad=0){
+  if (p1[0] === p2[0]) {
+    const x = p1[0]-pad;
+    const y = Math.min(p1[1],p2[1]) - pad;
+    const h = Math.abs(p1[1]-p2[1]) + pad*2;
+    return { x, y, w: pad*2, h };
+  } else {
+    const y = p1[1]-pad;
+    const x = Math.min(p1[0],p2[0]) - pad;
+    const w = Math.abs(p1[0]-p2[0]) + pad*2;
+    return { x, y, w, h: pad*2 };
+  }
+}
+
+/**
+ * Test if any obstacle intersects an orthogonal segment (with padding).
+ * @param {[number,number]} a
+ * @param {[number,number]} b
+ * @param {Array<{x:number,y:number,w:number,h:number}>} obstacles
+ * @param {number} pad
+ */
+function segmentBlocked(a,b,obstacles,pad){
+  const sr = segmentToRect(a,b,pad);
+  for(const ob of obstacles){
+    if(rectsIntersect(sr,ob)) return true;
+  }
+  return false;
+}
+
+/**
+ * Determine if a Manhattan (one-elbow) XY or YX path is blocked.
+ * @param {number} sx
+ * @param {number} sy
+ * @param {number} ex
+ * @param {number} ey
+ * @param {Array<object>} obstacles
+ * @param {'xy'|'yx'} order
+ * @param {number} pad
+ * @returns {boolean}
+ */
+function manhattanBlocked(sx,sy,ex,ey,obstacles,order,pad){
+  if(order==='xy'){
+    const elbow = [ex,sy];
+    return segmentBlocked([sx,sy], elbow, obstacles, pad) ||
+           segmentBlocked(elbow, [ex,ey], obstacles, pad);
+  } else {
+    const elbow = [sx,ey];
+    return segmentBlocked([sx,sy], elbow, obstacles, pad) ||
+           segmentBlocked(elbow, [ex,ey], obstacles, pad);
+  }
+}
+
+/**
+ * Two-elbow detour heuristic.
+ * Strategy: For each blocking obstacle, try wrapping LEFT / RIGHT (horizontal detour) and
+ * TOP / BOTTOM (vertical detour) producing exactly 3 orthogonal segments (2 bends):
+ *
+ * Horizontal wrap candidate (xDet):
+ *   start -> (xDet, sy) -> (xDet, ey) -> end
+ *
+ * Vertical wrap candidate (yDet):
+ *   start -> (sx, yDet) -> (ex, yDet) -> end
+ *
+ * A candidate is valid if none of the three segments intersect any obstacle (with pad).
+ * Cost = total Manhattan length. Picks lowest cost valid.
+ *
+ * @param {{sx:number,sy:number,ex:number,ey:number,obstacles:Array<object>,pad:number}} args
+ * @returns {{points:[number,number][],cost:number,candidatesTried:number,reason:string}|null}
+ */
+function twoElbowDetour({ sx, sy, ex, ey, obstacles, pad }) {
+  if (!obstacles || !obstacles.length) return null;
+  const candidates = [];
+  const gap = pad;
+
+  for (const ob of obstacles) {
+    // Horizontal wraps (left & right of obstacle)
+    const leftX = ob.x - gap;
+    const rightX = ob.x + ob.w + gap;
+    candidates.push({ kind:'h', x:leftX });
+    candidates.push({ kind:'h', x:rightX });
+    // Vertical wraps (above & below obstacle)
+    const topY = ob.y - gap;
+    const bottomY = ob.y + ob.h + gap;
+    candidates.push({ kind:'v', y:topY });
+    candidates.push({ kind:'v', y:bottomY });
+  }
+
+  let best = null;
+  let tried = 0;
+  const uniq = new Set();
+  for (const c of candidates) {
+    // Deduplicate
+    const key = c.kind === 'h' ? `h:${c.x}` : `v:${c.y}`;
+    if (uniq.has(key)) continue;
+    uniq.add(key);
+    tried++;
+    let points;
+    if (c.kind === 'h') {
+      const xDet = c.x;
+      points = [
+        [sx, sy],
+        [xDet, sy],
+        [xDet, ey],
+        [ex, ey]
+      ];
+    } else {
+      const yDet = c.y;
+      points = [
+        [sx, sy],
+        [sx, yDet],
+        [ex, yDet],
+        [ex, ey]
+      ];
+    }
+    // Validate sequential segments
+    let blocked = false;
+    for (let i = 0; i < points.length - 1; i++) {
+      if (segmentBlocked(points[i], points[i+1], obstacles, pad)) {
+        blocked = true;
+        break;
+      }
+    }
+    if (blocked) continue;
+
+    // Cost (Manhattan)
+    let dist = 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      dist += Math.abs(points[i+1][0]-points[i][0]) + Math.abs(points[i+1][1]-points[i][1]);
+    }
+    if (!best || dist < best.cost) {
+      best = { points, cost: dist };
+    }
+  }
+  if (!best) return { points:[], cost:Infinity, candidatesTried: tried, reason:'no_valid' };
+  return { points: best.points, cost: best.cost, candidatesTried: tried, reason:'ok' };
+}
+
+
+
 function parseExplicitEndpoint(el){
   if(!el) return null;
   const raw = el.getAttribute('data-cblcars-endpoint');
@@ -425,14 +584,65 @@ export function routeAutoConnector(opts){
     else pathEl.removeAttribute('data-cblcars-smart-aggressive');
   } catch(_) {}
 
-  /* Grid routing attempts (use normObs as obstacles) */
+  // Channel preferences (only used inside grid attempts)
+  let routeChannels = [];
+  let routeChannelMode = 'allow';
+  try {
+    const rcAttr = pathEl.getAttribute('data-cblcars-route-channels');
+    if (rcAttr) {
+      routeChannels = rcAttr.split(',').map(s=>s.trim()).filter(Boolean);
+    }
+    const rcmAttr = pathEl.getAttribute('data-cblcars-route-channel-mode');
+    if (rcmAttr) {
+      const lc = rcmAttr.toLowerCase();
+      if (['allow','prefer','require'].includes(lc)) routeChannelMode = lc;
+    }
+  } catch(_) {}
+
+  const channelDefs = Array.isArray(globalCfg.channels)
+    ? window.cblcars?.routing?.channels?.parseChannels(globalCfg.channels) : [];
+
   const resolutionsToTry = attemptGrid
     ? [...new Set(multipliers.map(m=>Math.round(baseResolution*m)))]
         .filter(r=>r>0 && r<=maxRes)
     : [];
 
   let gridAccepted=false, gridReason='not_tried', gridAttempts=[], chosenMeta=null;
-  if (attemptGrid){
+
+  let detourUsed = false;
+  let detourMeta = null;
+
+  // C1 Two-elbow detour attempt (before grid) if enabled and both Manhattan variants blocked
+  const enableDetour = !!(mergedGlobal?.fallback?.enable_two_elbow);
+  if (enableDetour && attemptGrid) {
+    const padForBlock = Math.max(0, clearance || 0);
+    const blockedXY = manhattanBlocked(sx, sy, endpoint[0], endpoint[1], normObs, 'xy', padForBlock);
+    const blockedYX = manhattanBlocked(sx, sy, endpoint[0], endpoint[1], normObs, 'yx', padForBlock);
+    if (blockedXY && blockedYX) {
+      const det = twoElbowDetour({
+        sx, sy, ex: endpoint[0], ey: endpoint[1],
+        obstacles: normObs,
+        pad: padForBlock
+      });
+      if (det && det.points && det.points.length >= 2 && det.reason === 'ok') {
+        detourUsed = true;
+        detourMeta = det;
+        gridAccepted = false;
+        gridReason = 'detour';
+        // Register detour now (telemetry stamping further below)
+        try {
+          registerResult(pathEl.id, {
+            strategy:'detour',
+            cost: { distanceCost: det.cost, bendCost: 2, total: det.cost + 2 * (mergedGlobal.cost_defaults?.bend || 12), bends: 2 },
+            points: det.points
+          });
+        } catch(_) {}
+      }
+    }
+  }
+
+
+  if (attemptGrid && !detourUsed){
     for(const res of resolutionsToTry){
       const meta = routeViaGrid({
         root,
@@ -442,7 +652,10 @@ export function routeAutoConnector(opts){
         obstacles: normObs,
         resolution: res,
         costParams: mergedGlobal.cost_defaults,
-        connectorId: pathEl.id
+        connectorId: pathEl.id,
+        channels: channelDefs,
+        routeChannels,
+        routeChannelMode
       });
       gridAttempts.push({
         res,
@@ -463,7 +676,14 @@ export function routeAutoConnector(opts){
 
   /* Path output (grid or fallback Manhattan) */
   let pathD = null;
-  if(gridAccepted && chosenMeta?.points?.length>=2){
+
+  if(detourUsed && detourMeta?.points?.length >= 2){
+    pathD = `M${detourMeta.points[0][0]},${detourMeta.points[0][1]}`;
+    for(let i=1;i<detourMeta.points.length;i++){
+      const pt = detourMeta.points[i];
+      pathD += ` L${pt[0]},${pt[1]}`;
+    }
+  } else if(gridAccepted && chosenMeta?.points?.length>=2){
     pathD = `M${chosenMeta.points[0][0]},${chosenMeta.points[0][1]}`;
     for(let i=1;i<chosenMeta.points.length;i++){
       const pt = chosenMeta.points[i];
@@ -477,7 +697,9 @@ export function routeAutoConnector(opts){
         bends:chosenMeta.cost?.bends,
         pathHash:chosenMeta.pathHash,
         endDelta:chosenMeta.endDelta,
-        resolution:chosenMeta.resolution
+        resolution:chosenMeta.resolution,
+        channels: chosenMeta.hitChannels || [],
+        channelMode: chosenMeta.routeChannelMode
       });
     } catch(_) {}
   }
@@ -500,14 +722,67 @@ export function routeAutoConnector(opts){
   /* Telemetry stamping */
   try {
     pathEl.setAttribute('data-cblcars-route-effective', effectiveMode);
-    if (effectiveMode==='grid'){
+
+    if (detourUsed){
+      pathEl.setAttribute('data-cblcars-route-detour','true');
+      pathEl.setAttribute('data-cblcars-route-detour-candidates', String(detourMeta?.candidatesTried || 0));
+      pathEl.setAttribute('data-cblcars-route-detour-cost', String(detourMeta?.cost || 0));
+      pathEl.setAttribute('data-cblcars-route-grid-status','skipped');
+      pathEl.setAttribute('data-cblcars-route-grid-reason','detour');
+      pathEl.removeAttribute('data-cblcars-route-grid-attempts');
+      // Clear any grid-specific channel attributes
+      pathEl.removeAttribute('data-cblcars-route-channels-hit');
+      pathEl.removeAttribute('data-cblcars-route-channels-miss');
+      pathEl.removeAttribute('data-cblcars-route-channels');
+      pathEl.removeAttribute('data-cblcars-route-channel-mode');
+      pathEl.removeAttribute('data-cblcars-route-cost-distance');
+      pathEl.removeAttribute('data-cblcars-route-cost-bends');
+      pathEl.removeAttribute('data-cblcars-route-cost-total');
+    }
+    else if (effectiveMode==='grid'){
       pathEl.setAttribute('data-cblcars-route-grid-status', gridAccepted?'success':'fallback');
       pathEl.setAttribute('data-cblcars-route-grid-reason', gridReason);
       pathEl.setAttribute('data-cblcars-route-grid-attempts', gridAttempts.map(a=>`${a.res}:${a.reason}`).join(','));
+
       pathEl.removeAttribute('data-cblcars-smart-hit');
       pathEl.removeAttribute('data-cblcars-smart-proximity');
       pathEl.removeAttribute('data-cblcars-smart-hit-mode');
       pathEl.removeAttribute('data-cblcars-smart-skip-reason');
+
+      if (routeChannels.length) {
+        pathEl.setAttribute('data-cblcars-route-channels', routeChannels.join(','));
+        pathEl.setAttribute('data-cblcars-route-channel-mode', routeChannelMode);
+      } else {
+        pathEl.removeAttribute('data-cblcars-route-channels');
+        pathEl.removeAttribute('data-cblcars-route-channel-mode');
+      }
+      if (chosenMeta?.hitChannels?.length) {
+        pathEl.setAttribute('data-cblcars-route-channels-hit', chosenMeta.hitChannels.join(','));
+      } else {
+        pathEl.removeAttribute('data-cblcars-route-channels-hit');
+      }
+
+
+      // Preferred channel miss warning (allow / prefer)
+      if (routeChannels.length && ['allow','prefer'].includes(routeChannelMode)) {
+        const hitSet = new Set(chosenMeta?.hitChannels || []);
+        const satisfied = routeChannels.some(id => hitSet.has(id));
+        if (!satisfied) pathEl.setAttribute('data-cblcars-route-channels-miss','true');
+        else pathEl.removeAttribute('data-cblcars-route-channels-miss');
+      } else {
+        pathEl.removeAttribute('data-cblcars-route-channels-miss');
+      }
+
+
+      if (chosenMeta?.cost) {
+        const c = chosenMeta.cost;
+        pathEl.setAttribute('data-cblcars-route-cost-distance', String(c.distanceCost ?? 0));
+        pathEl.setAttribute('data-cblcars-route-cost-bends', String(c.bendCost ?? 0));
+        if (c.proximityCost != null) pathEl.setAttribute('data-cblcars-route-cost-proximity', String(c.proximityCost));
+        if (c.channelFactorAvg != null) pathEl.setAttribute('data-cblcars-route-cost-channel-factor-avg', String(c.channelFactorAvg));
+        pathEl.setAttribute('data-cblcars-route-cost-total', String(c.total ?? 0));
+      }
+
     } else if (effectiveMode==='smart'){
       pathEl.setAttribute('data-cblcars-smart-proximity', String(effectiveSmartProx));
       pathEl.setAttribute('data-cblcars-smart-hit', smartHit?'true':'false');
@@ -541,7 +816,19 @@ export function routeAutoConnector(opts){
       pathEl.removeAttribute('data-cblcars-smart-proximity');
       pathEl.removeAttribute('data-cblcars-smart-hit-mode');
       pathEl.removeAttribute('data-cblcars-smart-skip-reason');
+
+      pathEl.removeAttribute('data-cblcars-route-channels');
+      pathEl.removeAttribute('data-cblcars-route-channels-hit');
+      pathEl.removeAttribute('data-cblcars-route-channel-mode');
+      pathEl.removeAttribute('data-cblcars-route-channels-miss');
     }
+
+    if (!detourUsed) {
+      pathEl.removeAttribute('data-cblcars-route-detour');
+      pathEl.removeAttribute('data-cblcars-route-detour-candidates');
+      pathEl.removeAttribute('data-cblcars-route-detour-cost');
+    }
+
     if(attrEndpoint) pathEl.setAttribute('data-cblcars-endpoint-explicit','true');
     else pathEl.removeAttribute('data-cblcars-endpoint-explicit');
   } catch(e){
@@ -552,6 +839,8 @@ export function routeAutoConnector(opts){
   perf?.count && perf.count('connectors.route.recomputed');
   if (effectiveMode==='grid'){
     perf?.count && perf.count(gridAccepted ? 'connectors.route.grid.success' : 'connectors.route.grid.fallback');
+  } else if (detourUsed){
+    perf?.count && perf.count('connectors.route.detour.used');
   } else if (effectiveMode==='smart'){
     perf?.count && perf.count(
       smartHit ? 'connectors.route.smart.hit'
@@ -561,7 +850,7 @@ export function routeAutoConnector(opts){
 
   return {
     d: pathD,
-    mode: effectiveMode,
+    mode: detourUsed ? 'detour' : effectiveMode,
     usedEndpoint: endpoint,
     smartAttempted
   };

@@ -103,11 +103,44 @@ function bboxHash(bb){if(!bb)return'none';return quickHash(`${roundBBoxValue(bb.
 function markPathPending(pathEl) {
   if (!pathEl) return;
   pathEl.setAttribute('data-cblcars-pending', 'true');
-  if (!pathEl.getAttribute('d')) pathEl.setAttribute('d', 'M0 0');
+  const d = pathEl.getAttribute('d') || '';
+  // If d already a zero-length path at a non-zero start, leave it.
+  const hasStart = pathEl.hasAttribute('data-cblcars-start-x') && pathEl.hasAttribute('data-cblcars-start-y');
+  const sx = Number(pathEl.getAttribute('data-cblcars-start-x'));
+  const sy = Number(pathEl.getAttribute('data-cblcars-start-y'));
+  const isFiniteStart = Number.isFinite(sx) && Number.isFinite(sy);
+  const zeroLenPattern = /^M\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*L\s*\1\s*,\s*\2\s*$/i;
+  const trivialOriginPattern = /^M\s*0\s*,\s*0(?:\s*L\s*0\s*,\s*0)?$/i;
+  if (!d || trivialOriginPattern.test(d) || (!zeroLenPattern.test(d) && !hasStart)) {
+    if (isFiniteStart) {
+      pathEl.setAttribute('d', `M${sx},${sy} L${sx},${sy}`);
+    } else {
+      // Absolute last fallback: still keep zero-length but explicit
+      pathEl.setAttribute('d', 'M0,0 L0,0');
+    }
+  }
 }
+
 function clearPathPending(pathEl) {
   if (!pathEl) return;
   if (pathEl.hasAttribute('data-cblcars-pending')) pathEl.removeAttribute('data-cblcars-pending');
+}
+
+// Optional: normalize any legacy placeholder after attributes appear
+function normalizePendingPlaceholders(root) {
+  try {
+    const pending = root.querySelectorAll?.('path[data-cblcars-pending="true"]');
+    pending.forEach(p => {
+      const d = p.getAttribute('d') || '';
+      if (/^M\s*0[, ]0(?:\s*L\s*0[, ]0)?$/i.test(d)) {
+        const sx = Number(p.getAttribute('data-cblcars-start-x'));
+        const sy = Number(p.getAttribute('data-cblcars-start-y'));
+        if (Number.isFinite(sx) && Number.isFinite(sy)) {
+          p.setAttribute('d', `M${sx},${sy} L${sx},${sy}`);
+        }
+      }
+    });
+  } catch (_) {}
 }
 
 /* ---------------- Shared helpers ---------------- */
@@ -686,7 +719,42 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
     } catch(_) {}
 
     const box = resolveTargetBoxInViewBox(targetId, root, viewBox);
-    if (!box) { skipped++; continue; }
+
+    if (!box) {
+      // Schedule a retry (target box may not have real bbox yet)
+      const retryAttr = p.getAttribute('data-cblcars-box-retry') || '0';
+      const retryCount = parseInt(retryAttr, 10) || 0;
+      if (retryCount < 8) {
+        p.setAttribute('data-cblcars-box-retry', String(retryCount + 1));
+        // Keep pending placeholder if not already set
+        if (!p.hasAttribute('data-cblcars-pending')) {
+          markPathPending(p);
+        }
+        // Schedule one-shot re-layout
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            try {
+              window.cblcars?.connectors?.invalidate && window.cblcars.connectors.invalidate(p.id);
+              layoutPendingConnectors(root, viewBox);
+              window.cblcars?.perf?.count && window.cblcars.perf.count('connectors.layout.retry.sched');
+            } catch(_) {}
+          });
+        });
+      } else {
+        // Exhausted retries: emit warning in validation mode
+        try {
+          if (window.cblcars?._debugFlags?.validation) {
+            svgOverlayManager.pushWarning(`[connector] Could not resolve target box for "${p.id || '(anon)'}" -> "${targetId}" after retries.`);
+          }
+        } catch(_) {}
+      }
+      skipped++;
+      continue;
+    } else {
+      // Reset retry counter if success
+      if (p.hasAttribute('data-cblcars-box-retry')) p.removeAttribute('data-cblcars-box-retry');
+    }
+
 
     // Signature for diff / caching
     const obstaclesSignature = avoidList
@@ -774,7 +842,10 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
         p.removeAttribute('data-cblcars-geom-pending');
         const finalD = (routedPath && routedPath.startsWith('M')) ? routedPath : `M${sx},${sy} L${sx},${sy}`;
         p.setAttribute('d', finalD);
+
+        // Safety: ensure pending cleared (routeAutoConnector should have removed it already)
         p.removeAttribute('data-cblcars-pending');
+
         connectorMetaMap.set(p,{hash:cfgHash,bboxHash:bbHash,version:CONNECTOR_CACHE_VERSION});
         routeRecomputed++;
         recomputed++;
@@ -819,10 +890,17 @@ export function layoutPendingConnectors(root, viewBox=[0,0,100,100]){
        (window.cblcars._debugFlags.connectors ||
         window.cblcars._debugFlags.overlay ||
         window.cblcars._debugFlags.perf ||
-        window.cblcars._debugFlags.geometry)) {
+        window.cblcars._debugFlags.geometry ||
+        window.cblcars._debugFlags.channels)) {
       requestAnimationFrame(() =>
-        window.cblcars.debug.render(root, viewBox, { anchors: root.__cblcars_anchors })
-      );
+        {
+          window.cblcars.debug.render(root, viewBox, { anchors: root.__cblcars_anchors });
+          try { window.cblcars.routing?.channels?.ensureChannelDebug?.(root); } catch(_) {}
+
+          // Normalize any legacy pending placeholders that still show M0,0
+          try { normalizePendingPlaceholders(root); } catch(_) {}
+        }
+    );
     }
   } catch(_) {}
 
@@ -1417,11 +1495,25 @@ export function renderMsdOverlay({
             if (computed.smart_proximity !== undefined) {
               attrs['data-cblcars-smart-proximity'] = String(computed.smart_proximity);
             }
+
+            if (Array.isArray(computed.route_channels) && computed.route_channels.length) {
+              attrs['data-cblcars-route-channels'] = computed.route_channels.join(',');
+            }
+            if (computed.route_channel_mode) {
+              attrs['data-cblcars-route-channel-mode'] = String(computed.route_channel_mode).toLowerCase();
+            }
+
           }
           attrs['data-cblcars-type']='line';
           attrs['data-cblcars-root']='true';
+
           attrs['data-cblcars-pending']='true';
-          svgElements.push(svgHelpers.drawPath({ d:'', id:thisId, attrs, style }));
+          // Use a zero-length placeholder at the actual start point to prevent debug layer
+          // from drawing a misleading line to (0,0) before routing completes.
+          const _sx = start[0], _sy = start[1];
+          const _pendingD = `M${_sx},${_sy} L${_sx},${_sy}`;
+          svgElements.push(svgHelpers.drawPath({ d:_pendingD, id:thisId, attrs, style }));
+
           if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
             window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
             animationsToRun.push({ ...computed.animation, targets:`#${thisId}`, root });
@@ -1453,10 +1545,22 @@ export function renderMsdOverlay({
           if (computed.smart_proximity !== undefined) {
             attrs['data-cblcars-smart-proximity'] = String(computed.smart_proximity);
           }
+
+          if (Array.isArray(computed.route_channels) && computed.route_channels.length) {
+            attrs['data-cblcars-route-channels'] = computed.route_channels.join(',');
+          }
+          if (computed.route_channel_mode) {
+            attrs['data-cblcars-route-channel-mode'] = String(computed.route_channel_mode).toLowerCase();
+          }
+
           attrs['data-cblcars-type']='line';
           attrs['data-cblcars-root']='true';
+
           attrs['data-cblcars-pending']='true';
-          svgElements.push(svgHelpers.drawPath({ d:'', id:thisId, attrs, style }));
+          const _sx2 = start[0], _sy2 = start[1];
+          const _pendingD2 = `M${_sx2},${_sy2} L${_sx2},${_sy2}`;
+          svgElements.push(svgHelpers.drawPath({ d:_pendingD2, id:thisId, attrs, style }));
+
           if(computed.animation && computed.animation.type && !timelineTargets.has(thisId)){
             window.cblcars?.perf?.count&&window.cblcars.perf.count('animation.enqueue.overlay');
             animationsToRun.push({ ...computed.animation, targets:`#${thisId}`, root });
@@ -1530,10 +1634,14 @@ export function renderMsdOverlay({
         window.cblcars._debugFlags.perf ||
         window.cblcars._debugFlags.overlay ||
         window.cblcars._debugFlags.connectors ||
-        window.cblcars._debugFlags.geometry
+        window.cblcars._debugFlags.geometry ||
+        window.cblcars._debugFlags.channels
       )) {
         requestAnimationFrame(() => {
           window.cblcars.debug?.render?.(root, viewBox, { anchors });
+
+          // Channel layer render (after main debug)
+          try { window.cblcars.routing?.channels?.ensureChannelDebug?.(root); } catch(_) {}
         });
     }
 

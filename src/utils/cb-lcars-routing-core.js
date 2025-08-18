@@ -16,6 +16,12 @@
 import { cblcarsLog } from '../utils/cb-lcars-logging.js';
 import * as geo from '../utils/cb-lcars-geometry-utils.js';
 
+// Lazy import guards (channels module may not be loaded yet during first pass)
+let _parseChannels = null;
+try {
+  _parseChannels = window?.cblcars?.routing?.channels?.parseChannels;
+} catch(_) {}
+
 /** @typedef {[number,number]} Point */
 /** @typedef {{x:number,y:number,w:number,h:number}} Rect */
 
@@ -39,7 +45,7 @@ const _state = {
     },
     fallback: {
       max_cost_multiple: 4.0,
-      enable_two_elbow: false
+      enable_two_elbow: true
     },
     channels: [],
     obstacles: [],
@@ -62,6 +68,20 @@ const _state = {
 export function setGlobalConfig(cfg = {}) {
   if (!cfg || typeof cfg !== 'object') return;
   _state.globalConfig = deepMerge({}, _state.globalConfig, cfg);
+  // Parse channels once (rect only) for debug inspection convenience
+  try {
+    if (!_parseChannels && window?.cblcars?.routing?.channels?.parseChannels) {
+      _parseChannels = window.cblcars.routing.channels.parseChannels;
+    }
+    if (_parseChannels && Array.isArray(_state.globalConfig.channels)) {
+      const parsed = _parseChannels(_state.globalConfig.channels);
+      window.cblcars = window.cblcars || {};
+      window.cblcars.routing = window.cblcars.routing || {};
+      window.cblcars.routing._parsedChannels = parsed;
+    }
+  } catch (e) {
+    cblcarsLog.warn('[routing.core] Channel parse failed', e);
+  }
   cblcarsLog.info('[routing.core] Global routing config applied', _state.globalConfig);
 }
 

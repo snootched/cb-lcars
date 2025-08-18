@@ -31,6 +31,18 @@ import './utils/cb-lcars-routing-core.js';
 import './utils/cb-lcars-routing-grid.js';
 import './utils/cb-lcars-routing-channels.js';
 
+// Conditionally load developer tools + HUD (only if ?lcarsDev=1 or forced)
+try {
+  const params = new URLSearchParams(location.search);
+  if ((params.has('lcarsDev') || window.CBLCARS_DEV_FORCE === true) && !window.CBLCARS_DEV_DISABLE) {
+    import('./utils/cb-lcars-dev-tools.js')
+      .then(()=> {
+        // HUD optional; load after dev tools to ensure namespace exists
+        return import('./utils/cb-lcars-dev-hud.js').catch(()=>{});
+      })
+      .catch(e=>console.warn('[cb-lcars] dev tools load failed', e));
+  }
+} catch(_) {}
 
 /**
  * Apply MSD debug flags as early as possible so first overlay render
@@ -63,8 +75,9 @@ function applyEarlyMsdDebugFlags(msdDebugCfg) {
       else if (!(k in merged)) merged[k] = v; // preserve explicit false only if key absent
     }
 
-    // Ensure new validation flag is merged (even if not present earlier)
+    // Ensure new flags explicitly force true
     if (flagCandidates.validation === true) merged.validation = true;
+    if (flagCandidates.channels === true) merged.channels = true;
 
     dbg.setFlags(merged);
     if (level && typeof dbg.setLevel === 'function') {

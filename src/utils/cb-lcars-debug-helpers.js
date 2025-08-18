@@ -366,7 +366,24 @@ export function renderDebugLayer(root, viewBox = [0, 0, 100, 100], opts = {}) {
       if (paths.length) {
         const vb = viewBox || geo.getViewBox(root, geo.getReferenceSvg(root)) || [0, 0, 100, 100];
         let html = '';
+
+        // Helper: parse last coordinate from an existing path 'd'
+        const parseLastPoint = (dStr) => {
+          if (!dStr || typeof dStr !== 'string') return null;
+            const cmdRegex = /[ML]\s*(-?\d+(?:\.\d+)?)\s*[ ,]\s*(-?\d+(?:\.\d+)?)/ig;
+          let match, last = null;
+          while ((match = cmdRegex.exec(dStr))) {
+            const x = parseFloat(match[1]);
+            const y = parseFloat(match[2]);
+            if (Number.isFinite(x) && Number.isFinite(y)) last = [x, y];
+          }
+          return last;
+        };
+
         for (const p of paths) {
+
+          const isPending = p.getAttribute('data-cblcars-pending') === 'true';
+
           const targetId = p.getAttribute('data-cblcars-attach-to');
           const sx = parseFloat(p.getAttribute('data-cblcars-start-x'));
           const sy = parseFloat(p.getAttribute('data-cblcars-start-y'));
@@ -381,15 +398,38 @@ export function renderDebugLayer(root, viewBox = [0, 0, 100, 100], opts = {}) {
           }
           if (!isFinite(gap)) gap = 12;
           const box = targetBoxInViewBox(root, targetId, vb);
-          if (!box) continue;
-          const end = endpointOnBox([sx, sy], box, { side, align, gap });
+
+          if (!box || box.w === 0 && box.h === 0) {
+            // If pending and box not ready yet, skip silently
+            if (isPending) continue;
+            continue;
+          }
+
+          // If the path already has real geometry, prefer its actual last coordinate.
+          let end = null;
+          const dAttr = p.getAttribute('d') || '';
+          const isZeroLen = /^M\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*L\s*\1\s*,\s*\2\s*$/i.test(dAttr);
+          if (dAttr && !isZeroLen) {
+            const lastPt = parseLastPoint(dAttr);
+            if (lastPt) end = lastPt;
+          }
+          if (!end) {
+            end = endpointOnBox([sx, sy], box, { side, align, gap });
+          }
+
+          const dash = isPending ? '3,4' : '6,6';
+          const lineOpacity = isPending ? 0.30 : 0.55;
+          const boxOpacity = isPending ? 0.32 : 0.55;
+          const circleOpacity = isPending ? 0.55 : 0.9;
           html += `
-            <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="none" stroke="#ff00ff" stroke-width="2" opacity="0.55">
+            <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" fill="none" stroke="#ff00ff" stroke-width="2" opacity="${boxOpacity}">
               <title>#${targetId}</title>
             </rect>
-            <line x1="${sx}" y1="${sy}" x2="${end[0]}" y2="${end[1]}" stroke="#ff00ff" stroke-dasharray="6,6" stroke-width="2" opacity="0.55" />
-            <circle cx="${end[0]}" cy="${end[1]}" r="${Math.max(2, Math.round(vb[3] * 0.006))}" fill="#ff00ff" opacity="0.9">
-              <title>end (${side}, ${align})</title>
+            <line x1="${sx}" y1="${sy}" x2="${end[0]}" y2="${end[1]}" stroke="#ff00ff" stroke-dasharray="${dash}" stroke-width="2" opacity="${lineOpacity}">
+              <title>${p.id || '(connector)'} ${isPending ? '[pending] ' : ''}start→endpoint</title>
+            </line>
+            <circle cx="${end[0]}" cy="${end[1]}" r="${Math.max(2, Math.round(vb[3] * 0.006))}" fill="#ff00ff" opacity="${circleOpacity}">
+              <title>end (${side}, ${align}) actual:${!isZeroLen} pending:${isPending}</title>
             </circle>`;
         }
         if (html) {

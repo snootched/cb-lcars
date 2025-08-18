@@ -34,6 +34,17 @@ cb-lcars-msd:
           - 200
           - 960
       data_sources: {}
+
+
+      routing:
+        channels:
+          - id: main_bus
+            rect: [400, 200, 800, 120]   # x,y,w,h in viewBox units
+            weight: 0.6
+          - id: aux_bus
+            rect: [400, 600, 800, 120]
+            weight: 0.7
+
       overlays:
         - type: ribbon
           id: target_box
@@ -158,6 +169,24 @@ cb-lcars-msd:
           width: 10
           corner_style: round
           corner_radius: 40
+
+        - type: line
+          id: line_channel_demo
+          anchor: smart_far_anchor
+          attach_to: target_box
+          route: auto
+          route_mode_full: grid
+          route_channels:
+            - main_bus
+          route_channel_mode: prefer
+          avoid:
+            - obstacle_mid
+          stroke: var(--lcars-pink)
+          width: 12
+          corner_style: round
+          corner_radius: 40
+
+
   styles:
     custom_fields:
       msd_svg_base:
