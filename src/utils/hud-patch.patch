@@ -1,0 +1,187 @@
+*** a/utils/cb-lcars-dev-hud.js
+--- b/utils/cb-lcars-dev-hud.js
+***************
+*** 1020,1026 ****
+      resetIntervalTimer();
+      if (!paused) {
+        refreshTimer = setInterval(()=>refresh(), hudInterval);
+      }
+    }
+
+!   function refresh(forcePersist) {
+      if (!dev.hud._enabled) return;
+-     if (paused) return;
+      const snapshot = buildCoreSnapshot();
+      emit('refresh:snapshot', snapshot);
+      renderPanelsShell(); // to instantiate any lazy panels that became expanded
+      refreshPanels(snapshot);
+      updatePinnedCount();
+      if (forcePersist) savePersistence();
+      lastSnapshot = snapshot;
+    }
+***************
+*** 1044,1050 ****
+      function buildHudApi() {
+        return {
+          bringToFront,
+          setInterval(ms) {
+            hudInterval = Math.max(250, ms);
+            savePersistence();
+            resetIntervalTimer();
+          },
+--- 1044,1058 ----
+      function buildHudApi() {
+        return {
+          bringToFront,
+          setInterval(ms) {
+            hudInterval = Math.max(250, ms);
+            savePersistence();
+            resetIntervalTimer();
+          },
++         // Expose a one-shot refresh that ignores pause (does not unpause)
++         refreshOncePaused() {
++           refresh(true, true);
++         },
++         refreshRaw(opts={}) {
++           refresh(!!opts.persist, !!opts.allowWhilePaused);
++         },
+          applyProfile(name) {
+            if (!FLAG_PROFILES[name]) return;
+              dev.flags(FLAG_PROFILES[name]);
+            selectedProfile = name;
+            savePersistence();
+***************
+*** 1185,1191 ****
+      function ensure() {
+        dev.hud._enabled = true;
+        mountGlobal();
+        renderFrameSkeleton();
+!       refresh(true);
+      }
+
+      function mountGlobal() {
+        let el = document.getElementById(HUD_ID);
+        if (!el) {
+--- 1193,1199 ----
+      function ensure() {
+        dev.hud._enabled = true;
+        mountGlobal();
+        renderFrameSkeleton();
+!       refresh(true, true); // force initial snapshot even if paused
+      }
+
+      function mountGlobal() {
+        let el = document.getElementById(HUD_ID);
+        if (!el) {
+***************
+*** 1259,1265 ****
+        panel.querySelector('[data-remove]').addEventListener('click', ()=>{
+          persistHudState({ enabled:false });
+          removeHud();
+        });
+        panel.querySelector('[data-collapse]').addEventListener('click',()=>{
+          collapsed=!collapsed;
+          savePersistence();
+          const body=panel.querySelector('[data-body]');
+--- 1267,1274 ----
+        panel.querySelector('[data-remove]').addEventListener('click', ()=>{
+          persistHudState({ enabled:false });
+          removeHud();
+        });
+        panel.querySelector('[data-collapse]').addEventListener('click',()=>{
++         // Collapse/expand permitted while paused
+          collapsed=!collapsed;
+          savePersistence();
+          const body=panel.querySelector('[data-body]');
+***************
+*** 1268,1275 ****
+          if(btn) btn.textContent=collapsed?'▢':'▣';
+        });
+        panel.querySelector('[data-refresh]').addEventListener('click', () => refresh(true));
+        panel.querySelector('[data-int]').addEventListener('change', e=>{
+          const val = parseInt(e.target.value,10);
+          if (Number.isFinite(val) && val>=250) {
+            hudInterval=val;
+            savePersistence();
+            resetIntervalTimer();
+          }
+--- 1277,1286 ----
+          if(btn) btn.textContent=collapsed?'▢':'▣';
+        });
+        panel.querySelector('[data-refresh]').addEventListener('click', () => refresh(true, true)); // allow refresh while paused
+        panel.querySelector('[data-int]').addEventListener('change', e=>{
+          const val = parseInt(e.target.value,10);
+          if (Number.isFinite(val) && val>=250) {
+            hudInterval=val;
+            savePersistence();
+            resetIntervalTimer();
+          }
+***************
+*** 1297,1303 ****
+        }
+        styleGlobal(panel);
+      }
+
+      function updatePinnedCount() {
+        const panel = document.getElementById(HUD_ID);
+--- 1308,1363 ----
+        }
+        styleGlobal(panel);
+      }
+
+      function updatePinnedCount() {
+        const panel = document.getElementById(HUD_ID);
+***************
+*** 1306,1311 ****
+        span.textContent = pinnedPerf.length ? `Pinned:${pinnedPerf.length}` : '';
+      }
+
++     /**
++      * Core refresh function
++      * @param {boolean} forcePersist persist current HUD state
++      * @param {boolean} allowWhilePaused if true, perform a refresh even if paused (does NOT change paused flag)
++      */
++     function refresh(forcePersist, allowWhilePaused=false) {
++       if (!dev.hud._enabled) return;
++       if (paused && !allowWhilePaused) {
++         // If we have never taken an initial snapshot, take one static snapshot for UI population.
++         if (!lastSnapshot) {
++           const snapshotInit = buildCoreSnapshot();
++           emit('refresh:snapshot', snapshotInit);
++           renderPanelsShell();
++           refreshPanels(snapshotInit);
++           updatePinnedCount();
++           lastSnapshot = snapshotInit;
++           if (forcePersist) savePersistence();
++         }
++         return;
++       }
++       const snapshot = buildCoreSnapshot();
++       emit('refresh:snapshot', snapshot);
++       renderPanelsShell();
++       refreshPanels(snapshot);
++       updatePinnedCount();
++       if (forcePersist) savePersistence();
++       lastSnapshot = snapshot;
++     }
++
+      /* ------------------------------------------------------------------
+       * HUD API
+       * ------------------------------------------------------------------ */
+      function buildHudApi() {
+        return {
+***************
+*** 1433,1439 ****
+      remove: removeHud,
+      refresh: () => refresh(true),
+      setInterval: (ms)=>dev.hud.setInterval(ms),
+      collapse: () => { collapsed=true; savePersistence(); refresh(true); },
+      expand: () => { collapsed=false; savePersistence(); refresh(true); },
+      toggle: () => { collapsed=!collapsed; savePersistence(); refresh(true); },
+--- 1495,1502 ----
+      remove: removeHud,
+      refresh: () => refresh(true, true), // expose as forced manual refresh
+      setInterval: (ms)=>dev.hud.setInterval(ms),
+      collapse: () => { collapsed=true; savePersistence(); refresh(true, true); },
+      expand: () => { collapsed=false; savePersistence(); refresh(true, true); },
+      toggle: () => { collapsed=!collapsed; savePersistence(); refresh(true, true); },

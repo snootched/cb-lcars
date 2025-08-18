@@ -62,6 +62,49 @@ function normalizeRect(o){
   return { x,y,w,h };
 }
 
+/**
+ * Build a rounded orthogonal path (multi-segment) given ordered points.
+ * Only rounds interior corners where both adjacent segments are ≥ 2*radius.
+ * Falls back to simple L joins if corner_style not 'round' or radius <= 0.
+ * @param {[number,number][]} points
+ * @param {number} radius
+ * @param {'round'|'bevel'|'sharp'|'square'} cornerStyle
+ * @returns {string} SVG path string
+ */
+function buildRoundedOrthPath(points, radius=0, cornerStyle='round'){
+  if(!Array.isArray(points) || points.length<2) return 'M0,0 L0,0';
+  if(cornerStyle!=='round' || radius<=0){
+    return 'M'+points.map(p=>p.join(',')).join(' L');
+  }
+  const seg = (a,b)=>[b[0]-a[0], b[1]-a[1]];
+  const mag = v=>Math.abs(v[0])+Math.abs(v[1]); // orth (Manhattan) measure
+  let d=`M${points[0][0]},${points[0][1]}`;
+  for(let i=1;i<points.length-1;i++){
+    const prev=points[i-1], cur=points[i], next=points[i+1];
+    const v1=seg(prev,cur), v2=seg(cur,next);
+    const len1 = mag(v1), len2 = mag(v2);
+    const canRound = ( (v1[0]===0 && v2[1]===0) || (v1[1]===0 && v2[0]===0) ); // orth turn
+    const r = Math.min(radius, Math.floor(len1/2), Math.floor(len2/2));
+    if(!canRound || r<=0){
+      d+=` L${cur[0]},${cur[1]}`;
+      continue;
+    }
+    // point entering corner trimmed
+    const p1 = [
+      cur[0] - (v1[0]===0 ? 0 : Math.sign(v1[0])*r),
+      cur[1] - (v1[1]===0 ? 0 : Math.sign(v1[1])*r)
+    ];
+    // point exiting corner trimmed
+    const p2 = [
+      cur[0] + (v2[0]===0 ? 0 : Math.sign(v2[0])*r),
+      cur[1] + (v2[1]===0 ? 0 : Math.sign(v2[1])*r)
+    ];
+    d+=` L${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`;
+  }
+  const last=points[points.length-1];
+  d+=` L${last[0]},${last[1]}`;
+  return d;
+}
 
 /* ---------------- C1 Two-Elbow Detour Helpers ---------------- */
 /**
@@ -677,15 +720,27 @@ export function routeAutoConnector(opts){
   /* Path output (grid or fallback Manhattan) */
   let pathD = null;
 
-  if(detourUsed && detourMeta?.points?.length >= 2){
-    pathD = `M${detourMeta.points[0][0]},${detourMeta.points[0][1]}`;
-    for(let i=1;i<detourMeta.points.length;i++){
-      const pt = detourMeta.points[i];
-      pathD += ` L${pt[0]},${pt[1]}`;
-    }
-  } else if(gridAccepted && chosenMeta?.points?.length>=2){
+  // --- Build final path (detour > grid > fallback Manhattan) ---
+  if (detourUsed && detourMeta?.points?.length >= 2) {
+    // Try rounded orth corners if style allows
+    const cornerStyleAttr = (pathEl.getAttribute('data-cblcars-corner-style') || 'round').toLowerCase();
+    const radiusAttr = parseFloat(pathEl.getAttribute('data-cblcars-radius')) || 12;
+
+    // detourMeta.points: ordered orthogonal points (start -> elbow1 -> elbow2 -> end)
+    pathD = buildRoundedOrthPath(detourMeta.points, radiusAttr, cornerStyleAttr);
+
+    // Telemetry about detour geometry
+    try {
+      pathEl.setAttribute('data-cblcars-route-detour-elbows', String(detourMeta.points.length - 1));
+      pathEl.setAttribute(
+        'data-cblcars-route-detour-rounded',
+        (cornerStyleAttr === 'round' && radiusAttr > 0) ? 'true' : 'false'
+      );
+    } catch(_) {}
+
+  } else if (gridAccepted && chosenMeta?.points?.length >= 2) {
     pathD = `M${chosenMeta.points[0][0]},${chosenMeta.points[0][1]}`;
-    for(let i=1;i<chosenMeta.points.length;i++){
+    for (let i = 1; i < chosenMeta.points.length; i++) {
       const pt = chosenMeta.points[i];
       pathD += ` L${pt[0]},${pt[1]}`;
     }

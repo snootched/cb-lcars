@@ -1,0 +1,86 @@
+/* LCARS Dev HUD Core Styles (external editable) - parity updated */
+
+@keyframes hudFlash {
+  0% { background:rgba(255,0,255,0.30); }
+  100% { background:transparent; }
+}
+.hud-flash {
+  animation:hudFlash .55s ease-out;
+}
+.hud-delta-pos { color:#77ff90; }
+.hud-delta-neg { color:#ff6688; }
+.hud-badge-perf {
+  background:#ff004d;
+  color:#fff;
+  padding:0 6px;
+  border-radius:10px;
+  font-size:10px;
+  margin-left:4px;
+}
+
+#cblcars-dev-hud-panel button {
+  background:#2d003d;
+  color:#ffd5ff;
+  border:1px solid #552266;
+  padding:2px 6px;
+  border-radius:4px;
+  cursor:pointer;
+  font-family:inherit;
+}
+#cblcars-dev-hud-panel button:hover {
+  background:#ff00ff;
+  color:#120018;
+}
+
+#cblcars-dev-hud-panel table thead tr {
+  background:rgba(255,0,255,0.10);
+}
+#cblcars-dev-hud-panel table td,
+#cblcars-dev-hud-panel table th {
+  padding:2px 4px;
+  border-bottom:1px solid rgba(255,0,255,0.08);
+}
+
+#cblcars-dev-hud-panel [data-panel] > [data-h] {
+  user-select:none;
+}
+
+#cblcars-dev-hud-panel ::-webkit-scrollbar {
+  width:10px;
+}
+#cblcars-dev-hud-panel ::-webkit-scrollbar-track {
+  background:rgba(50,0,80,0.4);
+}
+#cblcars-dev-hud-panel ::-webkit-scrollbar-thumb {
+  background:linear-gradient(0deg,#ff00ff,#ff55ff);
+  border-radius:6px;
+  border:2px solid #2d003d;
+}
+
+#cblcars-dev-hud-panel input {
+  background:#160022;
+  border:1px solid #552266;
+  color:#ffe6ff;
+  border-radius:4px;
+  padding:2px 4px;
+}
+
+#cblcars-dev-hud-panel select {
+  background:#160022;
+  border:1px solid #552266;
+  color:#ffe6ff;
+  border-radius:4px;
+  padding:2px 4px;
+}
+
+#cblcars-dev-hud-panel a {
+  color:#ffccff;
+}
+
+#cblcars-dev-hud-panel details > summary {
+  cursor:pointer;
+  list-style:none;
+}
+#cblcars-dev-hud-panel details > summary::-webkit-details-marker {
+  display:none;
+}
