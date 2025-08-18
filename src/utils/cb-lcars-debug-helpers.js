@@ -8,6 +8,7 @@
  *   perf: true          - perf HUD (Timers + Counters)
  *   geometry: true      - console geometry dump
  *   counters: false     - (optional) hide counters subsection in perf HUD
+ *   svg_perf_overlay: true  - (Legacy) force old in-SVG perf HUD (Phase 1 default is HUD-only)
  *
  * Additions in this patched version:
  *  - Early panel render even if no timers/counters yet (“(none yet)” placeholders)
@@ -444,9 +445,10 @@ export function renderDebugLayer(root, viewBox = [0, 0, 100, 100], opts = {}) {
     }
   }
 
-  // Perf HUD
-  if (flags.perf) {
-    try { renderPerfHUD(g, viewBox); } catch (e) { cblcarsLog.warn('[debug] perf HUD render failed', e); }
+  // Perf HUD (Phase 1: moved to Dev HUD)
+  // Keep only if special override flag svg_perf_overlay is set.
+  if (flags.perf && flags.svg_perf_overlay === true) {
+    try { renderPerfHUD(g, viewBox); } catch (e) { cblcarsLog.warn('[debug] legacy perf HUD render failed', e); }
   }
 
   if (flags.geometry) logGeometry(root);

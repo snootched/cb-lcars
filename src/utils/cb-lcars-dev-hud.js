@@ -1,720 +1,1009 @@
 /**
- * CB-LCARS Developer HUD (Enhanced + Location / Drag / Flags / Scenarios / Channels)
+ * CB-LCARS Developer HUD (Phase 1 Modular) - Fixed & Global-Only
  *
- * Features:
- *  - Single instance (never duplicates): moves between global (document.body) and active MSD card shadowRoot
- *  - High z-index & re-append ordering to remain interactive above overlays
- *  - Card vs Global location toggle (persisted)
- *  - Draggable header (position persisted per-tab via dev.persist)
- *  - Collapsible (persisted)
- *  - Adjustable auto-refresh interval (persisted)
- *  - Debug flag quick toggles (Overlay / Connectors / Perf / Geometry / Channels)
- *  - Active card selector dropdown (when multiple MSD cards)
- *  - Scenario results (color-coded, top 6 + summary)
- *  - Route summary: totals, detours, grid successes/fallbacks, channel miss
- *  - Perf counters subset
- *  - Channel occupancy (top 3) if channel system active
- *  - Helpers: status(), debug(), setInterval(ms), collapse/expand/toggle, recenter(), bringToFront(), setLocation(mode), clickThroughTest()
+ * Fixes / Adjustments:
+ *  - Added buildBuiltinPanelsOnce() so initial enable no longer throws ReferenceError.
+ *  - Removed card/global toggle (card mode caused interaction issues). HUD always global.
+ *  - Panels register before first refresh; no need to trigger test panel to see them.
+ *  - setLocation() retained but only logs (non-breaking).
  *
- * Persistence schema (sessionStorage via dev.persist):
- *  dev.persistedState.hud = {
- *     enabled: boolean,
- *     position: [x,y] | null,
- *     collapsed: boolean,
- *     interval: number,
- *     location: 'card' | 'global',
- *     flags?: { overlay?:bool, connectors?:bool, perf?:bool, geometry?:bool, channels?:bool }
- *  }
+ * Phase 1 Features (unchanged otherwise):
+ *  - Draggable, collapsible, positioned & interval persisted
+ *  - Modular panel registry + plugin API skeleton
+ *  - Tooltips (data-tip / data-tip-detail)
+ *  - Quick flags + profiles + verbose (legend) toggle
+ *  - Perf & Timers panel (replaces SVG perf HUD)
+ *  - Routes panel (sortable basic table)
+ *  - Actions panel (subset)
+ *  - Summary (routes/scenarios/channels) panel
  *
- * Loads only when:
- *  - URL contains ?lcarsDev=1  OR  window.CBLCARS_DEV_FORCE === true
- *  - NOT disabled by window.CBLCARS_DEV_DISABLE
- *
- * Assumes dev tools (cb-lcars-dev-tools.js) have attached (will retry until they do).
+ * Persistence keys (sessionStorage via dev._persistHudState):
+ *   hud: {
+ *     enabled, position, collapsed, interval,
+ *     verboseFlags, selectedProfile,
+ *     flags (snapshot), (location ignored now)
+ *   }
  */
-(function initHud() {
-  const qs       = new URLSearchParams(location.search);
+
+(function initHudPhase1() {
+  const qs = new URLSearchParams(location.search);
   const force    = (window.CBLCARS_DEV_FORCE === true);
   const disabled = (window.CBLCARS_DEV_DISABLE === true);
   const active   = !disabled && (qs.has('lcarsDev') || force);
   if (!active) return;
 
   const RETRY_MS = 120;
-  let attempts   = 0;
+  let attempts = 0;
 
   function devReady() {
-    return !!(window.cblcars && window.cblcars.dev && window.cblcars.dev._advanced);
+    return !!(window.cblcars?.dev?._advanced);
   }
 
-  function attemptAttach() {
+  function retryAttach() {
     if (!devReady()) {
-      if (attempts++ < 50) return setTimeout(attemptAttach, RETRY_MS);
-      console.warn('[cblcars.dev.hud] Dev tools not ready; aborting HUD attach.');
+      if (attempts++ < 60) return setTimeout(retryAttach, RETRY_MS);
+      console.warn('[cblcars.dev.hud] Dev tools not ready; abort HUD attach.');
       return;
     }
-    attachHudApi();
+    attachHud();
   }
+  retryAttach();
 
-  function attachHudApi() {
+  function attachHud() {
     const dev = window.cblcars.dev;
-    if (dev.hud && dev.hud._apiAttached) {
-      console.info('[cblcars.dev.hud] HUD API already attached.');
+    if (!dev.hud) dev.hud = { _enabled: false };
+    if (dev.hud._phase1Attached) {
+      console.info('[cblcars.dev.hud] HUD Phase1 already attached.');
       return;
     }
 
     const HUD_ID = 'cblcars-dev-hud-panel';
-    const HUD_Z  = 2147480000; // very large z-index to beat almost all contexts
+    const HUD_Z  = 2147480000;
 
     /* ---------------- Persistence helpers ---------------- */
-    function persistHudState(patch) {
-      try {
-        if (typeof dev._persistHudState === 'function') {
-          dev._persistHudState(patch);
-          return;
-        }
-        const cur = dev.persistedState?.hud || {};
-        dev.persist({ hud: { ...cur, ...patch } });
-      } catch (_) {}
-    }
     function readHudState() {
       return (dev.persistedState && dev.persistedState.hud) || {};
     }
-
-    /* ---------------- Internal state ---------------- */
-    let refreshTimer = null;
-    let dragPos      = null;
-    let collapsed    = false;
-    let hudInterval  = 3000;
-    let locationPref = 'global'; // 'card' | 'global'
-    let panelDraggableInitialized = false;
-
-    const FLAG_KEYS = ['overlay','connectors','perf','geometry','channels'];
-
-    (function initStateFromPersist() {
-      const p = readHudState();
-      if (Array.isArray(p.position) && p.position.length >= 2 && p.position.every(n => Number.isFinite(n))) {
-        dragPos = [p.position[0], p.position[1]];
-      }
-      if (typeof p.collapsed === 'boolean') collapsed = p.collapsed;
-      if (Number.isFinite(p.interval) && p.interval >= 1000) hudInterval = p.interval;
-      if (p.location === 'global' || p.location === 'card') locationPref = p.location;
-    })();
-
-    /* ---------------- Active card root helpers ---------------- */
-    function getActiveCardRoot() {
-      const card = dev._activeCard;
-      if (card && card.shadowRoot) return { card, root: card.shadowRoot };
-      return { card: null, root: null };
+    function persistHudState(patch) {
+      try {
+        if (typeof dev._persistHudState === 'function') return dev._persistHudState(patch);
+        const cur = readHudState();
+        dev.persist({ hud: { ...cur, ...patch } });
+      } catch (_) {}
     }
 
-    /* ---------------- Ensure / mount logic (single instance) ---------------- */
+    /* ---------------- Internal state ---------------- */
+    let dragPos         = null;
+    let collapsed       = false;
+    let hudInterval     = 3000;
+    let verboseFlags    = false;
+    let selectedProfile = 'Custom';
+    let refreshTimer    = null;
+    let panelDraggable  = false;
+    // Always global now (kept for status record)
+    const locationPref  = 'global';
+
+    // Panel registry: id -> { meta, instance }
+    const panelRegistry = new Map();
+    let builtInsRegistered = false;
+
+    const INTERNAL_ORDERS = {
+      summary:  100,
+      flags:    200,
+      perf:     300,
+      routes:   400,
+      actions:  500,
+    };
+
+    const QUICK_FLAG_KEYS = ['overlay','connectors','perf','geometry','channels'];
+
+    const FLAG_PROFILES = {
+      'Minimal':  { overlay:false, connectors:false, perf:false, geometry:false, channels:false },
+      'Routing':  { overlay:true,  connectors:true,  perf:false, geometry:false, channels:true  },
+      'Perf':     { overlay:false, connectors:false, perf:true,  geometry:false, channels:false },
+      'Full':     { overlay:true,  connectors:true,  perf:true,  geometry:true,  channels:true  }
+    };
+
+    /* Load persisted */
+    (function loadPersist() {
+      const st = readHudState();
+      if (Array.isArray(st.position) && st.position.length === 2 && st.position.every(Number.isFinite)) {
+        dragPos = [st.position[0], st.position[1]];
+      }
+      if (typeof st.collapsed === 'boolean') collapsed = st.collapsed;
+      if (Number.isFinite(st.interval) && st.interval >= 500) hudInterval = st.interval;
+      if (typeof st.verboseFlags === 'boolean') verboseFlags = st.verboseFlags;
+      if (st.selectedProfile && FLAG_PROFILES[st.selectedProfile]) selectedProfile = st.selectedProfile;
+    })();
+
+    /* Snapshot builders */
+    function buildCoreSnapshot() {
+      const routesRaw = safeGetRoutes();
+      return {
+        routesRaw,
+        routesSummary: summarizeRoutes(routesRaw),
+        perfTimers: getPerfTimers(),
+        perfCounters: getPerfCounters(),
+        scenarioResults: dev._scenarioResults || [],
+        channels: safeGetChannels(),
+        flags: window.cblcars._debugFlags || {},
+        timestamp: Date.now()
+      };
+    }
+    function safeGetRoutes() { try { return dev.dumpRoutes(undefined, { silent: true }) || []; } catch { return []; } }
+    function summarizeRoutes(routes) {
+      let total=0, detours=0, gridSucc=0, gridFb=0, miss=0;
+      for (const r of routes) {
+        total++;
+        if (r['data-cblcars-route-detour']==='true') detours++;
+        const gs = r['data-cblcars-route-grid-status'];
+        if (gs==='success') gridSucc++;
+        else if (gs==='fallback') gridFb++;
+        if (r['data-cblcars-route-channels-miss']==='true') miss++;
+      }
+      return { total, detours, gridSucc, gridFb, miss };
+    }
+    function getPerfTimers()    { try { return window.cblcars.debug?.perf?.get() || {}; } catch { return {}; } }
+    function getPerfCounters()  { try { return window.cblcars.perfDump ? window.cblcars.perfDump() : (window.cblcars.perf?.dump?.() || {}); } catch { return {}; } }
+    function safeGetChannels()  { try { return window.cblcars?.routing?.channels?.getOccupancy?.() || {}; } catch { return {}; } }
+
+    /* Mount (global only) */
     function ensure() {
       dev.hud._enabled = true;
-      const { root } = getActiveCardRoot();
-      if (locationPref === 'global' || !root) {
-        mountGlobal();
-      } else {
-        mountIntoCard(root);
-      }
+      mountGlobal();
+      renderFrameSkeleton();
       refresh(true);
-      // After initial paint, verify we are actually topmost; if not, auto-elevate.
-      setTimeout(()=>dev.hud.autoElevate && dev.hud.autoElevate(), 80);
     }
 
     function mountGlobal() {
-      let panel = document.getElementById(HUD_ID);
-      if (!panel) {
-        panel = document.createElement('div');
-        panel.id = HUD_ID;
+      let el = document.getElementById(HUD_ID);
+      if (!el) {
+        el = document.createElement('div');
+        el.id = HUD_ID;
       }
-      styleAsGlobal(panel);
-      // Always append last to assert top stacking
-      if (panel.parentNode !== document.body) {
-        document.body.appendChild(panel);
-      } else {
-        document.body.appendChild(panel); // re-append to end
-      }
-      if (!panel.querySelector('[data-body]')) {
-        panel.innerHTML = panelMarkup();
-        wireHud(panel);
-      } else {
-        syncCollapsedUi(panel);
-        updateLocationButton(panel);
-      }
-      panel.dataset.location = 'global';
-      restorePosition(panel);
+      styleGlobal(el);
+      document.body.appendChild(el);
     }
 
-    function mountIntoCard(root) {
-      const hostBox = root.querySelector('#cblcars-msd-wrapper') || root;
-      let panelInCard = root.getElementById(HUD_ID);
-      let fallbackPanel = document.getElementById(HUD_ID);
-
-      // Already inside this card
-      if (panelInCard) {
-        styleAsCard(panelInCard);
-        if (!panelInCard.querySelector('[data-body]')) {
-          panelInCard.innerHTML = panelMarkup();
-          wireHud(panelInCard);
-        } else {
-          syncCollapsedUi(panelInCard);
-          updateLocationButton(panelInCard);
-        }
-        panelInCard.dataset.location = 'card';
-        restorePosition(panelInCard);
-        hostBox.appendChild(panelInCard); // ensure last for stacking order
-        return;
-      }
-
-      // Reuse global fallback panel
-      if (fallbackPanel && fallbackPanel.dataset.location === 'global') {
-        styleAsCard(fallbackPanel);
-        hostBox.appendChild(fallbackPanel); // move + last
-        if (!fallbackPanel.querySelector('[data-body]')) {
-          fallbackPanel.innerHTML = panelMarkup();
-          wireHud(fallbackPanel);
-        } else {
-          syncCollapsedUi(fallbackPanel);
-          updateLocationButton(fallbackPanel);
-        }
-        fallbackPanel.dataset.location = 'card';
-        restorePosition(fallbackPanel);
-        return;
-      }
-
-      // Create new
-      const panel = document.createElement('div');
-      panel.id = HUD_ID;
-      styleAsCard(panel);
-      panel.innerHTML = panelMarkup();
-      hostBox.appendChild(panel);
-      wireHud(panel);
-      panel.dataset.location = 'card';
-      restorePosition(panel);
-    }
-
-    function remove() {
-      dev.hud._enabled = false;
-      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
-      const panel = document.getElementById(HUD_ID) || (getActiveCardRoot().root?.getElementById(HUD_ID));
-      if (panel) panel.remove();
-    }
-
-    /* ---------------- Styling ---------------- */
-    function baseStyle(panel) {
+    function styleBase(panel) {
       Object.assign(panel.style, {
-        background: 'rgba(15,0,30,0.82)',
+        background: 'rgba(20,0,30,0.86)',
         color: '#ffd5ff',
         font: '12px/1.35 monospace',
-        padding: '0',
         border: '1px solid #ff00ff',
         borderRadius: '6px',
-        maxWidth: '340px',
-        minWidth: '250px',
+        maxWidth: '520px',
+        minWidth: '300px',
         zIndex: HUD_Z,
-        pointerEvents: 'auto',
-        backdropFilter: 'blur(2px)',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.55)',
+        padding: '0',
+        boxShadow: '0 3px 16px rgba(0,0,0,0.65)',
         isolation: 'isolate'
       });
     }
-    function styleAsGlobal(panel) {
-      baseStyle(panel);
+    function styleGlobal(panel) {
+      styleBase(panel);
       panel.style.position = 'fixed';
       if (!dragPos) {
-        panel.style.top = '12px';
-        panel.style.right = '12px';
+        panel.style.top = '14px';
+        panel.style.right = '14px';
         panel.style.left = '';
       } else {
         panel.style.left = dragPos[0] + 'px';
         panel.style.top  = dragPos[1] + 'px';
         panel.style.right = '';
       }
+      panel.dataset.location = 'global';
     }
-    function styleAsCard(panel) {
-      baseStyle(panel);
-      panel.style.position = 'absolute';
-      if (!dragPos) {
-        panel.style.top = '8px';
-        panel.style.right = '8px';
-        panel.style.left = '';
-      } else {
-        panel.style.left = dragPos[0] + 'px';
-        panel.style.top  = dragPos[1] + 'px';
-        panel.style.right = '';
+
+    function removeHud() {
+      dev.hud._enabled = false;
+      if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+      const el = document.getElementById(HUD_ID);
+      if (el) el.remove();
+    }
+
+    /* Frame Skeleton */
+    function renderFrameSkeleton() {
+      const panel = document.getElementById(HUD_ID);
+      if (!panel) return;
+      if (!panel.querySelector('[data-hud-root]')) {
+        panel.innerHTML = `
+          <div data-hud-root></div>
+          <div data-hdr style="display:flex;align-items:center;gap:6px;cursor:move;
+               background:linear-gradient(90deg,#330046,#110014);padding:6px 8px;
+               border-bottom:1px solid #ff00ff;">
+            <strong style="flex:1;font-size:12px;">LCARS Dev HUD</strong>
+            <select data-card style="font-size:11px;max-width:140px;"></select>
+            <button data-profile-tip data-tip="Profiles" data-tip-detail="Apply a preset combination of debug flags."
+              data-profiles style="font-size:11px;padding:2px 6px;">Prof</button>
+            <button data-legend data-tip="Toggle flag labels"
+              data-tip-detail="Switch between compact single-letter and full flag names."
+              style="font-size:11px;padding:2px 6px;">${verboseFlags?'ABC':'A'}</button>
+            <button data-collapse data-tip="Collapse" data-tip-detail="Collapse or expand the entire HUD body."
+              style="font-size:11px;padding:2px 6px;">${collapsed?'▢':'▣'}</button>
+            <button data-remove data-tip="Disable HUD" data-tip-detail="Disable and remove the HUD (persisted)."
+              style="font-size:11px;padding:2px 6px;">✕</button>
+          </div>
+          <div data-toolbar style="display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px 8px;
+               border-bottom:1px solid #552266;background:rgba(30,0,50,0.45);">
+            <span style="font-size:10px;opacity:.65;">Flags:</span>
+            <div data-quick-flags style="display:flex;flex-wrap:wrap;gap:2px;"></div>
+            <span style="margin-left:auto;font-size:10px;opacity:.65;">Interval</span>
+            <input data-int type="number" min="500" step="500" value="${hudInterval}"
+                   data-tip="Refresh Interval" data-tip-detail="HUD auto-refresh interval in milliseconds."
+                   style="width:70px;font-size:10px;">
+            <button data-refresh data-tip="Immediate Refresh" style="font-size:10px;padding:2px 6px;">↻</button>
+          </div>
+          <div data-body style="${collapsed?'display:none;':''};max-height:70vh;overflow-y:auto;padding:6px 8px;"></div>
+          <div data-footer style="padding:4px 8px;font-size:10px;opacity:.55;${collapsed?'display:none;':''}">
+            Drag header. Hover for tooltips. Prof=flag profiles. A=legend mode. (Global only)
+          </div>
+          <div id="cblcars-hud-tooltip" style="position:fixed;left:0;top:0;pointer-events:none;z-index:${HUD_Z+1};
+               background:rgba(60,0,80,0.92);color:#ffe6ff;font:11px/1.3 monospace;padding:6px 8px;
+               border:1px solid #ff00ff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.5);display:none;
+               max-width:280px;white-space:normal;"></div>
+        `;
+        wireFrame(panel);
       }
+      const body = panel.querySelector('[data-body]');
+      if (body && !body.querySelector('[data-panels]')) {
+        const container = document.createElement('div');
+        container.setAttribute('data-panels','');
+        container.style.display='flex';
+        container.style.flexDirection='column';
+        container.style.gap='8px';
+        body.appendChild(container);
+      }
+      renderQuickFlags(panel);
+      buildBuiltinPanelsOnce();          // <-- register built-ins here
+      renderPanelsShell();               // create shells
+      refreshPanels(buildCoreSnapshot()); // initial population
     }
 
-    /* ---------------- Markup & wiring ---------------- */
-    function panelMarkup() {
-      const flags = window.cblcars._debugFlags || {};
-      const flagBtns = FLAG_KEYS.map(k => {
-        const on = !!flags[k];
-        return `<button data-flag="${k}" data-on="${on?1:0}"
-            style="font-size:10px;margin:2px;padding:2px 5px;border:1px solid #552266;
-                   background:${on?'#ff00ff':'#333'};color:${on?'#120018':'#ffd5ff'};
-                   border-radius:3px;cursor:pointer;">${k[0].toUpperCase()}</button>`;
-      }).join('');
-      return `
-        <div data-hdr style="cursor:move;user-select:none;display:flex;align-items:center;
-             gap:6px;padding:6px 8px;background:linear-gradient(90deg,#30003f,#120018);
-             border-bottom:1px solid #ff00ff;">
-          <strong style="font-size:12px;flex:1 1 auto;">LCARS Dev HUD</strong>
-          <select data-card style="font-size:11px;max-width:130px;"></select>
-          <button data-loc style="font-size:11px;padding:2px 5px;" title="Toggle global/card">${locationPref==='global'?'G':'C'}</button>
-          <button data-collapse style="font-size:11px;padding:2px 6px;cursor:pointer;">
-            ${collapsed ? '▢':'▣'}
-          </button>
-          <button data-remove style="font-size:11px;padding:2px 6px;cursor:pointer;">✕</button>
-        </div>
-        <div data-toolbar style="display:flex;flex-wrap:wrap;align-items:center;
-             padding:4px 6px;border-bottom:1px solid #552266;">
-          <span style="font-size:10px;opacity:.65;margin-right:4px;">Flags:</span>
-          <span data-flags style="display:flex;flex-wrap:wrap;align-items:center;">${flagBtns}</span>
-          <span style="margin-left:auto;font-size:10px;opacity:.7;">Interval</span>
-          <input data-int type="number" min="1000" step="500"
-                 value="${hudInterval}" style="width:70px;font-size:10px;margin-left:4px;">
-          <button data-refresh style="font-size:10px;margin-left:4px;padding:2px 6px;cursor:pointer;">↻</button>
-        </div>
-        <div data-body style="padding:6px 8px;${collapsed?'display:none;':''}">Initializing...</div>
-        <div data-footer style="padding:4px 8px;border-top:1px solid #552266;
-             font-size:10px;${collapsed?'display:none;':''};opacity:.6;">
-          Drag header. Switch card via dropdown. Toggle flags. ↻ refresh.
-        </div>
-      `;
-    }
-
-    function wireHud(panel) {
-      // Refresh
-      panel.querySelector('[data-refresh]')?.addEventListener('click', () => refresh(true));
-      // Remove
-      panel.querySelector('[data-remove]')?.addEventListener('click', () => {
-        persistHudState({ enabled: false });
-        remove();
-      });
-      // Collapse
-      panel.querySelector('[data-collapse]')?.addEventListener('click', () => toggleCollapse());
-      // Interval change
-      panel.querySelector('[data-int]')?.addEventListener('change', e => {
-        const v = parseInt(e.target.value, 10);
-        if (Number.isFinite(v) && v >= 1000) setIntervalMs(v);
-      });
-      // Flags
-      panel.querySelectorAll('[data-flag]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const key = btn.getAttribute('data-flag');
-          const currentFlags = window.cblcars._debugFlags || {};
-          const nextVal = !currentFlags[key];
-          dev.flags({ [key]: nextVal });
-          styleFlagButton(btn, nextVal);
-          persistHudState({
-            flags: {
-              ...(readHudState().flags || {}),
-              [key]: nextVal
-            }
+    /* Frame wiring */
+    function wireFrame(panel) {
+      if (!panelDraggable) {
+        const hdr = panel.querySelector('[data-hdr]');
+        if (hdr) {
+          panelDraggable = true;
+          let dragging=false,startX=0,startY=0,origX=0,origY=0;
+          hdr.addEventListener('mousedown',e=>{
+            if(e.button!==0)return;
+            dragging=true;startX=e.clientX;startY=e.clientY;
+            const r=panel.getBoundingClientRect();origX=r.left;origY=r.top;
+            document.addEventListener('mousemove',onMove);
+            document.addEventListener('mouseup',onUp,{once:true});
+            e.preventDefault();
           });
-          // Force debug redraw
-            try {
-              const cards = dev.discoverMsdCards();
-              cards.forEach(c => {
-                const root = c.shadowRoot;
-                if (!root) return;
-                const vb = c._config?.variables?.msd?._viewBox || [0,0,100,100];
-                window.cblcars.debug?.render?.(root, vb, { anchors: root.__cblcars_anchors });
-                window.cblcars.routing?.channels?.ensureChannelDebug?.(root);
-              });
-            } catch(_) {}
-        });
+          function onMove(e) {
+            if(!dragging) return;
+            const dx=e.clientX-startX, dy=e.clientY-startY;
+            panel.style.left=(origX+dx)+'px';
+            panel.style.top=(origY+dy)+'px';
+            panel.style.right='';
+          }
+          function onUp() {
+            dragging=false;
+            document.removeEventListener('mousemove',onMove);
+            const r=panel.getBoundingClientRect();
+            dragPos=[r.left,r.top];
+            persistHudState({ position:dragPos });
+          }
+        }
+      }
+
+      panel.querySelector('[data-card]')?.addEventListener('change',e=>{
+        const idx=parseInt(e.target.value,10);
+        if(Number.isFinite(idx)) { dev.pick(idx); refresh(true); }
       });
-      // Card selector
-      panel.querySelector('[data-card]')?.addEventListener('change', e => {
-        const idx = parseInt(e.target.value, 10);
-        if (Number.isFinite(idx)) {
-          dev.pick(idx);
-          refresh(true);
+
+      panel.querySelector('[data-collapse]')?.addEventListener('click',()=>{
+        collapsed=!collapsed;
+        persistHudState({ collapsed });
+        const body=panel.querySelector('[data-body]');
+        const foot=panel.querySelector('[data-footer]');
+        const btn = panel.querySelector('[data-collapse]');
+        if(body) body.style.display=collapsed?'none':'block';
+        if(foot) foot.style.display=collapsed?'none':'block';
+        if(btn) btn.textContent=collapsed?'▢':'▣';
+      });
+
+      panel.querySelector('[data-remove]')?.addEventListener('click',()=>{
+        persistHudState({ enabled:false });
+        removeHud();
+      });
+
+      panel.querySelector('[data-legend]')?.addEventListener('click',()=>{
+        verboseFlags=!verboseFlags;
+        persistHudState({ verboseFlags });
+        renderQuickFlags(panel,true);
+      });
+
+      panel.querySelector('[data-profiles]')?.addEventListener('click',()=>showProfilesMenu(panel));
+
+      panel.querySelector('[data-int]')?.addEventListener('change',e=>{
+        const val=parseInt(e.target.value,10);
+        if(Number.isFinite(val) && val>=500) setIntervalMs(val);
+      });
+
+      panel.querySelector('[data-refresh]')?.addEventListener('click',()=>refresh(true));
+
+      initTooltipEngine(panel);
+    }
+
+    /* Tooltip Engine */
+    let tooltipEl=null, tooltipHideTO=null;
+    function initTooltipEngine(panel) {
+      tooltipEl = panel.querySelector('#cblcars-hud-tooltip');
+      if (!tooltipEl) return;
+      const root = panel;
+      function showTip(target) {
+        const short = target.getAttribute('data-tip');
+        const detail = target.getAttribute('data-tip-detail');
+        if (!short && !detail) return;
+        let html = '';
+        if (short)  html += `<div style="font-weight:bold;margin-bottom:2px;">${esc(short)}</div>`;
+        if (detail) html += `<div style="font-size:11px;opacity:.85;">${esc(detail)}</div>`;
+        tooltipEl.innerHTML = html;
+        tooltipEl.style.display='block';
+        positionTip(target);
+      }
+      function hideTip(){ tooltipEl.style.display='none'; }
+      function esc(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+      function positionTip(target){
+        const r=target.getBoundingClientRect(); const tw=tooltipEl.offsetWidth, th=tooltipEl.offsetHeight;
+        let x=r.left+(r.width/2)-(tw/2), y=r.top-th-8;
+        if(x<6)x=6; if(y<6)y=r.bottom+8;
+        if(x+tw>window.innerWidth-6)x=window.innerWidth-tw-6;
+        tooltipEl.style.left=x+'px'; tooltipEl.style.top=y+'px';
+      }
+      root.addEventListener('pointerover',e=>{
+        const t=e.target.closest('[data-tip]');
+        clearTimeout(tooltipHideTO);
+        if(t) showTip(t);
+      });
+      root.addEventListener('pointerout',()=>{
+        clearTimeout(tooltipHideTO);
+        tooltipHideTO=setTimeout(hideTip,180);
+      });
+      root.addEventListener('focusin',e=>{
+        const t=e.target.closest('[data-tip]');
+        if(t) showTip(t);
+      });
+      root.addEventListener('focusout',()=>hideTip());
+      window.addEventListener('scroll',()=>{ if(tooltipEl?.style.display==='block') hideTip(); }, true);
+    }
+
+    /* Quick Flags */
+    function renderQuickFlags(panel, force) {
+      const container = panel.querySelector('[data-quick-flags]');
+      if (!container) return;
+      if (force) container.innerHTML = '';
+      const currentFlags = window.cblcars._debugFlags || {};
+      QUICK_FLAG_KEYS.forEach(k=>{
+        let btn = container.querySelector(`[data-flag-btn="${k}"]`);
+        if(!btn){
+          btn = document.createElement('button');
+          btn.setAttribute('data-flag-btn', k);
+          btn.setAttribute('data-tip', k);
+          btn.setAttribute('data-tip-detail', `Toggle debug flag "${k}".`);
+          btn.style.cssText='font-size:10px;padding:2px 6px;cursor:pointer;border:1px solid #552266;border-radius:3px;';
+          btn.addEventListener('click',()=>{
+            const nf = !(window.cblcars._debugFlags||{})[k];
+            dev.flags({ [k]: nf });
+            persistHudState({ flags: window.cblcars._debugFlags });
+            styleQuickFlagBtn(btn,k,nf);
+          });
+          container.appendChild(btn);
+        }
+        styleQuickFlagBtn(btn,k,currentFlags[k]);
+      });
+    }
+    function styleQuickFlagBtn(btn,key,on){
+      const label = verboseFlags ? key : key[0].toUpperCase();
+      btn.textContent = label;
+      btn.style.background = on ? '#ff00ff':'#333';
+      btn.style.color = on ? '#120018':'#ffd5ff';
+    }
+
+    /* Profiles Menu */
+    function showProfilesMenu(panel) {
+      let existing = panel.querySelector('#hud-profiles-menu');
+      if (existing) { existing.remove(); return; }
+      const menu = document.createElement('div');
+      menu.id='hud-profiles-menu';
+      Object.assign(menu.style,{
+        position:'absolute',right:'6px',top:'42px',background:'rgba(50,0,70,0.95)',
+        border:'1px solid #ff00ff',padding:'6px 8px',borderRadius:'6px',
+        zIndex:HUD_Z+2,font:'11px/1.35 monospace',minWidth:'160px'
+      });
+      menu.innerHTML = `<div style="font-weight:bold;margin-bottom:4px;">Flag Profiles</div>
+        ${Object.keys(FLAG_PROFILES).map(p =>
+          `<div data-prof="${p}" style="padding:2px 4px;cursor:pointer;${p===selectedProfile?'background:#ff00ff;color:#120018;':''}">${p}</div>`
+        ).join('')}
+        <div data-prof="Custom" style="padding:2px 4px;cursor:pointer;${selectedProfile==='Custom'?'background:#ff00ff;color:#120018;':''}">Custom</div>
+        <div style="margin-top:6px;font-size:10px;opacity:.65;">Click to apply (Custom = current state)</div>
+      `;
+      panel.appendChild(menu);
+      menu.addEventListener('click', e => {
+        const p = e.target.getAttribute('data-prof');
+        if (!p) return;
+        if (p !== 'Custom') {
+          dev.flags(FLAG_PROFILES[p]);
+          persistHudState({ flags: window.cblcars._debugFlags });
+          selectedProfile = p;
+        } else {
+          selectedProfile = 'Custom';
+        }
+        persistHudState({ selectedProfile });
+        menu.remove();
+        renderQuickFlags(panel,true);
+      });
+      document.addEventListener('pointerdown', function once(ev){
+        if (!menu.contains(ev.target)) {
+          try { menu.remove(); } catch(_){}
+          document.removeEventListener('pointerdown', once, true);
+        }
+      }, true);
+    }
+
+    /* Panel registry */
+    function registerPanel(meta) {
+      if (!meta || !meta.id) return;
+      if (panelRegistry.has(meta.id)) return;
+      panelRegistry.set(meta.id, { meta, instance:null });
+    }
+
+    function unregisterPanel(id) {
+      const existing = panelRegistry.get(id);
+      if (existing?.instance?.cleanup) {
+        try { existing.instance.cleanup(); } catch(_) {}
+      }
+      panelRegistry.delete(id);
+      renderPanelsShell();
+    }
+
+    function renderPanelsShell() {
+      const panel = document.getElementById(HUD_ID);
+      const container = panel?.querySelector('[data-panels]');
+      if (!container) return;
+
+      const entries = Array.from(panelRegistry.values())
+        .sort((a,b)=> (a.meta.order||9999) - (b.meta.order||9999));
+
+      const existingIds = new Set();
+      entries.forEach(entry=>{
+        existingIds.add(entry.meta.id);
+        let wrapper = container.querySelector(`[data-panel="${entry.meta.id}"]`);
+        if (!wrapper) {
+          wrapper = document.createElement('div');
+            wrapper.setAttribute('data-panel',entry.meta.id);
+          wrapper.style.border='1px solid #552266';
+          wrapper.style.borderRadius='4px';
+          wrapper.style.background='rgba(40,0,60,0.45)';
+          wrapper.style.display='flex';
+          wrapper.style.flexDirection='column';
+          wrapper.innerHTML = `
+            <div data-panel-hdr style="display:flex;align-items:center;gap:6px;
+                padding:4px 8px;background:linear-gradient(90deg,#440066,#220022);
+                cursor:pointer;font-size:11px;">
+              <span data-panel-caret style="opacity:.8;">▾</span>
+              <span data-panel-title style="flex:1 1 auto;"></span>
+              <span data-panel-badge style="font-size:10px;opacity:.8;"></span>
+            </div>
+            <div data-panel-body style="padding:6px 8px;display:block;"></div>
+          `;
+          container.appendChild(wrapper);
+
+          const hdr = wrapper.querySelector('[data-panel-hdr]');
+          hdr.addEventListener('click',()=>{
+            const body = wrapper.querySelector('[data-panel-body]');
+            const caret = wrapper.querySelector('[data-panel-caret]');
+            const c = body.style.display==='none';
+            body.style.display = c?'block':'none';
+            caret.textContent = c?'▾':'▸';
+          });
+        }
+        wrapper.querySelector('[data-panel-title]').textContent = entry.meta.title || entry.meta.id;
+      });
+
+      container.querySelectorAll('[data-panel]').forEach(w=>{
+        if (!existingIds.has(w.getAttribute('data-panel'))) w.remove();
+      });
+
+      const snapshot = buildCoreSnapshot();
+      for (const entry of panelRegistry.values()) {
+        if (!entry.instance) {
+          const wrapper = container.querySelector(`[data-panel="${entry.meta.id}"]`);
+          if (!wrapper) continue;
+          const body = wrapper.querySelector('[data-panel-body]');
+          try {
+            const ctx = {
+              dev,
+              hudApi: buildHudApi(),
+              getCoreState: buildCoreSnapshot,
+              persistHudState,
+              flags: window.cblcars._debugFlags || {}
+            };
+            const ret = entry.meta.render(ctx);
+            entry.instance = {
+              rootEl: ret?.rootEl || body,
+              cleanup: ret?.cleanup || (()=>{}),
+              refresh: ret?.refresh || (()=>{}),
+              bodyRef: body
+            };
+            if (ret?.rootEl && ret.rootEl !== body) {
+              body.innerHTML = '';
+              body.appendChild(ret.rootEl);
+            }
+            entry.instance.refresh(snapshot);
+          } catch (e) {
+            body.innerHTML = `<div style="color:#ff4d78;">Panel init error: ${e?.message||e}</div>`;
+          }
+        }
+      }
+      updatePanelBadges(snapshot);
+    }
+
+    function updatePanelBadges(snapshot) {
+      const panel = document.getElementById(HUD_ID);
+      const container = panel?.querySelector('[data-panels]');
+      if (!container) return;
+      for (const entry of panelRegistry.values()) {
+        const w = container.querySelector(`[data-panel="${entry.meta.id}"]`);
+        if (!w) continue;
+        const badgeEl = w.querySelector('[data-panel-badge]');
+        let val = '';
+        if (typeof entry.meta.badge === 'function') {
+          try { val = entry.meta.badge(snapshot) ?? ''; } catch(_) {}
+        }
+        badgeEl.textContent = val;
+      }
+    }
+
+    function refreshPanels(snapshot) {
+      for (const entry of panelRegistry.values()) {
+        if (entry.instance?.refresh) {
+          try { entry.instance.refresh(snapshot); } catch(_) {}
+        }
+      }
+      updatePanelBadges(snapshot);
+    }
+
+    function buildHudApi() {
+      return {
+        bringToFront,
+        setInterval(ms){ setIntervalMs(ms); },
+        applyProfile(name){
+          if (!FLAG_PROFILES[name]) return;
+          dev.flags(FLAG_PROFILES[name]);
+          selectedProfile = name;
+          persistHudState({ selectedProfile:name, flags: window.cblcars._debugFlags });
+          const panel = document.getElementById(HUD_ID);
+          if (panel) renderQuickFlags(panel,true);
+        },
+        // setLocation is now a no-op (global only)
+        setLocation(mode){
+          console.info('[cblcars.dev.hud] setLocation ignored; HUD is global-only now.', mode);
+        }
+      };
+    }
+
+    /* Built-In Panels Registration (once) */
+    function buildBuiltinPanelsOnce() {
+      if (builtInsRegistered) return;
+      builtInsRegistered = true;
+
+      // Summary Panel
+      registerPanel({
+        id:'summary',
+        title:'Summary',
+        order: INTERNAL_ORDERS.summary,
+        badge: snap => snap.routesSummary.total || '',
+        render(){
+          const root = document.createElement('div');
+          root.style.fontSize='11px';
+          root.innerHTML = `<div data-sum-routes></div>
+            <div data-sum-scenarios style="margin-top:6px;"></div>
+            <div data-sum-channels style="margin-top:6px;"></div>`;
+          return {
+            rootEl: root,
+            refresh(snapshot){
+              const rs = snapshot.routesSummary;
+              root.querySelector('[data-sum-routes]').innerHTML =
+                `<div style="font-weight:bold;margin-bottom:2px;">Routes</div>
+                 <div>Total: ${rs.total} | Detours ${rs.detours} | Grid OK ${rs.gridSucc} | FB ${rs.gridFb} | Miss ${rs.miss}</div>`;
+              const scDiv = root.querySelector('[data-sum-scenarios]');
+              const results = snapshot.scenarioResults;
+              if (results.length) {
+                const pass = results.filter(r=>r.ok).length;
+                const lines = results.slice(0,3).map(r =>
+                  `<div style="color:${r.ok?'#53ff93':'#ff4d78'};">${r.scenario}: ${r.ok?'OK':'FAIL'}</div>`
+                ).join('');
+                scDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Scenarios</div>
+                  <div>${pass}/${results.length} passed</div>${lines}`;
+              } else {
+                scDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Scenarios</div>
+                  <div style="opacity:.6;">(none)</div>`;
+              }
+              const chDiv = root.querySelector('[data-sum-channels]');
+              const ch = snapshot.channels;
+              if (ch && Object.keys(ch).length) {
+                const top = Object.entries(ch).sort((a,b)=>b[1]-a[1]).slice(0,3)
+                  .map(([id,v])=>`<div style="display:flex;justify-content:space-between;"><span>${id}</span><span>${v}</span></div>`).join('');
+                chDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Channels</div>${top}`;
+              } else {
+                chDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Channels</div><div style="opacity:.6;">(none)</div>`;
+              }
+            }
+          };
         }
       });
-      // Location toggle
-      panel.querySelector('[data-loc]')?.addEventListener('click', () => {
-        locationPref = locationPref === 'global' ? 'card' : 'global';
-        persistHudState({ location: locationPref });
-        ensure();
+
+      // Flags & Profiles
+      registerPanel({
+        id:'flags',
+        title:'Flags & Profiles',
+        order: INTERNAL_ORDERS.flags,
+        render(){
+          const root = document.createElement('div');
+          root.style.fontSize='11px';
+          root.innerHTML = `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" data-flags-grid></div>
+            <div data-current-prof style="margin-top:4px;opacity:.75;"></div>
+            <div style="margin-top:6px;">
+              <button data-apply-prof="Minimal" style="font-size:10px;">Minimal</button>
+              <button data-apply-prof="Routing" style="font-size:10px;">Routing</button>
+              <button data-apply-prof="Perf" style="font-size:10px;">Perf</button>
+              <button data-apply-prof="Full" style="font-size:10px;">Full</button>
+            </div>
+            <div style="margin-top:6px;font-size:10px;opacity:.6;">Profiles override existing flags (Custom = mixed state).</div>
+          `;
+          function rebuild() {
+            const grid = root.querySelector('[data-flags-grid]');
+            const flagsObj = window.cblcars._debugFlags || {};
+            const allKeys = Array.from(new Set([
+              ...Object.keys(flagsObj),
+              ...QUICK_FLAG_KEYS,
+              'validation','smart','counters','svg_perf_overlay'
+            ])).sort();
+            grid.innerHTML = allKeys.map(k=>{
+              const on = !!flagsObj[k];
+              return `<button data-flag-detail="${k}"
+                style="font-size:10px;padding:2px 6px;margin:2px;cursor:pointer;
+                border:1px solid #552266;border-radius:3px;
+                background:${on?'#ff00ff':'#333'};color:${on?'#120018':'#ffd5ff'};"
+                data-tip="${k}" data-tip-detail="Toggle debug flag '${k}'.">${k}</button>`;
+            }).join('');
+            grid.querySelectorAll('[data-flag-detail]').forEach(btn=>{
+              btn.addEventListener('click',()=>{
+                const fk = btn.getAttribute('data-flag-detail');
+                const nf = !(window.cblcars._debugFlags||{})[fk];
+                dev.flags({ [fk]: nf });
+                persistHudState({ flags: window.cblcars._debugFlags });
+                rebuild();
+              });
+            });
+            root.querySelector('[data-current-prof]').textContent = `Profile: ${selectedProfile}`;
+          }
+          root.querySelectorAll('[data-apply-prof]').forEach(b=>{
+            b.addEventListener('click',()=>{
+              const prof = b.getAttribute('data-apply-prof');
+              if (!FLAG_PROFILES[prof]) return;
+              dev.flags(FLAG_PROFILES[prof]);
+              selectedProfile = prof;
+              persistHudState({ selectedProfile: prof, flags: window.cblcars._debugFlags });
+              rebuild();
+              const panel = document.getElementById(HUD_ID);
+              if (panel) renderQuickFlags(panel,true);
+            });
+          });
+          rebuild();
+          return { rootEl: root, refresh(){} };
+        }
       });
 
-      // Drag
-      setupDrag(panel);
-      // Populate card selector initially
-      populateCardSelector(panel);
-      // Reflect collapsed
-      syncCollapsedUi(panel);
-    }
-
-    function styleFlagButton(btn, on) {
-      btn.setAttribute('data-on', on ? '1':'0');
-      btn.style.background = on ? '#ff00ff' : '#333';
-      btn.style.color = on ? '#120018' : '#ffd5ff';
-    }
-
-    function updateLocationButton(panel) {
-      const btn = panel.querySelector('[data-loc]');
-      if (btn) btn.textContent = (locationPref === 'global' ? 'G' : 'C');
-    }
-
-    function syncCollapsedUi(panel) {
-      const body = panel.querySelector('[data-body]');
-      const footer = panel.querySelector('[data-footer]');
-      const collapseBtn = panel.querySelector('[data-collapse]');
-      if (body) body.style.display = collapsed ? 'none':'block';
-      if (footer) footer.style.display = collapsed ? 'none':'block';
-      if (collapseBtn) collapseBtn.textContent = collapsed ? '▢' : '▣';
-    }
-
-    /* ---------------- Dragging ---------------- */
-    function setupDrag(panel) {
-      if (panelDraggableInitialized) return;
-      panelDraggableInitialized = true;
-      const hdr = panel.querySelector('[data-hdr]');
-      if (!hdr) return;
-      let dragging = false;
-      let startX = 0, startY = 0, origX = 0, origY = 0;
-      hdr.addEventListener('mousedown', e => {
-        if (e.button !== 0) return;
-        dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = panel.getBoundingClientRect();
-        origX = rect.left;
-        origY = rect.top;
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp, { once: true });
-        e.preventDefault();
+      // Perf & Timers
+      registerPanel({
+        id:'perf',
+        title:'Perf & Timers',
+        order: INTERNAL_ORDERS.perf,
+        badge: snap => Object.keys(snap.perfTimers||{}).length || '',
+        render(){
+          const root = document.createElement('div');
+          root.style.fontSize='11px';
+          root.innerHTML = `
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">
+              <button data-perf-reset style="font-size:10px;">Reset Perf</button>
+              <button data-perf-reset-timers style="font-size:10px;">Reset Timers</button>
+            </div>
+            <div data-perf-timers></div>
+            <hr style="border:none;border-top:1px solid #442255;margin:8px 0;">
+            <div data-perf-counters></div>
+          `;
+          root.querySelector('[data-perf-reset]')?.addEventListener('click',()=>{ try{ window.cblcars.perf.reset(); }catch(_){ } });
+          root.querySelector('[data-perf-reset-timers]')?.addEventListener('click',()=>{ try{ window.cblcars.debug?.perf?.reset(); }catch(_){ } });
+          return {
+            rootEl: root,
+            refresh(snapshot){
+              const timersDiv = root.querySelector('[data-perf-timers]');
+              const countersDiv = root.querySelector('[data-perf-counters]');
+              const timers = snapshot.perfTimers;
+              const tKeys = Object.keys(timers);
+              if (!tKeys.length) {
+                timersDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Timers</div><div style="opacity:.6;">(none yet)</div>`;
+              } else {
+                let html = `<div style="font-weight:bold;margin-bottom:2px;">Timers</div>`;
+                tKeys.forEach(k=>{
+                  const t = timers[k];
+                  html += `<div>${k}: last=${t.lastMs.toFixed(2)}ms avg=${t.avgMs.toFixed(2)}ms max=${t.maxMs.toFixed(1)} n=${t.count}</div>`;
+                });
+                timersDiv.innerHTML = html;
+              }
+              const counters = snapshot.perfCounters || {};
+              const cKeys = Object.keys(counters);
+              if (!cKeys.length) {
+                countersDiv.innerHTML = `<div style="font-weight:bold;margin-bottom:2px;">Counters</div><div style="opacity:.6;">(none yet)</div>`;
+              } else {
+                let html = `<div style="font-weight:bold;margin-bottom:2px;">Counters</div>`;
+                cKeys.sort().slice(0,60).forEach(k=>{
+                  const c = counters[k];
+                  const avgMs = c.avgMs!=null ? ` avg=${c.avgMs.toFixed(1)}ms` : '';
+                  html += `<div>${k}: c=${c.count}${avgMs}</div>`;
+                });
+                if (cKeys.length > 60) html += `<div style="opacity:.6;">(+${cKeys.length-60} more)</div>`;
+                countersDiv.innerHTML = html;
+              }
+            }
+          };
+        }
       });
-      function onMove(e) {
-        if (!dragging) return;
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        const nx = origX + dx;
-        const ny = origY + dy;
-        panel.style.left = nx + 'px';
-        panel.style.top  = ny + 'px';
-        panel.style.right = '';
-      }
-      function onUp() {
-        dragging = false;
-        document.removeEventListener('mousemove', onMove);
-        const rect = panel.getBoundingClientRect();
-        dragPos = [rect.left, rect.top];
-        persistHudState({ position: dragPos });
-      }
-    }
 
-    function restorePosition(panel) {
-      if (!dragPos) return;
-      panel.style.left = dragPos[0] + 'px';
-      panel.style.top  = dragPos[1] + 'px';
-      panel.style.right = '';
-    }
+      // Routes
+      registerPanel({
+        id:'routes',
+        title:'Routes',
+        order: INTERNAL_ORDERS.routes,
+        badge: snap => snap.routesSummary.total || '',
+        render(){
+          const root = document.createElement('div');
+          root.style.fontSize='11px';
+          root.innerHTML = `
+            <div style="margin-bottom:4px;display:flex;gap:4px;flex-wrap:wrap;">
+              <button data-routes-refresh style="font-size:10px;">Refresh Now</button>
+              <button data-routes-filter="detour" style="font-size:10px;">Detours</button>
+              <button data-routes-filter="miss" style="font-size:10px;">Channel Miss</button>
+              <button data-routes-filter="reset" style="font-size:10px;">Reset Filter</button>
+            </div>
+            <table data-routes-table style="border-collapse:collapse;width:100%;font-size:10px;">
+              <thead>
+                <tr>
+                  <th data-sort="id">ID</th>
+                  <th data-sort="eff">Mode</th>
+                  <th data-sort="grid">Grid</th>
+                  <th data-sort="detour">Det</th>
+                  <th data-sort="miss">Miss</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div data-routes-empty style="display:none;opacity:.6;margin-top:4px;">(no routes)</div>
+          `;
+          let currentSort = { field:'id', dir:1 };
+          let filterMode = null;
+          root.querySelectorAll('th[data-sort]').forEach(th=>{
+            th.style.cursor='pointer';
+            th.addEventListener('click',()=>{
+              const field=th.getAttribute('data-sort');
+              if(currentSort.field===field) currentSort.dir*=-1;
+              else currentSort={field,dir:1};
+              renderRows(lastSnapshot);
+            });
+          });
+          root.querySelectorAll('[data-routes-filter]').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+              const mode=btn.getAttribute('data-routes-filter');
+              filterMode = mode==='reset' ? null : mode;
+              renderRows(lastSnapshot);
+            });
+          });
+          root.querySelector('[data-routes-refresh]').addEventListener('click',()=>renderRows(buildCoreSnapshot()));
+          let lastSnapshot=null;
+          function renderRows(snapshot){
+            lastSnapshot=snapshot;
+            const tbody=root.querySelector('tbody');
+            const empty=root.querySelector('[data-routes-empty]');
+            const all=(snapshot?.routesRaw)||[];
+            let rows=all.map(r=>({
+              id:r.id,
+              eff:r['data-cblcars-route-effective']||'',
+              grid:r['data-cblcars-route-grid-status']||'',
+              detour:r['data-cblcars-route-detour']==='true',
+              miss:r['data-cblcars-route-channels-miss']==='true'
+            }));
+            if(filterMode==='detour') rows=rows.filter(r=>r.detour);
+            else if(filterMode==='miss') rows=rows.filter(r=>r.miss);
+            rows.sort((a,b)=>{
+              const f=currentSort.field;
+              const av=a[f], bv=b[f];
+              if(av===bv) return 0;
+              return (av>bv?1:-1)*currentSort.dir;
+            });
+            tbody.innerHTML=rows.slice(0,120).map(r=>`
+              <tr>
+                <td>${r.id||''}</td>
+                <td>${r.eff}</td>
+                <td>${r.grid}</td>
+                <td style="color:${r.detour?'#ffcc00':'#888'};">${r.detour?'Y':''}</td>
+                <td style="color:${r.miss?'#ff4d78':'#888'};">${r.miss?'Y':''}</td>
+              </tr>`).join('');
+            empty.style.display=rows.length?'none':'block';
+          }
+          return { rootEl:root, refresh(snapshot){ renderRows(snapshot); } };
+        }
+      });
 
-    /* ---------------- Collapse handling ---------------- */
-    function toggleCollapse(force) {
-      collapsed = (typeof force === 'boolean') ? force : !collapsed;
-      const panel = document.getElementById(HUD_ID) || getActiveCardRoot().root?.getElementById(HUD_ID);
-      if (panel) syncCollapsedUi(panel);
-      persistHudState({ collapsed });
-    }
+      // Actions
+      registerPanel({
+        id:'actions',
+        title:'Actions',
+        order: INTERNAL_ORDERS.actions,
+        render(){
+          const root=document.createElement('div');
+          root.style.fontSize='11px';
+          root.innerHTML=`
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <button data-act="list-cards" data-tip="List Cards" data-tip-detail="Console: cblcars.dev.listCards()" style="font-size:10px;">List Cards</button>
+              <button data-act="relayout" data-tip="Relayout" data-tip-detail="Relayout all connectors now." style="font-size:10px;">Relayout</button>
+              <button data-act="reset-perf" data-tip="Reset Perf" data-tip-detail="Reset internal perf counters." style="font-size:10px;">Reset Perf</button>
+              <button data-act="toggle-aggressive" data-tip="Toggle Smart Aggressive" data-tip-detail="Toggle runtime smart_aggressive mode." style="font-size:10px;">Smart Agg</button>
+              <button data-act="toggle-detour" data-tip="Toggle Detour" data-tip-detail="Enable/disable two-elbow detour fallback." style="font-size:10px;">Detour</button>
+            </div>
+            <div data-actions-status style="margin-top:6px;opacity:.75;font-size:10px;"></div>
+          `;
+          function setStatus(msg){ const el=root.querySelector('[data-actions-status]'); el.textContent=msg; }
+          root.querySelectorAll('[data-act]').forEach(btn=>{
+            btn.addEventListener('click',()=>{
+              const act=btn.getAttribute('data-act');
+              try {
+                switch(act){
+                  case 'list-cards':
+                    dev.listCards();
+                    setStatus('Listed cards in console.');
+                    break;
+                  case 'relayout':
+                    dev.relayout('*');
+                    setStatus('Relayout requested.');
+                    break;
+                  case 'reset-perf':
+                    window.cblcars.perf.reset();
+                    setStatus('Perf counters reset.');
+                    break;
+                  case 'toggle-aggressive': {
+                    const rt=dev.getRuntime(); const cur=!!rt.smart_aggressive;
+                    dev.setRuntime({ smart_aggressive: !cur });
+                    setStatus(`smart_aggressive=${!cur}`);
+                    break;
+                  }
+                  case 'toggle-detour': {
+                    const rt=dev.getRuntime(); const cur=!!(rt.fallback?.enable_two_elbow);
+                    dev.setRuntime({ fallback:{ enable_two_elbow: !cur } });
+                    setStatus(`detour=${!cur}`);
+                    break;
+                  }
+                  default: break;
+                }
+              } catch(e) {
+                setStatus('Error: '+(e?.message||e));
+              }
+            });
+          });
+          return { rootEl:root, refresh(){} };
+        }
+      });
+    } // buildBuiltinPanelsOnce end
 
-    /* ---------------- Interval management ---------------- */
+    /* Interval & Refresh */
     function setIntervalMs(ms) {
       hudInterval = ms;
       persistHudState({ interval: hudInterval });
       if (refreshTimer) clearInterval(refreshTimer);
-      refreshTimer = setInterval(() => {
-        if (!dev.hud._enabled) return;
-        refresh();
-      }, hudInterval);
-      refresh(true);
+      refreshTimer = setInterval(()=>refresh(), hudInterval);
     }
 
-    /* ---------------- Card selector ---------------- */
+    function refresh(forcePersist) {
+      if (!dev.hud._enabled) return;
+      const panel = document.getElementById(HUD_ID);
+      if (!panel) { ensure(); return; }
+      populateCardSelector(panel);
+      const snapshot = buildCoreSnapshot();
+      refreshPanels(snapshot);
+      if (forcePersist) {
+        persistHudState({
+          position: dragPos,
+          collapsed,
+          interval: hudInterval,
+          verboseFlags,
+          selectedProfile
+        });
+      }
+    }
+
     function populateCardSelector(panel) {
       const sel = panel.querySelector('[data-card]');
       if (!sel) return;
       const cards = dev.discoverMsdCards ? dev.discoverMsdCards() : [];
-      const activeIdx = dev.persistedState?.activeCardIndex != null
+      const actIdx = dev.persistedState?.activeCardIndex != null
         ? dev.persistedState.activeCardIndex
-        : (cards.indexOf(dev._activeCard));
-      const prevCount = sel.options.length;
-      if (prevCount !== cards.length) {
-        sel.innerHTML = '';
-        cards.forEach((c, i) => {
-          const opt = document.createElement('option');
-          opt.value = String(i);
-          opt.textContent = `${i}:${c.id || c.tagName.toLowerCase()}`;
+        : cards.indexOf(dev._activeCard);
+      if (sel.options.length !== cards.length) {
+        sel.innerHTML='';
+        cards.forEach((c,i)=>{
+          const opt=document.createElement('option');
+          opt.value=String(i);
+          opt.textContent=`${i}:${c.id||c.tagName.toLowerCase()}`;
           sel.appendChild(opt);
         });
       }
-      if (activeIdx >= 0 && activeIdx < sel.options.length) {
-        sel.selectedIndex = activeIdx;
-      }
+      if (actIdx>=0 && actIdx<sel.options.length) sel.selectedIndex=actIdx;
     }
 
-    /* ---------------- Data summarizers ---------------- */
-    function summarizeRoutes(routes) {
-      let total=routes.length, detours=0, gridSucc=0, gridFallback=0, miss=0;
-      routes.forEach(r => {
-        if (r['data-cblcars-route-detour']==='true') detours++;
-        const gs = r['data-cblcars-route-grid-status'];
-        if (gs==='success') gridSucc++;
-        else if (gs==='fallback') gridFallback++;
-        if (r['data-cblcars-route-channels-miss']==='true') miss++;
-      });
-      return { total, detours, gridSucc, gridFallback, miss };
-    }
-
-    function filterPerf(dump) {
-      const keysWanted = [
-        'connectors.route.detour.used',
-        'connectors.route.grid.success',
-        'connectors.route.grid.fallback',
-        'connectors.route.smart.hit',
-        'connectors.route.smart.aggressive',
-        'connectors.route.smart.skip',
-        'connectors.layout.recomputed',
-        'msd.render'
-      ];
-      const out = [];
-      keysWanted.forEach(k => {
-        const c = dump[k];
-        if (c) out.push(`${k.split('.').slice(2).join('.')}: ${c.count}`);
-      });
-      return out;
-    }
-
-    /* ---------------- Refresh ---------------- */
-    function refresh(forcePersist) {
-      if (!dev.hud._enabled) return;
-
-      const { root } = getActiveCardRoot();
-      let panel = root?.getElementById(HUD_ID) || document.getElementById(HUD_ID);
-      if (!panel) {
-        // Attempt to re-create
-        ensure();
-        panel = root?.getElementById(HUD_ID) || document.getElementById(HUD_ID);
-        if (!panel) return;
-      }
-      const body = panel.querySelector('[data-body]');
-      if (!body) return;
-
-      // Routes
-      let routes = [];
-      try { routes = dev.dumpRoutes(undefined, { silent: true }); } catch (_) {}
-      const summary = summarizeRoutes(routes);
-
-      // Perf subset
-      let perfLines = [];
-      try {
-        const dump = window.cblcars.perfDump ? window.cblcars.perfDump() : (window.cblcars.perf?.dump?.() || {});
-        perfLines = filterPerf(dump);
-      } catch (_) {}
-
-      // Scenarios
-      const scenarioCache = dev._scenarioResults || [];
-      const passCount = scenarioCache.filter(r => r && r.ok).length;
-      const scenarioSummary = scenarioCache.length
-        ? `${passCount}/${scenarioCache.length} passed`
-        : 'No scenarios yet';
-      const scenarioLines = scenarioCache.slice(0, 6).map(s =>
-        `<div style="color:${s.ok ? '#53ff93':'#ff4d78'};">${s.scenario}: ${s.ok?'OK':'FAIL'}${s.details?` (${s.details})`:''}</div>`
-      ).join('');
-
-      // Card index
-      const cardIdx = (() => {
-        try {
-          const list = dev.discoverMsdCards ? dev.discoverMsdCards() : [];
-          const idx = list.indexOf(dev._activeCard);
-          return idx >= 0 ? idx : '-';
-        } catch { return '-'; }
-      })();
-      const persistedIdx = dev.persistedState?.activeCardIndex != null
-        ? dev.persistedState.activeCardIndex
-        : cardIdx;
-
-      // Channel occupancy
-      let occupancyHtml = '';
-      try {
-        const occ = window.cblcars?.routing?.channels?.getOccupancy?.();
-        if (occ && Object.keys(occ).length) {
-          const rows = Object.entries(occ).sort((a,b)=>b[1]-a[1]).slice(0,3);
-          occupancyHtml = rows.map(([id,val]) =>
-            `<div style="display:flex;justify-content:space-between;"><span>${id}</span><span>${val}</span></div>`
-          ).join('');
-        }
-      } catch(_) {}
-
-      body.innerHTML = `
-        <div style="display:flex;flex-wrap:wrap;gap:4px;line-height:1.3;">
-          <div style="flex:1 1 100%;">Card: <strong>${persistedIdx}</strong></div>
-          <div style="flex:1 1 100%;">Routes: ${summary.total}
-            <span style="opacity:.7;">(detour ${summary.detours} | grid ok ${summary.gridSucc} | fb ${summary.gridFallback})</span>
-          </div>
-          <div style="flex:1 1 100%;">Channel Miss: ${summary.miss}</div>
-        </div>
-        <hr style="border:none;border-top:1px solid #442255;margin:6px 0;">
-        <div>
-          <div style="font-weight:bold;margin-bottom:2px;">Perf</div>
-          ${perfLines.length ? perfLines.map(l=>`<div>${l}</div>`).join('') : '<div style="opacity:.55;">(no perf counters)</div>'}
-        </div>
-        <hr style="border:none;border-top:1px solid #442255;margin:6px 0;">
-        <div>
-          <div style="font-weight:bold;margin-bottom:2px;">Scenarios <span style="opacity:.7;">${scenarioSummary}</span></div>
-          ${scenarioLines || '<div style="opacity:.55;">(none)</div>'}
-        </div>
-        <hr style="border:none;border-top:1px solid #442255;margin:6px 0;">
-        <div>
-          <div style="font-weight:bold;margin-bottom:2px;">Channels</div>
-          ${occupancyHtml || '<div style="opacity:.55;">(no occupancy)</div>'}
-        </div>
-      `;
-
-      populateCardSelector(panel);
-      updateLocationButton(panel);
-
-      if (forcePersist) {
-        persistHudState({
-          interval: hudInterval,
-          collapsed,
-          position: dragPos,
-          location: locationPref
-        });
-      }
-    }
-
-    /* ---------------- Public API exposure ---------------- */
-    dev.hud.ensure = ensure;
-    dev.hud.remove = remove;
-    dev.hud.refresh = refresh;
-    dev.hud.forceRefresh = ensure;
-    dev.hud.setInterval = setIntervalMs;
-    dev.hud.collapse = () => toggleCollapse(true);
-    dev.hud.expand = () => toggleCollapse(false);
-    dev.hud.toggle = () => toggleCollapse();
-    dev.hud.recenter = () => {
-      dragPos = null;
-      persistHudState({ position: null });
-      const panel = document.getElementById(HUD_ID);
-      if (panel) {
-        if (panel.dataset.location === 'card') {
-          styleAsCard(panel);
-        } else {
-          styleAsGlobal(panel);
-        }
-      }
-    };
-    dev.hud.bringToFront = () => {
+    function bringToFront() {
       const panel = document.getElementById(HUD_ID);
       if (!panel) return;
+      document.body.appendChild(panel);
       panel.style.zIndex = HUD_Z;
-      // Re-append for stacking
-      if (panel.dataset.location === 'global') {
-        document.body.appendChild(panel);
-      } else {
-        const { root } = getActiveCardRoot();
-        const hostBox = root?.querySelector('#cblcars-hud-layer') || root?.querySelector('#cblcars-msd-wrapper') || root;
-         if (hostBox) hostBox.appendChild(panel);
+    }
+
+    /* Public API */
+    Object.assign(dev.hud, {
+      ensure,
+      remove: removeHud,
+      refresh: () => refresh(true),
+      setInterval: setIntervalMs,
+      collapse: () => { collapsed=true; persistHudState({collapsed}); refresh(true); },
+      expand: () => { collapsed=false; persistHudState({collapsed}); refresh(true); },
+      toggle: () => { collapsed=!collapsed; persistHudState({collapsed}); refresh(true); },
+      recenter: () => {
+        dragPos=null;
+        persistHudState({ position:null });
+        const p=document.getElementById(HUD_ID);
+        if (p) styleGlobal(p);
+      },
+      bringToFront,
+      setLocation(mode){
+        console.info('[cblcars.dev.hud] setLocation ignored; HUD is global-only.', mode);
+      },
+      registerPanel: meta => { registerPanel(meta); renderPanelsShell(); refreshPanels(buildCoreSnapshot()); },
+      unregisterPanel: id => { unregisterPanel(id); },
+      status() {
+        return {
+          enabled: dev.hud._enabled,
+          locationPref: 'global',
+          collapsed,
+          interval: hudInterval,
+          verboseFlags,
+          selectedProfile,
+          panelCount: panelRegistry.size
+        };
       }
-    };
-    dev.hud.setLocation = (mode) => {
-      if (!['global','card'].includes(mode)) return;
-      locationPref = mode;
-      persistHudState({ location: locationPref });
-      ensure();
-    };
-    dev.hud.clickThroughTest = () => {
-      const panel = document.getElementById(HUD_ID);
-      if (!panel) { console.warn('HUD panel not found'); return; }
-      const rect = panel.getBoundingClientRect();
-      const cx = rect.left + rect.width/2;
-      const cy = rect.top + 10; // near header
-      const el = document.elementFromPoint(cx, cy);
-      console.log('[HUD.clickThroughTest] elementFromPoint @header center:', el);
-      return el;
-    };
+    });
 
-    // Attempt to detect if HUD is still underneath card overlays when in card mode.
-    dev.hud.autoElevate = () => {
-      try {
-        if (!dev.hud._enabled) return;
-        const st = dev.hud.status();
-        if (st.panelLocation !== 'card') return; // only relevant in card mode
-        const panel = document.getElementById(HUD_ID);
-        if (!panel) return;
-        const r = panel.getBoundingClientRect();
-        const testX = r.left + Math.min(40, r.width/2);
-        const testY = r.top + 8;
-        const topEl = document.elementFromPoint(testX, testY);
-        if (topEl && !panel.contains(topEl)) {
-          // The HUD header is obscured; try moving to hud layer or fallback to global
-            const { root } = getActiveCardRoot();
-          const hudLayer = root?.querySelector('#cblcars-hud-layer');
-          if (hudLayer && !hudLayer.contains(panel)) {
-            hudLayer.appendChild(panel);
-            panel.style.zIndex = HUD_Z;
-            return;
-          }
-          // Fallback: switch to global
-          locationPref = 'global';
-          persistHud({ location: 'global' });
-          ensure();
-        }
-      } catch(_) {}
-    };
+    // Patch pick/setCard just to refresh (even though we are global)
+    const origPick = dev.pick;
+    dev.pick = function(i){ const r=origPick.call(dev,i); if(dev.hud._enabled) setTimeout(()=>refresh(),40); return r; };
+    const origSetCard = dev.setCard;
+    dev.setCard = function(el){ const r=origSetCard.call(dev,el); if(dev.hud._enabled) setTimeout(()=>refresh(),40); return r; };
 
-    dev.hud.status = () => {
-      const { card, root } = getActiveCardRoot();
-      const panel = document.getElementById(HUD_ID) || root?.getElementById(HUD_ID);
-      return {
-        enabled: !!dev.hud._enabled,
-        hasActiveCard: !!card,
-        isInCard: !!(root && root.getElementById && root.getElementById(HUD_ID)),
-        hasGlobal: !!document.getElementById(HUD_ID),
-        panelLocation: panel?.dataset?.location || 'none',
-        collapsed,
-        interval: hudInterval,
-        position: dragPos,
-        locationPref,
-        persisted: readHudState()
-      };
-    };
-    dev.hud.debug = () => console.log('[HUD.debug]', dev.hud.status());
-    dev.hud._apiAttached = true;
-
-    // Patch dev.pick / dev.setCard to re-ensure so panel moves
-    const originalPick = dev.pick;
-    dev.pick = function(idx) {
-      const r = originalPick.call(dev, idx);
-      if (dev.hud._enabled && locationPref === 'card') setTimeout(() => ensure(), 25);
-      return r;
-    };
-    const originalSetCard = dev.setCard;
-    dev.setCard = function(el) {
-      const r = originalSetCard.call(dev, el);
-      if (dev.hud._enabled && locationPref === 'card') setTimeout(() => ensure(), 25);
-      return r;
-    };
-
-    // Initialize refresh loop
+    // Start
     setIntervalMs(hudInterval);
+    if (readHudState().enabled) {
+      dev.hud._enabled = true;
+      setTimeout(()=>ensure(), 60);
+    }
 
-    // Auto-enable if persisted
-    try {
-      if (readHudState().enabled) {
-        dev.hud._enabled = true;
-        setTimeout(() => ensure(), 60);
-      }
-    } catch(_) {}
-
-    console.info('[cblcars.dev.hud] HUD API attached');
+    dev.hud._phase1Attached = true;
+    console.info('[cblcars.dev.hud] Phase 1 HUD (global-only) attached');
   }
 
-  attemptAttach();
 })();

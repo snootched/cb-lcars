@@ -169,6 +169,19 @@
     for(const k of Object.keys(patch)) next[k]=!current[k];
     return flags(next);
   }
+  // OPTIONAL: apply predefined HUD flag profile
+  function applyFlagProfile(name) {
+    const profiles = {
+      Minimal:  { overlay:false, connectors:false, perf:false, geometry:false, channels:false },
+      Routing:  { overlay:true,  connectors:true,  perf:false, geometry:false, channels:true  },
+      Perf:     { overlay:false, connectors:false, perf:true,  geometry:false, channels:false },
+      Full:     { overlay:true,  connectors:true,  perf:true,  geometry:true,  channels:true  }
+    };
+    if (!profiles[name]) { console.warn('[dev.applyFlagProfile] Unknown profile:', name); return; }
+    flags(profiles[name]);
+    console.info('[dev.applyFlagProfile] Applied profile', name);
+  }
+
 
   /* ---------------- Snapshots & Overlays ---------------- */
   const _snapshots=new Map();
