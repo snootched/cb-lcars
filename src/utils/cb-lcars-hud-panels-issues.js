@@ -1,54 +1,50 @@
-/* Issues Panel (parity) – adds perf violations + validation counts */
+/* Issues Panel v4 */
 (function(){
-  const ns=(window.cblcars=window.cblcars||{}, window.cblcars.hud=window.cblcars.hud||{});
+  const hud=(window.cblcars=window.cblcars||{},window.cblcars.hud=window.cblcars.hud||{});
   function init(){
-    ns.registerPanel({
+    hud.registerPanel({
       id:'issues',
       title:'Issues',
       order:150,
       badge:snap=>{
-        const scenFails=(snap.scenarioResults||[]).filter(r=>!r.ok).length;
-        const det=Object.values(snap.routesById||{}).filter(r=>r.det).length;
-        const fb=Object.values(snap.routesById||{}).filter(r=>r.grid==='fallback').length;
-        const miss=Object.values(snap.routesById||{}).filter(r=>r.miss).length;
-        const ovErr=snap.overlaysSummary?snap.overlaysSummary.withErrors:0;
-        const validations=(snap.validation?.counts?.errors||0)+(snap.validation?.counts?.warnings||0);
-        const perfViol=(window.cblcars.hud.api?._collectPerfViolations?window.cblcars.hud.api._collectPerfViolations(snap):[]).length;
-        return (scenFails+det+fb+miss+ovErr+validations+perfViol)||'';
+        const routes=snap.sections.routes.byId||{};
+        const det=Object.values(routes).filter(r=>r.det).length;
+        const fb=Object.values(routes).filter(r=>r.grid==='fallback').length;
+        const miss=Object.values(routes).filter(r=>r.miss).length;
+        const overlayErr=snap.sections.overlays.summary.withErrors;
+        const valErr=snap.sections.overlays.validation.errors || 0;
+        const valWarn=snap.sections.overlays.validation.warnings || 0;
+        const perfViol=snap.sections.perf.violations.length;
+        const scenFail=(snap.sections.scenarios.results||[]).filter(r=>!r.ok).length;
+        return (det+fb+miss+overlayErr+valErr+valWarn+perfViol+scenFail)||'';
       },
       render(){
-        const root=document.createElement('div');
-        root.style.fontSize='10px';
-        root.innerHTML='<div data-list style="max-height:220px;overflow:auto;"></div>';
-        const listEl=root.querySelector('[data-list]');
-        return {
-          rootEl:root,
-          refresh(snap){
-            const items=[];
-            const routes=Object.values(snap.routesById||{});
-            routes.filter(r=>r.det).forEach(r=>items.push({type:'Detour',id:r.id,detail:'detour used'}));
-            routes.filter(r=>r.grid==='fallback').forEach(r=>items.push({type:'Fallback',id:r.id,detail:r.reason||''}));
-            routes.filter(r=>r.miss).forEach(r=>items.push({type:'ChannelMiss',id:r.id,detail:'preferred miss'}));
-            (snap.overlaysBasic||[]).filter(o=>o.hasErrors).forEach(o=>items.push({type:'OverlayErr',id:o.id,detail:'validation errors'}));
-            (snap.scenarioResults||[]).filter(r=>!r.ok).forEach(r=>items.push({type:'Scenario',id:r.scenario,detail:r.details||r.error||'fail'}));
-            const validationCounts=snap.validation?.counts;
-            if(validationCounts && (validationCounts.errors||validationCounts.warnings)){
-              items.push({type:'Validation',id:'counts',detail:`E:${validationCounts.errors||0} W:${validationCounts.warnings||0}`});
-            }
-            const perfViol=window.cblcars.hud.api?._collectPerfViolations?window.cblcars.hud.api._collectPerfViolations(snap):[];
-            perfViol.forEach(v=>items.push({type:'Perf',id:v.id,detail:v.detail}));
-            if(!items.length){
-              listEl.innerHTML='<div style="opacity:.6;">(no issues)</div>';
-              return;
-            }
-            listEl.innerHTML=`<table style="width:100%;border-collapse:collapse;">
-              <thead><tr><th style="text-align:left;">Type</th><th style="text-align:left;">ID</th><th style="text-align:left;">Detail</th></tr></thead>
-              <tbody>${items.map(i=>`<tr><td>${i.type}</td><td>${i.id}</td><td>${i.detail}</td></tr>`).join('')}</tbody>
-            </table>`;
+        const el=document.createElement('div');
+        el.style.fontSize='10px';
+        el.innerHTML='<div data-list style="max-height:220px;overflow:auto;"></div>';
+        const list=el.querySelector('[data-list]');
+        function refresh(snapshot){
+          const items=[];
+          const routes=snapshot.sections.routes.byId||{};
+          Object.values(routes).filter(r=>r.det).forEach(r=>items.push({type:'Detour',id:r.id,detail:'detour'}));
+          Object.values(routes).filter(r=>r.grid==='fallback').forEach(r=>items.push({type:'Fallback',id:r.id,detail:r.reason||''}));
+          Object.values(routes).filter(r=>r.miss).forEach(r=>items.push({type:'ChannelMiss',id:r.id,detail:'pref miss'}));
+          (snapshot.sections.overlays.list||[]).filter(o=>o.hasErrors).forEach(o=>items.push({type:'OverlayErr',id:o.id,detail:'validation errors'}));
+          const val=snapshot.sections.overlays.validation;
+          if(val.errors||val.warnings){
+            items.push({type:'Validation',id:'counts',detail:`E:${val.errors||0} W:${val.warnings||0}`});
           }
-        };
+          snapshot.sections.perf.violations.forEach(v=>items.push({type:'Perf',id:v.id,detail:`${v.metric} ${v.value.toFixed? v.value.toFixed(2):v.value} > ${v.limit}`}));
+          (snapshot.sections.scenarios.results||[]).filter(r=>!r.ok).forEach(r=>items.push({type:'Scenario',id:r.scenario,detail:r.details||r.error||'fail'}));
+          if(!items.length){ list.innerHTML='<div style="opacity:.6;">(no issues)</div>'; return; }
+          list.innerHTML=`<table style="width:100%;border-collapse:collapse;">
+            <thead><tr><th style="text-align:left;">Type</th><th style="text-align:left;">ID</th><th style="text-align:left;">Detail</th></tr></thead>
+            <tbody>${items.map(i=>`<tr><td>${i.type}</td><td>${i.id}</td><td>${i.detail}</td></tr>`).join('')}</tbody>
+          </table>`;
+        }
+        return { rootEl:el, refresh };
       }
     });
   }
-  if(!ns.registerPanel)(ns._pendingPanels=ns._pendingPanels||[]).push(init); else init();
+  if(!hud.registerPanel)(hud._pendingPanels=hud._pendingPanels||[]).push(init); else init();
 })();

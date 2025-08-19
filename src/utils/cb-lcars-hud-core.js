@@ -1,43 +1,44 @@
-/* LCARS Dev HUD Core (Phase 2.6-dx1 parity restore)
- * Restores Phase 2.5/monolithic features:
- *  - Perf thresholds + violations badge
- *  - Channel deltas (previous.channels)
- *  - Quick flags + profiles + pause/silent/profile header buttons + multi-card pick
- *  - Pinned perf mini strip (exposed to Summary panel)
- *  - Watch routes + API
- *  - Persistence of thresholds, flags, pinnedPerf, watchRoutes, routingFilters
- *  - Scenario single run refresh handled via dev tools wrapper (outside core)
- */
-(function initHudCore(){
+/* HUD Core v4 (Pass 4 patches: migrateStrictV4, provider timing badge integration hook) */
+(function(){
   const qs=new URLSearchParams(location.search);
-  const active=!window.CBLCARS_DEV_DISABLE && (window.CBLCARS_DEV_FORCE===true || qs.has('lcarsDev'));
+  const active = !window.CBLCARS_DEV_DISABLE && (window.CBLCARS_DEV_FORCE===true || qs.has('lcarsDev'));
   if(!active) return;
-  if(window.cblcars?.hud?.__coreAttached && !window.CBLCARS_HUD_ALLOW_MULTI){
-    console.warn('[cblcars.hud.core] Already attached.');
-    return;
-  }
+  if(window.cblcars?.hud?.__coreAttachedV4) return;
 
-  let attempts=0; const MAX_ATTEMPTS=80;
+  let attempts=0; const MAX=80;
   (function waitDev(){
-    if(window.cblcars?.dev?._advanced) return attach();
-    if(attempts++<MAX_ATTEMPTS) return setTimeout(waitDev,120);
-    console.warn('[cblcars.hud.core] Dev tools not detected – HUD aborted.');
+    if(window.cblcars?.dev?._advanced || window.cblcars?.dev?._advancedV4) return attach();
+    if(attempts++<MAX) return setTimeout(waitDev,120);
+    console.warn('[hud.core.v4] Dev tools not detected – abort');
   })();
 
   function attach(){
-    if(!window.cblcars) window.cblcars={};
     const dev=window.cblcars.dev;
-    const hudNS=window.cblcars.hud=window.cblcars.hud||{};
+    const hudNS = window.cblcars.hud = window.cblcars.hud || {};
+    hudNS.__coreAttachedV4=true;
     hudNS.__coreAttached=true;
 
-    /* ---------- Constants ---------- */
+    const HUD_VERSION='4.0.1-pass4';
     const HUD_ID='cblcars-dev-hud-panel';
-    const HUD_VERSION='2.6-dx1-parity';
-    const HUD_Z=2147480000;
+    const HUD_Z=2147481100;
     const DEFAULT_INTERVAL=3000;
     const TOOLTIP_DEFAULT_DELAY=280;
-    const SNAPSHOT_SCHEMA_VERSION=3;
-    const WATCH_HISTORY_DEPTH=5; // fixed depth per parity decision
+
+    const persisted=(dev.persistedState && dev.persistedState.hud)||{};
+    let dragPos=Array.isArray(persisted.position)?persisted.position.slice():null;
+    let collapsed=!!persisted.collapsed;
+    let intervalMs=Number.isFinite(persisted.interval)?Math.max(250,persisted.interval):DEFAULT_INTERVAL;
+    let tooltipTimeout=Number.isFinite(persisted.tooltipTimeout)?persisted.tooltipTimeout:2500;
+    let tooltipDelay=Number.isFinite(persisted.tooltipDelay)?Math.max(0,persisted.tooltipDelay):TOOLTIP_DEFAULT_DELAY;
+    let paused=!!persisted.paused;
+    let sectionsCollapsed={...(persisted.sectionsCollapsed||{})};
+    let routingFilters={ detour:false,fallback:false,miss:false,smartHit:false,gridSuccess:false,channel:null, ...(persisted.routingFilters||{}) };
+    let pinnedPerf=Array.isArray(persisted.pinnedPerf)?persisted.pinnedPerf.slice():[];
+    let watchRoutes=Array.isArray(persisted.watchRoutes)?persisted.watchRoutes.slice():[];
+    let verboseFlags=!!persisted.verboseFlags;
+    let silentMode=!!persisted.silentMode;
+    let selectedProfile=persisted.selectedProfile||'Custom';
+    let perfThresholds=(persisted.perfThresholds && typeof persisted.perfThresholds==='object')?{...persisted.perfThresholds}:{};
 
     const FLAG_PROFILES={
       Minimal:{overlay:false,connectors:false,perf:false,geometry:false,channels:false},
@@ -47,540 +48,237 @@
     };
     const QUICK_FLAG_KEYS=['overlay','connectors','perf','geometry','channels'];
 
-    const DEFINITIONS={
-      eff:{l:'Effective routing mode (smart/grid/manhattan)'},
-      gridStatus:{l:'Grid status: success | fallback | skipped | manhattan'},
-      gridReason:{l:'Reason for grid result or skip code'},
-      detour:{l:'Two-elbow detour used (pre-grid heuristic)'},
-      miss:{l:'Preferred/required channel miss indicator'},
-      channelsHit:{l:'Comma list of channels path passes through (grid)'},
-      distanceCost:{l:'Distance cost component (grid path scoring)'},
-      bends:{l:'Number of bends (turns) normalised (cost/bendWeight)'},
-      bendCost:{l:'Cost contribution from bends'},
-      totalCost:{l:'Total path cost (distance + bends + extras)'},
-      resolution:{l:'Grid resolution of first successful attempt'},
-      watch:{l:'Add/remove this route from watch list'}
-    };
+    const handlers=new Map();
+    function on(ev,fn){ if(!handlers.has(ev)) handlers.set(ev,new Set()); handlers.get(ev).add(fn); }
+    function off(ev,fn){ handlers.get(ev)?.delete(fn); }
+    function emit(ev,p){ handlers.get(ev)?.forEach(fn=>{ try{fn(p);}catch(e){console.warn('[hud.emit]',ev,e);} }); }
 
-    /* ---------- Persistence ---------- */
-    function readHudState(){return (dev.persistedState && dev.persistedState.hud)||{};}
     function persistHud(patch){
       try{
         if(typeof dev._persistHudState==='function') dev._persistHudState(patch);
-        else {
-          const cur=readHudState();
-          dev.persist({ hud:{...cur,...patch} });
-        }
+        else dev.persist({ hud:{...((dev.persistedState&&dev.persistedState.hud)||{}), ...patch} });
       }catch{}
     }
-    const persisted=readHudState();
-
-    /* ---------- State ---------- */
-    let dragPos=Array.isArray(persisted.position)?persisted.position.slice():null;
-    let collapsed=!!persisted.collapsed;
-    let hudInterval=Number.isFinite(persisted.interval)?Math.max(250,persisted.interval):DEFAULT_INTERVAL;
-    let tooltipTimeout=Number.isFinite(persisted.tooltipTimeout)?persisted.tooltipTimeout:2500;
-    let tooltipDelay=Number.isFinite(persisted.tooltipDelay)?Math.max(0,persisted.tooltipDelay):TOOLTIP_DEFAULT_DELAY;
-    let paused=!!persisted.paused;
-    let sectionsCollapsed={...(persisted.sectionsCollapsed||{})};
-    let routingFilters={detour:false,fallback:false,miss:false,smartHit:false,gridSuccess:false,channel:null,...(persisted.routingFilters||{})};
-    let pinnedPerf=Array.isArray(persisted.pinnedPerf)?pinnedPerf.slice():[];
-    let watchRoutes=Array.isArray(persisted.watchRoutes)?persisted.watchRoutes.slice():[];
-    let verboseFlags=!!persisted.verboseFlags;
-    let silentMode=!!persisted.silentMode;
-    let selectedProfile=persisted.selectedProfile||'Custom';
-    let perfThresholds=(persisted.perfThresholds && typeof persisted.perfThresholds==='object')?{...persisted.perfThresholds}:{};
-
-    /* ---------- Event Bus ---------- */
-    const handlers=new Map();
-    function on(ev,fn){if(!handlers.has(ev)) handlers.set(ev,new Set()); handlers.get(ev).add(fn);}
-    function off(ev,fn){handlers.get(ev)?.delete(fn);}
-    function emit(ev,payload){const set=handlers.get(ev); if(set) for(const fn of set){try{fn(payload);}catch(e){console.warn('[hud.emit]',ev,e);}}}
-
-    /* ---------- Utils ---------- */
-    function hudInfo(...a){ if(!silentMode) console.info('[hud]',...a); }
-    function savePersistence(){
+    function save(){
       persistHud({
-        position:dragPos,collapsed,interval:hudInterval,tooltipTimeout,
-        tooltipDelay,paused,sectionsCollapsed,routingFilters,pinnedPerf,
-        watchRoutes,verboseFlags,silentMode,selectedProfile,perfThresholds
+        position:dragPos,collapsed,interval:intervalMs,tooltipTimeout,tooltipDelay,paused,
+        sectionsCollapsed,routingFilters,pinnedPerf,watchRoutes,verboseFlags,silentMode,
+        selectedProfile,perfThresholds
       });
     }
-    function fmtNum(n){
-      if(n==null||!Number.isFinite(n)) return '';
-      if(Math.abs(n)>=1000) return n.toFixed(0);
-      if(Math.abs(n)>=10) return n.toFixed(1);
-      return n.toFixed(2);
+    function log(...a){ if(!silentMode) console.info('[hud]',...a); }
+
+    function setProfileButtonLabel(text){
+      const root=document.getElementById(HUD_ID);
+      if(!root) return;
+      const btn=root.querySelector('[data-prof]');
+      if(btn) btn.textContent=text;
     }
 
-    /* ---------- Snapshot ---------- */
     let lastSnapshot=null;
-    function safeRoutes(){try{return dev.dumpRoutes(undefined,{silent:true})||[];}catch{return[];}}
-    function buildRoutesById(routesRaw){
-      const m={};
-      routesRaw.forEach(r=>{
-        const id=r.id; if(!id) return;
-        m[id]={
-          id,
-            eff:r['data-cblcars-route-effective']||'',
-          grid:r['data-cblcars-route-grid-status']||'',
-          reason:r['data-cblcars-route-grid-reason']||'',
-          det:r['data-cblcars-route-detour']==='true',
-          miss:r['data-cblcars-route-channels-miss']==='true',
-          channelsHit:r['data-cblcars-route-channels-hit']||'',
-          distCost:+r['data-cblcars-route-cost-distance']||null,
-          bendCost:+r['data-cblcars-route-cost-bends']||null,
-          totalCost:+r['data-cblcars-route-cost-total']||null,
-          bends:(r['data-cblcars-route-cost-bends']!=null?
-            (+r['data-cblcars-route-cost-bends'])/
-            ((window.cblcars.routing?.inspect(id)?.cost?.bendWeight)||12):null),
-          resolution:parseFirstRes(r['data-cblcars-route-grid-attempts']),
-          attrs:r
-        };
-      });
-      return m;
-    }
-    function parseFirstRes(attempts){
-      if(!attempts) return '';
-      const first=attempts.split(',')[0];
-      return first.split(':')[0];
-    }
-    function summarizeRoutes(list){
-      let total=0,det=0,fb=0,gSucc=0,miss=0;
-      list.forEach(r=>{
-        total++;
-        if(r['data-cblcars-route-detour']==='true') det++;
-        const gs=r['data-cblcars-route-grid-status'];
-        if(gs==='fallback') fb++;
-        else if(gs==='success') gSucc++;
-        if(r['data-cblcars-route-channels-miss']==='true') miss++;
-      });
-      return {total,detours:det,gridFb:fb,gridSucc:gSucc,miss};
-    }
-    function collectAnchors(){
-      try{
-        const card=dev._activeCard;
-        const msd=card?._config?.variables?.msd||{};
-        const map=msd.anchors||msd._anchors||{};
-        return Object.entries(map).map(([id,pt])=>({id,x:pt[0],y:pt[1]}));
-      }catch{return[];}
-    }
-    function collectOverlaysBasic(){
-      try{
-        const card=dev._activeCard; if(!card) return [];
-        const root=card.shadowRoot;
-        const cfg=(card._config?.variables?.msd?.overlays)||[];
-        const val=root?.__cblcars_validationById||{};
-        const out=[];
-        cfg.forEach(o=>{
-          if(!o||!o.id) return;
-          const meta=val[o.id]||{errors:[],warnings:[]};
-          out.push({
-            id:o.id,type:o.type||'',
-            hasErrors:meta.errors?.length>0,
-            hasWarnings:meta.warnings?.length>0
-          });
-        });
-        return out;
-      }catch{return[];}
-    }
-    function overlaysSummary(list){
-      const types={}; let e=0,w=0;
-      list.forEach(o=>{
-        types[o.type]=(types[o.type]||0)+1;
-        if(o.hasErrors) e++;
-        if(o.hasWarnings) w++;
-      });
-      return {total:list.length,types,withErrors:e,withWarnings:w};
-    }
-    function anchorsSummary(list){return {count:list.length};}
-    function ensureActiveCard(){
-      try{
-        if(dev._activeCard && dev._activeCard.isConnected) return;
-        const cards=dev.discoverMsdCards(true);
-        if(cards.length===1) dev._activeCard=cards[0];
-        else if(dev.persistedState?.activeCardIndex!=null && cards[dev.persistedState.activeCardIndex])
-          dev._activeCard=cards[dev.persistedState.activeCardIndex];
-      }catch{}
-    }
-    function perfTimers(){try{return window.cblcars.debug?.perf?.get()||{};}catch{return{};}}
-    function perfCounters(){try{return window.cblcars.perfDump?window.cblcars.perfDump():window.cblcars.perf?.dump?.()||{};}catch{return{};}}
-    function channelsOcc(){try{return window.cblcars.routing?.channels?.getOccupancy?.()||{};}catch{return{};}}
-    function buildSnapshot(){
-      if(!customElements.get('cb-lcars-msd-card')){
-        const ts=Date.now();
-        const empty={
-          schemaVersion:SNAPSHOT_SCHEMA_VERSION,
-          timestamp:ts,
-          timestampIso:new Date(ts).toISOString(),
-          routesRaw:[],
-          routesById:{},
-          routesSummary:{total:0,detours:0,gridFb:0,gridSucc:0,miss:0},
-          perfTimers:perfTimers(),
-          perfCounters:perfCounters(),
-          scenarioResults:dev._scenarioResults||[],
-          channels:{},
-          overlaysBasic:[],
-          overlaysSummary:{total:0,types:{},withErrors:0,withWarnings:0},
-          anchors:[],
-          anchorsSummary:{count:0},
-          validation:{counts:null},
-          flags:window.cblcars._debugFlags||{},
-          previous:null,
-          capabilities:['routes','overlays','anchors','perf','scenarios'],
-          overlaysRaw:[],
-          buildMs:0
-        };
-        lastSnapshot=empty;
-        return empty;
-      }
-      ensureActiveCard();
-      const t0=performance.now();
-      const routesRaw=safeRoutes();
-      const snapshot={
-        schemaVersion:SNAPSHOT_SCHEMA_VERSION,
-        timestamp:Date.now(),
-        timestampIso:new Date().toISOString(),
-        routesRaw,
-        routesById:buildRoutesById(routesRaw),
-        routesSummary:summarizeRoutes(routesRaw),
-        perfTimers:perfTimers(),
-        perfCounters:perfCounters(),
-        scenarioResults:dev._scenarioResults||[],
-        channels:channelsOcc(),
-        overlaysBasic:collectOverlaysBasic(),
-        overlaysSummary:null,
-        anchors:collectAnchors(),
-        anchorsSummary:null,
-        validation:(()=>{
-          try{
-            const root=dev._activeCard?.shadowRoot;
-            return {counts:root?.__cblcars_validationCounts||null};
-          }catch{return null;}
-        })(),
-        flags:window.cblcars._debugFlags||{},
-        previous:lastSnapshot?{
-          routesById:lastSnapshot.routesById,
-          perfTimers:lastSnapshot.perfTimers,
-          perfCounters:lastSnapshot.perfCounters,
-          channels:lastSnapshot.channels
-        }:null,
-        capabilities:['routes','overlays','anchors','perf','scenarios'],
-        overlaysRaw:null,
-        buildMs:0
+    function buildEnv(){
+      return {
+        hudVersion:HUD_VERSION,
+        interval:intervalMs,
+        paused,
+        hudFlags:window.cblcars._debugFlags||{},
+        perfThresholds,
+        pinnedPerf,
+        watchRoutes,
+        routingFilters,
+        selectedProfile
       };
-      snapshot.overlaysSummary=overlaysSummary(snapshot.overlaysBasic);
-      snapshot.anchorsSummary=anchorsSummary(snapshot.anchors);
-      snapshot.overlaysRaw=snapshot.overlaysBasic;
-      snapshot.buildMs=performance.now()-t0;
-      lastSnapshot=snapshot;
-      return snapshot;
     }
-
-    /* ---------- Perf Thresholds ---------- */
-    function isPerfViolation(kind,id,stat){
-      const th=perfThresholds[id];
-      if(!th) return false;
-      if(th.avgMs!=null && stat.avgMs>th.avgMs) return true;
-      if(th.lastMs!=null && stat.lastMs>th.lastMs) return true;
-      return false;
-    }
-    function collectPerfViolations(snapshot){
-      const out=[];
-      const timers=snapshot.perfTimers||{};
-      const counters=snapshot.perfCounters||{};
-      Object.entries(timers).forEach(([k,v])=>{
-        if(isPerfViolation('timer',k,v)) out.push({id:k,detail:`avg ${v.avgMs.toFixed(2)}ms > ${perfThresholds[k].avgMs}`});
+    function buildSnapshot(){
+      const t0=performance.now();
+      const env=buildEnv();
+      const base=window.cblcars.hud._buildSnapshotV4({
+        now:Date.now(),
+        prevSnapshot:lastSnapshot,
+        env
       });
-      Object.entries(counters).forEach(([k,v])=>{
-        if(isPerfViolation('counter',k,v)) out.push({id:k,detail:`avg ${v.avgMs?.toFixed?.(2)||'?'}ms > ${perfThresholds[k].avgMs}`});
+      if(base.sections.perf){
+        base.sections.perf.thresholds=perfThresholds;
+        base.sections.perf.pinned=pinnedPerf.slice();
+      }
+      base.meta.buildMs=performance.now()-t0;
+      applyShim(base);
+      lastSnapshot=base;
+      return base;
+    }
+    function applyShim(snap){
+      const s=snap.sections;
+      snap.routesSummary=s.routes?.summary||{total:0};
+      snap.routesById=s.routes?.byId||{};
+      snap.perfTimers=s.perf?.timers||{};
+      snap.perfCounters=s.perf?.counters||{};
+      snap.overlaysBasic=(s.overlays?.list||[]).map(o=>({id:o.id,type:o.type,hasErrors:!!o.hasErrors,hasWarnings:!!o.hasWarnings}));
+      snap.overlaysSummary=s.overlays?.summary;
+      snap.anchors=s.anchors?.list||[];
+      snap.anchorsSummary={count:(s.anchors?.list||[]).length};
+      snap.channels=s.channels?.current||{};
+      snap.previous=snap.previous||{};
+      snap.previous.channels=s.channels?.previous||{};
+      snap.scenarioResults=s.scenarios?.results||[];
+      snap.flags=s.config?.flags||{};
+    }
+
+    function ensureCss(){
+      if(!document.getElementById('cblcars-hud-core-v4-css')){
+        const st=document.createElement('style');
+        st.id='cblcars-hud-core-v4-css';
+        st.textContent=`
+          #${HUD_ID} button{background:#2d003d;color:#ffd5ff;border:1px solid #552266;padding:2px 6px;border-radius:4px;cursor:pointer;font:11px monospace;}
+          #${HUD_ID} button:hover{background:#ff00ff;color:#120018;}
+          #${HUD_ID} .hud-delta-pos{color:#77ff90;}
+          #${HUD_ID} .hud-delta-neg{color:#ff6688;}
+          #${HUD_ID} .hud-badge-perf{background:#ff004d;color:#fff;padding:0 6px;border-radius:10px;font-size:10px;margin-left:4px;}
+        `;
+        document.head.appendChild(st);
+      }
+    }
+    function frameHtml(){
+      const cards=dev.discoverMsdCards?dev.discoverMsdCards(true):[];
+      const idx=cards.indexOf(dev._activeCard);
+      // Provider total ms badge (if health provider exists)
+      const provStats = window.cblcars.hud._providerStats || {};
+      const totalLast = Object.values(provStats).reduce((s,v)=>s+ (v.lastMs||0),0);
+      const totalBadge = totalLast ? `<span style="font-size:10px;opacity:.65;">Σ${totalLast.toFixed(1)}ms</span>`:'';
+      return `
+        <div data-hdr style="display:flex;align-items:center;gap:6px;background:linear-gradient(90deg,#310046,#16002a);padding:6px 8px;
+          border:1px solid #ff00ff;border-radius:6px 6px 0 0;cursor:move;">
+          <strong style="flex:1;">HUD v${HUD_VERSION}</strong>
+          ${totalBadge}
+          <select data-card style="font-size:10px;max-width:140px;">
+            ${cards.map((c,i)=>`<option value="${i}" ${i===idx?'selected':''}>Card ${i}${c===dev._activeCard?' *':''}</option>`).join('')}
+          </select>
+          <div data-qf style="display:flex;gap:3px;"></div>
+          <button data-prof>${selectedProfile}</button>
+          <button data-silent>${silentMode?'Silent✓':'Silent'}</button>
+          <button data-pause>${paused?'Resume':'Pause'}</button>
+          <button data-collapse>${collapsed?'▢':'▣'}</button>
+          <button data-close>✕</button>
+        </div>
+        <div data-toolbar style="${collapsed?'display:none;':''};padding:4px 8px;background:#1e0034;border:1px solid #ff00ff;border-top:none;display:flex;flex-wrap:wrap;gap:6px;">
+          <label style="font-size:10px;">Int <input data-int type="number" min="250" step="250" value="${intervalMs}" style="width:70px;font-size:10px;"></label>
+          <label style="font-size:10px;">TT <input data-tt-to type="number" min="0" step="250" value="${tooltipTimeout}" style="width:70px;font-size:10px;"></label>
+          <label style="font-size:10px;">Delay <input data-tt-delay type="number" min="0" step="50" value="${tooltipDelay}" style="width:60px;font-size:10px;"></label>
+          <button data-refresh>↻</button>
+          <button data-migrate-strict style="font-size:10px;">StrictV4?</button>
+        </div>
+        <div data-body style="${collapsed?'display:none;':''};background:#160024;border:1px solid #ff00ff;border-top:none;border-radius:0 0 6px 6px;
+            max-height:70vh;overflow:auto;padding:6px 8px;">
+          <div data-panels style="display:flex;flex-direction:column;gap:8px;"></div>
+        </div>
+        <div id="cblcars-hud-tooltip"></div>`;
+    }
+
+    function drawQuickFlags(){
+      const root=document.getElementById(HUD_ID);
+      if(!root) return;
+      const wrap=root.querySelector('[data-qf]');
+      if(!wrap) return;
+      wrap.innerHTML='';
+      const flags=window.cblcars._debugFlags||{};
+      QUICK_FLAG_KEYS.forEach(k=>{
+        const b=document.createElement('button');
+        b.textContent=verboseFlags?k:k[0].toUpperCase();
+        b.style.fontSize='10px';
+        b.style.background=flags[k]?'#ff00ff':'#2d003d';
+        b.style.color=flags[k]?'#120018':'#ffd5ff';
+        b.addEventListener('click',()=>{
+          dev.flags({[k]:!flags[k]});
+          if(selectedProfile!=='Custom'){selectedProfile='Custom'; setProfileButtonLabel(selectedProfile); }
+          save(); drawQuickFlags(); emit('flags:changed',window.cblcars._debugFlags);
+        });
+        wrap.appendChild(b);
       });
-      return out;
     }
 
-    /* ---------- Panels Registry ---------- */
-    const panels=new Map();
-    function registerPanel(meta){
-      if(!meta||!meta.id||panels.has(meta.id)) return;
-      panels.set(meta.id,{meta,instance:null});
-      if(frameReady) renderPanelsShell();
-    }
-    hudNS.registerPanel=registerPanel;
-    (hudNS._pendingPanels||[]).forEach(fn=>{try{fn();}catch(e){console.warn('[hud.panel.init]',e);}});
-    hudNS._pendingPanels=[];
+    let tooltipApi={updateConfig:()=>{}};
 
-    /* ---------- Frame ---------- */
-    let frameReady=false;
-    function ensureFrame(){
+    function buildFrame(){
+      ensureCss();
       let panel=document.getElementById(HUD_ID);
       if(!panel){
         panel=document.createElement('div');
         panel.id=HUD_ID;
         document.body.appendChild(panel);
       }
-      styleFrame(panel);
-      panel.innerHTML=buildFrameHtml();
-      wireFrame(panel);
-      ensureCss();
-      frameReady=true;
-      renderPanelsShell();
-      initTooltip(panel);
-    }
-    function styleFrame(panel){
       Object.assign(panel.style,{
         position:'fixed',
-        top:dragPos?dragPos[1]+'px':'14px',
+        top:dragPos?dragPos[1]+'px':'16px',
         left:dragPos?dragPos[0]+'px':'',
-        right:dragPos?'':'14px',
+        right:dragPos?'':'16px',
         zIndex:HUD_Z,
-        boxShadow:'0 3px 16px rgba(0,0,0,0.70)',
         font:'12px/1.35 monospace',
         color:'#ffd5ff',
-        background:'transparent',
-        maxWidth:'840px',
+        maxWidth:'880px',
         minWidth:'360px',
         isolation:'isolate'
       });
-    }
-    function buildFrameHtml(){
-      const cards=dev.discoverMsdCards(true);
-      const activeIndex=cards.indexOf(dev._activeCard);
-      return `
-        <div data-hdr style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;cursor:move;
-          background:linear-gradient(90deg,#330046,#110014);padding:6px 8px;
-          border:1px solid #ff00ff;border-radius:6px 6px 0 0;border-bottom:none;">
-          <strong style="flex:1;font-size:12px;">LCARS Dev HUD ${HUD_VERSION}</strong>
-          <select data-card-pick style="font-size:10px;max-width:160px;">
-            ${cards.map((c,i)=>`<option value="${i}" ${i===activeIndex?'selected':''}>Card ${i}${c===dev._activeCard?' *':''}</option>`).join('')}
-          </select>
-          <div data-quick-flags style="display:flex;gap:3px;"></div>
-          <button data-profile style="font-size:11px;" data-tip="Profiles">${selectedProfile}</button>
-          <button data-silent style="font-size:11px;" data-tip="Silent Mode">${silentMode?'Silent✓':'Silent'}</button>
-          <button data-pause style="font-size:11px;" data-tip="Pause/Resume">${paused?'Resume':'Pause'}</button>
-          <button data-collapse style="font-size:11px;" data-tip="Collapse HUD">${collapsed?'▢':'▣'}</button>
-          <button data-close style="font-size:11px;" data-tip="Disable HUD">✕</button>
-        </div>
-        <div data-toolbar style="${collapsed?'display:none;':''};background:rgba(30,0,50,0.50);
-          border:1px solid #ff00ff;border-top:none;border-bottom:1px solid #552266;
-          padding:4px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-          <span style="font-size:10px;opacity:.65;">Interval</span>
-          <input data-int type="number" min="250" step="250" value="${hudInterval}" style="width:70px;font-size:10px;">
-          <span style="font-size:10px;opacity:.65;">TT(ms)</span>
-          <input data-tt-to type="number" min="0" step="250" value="${tooltipTimeout}" style="width:70px;font-size:10px;">
-          <span style="font-size:10px;opacity:.65;">Delay</span>
-          <input data-tt-delay type="number" min="0" step="50" value="${tooltipDelay}" style="width:60px;font-size:10px;">
-          <button data-refresh style="font-size:10px;">↻</button>
-        </div>
-        <div data-body style="${collapsed?'display:none;':''};background:rgba(20,0,30,0.90);
-          border:1px solid #ff00ff;border-top:none;border-radius:0 0 6px 6px;
-          max-height:70vh;overflow:auto;padding:6px 8px;">
-          <div data-panels style="display:flex;flex-direction:column;gap:8px;"></div>
-        </div>
-        <div id="cblcars-hud-tooltip"></div>`;
-    }
-    function renderQuickFlags(){
-      const c=document.getElementById(HUD_ID)?.querySelector('[data-quick-flags]');
-      if(!c) return;
-      c.innerHTML='';
-      const flags=window.cblcars._debugFlags||{};
-      QUICK_FLAG_KEYS.forEach(k=>{
-        const btn=document.createElement('button');
-        btn.style.cssText='font-size:10px;padding:2px 5px;border:1px solid #552266;border-radius:4px;cursor:pointer;';
-        btn.textContent=verboseFlags?k:k[0].toUpperCase();
-        btn.setAttribute('data-tip',k);
-        btn.style.background=flags[k]?'#ff00ff':'#2d003d';
-        btn.style.color=flags[k]?'#120018':'#ffd5ff';
-        btn.addEventListener('click',()=>{
-          const next=!flags[k];
-          dev.flags({[k]:next});
-          if(selectedProfile!=='Custom'){
-            selectedProfile='Custom';
-            persistHud({selectedProfile});
-          }
-          savePersistence();
-          renderQuickFlags();
-          emit('flags:changed',window.cblcars._debugFlags);
-        });
-        c.appendChild(btn);
-      });
-    }
-    function showProfilesMenu(panel){
-      let existing=panel.querySelector('#hud-profiles-menu');
-      if(existing){existing.remove();return;}
-      const menu=document.createElement('div');
-      menu.id='hud-profiles-menu';
-      Object.assign(menu.style,{
-        position:'absolute',right:'6px',top:'42px',background:'rgba(50,0,70,0.95)',
-        border:'1px solid #ff00ff',padding:'6px 8px',borderRadius:'6px',
-        zIndex:HUD_Z+2,font:'11px/1.35 monospace',minWidth:'160px'
-      });
-      menu.innerHTML=`<div style="font-weight:bold;margin-bottom:4px;">Flag Profiles</div>
-        ${Object.keys(FLAG_PROFILES).map(p=>`<div data-prof="${p}" style="padding:2px 4px;cursor:pointer;${p===selectedProfile?'background:#ff00ff;color:#120018;':''}">${p}</div>`).join('')}
-        <div data-prof="Custom" style="padding:2px 4px;cursor:pointer;${selectedProfile==='Custom'?'background:#ff00ff;color:#120018;':''}">Custom</div>
-        <div style="margin-top:6px;font-size:10px;opacity:.65;">Click to apply (Custom = current state)</div>`;
-      panel.appendChild(menu);
-      menu.addEventListener('click',e=>{
-        const p=e.target.getAttribute('data-prof');
-        if(!p)return;
-        if(p!=='Custom'){
-          dev.flags(FLAG_PROFILES[p]);
-          selectedProfile=p;
-          persistHud({selectedProfile:p,flags:window.cblcars._debugFlags});
-          emit('flags:changed',window.cblcars._debugFlags);
-        }else selectedProfile='Custom';
-        persistHud({selectedProfile});
-        menu.remove();
-        renderQuickFlags();
-      });
-      document.addEventListener('pointerdown',function once(ev){
-        if(!menu.contains(ev.target)){try{menu.remove();}catch{} document.removeEventListener('pointerdown',once,true);}
-      },true);
-    }
-    function wireFrame(panel){
-      const hdr=panel.querySelector('[data-hdr]');
-      let dragging=false,startX=0,startY=0,origX=0,origY=0;
-      hdr.addEventListener('mousedown',e=>{
-        if(e.button!==0) return;
-        dragging=true; startX=e.clientX; startY=e.clientY;
-        const r=panel.getBoundingClientRect(); origX=r.left; origY=r.top;
-        document.addEventListener('mousemove',onMove);
-        document.addEventListener('mouseup',onUp,{once:true});
-        e.preventDefault();
-      });
-      function onMove(e){
-        if(!dragging) return;
-        panel.style.left=(origX+(e.clientX-startX))+'px';
-        panel.style.top=(origY+(e.clientY-startY))+'px';
-        panel.style.right='';
+      panel.innerHTML=frameHtml();
+      wireFrame(panel);
+      drawQuickFlags();
+      if(window.cblcars.hud.tooltip){
+        tooltipApi=window.cblcars.hud.tooltip.init(panel,{delay:tooltipDelay,timeout:tooltipTimeout});
       }
-      function onUp(){
-        dragging=false;
-        document.removeEventListener('mousemove',onMove);
-        const r=panel.getBoundingClientRect();
-        dragPos=[r.left,r.top];
-        savePersistence();
-      }
-      panel.querySelector('[data-close]').addEventListener('click',()=>{
-        persistHud({enabled:false});
-        removeHud();
-      });
-      panel.querySelector('[data-collapse]').addEventListener('click',()=>{
-        collapsed=!collapsed; savePersistence();
-        panel.querySelector('[data-collapse]').textContent=collapsed?'▢':'▣';
-        panel.querySelector('[data-body]').style.display=collapsed?'none':'block';
-        panel.querySelector('[data-toolbar]').style.display=collapsed?'none':'flex';
-      });
-      panel.querySelector('[data-refresh]').addEventListener('click',()=>refresh(true,true));
-      panel.querySelector('[data-int]').addEventListener('change',e=>{
-        const v=parseInt(e.target.value,10);
-        if(Number.isFinite(v)&&v>=250){hudInterval=v; savePersistence(); resetInterval();}
-      });
-      panel.querySelector('[data-tt-to]').addEventListener('change',e=>{
-        const v=parseInt(e.target.value,10);
-        tooltipTimeout=Math.max(0,v||0); savePersistence();
-        tooltipApi.updateConfig({timeout:tooltipTimeout});
-      });
-      panel.querySelector('[data-tt-delay]').addEventListener('change',e=>{
-        const v=parseInt(e.target.value,10);
-        tooltipDelay=Math.max(0,v||0); savePersistence();
-        tooltipApi.updateConfig({delay:tooltipDelay});
-      });
-      panel.querySelector('[data-pause]').addEventListener('click',e=>{
-        paused=!paused; savePersistence();
-        e.target.textContent=paused?'Resume':'Pause';
-        if(!paused){refresh(true,true); resetInterval(); bootstrapWarmup();}
-      });
-      panel.querySelector('[data-silent]').addEventListener('click',e=>{
-        silentMode=!silentMode; savePersistence();
-        e.target.textContent=silentMode?'Silent✓':'Silent';
-      });
-      panel.querySelector('[data-profile]').addEventListener('click',()=>showProfilesMenu(panel));
-      panel.querySelector('[data-card-pick]').addEventListener('change',e=>{
-        const idx=parseInt(e.target.value,10);
-        dev.pick(idx);
-        setTimeout(()=>refresh(true,true),40);
-      });
-      renderQuickFlags();
-    }
-    function ensureCss(){
-      if(!document.getElementById('cblcars-dev-hud-extra-css')){
-        const style=document.createElement('style');
-        style.id='cblcars-dev-hud-extra-css';
-        style.textContent=`
-          .hud-delta-pos{color:#77ff90;}
-          .hud-delta-neg{color:#ff6688;}
-          .hud-badge-perf{background:#ff004d;color:#fff;padding:0 6px;border-radius:10px;font-size:10px;margin-left:4px;}
-        `;
-        document.head.appendChild(style);
-      }
-      if(document.getElementById('cblcars-dev-hud-css')) return;
-      if(!window.cblcars.hud._externalCssLoaded){
-        const link=document.createElement('link');
-        link.id='cblcars-dev-hud-css'; link.rel='stylesheet';
-        link.href='/hacsfiles/cblcars/cb-lcars-dev-hud.css';
-        link.addEventListener('error',()=>inlineFallback());
-        link.addEventListener('load',()=>{window.cblcars.hud._externalCssLoaded=true;});
-        document.head.appendChild(link);
-        setTimeout(()=>{
-          if(!window.cblcars.hud._externalCssLoaded) inlineFallback();
-        },1200);
-      }
-      function inlineFallback(){
-        if(document.getElementById('cblcars-dev-hud-inline-css')) return;
-        const style=document.createElement('style');
-        style.id='cblcars-dev-hud-inline-css';
-        style.textContent=`.hud-flash{animation:hudFlash .55s ease-out;}
-@keyframes hudFlash{0%{background:rgba(255,0,255,0.3);}100%{background:transparent;}}
-[data-panel] table td,[data-panel] table th{padding:2px 4px;}
-`;
-        document.head.appendChild(style);
-      }
+      renderPanelsShell();
     }
 
-    /* ---------- Panels Shell ---------- */
+    const panels=new Map();
+    function registerPanel(meta){
+      if(!meta||!meta.id||panels.has(meta.id)) return;
+      panels.set(meta.id,{meta,instance:null});
+      renderPanelsShell();
+    }
+    window.cblcars.hud.registerPanel = registerPanel;
+    (window.cblcars.hud._pendingPanels||[]).forEach(fn=>{try{fn();}catch(e){console.warn('[hud.panel.init]',e);} });
+    window.cblcars.hud._pendingPanels=[];
+
     function renderPanelsShell(){
       const container=document.getElementById(HUD_ID)?.querySelector('[data-panels]');
       if(!container) return;
+      const ordered=[...panels.values()].sort((a,b)=>(a.meta.order||99999)-(b.meta.order||99999));
       const existing=new Set();
-      [...panels.values()]
-        .sort((a,b)=>(a.meta.order||99999)-(b.meta.order||99999))
-        .forEach(entry=>{
-          existing.add(entry.meta.id);
-          let wrapper=container.querySelector(`[data-panel="${entry.meta.id}"]`);
-          if(!wrapper){
-            wrapper=document.createElement('div');
-            wrapper.setAttribute('data-panel',entry.meta.id);
-            wrapper.style.cssText='border:1px solid #552266;border-radius:4px;background:rgba(40,0,60,0.45);display:flex;flex-direction:column;';
-            wrapper.innerHTML=`
-              <div data-h style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(90deg,#440066,#220022);cursor:pointer;font-size:11px;">
-                <span data-c style="opacity:.8;">▾</span>
-                <span data-t style="flex:1;">${entry.meta.title||entry.meta.id}</span>
-                <span data-b style="font-size:10px;opacity:.75;"></span>
-              </div>
-              <div data-body style="padding:6px 8px;display:${sectionsCollapsed[entry.meta.id]?'none':'block'};"></div>`;
-            container.appendChild(wrapper);
-            wrapper.querySelector('[data-h]').addEventListener('click',()=>{
-              sectionsCollapsed[entry.meta.id]=!sectionsCollapsed[entry.meta.id];
-              savePersistence();
-              wrapper.querySelector('[data-body]').style.display=sectionsCollapsed[entry.meta.id]?'none':'block';
-              wrapper.querySelector('[data-c]').textContent=sectionsCollapsed[entry.meta.id]?'▸':'▾';
-            });
-          }
-          if(!entry.instance && !sectionsCollapsed[entry.meta.id]){
-            try{
-              const ctx={hudApi,dev,definitions:DEFINITIONS,utils:window.cblcars.hud.utils};
-              const ret=entry.meta.render(ctx);
-              entry.instance={refresh:ret.refresh||(()=>{}),el:ret.rootEl||wrapper.querySelector('[data-body]')};
-              if(ret.rootEl && ret.rootEl!==wrapper.querySelector('[data-body]')){
-                const bd=wrapper.querySelector('[data-body]');
-                bd.innerHTML=''; bd.appendChild(ret.rootEl);
-              }
-            }catch(e){
-              wrapper.querySelector('[data-body]').innerHTML=`<div style="color:#ff4d78;">Panel error: ${e.message||e}</div>`;
+      ordered.forEach(entry=>{
+        existing.add(entry.meta.id);
+        let outer=container.querySelector(`[data-panel="${entry.meta.id}"]`);
+        if(!outer){
+          outer=document.createElement('div');
+          outer.setAttribute('data-panel',entry.meta.id);
+          outer.style.cssText='border:1px solid #552266;border-radius:4px;background:rgba(40,0,60,0.45);display:flex;flex-direction:column;';
+          outer.innerHTML=`
+            <div data-h style="display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(90deg,#440066,#220022);cursor:pointer;font-size:11px;">
+              <span data-c>${sectionsCollapsed[entry.meta.id]?'▸':'▾'}</span>
+              <span data-t style="flex:1;">${entry.meta.title||entry.meta.id}</span>
+              <span data-b style="font-size:10px;opacity:.75;"></span>
+            </div>
+            <div data-body style="padding:6px 8px;display:${sectionsCollapsed[entry.meta.id]?'none':'block'};"></div>`;
+          container.appendChild(outer);
+          outer.querySelector('[data-h]').addEventListener('click',()=>{
+            sectionsCollapsed[entry.meta.id]=!sectionsCollapsed[entry.meta.id];
+            save();
+            outer.querySelector('[data-c]').textContent=sectionsCollapsed[entry.meta.id]?'▸':'▾';
+            outer.querySelector('[data-body]').style.display=sectionsCollapsed[entry.meta.id]?'none':'block';
+          });
+        }
+        if(!entry.instance && !sectionsCollapsed[entry.meta.id]){
+          try{
+            const ctx={hudApi:hudApi,dev,utils:window.cblcars.hud.utils};
+            const ret=entry.meta.render(ctx);
+            entry.instance={refresh:ret.refresh||(()=>{}),el:ret.rootEl||outer.querySelector('[data-body]')};
+            if(ret.rootEl && ret.rootEl!==outer.querySelector('[data-body]')){
+              const body=outer.querySelector('[data-body]');
+              body.innerHTML='';
+              body.appendChild(ret.rootEl);
             }
+          }catch(e){
+            outer.querySelector('[data-body]').innerHTML=`<div style="color:#ff4d78;">Panel init error: ${e.message||e}</div>`;
           }
-        });
-      container.querySelectorAll('[data-panel]').forEach(p=>{
+        }
+      });
+      [...container.querySelectorAll('[data-panel]')].forEach(p=>{
         const id=p.getAttribute('data-panel');
         if(!existing.has(id)) p.remove();
       });
@@ -593,142 +291,255 @@
         if(!wrap) return;
         const badge=wrap.querySelector('[data-b]');
         if(!badge) return;
-        try{badge.textContent=entry.meta.badge?(entry.meta.badge(snapshot)||''):'';}catch{badge.textContent='';}
+        try{ badge.textContent=entry.meta.badge?(entry.meta.badge(snapshot)||''):''; }catch{ badge.textContent=''; }
       });
+      // Update header Σ last ms
+      const panel=document.getElementById(HUD_ID);
+      if(panel){
+        const header=panel.querySelector('[data-hdr]');
+        if(header){
+          const provStats = window.cblcars.hud._providerStats || {};
+          const totalLast = Object.values(provStats).reduce((s,v)=>s+(v.lastMs||0),0);
+          if(!header.querySelector('[data-totalms]')){
+            const span=document.createElement('span');
+            span.setAttribute('data-totalms','');
+            span.style.fontSize='10px';
+            span.style.opacity='0.65';
+            header.insertBefore(span, header.querySelector('select[data-card]'));
+          }
+          header.querySelector('[data-totalms]').textContent='Σ'+totalLast.toFixed(1)+'ms';
+        }
+      }
     }
 
-    /* ---------- Refresh Loop ---------- */
     let refreshTimer=null;
     function resetInterval(){
       if(refreshTimer) clearInterval(refreshTimer);
-      if(!paused) refreshTimer=setInterval(()=>refresh(),hudInterval);
+      if(!paused) refreshTimer=setInterval(()=>refresh(), intervalMs);
     }
-    function refresh(forcePersist=false,allowWhilePaused=false){
+
+    function computeDiffsInPlace(snapshot){
+      try{
+        const prev=lastSnapshot;
+        const curRoutes=snapshot.sections.routes?.byId||{};
+        const prevRoutes=prev?.sections?.routes?.byId||{};
+        const costDiff=[];
+        Object.keys(curRoutes).forEach(id=>{
+          const c=curRoutes[id]?.totalCost;
+          const p=prevRoutes[id]?.totalCost;
+          if(p!=null && c!=null && p!==c){
+            const pct=((c-p)/p)*100;
+            costDiff.push({id,prev:p,cur:c,pct});
+          }
+        });
+        costDiff.sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct));
+        if(snapshot.sections.diff) snapshot.sections.diff.routes.cost=costDiff;
+      }catch{}
+    }
+
+    function refresh(forceSave=false, allowWhilePaused=false){
       if(paused && !allowWhilePaused){
         if(!lastSnapshot){
           const snap=buildSnapshot();
           renderPanelsShell();
-          panels.forEach(p=>{try{p.instance?.refresh(snap);}catch{}});
+          panels.forEach(p=>{ try{p.instance?.refresh(snap);}catch{} });
         }
         return;
       }
       const snapshot=buildSnapshot();
+      computeDiffsInPlace(snapshot);
       renderPanelsShell();
       panels.forEach(p=>{
         if(sectionsCollapsed[p.meta.id]) return;
         try{p.instance?.refresh(snapshot);}catch(e){console.warn('[hud.panel.refresh]',p.meta.id,e);}
       });
       updatePanelBadges(snapshot);
-      if(forcePersist) savePersistence();
-      emit('refresh:snapshot',snapshot);
+      if(forceSave) save();
+      emit('snapshot:refresh',snapshot);
     }
 
-    /* ---------- Tooltip ---------- */
-    let tooltipApi={updateConfig:()=>{}};
-    function initTooltip(panel){
-      tooltipApi=window.cblcars.hud.tooltip.init(panel,{delay:tooltipDelay,timeout:tooltipTimeout});
-    }
-
-    /* ---------- Warmup ---------- */
-    function bootstrapWarmup(){
-      if(lastSnapshot && lastSnapshot.routesSummary.total>0) return;
-      let warmStart=performance.now();
-      (function loop(){
-        if(paused) return;
-        if(lastSnapshot && lastSnapshot.routesSummary.total>0) return;
-        refresh(false,true);
-        if(performance.now()-warmStart<20000) setTimeout(loop,500);
-      })();
-    }
-
-    /* ---------- DOM Observer ---------- */
-    function startDomObserver(){
-      const mo=new MutationObserver(()=>{
-        if(paused) return;
-        if(!lastSnapshot || lastSnapshot.routesSummary.total===0) refresh(false,true);
+    function wireFrame(panel){
+      const hdr=panel.querySelector('[data-hdr]');
+      let dragging=false,sx=0,sy=0,ox=0,oy=0;
+      hdr.addEventListener('mousedown',e=>{
+        if(e.button!==0) return;
+        dragging=true; sx=e.clientX; sy=e.clientY;
+        const r=panel.getBoundingClientRect(); ox=r.left; oy=r.top;
+        document.addEventListener('mousemove',onMove);
+        document.addEventListener('mouseup',onUp,{once:true});
+        e.preventDefault();
       });
-      mo.observe(document.documentElement,{childList:true,subtree:true});
-      setTimeout(()=>mo.disconnect(),15000);
+      function onMove(e){
+        if(!dragging) return;
+        panel.style.left=(ox+(e.clientX-sx))+'px';
+        panel.style.top=(oy+(e.clientY-sy))+'px';
+        panel.style.right='';
+      }
+      function onUp(){
+        dragging=false;
+        document.removeEventListener('mousemove',onMove);
+        const r=panel.getBoundingClientRect();
+        dragPos=[r.left,r.top]; save();
+      }
+
+      panel.querySelector('[data-close]').addEventListener('click',()=>{
+        persistHud({enabled:false});
+        panel.remove();
+      });
+      panel.querySelector('[data-collapse]').addEventListener('click',()=>{
+        collapsed=!collapsed; save();
+        panel.querySelector('[data-collapse]').textContent=collapsed?'▢':'▣';
+        panel.querySelector('[data-body]').style.display=collapsed?'none':'block';
+        panel.querySelector('[data-toolbar]').style.display=collapsed?'none':'flex';
+      });
+      panel.querySelector('[data-refresh]').addEventListener('click',()=>refresh(true,true));
+      panel.querySelector('[data-int]').addEventListener('change',e=>{
+        const v=parseInt(e.target.value,10);
+        if(Number.isFinite(v)&&v>=250){ intervalMs=v; save(); resetInterval(); }
+      });
+      panel.querySelector('[data-tt-to]').addEventListener('change',e=>{
+        tooltipTimeout=Math.max(0,parseInt(e.target.value,10)||0);
+        save(); tooltipApi.updateConfig({timeout:tooltipTimeout});
+      });
+      panel.querySelector('[data-tt-delay]').addEventListener('change',e=>{
+        tooltipDelay=Math.max(0,parseInt(e.target.value,10)||0);
+        save(); tooltipApi.updateConfig({delay:tooltipDelay});
+      });
+      panel.querySelector('[data-pause]').addEventListener('click',e=>{
+        paused=!paused; save();
+        e.target.textContent=paused?'Resume':'Pause';
+        if(!paused){ refresh(true,true); resetInterval(); }
+      });
+      panel.querySelector('[data-silent]').addEventListener('click',e=>{
+        silentMode=!silentMode; save();
+        e.target.textContent=silentMode?'Silent✓':'Silent';
+      });
+      panel.querySelector('[data-prof]').addEventListener('click',()=>showProfilesMenu(panel));
+      panel.querySelector('[data-card]').addEventListener('change',e=>{
+        const idx=parseInt(e.target.value,10);
+        dev.pick(idx);
+        setTimeout(()=>refresh(true,true),60);
+      });
+      panel.querySelector('[data-migrate-strict]').addEventListener('click',()=>{
+        hudApi.migrateStrictV4();
+      });
     }
 
-    /* ---------- HUD API ---------- */
-    function currentSnapshot(){return lastSnapshot;}
+    function showProfilesMenu(panel){
+      const old=panel.querySelector('#hud-prof-menu');
+      if(old){old.remove();return;}
+      const m=document.createElement('div');
+      m.id='hud-prof-menu';
+      Object.assign(m.style,{
+        position:'absolute',right:'6px',top:'46px',background:'#230036',border:'1px solid #ff00ff',
+        borderRadius:'6px',padding:'6px 8px',zIndex:HUD_Z+2,font:'11px monospace',minWidth:'160px'
+      });
+      m.innerHTML=`<div style="font-weight:bold;margin-bottom:4px;">Profiles</div>
+        ${Object.keys(FLAG_PROFILES).map(p=>`<div data-prof="${p}" style="padding:2px 4px;cursor:pointer;${p===selectedProfile?'background:#ff00ff;color:#120018;':''}">${p}</div>`).join('')}
+        <div data-prof="Custom" style="padding:2px 4px;cursor:pointer;${selectedProfile==='Custom'?'background:#ff00ff;color:#120018;':''}">Custom</div>`;
+      panel.appendChild(m);
+      m.addEventListener('click',e=>{
+        const p=e.target.getAttribute('data-prof'); if(!p) return;
+        if(p!=='Custom'){
+          dev.flags(FLAG_PROFILES[p]);
+          selectedProfile=p;
+          save(); drawQuickFlags(); emit('flags:changed',window.cblcars._debugFlags);
+          setProfileButtonLabel(p);
+        } else {
+          selectedProfile='Custom'; save(); setProfileButtonLabel('Custom');
+        }
+        m.remove();
+      });
+      document.addEventListener('pointerdown',function once(ev){
+        if(!m.contains(ev.target)){ m.remove(); document.removeEventListener('pointerdown',once,true); }
+      },true);
+    }
+
+    buildFrame();
+    refresh(true,true);
+    resetInterval();
+
     const hudApi={
       on,off,emit,
+      currentSnapshot:()=>lastSnapshot,
+      refreshRaw:(opts={})=>refresh(!!opts.persist,!!opts.allowWhilePaused),
+      pause(){ if(!paused){ paused=true; save(); } },
+      resume(){ if(paused){ paused=false; save(); resetInterval(); refresh(true,true);} },
+      isPaused:()=>paused,
       status(){
         return {
-          version:HUD_VERSION,paused,interval:hudInterval,
-          pinnedPerf:pinnedPerf.slice(),watchRoutes:watchRoutes.slice(),
-          routingFilters:{...routingFilters},verboseFlags,perfThresholds:{...perfThresholds}
+          version:HUD_VERSION,
+          paused,
+          interval:intervalMs,
+          pinnedPerf:pinnedPerf.slice(),
+          watchRoutes:watchRoutes.slice(),
+          routingFilters:{...routingFilters},
+          verboseFlags,
+          perfThresholds:{...perfThresholds},
+          selectedProfile
         };
       },
-      pause(){if(!paused){paused=true;savePersistence();}},
-      resume(){if(paused){paused=false;savePersistence();resetInterval();refresh(true,true);bootstrapWarmup();}},
-      isPaused:()=>paused,
-      refreshRaw:(opts={})=>refresh(!!opts.persist,!!opts.allowWhilePaused),
-      setRoutingFilters(patch){Object.assign(routingFilters,patch||{}); savePersistence();},
+      setRoutingFilters(patch){ Object.assign(routingFilters,patch||{}); save(); },
       getRoutingFilters:()=>({...routingFilters}),
-      pinPerf(id){if(!pinnedPerf.includes(id)){pinnedPerf.push(id); savePersistence();}},
-      unpinPerf(id){pinnedPerf=pinnedPerf.filter(x=>x!==id); savePersistence();},
-      clearPinnedPerf(){pinnedPerf=[]; savePersistence();},
-      watchRoute(id){if(!watchRoutes.includes(id)){watchRoutes.push(id); savePersistence();}},
-      unwatchRoute(id){watchRoutes=watchRoutes.filter(x=>x!==id); savePersistence();},
-      clearWatchRoutes(){watchRoutes=[]; savePersistence();},
-      getWatchRoutes:()=>watchRoutes.slice(),
+      pinPerf(id){ if(!pinnedPerf.includes(id)){ pinnedPerf.push(id); save(); } },
+      unpinPerf(id){ pinnedPerf=pinnedPerf.filter(x=>x!==id); save(); },
+      clearPinnedPerf(){ pinnedPerf=[]; save(); },
+      watchRoute(id){ if(!watchRoutes.includes(id)){ watchRoutes.push(id); save(); } },
+      unwatchRoute(id){ watchRoutes=watchRoutes.filter(x=>x!==id); save(); },
+      clearWatchRoutes(){ watchRoutes=[]; save(); },
       setPerfThreshold(id,vals){
         if(!id) return;
-        if(!vals || (vals.avgMs==null && vals.lastMs==null)) delete perfThresholds[id];
-        else {
-          const cur=perfThresholds[id]||{};
-          perfThresholds[id]={...cur,...vals};
-        }
-        savePersistence();
+        if(!vals||(vals.avgMs==null && vals.lastMs==null)) delete perfThresholds[id];
+        else perfThresholds[id]={...(perfThresholds[id]||{}),...vals};
+        save();
       },
-      removePerfThreshold(id){ delete perfThresholds[id]; savePersistence(); },
+      removePerfThreshold(id){ delete perfThresholds[id]; save(); },
       getPerfThresholds:()=>({...perfThresholds}),
       exportSnapshot(){
         try{
-          const snap=currentSnapshot()||buildSnapshot();
-          const enriched={
-            schema_version:SNAPSHOT_SCHEMA_VERSION,
-            hud_version:HUD_VERSION,
-            build_ms:snap.buildMs,
-            refresh_interval:hudInterval,
-            paused,
-            pinnedPerf,
-            perfThresholds,
-            snapshot:snap
-          };
-          const blob=new Blob([JSON.stringify(enriched,null,2)],{type:'application/json'});
+          const snap=lastSnapshot||buildSnapshot();
+          const blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'});
           const url=URL.createObjectURL(blob);
           const a=document.createElement('a');
-          a.href=url; a.download='lcars-hud-snapshot-'+(snap.timestamp||Date.now())+'.json';
+          a.href=url; a.download='hud-snapshot-v4-'+(snap.meta.timestamp||Date.now())+'.json';
           document.body.appendChild(a); a.click();
           setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},400);
         }catch(e){console.warn('[hud.exportSnapshot]',e);}
       },
-      currentSnapshot,
-      setVerboseFlags(v){verboseFlags=!!v;savePersistence();renderQuickFlags();},
-      toggleFlagLabelVerbosity(){verboseFlags=!verboseFlags;savePersistence();renderQuickFlags();},
       applyProfile(name){
         if(!FLAG_PROFILES[name]) return;
         dev.flags(FLAG_PROFILES[name]);
-        selectedProfile=name; savePersistence();
-        renderQuickFlags(); emit('flags:changed',window.cblcars._debugFlags);
+        selectedProfile=name; save(); drawQuickFlags(); emit('flags:changed',window.cblcars._debugFlags);
+        setProfileButtonLabel(name);
       },
+      toggleFlagLabelVerbosity(){ verboseFlags=!verboseFlags; save(); drawQuickFlags(); },
+      setVerboseFlags(v){ verboseFlags=!!v; save(); drawQuickFlags(); },
       currentBuildVersion:()=>HUD_VERSION,
-      _collectPerfViolations:collectPerfViolations
+      enableStrictV4(){
+        if(!lastSnapshot) return;
+        ['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags']
+          .forEach(k=>{ try{ delete lastSnapshot[k]; }catch{} });
+        console.warn('[hud] Strict v4 snapshot enabled (legacy flattened fields removed).');
+        hudApi.refreshRaw({allowWhilePaused:true});
+      },
+      migrateStrictV4(){
+        console.group('[hud] migrateStrictV4');
+        console.log('Checking panels for flattened key usage (heuristic only).');
+        // Simple heuristic: warn if any global property is still present
+        const flatKeys = ['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags'];
+        const present = flatKeys.filter(k=>lastSnapshot && Object.prototype.hasOwnProperty.call(lastSnapshot,k));
+        if(present.length){
+          console.warn('Flatten keys still present:', present);
+          console.warn('Calling enableStrictV4 now...');
+          hudApi.enableStrictV4();
+        } else {
+          console.log('No flattened keys detected. Already strict.');
+        }
+        console.groupEnd();
+      }
     };
     hudNS.api=hudApi;
 
-    /* ---------- Startup ---------- */
-    ensureFrame();
-    if(persisted.enabled!==false){
-      refresh(true,true);
-      resetInterval();
-      bootstrapWarmup();
-      startDomObserver();
-    }
-    hudInfo('[hud.core] attached',HUD_VERSION);
+    log('[hud.core.v4] attached',HUD_VERSION);
   }
 })();

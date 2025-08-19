@@ -1,114 +1,108 @@
-/* Perf Panel (parity)
- * Adds threshold (Th) buttons, pin/unpin, unpin all, reset timers/counters.
- */
+/* Perf Panel v4 */
 (function(){
-  const hud=(window.cblcars=window.cblcars||{}, window.cblcars.hud=window.cblcars.hud||{});
+  const hud=(window.cblcars=window.cblcars||{},window.cblcars.hud=window.cblcars.hud||{});
   function init(){
     hud.registerPanel({
       id:'perf',
-      title:'Perf & Timers',
+      title:'Performance',
       order:300,
-      badge:snap=>Object.keys(snap.perfTimers||{}).length||'',
+      badge:snap=>Object.keys(snap.sections.perf.timers||{}).length||'',
       render({hudApi}){
         const el=document.createElement('div');
         el.style.fontSize='10px';
         el.innerHTML=`
           <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;">
-            <button data-reset-perf style="font-size:10px;">Reset Counters</button>
             <button data-reset-timers style="font-size:10px;">Reset Timers</button>
+            <button data-reset-counters style="font-size:10px;">Reset Counters</button>
             <button data-unpin style="font-size:10px;">Unpin All</button>
-            <button data-pin-top style="font-size:10px;">Pin Top3</button>
-            <label style="display:flex;align-items:center;gap:2px;">min n<input data-min-count type="number" value="0" style="width:46px;font-size:10px;"></label>
-            <label style="display:flex;align-items:center;gap:2px;">min avg<input data-min-avg type="number" value="0" style="width:46px;font-size:10px;"></label>
           </div>
           <details open><summary style="font-weight:bold;cursor:pointer;">Timers</summary><div data-timers></div></details>
-          <details open style="margin-top:6px;"><summary style="font-weight:bold;cursor:pointer;">Counters</summary><div data-counters></div></details>`;
+          <details open style="margin-top:6px;"><summary style="font-weight:bold;cursor:pointer;">Counters</summary><div data-counters></div></details>
+          <div style="margin-top:6px;font-size:10px;opacity:.7;" data-viol></div>`;
         const timersDiv=el.querySelector('[data-timers]');
         const countersDiv=el.querySelector('[data-counters]');
-        let lastTimers={}, lastCounters={};
+        const violDiv=el.querySelector('[data-viol]');
 
-        el.querySelector('[data-reset-perf]').addEventListener('click',()=>{
-          try{window.cblcars.perf.reset();}catch{}
-          hudApi.refreshRaw({allowWhilePaused:true});
-        });
         el.querySelector('[data-reset-timers]').addEventListener('click',()=>{
           try{window.cblcars.debug?.perf?.reset();}catch{}
           hudApi.refreshRaw({allowWhilePaused:true});
         });
-        el.querySelector('[data-unpin]').addEventListener('click',()=>{
-          hudApi.clearPinnedPerf(); hudApi.refreshRaw({allowWhilePaused:true});
+        el.querySelector('[data-reset-counters]').addEventListener('click',()=>{
+          try{window.cblcars.perf.reset();}catch{}
+          hudApi.refreshRaw({allowWhilePaused:true});
         });
-        el.querySelector('[data-pin-top]').addEventListener('click',()=>{
-          const snap=hudApi.currentSnapshot()||{};
-          const timers=snap.perfTimers||{};
-          const top=Object.entries(timers).sort((a,b)=>b[1].lastMs - a[1].lastMs).slice(0,3).map(e=>e[0]);
-          top.forEach(id=>hudApi.pinPerf(id));
+        el.querySelector('[data-unpin]').addEventListener('click',()=>{
+          hudApi.clearPinnedPerf();
           hudApi.refreshRaw({allowWhilePaused:true});
         });
 
-        function renderList(kind,container,data,last){
-          const minCount=parseInt(el.querySelector('[data-min-count]').value,10)||0;
-          const minAvg=parseFloat(el.querySelector('[data-min-avg]').value)||0;
-          const keys=Object.keys(data);
-          if(!keys.length){container.innerHTML='<div style="opacity:.6;">(none)</div>'; return;}
+        function makeRows(kind, data, thresholds){
           const pins=hudApi.status().pinnedPerf;
-          const thresholds=hudApi.status().perfThresholds;
-          container.innerHTML=keys.sort().map(k=>{
+          const keys=Object.keys(data).sort();
+          if(!keys.length) return '<div style="opacity:.6;">(none)</div>';
+          return keys.map(k=>{
             const d=data[k];
-            if(d.count<minCount) return '';
-            if(d.avgMs && d.avgMs<minAvg) return '';
-            const changed=last[k] && (last[k].lastMs!==d.lastMs || last[k].count!==d.count);
             const pinned=pins.includes(k);
             const th=thresholds[k];
-            const viol = th && ((th.avgMs!=null && d.avgMs>th.avgMs) || (th.lastMs!=null && d.lastMs>th.lastMs));
-            const label = kind==='timers'
-              ? `${k}: last=${d.lastMs.toFixed(2)}ms avg=${d.avgMs.toFixed(2)}ms n=${d.count}`
-              : `${k}: c=${d.count}${d.avgMs!=null? ' avg='+d.avgMs.toFixed(1)+'ms':''}`;
-            return `<div data-id="${k}" style="display:flex;gap:4px;align-items:center;" class="${changed?'hud-flash':''}">
-              <button data-pin style="font-size:9px;padding:0 4px;">${pinned?'★':'☆'}</button>
-              <span style="flex:1;" data-tip="${k}" data-tip-detail="${label}">
-                ${viol?'<span style="color:#ff004d;">⚠</span> ':''}${label}
+            let viol=false;
+            if(th){
+              if(th.avgMs!=null && d.avgMs>th.avgMs) viol=true;
+              if(th.lastMs!=null && d.lastMs>th.lastMs) viol=true;
+            }
+            return `<div data-id="${k}" style="display:flex;align-items:center;gap:4px;">
+              <button data-pin="${k}" style="font-size:9px;padding:0 4px;">${pinned?'★':'☆'}</button>
+              <span style="flex:1;${viol?'color:#ff6688;':''}">
+                ${k}: ${kind==='timers'
+                  ? `last=${d.lastMs.toFixed(2)} avg=${d.avgMs.toFixed(2)} n=${d.count}`
+                  : `c=${d.count}${d.avgMs!=null? ' avg='+d.avgMs.toFixed(2):''}`}
               </span>
-              <button data-th style="font-size:9px;padding:0 4px;">Th</button>
-              <button data-reset-one style="font-size:9px;padding:0 4px;">✕</button>
+              <button data-th="${k}" style="font-size:9px;padding:0 4px;">Th</button>
+              <button data-r="${k}" style="font-size:9px;padding:0 4px;">✕</button>
             </div>`;
           }).join('');
-          container.querySelectorAll('[data-id]').forEach(row=>{
-            const id=row.getAttribute('data-id');
-            row.querySelector('[data-pin]').addEventListener('click',()=>{
+        }
+
+        function refresh(snapshot){
+          const perf=snapshot.sections.perf;
+          const thresholds=perf.thresholds||{};
+          timersDiv.innerHTML=makeRows('timers',perf.timers||{},thresholds);
+          countersDiv.innerHTML=makeRows('counters',perf.counters||{},thresholds);
+          violDiv.textContent = perf.violations.length
+            ? `${perf.violations.length} threshold violation(s)`
+            : '';
+
+          el.querySelectorAll('button[data-pin]').forEach(b=>{
+            b.addEventListener('click',()=>{
+              const id=b.getAttribute('data-pin');
               const pins=hudApi.status().pinnedPerf;
               if(pins.includes(id)) hudApi.unpinPerf(id); else hudApi.pinPerf(id);
               hudApi.refreshRaw({allowWhilePaused:true});
             });
-            row.querySelector('[data-th]').addEventListener('click',()=>{
-              const cur=hudApi.status().perfThresholds[id]||{};
-              const avg=prompt(`Set avgMs threshold for ${id} (blank to clear)`,cur.avgMs!=null?cur.avgMs:'');
-              if(avg===null) return;
-              if(avg.trim()===''){
-                hudApi.removePerfThreshold(id);
-              } else {
-                const num=parseFloat(avg);
+          });
+          el.querySelectorAll('button[data-th]').forEach(b=>{
+            b.addEventListener('click',()=>{
+              const id=b.getAttribute('data-th');
+              const current=thresholds[id]||{};
+              const val=prompt(`Set avgMs threshold for ${id} (blank to clear)`,current.avgMs!=null?current.avgMs:'');
+              if(val===null) return;
+              if(val.trim()===''){ hudApi.removePerfThreshold(id); }
+              else {
+                const num=parseFloat(val);
                 if(Number.isFinite(num)) hudApi.setPerfThreshold(id,{avgMs:num});
               }
               hudApi.refreshRaw({allowWhilePaused:true});
             });
-            row.querySelector('[data-reset-one]').addEventListener('click',()=>{
-              if(kind==='timers'){ try{window.cblcars.debug?.perf?.reset(id);}catch{} }
-              else { try{window.cblcars.perf.reset(id);}catch{} }
+          });
+          el.querySelectorAll('button[data-r]').forEach(b=>{
+            b.addEventListener('click',()=>{
+              const id=b.getAttribute('data-r');
+              if(perf.timers[id]) try{window.cblcars.debug?.perf?.reset(id);}catch{}
+              if(perf.counters[id]) try{window.cblcars.perf.reset(id);}catch{}
               hudApi.refreshRaw({allowWhilePaused:true});
             });
           });
         }
-
-        return {
-          rootEl:el,
-          refresh(snapshot){
-            renderList('timers',timersDiv,snapshot.perfTimers||{},lastTimers);
-            renderList('counters',countersDiv,snapshot.perfCounters||{},lastCounters);
-            lastTimers=JSON.parse(JSON.stringify(snapshot.perfTimers||{}));
-            lastCounters=JSON.parse(JSON.stringify(snapshot.perfCounters||{}));
-          }
-        };
+        return { rootEl:el, refresh };
       }
     });
   }

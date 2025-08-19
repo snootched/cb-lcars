@@ -28,7 +28,7 @@
           const act=btn.getAttribute('data-act');
           try{
             switch(act){
-              case 'list-cards': window.cblcars.dev.listCards(); setStatus('Listed cards'); break;
+              case 'list-cards': window.cblcars.dev.api.cards.list(); setStatus('Listed cards'); break;
               case 'relayout': window.cblcars.dev.relayout('*'); setStatus('Relayout triggered'); break;
               case 'reset-perf': window.cblcars.perf.reset(); setStatus('Perf reset'); break;
               case 'toggle-aggressive':{

@@ -1,41 +1,23 @@
-/* Snapshot v4 Schema & Section Provider Registry
- *  - Central definition of snapshot structure
- *  - Providers can be registered before HUD core attaches (queued)
- *  - buildSnapshot() invoked by HUD core will iterate deterministic provider order
- *
- *  sections.<id> contract (initial set):
- *    routes:   { summary, byId, raw }
- *    perf:     { timers, counters, thresholds, violations }
- *    overlays: { list, summary, validation }
- *    anchors:  { list }
- *    channels: { current, previous }
- *    scenarios:{ results }
- *    config:   { flags, pinnedPerf, watchRoutes, routingFilters, selectedProfile }
- *    diff:     { routes:{ cost:[] } }    (secondary provider runs after routes)
- *
- * Backward compatibility shim (optional) produced by HUD core:
- *  - routesSummary -> sections.routes.summary
- *  - routesById    -> sections.routes.byId
- *  - perfTimers    -> sections.perf.timers
- *  - perfCounters  -> sections.perf.counters
- *  - overlaysBasic -> sections.overlays.list (list stripped)
- *  - overlaysSummary -> sections.overlays.summary
- *  - anchors -> sections.anchors.list
- *  - anchorsSummary -> sections.anchors.summary (computed)
- *  - channels -> sections.channels.current
- *  - previous.channels -> sections.channels.previous
- *  - scenarioResults -> sections.scenarios.results
- *  - flags -> sections.config.flags
- */
+/* Snapshot v4 Schema & Section Provider Registry (Pass 4 patched: provider timing + change detection) */
 (function(){
   if(!window.cblcars) window.cblcars = {};
   window.cblcars.hud = window.cblcars.hud || {};
 
   const REG = {
-    providers: new Map(),               // id -> fn(ctxPrev, lastFullSnapshot) => sectionData
-    order: [],                          // deterministic order list of ids
-    pending: []                         // queued registrations before core
+    providers: new Map(),
+    order: []
   };
+  // Provider stats: id -> { lastMs, totalMs, builds, maxMs, lastError, lastChanged }
+  window.cblcars.hud._providerStats = window.cblcars.hud._providerStats || {};
+
+  function shallowEqual(a,b){
+    if(a===b) return true;
+    if(!a||!b||typeof a!=='object'||typeof b!=='object') return false;
+    const ka=Object.keys(a), kb=Object.keys(b);
+    if(ka.length!==kb.length) return false;
+    for(const k of ka) if(a[k]!==b[k]) return false;
+    return true;
+  }
 
   function registerSectionProvider(id, buildFn, opts={}){
     if(!id || typeof buildFn!=='function') return;
@@ -44,28 +26,53 @@
       return;
     }
     if(REG.providers.has(id)){
-      console.warn('[hud.schema] Duplicate provider id ignored',id);
+      console.warn('[hud.schema] Duplicate provider id ignored', id);
       return;
     }
-    REG.providers.set(id, { id, buildFn, order: opts.order ?? 1000 });
+
+    // Wrap build function for timing + change detection
+    const wrapped = (ctx)=>{
+      const stats = window.cblcars.hud._providerStats;
+      stats[id] = stats[id] || { lastMs:0,totalMs:0,builds:0,maxMs:0,lastError:null,lastChanged:false };
+      const st = stats[id];
+      const t0 = performance.now();
+      let res;
+      try{
+        res = buildFn(ctx);
+        st.lastError=null;
+      }catch(e){
+        st.lastError=String(e);
+        res = { error:true, message:String(e) };
+      }
+      const dt = performance.now()-t0;
+      st.lastMs=dt;
+      st.totalMs+=dt;
+      st.maxMs=Math.max(st.maxMs,dt);
+      st.builds+=1;
+
+      // Change detection vs ctx.prev (shallow)
+      try{
+        const prevVal = ctx.prev;
+        st.lastChanged = !shallowEqual(prevVal,res);
+      }catch{ st.lastChanged = true; }
+      return res;
+    };
+
+    REG.providers.set(id,{id,buildFn:wrapped,order:opts.order??1000});
     REG.order = [...REG.providers.values()].sort((a,b)=>a.order-b.order).map(p=>p.id);
   }
 
-  // Public API (exposed early)
   window.cblcars.hud.registerSectionProvider = registerSectionProvider;
-  window.cblcars.hud._listSectionProviders = () => REG.order.slice();
+  window.cblcars.hud._listSectionProviders = ()=>REG.order.slice();
 
-  // Core build function (called by hud-core)
   function buildSnapshotV4(ctx){
-    // ctx: { now, prevSnapshot, env:{ dev, hudVersion, perfThresholds, pinnedPerf, watchRoutes,
-    //       routingFilters, selectedProfile, flags } }
     const { prevSnapshot } = ctx;
-    const sections = {};
+    const sections={};
     for(const id of REG.order){
       try{
-        const provider = REG.providers.get(id);
-        if(!provider) continue;
-        sections[id] = provider.buildFn({
+        const p = REG.providers.get(id);
+        if(!p) continue;
+        sections[id] = p.buildFn({
           prev: prevSnapshot?.sections?.[id],
           fullPrev: prevSnapshot,
           env: ctx.env,
@@ -73,7 +80,10 @@
         }) || null;
       }catch(e){
         console.warn('[hud.schema] provider failed', id, e);
-        sections[id] = { error:true, message:String(e) };
+        sections[id]={ error:true, message:String(e) };
+        const stats=window.cblcars.hud._providerStats;
+        stats[id]=stats[id]||{};
+        stats[id].lastError=String(e);
       }
     }
     return {
@@ -93,4 +103,10 @@
 
   window.cblcars.hud._buildSnapshotV4 = buildSnapshotV4;
 
+  if(window.cblcars.hud._pendingProviders){
+    try{
+      window.cblcars.hud._pendingProviders.forEach(fn=>{try{fn();}catch{}});
+    }catch{}
+    window.cblcars.hud._pendingProviders = [];
+  }
 })();

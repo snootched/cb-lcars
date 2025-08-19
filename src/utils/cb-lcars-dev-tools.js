@@ -1,122 +1,108 @@
 /**
- * CB-LCARS Developer Tools (Advanced) – Parity + Scenario Pack
+ * Dev Tools v4 (Pass 4b – scenario reload + channel fallback integration)
  *
- * Key Features:
- *  - MSD card discovery / selection / persistence
- *  - Overlay CRUD (add/remove/import/export/mutate)
- *  - Anchors CRUD & nudge helpers
- *  - Routing helpers (relayout, dumpRoutes, simulate obstacles)
- *  - Runtime config + flag profiles
- *  - Scenario framework (addScenario, runScenario, runAllScenarios)
- *  - Performance helpers (perfDump, benchLayout, capturePerf)
- *  - Config snapshots (snapshotConfig / restoreConfig)
- *  - HUD integration bridge (_persistHudState, hud.enable/disable)
- *  - Scenario wrapper keeps HUD in sync on single runs
- *
- * Additions vs earlier modular split:
- *  - Restored / expanded Scenario Pack (routing, smart, overlays, anchors, perf)
- *  - Duplicate scenario name guard
- *  - runScenario wrapper integrated (live HUD refresh)
- *  - Minor defensive checks & logging
+ * Changes this patch:
+ *  - Default scenario pack:
+ *      * loadDefaultPack() triggers HUD refresh on success
+ *      * Inline fallback pack if dynamic import fails OR still only 2 demo scenarios after 1s
+ *      * forceReload() helper
+ *  - Avoid duplicate demo scenarios when external pack loads
+ *  - Added simple scenarioPackLoaded flag & refresh
+ *  - No early return on re-import; idempotent augmentation only
  */
-
 (function initDevTools(){
-  const DEV_PARAM = 'lcarsDev';
-  const enabled = !window.CBLCARS_DEV_DISABLE &&
-    (window.CBLCARS_DEV_FORCE === true ||
-     new URLSearchParams(location.search).has(DEV_PARAM));
-
+  const DEV_PARAM='lcarsDev';
+  const enabled=!window.CBLCARS_DEV_DISABLE && (window.CBLCARS_DEV_FORCE===true || new URLSearchParams(location.search).has(DEV_PARAM));
   if(!enabled) return;
-  if(!window.cblcars) window.cblcars={};
-  if(window.cblcars.dev && window.cblcars.dev._advanced){
-    console.info('[cblcars.dev] Advanced dev tools already attached.');
-    return;
-  }
+  if(!window.cblcars) window.cblcars = {};
 
-  /* ---------------- Persistence (sessionStorage) ---------------- */
+  const firstAttach = !(window.cblcars.dev && window.cblcars.dev._advancedV4);
+
+  /* ---------------- Persistence ---------------- */
   const STORAGE_KEY='cblcarsDevState';
-  function loadPersist(){try{const raw=sessionStorage.getItem(STORAGE_KEY);return raw?JSON.parse(raw)||{}:{};}catch{return {};}}
-  function savePersist(st){try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(st));}catch{}}
+  function loadPersist(){try{return JSON.parse(sessionStorage.getItem(STORAGE_KEY)||'{}');}catch{return {};}}
+  function savePersist(state){try{sessionStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch{}}
   const _persisted=loadPersist();
-  function persistPatch(p){Object.assign(_persisted,p);savePersist(_persisted);}
+  function patchPersist(p){Object.assign(_persisted,p);savePersist(_persisted);}
+
+  /* ---------------- Dev root ---------------- */
+  const dev = window.cblcars.dev = window.cblcars.dev || {};
+  dev._advancedV4 = true;
+  dev._advanced   = true;
+  dev.persistedState = _persisted;
+
   function clearPersist(){
     try{sessionStorage.removeItem(STORAGE_KEY);}catch{}
     for(const k of Object.keys(_persisted)) delete _persisted[k];
-    console.info('[cblcars.dev] Persisted state cleared.');
+    console.info('[dev] persisted state cleared');
   }
+  dev.clearPersist = clearPersist;
 
-  /* ---------------- Core Object ---------------- */
-  const dev = (window.cblcars.dev = window.cblcars.dev || {});
-  dev._advanced=true;
-
-  /* ---------------- Discovery Helpers ---------------- */
-  function ascendToMsdCard(el){
-    let cur=el;
-    while(cur){
-      if(cur.tagName && cur.tagName.toLowerCase()==='cb-lcars-msd-card') return cur;
-      if(cur instanceof ShadowRoot) cur=cur.host;
-      else if(cur.parentNode) cur=cur.parentNode;
-      else if(cur.ownerDocument) cur=cur.ownerDocument.host||null;
-      else cur=null;
+  /* ---------------- Discovery / resolve ---------------- */
+  function ascend(el){
+    let c=el;
+    while(c){
+      if(c.tagName && c.tagName.toLowerCase()==='cb-lcars-msd-card') return c;
+      if(c instanceof ShadowRoot) c=c.host;
+      else if(c.parentNode) c=c.parentNode;
+      else if(c.ownerDocument) c=c.ownerDocument.host||null;
+      else c=null;
     }
     return null;
   }
-  function discoverMsdCards(force=false){
+  function discover(force=false){
     if(!force && Array.isArray(dev._cardCache) && dev._cardCache.length){
       dev._cardCache=dev._cardCache.filter(c=>c.isConnected);
       return dev._cardCache;
     }
     const found=[]; const seen=new Set();
-    function walk(node){
-      if(!node||seen.has(node)) return;
-      seen.add(node);
+    (function walk(node){
+      if(!node||seen.has(node)) return; seen.add(node);
       if(node.nodeType===1){
         if(node.tagName && node.tagName.toLowerCase()==='cb-lcars-msd-card') found.push(node);
+        if(node.shadowRoot) walk(node.shadowRoot);
         const kids=node.children||[];
         for(let i=0;i<kids.length;i++) walk(kids[i]);
-        if(node.shadowRoot) walk(node.shadowRoot);
-      } else if(node instanceof ShadowRoot){
+      }else if(node instanceof ShadowRoot){
         const kids=node.children||[];
         for(let i=0;i<kids.length;i++) walk(kids[i]);
       }
-    }
-    walk(document.documentElement);
+    })(document.documentElement);
     dev._cardCache=found;
     return found;
   }
-  function resolveCardRoot(cardOrRoot){
-    if(cardOrRoot && cardOrRoot.host) return {card:cardOrRoot.host,root:cardOrRoot};
-    if(cardOrRoot && cardOrRoot.shadowRoot) return {card:cardOrRoot,root:cardOrRoot.shadowRoot};
-    if(cardOrRoot instanceof Element){
-      const asc=ascendToMsdCard(cardOrRoot);
+  function resolve(rootLike){
+    if(rootLike && rootLike.host) return {card:rootLike.host,root:rootLike};
+    if(rootLike && rootLike.shadowRoot) return {card:rootLike,root:rootLike.shadowRoot};
+    if(rootLike instanceof Element){
+      const asc=ascend(rootLike);
       if(asc) return {card:asc,root:asc.shadowRoot};
     }
     if(dev._activeCard && dev._activeCard.isConnected) return {card:dev._activeCard,root:dev._activeCard.shadowRoot};
-    const all=discoverMsdCards();
-    if(all.length===1){dev._activeCard=all[0]; return {card:all[0],root:all[0].shadowRoot};}
+    const cards=discover();
+    if(cards.length===1){dev._activeCard=cards[0];return {card:cards[0],root:cards[0].shadowRoot};}
     return {card:null,root:null};
   }
-  function _msdConfig(card){return card?._config?.variables?.msd||null;}
-  function _restamp(card){
-    const msd=_msdConfig(card); if(!msd) return;
+  function msdConfig(card){return card?._config?.variables?.msd||null;}
+  function restamp(card){
+    const msd=msdConfig(card); if(!msd) return;
     msd._restampNonce=(msd._restampNonce||0)+1;
     card.setConfig({...card._config,variables:{...card._config.variables,msd:{...msd}}});
   }
 
-  /* ---------------- Layout & Routing ---------------- */
+  /* ---------------- Layout helpers ---------------- */
   function relayout(id='*',rootLike){
-    const {root,card}=resolveCardRoot(rootLike);
-    if(!root||!card){ console.warn('[dev.relayout] No MSD card'); return; }
+    const {root,card}=resolve(rootLike);
+    if(!root||!card) return;
     try{
       window.cblcars.connectors.invalidate(id==='*'?undefined:id);
-      window.cblcars.overlayHelpers.layoutPendingConnectors(root,_msdConfig(card)?._viewBox);
-      const vb=_msdConfig(card)?._viewBox||[0,0,100,100];
+      window.cblcars.overlayHelpers.layoutPendingConnectors(root, msdConfig(card)?._viewBox);
+      const vb=msdConfig(card)?._viewBox||[0,0,100,100];
       window.cblcars.debug?.render?.(root,vb,{anchors:root.__cblcars_anchors});
     }catch(e){ console.warn('[dev.relayout] error',e); }
   }
-  function dumpRoutes(rootLike,opts={}){
-    const silent=!!opts.silent;
-    const {root}=resolveCardRoot(rootLike);
+  function dumpRoutes(rootLike,{silent=false}={}){
+    const {root}=resolve(rootLike);
     if(!root){ if(!silent) console.warn('[dev.dumpRoutes] no root'); return []; }
     const out=[];
     root.querySelectorAll('path[data-cblcars-attach-to]').forEach(p=>{
@@ -133,675 +119,445 @@
         detour:r['data-cblcars-route-detour']||'',
         gridStat:r['data-cblcars-route-grid-status']||'',
         gridReason:r['data-cblcars-route-grid-reason']||'',
-        attempts:r['data-cblcars-route-grid-attempts']||'',
-        chMode:r['data-cblcars-route-channel-mode']||'',
-        chHit:r['data-cblcars-route-channels-hit']||'',
-        chMiss:r['data-cblcars-route-channels-miss']||'',
-        detourCost:r['data-cblcars-route-detour-cost']||''
+        attempts:r['data-cblcars-route-grid-attempts']||''
       })));
     }
     return out;
   }
 
-  /* ---------------- Runtime & Flags ---------------- */
-  function setRuntime(cfg){
-    try{
-      window.cblcars.connectorRouting.setRoutingRuntimeConfig(cfg);
-      persistPatch({runtime:window.cblcars.connectorRouting.getRoutingRuntimeConfig()});
-      console.info('[dev.setRuntime] applied',cfg);
-    }catch(e){console.warn('[dev.setRuntime] failed',e);}
-  }
-  function getRuntime(){try{return window.cblcars.connectorRouting.getRoutingRuntimeConfig();}catch{return{};}}
+  /* ---------------- Flags ---------------- */
   function flags(patch){
     if(!patch) return window.cblcars._debugFlags||{};
     const merged={...(window.cblcars._debugFlags||{}),...patch};
     window.cblcars.debug?.setFlags?.(merged);
-    persistPatch({flags:merged});
+    patchPersist({flags:merged});
     return merged;
   }
-  function applyFlagProfile(name){
-    const profiles={
-      Minimal:{overlay:false,connectors:false,perf:false,geometry:false,channels:false},
-      Routing:{overlay:true,connectors:true,perf:false,geometry:false,channels:true},
-      Perf:{overlay:false,connectors:false,perf:true,geometry:false,channels:false},
-      Full:{overlay:true,connectors:true,perf:true,geometry:true,channels:true}
-    };
-    if(!profiles[name]){console.warn('[dev.applyFlagProfile] Unknown profile',name);return;}
-    flags(profiles[name]);
-    console.info('[dev.applyFlagProfile] applied',name);
-  }
 
-  /* ---------------- Overlays ---------------- */
+  /* ---------------- Snapshot & overlays ---------------- */
   function snapshotConfig(name){
-    const {card}=resolveCardRoot();
-    if(!card){console.warn('[dev.snapshotConfig] no card'); return null;}
+    const {card}=resolve();
+    if(!card) return null;
     const id=name||`snap_${Date.now().toString(36)}`;
     const clone=JSON.parse(JSON.stringify(card._config));
     dev._snapshots=dev._snapshots||new Map();
     dev._snapshots.set(id,clone);
-    console.info('[dev.snapshotConfig] stored',id);
     return id;
   }
-  function listSnapshots(){return Array.from((dev._snapshots||new Map()).keys());}
   function restoreConfig(id){
-    if(!dev._snapshots){console.warn('[dev.restoreConfig] no snapshots map');return false;}
-    const snap=dev._snapshots.get(id); if(!snap){console.warn('[dev.restoreConfig] not found',id);return false;}
-    const {card}=resolveCardRoot(); if(!card) return false;
+    const snap=dev._snapshots?.get(id);
+    const {card}=resolve();
+    if(!snap||!card) return false;
     card.setConfig(JSON.parse(JSON.stringify(snap)));
-    console.info('[dev.restoreConfig] restored',id);
     return true;
   }
-  function exportOverlays(filterFn){
-    const {card}=resolveCardRoot(); if(!card) return [];
-    const ovs=_msdConfig(card)?.overlays||[];
-    return JSON.parse(JSON.stringify(filterFn?ovs.filter(filterFn):ovs));
-  }
-  function importOverlays(data,{replace=false}={}){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card); if(!msd) return;
-    const incoming=Array.isArray(data)?data:[];
-    if(replace) msd.overlays=incoming.slice();
-    else {
-      msd.overlays=msd.overlays||[];
-      const map=new Map(msd.overlays.map(o=>[o.id,o]));
-      incoming.forEach(o=>{
-        if(!o||!o.id) return;
-        if(map.has(o.id)) Object.assign(map.get(o.id),o);
-        else msd.overlays.push(o);
-      });
-    }
-    _restamp(card); setTimeout(()=>relayout('*'),120);
-  }
+  function listSnapshots(){return Array.from(dev._snapshots?.keys()||[]);}
   function addOverlay(ov){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card); msd.overlays=(msd.overlays||[]).filter(o=>o?.id!==ov.id); msd.overlays.push(ov);
-    _restamp(card);
+    const {card}=resolve(); if(!card) return;
+    const msd=msdConfig(card); msd.overlays=(msd.overlays||[]).filter(o=>o.id!==ov.id); msd.overlays.push(ov);
+    restamp(card);
   }
   function removeOverlay(id){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card); msd.overlays=(msd.overlays||[]).filter(o=>o?.id!==id);
-    _restamp(card);
+    const {card}=resolve(); if(!card) return;
+    const msd=msdConfig(card); msd.overlays=(msd.overlays||[]).filter(o=>o.id!==id);
+    restamp(card);
   }
-  function mutateLine(id,patch){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const arr=_msdConfig(card)?.overlays||[];
-    const ov=arr.find(o=>o&&o.id===id); if(!ov){console.warn('[dev.mutateLine] not found',id);return;}
-    Object.assign(ov,patch); _restamp(card);
-  }
-  function findLine(id){
-    const {card}=resolveCardRoot(); if(!card) return null;
-    return (_msdConfig(card)?.overlays||[]).find(o=>o&&o.id===id)||null;
+  function mutateOverlay(id, patch){
+    const {card}=resolve(); if(!card) return false;
+    const msd=msdConfig(card); if(!msd||!Array.isArray(msd.overlays)) return false;
+    const ov=msd.overlays.find(o=>o.id===id); if(!ov) return false;
+    Object.assign(ov, patch||{});
+    restamp(card);
+    return true;
   }
 
-  /* ---------------- Anchors ---------------- */
-  function listAnchors(rootLike){
-    const {root,card}=resolveCardRoot(rootLike);
-    const anchors=_msdConfig(card)?._anchors||root.__cblcars_anchors||{};
-    const list=Object.entries(anchors).map(([k,v])=>({id:k,x:v[0],y:v[1]}));
-    console.table(list); return list;
+  /* Deterministic overlay export */
+  const OVERLAY_KEY_ORDER=[
+    'id','type','anchor','attach_to','attach_side','attach_align','attach_gap',
+    'route','route_mode','route_mode_full','route_channels','route_channel_mode','avoid',
+    'points','steps','position','size','rx','ry','corner_style','corner_radius',
+    'color','width','on_color','off_color','threshold','sources','source','windowSeconds',
+    'smart_proximity','animation','label_last','markers','tracer','grid','y_range',
+    'smooth','smooth_method','smooth_tension','stair_step','extend_to_edges',
+    'ignore_zero_for_scale','min_change','min_change_pct','min_interval_ms','value',
+    'visible','preset','entity','tap_action','hold_action','double_tap_action'
+  ];
+  function clone(o){return JSON.parse(JSON.stringify(o));}
+  function canonicalizeOverlay(o){
+    const c={}; OVERLAY_KEY_ORDER.forEach(k=>{if(o[k]!==undefined)c[k]=o[k];});
+    Object.keys(o).sort().forEach(k=>{if(c[k]===undefined)c[k]=o[k];});
+    return c;
+  }
+  function exportDeterministic(){
+    const {card}=resolve(); if(!card) return [];
+    const ovs=(msdConfig(card)?.overlays||[]).map(clone);
+    ovs.sort((a,b)=>(a.id||'').localeCompare(b.id||''));
+    return ovs.map(canonicalizeOverlay);
+  }
+  function toYaml(obj, indent=0){
+    const pad=' '.repeat(indent);
+    if(obj==null) return 'null';
+    if(typeof obj!=='object') return JSON.stringify(obj);
+    if(Array.isArray(obj)){
+      if(!obj.length) return '[]';
+      return obj.map(v=>`${pad}- ${toYaml(v,indent+2).replace(/^\s+/,'')}`).join('\n');
+    }
+    const keys=Object.keys(obj);
+    if(!keys.length) return '{}';
+    return keys.map(k=>{
+      const v=obj[k];
+      if(v && typeof v==='object') return `${pad}${k}:\n${toYaml(v,indent+2)}`;
+      return `${pad}${k}: ${toYaml(v,0)}`;
+    }).join('\n');
+  }
+  function exportYaml(){
+    const arr=exportDeterministic();
+    return [
+      '# Overlays Export (deterministic)',
+      'overlays:',
+      ...arr.map(o=>'  - '+toYaml(o,4).replace(/^ {4}- /,''))
+    ].join('\n');
+  }
+  function diffYaml(oldYaml,newYaml){
+    const parse=(y)=>{
+      const lines=y.split(/\r?\n/);
+      const blocks=[]; let current=[]; let started=false;
+      for(const ln of lines){
+        if(/^\s*-\s*id:/.test(ln)){ if(current.length) blocks.push(current.join('\n')); current=[ln]; started=true; }
+        else if(started){
+          if(/^\s*-\s*\w/.test(ln)){ blocks.push(current.join('\n')); current=[ln]; }
+          else current.push(ln);
+        }
+      }
+      if(current.length) blocks.push(current.join('\n'));
+      const map=new Map();
+      blocks.forEach(b=>{
+        const m=b.match(/id:\s*([A-Za-z0-9_\-]+)/);
+        if(m) map.set(m[1], b);
+      });
+      return map;
+    };
+    const A=parse(oldYaml||''), B=parse(newYaml||'');
+    const added=[], removed=[], changed=[];
+    const ids=new Set([...A.keys(),...B.keys()]);
+    for(const id of ids){
+      if(!A.has(id) && B.has(id)) added.push(id);
+      else if(A.has(id) && !B.has(id)) removed.push(id);
+      else if(A.get(id)!==B.get(id)) changed.push(id);
+    }
+    return { added, removed, changed };
+  }
+
+  /* Anchors */
+  function listAnchors(){
+    const {root,card}=resolve();
+    const map=msdConfig(card)?._anchors||root.__cblcars_anchors||{};
+    return Object.entries(map).map(([id,pt])=>({id,x:pt[0],y:pt[1]}));
   }
   function setAnchor(id,x,y){
-    const {card,root}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card); msd._anchors=msd._anchors||{}; msd._anchors[id]=[x,y];
-    root.__cblcars_anchors=msd._anchors; snapshotConfig(`before_anchor_${id}`); _restamp(card);
-  }
-  function moveAnchor(id,dx,dy){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card); const cur=msd._anchors?.[id]; if(!cur){console.warn('[dev.moveAnchor] no anchor',id);return;}
-    setAnchor(id,cur[0]+dx,cur[1]+dy);
+    const {card,root}=resolve(); if(!card) return;
+    const msd=msdConfig(card); msd._anchors=msd._anchors||{}; msd._anchors[id]=[x,y];
+    root.__cblcars_anchors=msd._anchors; restamp(card);
   }
 
-  /* ---------------- Obstacles Simulation ---------------- */
-  const SIM_PREFIX='__sim_ob_';
-  function simulateObstacle(id,rect){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card);
-    const rid=id.startsWith(SIM_PREFIX)?id:SIM_PREFIX+id;
-    msd.overlays=msd.overlays||[];
-    msd.overlays=msd.overlays.filter(o=>o.id!==rid);
-    msd.overlays.push({
-      type:'ribbon', id:rid, position:[rect.x,rect.y], size:[rect.w,rect.h],
-      source:'binary_sensor.any_motion', threshold:0.5,
-      off_color:'rgba(255,0,0,0.08)', on_color:'rgba(255,0,0,0.20)', rx:6
-    });
-    _restamp(card); setTimeout(()=>relayout('*'),100);
-  }
-  function clearSimulatedObstacles(){
-    const {card}=resolveCardRoot(); if(!card) return;
-    const msd=_msdConfig(card);
-    msd.overlays=(msd.overlays||[]).filter(o=>!o.id.startsWith(SIM_PREFIX));
-    _restamp(card); setTimeout(()=>relayout('*'),100);
-  }
-
-  /* ---------------- Perf Helpers ---------------- */
+  /* Perf */
   function perfDump(){
     try{
       const dump=window.cblcars.perfDump?window.cblcars.perfDump():window.cblcars.perf?.dump?.()||{};
-      console.table(Object.entries(dump).map(([k,v])=>({
-        key:k,count:v.count,lastMs:v.lastMs?.toFixed?.(2),avgMs:v.avgMs?.toFixed?.(2),maxMs:v.maxMs?.toFixed?.(1)
-      })));
+      console.table(Object.entries(dump).map(([k,v])=>({key:k,count:v.count,last:v.lastMs?.toFixed?.(2),avg:v.avgMs?.toFixed?.(2)})));
       return dump;
-    }catch(e){console.warn('[dev.perfDump] failed',e);return{};}
-  }
-  function resetPerf(key){
-    try{key?window.cblcars.perf.reset(key):window.cblcars.perf.reset();}catch(e){console.warn('[dev.resetPerf] failed',e);}
-  }
-  function capturePerf(regex){
-    const r=(regex instanceof RegExp)?regex:new RegExp(regex||'.*');
-    const snap={}; const dump=perfDump();
-    Object.entries(dump).forEach(([k,v])=>{if(r.test(k)) snap[k]=v;});
-    console.info('[dev.capturePerf]',snap); return snap;
-  }
-  function benchLayout(iter=5){
-    const {root,card}=resolveCardRoot(); if(!root||!card){console.warn('[dev.benchLayout] no card');return;}
-    const vb=_msdConfig(card)?._viewBox; const times=[];
-    for(let i=0;i<iter;i++){const t0=performance.now(); window.cblcars.overlayHelpers.layoutPendingConnectors(root,vb); times.push(performance.now()-t0);}
-    const avg=times.reduce((a,b)=>a+b,0)/times.length;
-    console.table(times.map((t,i)=>({run:i+1,ms:t.toFixed(2)}))); console.info('[dev.benchLayout] avg',avg.toFixed(2),'ms');
-    return {times,avg};
-  }
-  function inspect(id){return show(id);}
-
-  /* ---------------- Visual Small Helpers ---------------- */
-  function hi(ids,duration=1400){try{window.cblcars.msd.highlight(ids,{duration});}catch(e){console.warn('[dev.hi] failed',e);}}
-  function show(id,rootLike){
-    const {root,card}=resolveCardRoot(rootLike);
-    if(!root){console.warn('[dev.show] no root');return null;}
-    const el=root.getElementById(id);
-    if(!el){console.warn('[dev.show] element not found',id);return null;}
-    const cfg=_msdConfig(card)?.overlays?.find(o=>o.id===id);
-    const bbox=window.cblcars.msd?.getOverlayBBox?.(id,root);
-    const registry=window.cblcars.routing?.inspect?.(id);
-    const attrs={}; for(const a of el.attributes){if(a.name.startsWith('data-cblcars-')) attrs[a.name]=a.value;}
-    console.group(`[dev.show] ${id}`); console.table(attrs);
-    console.log('config:',cfg); console.log('bbox:',bbox); console.log('registry:',registry); console.groupEnd();
-    return {attrs,config:cfg,bbox,registry};
+    }catch{return {};}
   }
 
   /* ---------------- Scenarios Framework ---------------- */
-  const _scenarios=new Map();
+  dev.__scenarioRegistry = dev.__scenarioRegistry || new Map();
+  dev._scenarioResults   = dev._scenarioResults || [];
+  dev.__defaultScenarioPackLoaded = dev.__defaultScenarioPackLoaded || false;
+
   function addScenario(def){
-    if(!def || !def.name){console.warn('[dev.addScenario] invalid'); return;}
-    if(_scenarios.has(def.name)){
-      console.warn('[dev.addScenario] duplicate name ignored', def.name);
-      return;
-    }
-    _scenarios.set(def.name,def);
+    if(!def||!def.name) return;
+    if(dev.__scenarioRegistry.has(def.name)) return;
+    def.group = def.group || (Array.isArray(def.tags)&&def.tags.length?def.tags[0]:'default');
+    def.stability = def.stability || 'core';
+    dev.__scenarioRegistry.set(def.name, def);
   }
-  let _lastScenarioLogTs=0;
-  function listScenarios(opts){
-    let logRequested=false;
-    if(typeof opts==='boolean') logRequested=opts;
-    else if(opts && typeof opts==='object') logRequested=!!opts.log;
-    if(window.CBLCARS_DEV_ALWAYS_LOG_SCENARIOS===true) logRequested=true;
-    const list=Array.from(_scenarios.values()).map(s=>({
+  function listScenarios(){
+    return Array.from(dev.__scenarioRegistry.values()).map(s=>({
       name:s.name,
-      tags:(s.tags||[]).join(','),
-      desc:s.description||''
+      group:s.group,
+      stability:s.stability,
+      desc:s.description||'',
+      tags:(s.tags||[]).join(',')
     }));
-    if(logRequested){
-      const now=performance.now();
-      if(now-_lastScenarioLogTs>3000){
-        console.table(list);
-        _lastScenarioLogTs=now;
-      }
-    }
-    return list;
-  }
-  function printScenarios(){return listScenarios({log:true});}
-  function _scenarioContext(){
-    const {card,root}=resolveCardRoot();
-    return {
-      card,root,msd:_msdConfig(card),relayout,setRuntime,mutateLine,show,snapshotConfig,restoreConfig,
-      simulateObstacle,clearSimulatedObstacles,hi
-    };
   }
   async function runScenario(name){
-    const sc=_scenarios.get(name); if(!sc){console.warn('[dev.runScenario] unknown',name);return null;}
-    const ctx=_scenarioContext(); const snap=snapshotConfig(`auto_${name}`);
-    let ok=false, details='', error=null; const t0=performance.now();
+    const sc=dev.__scenarioRegistry.get(name); if(!sc){console.warn('unknown scenario',name);return null;}
+    const snapBefore=snapshotConfig(`auto_${name}`);
+    let ok=false, details=''; let err=null;
+    const t0=performance.now();
     try{
+      const ctx={ msd: msdConfig(resolve().card), dev };
       if(sc.setup) await sc.setup(ctx);
       await new Promise(r=>setTimeout(r,sc.settleMs||250));
-      const result=sc.expect?await sc.expect(ctx):true;
-      if(result && typeof result==='object' && 'ok' in result){ ok=!!result.ok; details=result.details||''; }
-      else ok=!!result;
-    }catch(e){error=e; ok=false; details=details||e.message;}
-    finally{ try{ if(sc.teardown) await sc.teardown(ctx);}catch{} }
-    const ms=performance.now()-t0;
-    if(sc.restore!==false){ restoreConfig(snap); setTimeout(()=>relayout('*'),120); }
-    const summary={scenario:name,ok,details,ms:ms.toFixed(1),error:error?.message};
-    console[ok?'info':'warn']('[dev.runScenario]',summary);
-    dev._scenarioResults=dev._scenarioResults||[];
-    const idx=dev._scenarioResults.findIndex(r=>r.scenario===name);
-    if(idx>=0) dev._scenarioResults[idx]=summary; else dev._scenarioResults.push(summary);
+      const r=sc.expect?await sc.expect(ctx):true;
+      if(r && typeof r==='object' && 'ok' in r){ ok=!!r.ok; details=r.details||''; } else ok=!!r;
+      if(sc.teardown) await sc.teardown(ctx);
+    }catch(e){err=e; ok=false; details=details||e.message;}
+    if(sc.restore!==false) restoreConfig(snapBefore);
+    const ms=(performance.now()-t0).toFixed(1);
+    const summary={scenario:name,ok,details,ms,error:err?.message};
+    const arr=dev._scenarioResults;
+    const i=arr.findIndex(r=>r.scenario===name);
+    if(i>=0) arr[i]=summary; else arr.push(summary);
+    window.cblcars.hud?.api?.refreshRaw({allowWhilePaused:true});
     return summary;
   }
-  async function runAllScenarios(filterTag=null){
-    const results=[];
-    for(const name of _scenarios.keys()){
-      const sc=_scenarios.get(name);
-      if(filterTag && !(sc.tags||[]).includes(filterTag)) continue;
-      // eslint-disable-next-line no-await-in-loop
-      const res=await runScenario(name); results.push(res);
+  async function runGroup(groupName){
+    const names=listScenarios().filter(s=>s.group===groupName).map(s=>s.name);
+    const out=[];
+    for(const n of names) out.push(await runScenario(n));
+    return out;
+  }
+
+  function registerScenarioPack(fn){
+    if(typeof fn==='function'){
+      fn({ addScenario, relayout, dumpRoutes, msdConfig:()=>msdConfig(resolve().card) });
     }
-    const passes=results.filter(r=>r?.ok).length;
-    console.info('[dev.runAllScenarios] done',passes,'/',results.length,'passed');
-    dev._scenarioResults=results;
-    if(dev.hud?._enabled) setTimeout(()=>dev.hud.refresh && dev.hud.refresh(),100);
-    return results;
   }
 
-  /* --- Baseline sample scenarios (kept) --- */
-  addScenario({
-    name:'example_ok',
-    description:'Simple pass scenario',
-    tags:['sample'],
-    expect:()=>true
-  });
-  addScenario({
-    name:'example_fail',
-    description:'Simple fail scenario (expected fail for validation of panel)',
-    tags:['sample'],
-    expect:()=>({ok:false,details:'Expected fail'})
-  });
-
-  /* ---------- Expanded Scenario Pack (Parity) ---------- */
-  async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-  function _requireActiveCard(){
-    if(!dev._activeCard) throw new Error('No active MSD card selected.');
-  }
-
-  addScenario({
-    name:'routing_detour',
-    tags:['routing','detour'],
-    description:'Force two-elbow detour via obstacle and detect detour attribute.',
-    async setup(ctx){
-      _requireActiveCard();
-      const vb=ctx.msd._viewBox||[0,0,200,120];
-      const boxId='__scn_detour_block';
-      dev.addOverlay({
-        id:boxId,type:'ribbon',
-        position:[vb[2]/2-10,vb[3]/2-10],size:[20,20],
-        source:'binary_sensor.any_motion',threshold:0.5,
-        off_color:'rgba(255,0,0,0.10)',on_color:'rgba(255,0,0,0.22)',rx:4
+  /* Inline fallback core pack (only used if dynamic import not available or fails) */
+  function inlineCoreScenarioPack(){
+    if(dev.__corePackInlineApplied) return;
+    dev.__corePackInlineApplied = true;
+    registerScenarioPack(({addScenario})=>{
+      const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+      addScenario({ name:'baseline_ok', group:'core', description:'Baseline pass', expect:()=>true });
+      addScenario({ name:'baseline_fail_demo', group:'core', description:'Intentional fail', expect:()=>({ok:false,details:'demo fail'}) });
+      addScenario({
+        name:'routing_any_detour', group:'routing', description:'At least one detour',
+        async expect(){return dumpRoutes(undefined,{silent:true}).some(r=>r['data-cblcars-route-detour']==='true')
+          ?{ok:true,details:'detour present'}:{ok:false,details:'none'};}
       });
-      ctx.__boxId=boxId;
-      await _sleep(80);
-      dev.relayout('*');
-    },
-    async expect(){
-      await _sleep(250);
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const det=routes.find(r=>r['data-cblcars-route-detour']==='true');
-      return det?{ok:true,details:`Detour used on ${det.id}`}:{ok:false,details:'No detour route found'};
-    },
-    async teardown(ctx){
-      if(ctx.__boxId) dev.removeOverlay(ctx.__boxId);
-      await _sleep(60);
-      dev.relayout('*');
-    }
-  });
-
-  addScenario({
-    name:'routing_fallback',
-    tags:['routing','grid','fallback'],
-    description:'Force grid fallback by shrinking resolution aggressively.',
-    async setup(ctx){
-      _requireActiveCard();
-      ctx.__origRuntime=dev.getRuntime();
-      dev.setRuntime({grid_resolution:4,smart_aggressive:false});
-      await _sleep(40);
-      dev.relayout('*');
-    },
-    async expect(){
-      await _sleep(300);
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const fb=routes.find(r=>r['data-cblcars-route-grid-status']==='fallback');
-      return fb?{ok:true,details:`Fallback route ${fb.id}`}:{ok:false,details:'No fallback detected'};
-    },
-    async teardown(ctx){
-      if(ctx.__origRuntime) dev.setRuntime(ctx.__origRuntime);
-      await _sleep(40);
-      dev.relayout('*');
-    }
-  });
-
-  addScenario({
-    name:'routing_channel_prefer',
-    tags:['routing','channels'],
-    description:'Detect a prefer channel route with channels-hit present.',
-    async setup(){
-      dev.setRuntime({smart_aggressive:true});
-      await _sleep(40);
-    },
-    async expect(){
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const prefer=routes.filter(r=>r['data-cblcars-route-channel-mode']==='prefer');
-      if(!prefer.length) return {ok:false,details:'No prefer-mode routes to test'};
-      const hit=prefer.find(r=>r['data-cblcars-route-channels-hit']);
-      return hit?{ok:true,details:`Prefer hit on ${hit.id}`}:{ok:false,details:'No prefer route reported channels-hit'};
-    }
-  });
-
-  addScenario({
-    name:'routing_channel_miss',
-    tags:['routing','channels'],
-    description:'Check for channel preference miss attribute.',
-    async expect(){
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const miss=routes.find(r=>r['data-cblcars-route-channels-miss']==='true');
-      return miss?{ok:true,details:`Channel miss on ${miss.id}`}:{ok:false,details:'No channel miss found'};
-    }
-  });
-
-  addScenario({
-    name:'smart_clear_path_skip',
-    tags:['smart','grid'],
-    description:'Smart skip (clear_path) detection.',
-    async expect(){
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const skipped=routes.find(r=>r['data-cblcars-route-grid-status']==='skipped' &&
-        r['data-cblcars-route-grid-reason']==='clear_path');
-      return skipped?{ok:true,details:`Skip clear_path ${skipped.id}`}:{ok:false,details:'No clear_path skip found'};
-    }
-  });
-
-  addScenario({
-    name:'smart_hit_attempt',
-    tags:['smart','grid'],
-    description:'Smart hit triggers grid attempt (success or fallback).',
-    async expect(){
-      const routes=dev.dumpRoutes(undefined,{silent:true});
-      const attempted=routes.find(r=>{
-        return r['data-cblcars-smart-hit']==='true' &&
-          (r['data-cblcars-route-grid-status']==='success' || r['data-cblcars-route-grid-status']==='fallback');
+      addScenario({
+        name:'routing_any_fallback', group:'routing', description:'At least one grid fallback',
+        async expect(){return dumpRoutes(undefined,{silent:true}).some(r=>r['data-cblcars-route-grid-status']==='fallback')
+          ?{ok:true,details:'fallback'}:{ok:false,details:'none'};}
       });
-      return attempted?{ok:true,details:`Smart hit route ${attempted.id}`}:{ok:false,details:'No smart hit grid attempt'};
-    }
-  });
-
-  addScenario({
-    name:'overlays_validation_error',
-    tags:['overlays','validation'],
-    description:'Inject malformed overlay expecting validation error > 0.',
-    async setup(ctx){
-      _requireActiveCard();
-      const badId='__scn_bad_overlay';
-      dev.addOverlay({id:badId,type:'line'}); // missing required fields
-      ctx.__badId=badId;
-      await _sleep(80);
-      dev.relayout('*');
-    },
-    async expect(){
-      await _sleep(200);
-      const root=dev._activeCard?.shadowRoot;
-      const counts=root?.__cblcars_validationCounts;
-      if(!counts) return {ok:false,details:'No validation counts'};
-      return counts.errors>0?{ok:true,details:`Errors=${counts.errors}`}:{ok:false,details:'No validation errors'};
-    },
-    async teardown(ctx){
-      if(ctx.__badId) dev.removeOverlay(ctx.__badId);
-      await _sleep(60);
-      dev.relayout('*');
-    }
-  });
-
-  addScenario({
-    name:'overlays_mutation_roundtrip',
-    tags:['overlays','mutation'],
-    description:'Mutate overlay color then restore snapshot.',
-    async setup(ctx){
-      _requireActiveCard();
-      const card=dev._activeCard;
-      const ovs=card?._config?.variables?.msd?.overlays||[];
-      const line=ovs.find(o=>o.type==='line');
-      if(!line) throw new Error('No line overlay found.');
-      ctx.__lineId=line.id;
-      ctx.__snap=snapshotConfig(`line_before_${line.id}`);
-      dev.mutateLine(line.id,{color:'#ff00ff'});
-      await _sleep(60);
-      dev.relayout('*');
-    },
-    async expect(ctx){
-      const info=dev.findLine(ctx.__lineId);
-      return info && info.color==='#ff00ff'
-        ? {ok:true,details:'Color mutated'}
-        : {ok:false,details:'Mutation failed'};
-    },
-    async teardown(ctx){
-      if(ctx.__snap) restoreConfig(ctx.__snap);
-      await _sleep(60);
-      dev.relayout('*');
-    }
-  });
-
-  addScenario({
-    name:'anchors_move_restore',
-    tags:['anchors','layout'],
-    description:'Move anchor and verify connector path changed; then restore.',
-    async setup(ctx){
-      _requireActiveCard();
-      const root=dev._activeCard.shadowRoot;
-      const paths=[...root.querySelectorAll('path[data-cblcars-start-x]')];
-      if(!paths.length) throw new Error('No connectors present.');
-      ctx.__pathId=paths[0].id;
-      ctx.__beforeD=paths[0].getAttribute('d');
-      const msd=ctx.msd;
-      const anchors=msd.anchors||msd._anchors||{};
-      let target=Object.keys(anchors)[0];
-      if(!target){
-        target='__scn_anchor';
-        dev.setAnchor(target,10,10);
-        await _sleep(30);
-      }
-      ctx.__target=target;
-      ctx.__old=anchors[target].slice();
-      dev.setAnchor(target,anchors[target][0]+8,anchors[target][1]+8);
-      await _sleep(100);
-      dev.relayout('*');
-    },
-    async expect(ctx){
-      const root=dev._activeCard.shadowRoot;
-      const path=root.getElementById(ctx.__pathId);
-      if(!path) return {ok:false,details:'Original connector missing'};
-      const after=path.getAttribute('d');
-      return after!==ctx.__beforeD
-        ? {ok:true,details:'Connector path changed'}
-        : {ok:false,details:'Path did not change'};
-    },
-    async teardown(ctx){
-      if(ctx.__target && ctx.__old){
-        dev.setAnchor(ctx.__target,ctx.__old[0],ctx.__old[1]);
-        await _sleep(80);
-        dev.relayout('*');
-      }
-    }
-  });
-
-  addScenario({
-    name:'perf_timer_growth',
-    tags:['perf'],
-    description:'Create a timer and ensure count increments.',
-    async setup(){
-      if(!window.cblcars.debug?.perf) throw new Error('Perf timers unavailable.');
-      window.cblcars.debug.perf.reset('scn_timer');
-      for(let i=0;i<10;i++){
-        window.cblcars.debug.perf.start('scn_timer');
-        for(let x=0;x<4000;x++){} // small workload
-        window.cblcars.debug.perf.end('scn_timer');
-      }
-    },
-    async expect(){
-      const t=window.cblcars.debug.perf.get('scn_timer');
-      if(!t) return {ok:false,details:'Timer missing'};
-      return t.count>=10
-        ? {ok:true,details:`n=${t.count} avg=${t.avgMs.toFixed(2)}ms`}
-        : {ok:false,details:'Timer count too low'};
-    }
-  });
-
-  addScenario({
-    name:'perf_threshold_violation',
-    tags:['perf','threshold'],
-    description:'Set threshold below avg to trigger violation, then clear.',
-    async setup(ctx){
-      if(!window.cblcars.hud?.api) throw new Error('HUD not active.');
-      window.cblcars.debug.perf.reset('scn_slow');
-      for(let i=0;i<5;i++){
-        window.cblcars.debug.perf.start('scn_slow');
-        await _sleep(5);
-        window.cblcars.debug.perf.end('scn_slow');
-      }
-      const stat=window.cblcars.debug.perf.get('scn_slow');
-      if(!stat) throw new Error('Failed to build scn_slow timer.');
-      ctx.__avg=stat.avgMs;
-      window.cblcars.hud.api.setPerfThreshold('scn_slow',{avgMs:Math.max(0,stat.avgMs-0.1)});
-      window.cblcars.hud.api.refreshRaw({allowWhilePaused:true});
-      await _sleep(100);
-    },
-    async expect(){
-      const snap=window.cblcars.hud.api.currentSnapshot();
-      const t=snap?.perfTimers?.scn_slow;
-      if(!t) return {ok:false,details:'Timer not present'};
-      const th=window.cblcars.hud.api.getPerfThresholds().scn_slow;
-      if(!th) return {ok:false,details:'Threshold missing'};
-      return t.avgMs>th.avgMs
-        ? {ok:true,details:`avg=${t.avgMs.toFixed(2)} th=${th.avgMs}`}
-        : {ok:false,details:`avg=${t.avgMs.toFixed(2)} <= th=${th.avgMs}`};
-    },
-    async teardown(){
-      if(window.cblcars.hud?.api){
-        window.cblcars.hud.api.removePerfThreshold('scn_slow');
-        window.cblcars.hud.api.refreshRaw({allowWhilePaused:true});
-      }
-    }
-  });
-
-  /* ---------------- HUD Enable / Disable ---------------- */
-  function hudEnable(){
-    persistPatch({hud:{...(_persisted.hud||{}),enabled:true}});
-    dev.hud._enabled=true;
-    const attempt=()=>{
-      if(dev.hud.ensure){dev.hud.ensure(); return true;}
-      return false;
-    };
-    if(!attempt()){
-      let tries=0;
-      const iv=setInterval(()=>{
-        if(attempt()||tries++>25) clearInterval(iv);
-      },120);
-    }
+      addScenario({
+        name:'perf_threshold_violation_demo', group:'perf', description:'Perf violation test',
+        async setup(){
+          window.cblcars.debug?.perf?.reset('inline_slow');
+          for(let i=0;i<4;i++){window.cblcars.debug?.perf?.start('inline_slow'); await sleep(5); window.cblcars.debug?.perf?.end('inline_slow');}
+          const t=window.cblcars.debug?.perf?.get('inline_slow');
+          if(t) window.cblcars.hud?.api?.setPerfThreshold('inline_slow',{avgMs:(t.avgMs||0)-0.1});
+        },
+        async expect(){
+          const snap=window.cblcars.hud?.api?.currentSnapshot?.();
+          const v=(snap?.sections?.perf?.violations||[]).find(x=>x.id==='inline_slow');
+          return v?{ok:true,details:'violation'}:{ok:false,details:'no violation'};
+        },
+        async teardown(){window.cblcars.hud?.api?.removePerfThreshold('inline_slow');}
+      });
+    });
+    console.info('[scenarios] inline core pack applied');
+    window.cblcars.hud?.api?.refreshRaw({allowWhilePaused:true});
   }
-  function hudDisable(){
-    persistPatch({hud:{...(_persisted.hud||{}),enabled:false}});
-    dev.hud._enabled=false;
-    dev.hud.remove && dev.hud.remove();
+
+  /* Demo scenarios only if registry empty AND we have no pack yet */
+  if(firstAttach && dev.__scenarioRegistry.size===0){
+    addScenario({ name:'group_demo_ok', group:'demo', description:'Demo OK', expect:()=>true });
+    addScenario({ name:'group_demo_fail', group:'demo', description:'Demo fail', expect:()=>({ok:false,details:'expected fail'}) });
   }
-  dev._persistHudState=function(statePatch){
-    const cur=dev.persistedState?.hud||{};
-    persistPatch({hud:{...cur,...statePatch}});
+
+  function loadDefaultPack(){
+    if(dev.__defaultScenarioPackLoaded) return Promise.resolve('already');
+    return import('./cb-lcars-scenarios-pack-core.js')
+      .then(()=>{
+        dev.__defaultScenarioPackLoaded=true;
+        console.info('[scenarios] core pack loaded');
+        window.cblcars.hud?.api?.refreshRaw({allowWhilePaused:true});
+        return 'loaded';
+      })
+      .catch(e=>{
+        console.warn('[scenarios] dynamic core pack import failed – will fallback inline', e);
+        inlineCoreScenarioPack();
+        return 'fallback';
+      });
+  }
+  function forceReload(){
+    dev.__defaultScenarioPackLoaded=false;
+    loadDefaultPack();
+  }
+
+  // Auto-load pack at first attach
+  if(firstAttach) loadDefaultPack().then(()=>{
+    // Watchdog: if still only 2 scenarios after 1s, inline fallback
+    setTimeout(()=>{
+      if(dev.__scenarioRegistry.size<=2){
+        console.warn('[scenarios] watchdog: only demo scenarios present after load attempt – applying inline fallback');
+        inlineCoreScenarioPack();
+      }
+    },1000);
+  });
+
+  /* ---------------- Snapshot helpers ---------------- */
+  const SNAP_STORE = dev.__hudSnapStore = dev.__hudSnapStore || new Map();
+  function snapClone(s){return JSON.parse(JSON.stringify(s));}
+  function captureSnapshot(label){
+    const snap=window.cblcars.hud?.api?.currentSnapshot?.();
+    if(!snap){console.warn('[dev.snapshots] no current snapshot'); return null;}
+    const id=label||('snap_'+Date.now().toString(36));
+    SNAP_STORE.set(id,snapClone(snap));
+    return id;
+  }
+  function getSnapshot(id){return SNAP_STORE.get(id)||null;}
+  function diffSnapshots(aId,bId,{sections}={}){
+    const A=getSnapshot(aId), B=getSnapshot(bId);
+    if(!A||!B) return {error:'missing snapshot(s)'};
+    const secList=sections&&sections.length?sections:Array.from(new Set([...Object.keys(A.sections),...Object.keys(B.sections)]));
+    const result={sections:{}};
+    secList.forEach(sec=>{
+      const aSec=A.sections[sec], bSec=B.sections[sec];
+      if(aSec==null && bSec==null) return;
+      if(aSec==null){result.sections[sec]={added:true};return;}
+      if(bSec==null){result.sections[sec]={removed:true};return;}
+      const aKeys=Object.keys(aSec), bKeys=Object.keys(bSec);
+      const added=aKeys.filter(k=>!bKeys.includes(k));
+      const removed=bKeys.filter(k=>!aKeys.includes(k));
+      const changed=[];
+      aKeys.forEach(k=>{
+        if(bSec.hasOwnProperty(k) && JSON.stringify(aSec[k])!==JSON.stringify(bSec[k])) changed.push(k);
+      });
+      if(added.length||removed.length||changed.length) result.sections[sec]={added,removed,changed};
+    });
+    return result;
+  }
+
+  /* ---------------- Assertions ---------------- */
+  function assertRoutes(desc,predicate){
+    const snap=window.cblcars.hud?.api?.currentSnapshot?.();
+    if(!snap) return {ok:false,details:'no snapshot'};
+    const list=Object.values(snap.sections?.routes?.byId||{});
+    let pass=false;
+    try{pass=!!predicate(list);}catch(e){return {ok:false,details:'predicate threw: '+e.message};}
+    const details=`${desc||'assert'} => ${pass?'PASS':'FAIL'} (routes=${list.length})`;
+    console[pass?'info':'warn']('[assert.routes]',details);
+    return {ok:pass,details};
+  }
+
+  /* ---------------- Attach dev.api ---------------- */
+  dev.api = dev.api || {};
+  dev.api.cards = dev.api.cards || {
+    discover,
+    list(){ return discover().map((c,i)=>({index:i,selected:dev._activeCard===c})); },
+    pick(i=0){ const cs=discover(); if(!cs[i]) return null; dev._activeCard=cs[i]; patchPersist({activeCardIndex:i}); return cs[i]; },
+    setFrom(el){ const card=ascend(el); if(card){ dev._activeCard=card; const idx=discover().indexOf(card); if(idx>=0) patchPersist({activeCardIndex:idx}); } }
   };
-
-  /* ---------------- Card Selection ---------------- */
-  function listCards(){
-    const cards=discoverMsdCards();
-    const rows=cards.map((c,i)=>({
-      idx:i,
-      overlays:c._config?.variables?.msd?.overlays?.length??0,
-      selected:dev._activeCard===c
-    }));
-    if(!rows.length) console.warn('[cblcars.dev] No MSD cards discovered.');
-    else console.table(rows);
-    return rows;
-  }
-  function pick(index=0){
-    const cards=discoverMsdCards();
-    if(!cards.length){console.warn('[dev.pick] No MSD cards'); return null;}
-    const card=cards[index];
-    if(!card){console.warn('[dev.pick] Index OOB'); return null;}
-    dev._activeCard=card; persistPatch({activeCardIndex:index});
-    console.info('[dev.pick] Active card =',index);
-    if(dev.hud._enabled) setTimeout(()=>dev.hud.ensure&&dev.hud.ensure(),10);
-    return card;
-  }
-  function setCard(el){
-    if(!el){console.warn('[dev.setCard] No element'); return null;}
-    const card=ascendToMsdCard(el);
-    if(!card){console.warn('[dev.setCard] Could not ascend from element'); return null;}
-    const all=discoverMsdCards(true);
-    const idx=all.indexOf(card);
-    if(idx>=0) persistPatch({activeCardIndex:idx});
-    dev._activeCard=card;
-    console.info('[dev.setCard] Active MSD card set.');
-    if(dev.hud._enabled) setTimeout(()=>dev.hud.ensure&&dev.hud.ensure(),10);
-    return card;
-  }
-  function refreshCards(){discoverMsdCards(true); listCards();}
-
-  /* ---------------- Export Namespace ---------------- */
-  Object.assign(dev,{
-    // discovery
-    discoverMsdCards,ascendToMsdCard,listCards,pick,setCard,refreshCards,
-    // persistence
-    persist:persistPatch,clearPersist,persistedState:_persisted,
-    // layout & routing
-    relayout,dumpRoutes,show,
-    // runtime & flags
-    setRuntime,getRuntime,flags,applyFlagProfile,
-    // overlays
-    snapshotConfig,listSnapshots,restoreConfig,exportOverlays,importOverlays,addOverlay,removeOverlay,mutateLine,findLine,
-    // anchors
-    listAnchors,setAnchor,moveAnchor,
-    // obstacles
-    simulateObstacle,clearSimulatedObstacles,
-    // perf
-    perfDump,resetPerf,capturePerf,benchLayout,inspect,
-    // visuals
-    hi,
-    // scenarios
-    addScenario,listScenarios,printScenarios,runScenario,runAllScenarios,
-    // HUD shell
-    hud:{ enable:hudEnable, disable:hudDisable, _enabled:false }
+  dev.api.overlays = dev.api.overlays || {};
+  Object.assign(dev.api.overlays,{
+    add:addOverlay,
+    remove:removeOverlay,
+    mutate:mutateOverlay,
+    snapshot:snapshotConfig,
+    restore:restoreConfig,
+    listSnapshots,
+    exportDeterministic,
+    exportYaml,
+    diffYaml
   });
+  dev.api.anchors = dev.api.anchors || {};
+  Object.assign(dev.api.anchors,{ list:listAnchors, set:setAnchor });
+  dev.api.layout = dev.api.layout || {};
+  Object.assign(dev.api.layout,{ relayout, dumpRoutes });
+  dev.api.perf = dev.api.perf || {};
+  Object.assign(dev.api.perf,{ dump:perfDump });
+  dev.api.flags = dev.api.flags || {};
+  Object.assign(dev.api.flags,{ set:flags });
+  dev.api.scenarios = dev.api.scenarios || {};
+  Object.assign(dev.api.scenarios,{
+    add:addScenario,
+    list:listScenarios,
+    run:runScenario,
+    runGroup:runGroup,
+    registerPack:registerScenarioPack,
+    loadDefaultPack,
+    forceReload
+  });
+  dev.api.internal = dev.api.internal || {};
+  Object.assign(dev.api.internal,{ ascend, resolve });
+  dev.api.persist = dev.api.persist || {};
+  Object.assign(dev.api.persist,{ clear:clearPersist });
+  dev.api.snapshots = dev.api.snapshots || {};
+  Object.assign(dev.api.snapshots,{ capture:captureSnapshot, get:getSnapshot, diff:diffSnapshots });
+  dev.api.assert = dev.api.assert || {};
+  Object.assign(dev.api.assert,{ routes:assertRoutes });
 
-  console.info('[cblcars.dev] Advanced dev tools attached (?lcarsDev=1)');
-
-  /* ---------------- Auto-Restore ---------------- */
-  setTimeout(()=>{
-    const cards=discoverMsdCards(true);
-    if(_persisted.activeCardIndex!=null && cards[_persisted.activeCardIndex]){
-      dev._activeCard=cards[_persisted.activeCardIndex];
-      console.info('[cblcars.dev] Restored active card index',_persisted.activeCardIndex);
-    } else if(!dev._activeCard && cards.length===1){
-      dev._activeCard=cards[0];
-      console.info('[cblcars.dev] Single MSD card auto-selected.');
-    } else if(cards.length>1){
-      console.info('[cblcars.dev] Multiple MSD cards. Use cblcars.dev.listCards() then pick(idx).');
-    }
-    if(_persisted.flags && Object.keys(_persisted.flags).length) try{flags(_persisted.flags);}catch{}
-    if(_persisted.runtime && Object.keys(_persisted.runtime).length) try{setRuntime(_persisted.runtime);}catch{}
-    if(_persisted.hud?.enabled){ hudEnable(); }
-  },0);
-
-  /* ---------------- Scenario Wrapper (HUD Sync) ---------------- */
-  if(!dev._hudScenarioWrapped && typeof dev.runScenario==='function'){
-    const orig=dev.runScenario;
-    dev.runScenario=async function(name){
-      const res=await orig(name);
-      try{
-        if(res && res.scenario){
-          if(!Array.isArray(dev._scenarioResults)) dev._scenarioResults=[];
-          const idx=dev._scenarioResults.findIndex(r=>r.scenario===res.scenario);
-          if(idx>=0) dev._scenarioResults[idx]=res; else dev._scenarioResults.push(res);
+  /* ---------------- Deprecation aliases ---------------- */
+  const deprecations = dev.__deprecationWarned || new Set();
+  dev.__deprecationWarned = deprecations;
+  function alias(name,fn,path){
+    if(Object.getOwnPropertyDescriptor(dev,name)) return;
+    Object.defineProperty(dev,name,{
+      get(){
+        if(!deprecations.has(name)){
+          console.warn(`[dev] ${name} is deprecated. Use dev.api.${path}`);
+          deprecations.add(name);
         }
-      }catch{}
-      if(window.cblcars.hud?.api){
-        setTimeout(()=>window.cblcars.hud.api.refreshRaw({allowWhilePaused:true}),50);
+        return fn;
       }
-      return res;
-    };
-    dev._hudScenarioWrapped=true;
+    });
+  }
+  alias('relayout',dev.api.layout.relayout,'layout.relayout');
+  alias('dumpRoutes',dev.api.layout.dumpRoutes,'layout.dumpRoutes');
+  alias('addOverlay',dev.api.overlays.add,'overlays.add');
+  alias('removeOverlay',dev.api.overlays.remove,'overlays.remove');
+  alias('snapshotConfig',dev.api.overlays.snapshot,'overlays.snapshot');
+  alias('restoreConfig',dev.api.overlays.restore,'overlays.restore');
+  alias('listSnapshots',dev.api.overlays.listSnapshots,'overlays.listSnapshots');
+  alias('listAnchors',dev.api.anchors.list,'anchors.list');
+  alias('setAnchor',dev.api.anchors.set,'anchors.set');
+  alias('discoverMsdCards',dev.api.cards.discover,'cards.discover');
+  alias('pick',dev.api.cards.pick,'cards.pick');
+  alias('runScenario',dev.api.scenarios.run,'scenarios.run');
+  alias('listScenarios',dev.api.scenarios.list,'scenarios.list');
+  alias('addScenario',dev.api.scenarios.add,'scenarios.add');
+  alias('flags',dev.api.flags.set,'flags.set');
+  alias('perfDump',dev.api.perf.dump,'perf.dump');
+  alias('clearPersist',clearPersist,'persist.clear');
+
+  /* ---------------- Active card restore ---------------- */
+  if(firstAttach){
+    setTimeout(()=>{
+      const cards=discover(true);
+      if(_persisted.activeCardIndex!=null && cards[_persisted.activeCardIndex]){
+        dev._activeCard=cards[_persisted.activeCardIndex];
+      } else if(!dev._activeCard && cards.length===1){
+        dev._activeCard=cards[0];
+      }
+    },0);
   }
 
+  /* ---------------- HUD enable/disable ---------------- */
+  if(!dev.hud){
+    dev.hud={
+      enable(){
+        patchPersist({hud:{...(dev.persistedState.hud||{}),enabled:true}});
+        if(window.cblcars?.hud?.api){ window.cblcars.hud.api.resume(); return true; }
+        try{ import('./cb-lcars-hud-loader.js').catch(()=>{}); }catch{}
+        return false;
+      },
+      disable(){
+        patchPersist({hud:{...(dev.persistedState.hud||{}),enabled:false}});
+        if(window.cblcars?.hud?.api){
+          window.cblcars.hud.api.pause();
+          const panel=document.getElementById('cblcars-dev-hud-panel');
+          if(panel) panel.remove();
+        }
+      }
+    };
+  }
+
+  if(firstAttach) console.info('[dev.v4] tools attached (Pass 4b)');
+  else console.info('[dev.v4] tools reloaded (augmented)');
+  console.info('[dev.scenarios] registered', listScenarios().length);
 })();
