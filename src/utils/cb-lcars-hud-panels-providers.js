@@ -1,4 +1,4 @@
-/* Providers Panel (panel only – no provider registration) */
+/* Providers Panel (patched: resilient if thresholds missing) */
 (function(){
   const hud=(window.cblcars=window.cblcars||{}, window.cblcars.hud=window.cblcars.hud||{});
   function init(){
@@ -45,11 +45,15 @@
         }
         function refresh(snapshot){
           const list=snapshot.sections?.health?.providers||[];
-            if(!list.length){ el.querySelector('[data-empty]').style.display='block'; tbody.innerHTML=''; return; }
+          if(!list.length){
+            el.querySelector('[data-empty]').style.display='block';
+            tbody.innerHTML='';
+            return;
+          }
           el.querySelector('[data-empty]').style.display='none';
           const rows=list.slice().sort((a,b)=>{
             if(sortField==='id') return a.id.localeCompare(b.id);
-            return b[sortField]-a[sortField];
+            return (b[sortField]||0)-(a[sortField]||0);
           });
           tbody.innerHTML=rows.map(p=>{
             const errColor=p.error?'#ff6688':(p.lastMs>25?'#ffd85f':'');

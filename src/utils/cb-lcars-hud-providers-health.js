@@ -1,51 +1,37 @@
-/**
- * Health / Provider Metrics Section
- * Depends on registerSectionProvider timing instrumentation (hud-schema patched).
- *
- * Exposes:
- *  sections.health = {
- *    providers: [{
- *        id,
- *        lastMs,
- *        avgMs,
- *        maxMs,
- *        builds,
- *        error,      // boolean
- *        lastError,  // message (if any)
- *        changed     // boolean (provider returned deep-changed value vs previous build)
- *    }],
- *    snapshotSeq: n
- *  }
- */
+/* Health Provider (patched: uses instrumentation, excludes self) */
 (function(){
   if(!window.cblcars) window.cblcars={};
-  const hud = window.cblcars.hud = window.cblcars.hud || {};
-
-  function register(){
+  const hud=window.cblcars.hud=window.cblcars.hud||{};
+  function init(){
     if(!hud.registerSectionProvider){
-      (hud._pendingProviders=hud._pendingProviders||[]).push(register);
+      (hud._pendingProviders=hud._pendingProviders||[]).push(init);
       return;
     }
-    hud.registerSectionProvider('health', ({prev, fullPrev})=>{
-      const stats = window.cblcars.hud._providerStats || {};
-      const out = Object.keys(stats).map(id=>{
-        const s = stats[id];
-        return {
+    hud.registerSectionProvider('health', ({prev,env})=>{
+      const order = hud._listSectionProviders ? hud._listSectionProviders() : [];
+      const perf = hud._providerPerf || {};
+      const prevMap = {};
+      if(prev?.providers){
+        prev.providers.forEach(p=>{ prevMap[p.id]=p; });
+      }
+      const providers=[];
+      for(const id of order){
+        if(id==='health') continue; // exclude self
+        const meta = perf[id] || { lastMs:0,totalMs:0,avgMs:0,maxMs:0,count:0,error:false };
+        const prevRow = prevMap[id];
+        providers.push({
           id,
-            lastMs: s.lastMs||0,
-          avgMs: s.builds ? (s.totalMs / s.builds) : 0,
-          maxMs: s.maxMs||0,
-          builds: s.builds||0,
-          error: !!s.lastError,
-          lastError: s.lastError||'',
-          changed: !!s.lastChanged
-        };
-      }).sort((a,b)=>b.lastMs - a.lastMs);
-      return {
-        providers: out,
-        snapshotSeq: (fullPrev?.sections?.health?.snapshotSeq||0)+1
-      };
-    }, { order: 170 }); // after config (160) before diff (900)
+          lastMs: meta.lastMs,
+          avgMs: meta.avgMs,
+          maxMs: meta.maxMs,
+          builds: meta.count,
+          changed: prevRow ? prevRow.lastMs !== meta.lastMs : false,
+          error: !!meta.error
+        });
+      }
+      // Sort stable by id first build (callers can re-sort)
+      return { providers, thresholds: env.providerThresholds || {} };
+    },55);
   }
-  register();
+  init();
 })();

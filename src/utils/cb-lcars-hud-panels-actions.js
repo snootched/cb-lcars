@@ -1,4 +1,4 @@
-/* Actions Panel */
+/* Actions Panel (patched: runtime API + proper console logging) */
 (function(){
   const hud=(window.cblcars=window.cblcars||{}, window.cblcars.hud=window.cblcars.hud||{});
   function init(){
@@ -28,21 +28,34 @@
           const act=btn.getAttribute('data-act');
           try{
             switch(act){
-              case 'list-cards': window.cblcars.dev.api.cards.list(); setStatus('Listed cards'); break;
-              case 'relayout': window.cblcars.dev.relayout('*'); setStatus('Relayout triggered'); break;
-              case 'reset-perf': window.cblcars.perf.reset(); setStatus('Perf reset'); break;
-              case 'toggle-aggressive':{
-                const rt=window.cblcars.dev.getRuntime();
-                const cur=!!rt.smart_aggressive;
-                window.cblcars.dev.setRuntime({smart_aggressive:!cur});
-                setStatus('smart_aggressive='+(!cur));
+              case 'list-cards': {
+                const list=window.cblcars.dev.api.cards.list();
+                console.table(list);
+                setStatus(`Listed ${list.length} card(s) – see console`);
                 break;
               }
-              case 'toggle-detour':{
-                const rt=window.cblcars.dev.getRuntime();
-                const cur=!!(rt.fallback?.enable_two_elbow);
-                window.cblcars.dev.setRuntime({fallback:{enable_two_elbow:!cur}});
-                setStatus('detour='+(!cur));
+              case 'relayout':
+                window.cblcars.dev.relayout('*');
+                setStatus('Relayout triggered');
+                break;
+              case 'reset-perf':
+                try{window.cblcars.perf.reset();}catch{}
+                setStatus('Perf reset');
+                break;
+              case 'toggle-aggressive': {
+                const cfg=window.cblcars.dev.api.runtime.get();
+                const cur=!!cfg.smart_aggressive;
+                window.cblcars.dev.api.runtime.set({ smart_aggressive: !cur });
+                setStatus('smart_aggressive='+(!cur));
+                hudApi.refreshRaw({allowWhilePaused:true});
+                break;
+              }
+              case 'toggle-detour': {
+                const cfg=window.cblcars.dev.api.runtime.get();
+                const cur=!!(cfg.fallback && cfg.fallback.enable_two_elbow);
+                window.cblcars.dev.api.runtime.merge({ fallback:{ enable_two_elbow: !cur } });
+                setStatus('fallback.enable_two_elbow='+(!cur));
+                hudApi.refreshRaw({allowWhilePaused:true});
                 break;
               }
               case 'pause':

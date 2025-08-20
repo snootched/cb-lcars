@@ -1,4 +1,4 @@
-/* HUD Core v4 (Pass 4 patches: migrateStrictV4, provider timing badge integration hook) */
+/* HUD Core v4 Foundation (Pass 4 Close-Out: strict mode proxy + previousSnapshot exposure + provider thresholds) */
 (function(){
   const qs=new URLSearchParams(location.search);
   const active = !window.CBLCARS_DEV_DISABLE && (window.CBLCARS_DEV_FORCE===true || qs.has('lcarsDev'));
@@ -18,7 +18,7 @@
     hudNS.__coreAttachedV4=true;
     hudNS.__coreAttached=true;
 
-    const HUD_VERSION='4.0.1-pass4';
+    const HUD_VERSION='4.0.0-foundation+closeout';
     const HUD_ID='cblcars-dev-hud-panel';
     const HUD_Z=2147481100;
     const DEFAULT_INTERVAL=3000;
@@ -34,11 +34,13 @@
     let sectionsCollapsed={...(persisted.sectionsCollapsed||{})};
     let routingFilters={ detour:false,fallback:false,miss:false,smartHit:false,gridSuccess:false,channel:null, ...(persisted.routingFilters||{}) };
     let pinnedPerf=Array.isArray(persisted.pinnedPerf)?persisted.pinnedPerf.slice():[];
-    let watchRoutes=Array.isArray(persisted.watchRoutes)?persisted.watchRoutes.slice():[];
+    let watchRoutes=Array.isArray(persisted.watchRoutes)?watchRoutes=persisted.watchRoutes.slice():[];
     let verboseFlags=!!persisted.verboseFlags;
     let silentMode=!!persisted.silentMode;
     let selectedProfile=persisted.selectedProfile||'Custom';
     let perfThresholds=(persisted.perfThresholds && typeof persisted.perfThresholds==='object')?{...persisted.perfThresholds}:{};
+    let providerThresholds=(persisted.providerThresholds && typeof persisted.providerThresholds==='object')?{...persisted.providerThresholds}:{};
+    let strictV4Enabled=!!persisted.strictV4Enabled;
 
     const FLAG_PROFILES={
       Minimal:{overlay:false,connectors:false,perf:false,geometry:false,channels:false},
@@ -63,7 +65,7 @@
       persistHud({
         position:dragPos,collapsed,interval:intervalMs,tooltipTimeout,tooltipDelay,paused,
         sectionsCollapsed,routingFilters,pinnedPerf,watchRoutes,verboseFlags,silentMode,
-        selectedProfile,perfThresholds
+        selectedProfile,perfThresholds,providerThresholds,strictV4Enabled
       });
     }
     function log(...a){ if(!silentMode) console.info('[hud]',...a); }
@@ -76,6 +78,8 @@
     }
 
     let lastSnapshot=null;
+    let previousSnapshotRef=null;
+
     function buildEnv(){
       return {
         hudVersion:HUD_VERSION,
@@ -86,7 +90,8 @@
         pinnedPerf,
         watchRoutes,
         routingFilters,
-        selectedProfile
+        selectedProfile,
+        providerThresholds
       };
     }
     function buildSnapshot(){
@@ -103,8 +108,10 @@
       }
       base.meta.buildMs=performance.now()-t0;
       applyShim(base);
+      previousSnapshotRef=lastSnapshot;
       lastSnapshot=base;
-      return base;
+      if(strictV4Enabled) stripShim(base);
+      return strictV4Enabled ? proxifySnapshot(base) : base;
     }
     function applyShim(snap){
       const s=snap.sections;
@@ -122,6 +129,23 @@
       snap.scenarioResults=s.scenarios?.results||[];
       snap.flags=s.config?.flags||{};
     }
+    function stripShim(snap){
+      ['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags'].forEach(k=>{ delete snap[k]; });
+      if(snap.previous) delete snap.previous.channels;
+    }
+    function proxifySnapshot(snap){
+      if(snap.__proxiedV4) return snap;
+      const legacyKeys=['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags'];
+      return new Proxy(Object.assign({},snap,{__proxiedV4:true}),{
+        get(target,prop){
+          if(legacyKeys.includes(prop)){
+            console.warn('[hud.strict] Access to legacy snapshot field "'+String(prop)+'" is blocked under strictV4.');
+            return undefined;
+          }
+          return target[prop];
+        }
+      });
+    }
 
     function ensureCss(){
       if(!document.getElementById('cblcars-hud-core-v4-css')){
@@ -133,6 +157,7 @@
           #${HUD_ID} .hud-delta-pos{color:#77ff90;}
           #${HUD_ID} .hud-delta-neg{color:#ff6688;}
           #${HUD_ID} .hud-badge-perf{background:#ff004d;color:#fff;padding:0 6px;border-radius:10px;font-size:10px;margin-left:4px;}
+          #${HUD_ID} .hud-badge-warn{background:#ffd85f;color:#120018;padding:0 6px;border-radius:10px;font-size:10px;margin-left:4px;}
         `;
         document.head.appendChild(st);
       }
@@ -140,20 +165,16 @@
     function frameHtml(){
       const cards=dev.discoverMsdCards?dev.discoverMsdCards(true):[];
       const idx=cards.indexOf(dev._activeCard);
-      // Provider total ms badge (if health provider exists)
-      const provStats = window.cblcars.hud._providerStats || {};
-      const totalLast = Object.values(provStats).reduce((s,v)=>s+ (v.lastMs||0),0);
-      const totalBadge = totalLast ? `<span style="font-size:10px;opacity:.65;">Σ${totalLast.toFixed(1)}ms</span>`:'';
       return `
         <div data-hdr style="display:flex;align-items:center;gap:6px;background:linear-gradient(90deg,#310046,#16002a);padding:6px 8px;
           border:1px solid #ff00ff;border-radius:6px 6px 0 0;cursor:move;">
           <strong style="flex:1;">HUD v${HUD_VERSION}</strong>
-          ${totalBadge}
           <select data-card style="font-size:10px;max-width:140px;">
             ${cards.map((c,i)=>`<option value="${i}" ${i===idx?'selected':''}>Card ${i}${c===dev._activeCard?' *':''}</option>`).join('')}
           </select>
           <div data-qf style="display:flex;gap:3px;"></div>
           <button data-prof>${selectedProfile}</button>
+          <button data-strict style="background:${strictV4Enabled?'#ff00ff':'#2d003d'};color:${strictV4Enabled?'#120018':'#ffd5ff'};">Strict</button>
           <button data-silent>${silentMode?'Silent✓':'Silent'}</button>
           <button data-pause>${paused?'Resume':'Pause'}</button>
           <button data-collapse>${collapsed?'▢':'▣'}</button>
@@ -164,7 +185,6 @@
           <label style="font-size:10px;">TT <input data-tt-to type="number" min="0" step="250" value="${tooltipTimeout}" style="width:70px;font-size:10px;"></label>
           <label style="font-size:10px;">Delay <input data-tt-delay type="number" min="0" step="50" value="${tooltipDelay}" style="width:60px;font-size:10px;"></label>
           <button data-refresh>↻</button>
-          <button data-migrate-strict style="font-size:10px;">StrictV4?</button>
         </div>
         <div data-body style="${collapsed?'display:none;':''};background:#160024;border:1px solid #ff00ff;border-top:none;border-radius:0 0 6px 6px;
             max-height:70vh;overflow:auto;padding:6px 8px;">
@@ -213,8 +233,8 @@
         zIndex:HUD_Z,
         font:'12px/1.35 monospace',
         color:'#ffd5ff',
-        maxWidth:'880px',
-        minWidth:'360px',
+        maxWidth:'900px',
+        minWidth:'380px',
         isolation:'isolate'
       });
       panel.innerHTML=frameHtml();
@@ -293,23 +313,6 @@
         if(!badge) return;
         try{ badge.textContent=entry.meta.badge?(entry.meta.badge(snapshot)||''):''; }catch{ badge.textContent=''; }
       });
-      // Update header Σ last ms
-      const panel=document.getElementById(HUD_ID);
-      if(panel){
-        const header=panel.querySelector('[data-hdr]');
-        if(header){
-          const provStats = window.cblcars.hud._providerStats || {};
-          const totalLast = Object.values(provStats).reduce((s,v)=>s+(v.lastMs||0),0);
-          if(!header.querySelector('[data-totalms]')){
-            const span=document.createElement('span');
-            span.setAttribute('data-totalms','');
-            span.style.fontSize='10px';
-            span.style.opacity='0.65';
-            header.insertBefore(span, header.querySelector('select[data-card]'));
-          }
-          header.querySelector('[data-totalms]').textContent='Σ'+totalLast.toFixed(1)+'ms';
-        }
-      }
     }
 
     let refreshTimer=null;
@@ -320,9 +323,10 @@
 
     function computeDiffsInPlace(snapshot){
       try{
-        const prev=lastSnapshot;
+        const prev=previousSnapshotRef;
+        if(!prev) return;
         const curRoutes=snapshot.sections.routes?.byId||{};
-        const prevRoutes=prev?.sections?.routes?.byId||{};
+        const prevRoutes=prev.sections?.routes?.byId||{};
         const costDiff=[];
         Object.keys(curRoutes).forEach(id=>{
           const c=curRoutes[id]?.totalCost;
@@ -420,8 +424,8 @@
         dev.pick(idx);
         setTimeout(()=>refresh(true,true),60);
       });
-      panel.querySelector('[data-migrate-strict]').addEventListener('click',()=>{
-        hudApi.migrateStrictV4();
+      panel.querySelector('[data-strict]').addEventListener('click',()=>{
+        enableStrictV4();
       });
     }
 
@@ -459,9 +463,37 @@
     refresh(true,true);
     resetInterval();
 
+    function enableStrictV4(){
+      if(strictV4Enabled){
+        console.info('[hud.strict] Already enabled.');
+        return;
+      }
+      strictV4Enabled=true;
+      save();
+      console.warn('[hud.strict] Enabling strict V4 snapshot (legacy flattened fields removed and proxy warnings active).');
+      refresh(true,true);
+      const btn=document.querySelector(`#${HUD_ID} [data-strict]`);
+      if(btn){ btn.style.background='#ff00ff'; btn.style.color='#120018'; }
+    }
+
+    // Provider thresholds API utilities (health panel consumes via env)
+    function setProviderThreshold(id,vals){
+      if(!id) return;
+      if(!vals||(vals.lastMs==null && vals.avgMs==null && vals.maxMs==null)){
+        delete providerThresholds[id];
+      }else{
+        providerThresholds[id]={...(providerThresholds[id]||{}),...vals};
+      }
+      save(); refresh(false,true);
+    }
+    function removeProviderThreshold(id){
+      delete providerThresholds[id]; save(); refresh(false,true);
+    }
+
     const hudApi={
       on,off,emit,
       currentSnapshot:()=>lastSnapshot,
+      previousSnapshot:()=>previousSnapshotRef,
       refreshRaw:(opts={})=>refresh(!!opts.persist,!!opts.allowWhilePaused),
       pause(){ if(!paused){ paused=true; save(); } },
       resume(){ if(paused){ paused=false; save(); resetInterval(); refresh(true,true);} },
@@ -474,8 +506,10 @@
           pinnedPerf:pinnedPerf.slice(),
           watchRoutes:watchRoutes.slice(),
           routingFilters:{...routingFilters},
-          verboseFlags,
+            verboseFlags,
           perfThresholds:{...perfThresholds},
+          providerThresholds:{...providerThresholds},
+          strictV4Enabled,
           selectedProfile
         };
       },
@@ -495,6 +529,9 @@
       },
       removePerfThreshold(id){ delete perfThresholds[id]; save(); },
       getPerfThresholds:()=>({...perfThresholds}),
+      setProviderThreshold,
+      removeProviderThreshold,
+      getProviderThresholds:()=>({...providerThresholds}),
       exportSnapshot(){
         try{
           const snap=lastSnapshot||buildSnapshot();
@@ -515,28 +552,7 @@
       toggleFlagLabelVerbosity(){ verboseFlags=!verboseFlags; save(); drawQuickFlags(); },
       setVerboseFlags(v){ verboseFlags=!!v; save(); drawQuickFlags(); },
       currentBuildVersion:()=>HUD_VERSION,
-      enableStrictV4(){
-        if(!lastSnapshot) return;
-        ['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags']
-          .forEach(k=>{ try{ delete lastSnapshot[k]; }catch{} });
-        console.warn('[hud] Strict v4 snapshot enabled (legacy flattened fields removed).');
-        hudApi.refreshRaw({allowWhilePaused:true});
-      },
-      migrateStrictV4(){
-        console.group('[hud] migrateStrictV4');
-        console.log('Checking panels for flattened key usage (heuristic only).');
-        // Simple heuristic: warn if any global property is still present
-        const flatKeys = ['routesSummary','routesById','perfTimers','perfCounters','overlaysBasic','overlaysSummary','anchors','anchorsSummary','channels','scenarioResults','flags'];
-        const present = flatKeys.filter(k=>lastSnapshot && Object.prototype.hasOwnProperty.call(lastSnapshot,k));
-        if(present.length){
-          console.warn('Flatten keys still present:', present);
-          console.warn('Calling enableStrictV4 now...');
-          hudApi.enableStrictV4();
-        } else {
-          console.log('No flattened keys detected. Already strict.');
-        }
-        console.groupEnd();
-      }
+      enableStrictV4
     };
     hudNS.api=hudApi;
 

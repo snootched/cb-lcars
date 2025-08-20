@@ -1,4 +1,4 @@
-/* Flags & Profiles Panel */
+/* Flags & Profiles Panel (patched to use dev.api.flags.set directly; removes deprecation warning) */
 (function(){
   const hud=(window.cblcars=window.cblcars||{}, window.cblcars.hud=window.cblcars.hud||{});
   function init(){
@@ -24,7 +24,7 @@
         const grid=el.querySelector('[data-grid]');
         function rebuild(){
           const flags=window.cblcars._debugFlags||{};
-            const keys=[...new Set([...Object.keys(flags),
+          const keys=[...new Set([...Object.keys(flags),
             'overlay','connectors','perf','geometry','channels','validation','smart','counters'])].sort();
           grid.innerHTML=keys.map(k=>{
             const on=!!flags[k];
@@ -35,7 +35,7 @@
             b.addEventListener('click',()=>{
               const k=b.getAttribute('data-flag');
               const cur=window.cblcars._debugFlags||{};
-              window.cblcars.dev.flags({[k]:!cur[k]});
+              window.cblcars.dev.api.flags.set({[k]:!cur[k]});
               rebuild();
               hudApi.emit('flags:changed',window.cblcars._debugFlags);
             });
@@ -45,7 +45,7 @@
           btn.addEventListener('click',()=>{
             const name=btn.getAttribute('data-prof');
             const prof=PROFILE_MAP[name];
-            window.cblcars.dev.flags(prof);
+            window.cblcars.dev.api.flags.set(prof);
             rebuild();
             hudApi.emit('flags:changed',window.cblcars._debugFlags);
           });
