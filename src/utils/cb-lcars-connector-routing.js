@@ -62,47 +62,67 @@ function normalizeRect(o){
   return { x,y,w,h };
 }
 
+
 /**
  * Build a rounded orthogonal path (multi-segment) given ordered points.
  * Only rounds interior corners where both adjacent segments are ≥ 2*radius.
  * Falls back to simple L joins if corner_style not 'round' or radius <= 0.
+ * Improved: computes the correct SVG arc sweep flag for each 90° corner.
+ *
  * @param {[number,number][]} points
  * @param {number} radius
  * @param {'round'|'bevel'|'sharp'|'square'} cornerStyle
  * @returns {string} SVG path string
  */
-function buildRoundedOrthPath(points, radius=0, cornerStyle='round'){
-  if(!Array.isArray(points) || points.length<2) return 'M0,0 L0,0';
-  if(cornerStyle!=='round' || radius<=0){
-    return 'M'+points.map(p=>p.join(',')).join(' L');
+function buildRoundedOrthPath(points, radius = 0, cornerStyle = 'round') {
+  if (!Array.isArray(points) || points.length < 2) return 'M0,0 L0,0';
+
+  const style = (cornerStyle || 'round').toLowerCase();
+  // Fast path for styles that do not need trimming logic (sharp / square / invalid or no radius)
+  if ((style !== 'round' && style !== 'bevel') || radius <= 0) {
+    return 'M' + points.map(p => p.join(',')).join(' L');
   }
-  const seg = (a,b)=>[b[0]-a[0], b[1]-a[1]];
-  const mag = v=>Math.abs(v[0])+Math.abs(v[1]); // orth (Manhattan) measure
-  let d=`M${points[0][0]},${points[0][1]}`;
-  for(let i=1;i<points.length-1;i++){
-    const prev=points[i-1], cur=points[i], next=points[i+1];
-    const v1=seg(prev,cur), v2=seg(cur,next);
-    const len1 = mag(v1), len2 = mag(v2);
-    const canRound = ( (v1[0]===0 && v2[1]===0) || (v1[1]===0 && v2[0]===0) ); // orth turn
+
+  let d = `M${points[0][0]},${points[0][1]}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = points[i - 1], cur = points[i], next = points[i + 1];
+    const v1 = [cur[0]-prev[0], cur[1]-prev[1]];
+    const v2 = [next[0]-cur[0], next[1]-cur[1]];
+    const len1 = Math.abs(v1[0]) + Math.abs(v1[1]);
+    const len2 = Math.abs(v2[0]) + Math.abs(v2[1]);
+    const isOrthTurn = (v1[0] === 0 && v2[1] === 0) || (v1[1] === 0 && v2[0] === 0);
     const r = Math.min(radius, Math.floor(len1/2), Math.floor(len2/2));
-    if(!canRound || r<=0){
-      d+=` L${cur[0]},${cur[1]}`;
+
+    if (!isOrthTurn || r <= 0) {
+      d += ` L${cur[0]},${cur[1]}`;
       continue;
     }
-    // point entering corner trimmed
+
+    // Trim points
     const p1 = [
-      cur[0] - (v1[0]===0 ? 0 : Math.sign(v1[0])*r),
-      cur[1] - (v1[1]===0 ? 0 : Math.sign(v1[1])*r)
+      cur[0] - (v1[0] === 0 ? 0 : Math.sign(v1[0]) * r),
+      cur[1] - (v1[1] === 0 ? 0 : Math.sign(v1[1]) * r)
     ];
-    // point exiting corner trimmed
     const p2 = [
-      cur[0] + (v2[0]===0 ? 0 : Math.sign(v2[0])*r),
-      cur[1] + (v2[1]===0 ? 0 : Math.sign(v2[1])*r)
+      cur[0] + (v2[0] === 0 ? 0 : Math.sign(v2[0]) * r),
+      cur[1] + (v2[1] === 0 ? 0 : Math.sign(v2[1]) * r)
     ];
-    d+=` L${p1[0]},${p1[1]} A${r},${r} 0 0 1 ${p2[0]},${p2[1]}`;
+
+    if (style === 'bevel') {
+      // Bevel: straight diagonal between trimmed points
+      d += ` L${p1[0]},${p1[1]} L${p2[0]},${p2[1]}`;
+    } else {
+      // Round corner (existing logic)
+      let sweep;
+      try {
+        const cross = v1[0]*v2[1] - v1[1]*v2[0];
+        sweep = cross > 0 ? 1 : 0;
+      } catch(_) { sweep = 1; }
+      d += ` L${p1[0]},${p1[1]} A${r},${r} 0 0 ${sweep} ${p2[0]},${p2[1]}`;
+    }
   }
-  const last=points[points.length-1];
-  d+=` L${last[0]},${last[1]}`;
+  const last = points[points.length - 1];
+  d += ` L${last[0]},${last[1]}`;
   return d;
 }
 
@@ -190,10 +210,13 @@ function manhattanBlocked(sx,sy,ex,ey,obstacles,order,pad){
  * A candidate is valid if none of the three segments intersect any obstacle (with pad).
  * Cost = total Manhattan length. Picks lowest cost valid.
  *
- * @param {{sx:number,sy:number,ex:number,ey:number,obstacles:Array<object>,pad:number}} args
+ * This implementation respects a forcedElbowMode hint ('xy' or 'yx') by prioritizing
+ * horizontal or vertical wrap candidates respectively.
+ *
+ * @param {{sx:number,sy:number,ex:number,ey:number,obstacles:Array<object>,pad:number,forcedElbowMode?:'xy'|'yx'}} args
  * @returns {{points:[number,number][],cost:number,candidatesTried:number,reason:string}|null}
  */
-function twoElbowDetour({ sx, sy, ex, ey, obstacles, pad }) {
+function twoElbowDetour({ sx, sy, ex, ey, obstacles, pad, forcedElbowMode } = {}) {
   if (!obstacles || !obstacles.length) return null;
   const candidates = [];
   const gap = pad;
@@ -211,10 +234,18 @@ function twoElbowDetour({ sx, sy, ex, ey, obstacles, pad }) {
     candidates.push({ kind:'v', y:bottomY });
   }
 
+  // Prioritize based on forcedElbowMode if provided
+  let orderedCandidates = candidates;
+  if (forcedElbowMode === 'xy') {
+    orderedCandidates = candidates.filter(c => c.kind === 'h').concat(candidates.filter(c => c.kind === 'v'));
+  } else if (forcedElbowMode === 'yx') {
+    orderedCandidates = candidates.filter(c => c.kind === 'v').concat(candidates.filter(c => c.kind === 'h'));
+  }
+
   let best = null;
   let tried = 0;
   const uniq = new Set();
-  for (const c of candidates) {
+  for (const c of orderedCandidates) {
     // Deduplicate
     const key = c.kind === 'h' ? `h:${c.x}` : `v:${c.y}`;
     if (uniq.has(key)) continue;
@@ -261,14 +292,80 @@ function twoElbowDetour({ sx, sy, ex, ey, obstacles, pad }) {
   return { points: best.points, cost: best.cost, candidatesTried: tried, reason:'ok' };
 }
 
+/* PATCH: grid points orientation reordering
+ * Ensures the first elbow follows the desired orientation (xy => horizontal-first, yx => vertical-first)
+ */
+function reorderGridPoints(points, mode) {
+  if (!Array.isArray(points) || points.length < 3) return points;
+  // NEW: compress consecutive collinear points to improve early-orientation detection (non‑destructive)
+  const compact = [];
+  for (let i=0;i<points.length;i++){
+    const p = points[i];
+    if (!compact.length) { compact.push(p); continue; }
+    const prev = compact[compact.length-1];
+    if ((p[0]===prev[0] && p[1]===prev[1])) continue;
+    if (compact.length>=2){
+      const p2 = compact[compact.length-2];
+      const collinear =
+        (p2[0]===prev[0] && prev[0]===p[0]) ||
+        (p2[1]===prev[1] && prev[1]===p[1]);
+      if (collinear){ compact[compact.length-1] = p; continue; }
+    }
+    compact.push(p);
+  }
+  const pts = compact;
+  if (pts.length < 4) return points; // need at least start + elbow1 + elbow2 + end to safely swap
+  const p0 = pts[0], p1 = pts[1], p2 = pts[2];
+  const firstIsHoriz = p1[1] === p0[1] && p1[0] !== p0[0];
+  const firstIsVert  = p1[0] === p0[0] && p1[1] !== p0[1];
+  if (mode === 'xy' && firstIsHoriz) return points;
+  if (mode === 'yx' && firstIsVert) return points;
+  // Check that swapping p1 & p2 preserves orth sequence (both elbows orth to each other & connected)
+  const p1p2Orth = (p1[0]===p2[0] || p1[1]===p2[1]);
+  const p0p2Orth = (p0[0]===p2[0] || p0[1]===p2[1]);
+  if (!p1p2Orth || !p0p2Orth) return points; // unsafe swap
+  const reordered = [...points];
+  // Find original indices of p1 & p2 (in case compaction changed them)
+  const i1 = points.indexOf(p1);
+  const i2 = points.indexOf(p2);
+  if (i1>0 && i2>i1){
+    reordered[i1] = p2;
+    reordered[i2] = p1;
+  }
+  return reordered;
+}
 
-
+/* RESTORED: explicit endpoint parser (was removed inadvertently; its absence caused ReferenceError) */
 function parseExplicitEndpoint(el){
   if(!el) return null;
   const raw = el.getAttribute('data-cblcars-endpoint');
   if(!raw) return null;
-  const parts = raw.trim().split(/[, ]+/).map(Number);
-  if(parts.length>=2 && parts.slice(0,2).every(n=>Number.isFinite(n))) return [parts[0], parts[1]];
+  const parts = raw.trim().split(/[, ]+/).map(Number).filter(n=>Number.isFinite(n));
+  if(parts.length>=2) return [parts[0], parts[1]];
+  return null;
+}
+
+/* NEW: Infer preferred elbow orientation (xy = horizontal first, yx = vertical first) */
+function inferPreferredElbowMode(start, endPoint){
+  const [sx,sy] = start;
+  const ex = endPoint[0];
+  const ey = endPoint[1];
+  const dx = Math.abs(ex - sx);
+  const dy = Math.abs(ey - sy);
+  return dx >= dy ? 'xy' : 'yx';
+}
+
+/* NEW: Determine actual first-segment orientation of an orth path */
+function detectFirstOrientation(points){
+  if(!Array.isArray(points) || points.length < 2) return null;
+  let prev = points[0];
+  for(let i=1;i<points.length;i++){
+    const cur = points[i];
+    if(cur[0]===prev[0] && cur[1]===prev[1]) continue;
+    if(cur[0]!==prev[0]) return 'xy'; // horizontal movement first
+    if(cur[1]!==prev[1]) return 'yx'; // vertical movement first
+    prev = cur;
+  }
   return null;
 }
 
@@ -423,6 +520,57 @@ export function routeAutoConnector(opts){
   if(!endpoint){
     return { d:`M${sx},${sy} L${sx},${sy}`, mode:'invalid', usedEndpoint:null, smartAttempted:false };
   }
+
+  /* NEW: infer elbow orientation unless user forced one */
+  let inferredOrientation = null;
+  try {
+    if (!forcedElbowMode) {
+      inferredOrientation = inferPreferredElbowMode(start, endpoint);
+      pathEl.setAttribute('data-cblcars-elbow-mode-inferred', inferredOrientation);
+    } else {
+      pathEl.setAttribute('data-cblcars-elbow-mode-inferred', 'forced:'+forcedElbowMode);
+    }
+  } catch(_) {
+    pathEl.setAttribute('data-cblcars-elbow-mode-inferred','error');
+  }
+
+  /* NEW: Nudge endpoint when a first‑axis move would be zero (prevents “flat” duplicates)
+     Only when:
+       - orientation (forced or inferred) requests that axis first
+       - delta on that axis is 0
+       - targetBox is valid
+       - user did NOT disable (data-cblcars-no-nudge)
+  */
+  try {
+    const want = forcedElbowMode || inferredOrientation;
+    if (want && !pathEl.hasAttribute('data-cblcars-no-nudge') && targetBox && targetBox.w>0 && targetBox.h>0) {
+      const [ex0, ey0] = endpoint;
+      let ex = ex0, ey = ey0;
+      const cx = targetBox.x + targetBox.w/2;
+      const cy = targetBox.y + targetBox.h/2;
+      const minStepX = Math.min(Math.max(targetBox.w*0.12, 12), Math.max(48, targetBox.w/2));
+      const minStepY = Math.min(Math.max(targetBox.h*0.12, 12), Math.max(48, targetBox.h/2));
+      let nudged = false;
+
+      if (want === 'xy' && Math.abs(ey - sy) < 0.001) {
+        // Need vertical motion second; ensure eventual vertical segment != 0 by nudging endpoint Y inside box away from start
+        const dir = (sy <= cy) ? 1 : -1;
+        ey = Math.min(targetBox.y + targetBox.h - 4, Math.max(targetBox.y + 4, ey + dir * minStepY));
+        nudged = true;
+      } else if (want === 'yx' && Math.abs(ex - sx) < 0.001) {
+        // Need horizontal motion second; nudge X
+        const dir = (sx <= cx) ? 1 : -1;
+        ex = Math.min(targetBox.x + targetBox.w - 4, Math.max(targetBox.x + 4, ex + dir * minStepX));
+        nudged = true;
+      }
+      if (nudged) {
+        endpoint = [ex, ey, endpoint[2]];
+        pathEl.setAttribute('data-cblcars-endpoint-nudged','true');
+      } else {
+        pathEl.removeAttribute('data-cblcars-endpoint-nudged');
+      }
+    }
+  } catch(_) {}
 
   /* Forced full routing mode */
   const forcedFullRaw = (pathEl.getAttribute('data-cblcars-route-mode-full') || '').toLowerCase().trim();
@@ -665,7 +813,8 @@ export function routeAutoConnector(opts){
       const det = twoElbowDetour({
         sx, sy, ex: endpoint[0], ey: endpoint[1],
         obstacles: normObs,
-        pad: padForBlock
+        pad: padForBlock,
+        forcedElbowMode: forcedElbowMode
       });
       if (det && det.points && det.points.length >= 2 && det.reason === 'ok') {
         detourUsed = true;
@@ -719,19 +868,27 @@ export function routeAutoConnector(opts){
 
   /* Path output (grid or fallback Manhattan) */
   let pathD = null;
+  let usedPointsForOrientation = null; // NEW capture for telemetry
 
   // --- Build final path (detour > grid > fallback Manhattan) ---
   if (detourUsed && detourMeta?.points?.length >= 2) {
     // Try rounded orth corners if style allows
     const cornerStyleAttr = (pathEl.getAttribute('data-cblcars-corner-style') || 'round').toLowerCase();
     const radiusAttr = parseFloat(pathEl.getAttribute('data-cblcars-radius')) || 12;
+    let detourPoints = detourMeta.points;
 
-    // detourMeta.points: ordered orthogonal points (start -> elbow1 -> elbow2 -> end)
-    pathD = buildRoundedOrthPath(detourMeta.points, radiusAttr, cornerStyleAttr);
+    if (forcedElbowMode) {
+      detourPoints = reorderGridPoints(detourPoints, forcedElbowMode);
+    } else if (inferredOrientation) {
+      detourPoints = reorderGridPoints(detourPoints, inferredOrientation);
+    }
+
+    pathD = buildRoundedOrthPath(detourPoints, radiusAttr, cornerStyleAttr);
+    usedPointsForOrientation = detourPoints; // NEW
 
     // Telemetry about detour geometry
     try {
-      pathEl.setAttribute('data-cblcars-route-detour-elbows', String(detourMeta.points.length - 1));
+      pathEl.setAttribute('data-cblcars-route-detour-elbows', String(detourPoints.length - 1));
       pathEl.setAttribute(
         'data-cblcars-route-detour-rounded',
         (cornerStyleAttr === 'round' && radiusAttr > 0) ? 'true' : 'false'
@@ -739,24 +896,32 @@ export function routeAutoConnector(opts){
     } catch(_) {}
 
   } else if (gridAccepted && chosenMeta?.points?.length >= 2) {
-    pathD = `M${chosenMeta.points[0][0]},${chosenMeta.points[0][1]}`;
-    for (let i = 1; i < chosenMeta.points.length; i++) {
-      const pt = chosenMeta.points[i];
-      pathD += ` L${pt[0]},${pt[1]}`;
+    const cornerStyleAttr = (pathEl.getAttribute('data-cblcars-corner-style') || 'round').toLowerCase();
+    const radiusAttr = parseFloat(pathEl.getAttribute('data-cblcars-radius')) || 12;
+    let gridPoints = chosenMeta.points;
+
+    if (forcedElbowMode) {
+      gridPoints = reorderGridPoints(gridPoints, forcedElbowMode);
+    } else if (inferredOrientation) {
+      gridPoints = reorderGridPoints(gridPoints, inferredOrientation);
     }
+
+    pathD = buildRoundedOrthPath(gridPoints, radiusAttr, cornerStyleAttr);
+    usedPointsForOrientation = gridPoints; // NEW
+
     try {
-      registerResult(pathEl.id,{
-        strategy:'grid',
-        expansions:chosenMeta.expansions,
-        cost:chosenMeta.cost,
-        bends:chosenMeta.cost?.bends,
-        pathHash:chosenMeta.pathHash,
-        endDelta:chosenMeta.endDelta,
-        resolution:chosenMeta.resolution,
+      registerResult(pathEl.id, {
+        strategy: 'grid',
+        expansions: chosenMeta.expansions,
+        cost: chosenMeta.cost,
+        bends: chosenMeta.cost?.bends,
+        pathHash: chosenMeta.pathHash,
+        endDelta: chosenMeta.endDelta,
+        resolution: chosenMeta.resolution,
         channels: chosenMeta.hitChannels || [],
         channelMode: chosenMeta.routeChannelMode
       });
-    } catch(_) {}
+    } catch (_) {}
   }
   if(!pathD){
     const { d: autoD } = computeAutoRoute(
@@ -773,6 +938,34 @@ export function routeAutoConnector(opts){
     );
     pathD = autoD;
   }
+
+  /* NEW: Degenerate tail cleanup (remove duplicate last segment Lx,y Lx,y) */
+  try {
+    if (typeof pathD === 'string') {
+      const trimmed = pathD.replace(/(L\s*[-\d.]+\s*,\s*[-\d.]+)\s+L\s*([-.\d]+)\s*,\s*([-.\d]+)\s*$/i,
+        (m, firstL, x, y) => {
+          // If previous command already ends at same x,y keep single
+          const coords = /L\s*([-.\d]+)\s*,\s*([-.\d]+)\s*$/.exec(firstL);
+            if (coords && Math.abs(parseFloat(coords[1]) - parseFloat(x)) < 1e-6 &&
+                Math.abs(parseFloat(coords[2]) - parseFloat(y)) < 1e-6) {
+              return firstL; // drop duplicate
+            }
+          return m;
+        });
+      if (trimmed !== pathD) {
+        pathD = trimmed;
+        pathEl.setAttribute('data-cblcars-degenerate-trim','true');
+      } else {
+        pathEl.removeAttribute('data-cblcars-degenerate-trim');
+      }
+    }
+  } catch(_) {}
+
+  // Stamp final path + ALWAYS clear pending (safety)
+  try {
+    pathEl.setAttribute('d', pathD || `M${sx},${sy} L${sx},${sy}`);
+    pathEl.removeAttribute('data-cblcars-pending');
+  } catch(_) {}
 
   /* Telemetry stamping */
   try {
@@ -902,6 +1095,16 @@ export function routeAutoConnector(opts){
                : (attemptGrid ? 'connectors.route.smart.aggressive' : 'connectors.route.smart.skip')
     );
   }
+
+  // FINAL elbow orientation telemetry (updated to use actual used points)
+  try {
+    if (usedPointsForOrientation && usedPointsForOrientation.length >= 2) {
+      const finalMode = detectFirstOrientation(usedPointsForOrientation) || 'unknown';
+      pathEl.setAttribute('data-cblcars-elbow-mode-final', finalMode);
+    } else {
+      pathEl.removeAttribute('data-cblcars-elbow-mode-final');
+    }
+  } catch(_) {}
 
   return {
     d: pathD,
