@@ -159,7 +159,9 @@ cb-lcars-msd:
           stroke: var(--lcars-blue)
           width: 12
           corner_style: round
-          corner_radius: 50
+          corner_radius: 120
+          smoothing_mode: chaikin          # M5.6 demo
+          smoothing_iterations: 2
         - type: line
           id: line_manhattan_baseline
           anchor: manhattan_anchor
@@ -187,6 +189,153 @@ cb-lcars-msd:
           corner_radius: 40
 
 
+  msd:
+    version: 1
+    use_packs:
+      builtin: [core]
+    base_svg:
+      source: builtin:ncc-1701-a-blue
+    anchors:
+      smart_clear_anchor: [200, 200]
+      smart_far_anchor: [200, 320]
+      smart_blocked_anchor: [200, 500]
+      smart_forced_xy_anchor: [200, 650]
+      grid_forced_anchor: [200, 830]
+      manhattan_anchor: [200, 960]
+      target_box: [1500, 460]     # replaces legacy ribbon target_box as attach point
+      cpu_test_anchor: [300, 180]
+    routing:
+      channels:
+        - id: main_bus
+          rect: [400, 200, 800, 120]
+          weight: 0.6
+        - id: aux_bus
+          rect: [400, 600, 800, 120]
+          weight: 0.7
+    overlays:
+      - id: line_smart_clear
+        type: line
+        anchor: smart_clear_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: smart
+        style:
+          color: var(--lcars-yellow)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+      - id: line_smart_far_avoid
+        type: line
+        anchor: smart_far_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: smart
+        avoid: [obstacle_far]
+        style:
+          color: var(--lcars-teal)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+      - id: line_smart_blocked
+        type: line
+        anchor: smart_blocked_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: smart
+        avoid: [obstacle_mid]
+        style:
+          color: var(--lcars-orange)
+          width: 12
+          corner_style: round
+          corner_radius: 46
+      - id: line_smart_forced_xy
+        type: line
+        anchor: smart_forced_xy_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: smart
+        route_mode: xy
+        avoid: [obstacle_vertical]
+        style:
+          color: var(--lcars-purple)
+          width: 12
+          corner_style: round
+          corner_radius: 46
+      - id: line_grid_forced
+        type: line
+        anchor: grid_forced_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: grid
+        avoid: [obstacle_vertical, obstacle_mid]
+        style:
+          color: var(--lcars-blue)
+          width: 12
+          corner_style: round
+          corner_radius: 120   # M5.5: intentionally large to demonstrate clamp vs short segments
+          smoothing_mode: chaikin          # M5.6 demo
+          smoothing_iterations: 2
+      - id: line_manhattan_baseline
+        type: line
+        anchor: manhattan_anchor
+        attach_to: target_box
+        route: auto
+        style:
+          color: var(--lcars-green)
+          width: 10
+          corner_style: round
+          corner_radius: 40
+      - id: line_channel_demo
+        type: line
+        anchor: smart_far_anchor
+        attach_to: target_box
+        route: auto
+        route_mode_full: grid
+        route_channels: [main_bus]
+        route_channel_mode: prefer
+        avoid: [obstacle_mid]
+        style:
+          color: var(--lcars-pink)
+          width: 12
+          corner_style: round
+          corner_radius: 40
+      - id: cpu_temp_bar
+        type: line
+        anchor: cpu_test_anchor
+        attach_to: target_box
+        route: auto
+        style:
+          color: var(--lcars-orange)
+          width:
+            value_map:
+              entity: sensor.bathroom_dial_battery
+              input: [20, 90]
+              output: [20, 30]
+              clamp: true
+              round: 0
+              default: 22   # NEW: fallback before entity present / on failure
+          corner_style: round
+          corner_radius: 30
+    rules:
+      - id: cpu_hot
+        priority: 10
+        when:
+          all:
+            - entity: sensor.cpu_temp         # same entity
+              above: 70
+        apply:
+          overlays:
+            - id: cpu_temp_bar
+              style: { color: var(--lcars-red) }
+    animations: []       # (optional: add later)
+    timelines: []        # (optional: add later)
+    profiles: []         # (optional: add later)
+    active_profiles: []  # (optional)
+    hud:
+      workbench:
+        show_rule_badges: false
+
+
   styles:
     custom_fields:
       msd_svg_base:
@@ -211,6 +360,14 @@ cb-lcars-msd:
         - top: 0
         - left: 0
         - z-index: 2
+        - pointer-events: none
+      msd_hud_layer:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 1000
         - pointer-events: none
   custom_fields:
     msd_svg_base: |
@@ -328,7 +485,52 @@ cb-lcars-msd:
       ]]]
     msd_controls: |
       [[[
-        // Mirror the base wrapper's aspect-locked box in the controls field
+        // MSD v1 bootstrap (non-destructive). Runs once; leaves legacy rendering intact.
+        try {
+          // Diagnostics
+          if (typeof window.__msdDebug === 'undefined') {
+            console.warn('[MSD v1] window.__msdDebug not present. Did you import src/msd/autoRegister.js in your main bundle?');
+          } else if (!window.__msdDebug.initMsdPipeline) {
+            console.warn('[MSD v1] __msdDebug present but initMsdPipeline missing (check feature flag MSD_V1_ENABLE and import order).');
+          }
+
+          // Proceed only if feature flag code loaded
+          if (!this._msdV1Boot &&
+              window.__msdDebug?.initMsdPipeline &&
+              (this._config?.msd || this.config?.msd)) {
+
+            // Optional: verify feature flag (attached inside module)
+            if (window.__msdDebug?.featureFlags && window.__msdDebug.featureFlags.MSD_V1_ENABLE === false) {
+              console.warn('[MSD v1] Feature flag currently false; pipeline not started.');
+            }
+
+            this._msdV1Boot = true;
+            const msdConfig = this._config?.msd || this.config?.msd;
+            const baseWrapper = this.shadowRoot.getElementById('cblcars-msd-wrapper');
+            const controlsBox = this.shadowRoot.getElementById('cblcars-controls-box');
+            const mount = baseWrapper || controlsBox || this.shadowRoot;
+            window.__msdDebug.initMsdPipeline(msdConfig, mount).then(p => {
+              window.__msdDebug.pipelineInstance = p;
+              let overlayCount = 0;
+              try { overlayCount = p.getResolvedModel ? (p.getResolvedModel()?.overlays?.length || 0) : 0; } catch(_) {}
+              if (p.enabled === false) {
+                console.error('[MSD v1] pipeline disabled (validation errors):', p.errors);
+              } else {
+                console.info('[MSD v1] pipeline started: overlays=', overlayCount, 'mount=', mount.id || mount.className || 'shadowRoot');
+              }
+            }).catch(err => {
+              console.error('[MSD v1] init failed', err);
+            });
+          }
+          // Feed live hass states into pipeline each stamp if available
+          try {
+            const p = window.__msdDebug?.pipelineInstance;
+            if (p?.enabled && p?.ingestHass && hass) p.ingestHass(hass);
+          } catch(_) {}
+        } catch(e) {
+          console.warn('[MSD v1 bootstrap failed]', e);
+        }
+        // Mirror the base wrapper's aspect-locked box in the controls field (legacy content)
         const vb = variables.msd?._viewBox || [0,0,1920,1200];
         const aspect = window.cblcars.getSvgAspectRatio(vb);
         return `
@@ -337,3 +539,10 @@ cb-lcars-msd:
             <div id="cblcars-controls-box" style="position:relative;width:100%;height:100%;pointer-events:none;"></div>
           </div>`;
       ]]]
+  msd_hud_layer: |
+    [[[
+      // Empty high z-index layer reserved for dev HUD or future overlays
+      // pointer-events: none here; HUD panel itself sets pointer-events:auto
+      return `<div id="cblcars-hud-layer" style="position:relative;width:100%;height:100%;pointer-events:none;"></div>`;
+    ]]]
+

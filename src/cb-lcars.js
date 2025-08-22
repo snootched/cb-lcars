@@ -31,6 +31,9 @@ import './utils/cb-lcars-routing-core.js';
 import './utils/cb-lcars-routing-grid.js';
 import './utils/cb-lcars-routing-channels.js';
 
+import "./msd/autoRegister.js"
+
+
 // Dev Tools + Modular HUD auto-loader (single-resource strategy)
 // Users still only add cb-lcars.js as a Lovelace resource.
 // Pass ?lcarsDev=1 (or set window.CBLCARS_DEV_FORCE=true) to activate.

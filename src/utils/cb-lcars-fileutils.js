@@ -2,6 +2,18 @@
 import { cblcarsLog } from './cb-lcars-logging.js';
 import jsyaml from 'js-yaml';
 
+// Ensure global fallback for legacy callers expecting window.jsyaml
+try {
+  if (typeof window !== 'undefined' && !window.jsyaml) {
+    window.jsyaml = { load: jsyaml.load, dump: jsyaml.dump };
+  }
+} catch {}
+
+/**
+ * Fetch YAML content from a given URL.
+ * @param {string} url - The URL of the YAML file.
+ * @returns {Promise<string>} - A promise that resolves to the YAML content as a string.
+ */
 export async function fetchYAML(url) {
     try {
         const response = await fetch(url);
