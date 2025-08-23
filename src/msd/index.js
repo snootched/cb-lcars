@@ -28,9 +28,9 @@ import "./hud/hudService.js";  // Wave 6 HUD skeleton
 
 export async function initMsdPipeline(userMsdConfig, mountEl) {
   if (!isMsdV1Enabled()) return { enabled: false };
-  const { merged: mergedConfig, provenance } = await mergePacks(userMsdConfig);
 
-  mergedConfig.__provenance = provenance;
+  const mergedConfig = await mergePacks(userMsdConfig);
+  const provenance = mergedConfig.__provenance;
 
   // Store original user config in debug namespace instead of __raw_msd
   if (typeof window !== 'undefined') {
@@ -261,9 +261,20 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
     // 6. Animations (desired sets)
     const desiredAnimations = resolveDesiredAnimations(overlaysWithPatches, animationIndex, ruleResult.animations);
-    const animDiff = animRegistry.diffApply(desiredAnimations);
-    const desiredTimelines = resolveDesiredTimelines(timelineDefs);
-    const tlDiff = animRegistry.diffApplyTimelines(desiredTimelines);
+    const desiredTimelines = resolveDesiredTimelines(timelineDefs); // <-- ADD this line
+    const activeAnimations = [];
+    desiredAnimations.forEach(animDef => {
+      const instance = animRegistry.getOrCreateInstance(animDef.definition, animDef.targets);
+      if (instance) {
+        activeAnimations.push({
+          id: animDef.id,
+          instance,
+          hash: animRegistry.computeInstanceHash(animDef.definition)
+        });
+      }
+    });
+    const animDiff = { active: activeAnimations };
+    const tlDiff = { active: desiredTimelines }; // <-- Now desiredTimelines is defined
 
     // 7. Assign animation hash to overlays
     const overlayAnimByKey = new Map();
