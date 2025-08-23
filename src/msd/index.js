@@ -38,6 +38,31 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   const t1 = performance.now();
   try { window.__msdDebug && (window.__msdDebug._validationMs = (t1 - t0)); } catch {}
 
+  // --- NEW: anchor.missing validation (Wave 2) ---
+  try {
+    const existingCodes = new Set(issues.errors.map(e=>e.code));
+    const anchorSet = new Set(Object.keys(mergedConfig.anchors || {}));
+    (mergedConfig.overlays || []).forEach(o=>{
+      if (!o || !o.id) return;
+      const aRefs = [];
+      if (typeof o.anchor === 'string') aRefs.push(o.anchor);
+      if (typeof o.attach_to === 'string') aRefs.push(o.attach_to);
+      if (typeof o.attachTo === 'string') aRefs.push(o.attachTo);
+      aRefs.forEach(ref=>{
+        if (ref && !anchorSet.has(ref)) {
+          const code = 'anchor.missing';
+          if (!existingCodes.has(`${code}:${ref}:${o.id}`)) {
+            issues.errors.push({ code, severity:'error', overlay:o.id, anchor:ref, msg:`Overlay ${o.id} references missing anchor '${ref}'` });
+            existingCodes.add(`${code}:${ref}:${o.id}`);
+          }
+        }
+      });
+    });
+  } catch(_) {}
+  // re-check for disable after anchor errors
+  if (issues.errors.length && !issues._postAnchorScan) {
+    issues._postAnchorScan = true;
+  }
   if (issues.errors.length) {
     console.error('[MSD v1] Validation errors – pipeline disabled', issues.errors);
 
@@ -96,6 +121,48 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   const rulesEngine = new RulesEngine(mergedConfig.rules);
   rulesEngine.markAllDirty();
+  // --- NEW: rules dependency index + perf counters instrumentation (Wave 2 scaffold) ---
+  (function instrumentRules(){
+    try {
+      // Build simple dependency index: scan rule.when.* for entity keys
+      const depIndex = new Map();
+      (mergedConfig.rules||[]).forEach(r=>{
+        const condBlocks = (r.when && (r.when.all || r.when.any)) || [];
+        condBlocks.forEach(c=>{
+          const ent = c?.entity;
+            if (ent) {
+              if (!depIndex.has(ent)) depIndex.set(ent, new Set());
+              depIndex.get(ent).add(r.id);
+            }
+        });
+      });
+      rulesEngine.__hudDeps = depIndex;
+      // Ensure perf store
+      const W = typeof window!=='undefined'?window:{};
+      W.__msdDebug = W.__msdDebug || {};
+      const perfStore = W.__msdDebug.__perfStore = W.__msdDebug.__perfStore || { counters:{}, timings:{} };
+      function perfCount(k,inc=1){ perfStore.counters[k]=(perfStore.counters[k]||0)+inc; }
+      // Wrap evaluateDirty (idempotent)
+      if (!rulesEngine.__perfWrapped && typeof rulesEngine.evaluateDirty === 'function'){
+        const orig = rulesEngine.evaluateDirty;
+        rulesEngine.evaluateDirty = function(){
+          const ruleCount = (mergedConfig.rules||[]).length;
+          perfCount('rules.eval.count', ruleCount||0);
+          const res = orig.apply(this, arguments);
+          try {
+            // Attempt to infer matches (fallback 0)
+            const trace = (this.getTrace && this.getTrace()) || [];
+            const matched = Array.isArray(trace) ? trace.filter(t=>t && t.matched).length : 0;
+            perfCount('rules.match.count', matched);
+          } catch { /* ignore */ }
+          return res;
+        };
+        rulesEngine.__perfWrapped = true;
+      }
+    } catch(e){
+      console.warn('[MSD v1][rules instrumentation] failed', e);
+    }
+  })();
 
   const profileIndex = buildProfileIndex(mergedConfig.profiles);
   let runtimeActiveProfiles = Array.isArray(mergedConfig.active_profiles) ? mergedConfig.active_profiles.slice() : [];

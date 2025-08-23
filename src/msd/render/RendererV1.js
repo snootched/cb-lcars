@@ -1,5 +1,8 @@
 import { perfTime, perfInc } from '../perf/PerfCounters.js';
 
+// ADD: headless detection
+const __MSD_HEADLESS = (typeof document === 'undefined');
+
 // Helper: always return an object so raw.position access is safe
 function safeRaw(ov) {
   if (!ov) return {};
@@ -22,6 +25,13 @@ export class RendererV1 {
     this._mountObserver = null;
     this._aspectFromExternal = null;
     this._showLineLabels = false; // debug toggle
+
+    // ADD: headless guard
+    this._headless = __MSD_HEADLESS;
+    if (this._headless) {
+      this._lastModel = null;
+      return;
+    }
   }
 
   _tryResolveMountHost() {
@@ -92,6 +102,11 @@ export class RendererV1 {
   }
 
   render(resolvedModel) {
+    // ADD: headless guard
+    if (this._headless) {
+      this._lastModel = resolvedModel;
+      return;
+    }
     return perfTime('render.diff', () => {
       this._lastViewBox = resolvedModel.viewBox;
       this._tryResolveMountHost();
@@ -250,6 +265,8 @@ export class RendererV1 {
   }
 
   _renderLineOverlay(ov, resolvedModel, collector) {
+    // ADD: headless guard
+    if (this._headless) return;
     const raw = safeRaw(ov);
     // collector: optional array to push rendered overlay ids
     if (!this.svg) return;

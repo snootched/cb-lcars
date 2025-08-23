@@ -2,6 +2,25 @@
   if (typeof window === 'undefined') return;
   const W = window;
 
+  const __MSD_HEADLESS = (typeof document === 'undefined');
+
+  // --- ADDED HEADLESS EARLY RETURN (prevents document.* access in tests) ---
+  if (__MSD_HEADLESS) {
+    W.__msdDebug = W.__msdDebug || {};
+    // Provide minimal no-op HUD surface so tests can call perf / issue publishers safely
+    if (!W.__msdDebug.hud) {
+      const noop = ()=>{};
+      W.__msdDebug.hud = {
+        show: noop, hide: noop, toggle: noop, registerPanel: noop,
+        publishIssue: noop, publishRouting: noop, publishRules: noop,
+        publishPacks: noop, publishPacksProvenance: noop, publishPerf: noop,
+        refresh: noop, getState: () => ({ headless:true })
+      };
+    }
+    // Avoid running the rest of the DOM-dependent initialization
+    return;
+  }
+
   // REPLACED legacy selector trap (was emitting warnings each access)
   // Provide quiet, idempotent helpers instead.
   if (typeof W.w !== 'function') {
@@ -734,7 +753,7 @@
   function passiveRuleScan(){
     const dbg = W.__msdDebug;
     const p = dbg?.pipelineInstance;
-    const engine = p?.rulesEngine || p?._rulesEngine || dbg?.rulesEngine;
+    const engine = p?._rulesEngine || p?.rulesEngine || dbg?.rulesEngine;
     if (engine) {
       if (!engine.__hudPatched) patchRulesEngine(engine);
       if (Date.now() - state._ts.rulesLast > 3000) {
