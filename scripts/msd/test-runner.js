@@ -17,6 +17,8 @@ import { runRuleDependenciesTest } from './test-rule-dependencies.js';
 import { runRuleTracingTest } from './test-rule-tracing.js';
 import { runAnimationRegistryTest } from './test-animation-registry.js';
 import { runProfileSystemTest } from './test-profile-system.js';
+import { runAdvancedRenderingTest } from './test-advanced-rendering.js';
+import { runExportCompletionTest } from './test-export-completion.js';
 
 const MSD_TESTS = [
   // Milestone 1.1 - Critical Infrastructure
@@ -47,8 +49,11 @@ const MSD_TESTS = [
   // Milestone 3.2 - Profile System Consolidation
   { name: 'Profile System', runner: runProfileSystemTest, critical: true, milestone: '3.2' },
 
-  // Future Milestone Tests (not yet implemented)
-  // { name: 'Timeline Diffing', runner: runTimelineDiffingTest, critical: true, milestone: '3.1' }
+  // Milestone 4.1 - Advanced Rendering & Routing
+  { name: 'Advanced Rendering', runner: runAdvancedRenderingTest, critical: true, milestone: '4.1' },
+
+  // Milestone 4.2 - Export & HUD Completion
+  { name: 'Export Completion', runner: runExportCompletionTest, critical: true, milestone: '4.2' }
 ];
 
 async function runMsdTests(options = {}) {
