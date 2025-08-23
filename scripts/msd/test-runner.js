@@ -6,9 +6,13 @@
 import { runDeterminismTest } from './test-determinism.js';
 import { runLegacyRemovalTest } from './test-legacy-removal.js';
 import { runValidationIntegrationTest } from './test-validation-integration.js';
+import { runAnchorValidationTest } from './test-anchor-validation.js';
+import { runPaletteDeepMergeTest } from './test-palette-deep-merge.js';
+import { runAnchorProvenanceTest } from './test-anchor-provenance.js';
+import { runExternalPacksTest } from './test-external-packs.js';
+import { runM12IntegrationTest } from './test-m12-integration.js';
 import { runPerformanceTest } from './test-performance.js';
 import { runExportParityTest } from './test-export-parity.js';
-import { runAnchorValidationTest } from './test-anchor-validation.js';
 
 const MSD_TESTS = [
   // Milestone 1.1 - Critical Infrastructure
@@ -17,9 +21,18 @@ const MSD_TESTS = [
   { name: 'Validation Integration', runner: runValidationIntegrationTest, critical: false, milestone: '1.1' },
   { name: 'Anchor Validation', runner: runAnchorValidationTest, critical: false, milestone: '1.1' },
 
-  // Milestone 1.2+ - Performance and Export
-  { name: 'Performance', runner: runPerformanceTest, critical: false, milestone: '1.2' },
+  // Milestone 1.2 - Deep Merge & Provenance
+  { name: 'Palette Deep Merge', runner: runPaletteDeepMergeTest, critical: true, milestone: '1.2' },
+  { name: 'Anchor Provenance', runner: runAnchorProvenanceTest, critical: true, milestone: '1.2' },
+  { name: 'External Packs', runner: runExternalPacksTest, critical: true, milestone: '1.2' },
+  { name: 'M1.2 Integration', runner: runM12IntegrationTest, critical: true, milestone: '1.2' },
+
+  // Future Milestone Tests (not yet implemented)
+  { name: 'Performance', runner: runPerformanceTest, critical: false, milestone: '1.3' },
   { name: 'Export Parity', runner: runExportParityTest, critical: false, milestone: '1.3' }
+
+  // Future milestones will add:
+  // { name: 'Rules Engine', runner: runRulesEngineTest, critical: false, milestone: '2.1' }
 ];
 
 async function runMsdTests(options = {}) {

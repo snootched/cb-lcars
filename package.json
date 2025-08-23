@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-animejs-M1.1-2",
+  "version": "2025.08.1-animejs-M1.2-1",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -35,6 +35,10 @@
     "test:msd:export": "node scripts/msd/test-export-parity.js",
 
     "test:msd:rules": "node scripts/msd/test-rules-engine.js",
+
+    "test:msd:palette": "node scripts/msd/test-palette-deep-merge.js",
+    "test:msd:anchor-prov": "node scripts/msd/test-anchor-provenance.js",
+    "test:msd:external": "node scripts/msd/test-external-packs.js",
 
     "test:all": "npm run test:msd"
   },
