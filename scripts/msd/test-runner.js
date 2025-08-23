@@ -15,6 +15,8 @@ import { runPerformanceTest } from './test-performance.js';
 import { runExportParityTest } from './test-export-parity.js';
 import { runRuleDependenciesTest } from './test-rule-dependencies.js';
 import { runRuleTracingTest } from './test-rule-tracing.js';
+import { runAnimationRegistryTest } from './test-animation-registry.js';
+import { runProfileSystemTest } from './test-profile-system.js';
 
 const MSD_TESTS = [
   // Milestone 1.1 - Critical Infrastructure
@@ -39,8 +41,14 @@ const MSD_TESTS = [
   // Milestone 2.2 - Rule Tracing & Advanced Features
   { name: 'Rule Tracing', runner: runRuleTracingTest, critical: true, milestone: '2.2' },
 
+  // Milestone 3.1 - Animation Registry & Reuse
+  { name: 'Animation Registry', runner: runAnimationRegistryTest, critical: true, milestone: '3.1' },
+
+  // Milestone 3.2 - Profile System Consolidation
+  { name: 'Profile System', runner: runProfileSystemTest, critical: true, milestone: '3.2' },
+
   // Future Milestone Tests (not yet implemented)
-  // { name: 'Rule Tracing', runner: runRuleTracingTest, critical: false, milestone: '2.2' }
+  // { name: 'Timeline Diffing', runner: runTimelineDiffingTest, critical: true, milestone: '3.1' }
 ];
 
 async function runMsdTests(options = {}) {

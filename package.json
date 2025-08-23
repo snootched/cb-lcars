@@ -47,6 +47,13 @@
     "test:msd:m2.1": "node scripts/msd/test-runner.js --milestone=2.1",
     "test:msd:m2.2": "node scripts/msd/test-runner.js --milestone=2.2",
 
+
+    "test:msd:anim-registry": "node scripts/msd/test-animation-registry.js",
+    "test:msd:profile-system": "node scripts/msd/test-profile-system.js",
+    "test:msd:m3.1": "node scripts/msd/test-runner.js --milestone=3.1",
+    "test:msd:m3.2": "node scripts/msd/test-runner.js --milestone=3.2",
+
+
     "test:all": "npm run test:msd"
   },
   "devDependencies": {
