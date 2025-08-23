@@ -28,9 +28,16 @@ import "./hud/hudService.js";  // Wave 6 HUD skeleton
 
 export async function initMsdPipeline(userMsdConfig, mountEl) {
   if (!isMsdV1Enabled()) return { enabled: false };
-  const { merged: mergedConfig, provenance } = await mergePacks(userMsdConfig); // CHANGED: destructure
-  mergedConfig.__raw_msd = userMsdConfig;
-  mergedConfig.__provenance = provenance; // optional debug attachment
+  const { merged: mergedConfig, provenance } = await mergePacks(userMsdConfig);
+
+  mergedConfig.__provenance = provenance;
+
+  // Store original user config in debug namespace instead of __raw_msd
+  if (typeof window !== 'undefined') {
+    window.__msdDebug = window.__msdDebug || {};
+    window.__msdDebug._originalUserConfig = userMsdConfig;  // For debug access
+  }
+
   // Validation pass
   const t0 = performance.now();
   const issues = validateMerged(mergedConfig);          // CHANGED: pass plain merged config
@@ -320,7 +327,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   const pipelineApi = {
     enabled: true,
-    merged: mergedConfig,          // CHANGED (was undefined 'merged')
+    merged: mergedConfig,
     cardModel,
     rulesEngine,
     renderer,
@@ -351,6 +358,10 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       } catch(_) {}
       return true;
     },
+    exportCollapsed: () => exportCollapsed(userMsdConfig),  // Use original user config
+    exportCollapsedJson: () => JSON.stringify(exportCollapsed(userMsdConfig)),
+    exportFullSnapshot: () => exportFullSnapshot(mergedConfig),  // Use merged for full snapshot
+    exportFullSnapshotJson: () => JSON.stringify(exportFullSnapshot(mergedConfig)),
     getPerf: () => perfGetAll()          // NEW
   };
 
@@ -444,7 +455,52 @@ export function initMsdHud(pipeline, mountEl) {
   });
 }
 
-// Debug exposure
+/**
+ * Process MSD configuration through full pipeline
+ */
+export async function processMsdConfig(userMsdConfig) {
+  try {
+    // Pre-merge validation to catch user config issues
+    const preValidation = validateMerged(userMsdConfig);
+
+    // Fixed wrapper destructuring - mergePacks now returns merged config directly
+    const mergedConfig = await mergePacks(userMsdConfig);
+
+    // Post-merge validation for structural issues
+    const postValidation = validateMerged(mergedConfig);
+
+    // Combine validation results
+    const issues = {
+      errors: [...preValidation.errors, ...postValidation.errors],
+      warnings: [...preValidation.warnings, ...postValidation.warnings]
+    };
+
+    if (issues.errors.length > 0) {
+      console.error('MSD validation errors:', issues.errors);
+      // Don't throw on validation errors in milestone 1.1, just log
+      // Will be enhanced in later milestones
+    }
+
+    if (issues.warnings.length > 0) {
+      console.warn('MSD validation warnings:', issues.warnings);
+    }
+
+    return {
+      config: mergedConfig,
+      validation: issues
+    };
+
+  } catch (error) {
+    console.error('MSD processing failed:', error);
+    throw error;
+  }
+}
+
+// Export individual functions for direct testing
+export { mergePacks };
+export { validateMerged };
+
+// Debug exposure (single version)
 (function attachDebug() {
   if (typeof window === 'undefined') return;
   window.__msdDebug = window.__msdDebug || {};
@@ -454,7 +510,6 @@ export function initMsdHud(pipeline, mountEl) {
     initMsdPipeline,
     initMsdHud
   });
-  // Ensure feature flags visible even before initMsdPipeline runs
   window.__msdDebug.featureFlags = window.__msdDebug.featureFlags || {};
   window.__msdDebug.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
 })();

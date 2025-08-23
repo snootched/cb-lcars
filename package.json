@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-animejs-beta11",
+  "version": "2025.08.1-animejs-M1.1-2",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -20,13 +20,23 @@
     "clean": "rimraf dist",
     "build": "webpack --mode production",
     "generate-editor-json": "node src/editor/cb-lcars_generate_editor_forms.js",
-    "test:msd:wave1": "node scripts/msd/runWave1Suite.js",
-    "test:msd:stable": "node scripts/msd/testStableStringify.js",
-    "test:msd:merge": "node scripts/msd/testMergeDeterminism.js",
-    "test:msd:export": "node scripts/msd/testExportParity.js",
-    "test:msd:wave2": "node scripts/msd/runWave2Suite.js",
-    "test:msd:anchor": "node scripts/msd/testAnchorMissingWave2.js",
-    "test:msd:rules": "node scripts/msd/testRulesCounters.js"
+
+    "test:msd": "node scripts/msd/test-runner.js",
+    "test:msd:fast": "node scripts/msd/test-runner.js --fail-fast",
+    "test:msd:m1.1": "node scripts/msd/test-runner.js --milestone=1.1",
+    "test:msd:m1.2": "node scripts/msd/test-runner.js --milestone=1.2",
+
+    "test:msd:determinism": "node scripts/msd/test-determinism.js",
+    "test:msd:legacy": "node scripts/msd/test-legacy-removal.js",
+    "test:msd:validation": "node scripts/msd/test-validation-integration.js",
+    "test:msd:anchor": "node scripts/msd/test-anchor-validation.js",
+
+    "test:msd:performance": "node scripts/msd/test-performance.js",
+    "test:msd:export": "node scripts/msd/test-export-parity.js",
+
+    "test:msd:rules": "node scripts/msd/test-rules-engine.js",
+
+    "test:all": "npm run test:msd"
   },
   "devDependencies": {
     "clean-webpack-plugin": "^4.0.0",
@@ -42,3 +52,4 @@
     "animejs": "^4.0.0"
   }
 }
+

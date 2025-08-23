@@ -1,21 +1,40 @@
-# LCARS MSD Clean‑Slate Schema (v1)
-# UPDATED: Includes rules engine (with map_range_cond), value_map, animation_ref system, anchors, view_box:auto.
-# This schema is authoritative and supersedes prior iterative drafts.
+# LCARS MSD Clean‑Slate Schema (v1 – RATIFIED)
+# This schema merges all features, commentary, and documentation from prior drafts.
+# Key features:
+#  - view_box:auto support, with base_svg extraction
+#  - anchors system (SVG + user overrides, percent support)
+#  - overlays referencing anchors or coordinates
+#  - routing, profiles, palettes, animations, timelines, rules, overlays, HUD
+#  - value_map, map_range_cond, animation_ref, corner_style/arc support
+#  - Extensive commentary and validation notes
 
 msd:
   version: 1
 
-  # Optional base SVG (if view_box:auto, this supplies the coordinate system)
+  # Optional: Source SVG & auto viewBox extraction.
+  # If present and view_box:'auto' (or omitted), the SVG's internal viewBox becomes the canonical coordinate system.
   base_svg:
-    source: builtin:ncc-1701-a-blue
+    source: builtin:ncc-1701-a-blue   # Formats:
+                                      #   builtin:<key>  (look up packaged SVG)
+                                      #   /local/...svg  (from HA www directory)
+                                      #   url:https://... (optional future extension)
+    # (Optional) post-load transformations (future placeholders):
+    # remove_ids: [idA, idB]          # Strip elements before anchor extraction (NOT IMPLEMENTED YET)
+    # id_prefix: lcars_               # Prefix all extracted ids (NOT IMPLEMENTED YET)
 
-  # view_box may be explicit numeric array OR 'auto' (derive from base_svg)
+  # Either an explicit [minX,minY,width,height] OR the literal 'auto'
+  # Omit or set to 'auto' to derive from base_svg (if supplied); fallback default [0,0,400,200].
   view_box: auto
 
-  # User anchor overrides / additions (numbers or percentages)
+  # User-defined / overriding anchors. Keys = anchor IDs; values = [x,y]
+  # Coordinates may be numbers or percentage strings ("50%").
+  # Duplicate IDs from SVG override the extracted coordinates.
   anchors:
     cpu: [120, 80]
     mem: ["60%", "40%"]
+    pct_anchor: ["75%", "50%"]
+    # Example overriding an SVG anchor:
+    # existing_svg_anchor: [400, 220]
 
   # (Optional) use packs – if omitted, builtin:[core] assumed
   use_packs:
@@ -34,6 +53,7 @@ msd:
       accent1: "var(--lcars-orange)"
       accent2: "var(--lcars-yellow)"
       danger:  "var(--lcars-red)"
+      info:    "var(--lcars-cyan)"
 
   data_sources:
     cpu_temp:
@@ -61,11 +81,14 @@ msd:
     default_mode: manhattan
     clearance: 8
     grid_resolution: 56
-    # NEW (M5.4 shaping config – optional):
+    # Channel shaping knobs:
     channel_target_coverage: 0.6              # coverage goal for prefer
     channel_shaping_max_attempts: 12          # max elbow adjustments
     channel_shaping_span: 32                  # px shift per attempt
     channel_min_coverage_gain: 0.04           # minimum coverage delta to accept an adjustment
+    grid_resolution_multipliers: [1, 1.5, 2]  # (from v2)
+    grid_resolution_max: 320                  # (from v2)
+    smart_proximity: 6                        # (from v2)
     cost_defaults:
       distance: 1
       bend: 12
@@ -78,6 +101,8 @@ msd:
     channels:
       - id: main_bus
         rect: [400, 200, 800, 120]
+      - id: aux_bus
+        rect: [400, 600, 800, 120]
     smoothing_mode: none          # none|chaikin (invalid → none + warning counter)
     smoothing_iterations: 0       # iterations (0 disables)
     smoothing_max_points: 160     # safety cap
@@ -90,6 +115,7 @@ msd:
         loop: true
         alternate: true
         max_scale: 1.15
+        min_opacity: 0.65
     - id: trace_cpu_route
       preset: motionpath
       params:
@@ -113,7 +139,7 @@ msd:
   overlays:
     - id: panel_title
       type: text
-      position: [40, 40]
+      position: [40, 40]          # or "cpu" to reference anchor id
       style:
         value: "CPU"
         color: var(--lcars-orange)
@@ -207,9 +233,9 @@ msd:
       snap_grid: 4
       show_rule_badges: true
 
-# ------------------------------
-# SCHEMA NOTES / VALIDATION RULES
-# ------------------------------
+# ------------------------------------------------------------------
+# SCHEMA NOTES / VALIDATION RULES (RATIFIED)
+# ------------------------------------------------------------------
 # 1. Overlays require id + type; coordinate fields (anchor, attach_to, position) accept anchor id or [x,y] (numbers or percentages).
 # 2. value_map structure valid anywhere a numeric style param expected (not inside rules conditions).
 # 3. map_range_cond is optional rule condition enabling direct threshold tests on a mapped numeric domain.
@@ -221,6 +247,20 @@ msd:
 # 9. priority: integer; higher executes earlier. Ties break by declaration order.
 # 10. stop (optional): if true stops further rule effects on overlays modified *in that rule* (overlay-scoped).
 # 11. corner_style accepted: round | bevel | miter. round uses corner_radius (Wave 5.5 adds arc path substitution). bevel = straight cut; miter = sharp vertex.
+# 12. Overlay point fields (anchor, attach_to, position) accept:
+#     - anchor id (string) referencing merged anchor map
+#     - [x,y] numbers
+#     - [ "<pct>%", "<pct>%" ] (resolved after final view_box known)
+# 13. Resolution timing:
+#     1. Load base_svg (if any)
+#     2. If view_box:auto -> extract SVG viewBox
+#     3. Extract SVG anchors
+#     4. Merge user msd.anchors (override duplicates)
+#     5. Resolve overlay point references
+# 14. Validation errors:
+#     - anchor id referenced but absent after merge
+#     - coordinate array not length 2 or contains invalid entries
+#     - view_box neither array[4] nor 'auto'
 # Corner Arc Notes (M5.5):
 # - corner_style: round enables arc substitution (90° A commands) per interior elbow.
 # - corner_radius capped to half of each adjacent segment length.
