@@ -28,13 +28,13 @@ import "./hud/hudService.js";  // Wave 6 HUD skeleton
 
 export async function initMsdPipeline(userMsdConfig, mountEl) {
   if (!isMsdV1Enabled()) return { enabled: false };
-  const merged = await mergePacks(userMsdConfig);  // CHANGED: await async merge
-  merged.__raw_msd = userMsdConfig;
-
+  const { merged: mergedConfig, provenance } = await mergePacks(userMsdConfig); // CHANGED: destructure
+  mergedConfig.__raw_msd = userMsdConfig;
+  mergedConfig.__provenance = provenance; // optional debug attachment
   // Validation pass
   const t0 = performance.now();
-  const issues = validateMerged(merged);
-  merged.__issues = issues;
+  const issues = validateMerged(mergedConfig);          // CHANGED: pass plain merged config
+  mergedConfig.__issues = issues;
   const t1 = performance.now();
   try { window.__msdDebug && (window.__msdDebug._validationMs = (t1 - t0)); } catch {}
 
@@ -51,7 +51,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       listEntities: () => [],
       getEntity: () => null,
       getActiveProfiles: () => [],
-      getAnchors: () => (merged.anchors || {}),
+      getAnchors: () => (mergedConfig.anchors || {}),
       repairAnchorsFromMerged: () => false,
       exportCollapsed: () => null,
       exportCollapsedJson: () => 'null',
@@ -63,24 +63,22 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
     if (typeof window !== 'undefined') {
       window.__msdDebug = window.__msdDebug || {};
-      window.__msdDebug.validation = {
-        issues: () => merged.__issues
-      };
+      window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
       window.__msdDebug.pipelineInstance = disabledPipeline;
-      window.__msdDebug.pipeline = { merged };
+      window.__msdDebug.pipeline = { merged: mergedConfig };
+      window.__msdDebug._provenance = provenance; // CHANGED
     }
     return disabledPipeline;
   }
-
-  const cardModel = await buildCardModel(merged);
+  const cardModel = await buildCardModel(mergedConfig); // CHANGED
 
   // Normalize anchors container
   if (!cardModel.anchors) cardModel.anchors = {};
 
   // Adopt user anchors if CardModel extracted none (common when base_svg not yet loaded in hybrid mode)
   if (!Object.keys(cardModel.anchors).length) {
-    if (merged.anchors && Object.keys(merged.anchors).length) {
-      cardModel.anchors = { ...merged.anchors };
+    if (mergedConfig.anchors && Object.keys(mergedConfig.anchors).length) {
+      cardModel.anchors = { ...mergedConfig.anchors };
       console.info('[MSD v1] Adopted user anchors (no extracted SVG anchors available). Count=', Object.keys(cardModel.anchors).length);
     } else {
       console.warn('[MSD v1] No anchors available (neither SVG nor user). Lines will skip until anchors defined.');
@@ -96,17 +94,17 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
     }
   }
 
-  const rulesEngine = new RulesEngine(merged.rules);
+  const rulesEngine = new RulesEngine(mergedConfig.rules);
   rulesEngine.markAllDirty();
 
-  const profileIndex = buildProfileIndex(merged.profiles);
-  let runtimeActiveProfiles = Array.isArray(merged.active_profiles) ? merged.active_profiles.slice() : [];
+  const profileIndex = buildProfileIndex(mergedConfig.profiles);
+  let runtimeActiveProfiles = Array.isArray(mergedConfig.active_profiles) ? mergedConfig.active_profiles.slice() : [];
 
   const animRegistry = new AnimationRegistry();
-  const animationIndex = new Map((merged.animations || []).map(a => [a.id, a]));
-  const timelineDefs = merged.timelines || [];
+  const animationIndex = new Map((mergedConfig.animations || []).map(a => [a.id, a]));
+  const timelineDefs = mergedConfig.timelines || [];
 
-  const router = new RouterCore(merged.routing, cardModel.anchors, cardModel.viewBox);
+  const router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
   const renderer = new RendererV1(mountEl, router);
 
   // Entity runtime (must exist before first compute)
@@ -134,9 +132,9 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   function computeResolvedModel() {
     // DIAGNOSTIC: ensure anchors still present; if lost, repair & log.
     if (!cardModel.anchors || Object.keys(cardModel.anchors).length === 0) {
-      if (merged.anchors && Object.keys(merged.anchors).length) {
+      if (mergedConfig.anchors && Object.keys(mergedConfig.anchors).length) {
         console.warn('[MSD v1] computeResolvedModel: anchors missing – repairing from merged.anchors');
-        cardModel.anchors = { ...merged.anchors };
+        cardModel.anchors = { ...mergedConfig.anchors };
       } else {
         console.warn('[MSD v1] computeResolvedModel: anchors missing and no merged fallback available.');
       }
@@ -255,7 +253,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   const pipelineApi = {
     enabled: true,
-    merged,
+    merged: mergedConfig,          // CHANGED (was undefined 'merged')
     cardModel,
     rulesEngine,
     renderer,
@@ -295,8 +293,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
     dbg.featureFlags = dbg.featureFlags || {};
     dbg.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
     dbg.pipelineInstance = pipelineApi;
-    dbg.pipeline = { merged, cardModel, rulesEngine, router };
-
+    dbg.pipeline = { merged: mergedConfig, cardModel, rulesEngine, router }; // CHANGED
+    dbg._provenance = provenance; // CHANGED
     dbg.rules = dbg.rules || { trace: () => rulesEngine.getTrace() };
     dbg.updateEntities = updateEntities;
     dbg.animations = dbg.animations || {
@@ -344,21 +342,21 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       return true;
     };
     dbg.validation = {
-      issues: () => merged.__issues
+      issues: () => mergedConfig.__issues
     };
     dbg.packs = {
       list: (type) => {
         if (!type) return {
-          animations: merged.animations.length,
-          overlays: merged.overlays.length,
-          rules: merged.rules.length,
-          profiles: merged.profiles.length,
-          timelines: merged.timelines.length
+          animations: mergedConfig.animations.length,
+          overlays: mergedConfig.overlays.length,
+          rules: mergedConfig.rules.length,
+          profiles: mergedConfig.profiles.length,
+          timelines: mergedConfig.timelines.length
         };
-        return merged[type] || [];
+        return mergedConfig[type] || [];
       },
-      get: (type,id) => (merged[type]||[]).find(i=>i.id===id),
-      issues: () => merged.__issues
+      get: (type,id) => (mergedConfig[type]||[]).find(i=>i.id===id),
+      issues: () => mergedConfig.__issues
     };
     dbg.perf = () => perfGetAll();        // NEW simple accessor
   }
@@ -393,3 +391,4 @@ export function initMsdHud(pipeline, mountEl) {
   window.__msdDebug.featureFlags = window.__msdDebug.featureFlags || {};
   window.__msdDebug.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
 })();
+

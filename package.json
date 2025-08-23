@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-animejs-beta1",
+  "version": "2025.08.1-animejs-beta3",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -19,7 +19,11 @@
   "scripts": {
     "clean": "rimraf dist",
     "build": "webpack --mode production",
-    "generate-editor-json": "node src/editor/cb-lcars_generate_editor_forms.js"
+    "generate-editor-json": "node src/editor/cb-lcars_generate_editor_forms.js",
+    "test:msd:wave1": "node scripts/msd/runWave1Suite.js",
+    "test:msd:stable": "node scripts/msd/testStableStringify.js",
+    "test:msd:merge": "node scripts/msd/testMergeDeterminism.js",
+    "test:msd:export": "node scripts/msd/testExportParity.js"
   },
   "devDependencies": {
     "clean-webpack-plugin": "^4.0.0",
