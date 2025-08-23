@@ -13,6 +13,8 @@ import { runExternalPacksTest } from './test-external-packs.js';
 import { runM12IntegrationTest } from './test-m12-integration.js';
 import { runPerformanceTest } from './test-performance.js';
 import { runExportParityTest } from './test-export-parity.js';
+import { runRuleDependenciesTest } from './test-rule-dependencies.js';
+import { runRuleTracingTest } from './test-rule-tracing.js';
 
 const MSD_TESTS = [
   // Milestone 1.1 - Critical Infrastructure
@@ -31,8 +33,14 @@ const MSD_TESTS = [
   { name: 'Performance', runner: runPerformanceTest, critical: true, milestone: '1.3' },
   { name: 'Export Parity', runner: runExportParityTest, critical: true, milestone: '1.3' },
 
+  // Milestone 2.1 - Dependency Index & Dirty Evaluation
+  { name: 'Rule Dependencies', runner: runRuleDependenciesTest, critical: true, milestone: '2.1' },
+
+  // Milestone 2.2 - Rule Tracing & Advanced Features
+  { name: 'Rule Tracing', runner: runRuleTracingTest, critical: true, milestone: '2.2' },
+
   // Future Milestone Tests (not yet implemented)
-  // { name: 'Rules Engine', runner: runRulesEngineTest, critical: false, milestone: '2.1' }
+  // { name: 'Rule Tracing', runner: runRuleTracingTest, critical: false, milestone: '2.2' }
 ];
 
 async function runMsdTests(options = {}) {
