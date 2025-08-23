@@ -27,11 +27,11 @@ const MSD_TESTS = [
   { name: 'External Packs', runner: runExternalPacksTest, critical: true, milestone: '1.2' },
   { name: 'M1.2 Integration', runner: runM12IntegrationTest, critical: true, milestone: '1.2' },
 
-  // Future Milestone Tests (not yet implemented)
-  { name: 'Performance', runner: runPerformanceTest, critical: false, milestone: '1.3' },
-  { name: 'Export Parity', runner: runExportParityTest, critical: false, milestone: '1.3' }
+  // Milestone 1.3 - Performance & Export Foundation
+  { name: 'Performance', runner: runPerformanceTest, critical: true, milestone: '1.3' },
+  { name: 'Export Parity', runner: runExportParityTest, critical: true, milestone: '1.3' },
 
-  // Future milestones will add:
+  // Future Milestone Tests (not yet implemented)
   // { name: 'Rules Engine', runner: runRulesEngineTest, critical: false, milestone: '2.1' }
 ];
 

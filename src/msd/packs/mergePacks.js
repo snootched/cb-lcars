@@ -1,26 +1,22 @@
 import { computeCanonicalChecksum } from '../util/checksum.js';
+import { perfTime, perfTimeAsync, perfCount } from '../util/performance.js';
 
 /**
  * Single consolidated merge algorithm - COMPLETE REPLACEMENT
  * Removes all legacy dual merge logic per Milestone 1.1
  */
 export async function mergePacks(userConfig) {
-  const startTime = performance.now();
-
-  try {
-    const layers = await loadAllLayers(userConfig);
-    const merged = await processSinglePass(layers);
-
-    // Add performance tracking
-    const duration = performance.now() - startTime;
-    merged.__performance = merged.__performance || {};
-    merged.__performance.merge_time_ms = Math.round(duration * 100) / 100;
+  return await perfTimeAsync('merge.total', async () => {
+    const layers = await perfTimeAsync('merge.loadLayers', () => loadAllLayers(userConfig));
+    const merged = await perfTimeAsync('merge.processSingle', () => processSinglePass(layers));
 
     return merged;
-  } catch (error) {
-    console.error('MSD merge failed:', error);
-    throw error;
-  }
+  }, {
+    config_overlays: userConfig.overlays?.length || 0,
+    config_rules: userConfig.rules?.length || 0,
+    config_anchors: Object.keys(userConfig.anchors || {}).length,
+    use_packs: userConfig.use_packs?.builtin?.length || 0
+  });
 }
 
 async function loadAllLayers(userConfig) {
@@ -91,7 +87,11 @@ async function processSinglePass(layers) {
 
   // Process each layer in priority order
   for (const layer of layers) {
-    await processLayer(merged, layer);
+    perfTime('merge.processLayer', () => processLayer(merged, layer), {
+      layer: layer.pack,
+      type: layer.type
+    });
+
     merged.__provenance.merge_order.push({
       type: layer.type,
       pack: layer.pack,
@@ -100,10 +100,10 @@ async function processSinglePass(layers) {
   }
 
   // Apply removals after all merges
-  applyRemovals(merged, layers[layers.length - 1]?.data?.remove);
+  perfTime('merge.applyRemovals', () => applyRemovals(merged, layers[layers.length - 1]?.data?.remove));
 
   // Generate canonical checksum
-  merged.checksum = await computeCanonicalChecksum(merged);
+  merged.checksum = await perfTimeAsync('merge.checksum', () => computeCanonicalChecksum(merged));
 
   return merged;
 }
@@ -420,170 +420,192 @@ async function processLayer(merged, layer) {
   // Process collections with ID-based merging
   for (const collection of collections) {
     if (layer.data[collection] && Array.isArray(layer.data[collection])) {
-      // Initialize provenance collection if missing
-      if (!merged.__provenance[collection]) {
-        merged.__provenance[collection] = {};
-      }
+      perfTime(`merge.collection.${collection}`, () => {
+        // Initialize provenance collection if missing
+        if (!merged.__provenance[collection]) {
+          merged.__provenance[collection] = {};
+        }
 
-      for (const item of layer.data[collection]) {
-        if (!item.id) continue;
+        for (const item of layer.data[collection]) {
+          if (!item.id) continue;
 
-        // Handle inline removal
-        if (item.remove === true) {
-          const index = merged[collection].findIndex(existing => existing.id === item.id);
-          if (index >= 0) {
-            merged[collection].splice(index, 1);
+          // Handle inline removal
+          if (item.remove === true) {
+            const index = merged[collection].findIndex(existing => existing.id === item.id);
+            if (index >= 0) {
+              merged[collection].splice(index, 1);
+              merged.__provenance[collection][item.id] = {
+                ...(merged.__provenance[collection][item.id] || {}),
+                removed: true,
+                removal_source: layer.pack
+              };
+            }
+            continue;
+          }
+
+          // Normal merge
+          const existingIndex = merged[collection].findIndex(existing => existing.id === item.id);
+          const cloned = structuredClone(item);
+          delete cloned.remove;
+
+          if (existingIndex >= 0) {
+            // Override existing
+            merged[collection][existingIndex] = cloned;
             merged.__provenance[collection][item.id] = {
-              ...(merged.__provenance[collection][item.id] || {}),
-              removed: true,
-              removal_source: layer.pack
+              origin_pack: merged.__provenance[collection][item.id]?.origin_pack || layer.pack,
+              overridden: true,
+              override_layer: layer.pack
+            };
+          } else {
+            // Add new
+            merged[collection].push(cloned);
+            merged.__provenance[collection][item.id] = {
+              origin_pack: layer.pack,
+              overridden: false
             };
           }
-          continue;
         }
 
-        // Normal merge
-        const existingIndex = merged[collection].findIndex(existing => existing.id === item.id);
-        const cloned = structuredClone(item);
-        delete cloned.remove;
-
-        if (existingIndex >= 0) {
-          // Override existing
-          merged[collection][existingIndex] = cloned;
-          merged.__provenance[collection][item.id] = {
-            origin_pack: merged.__provenance[collection][item.id]?.origin_pack || layer.pack,
-            overridden: true,
-            override_layer: layer.pack
-          };
-        } else {
-          // Add new
-          merged[collection].push(cloned);
-          merged.__provenance[collection][item.id] = {
-            origin_pack: layer.pack,
-            overridden: false
-          };
-        }
-      }
+        // Track items processed
+        perfCount(`merge.items.${collection}`, layer.data[collection].length);
+      });
     }
   }
 
   // Enhanced token-level palette merging
   if (layer.data.palettes) {
-    merged.palettes = merged.palettes || {};
-    // Initialize palette provenance if missing
-    if (!merged.__provenance.palettes) {
-      merged.__provenance.palettes = {};
-    }
+    perfTime('merge.palettes', () => {
+      merged.palettes = merged.palettes || {};
+      // Initialize palette provenance if missing
+      if (!merged.__provenance.palettes) {
+        merged.__provenance.palettes = {};
+      }
 
-    for (const [paletteName, tokens] of Object.entries(layer.data.palettes)) {
-      if (typeof tokens === 'object' && !Array.isArray(tokens)) {
-        // Initialize palette if it doesn't exist
-        if (!merged.palettes[paletteName]) {
-          merged.palettes[paletteName] = {};
-          merged.__provenance.palettes[paletteName] = {
-            origin_pack: layer.pack,
-            tokens: {},
-            overridden: false
-          };
-        }
-
-        // Initialize token-level provenance tracking for this palette
-        if (!merged.__provenance.palettes[paletteName].tokens) {
-          merged.__provenance.palettes[paletteName].tokens = {};
-        }
-
-        // Process each token individually
-        for (const [tokenName, value] of Object.entries(tokens)) {
-          const tokenExisted = merged.palettes[paletteName][tokenName] !== undefined;
-          const previousValue = merged.palettes[paletteName][tokenName];
-
-          // Set the token value
-          merged.palettes[paletteName][tokenName] = value;
-
-          // Track token-level provenance
-          if (tokenExisted) {
-            // Token is being overridden
-            merged.__provenance.palettes[paletteName].tokens[tokenName] = {
-              origin_pack: merged.__provenance.palettes[paletteName].tokens[tokenName]?.origin_pack || 'unknown',
-              current_value: value,
-              previous_value: previousValue,
-              overridden: true,
-              override_pack: layer.pack,
-              override_history: [
-                ...(merged.__provenance.palettes[paletteName].tokens[tokenName]?.override_history || []),
-                {
-                  pack: layer.pack,
-                  value: value,
-                  timestamp: Date.now()
-                }
-              ]
-            };
-          } else {
-            // New token
-            merged.__provenance.palettes[paletteName].tokens[tokenName] = {
+      for (const [paletteName, tokens] of Object.entries(layer.data.palettes)) {
+        if (typeof tokens === 'object' && !Array.isArray(tokens)) {
+          // Initialize palette if it doesn't exist
+          if (!merged.palettes[paletteName]) {
+            merged.palettes[paletteName] = {};
+            merged.__provenance.palettes[paletteName] = {
               origin_pack: layer.pack,
-              current_value: value,
-              overridden: false,
-              override_history: []
+              tokens: {},
+              overridden: false
             };
           }
-        }
 
-        // Update palette-level provenance
-        if (merged.__provenance.palettes[paletteName].origin_pack !== layer.pack) {
-          merged.__provenance.palettes[paletteName].overridden = true;
-          merged.__provenance.palettes[paletteName].last_modified_by = layer.pack;
+          // Initialize token-level provenance tracking for this palette
+          if (!merged.__provenance.palettes[paletteName].tokens) {
+            merged.__provenance.palettes[paletteName].tokens = {};
+          }
+
+          // Process each token individually
+          for (const [tokenName, value] of Object.entries(tokens)) {
+            const tokenExisted = merged.palettes[paletteName][tokenName] !== undefined;
+            const previousValue = merged.palettes[paletteName][tokenName];
+
+            // Set the token value
+            merged.palettes[paletteName][tokenName] = value;
+
+            // Track token-level provenance
+            if (tokenExisted) {
+              // Token is being overridden
+              merged.__provenance.palettes[paletteName].tokens[tokenName] = {
+                origin_pack: merged.__provenance.palettes[paletteName].tokens[tokenName]?.origin_pack || 'unknown',
+                current_value: value,
+                previous_value: previousValue,
+                overridden: true,
+                override_pack: layer.pack,
+                override_history: [
+                  ...(merged.__provenance.palettes[paletteName].tokens[tokenName]?.override_history || []),
+                  {
+                    pack: layer.pack,
+                    value: value,
+                    timestamp: Date.now()
+                  }
+                ]
+              };
+            } else {
+              // New token
+              merged.__provenance.palettes[paletteName].tokens[tokenName] = {
+                origin_pack: layer.pack,
+                current_value: value,
+                overridden: false,
+                override_history: []
+              };
+            }
+          }
+
+          // Update palette-level provenance
+          if (merged.__provenance.palettes[paletteName].origin_pack !== layer.pack) {
+            merged.__provenance.palettes[paletteName].overridden = true;
+            merged.__provenance.palettes[paletteName].last_modified_by = layer.pack;
+          }
         }
       }
-    }
+
+      // Count processed palettes and tokens
+      let tokenCount = 0;
+      Object.values(layer.data.palettes).forEach(tokens => {
+        if (typeof tokens === 'object' && !Array.isArray(tokens)) {
+          tokenCount += Object.keys(tokens).length;
+        }
+      });
+
+      perfCount('merge.palette.tokens', tokenCount);
+      perfCount('merge.palettes', Object.keys(layer.data.palettes).length);
+    });
   }
 
   // Enhanced anchor processing with comprehensive provenance
   if (layer.data.anchors) {
-    for (const [anchorId, coordinates] of Object.entries(layer.data.anchors)) {
-      const existed = anchorId in merged.anchors;
-      const previousCoordinates = merged.anchors[anchorId];
+    perfTime('merge.anchors', () => {
+      for (const [anchorId, coordinates] of Object.entries(layer.data.anchors)) {
+        const existed = anchorId in merged.anchors;
+        const previousCoordinates = merged.anchors[anchorId];
 
-      // Set the anchor coordinates
-      merged.anchors[anchorId] = coordinates;
+        // Set the anchor coordinates
+        merged.anchors[anchorId] = coordinates;
 
-      // Determine origin type for this layer
-      const originType = determineAnchorOriginType(layer, anchorId);
+        // Determine origin type for this layer
+        const originType = determineAnchorOriginType(layer, anchorId);
 
-      if (existed) {
-        // Anchor is being overridden
-        const existingProvenance = merged.__provenance.anchors[anchorId];
+        if (existed) {
+          // Anchor is being overridden
+          const existingProvenance = merged.__provenance.anchors[anchorId];
 
-        merged.__provenance.anchors[anchorId] = {
-          origin_pack: existingProvenance?.origin_pack || 'unknown',
-          origin_type: existingProvenance?.origin_type || 'unknown',
-          coordinates: coordinates,
-          overridden: true,
-          override_source: layer.pack,
-          override_type: originType,
-          previous_coordinates: previousCoordinates,
-          override_history: [
-            ...(existingProvenance?.override_history || []),
-            {
-              pack: layer.pack,
-              type: originType,
-              coordinates: coordinates,
-              previous_coordinates: previousCoordinates,
-              timestamp: Date.now()
-            }
-          ]
-        };
-      } else {
-        // New anchor
-        merged.__provenance.anchors[anchorId] = {
-          origin_pack: layer.pack,
-          origin_type: originType,
-          coordinates: coordinates,
-          overridden: false,
-          override_history: []
-        };
+          merged.__provenance.anchors[anchorId] = {
+            origin_pack: existingProvenance?.origin_pack || 'unknown',
+            origin_type: existingProvenance?.origin_type || 'unknown',
+            coordinates: coordinates,
+            overridden: true,
+            override_source: layer.pack,
+            override_type: originType,
+            previous_coordinates: previousCoordinates,
+            override_history: [
+              ...(existingProvenance?.override_history || []),
+              {
+                pack: layer.pack,
+                type: originType,
+                coordinates: coordinates,
+                previous_coordinates: previousCoordinates,
+                timestamp: Date.now()
+              }
+            ]
+          };
+        } else {
+          // New anchor
+          merged.__provenance.anchors[anchorId] = {
+            origin_pack: layer.pack,
+            origin_type: originType,
+            coordinates: coordinates,
+            overridden: false,
+            override_history: []
+          };
+        }
       }
-    }
+
+      perfCount('merge.anchors', Object.keys(layer.data.anchors).length);
+    });
   }
 
   // Process other top-level properties
@@ -672,4 +694,3 @@ try {
 } catch (e) {
   // Ignore in Node.js environments
 }
-

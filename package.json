@@ -25,6 +25,7 @@
     "test:msd:fast": "node scripts/msd/test-runner.js --fail-fast",
     "test:msd:m1.1": "node scripts/msd/test-runner.js --milestone=1.1",
     "test:msd:m1.2": "node scripts/msd/test-runner.js --milestone=1.2",
+    "test:msd:m1.3": "node scripts/msd/test-runner.js --milestone=1.3",
 
     "test:msd:determinism": "node scripts/msd/test-determinism.js",
     "test:msd:legacy": "node scripts/msd/test-legacy-removal.js",
