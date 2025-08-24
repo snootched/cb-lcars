@@ -103,6 +103,31 @@ export function setupDomPolyfill() {
         collectMatching(this);
         return results;
       },
+      addEventListener: function(event, handler) {
+        // Mock addEventListener for Node.js testing
+        this._eventListeners = this._eventListeners || {};
+        this._eventListeners[event] = this._eventListeners[event] || [];
+        this._eventListeners[event].push(handler);
+      },
+      removeEventListener: function(event, handler) {
+        // Mock removeEventListener for Node.js testing
+        if (this._eventListeners && this._eventListeners[event]) {
+          const index = this._eventListeners[event].indexOf(handler);
+          if (index > -1) {
+            this._eventListeners[event].splice(index, 1);
+          }
+        }
+      },
+      dispatchEvent: function(event) {
+        // Mock dispatchEvent for testing
+        if (this._eventListeners && this._eventListeners[event.type]) {
+          this._eventListeners[event.type].forEach(handler => {
+            try {
+              handler(event);
+            } catch (e) {}
+          });
+        }
+      },
       get innerHTML() { return this._innerHTML || ''; },
       set innerHTML(value) {
         this._innerHTML = value;
@@ -115,71 +140,11 @@ export function setupDomPolyfill() {
       set textContent(value) { this._textContent = value; },
       parentNode: null,
       id: '',
-      tagName: tag?.toLowerCase() || 'div', // FIXED: Consistent lowercase
-
-      setAttribute: function(name, value) {
-        this._attrs = this._attrs || {};
-        this._attrs[name] = value;
-        if (name === 'id') this.id = value;
-      },
-      getAttribute: function(name) { return this._attrs?.[name] || null; },
-      appendChild: function(child) {
-        this._children = this._children || [];
-        this._children.push(child);
-        child.parentNode = this;
-        child._parent = this;
-
-        // ENSURE: Child has proper tagName for matching
-        if (child && !child.tagName && child.nodeName) {
-          child.tagName = child.nodeName.toLowerCase();
-        }
-
-        return child;
-      },
-
-      // ...existing code...
-
-      querySelectorAll: function(sel) {
-        const results = [];
-        if (!this._children) return results;
-
-        const collectMatching = (element) => {
-          if (!element._children) return;
-
-          for (const child of element._children) {
-            let matches = false;
-
-            // FIXED: More robust tag matching
-            const childTag = (child.tagName || '').toLowerCase();
-
-            if (sel === 'circle' && childTag === 'circle') {
-              matches = true;
-            } else if (sel === 'text' && childTag === 'text') {
-              matches = true;
-            } else if (sel === 'rect' && childTag === 'rect') {
-              matches = true;
-            } else if (sel === 'path' && childTag === 'path') {
-              matches = true;
-            } else if (sel === '[id][data-cblcars-root="true"]' && child.id && child.getAttribute('data-cblcars-root') === 'true') {
-              matches = true;
-            } else if (sel === '[id]' && child.id) {
-              matches = true;
-            }
-
-            if (matches) {
-              results.push(child);
-            }
-
-            // Always recurse
-            collectMatching(child);
-          }
-        };
-
-        collectMatching(this);
-        return results;
-      },
-
-      // ...existing code...
+      tagName: tag?.toLowerCase() || 'div',
+      namespaceURI: ns || null,
+      _attrs: {},
+      _children: [],
+      _textContent: ''
     };
 
     // FIXED: Consistent SVG element creation
@@ -241,6 +206,47 @@ export function setupDomPolyfill() {
   };
 
   global.createMockElement = createMockElement;
+
+  // FIXED: Add HTMLElement polyfill for Node.js testing
+  global.HTMLElement = class HTMLElement {
+    constructor() {
+      this.style = {};
+      this.setAttribute = (name, value) => { this[`_${name}`] = value; };
+      this.getAttribute = (name) => this[`_${name}`] || null;
+      this.appendChild = (child) => { return child; };
+      this.remove = () => { this._removed = true; };
+      this.setConfig = function(config) { this._config = config; };
+      this.tagName = 'DIV';
+      this._config = null;
+      this._hass = null;
+    }
+
+    set hass(value) { this._hass = value; }
+    get hass() { return this._hass; }
+  };
+
+  // FIXED: Add CustomElementRegistry polyfill
+  global.CustomElementRegistry = class CustomElementRegistry {
+    constructor() {
+      this.registry = new Map();
+    }
+
+    define(name, constructor) {
+      this.registry.set(name, constructor);
+    }
+
+    get(name) {
+      // Return a mock card class for testing
+      return class MockCard extends global.HTMLElement {
+        constructor() {
+          super();
+          this.tagName = name.toUpperCase();
+        }
+      };
+    }
+  };
+
+  global.window.customElements = new global.CustomElementRegistry();
 }
 
 export function createMockContainer() {
