@@ -218,7 +218,20 @@ export function setupDomPolyfill() {
     querySelector: () => null,
     querySelectorAll: () => [],
     getElementById: () => null,
-    body: { appendChild: () => {} }
+    body: {
+      appendChild: (element) => {
+        // Mock body.appendChild for Node.js testing
+        element._appendedToBody = true;
+        return element;
+      }
+    },
+    head: {
+      appendChild: (element) => {
+        // Mock head.appendChild for style elements
+        element._appendedToHead = true;
+        return element;
+      }
+    }
   };
 
   global.window = {

@@ -62,6 +62,7 @@
 
     "test:msd:phase1": "node scripts/msd/test-phase1-data-layer.js",
     "test:msd:phase2": "node scripts/msd/test-phase2-comprehensive.js",
+    "test:msd:phase3": "node scripts/msd/test-phase3-hud-system.js",
 
     "test:all": "npm run test:msd"
   },
