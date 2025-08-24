@@ -20,11 +20,13 @@ import { EntityRuntime } from './entities/EntityRuntime.js';
 
 // CRITICAL: Import our Phase 1-4 refactored systems - NO autoRegister.js import
 import { AdvancedRenderer } from './renderer/AdvancedRenderer.js';
-import { MsdDebugRenderer } from './debug/MsdDebugRenderer.js';
 import { MsdIntrospection } from './introspection/MsdIntrospection.js';
 import { MsdHudManager } from './hud/MsdHudManager.js';
 import { MsdControlsRenderer } from './controls/MsdControlsRenderer.js';
 import { MsdApi } from './api/MsdApi.js';
+
+// FIXED: Use ES6 import instead of require
+import { MsdDebugRenderer } from './debug/MsdDebugRenderer.js';
 
 import "./tests/routingScenarios.js"
 import "./tests/smartRoutingScenarios.js"
@@ -181,7 +183,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   // CRITICAL FIX: Initialize our Phase 1-4 refactored systems
   console.log('[MSD v1] Initializing refactored debug and controls systems');
-  const debugRenderer = new MsdDebugRenderer(mountEl, cardModel.viewBox);
+  const debugRenderer = new MsdDebugRenderer(); // FIXED: No constructor params needed
   const controlsRenderer = new MsdControlsRenderer(renderer);
   const hudManager = new MsdHudManager();
 
@@ -501,19 +503,30 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
     dbg.debug.render = (root, viewBox, options) => {
       try {
         console.log('[MSD v1] debug.render called - using MsdDebugRenderer');
+        console.log('[MSD v1] debug.render params:', {
+          rootType: typeof root,
+          hasQuerySelector: typeof root?.querySelector === 'function',
+          viewBox,
+          optionsKeys: Object.keys(options || {})
+        });
+
         const flags = getDebugFlags();
         if (shouldRenderDebug(flags)) {
           const model = pipelineApi.getResolvedModel();
           if (model) {
-            debugRenderer.render(model, flags);
+            // REVERTED: Pass the correct parameters to debug renderer like before
+            debugRenderer.render(root, viewBox, {
+              anchors: options?.anchors || model.anchors || {}
+            });
           } else {
             console.warn('[MSD v1] debug.render: No resolved model available');
           }
         } else {
-          console.log('[MSD v1] debug.render: No debug flags enabled');
+          console.log('[MSD v1] debug.render: No debug flags enabled, flags:', flags);
         }
       } catch (error) {
         console.warn('[MSD v1] debug.render failed:', error);
+        console.warn('[MSD v1] debug.render error stack:', error.stack);
       }
     };
 

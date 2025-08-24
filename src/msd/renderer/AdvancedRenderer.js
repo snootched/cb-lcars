@@ -10,6 +10,7 @@ export class AdvancedRenderer {
     this.router = router;
     this.overlayElements = new Map();
     this.lastRenderArgs = null;
+    this.debugRenderer = null;
   }
 
   render(resolvedModel) {
@@ -40,6 +41,17 @@ export class AdvancedRenderer {
     // Add to SVG
     if (svgMarkup) {
       svg.innerHTML += svgMarkup;
+    }
+
+    // Create debug layer integration if debug renderer exists
+    if (this.debugRenderer && (resolvedModel.overlays || []).length > 0) {
+      // Calculate bounding boxes for rendered overlays
+      const overlayBounds = (resolvedModel.overlays || []).map(overlay => {
+        const bounds = this.calculateOverlayBounds(overlay, resolvedModel.anchors);
+        return { ...overlay, bounds };
+      });
+
+      this.debugRenderer.renderOverlayBounds(overlayBounds);
     }
 
     return { svgMarkup };
@@ -186,5 +198,39 @@ export class AdvancedRenderer {
   clear() {
     this.overlayElements.clear();
     this.lastRenderArgs = null;
+  }
+
+  // Calculate bounding box for an overlay
+  calculateOverlayBounds(overlay, anchors) {
+    const pos = this.resolvePosition(overlay.position, anchors);
+    if (!pos) return null;
+
+    let width = 100, height = 20; // defaults
+
+    if (overlay.size) {
+      [width, height] = overlay.size;
+    } else if (overlay.type === 'text') {
+      // Estimate text bounds
+      const text = overlay.style?.value || '';
+      const fontSize = overlay.style?.font_size || 16;
+      width = text.length * fontSize * 0.6;
+      height = fontSize * 1.2;
+    } else if (overlay.type === 'sparkline') {
+      width = 200;
+      height = 60;
+    }
+
+    return {
+      x: pos[0],
+      y: pos[1] - height/2,
+      width,
+      height
+    };
+  }
+
+  // Connect debug renderer
+  connectDebugRenderer(debugRenderer) {
+    this.debugRenderer = debugRenderer;
+    console.log('[AdvancedRenderer] Debug renderer connected');
   }
 }

@@ -151,8 +151,8 @@ export function cblcarsLogBanner() {
   const totalLength = url.length + padding;
   const spacesNeeded = totalLength - baseString.length;
 
-  // Create strings with the required number of spaces
-  const spaces = ' '.repeat(spacesNeeded);
+  // FIXED: Protect against negative repeat count
+  const spaces = spacesNeeded > 0 ? ' '.repeat(spacesNeeded) : '';
   const paddedUrl = ' '.repeat(padding) + url;
 
   console.info(`%c${spaces}${baseString}  %c\n%c${paddedUrl}  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
