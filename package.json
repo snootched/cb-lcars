@@ -61,7 +61,7 @@
     "test:msd:m4.2": "node scripts/msd/test-runner.js --milestone=4.2",
 
     "test:msd:phase1": "node scripts/msd/test-phase1-data-layer.js",
-
+    "test:msd:phase2": "node scripts/msd/test-phase2-comprehensive.js",
 
     "test:all": "npm run test:msd"
   },
