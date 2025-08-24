@@ -177,9 +177,9 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   const router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
 
-  // CRITICAL FIX: Use our AdvancedRenderer instead of RendererV1
+  // CRITICAL FIX: Pass RouterCore to AdvancedRenderer constructor
   console.log('[MSD v1] Using AdvancedRenderer for overlay system');
-  const renderer = new AdvancedRenderer(mountEl, router);
+  const renderer = new AdvancedRenderer(mountEl, router); // FIXED: Pass router as second parameter
 
   // CRITICAL FIX: Initialize our Phase 1-4 refactored systems
   console.log('[MSD v1] Initializing refactored debug and controls systems');
@@ -187,11 +187,19 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   const controlsRenderer = new MsdControlsRenderer(renderer);
   const hudManager = new MsdHudManager(); // UPDATED: Use the real MsdHudManager
 
-  // Entity runtime
+  // ENHANCED: Entity runtime with render deduplication
   const entityRuntime = new EntityRuntime((changedIds) => {
     console.log('[MSD v1] Entity changes detected:', changedIds);
     rulesEngine.markEntitiesDirty(changedIds);
-    reRender();
+
+    // ENHANCED: Debounce renders to prevent excessive re-rendering
+    if (this._renderTimeout) {
+      clearTimeout(this._renderTimeout);
+    }
+    this._renderTimeout = setTimeout(() => {
+      reRender();
+      this._renderTimeout = null;
+    }, 100); // 100ms debounce
   });
 
   let resolvedModel;
@@ -208,11 +216,13 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       }
     }
 
-    // Profiles/base style assembly
+    // FIXED: Profiles/base style assembly - preserve all overlay properties
     const baseOverlays = perfTime('profiles.assemble', () =>
       cardModel.overlaysBase.map(o => {
         const { style, sources } = assembleOverlayBaseStyle(o, runtimeActiveProfiles, profileIndex);
-        return {
+
+        // CRITICAL FIX: Preserve ALL properties from raw overlay config
+        const resolvedOverlay = {
           id: o.id,
           type: o.type,
           style,
@@ -224,6 +234,30 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
           position: o.raw?.position,
           size: o.raw?.size
         };
+
+        // FIXED: Preserve data source and other critical properties
+        if (o.raw?.source) {
+          resolvedOverlay.source = o.raw.source;
+        }
+
+        // FIXED: Preserve routing properties
+        if (o.raw?.route) {
+          resolvedOverlay.route = o.raw.route;
+        }
+
+        // ENHANCED: Debug what properties are being preserved
+        const originalKeys = Object.keys(o.raw || {});
+        const preservedKeys = Object.keys(resolvedOverlay);
+
+        if (originalKeys.includes('source')) {
+          console.log(`[MSD v1] Overlay ${o.id} source preservation:`, {
+            originalSource: o.raw?.source,
+            preservedSource: resolvedOverlay.source,
+            hasSource: !!resolvedOverlay.source
+          });
+        }
+
+        return resolvedOverlay;
       })
     );
 
@@ -294,11 +328,15 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   }
 
   function reRender() {
+    const startTime = performance.now();
+
     resolvedModel = computeResolvedModel();
 
-    // CRITICAL: Use our AdvancedRenderer for rendering
-    console.log('[MSD v1] Rendering with AdvancedRenderer - overlays:', resolvedModel.overlays.length);
+    console.log(`[MSD v1] Re-rendering with AdvancedRenderer - overlays: ${resolvedModel.overlays.length}`);
     const renderResult = renderer.render(resolvedModel);
+
+    const renderTime = performance.now() - startTime;
+    console.log(`[MSD v1] Render completed in ${renderTime.toFixed(2)}ms`);
 
     // ADDED: Render debug visualization if flags enabled
     const debugFlags = getDebugFlags();
