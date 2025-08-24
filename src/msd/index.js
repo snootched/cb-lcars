@@ -183,12 +183,13 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   // CRITICAL FIX: Initialize our Phase 1-4 refactored systems
   console.log('[MSD v1] Initializing refactored debug and controls systems');
-  const debugRenderer = new MsdDebugRenderer(); // FIXED: No constructor params needed
+  const debugRenderer = new MsdDebugRenderer();
   const controlsRenderer = new MsdControlsRenderer(renderer);
-  const hudManager = new MsdHudManager();
+  const hudManager = new MsdHudManager(); // UPDATED: Use the real MsdHudManager
 
   // Entity runtime
   const entityRuntime = new EntityRuntime((changedIds) => {
+    console.log('[MSD v1] Entity changes detected:', changedIds);
     rulesEngine.markEntitiesDirty(changedIds);
     reRender();
   });
@@ -333,19 +334,101 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   // Public ingestion helpers
   function ingestHass(hass) {
-    if (!hass) return;
-    if (!hass.states) {
-      if (!ingestHass._warned) {
-        console.warn('[MSD v1] ingestHass called without hass.states');
-        ingestHass._warned = true;
-      }
+    if (!hass) {
+      console.warn('[MSD v1] ingestHass called without hass');
       return;
     }
-    entityRuntime.ingestHassStates(hass.states);
+    if (!hass.states) {
+      console.warn('[MSD v1] ingestHass called without hass.states, hass keys:', Object.keys(hass));
+      return;
+    }
+
+    const stateKeys = Object.keys(hass.states);
+    console.log('[MSD v1] HASS ingestion - states available:', stateKeys.length);
+
+    // ENHANCED: Deep structure analysis
+    if (stateKeys.length > 0) {
+      const firstEntity = hass.states[stateKeys[0]];
+      console.log('[MSD v1] Sample HASS entity structure analysis:');
+      console.log('Entity ID:', stateKeys[0]);
+      console.log('Entity keys:', Object.keys(firstEntity || {}));
+      console.log('Entity state:', firstEntity?.state);
+      console.log('Entity attributes type:', typeof firstEntity?.attributes);
+      console.log('Entity has last_changed:', !!firstEntity?.last_changed);
+      console.log('Entity has last_updated:', !!firstEntity?.last_updated);
+
+      // Check if this is the expected format
+      const expectedFormat = firstEntity &&
+                           typeof firstEntity.state !== 'undefined' &&
+                           typeof firstEntity.attributes === 'object';
+      console.log('[MSD v1] HASS data format check:', expectedFormat ? 'VALID' : 'INVALID');
+
+      if (!expectedFormat) {
+        console.error('[MSD v1] HASS entity format mismatch!');
+        console.log('[MSD v1] Expected: { state: any, attributes: object }');
+        console.log('[MSD v1] Actual:', firstEntity);
+      }
+    }
+
+    // Track before/after entity counts
+    const beforeCount = entityRuntime.listIds().length;
+    console.log('[MSD v1] EntityRuntime before ingestion:', beforeCount, 'entities');
+
+    try {
+      entityRuntime.ingestHassStates(hass.states);
+      console.log('[MSD v1] EntityRuntime.ingestHassStates completed successfully');
+    } catch (error) {
+      console.error('[MSD v1] EntityRuntime.ingestHassStates failed:', error);
+      console.error('[MSD v1] Error stack:', error.stack);
+      return;
+    }
+
+    // Log results of ingestion
+    const afterCount = entityRuntime.listIds().length;
+    const entityStats = entityRuntime.stats();
+
+    console.log('[MSD v1] EntityRuntime after ingestion:', afterCount, 'entities');
+    console.log('[MSD v1] Ingestion delta:', afterCount - beforeCount, 'new entities');
+    console.log('[MSD v1] EntityRuntime stats:', entityStats);
+
+    // If ingestion failed completely, investigate
+    if (stateKeys.length > 0 && afterCount === beforeCount) {
+      console.error('[MSD v1] ZERO entities ingested despite', stateKeys.length, 'available');
+
+      // Try ingesting just one entity to debug
+      console.log('[MSD v1] Testing single entity ingestion...');
+      const testEntity = {};
+      testEntity[stateKeys[0]] = hass.states[stateKeys[0]];
+
+      try {
+        entityRuntime.ingestHassStates(testEntity);
+        const singleTestResult = entityRuntime.listIds().length;
+        console.log('[MSD v1] Single entity test result:', singleTestResult, 'entities');
+
+        if (singleTestResult > afterCount) {
+          console.error('[MSD v1] EntityRuntime can ingest individual entities but not bulk data');
+          console.log('[MSD v1] This suggests a bulk processing issue in EntityRuntime');
+        }
+      } catch (singleError) {
+        console.error('[MSD v1] Single entity ingestion also failed:', singleError);
+      }
+    }
+
+    // Sample some ingested entities
+    if (afterCount > 0) {
+      const sampleIds = entityRuntime.listIds().slice(0, 3);
+      console.log('[MSD v1] Sample ingested entities:');
+      sampleIds.forEach(id => {
+        const entity = entityRuntime.getEntity(id);
+        console.log(`  ${id}:`, entity?.state, Object.keys(entity?.attributes || {}));
+      });
+    }
   }
 
   function updateEntities(map) {
     if (!map || typeof map !== 'object') return;
+
+    console.log('[MSD v1] Manual entity update:', Object.keys(map).length, 'entities');
     const synthetic = {};
     Object.keys(map).forEach(id => {
       const cur = map[id];
@@ -440,17 +523,120 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
         return null;
       }
     };
+    // FIXED: Add missing getPerf function that panels expect
+    dbg.getPerf = () => {
+      const perfStore = dbg.__perfStore || {};
+      const result = {
+        timers: {},
+        counters: perfStore.counters || {}
+      };
+
+      // Convert timing data to expected format
+      if (perfStore.timings) {
+        Object.entries(perfStore.timings).forEach(([key, data]) => {
+          if (data && typeof data === 'object') {
+            result.timers[key] = {
+              count: data.count || 0,
+              total: data.total || 0,
+              avg: data.count > 0 ? (data.total / data.count) : 0,
+              last: data.last || 0,
+              max: data.max || 0
+            };
+          }
+        });
+      }
+
+      return result;
+    };
+
+    // FIXED: Connect entities API to EntityRuntime with correct method names
     dbg.entities = {
-      list: () => entityRuntime.listIds(),
-      get: (id) => entityRuntime.getEntity(id),
-      stats: () => entityRuntime.stats(),
-      ingest: (statesObj) => entityRuntime.ingestHassStates(statesObj || {})
+      list: () => {
+        try {
+          const ids = entityRuntime?.listIds?.() || [];
+          return ids;
+        } catch (e) {
+          console.warn('[MSD v1] entities.list failed:', e);
+          return [];
+        }
+      },
+      get: (id) => {
+        try {
+          const entity = entityRuntime?.getEntity?.(id) || null;
+          return entity;
+        } catch (e) {
+          console.warn(`[MSD v1] entities.get(${id}) failed:`, e);
+          return null;
+        }
+      },
+      stats: () => {
+        try {
+          const runtimeStats = entityRuntime?.stats?.() || {};
+          const entityCount = entityRuntime?.listIds?.()?.length || 0;
+          const stats = {
+            count: entityCount,
+            subscribed: runtimeStats.subscribed || 0,
+            updated: runtimeStats.updated || 0,
+            cacheHits: runtimeStats.cacheHits || 0,
+            ...runtimeStats
+          };
+          return stats;
+        } catch (e) {
+          console.warn('[MSD v1] entities.stats failed:', e);
+          return { count: 0, subscribed: 0, updated: 0, error: e.message };
+        }
+      },
+      ingest: (statesObj) => {
+        try {
+          console.log('[MSD v1] Manual entity ingestion:', Object.keys(statesObj || {}).length, 'entities');
+          return entityRuntime?.ingestHassStates?.(statesObj || {});
+        } catch (e) {
+          console.warn('[MSD v1] entities.ingest failed:', e);
+        }
+      },
+      // ADDED: Debug method to check ingestion
+      testIngestion: () => {
+        const testStates = {
+          'sensor.test_entity': {
+            state: '42',
+            attributes: { unit: 'test' },
+            last_changed: new Date().toISOString(),
+            last_updated: new Date().toISOString()
+          }
+        };
+        console.log('[MSD v1] Testing entity ingestion...');
+        entityRuntime.ingestHassStates(testStates);
+        const result = entityRuntime.getEntity('sensor.test_entity');
+        console.log('[MSD v1] Test result:', result);
+        return result;
+      }
     };
-    dbg.anchors = {
-      keys: () => Object.keys(cardModel.anchors || {}),
-      dump: () => ({ ...cardModel.anchors }),
-      set: (id, x, y) => pipelineApi.setAnchor(id, [x, y])
+
+    // FIXED: Connect validation API properly
+    dbg.validation = {
+      issues: () => {
+        try {
+          return mergedConfig.__issues || { errors: [], warnings: [] };
+        } catch (e) {
+          console.warn('[MSD v1] validation.issues failed:', e);
+          return { errors: [], warnings: [] };
+        }
+      }
     };
+
+    // FIXED: Ensure routing API is properly connected
+    dbg.routing = dbg.routing || {};
+    dbg.routing.inspect = (id) => pipelineApi.routingInspect(id);
+    dbg.routing.invalidate = (id='*') => router.invalidate(id);
+    dbg.routing.stats = () => {
+      try {
+        return router.stats?.() || { cacheHits: 0, pathsComputed: 0, invalidations: 0 };
+      } catch (e) {
+        console.warn('[MSD v1] routing.stats failed:', e);
+        return { cacheHits: 0, pathsComputed: 0, invalidations: 0, error: e.message };
+      }
+    };
+
     dbg.lines = dbg.lines || {
       markersEnabled: false,
       showMarkers(flag=true){
@@ -549,8 +735,18 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       }
     };
 
+    dbg.hud.toggle = () => {
+      try {
+        hudManager.toggle();
+      } catch (error) {
+        console.warn('[MSD v1] hud.toggle failed:', error);
+      }
+    };
+
     dbg.hud.state = () => ({
-      visible: hudManager.state?.visible || false
+      visible: hudManager.state?.visible || false,
+      activePanel: hudManager.state?.activePanel || 'unknown',
+      refreshRate: hudManager.state?.refreshRate || 2000
     });
 
     // ADDED: Expose introspection utilities

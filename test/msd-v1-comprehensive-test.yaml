@@ -1,0 +1,414 @@
+# MSD v1 Comprehensive Testing Configuration
+# Tests all implemented features with comprehensive data and debug visualization
+
+cb-lcars-msd-v1-comprehensive:
+  variables:
+    card:
+      height: 70vw
+      color:
+        background:
+          default: black
+
+  # NEW MSD v1 STRUCTURE - msd at root level
+  msd:
+    version: 1
+
+    base_svg:
+      source: builtin:ncc-1701-a-blue
+
+    view_box: auto
+
+    # FIXED: Test anchor system - use actual coordinates for percentage anchors
+    anchors:
+      debug_anchor_1: [300, 200]
+      debug_anchor_2: [600, 300]
+      debug_anchor_3: [480, 600]    # FIXED: 25% of 1920 = 480, 50% of 1200 = 600
+      debug_anchor_4: [1440, 300]   # FIXED: 75% of 1920 = 1440, 25% of 1200 = 300
+      performance_test: [100, 100]
+
+    # Test data source system
+    data_sources:
+      test_cpu_temp:
+        entity: sensor.bathroom_dial_battery
+        window_seconds: 3600
+        minEmitMs: 200
+        coalesceMs: 100
+        maxDelayMs: 500
+        emitOnSameValue: false
+        history:
+          preload: true
+          hours: 2
+      test_memory:
+        entity: sensor.bedroom_dial_battery
+        window_seconds: 1800
+        minEmitMs: 500
+
+    # Test palette system
+    palettes:
+      test_palette:
+        primary: "var(--lcars-orange)"
+        secondary: "var(--lcars-yellow)"
+        accent: "var(--lcars-cyan)"
+
+    # FIXED: Test overlays - use valid anchor references only
+    overlays:
+      # Text overlays
+      - id: title_overlay
+        type: text
+        position: [50, 50]
+        style:
+          value: "MSD v1 COMPREHENSIVE TEST"
+          color: var(--lcars-orange)
+          font_size: 28
+          font_weight: bold
+
+      - id: status_text
+        type: text
+        position: debug_anchor_1
+        style:
+          value: "Phase Testing"
+          color: var(--lcars-cyan)
+          font_size: 16
+
+      # Sparkline overlays with data sources
+      - id: cpu_sparkline
+        type: sparkline
+        position: [100, 150]
+        size: [400, 80]
+        source: test_cpu_temp
+        style:
+          color: var(--lcars-yellow)
+          width: 2
+          markers:
+            r: 3
+            fill: var(--lcars-yellow)
+          label_last:
+            decimals: 1
+            format: "{v}%"
+            offset: [10, -5]
+            fill: var(--lcars-orange)
+
+      - id: memory_sparkline
+        type: sparkline
+        position: [100, 280]
+        size: [400, 80]
+        source: test_memory
+        style:
+          color: var(--lcars-cyan)
+          width: 2
+
+      # FIXED: Line overlays using only defined anchors (not overlay IDs)
+      - id: test_line_1
+        type: line
+        anchor: debug_anchor_1
+        attach_to: debug_anchor_2  # CHANGED: Use defined anchor instead of overlay
+        route: auto
+        style:
+          color: var(--lcars-orange)
+          width: 4
+          corner_style: round
+          corner_radius: 16
+
+      - id: test_line_2
+        type: line
+        anchor: debug_anchor_2
+        attach_to: debug_anchor_3  # CHANGED: Use defined anchor instead of overlay
+        route: auto
+        style:
+          color: var(--lcars-blue)
+          width: 3
+          corner_style: round
+          corner_radius: 12
+
+      - id: test_line_3
+        type: line
+        anchor: debug_anchor_3
+        attach_to: debug_anchor_4
+        route: auto
+        style:
+          color: var(--lcars-purple)
+          width: 2
+
+      # FIXED: Test percentage anchors with actual coordinates
+      - id: percentage_test
+        type: text
+        position: debug_anchor_3
+        style:
+          value: "25% Anchor (480,600)"
+          color: var(--lcars-purple)
+          font_size: 14
+
+      - id: percentage_test_2
+        type: text
+        position: debug_anchor_4
+        style:
+          value: "75% Anchor (1440,300)"
+          color: var(--lcars-purple)
+          font_size: 14
+
+    # Test rules system
+    rules:
+      - id: cpu_hot_test
+        priority: 10
+        when:
+          all:
+            - entity: sensor.bathroom_dial_battery  # FIXED: Use actual entity
+              above: 70
+        apply:
+          overlays:
+            - id: cpu_sparkline
+              style:
+                color: var(--lcars-red)
+            - id: test_line_1
+              style:
+                color: var(--lcars-red)
+                width: 6
+
+  styles:
+    custom_fields:
+      msd_svg_base:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 0
+      msd_svg_overlays:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 1
+      msd_controls:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 2
+      msd_debug:
+        - width: 100%
+        - height: 100%
+        - position: absolute
+        - top: 0
+        - left: 0
+        - z-index: 100
+
+  custom_fields:
+    msd_svg_base: |
+      [[[
+        // FIXED: Enable comprehensive debugging and force MSD v1
+        window.CBLCARS_MSD_V1_ENABLE = true;
+        window.cblcars = window.cblcars || {};
+        window.cblcars._debugFlags = {
+          overlay: true,
+          connectors: true,
+          geometry: true,
+          perf: true,
+          validation: true
+        };
+
+        // Access MSD config from root level
+        const msdConfig = this._config?.msd || this.config?.msd;
+
+        // FIXED: Add debug logging for percentage resolution
+        console.group('[MSD v1 Comprehensive Test Debug]');
+        console.log('Raw config anchors:', msdConfig.anchors);
+
+        let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
+        if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
+
+        const viewBox = window.cblcars.getSvgViewBox(svgContent);
+        const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+
+        // FIXED: Proper anchor resolution including percentages
+        const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
+        const userAnchors = msdConfig.anchors || {};
+
+        // Process user anchors to resolve percentages
+        const resolvedAnchors = {};
+        const [minX, minY, vw, vh] = viewBox;
+
+        for (const [name, pos] of Object.entries(userAnchors)) {
+          if (Array.isArray(pos) && pos.length === 2) {
+            let [x, y] = pos;
+
+            // Resolve percentage coordinates
+            if (typeof x === 'string' && x.endsWith('%')) {
+              x = minX + (parseFloat(x) / 100) * vw;
+            }
+            if (typeof y === 'string' && y.endsWith('%')) {
+              y = minY + (parseFloat(y) / 100) * vh;
+            }
+
+            resolvedAnchors[name] = [Number(x), Number(y)];
+          } else {
+            resolvedAnchors[name] = pos;
+          }
+        }
+
+        this._msdViewBox = viewBox;
+        this._msdAnchors = { ...svgAnchors, ...resolvedAnchors };
+
+        // Log resolved anchors
+        console.log('ViewBox:', viewBox);
+        console.log('SVG Anchors:', Object.keys(svgAnchors).length);
+        console.log('Resolved User Anchors:', resolvedAnchors);
+        console.log('Final Anchor Count:', Object.keys(this._msdAnchors).length);
+        console.log('Data Sources:', Object.keys(msdConfig.data_sources || {}));
+        console.log('Overlays:', (msdConfig.overlays || []).length);
+        console.groupEnd();
+
+        return `<div id="msd-v1-comprehensive-wrapper" style="width:100%;height:100%;border:2px solid cyan;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+      ]]]
+
+    msd_svg_overlays: |
+      [[[
+        // FIXED: Don't check pipeline instance - let the pipeline handle its own rendering
+        // The AdvancedRenderer will automatically inject overlays when pipeline initializes
+
+        const msdConfig = this._config?.msd || this.config?.msd;
+
+        // If MSD v1 pipeline is available, return minimal markup and let it handle rendering
+        if (window.__msdDebug?.initMsdPipeline) {
+          console.log('[MSD v1 Comprehensive] MSD v1 pipeline available - letting AdvancedRenderer handle overlays');
+
+          // Return empty - the AdvancedRenderer injects directly into SVG
+          return '<!-- MSD v1 Pipeline Handles Overlay Rendering -->';
+        }
+
+        // Fallback to legacy renderer only if MSD v1 not available
+        console.warn('[MSD v1 Comprehensive] MSD v1 pipeline not available - using legacy renderer');
+
+        const overlays = msdConfig.overlays || [];
+        const { svgMarkup } = window.cblcars.renderMsdOverlay({
+          overlays,
+          anchors: this._msdAnchors,
+          hass,
+          root: this.shadowRoot,
+          viewBox: this._msdViewBox,
+          dataSources: msdConfig.data_sources || {}
+        });
+
+        return svgMarkup;
+      ]]]
+
+    msd_controls: |
+      [[[
+        // FIXED: MSD v1 pipeline initialization with better error handling
+        try {
+          if (!this._msdV1ComprehensiveBoot) {
+
+            // Check if MSD v1 system is loaded
+            if (typeof window.__msdDebug === 'undefined') {
+              console.error('[MSD v1 Comprehensive] window.__msdDebug not found - MSD v1 system not loaded');
+              return `<div style="color:red;padding:10px;">MSD v1 system not loaded. Check if src/msd/* files are imported in main bundle.</div>`;
+            }
+
+            if (!window.__msdDebug.initMsdPipeline) {
+              console.error('[MSD v1 Comprehensive] initMsdPipeline not found');
+              console.log('[MSD v1 Comprehensive] Available methods:', Object.keys(window.__msdDebug));
+              return `<div style="color:red;padding:10px;">initMsdPipeline not available. Available: ${Object.keys(window.__msdDebug).join(', ')}</div>`;
+            }
+
+            this._msdV1ComprehensiveBoot = true;
+            const msdConfig = this._config?.msd || this.config?.msd;
+            const baseWrapper = this.shadowRoot.getElementById('msd-v1-comprehensive-wrapper');
+            const mount = baseWrapper || this.shadowRoot;
+
+            console.log('[MSD v1 Comprehensive] Initializing pipeline with config:', msdConfig);
+            console.log('[MSD v1 Comprehensive] Mount element:', mount.id || mount.className || 'shadowRoot');
+
+            window.__msdDebug.initMsdPipeline(msdConfig, mount).then(p => {
+              window.__msdDebug.pipelineInstance = p;
+
+              const stats = {
+                enabled: p.enabled,
+                overlayCount: p.getResolvedModel?.()?.overlays?.length || 0,
+                anchorCount: Object.keys(p.getResolvedModel?.()?.anchors || {}).length,
+                dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
+                ruleCount: (msdConfig.rules || []).length,
+                errors: p.errors?.length || 0
+              };
+
+              console.group('[MSD v1 Comprehensive] Pipeline Started');
+              console.table(stats);
+
+              if (p.errors?.length) {
+                console.error('Pipeline Errors:', p.errors);
+              } else {
+                console.log('✅ Pipeline started successfully');
+              }
+
+              // Log resolved model for debugging
+              const resolvedModel = p.getResolvedModel?.();
+              if (resolvedModel) {
+                console.log('Resolved Anchors:', Object.keys(resolvedModel.anchors || {}));
+                console.log('Resolved Overlays:', (resolvedModel.overlays || []).map(o => o.id));
+              }
+
+              console.groupEnd();
+
+              // FIXED: Force HASS entity ingestion after pipeline is ready
+              setTimeout(() => {
+                try {
+                  const realHass = this.___hass || hass;
+                  if (realHass?.states && Object.keys(realHass.states).length > 0) {
+                    console.log('[MSD v1 Comprehensive] Force ingesting HASS entities:', Object.keys(realHass.states).length);
+
+                    // Use the working manual ingestion method
+                    if (window.__msdDebug?.entities?.ingest) {
+                      window.__msdDebug.entities.ingest(realHass.states);
+                      console.log('[MSD v1 Comprehensive] HASS entities ingested via debug API');
+                    } else if (p?.ingestHass) {
+                      p.ingestHass(realHass);
+                      console.log('[MSD v1 Comprehensive] HASS entities ingested via pipeline');
+                    }
+
+                    // Verify ingestion worked
+                    const entityCount = window.__msdDebug?.entities?.list?.()?.length || 0;
+                    console.log('[MSD v1 Comprehensive] Entity count after ingestion:', entityCount);
+                  }
+                } catch(e) {
+                  console.warn('[MSD v1 Comprehensive] HASS ingestion failed:', e);
+                }
+              }, 1500); // Give pipeline time to fully initialize
+
+              // Show HUD after pipeline starts
+              setTimeout(() => {
+                if (window.__msdDebug?.hud?.show) {
+                  window.__msdDebug.hud.show();
+                  console.log('[MSD v1 Comprehensive] HUD activated');
+                }
+              }, 2000); // Show HUD after entity ingestion
+
+            }).catch(err => {
+              console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
+              console.log('[MSD v1 Comprehensive] Error details:', err.stack || err.message || err);
+            });
+          }
+
+          // Enable debug rendering after short delay
+          setTimeout(() => {
+            try {
+              if (window.__msdDebug?.debug?.render) {
+                window.__msdDebug.debug.render(this.shadowRoot, this._msdViewBox, {
+                  anchors: this._msdAnchors
+                });
+                console.log('[MSD v1 Comprehensive] Debug rendering enabled');
+              }
+            } catch(e) {
+              console.warn('[MSD v1 Comprehensive] Debug rendering failed:', e);
+            }
+          }, 500);
+
+        } catch(e) {
+          console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
+          return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
+        }
+
+        const vb = this._msdViewBox || [0,0,1920,1200];
+        const aspect = window.cblcars.getSvgAspectRatio(vb);
+        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
+      ]]]
