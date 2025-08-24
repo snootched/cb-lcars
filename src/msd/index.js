@@ -5,7 +5,6 @@ import { buildCardModel } from './model/CardModel.js';
 import { RulesEngine, applyOverlayPatches } from './rules/RulesEngine.js';
 import { resolveValueMaps } from './valueMap/resolveValueMaps.js';
 import { AnimationRegistry } from './animation/AnimationRegistry.js';
-import { RendererV1 } from './render/RendererV1.js';
 import { perfGetAll, perfTime } from './perf/PerfCounters.js';
 import { deepMerge } from './util/deepMerge.js';
 import { buildProfileIndex, assembleOverlayBaseStyle } from './profiles/applyProfiles.js';
@@ -19,12 +18,20 @@ import { Router } from './routing/Router.js';
 import { RouterCore } from './routing/RouterCore.js';
 import { EntityRuntime } from './entities/EntityRuntime.js';
 
+// CRITICAL: Import our Phase 1-4 refactored systems - NO autoRegister.js import
+import { AdvancedRenderer } from './renderer/AdvancedRenderer.js';
+import { MsdDebugRenderer } from './debug/MsdDebugRenderer.js';
+import { MsdIntrospection } from './introspection/MsdIntrospection.js';
+import { MsdHudManager } from './hud/MsdHudManager.js';
+import { MsdControlsRenderer } from './controls/MsdControlsRenderer.js';
+import { MsdApi } from './api/MsdApi.js';
+
 import "./tests/routingScenarios.js"
 import "./tests/smartRoutingScenarios.js"
-import "./tests/channelsRoutingScenarios.js"   // ensure shaping scenarios included
-import "./tests/arcsRoutingScenarios.js"; // M5.5 arc scenarios
-import "./tests/smoothingRoutingScenarios.js"; // NEW M5.6 smoothing scenarios
-import "./hud/hudService.js";  // Wave 6 HUD skeleton
+import "./tests/channelsRoutingScenarios.js"
+import "./tests/arcsRoutingScenarios.js";
+import "./tests/smoothingRoutingScenarios.js";
+import "./hud/hudService.js";
 
 export async function initMsdPipeline(userMsdConfig, mountEl) {
   if (!isMsdV1Enabled()) return { enabled: false };
@@ -32,20 +39,20 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   const mergedConfig = await mergePacks(userMsdConfig);
   const provenance = mergedConfig.__provenance;
 
-  // Store original user config in debug namespace instead of __raw_msd
+  // Store original user config in debug namespace
   if (typeof window !== 'undefined') {
     window.__msdDebug = window.__msdDebug || {};
-    window.__msdDebug._originalUserConfig = userMsdConfig;  // For debug access
+    window.__msdDebug._originalUserConfig = userMsdConfig;
   }
 
   // Validation pass
   const t0 = performance.now();
-  const issues = validateMerged(mergedConfig);          // CHANGED: pass plain merged config
+  const issues = validateMerged(mergedConfig);
   mergedConfig.__issues = issues;
   const t1 = performance.now();
   try { window.__msdDebug && (window.__msdDebug._validationMs = (t1 - t0)); } catch {}
 
-  // --- NEW: anchor.missing validation (Wave 2) ---
+  // Anchor validation
   try {
     const existingCodes = new Set(issues.errors.map(e=>e.code));
     const anchorSet = new Set(Object.keys(mergedConfig.anchors || {}));
@@ -66,10 +73,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       });
     });
   } catch(_) {}
-  // re-check for disable after anchor errors
-  if (issues.errors.length && !issues._postAnchorScan) {
-    issues._postAnchorScan = true;
-  }
+
   if (issues.errors.length) {
     console.error('[MSD v1] Validation errors – pipeline disabled', issues.errors);
 
@@ -98,16 +102,17 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
       window.__msdDebug.pipelineInstance = disabledPipeline;
       window.__msdDebug.pipeline = { merged: mergedConfig };
-      window.__msdDebug._provenance = provenance; // CHANGED
+      window.__msdDebug._provenance = provenance;
     }
     return disabledPipeline;
   }
-  const cardModel = await buildCardModel(mergedConfig); // CHANGED
+
+  const cardModel = await buildCardModel(mergedConfig);
 
   // Normalize anchors container
   if (!cardModel.anchors) cardModel.anchors = {};
 
-  // Adopt user anchors if CardModel extracted none (common when base_svg not yet loaded in hybrid mode)
+  // Adopt user anchors if CardModel extracted none
   if (!Object.keys(cardModel.anchors).length) {
     if (mergedConfig.anchors && Object.keys(mergedConfig.anchors).length) {
       cardModel.anchors = { ...mergedConfig.anchors };
@@ -117,21 +122,12 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
     }
   }
 
-  // Debug: log final anchor keys once
-  if (typeof window !== 'undefined') {
-    (window.__msdDebugAnchorsLogged ||= false);
-    if (!window.__msdDebugAnchorsLogged) {
-      window.__msdDebugAnchorsLogged = true;
-      console.info('[MSD v1] Anchors (final after build)=', Object.keys(cardModel.anchors || {}));
-    }
-  }
-
   const rulesEngine = new RulesEngine(mergedConfig.rules);
   rulesEngine.markAllDirty();
-  // --- NEW: rules dependency index + perf counters instrumentation (Wave 2 scaffold) ---
+
+  // Rules dependency index + perf counters instrumentation
   (function instrumentRules(){
     try {
-      // Build simple dependency index: scan rule.when.* for entity keys
       const depIndex = new Map();
       (mergedConfig.rules||[]).forEach(r=>{
         const condBlocks = (r.when && (r.when.all || r.when.any)) || [];
@@ -144,12 +140,12 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
         });
       });
       rulesEngine.__hudDeps = depIndex;
-      // Ensure perf store
+
       const W = typeof window!=='undefined'?window:{};
       W.__msdDebug = W.__msdDebug || {};
       const perfStore = W.__msdDebug.__perfStore = W.__msdDebug.__perfStore || { counters:{}, timings:{} };
       function perfCount(k,inc=1){ perfStore.counters[k]=(perfStore.counters[k]||0)+inc; }
-      // Wrap evaluateDirty (idempotent)
+
       if (!rulesEngine.__perfWrapped && typeof rulesEngine.evaluateDirty === 'function'){
         const orig = rulesEngine.evaluateDirty;
         rulesEngine.evaluateDirty = function(){
@@ -157,7 +153,6 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
           perfCount('rules.eval.count', ruleCount||0);
           const res = orig.apply(this, arguments);
           try {
-            // Attempt to infer matches (fallback 0)
             const trace = (this.getTrace && this.getTrace()) || [];
             const matched = Array.isArray(trace) ? trace.filter(t=>t && t.matched).length : 0;
             perfCount('rules.match.count', matched);
@@ -179,32 +174,28 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   const timelineDefs = mergedConfig.timelines || [];
 
   const router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
-  const renderer = new RendererV1(mountEl, router);
 
-  // Entity runtime (must exist before first compute)
+  // CRITICAL FIX: Use our AdvancedRenderer instead of RendererV1
+  console.log('[MSD v1] Using AdvancedRenderer for overlay system');
+  const renderer = new AdvancedRenderer(mountEl, router);
+
+  // CRITICAL FIX: Initialize our Phase 1-4 refactored systems
+  console.log('[MSD v1] Initializing refactored debug and controls systems');
+  const debugRenderer = new MsdDebugRenderer(mountEl, cardModel.viewBox);
+  const controlsRenderer = new MsdControlsRenderer(renderer);
+  const hudManager = new MsdHudManager();
+
+  // Entity runtime
   const entityRuntime = new EntityRuntime((changedIds) => {
     rulesEngine.markEntitiesDirty(changedIds);
     reRender();
   });
 
-  // DEBUG namespace early (ensures YAML bootstrap diagnostics can see stubs)
-  if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    if (!window.__msdDebug.entities) {
-      window.__msdDebug.entities = {
-        list: () => [],
-        get: () => null,
-        stats: () => ({ total: 0, pending: 0 }),
-        ingest: () => {}
-      };
-    }
-  }
-
   let resolvedModel;
-  let _resolvedModelRef = null;          // NEW: holds last resolved model
+  let _resolvedModelRef = null;
 
   function computeResolvedModel() {
-    // DIAGNOSTIC: ensure anchors still present; if lost, repair & log.
+    // Anchor repair diagnostic
     if (!cardModel.anchors || Object.keys(cardModel.anchors).length === 0) {
       if (mergedConfig.anchors && Object.keys(mergedConfig.anchors).length) {
         console.warn('[MSD v1] computeResolvedModel: anchors missing – repairing from merged.anchors');
@@ -213,33 +204,32 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
         console.warn('[MSD v1] computeResolvedModel: anchors missing and no merged fallback available.');
       }
     }
-    // Extra sanity log (once)
-    if (!computeResolvedModel._anchorsLoggedOnce) {
-      computeResolvedModel._anchorsLoggedOnce = true;
-      console.info('[MSD v1] computeResolvedModel anchor keys=', Object.keys(cardModel.anchors || {}));
-    }
 
-    // 1. Profiles/base style assembly
+    // Profiles/base style assembly
     const baseOverlays = perfTime('profiles.assemble', () =>
       cardModel.overlaysBase.map(o => {
         const { style, sources } = assembleOverlayBaseStyle(o, runtimeActiveProfiles, profileIndex);
         return {
           id: o.id,
-            type: o.type,
+          type: o.type,
           style,
           finalStyle: { ...style },
           _styleSources: sources,
-          _raw: o.raw
+          _raw: o.raw,
+          anchor: o.raw?.anchor,
+          attach_to: o.raw?.attach_to,
+          position: o.raw?.position,
+          size: o.raw?.size
         };
       })
     );
 
-    // 2. Rules (pass inline getEntity closure to avoid undefined)
+    // Rules
     const ruleResult = rulesEngine.evaluateDirty({
       getEntity: id => entityRuntime.getEntity(id)
     });
 
-    // 3. Profiles add/remove (affects next cycle)
+    // Profiles add/remove
     if (ruleResult.profilesAdd?.length || ruleResult.profilesRemove?.length) {
       const set = new Set(runtimeActiveProfiles);
       ruleResult.profilesAdd.forEach(p => set.add(p));
@@ -247,21 +237,21 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       runtimeActiveProfiles = Array.from(set);
     }
 
-    // 4. Apply overlay patches
+    // Apply overlay patches
     const overlaysWithPatches = perfTime('styles.patch', () =>
       applyOverlayPatches(baseOverlays, ruleResult.overlayPatches)
     );
 
-    // 5. value_map substitutions
+    // Value_map substitutions
     perfTime('value_map.subst', () =>
       resolveValueMaps(overlaysWithPatches, {
         getEntity: id => entityRuntime.getEntity(id)
       })
     );
 
-    // 6. Animations (desired sets)
+    // Animations
     const desiredAnimations = resolveDesiredAnimations(overlaysWithPatches, animationIndex, ruleResult.animations);
-    const desiredTimelines = resolveDesiredTimelines(timelineDefs); // <-- ADD this line
+    const desiredTimelines = resolveDesiredTimelines(timelineDefs);
     const activeAnimations = [];
     desiredAnimations.forEach(animDef => {
       const instance = animRegistry.getOrCreateInstance(animDef.definition, animDef.targets);
@@ -274,9 +264,9 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       }
     });
     const animDiff = { active: activeAnimations };
-    const tlDiff = { active: desiredTimelines }; // <-- Now desiredTimelines is defined
+    const tlDiff = { active: desiredTimelines };
 
-    // 7. Assign animation hash to overlays
+    // Assign animation hash to overlays
     const overlayAnimByKey = new Map();
     animDiff.active.forEach(a => {
       if (a.overlayId) overlayAnimByKey.set(a.overlayId, a.hash);
@@ -294,26 +284,55 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       timelines: tlDiff.active,
       active_profiles: runtimeActiveProfiles.slice()
     };
-    // NEW: update router with overlays for obstacle index (M5.2)
+
     try { router.setOverlays && router.setOverlays(resolved.overlays); } catch(_) {}
-    _resolvedModelRef = resolved;        // NEW: track latest
+    _resolvedModelRef = resolved;
     return resolved;
   }
 
   function reRender() {
     resolvedModel = computeResolvedModel();
-    renderer.render(resolvedModel);
+
+    // CRITICAL: Use our AdvancedRenderer for rendering
+    console.log('[MSD v1] Rendering with AdvancedRenderer - overlays:', resolvedModel.overlays.length);
+    const renderResult = renderer.render(resolvedModel);
+
+    // ADDED: Render debug visualization if flags enabled
+    const debugFlags = getDebugFlags();
+    if (shouldRenderDebug(debugFlags)) {
+      console.log('[MSD v1] Rendering debug visualization');
+      debugRenderer.render(resolvedModel, debugFlags);
+    }
+
+    // ADDED: Render controls if any exist
+    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
+    if (controlOverlays.length > 0) {
+      console.log('[MSD v1] Rendering control overlays:', controlOverlays.length);
+      controlsRenderer.renderControls(controlOverlays, resolvedModel);
+    }
+
+    return renderResult;
+  }
+
+  // Helper functions for debug integration
+  function getDebugFlags() {
+    return window.cblcars?._debugFlags || {};
+  }
+
+  function shouldRenderDebug(debugFlags) {
+    return debugFlags && (debugFlags.overlay || debugFlags.connectors || debugFlags.geometry);
   }
 
   // Initial compute + render
+  console.log('[MSD v1] Computing initial resolved model');
   resolvedModel = computeResolvedModel();
-  renderer.render(resolvedModel);
+  console.log('[MSD v1] Initial render - overlays to render:', resolvedModel.overlays.length);
+  reRender();
 
   // Public ingestion helpers
   function ingestHass(hass) {
     if (!hass) return;
     if (!hass.states) {
-      // Light warning once per session if states missing
       if (!ingestHass._warned) {
         console.warn('[MSD v1] ingestHass called without hass.states');
         ingestHass._warned = true;
@@ -354,8 +373,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       const req = router.buildRouteRequest(ov, a1, a2);
       return router.computePath(req);
     },
-    getResolvedModel: () => _resolvedModelRef,          // ensure accessor uses ref
-    setAnchor(id, pt) {                                  // NEW
+    getResolvedModel: () => _resolvedModelRef,
+    setAnchor(id, pt) {
       if (!id || !Array.isArray(pt) || pt.length !== 2) return false;
       if (!cardModel.anchors) cardModel.anchors = {};
       cardModel.anchors[id] = [Number(pt[0]), Number(pt[1])];
@@ -363,27 +382,34 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       router.invalidate && router.invalidate('*');
       try {
         if (this.renderer && _resolvedModelRef) {
-          this.renderer._routerOverlaySync = false; // force overlays sync if renderer caches
+          this.renderer._routerOverlaySync = false;
           this.renderer.render(_resolvedModelRef);
         }
       } catch(_) {}
       return true;
     },
-    exportCollapsed: () => exportCollapsed(userMsdConfig),  // Use original user config
+    ingestHass,
+    updateEntities,
+    listEntities: () => entityRuntime.listIds(),
+    getEntity: (id) => entityRuntime.getEntity(id),
+    getActiveProfiles: () => runtimeActiveProfiles.slice(),
+    getAnchors: () => ({ ...cardModel.anchors }),
+    exportCollapsed: () => exportCollapsed(userMsdConfig),
     exportCollapsedJson: () => JSON.stringify(exportCollapsed(userMsdConfig)),
-    exportFullSnapshot: () => exportFullSnapshot(mergedConfig),  // Use merged for full snapshot
+    exportFullSnapshot: () => exportFullSnapshot(mergedConfig),
     exportFullSnapshotJson: () => JSON.stringify(exportFullSnapshot(mergedConfig)),
-    getPerf: () => perfGetAll()          // NEW
+    diffItem: (item) => diffItem(item),
+    getPerf: () => perfGetAll()
   };
 
-  // Debug exposure
+  // CRITICAL: Debug exposure with our Phase 1-4 systems properly integrated
   if (typeof window !== 'undefined') {
     const dbg = window.__msdDebug = window.__msdDebug || {};
     dbg.featureFlags = dbg.featureFlags || {};
     dbg.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
     dbg.pipelineInstance = pipelineApi;
-    dbg.pipeline = { merged: mergedConfig, cardModel, rulesEngine, router }; // CHANGED
-    dbg._provenance = provenance; // CHANGED
+    dbg.pipeline = { merged: mergedConfig, cardModel, rulesEngine, router };
+    dbg._provenance = provenance;
     dbg.rules = dbg.rules || { trace: () => rulesEngine.getTrace() };
     dbg.updateEntities = updateEntities;
     dbg.animations = dbg.animations || {
@@ -418,17 +444,21 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       stats: () => entityRuntime.stats(),
       ingest: (statesObj) => entityRuntime.ingestHassStates(statesObj || {})
     };
-    // NEW debug helpers for anchors
     dbg.anchors = {
       keys: () => Object.keys(cardModel.anchors || {}),
       dump: () => ({ ...cardModel.anchors }),
-      repairFromMerged: () => pipelineApi.repairAnchorsFromMerged(),
-      set: (id, x, y) => pipelineApi.setAnchor(id, [x, y])    // NEW
+      set: (id, x, y) => pipelineApi.setAnchor(id, [x, y])
     };
-    dbg.lines = dbg.lines || { markersEnabled: false, showMarkers(flag=true){ this.markersEnabled=!!flag; console.info('[MSD v1] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED'); } };
-    dbg.lines.forceRedraw = () => {
-      reRender();
-      return true;
+    dbg.lines = dbg.lines || {
+      markersEnabled: false,
+      showMarkers(flag=true){
+        this.markersEnabled=!!flag;
+        console.info('[MSD v1] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED');
+      },
+      forceRedraw: () => {
+        reRender();
+        return true;
+      }
     };
     dbg.validation = {
       issues: () => mergedConfig.__issues
@@ -436,19 +466,109 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
     dbg.packs = {
       list: (type) => {
         if (!type) return {
-          animations: mergedConfig.animations.length,
-          overlays: mergedConfig.overlays.length,
-          rules: mergedConfig.rules.length,
-          profiles: mergedConfig.profiles.length,
-          timelines: mergedConfig.timelines.length
+          animations: mergedConfig.animations?.length || 0,
+          overlays: mergedConfig.overlays?.length || 0,
+          rules: mergedConfig.rules?.length || 0,
+          profiles: mergedConfig.profiles?.length || 0,
+          timelines: mergedConfig.timelines?.length || 0
         };
         return mergedConfig[type] || [];
       },
       get: (type,id) => (mergedConfig[type]||[]).find(i=>i.id===id),
       issues: () => mergedConfig.__issues
     };
-    dbg.perf = () => perfGetAll();        // NEW simple accessor
+    dbg.perf = () => perfGetAll();
+
+    // CRITICAL FIX: Wire up our Phase 1-4 systems to the main debug interface
+    console.log('[MSD v1] Wiring refactored systems to window.__msdDebug interface');
+
+    dbg.renderAdvanced = (options) => {
+      try {
+        console.log('[MSD v1] renderAdvanced called - using AdvancedRenderer');
+        const model = pipelineApi.getResolvedModel();
+        if (model) {
+          return renderer.render(model);
+        }
+        console.warn('[MSD v1] renderAdvanced: No resolved model available');
+        return { svgMarkup: '' };
+      } catch (error) {
+        console.error('[MSD v1] renderAdvanced failed:', error);
+        return { svgMarkup: '', error: error.message };
+      }
+    };
+
+    dbg.debug = dbg.debug || {};
+    dbg.debug.render = (root, viewBox, options) => {
+      try {
+        console.log('[MSD v1] debug.render called - using MsdDebugRenderer');
+        const flags = getDebugFlags();
+        if (shouldRenderDebug(flags)) {
+          const model = pipelineApi.getResolvedModel();
+          if (model) {
+            debugRenderer.render(model, flags);
+          } else {
+            console.warn('[MSD v1] debug.render: No resolved model available');
+          }
+        } else {
+          console.log('[MSD v1] debug.render: No debug flags enabled');
+        }
+      } catch (error) {
+        console.warn('[MSD v1] debug.render failed:', error);
+      }
+    };
+
+    dbg.hud = dbg.hud || {};
+    dbg.hud.show = () => {
+      try {
+        console.log('[MSD v1] hud.show called - using MsdHudManager');
+        hudManager.show();
+      } catch (error) {
+        console.warn('[MSD v1] hud.show failed:', error);
+      }
+    };
+
+    dbg.hud.hide = () => {
+      try {
+        console.log('[MSD v1] hud.hide called');
+        hudManager.hide();
+      } catch (error) {
+        console.warn('[MSD v1] hud.hide failed:', error);
+      }
+    };
+
+    dbg.hud.state = () => ({
+      visible: hudManager.state?.visible || false
+    });
+
+    // ADDED: Expose introspection utilities
+    dbg.introspection = {
+      listOverlays: (root) => MsdIntrospection.listOverlays(root),
+      getOverlayBBox: (id, root) => MsdIntrospection.getOverlayBBox(id, root),
+      highlight: (ids, opts) => MsdIntrospection.highlight(ids, opts)
+    };
+
+    // ADDED: Expose controls renderer
+    dbg.controls = {
+      render: (overlays, model) => controlsRenderer.renderControls(overlays, model),
+      relayout: () => controlsRenderer.relayout()
+    };
+
+    console.log('[MSD v1] Debug interface setup complete');
+    console.log('[MSD v1] Available methods:', Object.keys(dbg));
   }
+
+  // CRITICAL: Attach unified API (this creates window.cblcars.msd.api)
+  console.log('[MSD v1] Attaching unified API');
+  MsdApi.attach();
+
+  console.log('[MSD v1] Pipeline initialization complete');
+  console.log('[MSD v1] Final pipeline state:', {
+    enabled: true,
+    overlays: resolvedModel.overlays.length,
+    anchors: Object.keys(resolvedModel.anchors).length,
+    renderer: renderer.constructor.name
+  });
+
   return pipelineApi;
 }
 
@@ -463,24 +583,17 @@ export function initMsdHud(pipeline, mountEl) {
         hud
       };
     }
+  }).catch(err => {
+    console.warn('[MSD v1] HudController import failed:', err);
   });
 }
 
-/**
- * Process MSD configuration through full pipeline
- */
 export async function processMsdConfig(userMsdConfig) {
   try {
-    // Pre-merge validation to catch user config issues
     const preValidation = validateMerged(userMsdConfig);
-
-    // Fixed wrapper destructuring - mergePacks now returns merged config directly
     const mergedConfig = await mergePacks(userMsdConfig);
-
-    // Post-merge validation for structural issues
     const postValidation = validateMerged(mergedConfig);
 
-    // Combine validation results
     const issues = {
       errors: [...preValidation.errors, ...postValidation.errors],
       warnings: [...preValidation.warnings, ...postValidation.warnings]
@@ -488,8 +601,6 @@ export async function processMsdConfig(userMsdConfig) {
 
     if (issues.errors.length > 0) {
       console.error('MSD validation errors:', issues.errors);
-      // Don't throw on validation errors in milestone 1.1, just log
-      // Will be enhanced in later milestones
     }
 
     if (issues.warnings.length > 0) {
@@ -511,7 +622,7 @@ export async function processMsdConfig(userMsdConfig) {
 export { mergePacks };
 export { validateMerged };
 
-// Debug exposure (single version)
+// Debug exposure
 (function attachDebug() {
   if (typeof window === 'undefined') return;
   window.__msdDebug = window.__msdDebug || {};
@@ -524,4 +635,3 @@ export { validateMerged };
   window.__msdDebug.featureFlags = window.__msdDebug.featureFlags || {};
   window.__msdDebug.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
 })();
-

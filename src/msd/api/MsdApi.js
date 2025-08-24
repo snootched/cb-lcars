@@ -1,63 +1,58 @@
 /**
- * Unified API structure for window.cblcars.msd.api
+ * Phase 4: Unified MSD API structure
+ * Provides window.cblcars.msd.api namespace
  * Feature flag controlled - replaces old introspection API when enabled
  */
 
 export class MsdApi {
   static attach() {
-    // Check if MSD v1 is enabled
-    if (!this.isMsdV1Enabled()) return;
-
-    const window = this.getWindow();
-    if (!window) return;
+    if (typeof window === 'undefined') return;
 
     window.cblcars = window.cblcars || {};
+    window.cblcars.msd = window.cblcars.msd || {};
 
-    // COMPLETE TAKEOVER of msd namespace when V1 enabled
-    window.cblcars.msd = {
-      // New structured API
-      api: {
-        overlays: {
-          list: (root) => this.listOverlays(root || (typeof document !== 'undefined' ? document : null)),
-          highlight: (ids, opts) => this.highlightOverlays(ids, opts),
-          getBBox: (id, root) => this.getOverlayBBox(id, root),
-          update: (id, data) => this.updateOverlay(id, data)
-        },
-
-        anchors: {
-          list: () => this.listAnchors(),
-          get: (id) => this.getAnchor(id),
-          set: (id, x, y) => this.setAnchor(id, x, y),
-          dump: () => this.dumpAnchors()
-        },
-
-        debug: {
-          showAnchors: () => this.setDebugFlag('overlay', true),
-          showOverlays: () => this.setDebugFlag('overlay', true),
-          showConnectors: () => this.setDebugFlag('connectors', true),
-          showGeometry: () => this.setDebugFlag('geometry', true),
-          clear: () => this.clearDebugFlags()
-        },
-
-        performance: {
-          dump: () => this.getPerformanceData(),
-          counters: () => this.getPerformanceData().counters || {},
-          timers: () => this.getPerformanceData().timers || {}
-        },
-
-        pipeline: {
-          getResolvedModel: () => this.getResolvedModel(),
-          reRender: () => this.reRender(),
-          validate: () => this.getValidationIssues()
-        }
+    // Complete API structure
+    window.cblcars.msd.api = {
+      overlays: {
+        list: (root) => this.listOverlays(root),
+        highlight: (ids, opts) => this.highlightOverlays(ids, opts),
+        getBBox: (id, root) => this.getOverlayBBox(id, root),
+        update: (id, data) => this.updateOverlay(id, data)
       },
 
-      // Backward compatibility aliases (temporary - remove after migration)
-      listOverlays: (root) => this.listOverlays(root),
-      listAnchors: () => this.listAnchors(),
-      getOverlayBBox: (id, root) => this.getOverlayBBox(id, root),
-      highlight: (ids, opts) => this.highlightOverlays(ids, opts)
+      anchors: {
+        list: () => this.listAnchors(),
+        get: (id) => this.getAnchor(id),
+        set: (id, x, y) => this.setAnchor(id, x, y),
+        dump: () => this.dumpAnchors()
+      },
+
+      debug: {
+        showAnchors: () => this.setDebugFlag('overlay', true),
+        showOverlays: () => this.setDebugFlag('overlay', true),
+        showConnectors: () => this.setDebugFlag('connectors', true),
+        showGeometry: () => this.setDebugFlag('geometry', true),
+        clear: () => this.clearDebugFlags()
+      },
+
+      performance: {
+        dump: () => this.getPerformanceData(),
+        counters: () => this.getPerformanceData().counters || {},
+        timers: () => this.getPerformanceData().timers || {}
+      },
+
+      pipeline: {
+        getResolvedModel: () => this.getResolvedModel(),
+        reRender: () => this.reRender(),
+        validate: () => this.getValidationIssues()
+      }
     };
+
+    // Backward compatibility aliases (temporary - remove after migration)
+    window.cblcars.msd.listOverlays = (root) => this.listOverlays(root);
+    window.cblcars.msd.listAnchors = () => this.listAnchors();
+    window.cblcars.msd.getOverlayBBox = (id, root) => this.getOverlayBBox(id, root);
+    window.cblcars.msd.highlight = (ids, opts) => this.highlightOverlays(ids, opts);
   }
 
   static getWindow() {
@@ -258,3 +253,4 @@ export class MsdApi {
     }
   }
 }
+

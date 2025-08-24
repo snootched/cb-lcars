@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-animejs-M.4-4",
+  "version": "2025.08.1-animejs-test-04",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",

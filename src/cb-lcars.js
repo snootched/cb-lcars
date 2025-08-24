@@ -31,7 +31,8 @@ import './utils/cb-lcars-routing-core.js';
 import './utils/cb-lcars-routing-grid.js';
 import './utils/cb-lcars-routing-channels.js';
 
-import "./msd/autoRegister.js"
+// CHANGED: Side-effect import that initializes the MSD v1 pipeline
+import './msd/index.js';
 
 
 // Dev Tools + Modular HUD auto-loader (single-resource strategy)
@@ -1025,19 +1026,19 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         // 1. EARLY: pull debug flags from raw config BEFORE super.setConfig
         try {
-        const earlyDbg = specialConfig?.variables?.msd?.debug;
-        applyEarlyMsdDebugFlags(earlyDbg);
-        // Optional: pre-seed counters if perf flag true
-        if (earlyDbg?.perf && window.cblcars?.debug?.perf?.preseed) {
-            window.cblcars.debug.perf.preseed([
-            'msd.render',
-            'connectors.layout.recomputed',
-            'sparkline.refresh',
-            'ribbon.refresh.exec'
-            ]);
-        }
+            const earlyDbg = specialConfig?.variables?.msd?.debug;
+            applyEarlyMsdDebugFlags(earlyDbg);
+            // Optional: pre-seed counters if perf flag true
+            if (earlyDbg?.perf && window.cblcars?.debug?.perf?.preseed) {
+                window.cblcars.debug.perf.preseed([
+                    'msd.render',
+                    'connectors.layout.recomputed',
+                    'sparkline.refresh',
+                    'ribbon.refresh.exec'
+                ]);
+            }
         } catch (e) {
-        cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Early debug flags apply failed', e);
+            cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Early debug flags apply failed', e);
         }
 
         // 2. Base card setConfig (will trigger first render later)
@@ -1045,37 +1046,50 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         // 3. SAFETY: if (for any reason) global flags still undefined after super, retry once shortly
         try {
-        if (!window.cblcars?._debugFlags) {
-            const lateDbg = this._config?.variables?.msd?.debug;
-            if (lateDbg) setTimeout(() => applyEarlyMsdDebugFlags(lateDbg), 40);
-        }
+            if (!window.cblcars?._debugFlags) {
+                const lateDbg = this._config?.variables?.msd?.debug;
+                if (lateDbg) setTimeout(() => applyEarlyMsdDebugFlags(lateDbg), 40);
+            }
         } catch (_) {}
 
-        // 4. Existing SVG lazy-loading logic (unchanged)
+        // 4. ENHANCED: Initialize MSD v1 pipeline for this card instance
+        // This ensures the pipeline is ready when the card renders
+        try {
+            const msdConfig = specialConfig?.variables?.msd || specialConfig?.msd;
+            if (msdConfig && window.__msdDebug?.initMsdPipeline) {
+                // Store the MSD config for later pipeline initialization in the template
+                this._msdConfig = msdConfig;
+                console.log('[CBLCARSMSDCard] MSD v1 config prepared for pipeline initialization');
+            }
+        } catch (e) {
+            console.warn('[CBLCARSMSDCard] Failed to prepare MSD v1 pipeline:', e);
+        }
+
+        // 5. Existing SVG lazy-loading logic (unchanged)
         const msdVars = specialConfig.variables && specialConfig.variables.msd;
 
         if (msdVars && msdVars.routing) {
-        try {
-            window.cblcars.routing?.setGlobalConfig(msdVars.routing);
-        } catch (e) {
-            cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Failed applying routing config', e);
-        }
+            try {
+                window.cblcars.routing?.setGlobalConfig(msdVars.routing);
+            } catch (e) {
+                cblcarsLog.warn('[CBLCARSMSDCard.setConfig] Failed applying routing config', e);
+            }
         }
 
         if (msdVars && msdVars.base_svg) {
-        let svgKey = null, svgUrl = null;
-        if (msdVars.base_svg.startsWith('builtin:')) {
-            svgKey = msdVars.base_svg.replace('builtin:', '');
-        } else if (msdVars.base_svg.startsWith('/local/')) {
-            svgKey = msdVars.base_svg.split('/').pop().replace('.svg','');
-            svgUrl = msdVars.base_svg;
-            if (!window.cblcars.getSVGFromCache(svgKey)) {
-            window.cblcars.loadUserSVG(svgKey, svgUrl)
-                .then(() => this.requestUpdate && this.requestUpdate())
-                .catch(() => {});
+            let svgKey = null, svgUrl = null;
+            if (msdVars.base_svg.startsWith('builtin:')) {
+                svgKey = msdVars.base_svg.replace('builtin:', '');
+            } else if (msdVars.base_svg.startsWith('/local/')) {
+                svgKey = msdVars.base_svg.split('/').pop().replace('.svg','');
+                svgUrl = msdVars.base_svg;
+                if (!window.cblcars.getSVGFromCache(svgKey)) {
+                    window.cblcars.loadUserSVG(svgKey, svgUrl)
+                        .then(() => this.requestUpdate && this.requestUpdate())
+                        .catch(() => {});
+                }
             }
-        }
-        this._svgKey = svgKey;
+            this._svgKey = svgKey;
         }
     }
 
@@ -1084,7 +1098,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             grid_rows: 4,
             grid_columns: 4
         };
-      }
+    }
 }
 
 class CBLCARSDoubleElbowCard extends CBLCARSBaseCard {

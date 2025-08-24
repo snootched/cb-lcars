@@ -1,12 +1,7 @@
 /**
- * Essential HUD functionality ported from cb-lcars-dev-hud-monolithic.js
- * Focus on core development features: performance, validation, routing
- * Modular design to avoid large file corruption issues
+ * Phase 3: Development HUD manager
+ * Provides performance monitoring and development tools
  */
-
-import { PerformancePanel } from './panels/PerformancePanel.js';
-import { ValidationPanel } from './panels/ValidationPanel.js';
-import { RoutingPanel } from './panels/RoutingPanel.js';
 
 export class MsdHudManager {
   constructor() {
@@ -20,10 +15,26 @@ export class MsdHudManager {
     this.lastSnapshot = null;
     this.panels = new Map();
 
-    // Initialize panels
-    this.panels.set('performance', new PerformancePanel());
-    this.panels.set('validation', new ValidationPanel());
-    this.panels.set('routing', new RoutingPanel());
+    // Initialize basic panels
+    this.initializePanels();
+  }
+
+  initializePanels() {
+    // Basic panel structure - can be enhanced later with dedicated panel classes
+    this.panels.set('performance', {
+      captureData: () => this.capturePerformanceData(),
+      renderHtml: (data) => this.buildPerformancePanelHtml(data)
+    });
+
+    this.panels.set('validation', {
+      captureData: () => this.captureValidationData(),
+      renderHtml: (data) => this.buildValidationPanelHtml(data)
+    });
+
+    this.panels.set('routing', {
+      captureData: (resolvedModel) => this.captureRoutingData(resolvedModel),
+      renderHtml: (data) => this.buildRoutingPanelHtml(data)
+    });
   }
 
   show() {
@@ -31,6 +42,8 @@ export class MsdHudManager {
     this.loadPersistedState();
     this.ensureMounted();
     this.startRefreshLoop();
+
+    // Immediate refresh
     this.refresh();
   }
 
@@ -46,6 +59,8 @@ export class MsdHudManager {
   }
 
   refresh() {
+    if (!this.state.visible) return;
+
     const snapshot = this.buildSnapshot();
     if (snapshot) {
       this.lastSnapshot = snapshot;
@@ -54,8 +69,10 @@ export class MsdHudManager {
   }
 
   buildSnapshot() {
-    // FIXED: Handle case where pipeline isn't available - still return valid snapshot
-    const pipelineInstance = global.window?.__msdDebug?.pipelineInstance;
+    // Handle case where pipeline isn't available - still return valid snapshot
+    const pipelineInstance = (typeof window !== 'undefined')
+      ? window.__msdDebug?.pipelineInstance
+      : global.window?.__msdDebug?.pipelineInstance;
 
     // Always create a valid snapshot structure, even without pipeline
     const timestamp = Date.now();
@@ -94,6 +111,88 @@ export class MsdHudManager {
     return snapshot;
   }
 
+  capturePerformanceData() {
+    // Performance timer and counter collection
+    const data = { timers: {}, counters: {} };
+
+    try {
+      const getPerfFunc = (typeof window !== 'undefined')
+        ? window.__msdDebug?.getPerf
+        : global.window?.__msdDebug?.getPerf;
+
+      const perfData = getPerfFunc?.() || {};
+
+      if (perfData.timers) {
+        Object.entries(perfData.timers).forEach(([key, timerData]) => {
+          data.timers[key] = {
+            count: timerData.count || 0,
+            total: timerData.total || 0,
+            avg: timerData.count > 0 ? (timerData.total / timerData.count) : 0,
+            last: timerData.last || 0,
+            max: timerData.max || 0
+          };
+        });
+      }
+
+      if (perfData.counters) {
+        Object.entries(perfData.counters).forEach(([key, value]) => {
+          data.counters[key] = Number(value) || 0;
+        });
+      }
+    } catch (_) {}
+
+    return data;
+  }
+
+  captureValidationData() {
+    // Validation issue collection
+    const issues = [];
+
+    try {
+      const getIssuesFunc = (typeof window !== 'undefined')
+        ? window.__msdDebug?.validation?.issues
+        : global.window?.__msdDebug?.validation?.issues;
+
+      const validation = getIssuesFunc?.() || [];
+      validation.forEach(issue => {
+        issues.push({
+          severity: issue.severity || 'error',
+          message: issue.message || String(issue),
+          code: issue.code || null
+        });
+      });
+    } catch (_) {}
+
+    return { issues, count: issues.length };
+  }
+
+  captureRoutingData(resolvedModel) {
+    // Basic routing inspection
+    const routes = [];
+
+    try {
+      const lineOverlays = resolvedModel?.overlays?.filter(o => o.type === 'line') || [];
+
+      for (const overlay of lineOverlays.slice(0, 10)) { // Limit to prevent UI bloat
+        const inspectFunc = (typeof window !== 'undefined')
+          ? window.__msdDebug?.routing?.inspect
+          : global.window?.__msdDebug?.routing?.inspect;
+
+        const routeInfo = inspectFunc?.(overlay.id);
+        if (routeInfo) {
+          routes.push({
+            id: overlay.id,
+            strategy: routeInfo.meta?.strategy || 'unknown',
+            cost: routeInfo.meta?.cost || 0,
+            success: routeInfo.meta?.success !== false
+          });
+        }
+      }
+    } catch (_) {}
+
+    return { routes, count: routes.length };
+  }
+
   renderPanels(snapshot) {
     const mount = this.getMount();
     if (!mount) return;
@@ -110,26 +209,110 @@ export class MsdHudManager {
   }
 
   buildHeaderHtml(snapshot) {
+    const hideFunc = (typeof window !== 'undefined')
+      ? 'window.__msdDebug?.hud?.hide?.()'
+      : 'global.window.__msdDebug?.hud?.hide?.()';
+
     return `
       <div class="msd-hud-header">
         <span class="msd-hud-title">MSD v1 HUD</span>
         <span class="msd-hud-timestamp">${new Date(snapshot.timestamp).toLocaleTimeString()}</span>
-        <button onclick="if(typeof global !== 'undefined' && global.window) { global.window.__msdDebug?.hud?.hide?.() } else { window.__msdDebug?.hud?.hide?.() }">×</button>
+        <button onclick="${hideFunc}">×</button>
       </div>
     `;
+  }
+
+  buildPerformancePanelHtml(performance) {
+    let html = '<div class="msd-hud-panel"><h3>Performance</h3>';
+
+    // Timers
+    const timers = Object.entries(performance.timers || {}).slice(0, 8);
+    if (timers.length > 0) {
+      html += '<div class="msd-hud-section"><h4>Timers</h4>';
+      timers.forEach(([key, data]) => {
+        html += `<div class="msd-hud-metric">
+          <span class="msd-hud-metric-name">${key}</span>
+          <span class="msd-hud-metric-value">${data.avg.toFixed(2)}ms avg</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    // Counters
+    const counters = Object.entries(performance.counters || {}).slice(0, 8);
+    if (counters.length > 0) {
+      html += '<div class="msd-hud-section"><h4>Counters</h4>';
+      counters.forEach(([key, value]) => {
+        html += `<div class="msd-hud-metric">
+          <span class="msd-hud-metric-name">${key}</span>
+          <span class="msd-hud-metric-value">${value}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  buildValidationPanelHtml(validation) {
+    let html = '<div class="msd-hud-panel"><h3>Validation</h3>';
+
+    if (validation.count === 0) {
+      html += '<div class="msd-hud-success">✓ No issues found</div>';
+    } else {
+      validation.issues.slice(0, 5).forEach(issue => {
+        const cssClass = issue.severity === 'warning' ? 'msd-hud-warning' : 'msd-hud-error';
+        html += `<div class="${cssClass}">${issue.message}</div>`;
+      });
+
+      if (validation.issues.length > 5) {
+        html += `<div class="msd-hud-metric">
+          <span>... and ${validation.issues.length - 5} more</span>
+        </div>`;
+      }
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  buildRoutingPanelHtml(routing) {
+    let html = '<div class="msd-hud-panel"><h3>Routing</h3>';
+
+    if (routing.count === 0) {
+      html += '<div>No routes found</div>';
+    } else {
+      routing.routes.slice(0, 5).forEach(route => {
+        const statusClass = route.success ? 'msd-hud-success' : 'msd-hud-failed';
+        html += `<div class="msd-hud-metric">
+          <span class="msd-hud-metric-name">${route.id}</span>
+          <span class="${statusClass}">${route.strategy} (${route.cost})</span>
+        </div>`;
+      });
+
+      if (routing.routes.length > 5) {
+        html += `<div class="msd-hud-metric">
+          <span>... and ${routing.routes.length - 5} more routes</span>
+        </div>`;
+      }
+    }
+
+    html += '</div>';
+    return html;
   }
 
   startRefreshLoop() {
     this.stopRefreshLoop();
 
-    // FIXED: Ensure refresh loop works in both browser and Node.js environments
+    // Ensure refresh loop works in both browser and Node.js environments
     const refreshFunction = () => {
       if (this.state.visible) {
         this.refresh();
       }
     };
 
-    // Use appropriate timer for environment - FIXED: Ensure immediate first call
+    // Use appropriate timer for environment - ensure immediate first call
     if (typeof setInterval !== 'undefined') {
       // Call immediately first for testing
       setTimeout(() => refreshFunction(), 0);
@@ -160,7 +343,10 @@ export class MsdHudManager {
   }
 
   getMount() {
-    return document.querySelector('#msd-hud-root') || this.createMount();
+    const doc = (typeof document !== 'undefined') ? document : global.document;
+    if (!doc) return null;
+
+    return doc.querySelector('#msd-hud-root') || this.createMount();
   }
 
   createMount() {
@@ -230,7 +416,7 @@ export class MsdHudManager {
 
   loadPersistedState() {
     try {
-      // FIXED: Handle localStorage not being available in Node.js
+      // Handle localStorage not being available in Node.js
       if (typeof localStorage !== 'undefined' && localStorage.getItem) {
         const saved = localStorage.getItem('msd-hud-state');
         if (saved) {
@@ -243,7 +429,10 @@ export class MsdHudManager {
 
   destroy() {
     this.stopRefreshLoop();
-    const mount = document.querySelector('#msd-hud-root');
-    if (mount) mount.remove();
+    const doc = (typeof document !== 'undefined') ? document : global.document;
+    if (doc) {
+      const mount = doc.querySelector('#msd-hud-root');
+      if (mount) mount.remove();
+    }
   }
 }

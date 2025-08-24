@@ -1,13 +1,12 @@
 /**
- * Complete port of cb-lcars-introspection.js functionality
- * Provides overlay inspection, highlighting, and geometry utilities
+ * Phase 2: Overlay introspection utilities
+ * Provides overlay listing, highlighting, and geometry utilities
  */
 
 export class MsdIntrospection {
   static getOverlaysSvg(root) {
     return root?.querySelector?.('#msd_svg_overlays svg') ||
-           root?.querySelector?.('#cblcars-msd-wrapper svg') ||
-           root?.querySelector?.('svg') || null;
+           root?.querySelector?.('#cblcars-msd-wrapper svg') || null;
   }
 
   static listOverlays(root) {
@@ -15,39 +14,16 @@ export class MsdIntrospection {
     const svg = this.getOverlaysSvg(root);
     if (!svg) return out;
 
-    // Get resolved model from new MSD pipeline
+    // Get resolved model from new pipeline
     const resolvedModel = root.__msdResolvedModel || {};
     const overlaysById = new Map((resolvedModel.overlays || []).map(o => [o.id, o]));
 
-    // Find overlay elements - enhanced search
-    let nodes = [];
-
-    // Try data-cblcars-root first
-    if (svg.querySelectorAll) {
-      nodes = Array.from(svg.querySelectorAll('[id][data-cblcars-root="true"]'));
-    }
-
-    // Fallback: all elements with IDs
-    if (!nodes.length && svg.querySelectorAll) {
+    // Find overlay elements
+    let nodes = Array.from(svg.querySelectorAll('[id][data-cblcars-root="true"]'));
+    if (!nodes.length) {
+      // Fallback: find any elements with IDs, excluding debug layers
       nodes = Array.from(svg.querySelectorAll('[id]'))
-        .filter(n => n.id && !n.id.includes('debug') && !n.id.includes('highlight'));
-    }
-
-    // Further fallback: use resolved model overlays
-    if (!nodes.length && resolvedModel.overlays) {
-      for (const overlay of resolvedModel.overlays) {
-        if (overlay.id) {
-          // Create a synthetic node entry
-          nodes.push({
-            id: overlay.id,
-            tagName: overlay.type?.toUpperCase() || 'SYNTHETIC',
-            getAttribute: (name) => {
-              if (name === 'data-cblcars-type') return overlay.type;
-              return null;
-            }
-          });
-        }
-      }
+        .filter(n => n.id && n.id !== 'cblcars-debug-layer' && n.id !== 'cblcars-highlight-layer');
     }
 
     for (const node of nodes) {
