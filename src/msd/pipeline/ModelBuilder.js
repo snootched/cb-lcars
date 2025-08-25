@@ -1,4 +1,4 @@
-import { buildProfileIndex, assembleOverlayBaseStyle } from '../profiles/applyProfiles.js';
+import { globalProfileResolver } from '../profile/ProfileResolver.js';
 import { applyOverlayPatches } from '../rules/RulesEngine.js';
 import { resolveValueMaps } from '../valueMap/resolveValueMaps.js';
 import { resolveDesiredAnimations } from '../animation/resolveAnimations.js';
@@ -10,7 +10,10 @@ export class ModelBuilder {
     this.mergedConfig = mergedConfig;
     this.cardModel = cardModel;
     this.systems = systemsManager;
-    this.profileIndex = buildProfileIndex(mergedConfig.profiles);
+
+    // Replace profile index building with ProfileResolver
+    globalProfileResolver.loadProfiles(mergedConfig.profiles || []);
+
     this.animationIndex = new Map((mergedConfig.animations || []).map(a => [a.id, a]));
     this.timelineDefs = mergedConfig.timelines || [];
     this.runtimeActiveProfiles = Array.isArray(mergedConfig.active_profiles)
@@ -79,9 +82,20 @@ export class ModelBuilder {
   }
 
   _assembleBaseOverlays() {
-    return perfTime('profiles.assemble', () =>
-      this.cardModel.overlaysBase.map(o => {
-        const { style, sources } = assembleOverlayBaseStyle(o, this.runtimeActiveProfiles, this.profileIndex);
+    return perfTime('profiles.assemble', () => {
+      // Set active profiles before resolving
+      globalProfileResolver.setActiveProfiles(this.runtimeActiveProfiles);
+
+      return this.cardModel.overlaysBase.map(o => {
+        // Replace assembleOverlayBaseStyle with ProfileResolver
+        const style = globalProfileResolver.resolveOverlayStyle(o);
+
+        // Get provenance from resolved style (if needed for debugging)
+        const sources = style.__styleProvenance ?
+          Object.entries(style.__styleProvenance).map(([prop, prov]) => ({
+            kind: prov.source,
+            id: prov.sourceId
+          })) : [];
 
         // Preserve ALL properties from raw overlay config
         const resolvedOverlay = {
@@ -107,8 +121,8 @@ export class ModelBuilder {
         }
 
         return resolvedOverlay;
-      })
-    );
+      });
+    });
   }
 
   _subscribeOverlaysToDataSources(baseOverlays) {
@@ -151,6 +165,9 @@ export class ModelBuilder {
       ruleResult.profilesAdd.forEach(p => set.add(p));
       ruleResult.profilesRemove.forEach(p => set.delete(p));
       this.runtimeActiveProfiles = Array.from(set);
+
+      // Update ProfileResolver with new active profiles
+      globalProfileResolver.setActiveProfiles(this.runtimeActiveProfiles);
     }
   }
 
