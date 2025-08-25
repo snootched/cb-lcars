@@ -60,7 +60,7 @@ cb-lcars-msd-v1-comprehensive:
         position: [50, 50]
         style:
           value: "MSD v1 COMPREHENSIVE TEST"
-          color: var(--lcars-orange)
+          color: var(--picard-orange)
           font_size: 28
           font_weight: bold
 
