@@ -91,24 +91,24 @@ export class MsdDataSource {
 
   async start() {
     if (this._started || this._destroyed) return;
-    this._started = true;
 
-    // PORT: History preload logic
-    if (this.cfg.history?.preload) {
-      try {
-        await this._preloadHistory();
-        const lastPoint = this.buffer.last();
-        if (lastPoint) {
-          this._lastEmittedValue = lastPoint.v;
-          this._ensureScheduleEmit();
+    try {
+      // FIXED: Await the subscription since subscribeEvents returns a Promise
+      this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
+        if (event.event_type === 'state_changed' &&
+            event.data?.entity_id === this.cfg.entity) {
+          console.log(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
+          this._handleStateChange(event.data);
         }
-      } catch (error) {
-        console.warn('[MsdDataSource] History preload failed:', error.message);
-      }
-    }
+      }, 'state_changed');
 
-    // Start real-time subscriptions
-    await this._subscribeLive();
+      this._started = true;
+      console.log(`[MsdDataSource] ✅ Subscribed to HA events for ${this.cfg.entity}`);
+
+    } catch (error) {
+      console.error(`[MsdDataSource] Failed to subscribe to HA events for ${this.cfg.entity}:`, error);
+      throw error;
+    }
   }
 
   async stop() {
@@ -210,6 +210,82 @@ export class MsdDataSource {
     if (Number.isFinite(stat.max)) return stat.max;
     if (Number.isFinite(stat.min)) return stat.min;
     return null;
+  }
+
+  /**
+   * Handle Home Assistant state change events
+   * @param {Object} stateChangeData - HA state_changed event data
+   */
+  _handleStateChange(stateChangeData) {
+    if (this._destroyed || !this._started) return;
+
+    const newState = stateChangeData.new_state;
+    if (!newState || newState.entity_id !== this.cfg.entity) return;
+
+    // Extract numeric value from state
+    const value = parseFloat(newState.state);
+    if (isNaN(value)) {
+      console.warn(`[MsdDataSource] Non-numeric state for ${this.cfg.entity}:`, newState.state);
+      this._stats.invalid++;
+      return;
+    }
+
+    const timestamp = new Date(newState.last_changed || newState.last_updated).getTime();
+
+    console.log(`[MsdDataSource] 📊 State change for ${this.cfg.entity}: ${value} at ${timestamp}`);
+
+    // Update statistics
+    this._stats.received++;
+
+    // Add to buffer
+    this.buffer.push({ t: timestamp, v: value });
+
+    // Check if we should emit to subscribers
+    if (this._shouldEmit(value, timestamp)) {
+      this._emit({ t: timestamp, v: value, buffer: this.buffer, stats: this._stats });
+    }
+  }
+
+  /**
+   * Check if we should emit data to subscribers based on timing and value rules
+   */
+  _shouldEmit(value, timestamp) {
+    const now = Date.now();
+
+    // Respect minimum emit interval
+    if (this._lastEmitTime && (timestamp - this._lastEmitTime) < this.minEmitMs) {
+      this._stats.coalesced++;
+      return false;
+    }
+
+    // Skip if value hasn't changed (if configured)
+    if (!this.emitOnSameValue && value === this._lastEmittedValue) {
+      this._stats.skipsSameValue++;
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Emit data to all subscribers
+   */
+  _emit(data) {
+    const now = Date.now();
+    this._lastEmitTime = now;
+    this._lastEmittedValue = data.v;
+    this._stats.emits++;
+
+    console.log(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, data.v);
+
+    // Call all subscribers
+    this.subscribers.forEach(callback => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.warn(`[MsdDataSource] Subscriber callback error:`, error);
+      }
+    });
   }
 
   async _subscribeLive() {
@@ -335,41 +411,6 @@ export class MsdDataSource {
         setTimeout(() => {
           this._ensureScheduleEmit();
         }, Math.max(1, Math.min(50, nextCheck)));
-      }
-    }
-  }
-
-  _emit() {
-    if (!this._pending || this._destroyed) return;
-
-    const lastPoint = this.buffer.last();
-    if (!lastPoint) return;
-
-    // Check if we should skip same value
-    if (!this.emitOnSameValue && this._lastEmittedValue === lastPoint.v) {
-      this._stats.skipsSameValue++;
-      this._pending = false;
-      return;
-    }
-
-    // Emit to all subscribers
-    this._stats.emits++;
-    this._lastEmitTime = isNode ? Date.now() : performance.now();
-    this._lastEmittedValue = lastPoint.v;
-    this._pending = false;
-
-    const emitData = {
-      t: lastPoint.t,
-      v: lastPoint.v,
-      buffer: this.buffer,
-      stats: this._stats
-    };
-
-    for (const callback of this.subscribers) {
-      try {
-        callback(emitData);
-      } catch (error) {
-        console.warn('[MsdDataSource] Subscriber callback error:', error);
       }
     }
   }

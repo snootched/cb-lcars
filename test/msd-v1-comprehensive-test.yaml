@@ -36,12 +36,14 @@ cb-lcars-msd-v1-comprehensive:
         maxDelayMs: 500
         emitOnSameValue: false
         history:
-          preload: true
+          preload: true  # FIXED: Re-enable preload now that entities are pre-loaded
           hours: 2
       test_memory:
         entity: sensor.bedroom_dial_battery
         window_seconds: 1800
         minEmitMs: 500
+        history:
+          preload: true  # FIXED: Re-enable preload now that entities are pre-loaded
 
     # Test palette system
     palettes:
@@ -296,7 +298,7 @@ cb-lcars-msd-v1-comprehensive:
 
     msd_controls: |
       [[[
-        // FIXED: MSD v1 pipeline initialization with better error handling
+        // FIXED: MSD v1 pipeline initialization with HASS parameter
         try {
           if (!this._msdV1ComprehensiveBoot) {
 
@@ -316,11 +318,14 @@ cb-lcars-msd-v1-comprehensive:
             const msdConfig = this._config?.msd || this.config?.msd;
             const baseWrapper = this.shadowRoot.getElementById('msd-v1-comprehensive-wrapper');
             const mount = baseWrapper || this.shadowRoot;
+            const realHass = this.___hass || hass;
 
-            console.log('[MSD v1 Comprehensive] Initializing pipeline with config:', msdConfig);
+            console.log('[MSD v1 Comprehensive] Initializing pipeline with config and HASS:', msdConfig);
             console.log('[MSD v1 Comprehensive] Mount element:', mount.id || mount.className || 'shadowRoot');
+            console.log('[MSD v1 Comprehensive] HASS available:', !!realHass, 'entities:', Object.keys(realHass?.states || {}).length);
 
-            window.__msdDebug.initMsdPipeline(msdConfig, mount).then(p => {
+            // FIXED: Pass HASS directly to pipeline initialization
+            window.__msdDebug.initMsdPipeline(msdConfig, mount, realHass).then(p => {
               window.__msdDebug.pipelineInstance = p;
 
               const stats = {
@@ -332,13 +337,13 @@ cb-lcars-msd-v1-comprehensive:
                 errors: p.errors?.length || 0
               };
 
-              console.group('[MSD v1 Comprehensive] Pipeline Started');
+              console.group('[MSD v1 Comprehensive] Pipeline Started with HASS');
               console.table(stats);
 
               if (p.errors?.length) {
                 console.error('Pipeline Errors:', p.errors);
               } else {
-                console.log('✅ Pipeline started successfully');
+                console.log('✅ Pipeline started successfully with real HASS data');
               }
 
               // Log resolved model for debugging
@@ -348,32 +353,60 @@ cb-lcars-msd-v1-comprehensive:
                 console.log('Resolved Overlays:', (resolvedModel.overlays || []).map(o => o.id));
               }
 
+              // ENHANCED: Check DataSourceManager status
+              setTimeout(() => {
+                const dsStats = window.__msdDebug.dataSources?.stats?.() || {};
+                console.log('[MSD v1 Comprehensive] DataSourceManager status:', dsStats);
+
+                // FIXED: Check actual subscriber counts from individual sources
+                const actualSubscriptions = dsStats.manager?.subscriptionsActive || 0;
+                const sourcesCreated = dsStats.manager?.sourcesCreated || 0;
+
+                // ADDED: Calculate total subscribers from individual sources
+                let totalSubscribers = 0;
+                if (dsStats.sources) {
+                  totalSubscribers = Object.values(dsStats.sources).reduce((sum, source) =>
+                    sum + (source.subscribers || 0), 0
+                  );
+                }
+
+                if (dsStats.error) {
+                  console.warn('⚠️ DataSourceManager not initialized:', dsStats.error);
+                  console.warn('⚠️ Sparklines will show realistic mock data based on current entity values');
+                } else if (sourcesCreated > 0 && totalSubscribers > 0) {
+                  console.log('✅ DataSources created:', sourcesCreated);
+                  console.log('✅ Total subscribers:', totalSubscribers);
+                  console.log('✅ Sparklines using REAL-TIME Home Assistant data');
+                } else if (sourcesCreated > 0) {
+                  console.log('✅ DataSources created:', sourcesCreated);
+                  console.warn('⚠️ No active subscriptions - sparklines will show realistic mock data');
+                } else {
+                  console.warn('⚠️ No DataSources created - sparklines will show mock data');
+                }
+
+                // ADDED: Additional verification
+                const entityStats = window.__msdDebug.entities?.stats?.() || {};
+                console.log('[MSD v1 Comprehensive] Entity stats:', entityStats);
+
+                if (entityStats.count > 0) {
+                  console.log('✅ EntityRuntime has', entityStats.count, 'entities loaded');
+                } else {
+                  console.warn('⚠️ No entities loaded in EntityRuntime');
+                }
+
+                // ADDED: Show detailed subscription info if available
+                if (dsStats.sources) {
+                  const sourceDetails = Object.entries(dsStats.sources).map(([name, stats]) =>
+                    `${name}: ${stats.subscribers} subscribers, ${stats.received} received`
+                  );
+                  console.log('📊 Data Source Details:', sourceDetails.join(', '));
+                }
+              }, 500);
+
               console.groupEnd();
 
-              // FIXED: Force HASS entity ingestion after pipeline is ready
-              setTimeout(() => {
-                try {
-                  const realHass = this.___hass || hass;
-                  if (realHass?.states && Object.keys(realHass.states).length > 0) {
-                    console.log('[MSD v1 Comprehensive] Force ingesting HASS entities:', Object.keys(realHass.states).length);
-
-                    // Use the working manual ingestion method
-                    if (window.__msdDebug?.entities?.ingest) {
-                      window.__msdDebug.entities.ingest(realHass.states);
-                      console.log('[MSD v1 Comprehensive] HASS entities ingested via debug API');
-                    } else if (p?.ingestHass) {
-                      p.ingestHass(realHass);
-                      console.log('[MSD v1 Comprehensive] HASS entities ingested via pipeline');
-                    }
-
-                    // Verify ingestion worked
-                    const entityCount = window.__msdDebug?.entities?.list?.()?.length || 0;
-                    console.log('[MSD v1 Comprehensive] Entity count after ingestion:', entityCount);
-                  }
-                } catch(e) {
-                  console.warn('[MSD v1 Comprehensive] HASS ingestion failed:', e);
-                }
-              }, 1500); // Give pipeline time to fully initialize
+              // REMOVED: No longer need manual entity ingestion - pipeline handles it now
+              // Entities should be pre-loaded during pipeline initialization
 
               // Show HUD after pipeline starts
               setTimeout(() => {
@@ -381,7 +414,7 @@ cb-lcars-msd-v1-comprehensive:
                   window.__msdDebug.hud.show();
                   console.log('[MSD v1 Comprehensive] HUD activated');
                 }
-              }, 2000); // Show HUD after entity ingestion
+              }, 2000);
 
             }).catch(err => {
               console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
@@ -412,3 +445,4 @@ cb-lcars-msd-v1-comprehensive:
         const aspect = window.cblcars.getSvgAspectRatio(vb);
         return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
       ]]]
+

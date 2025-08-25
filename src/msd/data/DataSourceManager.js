@@ -71,81 +71,32 @@ export class DataSourceManager {
     return source;
   }
 
-  subscribeOverlay(overlay, updateCallback) {
-    if (this._destroyed) {
-      console.warn('[DataSourceManager] Cannot subscribe after destruction');
+  /**
+   * Subscribe an overlay to data source updates
+   * @param {Object} overlay - Overlay configuration with source property
+   * @param {Function} callback - Callback function for updates
+   */
+  subscribeOverlay(overlay, callback) {
+    if (!overlay.source) {
+      console.warn('[DataSourceManager] subscribeOverlay: No source specified for overlay', overlay.id);
       return;
     }
 
-    const subscriptions = [];
-
-    // Handle sparkline overlays
-    if (overlay.type === 'sparkline' && overlay.source) {
-      const source = this.sources.get(overlay.source);
-      if (source) {
-        const unsubscribe = source.subscribe((data) => {
-          try {
-            this._stats.dataUpdates++;
-            updateCallback(overlay, { sourceData: data });
-          } catch (error) {
-            console.warn(`[DataSourceManager] Callback error for overlay ${overlay.id}:`, error);
-            this._stats.errors++;
-          }
-        });
-        subscriptions.push(unsubscribe);
-      } else {
-        console.warn(`[DataSourceManager] Source ${overlay.source} not found for overlay ${overlay.id}`);
-      }
+    const source = this.sources.get(overlay.source);
+    if (!source) {
+      console.warn('[DataSourceManager] subscribeOverlay: Source not found:', overlay.source);
+      return;
     }
 
-    // Handle ribbon overlays
-    if (overlay.type === 'ribbon' && overlay.sources) {
-      for (const sourceName of overlay.sources) {
-        const source = this.sources.get(sourceName);
-        if (source) {
-          const unsubscribe = source.subscribe((data) => {
-            try {
-              this._stats.dataUpdates++;
-              updateCallback(overlay, { sourceData: data, sourceName });
-            } catch (error) {
-              console.warn(`[DataSourceManager] Callback error for overlay ${overlay.id}:`, error);
-              this._stats.errors++;
-            }
-          });
-          subscriptions.push(unsubscribe);
-        } else {
-          console.warn(`[DataSourceManager] Source ${sourceName} not found for ribbon overlay ${overlay.id}`);
-        }
-      }
-    }
+    // Subscribe to the data source
+    const unsubscribe = source.subscribe((data) => {
+      // Call the callback with overlay and update data
+      callback(overlay, { sourceData: data });
+    });
 
-    // Handle multi-entity overlays
-    if (overlay.type === 'multi' && overlay.entities) {
-      for (const entityConfig of overlay.entities) {
-        if (entityConfig.source) {
-          const source = this.sources.get(entityConfig.source);
-          if (source) {
-            const unsubscribe = source.subscribe((data) => {
-              try {
-                this._stats.dataUpdates++;
-                updateCallback(overlay, { sourceData: data, sourceName: entityConfig.source, entityConfig });
-              } catch (error) {
-                console.warn(`[DataSourceManager] Callback error for overlay ${overlay.id}:`, error);
-                this._stats.errors++;
-              }
-            });
-            subscriptions.push(unsubscribe);
-          }
-        }
-      }
-    }
+    console.log(`[DataSourceManager] ✅ Subscribed overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.length || 0} total subscribers)`);
 
-    if (subscriptions.length > 0) {
-      this.overlaySubscriptions.set(overlay.id, subscriptions);
-      this._stats.subscriptionsActive++;
-    }
-
-    return subscriptions.length;
+    return unsubscribe;
   }
 
   unsubscribeOverlay(overlayId) {
