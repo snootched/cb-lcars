@@ -1,6 +1,8 @@
 import { cblcarsLog } from './cb-lcars-logging.js';
 import * as svgHelpers from './cb-lcars-svg-helpers.js';
-import { svgOverlayManager } from './cb-lcars-overlay-helpers.js';
+
+// legacy - svg errors logged to overlay need to be ported to v1 style
+//import { svgOverlayManager } from './cb-lcars-overlay-helpers.js';
 
 /**
  * Utility: test if a path 'd' string has drawable geometry beyond a single move.
@@ -212,7 +214,7 @@ export const animPresets = {
             if (!tracerCfg) {
                 const msg = '[motionpath] tracer is required';
                 cblcarsLog.warn(msg, { element });
-                svgOverlayManager.push(msg);
+                //svgOverlayManager.push(msg);
                 params.targets = null;
                 return;
             }
@@ -225,14 +227,14 @@ export const animPresets = {
             if (!pathEl) {
                 const errorMsg = `Motionpath: path not found for selector "${pathSelector || '(self)'}"`;
                 cblcarsLog.error(errorMsg);
-                svgOverlayManager.push(errorMsg);
+                //svgOverlayManager.push(errorMsg);
                 params.targets = null;
                 return;
             }
             if (String(pathEl.tagName).toLowerCase() !== 'path') {
                 const msg = '[motionpath] Target is not an SVG <path>';
                 cblcarsLog.warn(msg, { id: pathEl.id });
-                svgOverlayManager.push(msg);
+                //svgOverlayManager.push(msg);
                 params.targets = null;
                 return;
             }
@@ -432,7 +434,7 @@ export const animPresets = {
             if (!ready) {
                 const msg = `[motionpath] Timed out waiting for usable path geometry (id=${pathEl.id})`;
                 cblcarsLog.warn(msg);
-                svgOverlayManager.push(msg);
+                //svgOverlayManager.push(msg);
                 params.targets = null;
                 return;
             }
@@ -513,7 +515,7 @@ export const animPresets = {
 
         } catch (e) {
             cblcarsLog.error('[motionpath] Unhandled error', e);
-            svgOverlayManager.push(`[motionpath] ${e?.message || e}`);
+            //svgOverlayManager.push(`[motionpath] ${e?.message || e}`);
             params.targets = null;
         }
     },
