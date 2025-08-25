@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-animejs-phase2.1-7",
+  "version": "2025.08.1-animejs-phase2.2-99",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -64,6 +64,12 @@
     "test:msd:phase2": "node scripts/msd/test-phase2-comprehensive.js",
     "test:msd:phase3": "node scripts/msd/test-phase3-hud-system.js",
     "test:msd:phase4": "node scripts/msd/test-phase4-controls-api.js",
+
+    "test:msd:real-data": "node scripts/msd/test-real-data-integration.js",
+    "test:msd:phase2-complete": "node scripts/msd/test-phase2-complete.js",
+    "test:msd:templates": "node scripts/msd/test-phase2-complete.js",
+
+    "test:msd:datasource": "node scripts/msd/test-datasource-integration.js",
 
     "test:all": "npm run test:msd"
   },

@@ -17,6 +17,7 @@ import { diffItem } from './export/diffItem.js';
 import { Router } from './routing/Router.js';
 import { RouterCore } from './routing/RouterCore.js';
 import { EntityRuntime } from './entities/EntityRuntime.js';
+import { DataSourceManager } from './data/DataSourceManager.js';
 
 // CRITICAL: Import our Phase 1-4 refactored systems - NO autoRegister.js import
 import { AdvancedRenderer } from './renderer/AdvancedRenderer.js';
@@ -35,7 +36,7 @@ import "./tests/arcsRoutingScenarios.js";
 import "./tests/smoothingRoutingScenarios.js";
 import "./hud/hudService.js";
 
-export async function initMsdPipeline(userMsdConfig, mountEl) {
+export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   if (!isMsdV1Enabled()) return { enabled: false };
 
   const mergedConfig = await mergePacks(userMsdConfig);
@@ -187,20 +188,87 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
   const controlsRenderer = new MsdControlsRenderer(renderer);
   const hudManager = new MsdHudManager(); // UPDATED: Use the real MsdHudManager
 
-  // ENHANCED: Entity runtime with render deduplication
+  // ENHANCED: Entity runtime with sparkline-specific update handling
   const entityRuntime = new EntityRuntime((changedIds) => {
     console.log('[MSD v1] Entity changes detected:', changedIds);
+
+    // ENHANCED: Check if changed entities are used by sparklines
+    const sparklineEntities = new Set();
+    const dataSourceMap = mergedConfig.data_sources || {};
+
+    Object.entries(dataSourceMap).forEach(([sourceId, config]) => {
+      if (config.entity && changedIds.includes(config.entity)) {
+        sparklineEntities.add(config.entity);
+        console.log(`[MSD v1] Sparkline data source "${sourceId}" entity changed: ${config.entity}`);
+      }
+    });
+
+    // Initialize DataSourceManager for real-time data subscriptions
+    let dataSourceManager = null;
+    if (mergedConfig.data_sources && Object.keys(mergedConfig.data_sources).length > 0) {
+      console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(mergedConfig.data_sources).length, 'data sources');
+      try {
+        dataSourceManager = new DataSourceManager(hass);
+        dataSourceManager.initializeFromConfig(mergedConfig.data_sources).then(sourceCount => {
+          console.log('[MSD v1] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
+        }).catch(error => {
+          console.error('[MSD v1] ❌ DataSourceManager async initialization failed:', error);
+          dataSourceManager = null;
+        });
+      } catch (error) {
+        console.error('[MSD v1] ❌ DataSourceManager sync initialization failed:', error);
+        dataSourceManager = null;
+      }
+    }
+
+    // Mark rules dirty for changed entities
     rulesEngine.markEntitiesDirty(changedIds);
 
-    // ENHANCED: Debounce renders to prevent excessive re-rendering
+    // ENHANCED: Debounced render with sparkline awareness
     if (this._renderTimeout) {
       clearTimeout(this._renderTimeout);
     }
+
+    // Shorter debounce for sparkline updates, longer for other changes
+    const debounceMs = sparklineEntities.size > 0 ? 250 : 500;
+
     this._renderTimeout = setTimeout(() => {
+      if (sparklineEntities.size > 0) {
+        console.log(`[MSD v1] Re-rendering for sparkline entity updates:`, Array.from(sparklineEntities));
+      }
       reRender();
       this._renderTimeout = null;
-    }, 100); // 100ms debounce
+    }, debounceMs);
   });
+
+  console.log('[MSD v1] EntityRuntime initialized with', entityRuntime.entityCount, 'entities');
+
+  // Auto-ingest HASS states if available during pipeline initialization
+  if (hass?.states) {
+    console.log('[MSD v1] Auto-ingesting HASS states:', Object.keys(hass.states).length, 'entities');
+    try {
+      entityRuntime.ingestHassStates(hass.states);
+      console.log('[MSD v1] ✅ EntityRuntime auto-populated with', entityRuntime.entityCount, 'entities');
+    } catch (error) {
+      console.error('[MSD v1] ❌ EntityRuntime auto-ingestion failed:', error);
+    }
+  }
+
+  // DataSourceManager initialization - MUCH SIMPLER now
+  let dataSourceManager = null;
+  if (hass && mergedConfig.data_sources && Object.keys(mergedConfig.data_sources).length > 0) {
+    console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(mergedConfig.data_sources).length, 'sources');
+    try {
+      dataSourceManager = new DataSourceManager(hass);
+      const sourceCount = await dataSourceManager.initializeFromConfig(mergedConfig.data_sources);
+      console.log('[MSD v1] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
+    } catch (error) {
+      console.error('[MSD v1] ❌ DataSourceManager initialization failed:', error);
+      dataSourceManager = null;
+    }
+  } else if (!hass) {
+    console.warn('[MSD v1] No HASS object provided - DataSourceManager will not be initialized');
+  }
 
   let resolvedModel;
   let _resolvedModelRef = null;
@@ -260,6 +328,35 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
         return resolvedOverlay;
       })
     );
+
+
+    // Subscribe overlays to data sources for real-time updates
+    if (dataSourceManager && resolvedModel.overlays) {
+      let subscriptionCount = 0;
+      resolvedModel.overlays.forEach(overlay => {
+        if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
+          try {
+            dataSourceManager.subscribeOverlay(overlay, (overlay, updateData) => {
+              console.log('[MSD v1] 📊 Data update for overlay', overlay.id, 'value:', updateData.sourceData?.v);
+
+              // Update the renderer with real data
+              if (renderer && renderer.updateOverlayData) {
+                renderer.updateOverlayData(overlay.id, updateData.sourceData);
+              }
+            });
+            subscriptionCount++;
+            console.log('[MSD v1] ✅ Subscribed overlay', overlay.id, 'to data source', overlay.source);
+          } catch (error) {
+            console.warn('[MSD v1] ⚠️ Failed to subscribe overlay', overlay.id, 'to source', overlay.source, ':', error.message);
+          }
+        }
+      });
+
+      if (subscriptionCount > 0) {
+        console.log('[MSD v1] ✅ Established', subscriptionCount, 'overlay data subscriptions');
+      }
+    }
+
 
     // Rules
     const ruleResult = rulesEngine.evaluateDirty({
@@ -372,110 +469,28 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
 
   // Public ingestion helpers
   function ingestHass(hass) {
-    if (!hass) {
-      console.warn('[MSD v1] ingestHass called without hass');
-      return;
-    }
-    if (!hass.states) {
-      console.warn('[MSD v1] ingestHass called without hass.states, hass keys:', Object.keys(hass));
+    // Now this is just for entity updates, not initial DataSourceManager setup
+    if (!hass?.states) {
+      console.warn('[MSD v1] ingestHass called without valid hass.states');
       return;
     }
 
-    const stateKeys = Object.keys(hass.states);
-    console.log('[MSD v1] HASS ingestion - states available:', stateKeys.length);
+    // Update EntityRuntime with new/changed entities
+    entityRuntime.ingestHassStates(hass.states);
 
-    // ENHANCED: Deep structure analysis
-    if (stateKeys.length > 0) {
-      const firstEntity = hass.states[stateKeys[0]];
-      console.log('[MSD v1] Sample HASS entity structure analysis:');
-      console.log('Entity ID:', stateKeys[0]);
-      console.log('Entity keys:', Object.keys(firstEntity || {}));
-      console.log('Entity state:', firstEntity?.state);
-      console.log('Entity attributes type:', typeof firstEntity?.attributes);
-      console.log('Entity has last_changed:', !!firstEntity?.last_changed);
-      console.log('Entity has last_updated:', !!firstEntity?.last_updated);
-
-      // Check if this is the expected format
-      const expectedFormat = firstEntity &&
-                           typeof firstEntity.state !== 'undefined' &&
-                           typeof firstEntity.attributes === 'object';
-      console.log('[MSD v1] HASS data format check:', expectedFormat ? 'VALID' : 'INVALID');
-
-      if (!expectedFormat) {
-        console.error('[MSD v1] HASS entity format mismatch!');
-        console.log('[MSD v1] Expected: { state: any, attributes: object }');
-        console.log('[MSD v1] Actual:', firstEntity);
-      }
-    }
-
-    // Track before/after entity counts
-    const beforeCount = entityRuntime.listIds().length;
-    console.log('[MSD v1] EntityRuntime before ingestion:', beforeCount, 'entities');
-
-    try {
-      entityRuntime.ingestHassStates(hass.states);
-      console.log('[MSD v1] EntityRuntime.ingestHassStates completed successfully');
-    } catch (error) {
-      console.error('[MSD v1] EntityRuntime.ingestHassStates failed:', error);
-      console.error('[MSD v1] Error stack:', error.stack);
-      return;
-    }
-
-    // Log results of ingestion
-    const afterCount = entityRuntime.listIds().length;
-    const entityStats = entityRuntime.stats();
-
-    console.log('[MSD v1] EntityRuntime after ingestion:', afterCount, 'entities');
-    console.log('[MSD v1] Ingestion delta:', afterCount - beforeCount, 'new entities');
-    console.log('[MSD v1] EntityRuntime stats:', entityStats);
-
-    // If ingestion failed completely, investigate
-    if (stateKeys.length > 0 && afterCount === beforeCount) {
-      console.error('[MSD v1] ZERO entities ingested despite', stateKeys.length, 'available');
-
-      // Try ingesting just one entity to debug
-      console.log('[MSD v1] Testing single entity ingestion...');
-      const testEntity = {};
-      testEntity[stateKeys[0]] = hass.states[stateKeys[0]];
-
+    // If DataSourceManager wasn't created initially, try now
+    if (!dataSourceManager && mergedConfig.data_sources && Object.keys(mergedConfig.data_sources).length > 0) {
+      console.log('[MSD v1] Late-initializing DataSourceManager with updated HASS');
       try {
-        entityRuntime.ingestHassStates(testEntity);
-        const singleTestResult = entityRuntime.listIds().length;
-        console.log('[MSD v1] Single entity test result:', singleTestResult, 'entities');
-
-        if (singleTestResult > afterCount) {
-          console.error('[MSD v1] EntityRuntime can ingest individual entities but not bulk data');
-          console.log('[MSD v1] This suggests a bulk processing issue in EntityRuntime');
-        }
-      } catch (singleError) {
-        console.error('[MSD v1] Single entity ingestion also failed:', singleError);
+        dataSourceManager = new DataSourceManager(hass);
+        dataSourceManager.initializeFromConfig(mergedConfig.data_sources).then(sourceCount => {
+          console.log('[MSD v1] ✅ Late DataSourceManager initialized -', sourceCount, 'sources started');
+          setupDataSourceSubscriptions();
+        });
+      } catch (error) {
+        console.error('[MSD v1] ❌ Late DataSourceManager initialization failed:', error);
       }
     }
-
-    // Sample some ingested entities
-    if (afterCount > 0) {
-      const sampleIds = entityRuntime.listIds().slice(0, 3);
-      console.log('[MSD v1] Sample ingested entities:');
-      sampleIds.forEach(id => {
-        const entity = entityRuntime.getEntity(id);
-        console.log(`  ${id}:`, entity?.state, Object.keys(entity?.attributes || {}));
-      });
-    }
-  }
-
-  function updateEntities(map) {
-    if (!map || typeof map !== 'object') return;
-
-    console.log('[MSD v1] Manual entity update:', Object.keys(map).length, 'entities');
-    const synthetic = {};
-    Object.keys(map).forEach(id => {
-      const cur = map[id];
-      synthetic[id] = {
-        state: cur?.state !== undefined ? cur.state : cur,
-        attributes: cur?.attributes || {}
-      };
-    });
-    entityRuntime.ingestHassStates(synthetic);
   }
 
   const pipelineApi = {
@@ -675,6 +690,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       }
     };
 
+    dbg.dataSources = {
+      stats: () => dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
+      list: () => dataSourceManager ? Array.from(dataSourceManager.sources.keys()) : [],
+      get: (name) => dataSourceManager?.getSource(name)?.getStats() || null,
+      dump: () => dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' },
+      manager: () => dataSourceManager
+    };
+
     dbg.lines = dbg.lines || {
       markersEnabled: false,
       showMarkers(flag=true){
@@ -800,6 +823,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl) {
       relayout: () => controlsRenderer.relayout()
     };
 
+    // ADDED: Expose data source manager
+    dbg.dataSources = {
+      stats: () => dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
+      list: () => dataSourceManager ? Array.from(dataSourceManager.sources.keys()) : [],
+      get: (name) => dataSourceManager?.getSource(name)?.getStats() || null,
+      dump: () => dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' }
+    };
+
     console.log('[MSD v1] Debug interface setup complete');
     console.log('[MSD v1] Available methods:', Object.keys(dbg));
   }
@@ -857,6 +888,7 @@ export async function processMsdConfig(userMsdConfig) {
     return {
       config: mergedConfig,
       validation: issues
+
     };
 
   } catch (error) {
