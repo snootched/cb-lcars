@@ -2,7 +2,7 @@ import { AdvancedRenderer } from '../renderer/AdvancedRenderer.js';
 import { MsdDebugRenderer } from '../debug/MsdDebugRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { MsdHudManager } from '../hud/MsdHudManager.js';
-import { EntityRuntime } from '../entities/EntityRuntime.js';
+// REMOVED: EntityRuntime import - migration complete
 import { DataSourceManager } from '../data/DataSourceManager.js';
 import { RouterCore } from '../routing/RouterCore.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
@@ -10,7 +10,6 @@ import { RulesEngine } from '../rules/RulesEngine.js';
 
 export class SystemsManager {
   constructor() {
-    this.entityRuntime = null;
     this.dataSourceManager = null;
     this.renderer = null;
     this.debugRenderer = null;
@@ -21,34 +20,33 @@ export class SystemsManager {
     this.rulesEngine = null;
     this._renderTimeout = null;
     this._reRenderCallback = null;
+    this.mergedConfig = null; // Store for entity change handler
   }
 
   async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
     console.log('[MSD v1] Initializing runtime systems');
+
+    // Store config for later use
+    this.mergedConfig = mergedConfig;
 
     // Initialize rules engine
     this.rulesEngine = new RulesEngine(mergedConfig.rules);
     this.rulesEngine.markAllDirty();
     this._instrumentRulesEngine(mergedConfig);
 
-    // Initialize entity runtime with change handler
-    this.entityRuntime = new EntityRuntime(this._createEntityChangeHandler());
-    console.log('[MSD v1] EntityRuntime initialized with', this.entityRuntime.entityCount, 'entities');
-
-    // Pre-load entities if available
-    if (hass && hass.states) {
-      console.log('[MSD v1] Pre-loading entities into EntityRuntime before DataSourceManager');
-      try {
-        this.entityRuntime.ingestHassStates(hass.states);
-        const entityCount = this.entityRuntime.listIds().length;
-        console.log('[MSD v1] ✅ Pre-loaded', entityCount, 'entities into EntityRuntime');
-      } catch (error) {
-        console.warn('[MSD v1] Entity pre-loading failed:', error);
-      }
-    }
-
-    // Initialize data source manager
+    // Initialize data source manager FIRST
     await this._initializeDataSources(hass, mergedConfig);
+
+    // Connect data source manager to rules engine
+    if (this.dataSourceManager) {
+      this.dataSourceManager.addEntityChangeListener(this._createEntityChangeHandler());
+      console.log('[MSD v1] DataSourceManager connected to rules engine');
+
+      // ADDED: Ensure DataSourceManager is accessible for debugging
+      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
+    } else {
+      console.warn('[MSD v1] DataSourceManager not initialized - no data sources configured or HASS unavailable');
+    }
 
     // Initialize rendering systems
     this.router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
@@ -145,16 +143,33 @@ export class SystemsManager {
 
   async _initializeDataSources(hass, mergedConfig) {
     this.dataSourceManager = null;
-    if (hass && mergedConfig.data_sources && Object.keys(mergedConfig.data_sources).length > 0) {
-      console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(mergedConfig.data_sources).length, 'sources');
-      try {
-        this.dataSourceManager = new DataSourceManager(hass);
-        const sourceCount = await this.dataSourceManager.initializeFromConfig(mergedConfig.data_sources);
-        console.log('[MSD v1] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
-      } catch (error) {
-        console.error('[MSD v1] ❌ DataSourceManager initialization failed:', error);
-        this.dataSourceManager = null;
-      }
+
+    // ENHANCED: Better logging and error handling
+    if (!hass) {
+      console.warn('[MSD v1] No HASS provided - DataSourceManager will not be initialized');
+      return;
+    }
+
+    if (!mergedConfig.data_sources || Object.keys(mergedConfig.data_sources).length === 0) {
+      console.log('[MSD v1] No data sources configured - DataSourceManager will not be initialized');
+      return;
+    }
+
+    console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(mergedConfig.data_sources).length, 'sources');
+
+    try {
+      this.dataSourceManager = new DataSourceManager(hass);
+      const sourceCount = await this.dataSourceManager.initializeFromConfig(mergedConfig.data_sources);
+      console.log('[MSD v1] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
+
+      // ADDED: Verify entities are available
+      const entityIds = this.dataSourceManager.listIds();
+      console.log('[MSD v1] ✅ DataSourceManager entities available:', entityIds);
+
+    } catch (error) {
+      console.error('[MSD v1] ❌ DataSourceManager initialization failed:', error);
+      console.error('[MSD v1] Error details:', error.stack);
+      this.dataSourceManager = null;
     }
   }
 
@@ -182,49 +197,31 @@ export class SystemsManager {
     return debugFlags && (debugFlags.overlay || debugFlags.connectors || debugFlags.geometry);
   }
 
-  // Public API methods
+  // Public API methods - now exclusively using DataSourceManager
   ingestHass(hass) {
     if (!hass || !hass.states) {
       console.warn('[MSD v1] ingestHass called without valid hass.states');
       return;
     }
 
-    const stateKeys = Object.keys(hass.states);
-    console.log('[MSD v1] HASS ingestion - states available:', stateKeys.length);
-
-    // Enhanced structure analysis
-    if (stateKeys.length > 0) {
-      const firstEntity = hass.states[stateKeys[0]];
-      const expectedFormat = firstEntity &&
-                           typeof firstEntity.state !== 'undefined' &&
-                           typeof firstEntity.attributes === 'object';
-
-      if (!expectedFormat) {
-        console.error('[MSD v1] HASS entity format mismatch!');
-        return;
-      }
-    }
-
-    try {
-      this.entityRuntime.ingestHassStates(hass.states);
-      console.log('[MSD v1] EntityRuntime.ingestHassStates completed successfully');
-    } catch (error) {
-      console.error('[MSD v1] EntityRuntime.ingestHassStates failed:', error);
-    }
+    // DataSources handle HASS updates automatically via their subscriptions
+    // No manual ingestion needed - handled by individual data sources
+    console.log('[MSD v1] HASS ingestion handled by individual data sources');
   }
 
   updateEntities(map) {
     if (!map || typeof map !== 'object') return;
 
-    console.log('[MSD v1] Manual entity update:', Object.keys(map).length, 'entities');
-    const synthetic = {};
-    Object.keys(map).forEach(id => {
-      const cur = map[id];
-      synthetic[id] = {
-        state: cur?.state !== undefined ? cur.state : cur,
-        attributes: cur?.attributes || {}
-      };
-    });
-    this.entityRuntime.ingestHassStates(synthetic);
+    console.log('[MSD v1] Manual entity updates not supported in DataSources system');
+    console.warn('[MSD v1] Use direct HASS state updates instead of manual entity updates');
+  }
+
+  // Entity API methods using DataSourceManager
+  listEntities() {
+    return this.dataSourceManager ? this.dataSourceManager.listIds() : [];
+  }
+
+  getEntity(id) {
+    return this.dataSourceManager ? this.dataSourceManager.getEntity(id) : null;
   }
 }

@@ -93,6 +93,19 @@ export class MsdDataSource {
     if (this._started || this._destroyed) return;
 
     try {
+      // NEW: Initialize with current HASS state if available
+      if (this.hass.states && this.hass.states[this.cfg.entity]) {
+        const currentState = this.hass.states[this.cfg.entity];
+        console.log(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
+
+        // Simulate initial state change to populate buffer
+        this._handleStateChange({
+          entity_id: this.cfg.entity,
+          new_state: currentState,
+          old_state: null
+        });
+      }
+
       // FIXED: Await the subscription since subscribeEvents returns a Promise
       this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
         if (event.event_type === 'state_changed' &&
@@ -239,6 +252,9 @@ export class MsdDataSource {
 
     // Add to buffer
     this.buffer.push({ t: timestamp, v: value });
+
+    // Store current state for EntityRuntime compatibility
+    this.currentState = newState;
 
     // Check if we should emit to subscribers
     if (this._shouldEmit(value, timestamp)) {
@@ -510,6 +526,14 @@ export class MsdDataSource {
       t: lastPoint.t,
       v: lastPoint.v,
       buffer: this.buffer
+    } : null;
+  }
+
+  // NEW: Add EntityRuntime-compatible method
+  getEntity() {
+    return this.currentState ? {
+      state: this.currentState.state,
+      attributes: this.currentState.attributes || {}
     } : null;
   }
 }

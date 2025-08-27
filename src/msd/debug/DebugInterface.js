@@ -137,13 +137,35 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
 }
 
 function setupDataSourceDebugInterface(dbg, systemsManager) {
-  dbg.dataSources = {
-    stats: () => systemsManager.dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
-    list: () => systemsManager.dataSourceManager ? Array.from(systemsManager.dataSourceManager.sources.keys()) : [],
-    get: (name) => systemsManager.dataSourceManager?.getSource(name)?.getStats() || null,
-    dump: () => systemsManager.dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' },
-    manager: () => systemsManager.dataSourceManager
-  };
+  // FIXED: Don't overwrite dataSources if it already exists as a getter
+  if (!dbg.hasOwnProperty('dataSources')) {
+    dbg.dataSources = {
+      stats: () => systemsManager.dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
+      list: () => systemsManager.dataSourceManager ? Array.from(systemsManager.dataSourceManager.sources.keys()) : [],
+      get: (name) => systemsManager.dataSourceManager?.getSource(name)?.getStats() || null,
+      dump: () => systemsManager.dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' },
+      manager: () => systemsManager.dataSourceManager
+    };
+  } else {
+    // If dataSources already exists (from index.js getter), enhance it with additional methods
+    try {
+      Object.assign(dbg.dataSources, {
+        list: () => systemsManager.dataSourceManager ? Array.from(systemsManager.dataSourceManager.sources.keys()) : [],
+        get: (name) => systemsManager.dataSourceManager?.getSource(name)?.getStats() || null,
+        dump: () => systemsManager.dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' }
+      });
+    } catch (error) {
+      // If we can't enhance it (getter-only), create alternative access
+      dbg.dataSourcesDebug = {
+        stats: () => systemsManager.dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
+        list: () => systemsManager.dataSourceManager ? Array.from(systemsManager.dataSourceManager.sources.keys()) : [],
+        get: (name) => systemsManager.dataSourceManager?.getSource(name)?.getStats() || null,
+        dump: () => systemsManager.dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' },
+        manager: () => systemsManager.dataSourceManager
+      };
+      console.log('[DebugInterface] Created dataSourcesDebug as alternative access due to getter conflict');
+    }
+  }
 }
 
 function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi) {

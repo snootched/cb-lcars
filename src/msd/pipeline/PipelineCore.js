@@ -77,6 +77,20 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   console.log('[MSD v1] Attaching unified API');
   MsdApi.attach();
 
+  // Set up debug tracking
+  if (window.__msdDebug) {
+    // REMOVED: Don't try to set pipeline directly - this is handled by the debug interface
+    // window.__msdDebug.pipeline = api;  // This line was causing the error
+
+    // Store reference to systems for debugging
+    window.__msdDebug.systemsManager = systemsManager;
+
+    window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
+    window.__msdDebug.pipelineInstance = pipelineApi;
+    window.__msdDebug.pipeline = { merged: mergedConfig };
+    window.__msdDebug._provenance = provenance;
+  }
+
   console.log('[MSD v1] Pipeline initialization complete');
   return pipelineApi;
 }
@@ -113,13 +127,17 @@ function createDisabledPipeline(mergedConfig, issues, provenance) {
 }
 
 function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder, reRender) {
-  return {
+  const api = {
+    // Core properties
     enabled: true,
-    merged: mergedConfig,
-    cardModel,
+    version: mergedConfig.version || 1,
+    config: mergedConfig,
+
+    // Core systems - ENSURE DataSourceManager is exposed
+    systemsManager,
+    dataSourceManager: systemsManager.dataSourceManager, // ADDED: Direct access
     rulesEngine: systemsManager.rulesEngine,
     renderer: systemsManager.renderer,
-    animRegistry: systemsManager.animRegistry,
     router: systemsManager.router,
 
     routingInspect: (id) => {
@@ -163,8 +181,13 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
     exportFullSnapshot: () => exportFullSnapshot(mergedConfig),
     exportFullSnapshotJson: () => JSON.stringify(exportFullSnapshot(mergedConfig)),
     diffItem: (item) => diffItem(item),
-    getPerf: () => perfGetAll()
+    getPerf: () => perfGetAll(),
+
+    // Enhanced debugging - make DataSourceManager easily accessible
+    getDataSourceManager: () => systemsManager.dataSourceManager,
   };
+
+  return api;
 }
 
 export function initMsdHud(pipeline, mountEl) {

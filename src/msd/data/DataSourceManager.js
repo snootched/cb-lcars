@@ -6,6 +6,7 @@
  * - Overlay subscription system
  * - Clean shutdown and resource management
  * - Performance monitoring and statistics
+ * - EntityRuntime API compatibility for rules engine
  */
 
 import { MsdDataSource } from './MsdDataSource.js';
@@ -15,6 +16,10 @@ export class DataSourceManager {
     this.hass = hass;
     this.sources = new Map();
     this.overlaySubscriptions = new Map();
+
+    // NEW: Entity runtime compatibility
+    this.entityIndex = new Map(); // entityId -> dataSource
+    this.globalEntityChangeListeners = new Set();
 
     // Performance statistics
     this._stats = {
@@ -59,16 +64,98 @@ export class DataSourceManager {
     const source = new MsdDataSource(config, this.hass);
     this.sources.set(name, source);
 
+    // NEW: Index by entity for global lookups
+    if (config.entity) {
+      this.entityIndex.set(config.entity, source);
+
+      // Forward entity changes to global listeners
+      source.subscribe((data) => {
+        this._notifyGlobalEntityChangeListeners([config.entity]);
+      });
+    }
+
     try {
       await source.start();
+
+      // NEW: Preload initial state from HASS if available
+      if (config.entity && this.hass.states && this.hass.states[config.entity]) {
+        const hassState = this.hass.states[config.entity];
+
+        // Simulate initial state change to populate the data source
+        source._handleStateChange({
+          entity_id: config.entity,
+          new_state: hassState,
+          old_state: null
+        });
+      }
+
     } catch (error) {
       console.warn(`[DataSourceManager] Failed to start source ${name}:`, error);
       this.sources.delete(name);
+      this.entityIndex.delete(config.entity);
       this._stats.errors++;
       throw error;
     }
 
     return source;
+  }
+
+  // NEW: EntityRuntime compatibility methods
+  getEntity(entityId) {
+    const source = this.entityIndex.get(entityId);
+    if (!source) {
+      // Fallback: try to get from HASS states directly
+      if (this.hass.states && this.hass.states[entityId]) {
+        const hassState = this.hass.states[entityId];
+        return {
+          state: hassState.state,
+          attributes: hassState.attributes || {}
+        };
+      }
+      return null;
+    }
+
+    // Try to get current data from data source
+    const currentData = source.getCurrentData();
+    if (currentData) {
+      return {
+        state: currentData.v.toString(),
+        attributes: {}
+      };
+    }
+
+    // Fallback to HASS states
+    if (this.hass.states && this.hass.states[entityId]) {
+      const hassState = this.hass.states[entityId];
+      return {
+        state: hassState.state,
+        attributes: hassState.attributes || {}
+      };
+    }
+
+    return null;
+  }
+
+  listIds() {
+    return Array.from(this.entityIndex.keys());
+  }
+
+  // NEW: Add global entity change listener for rules engine
+  addEntityChangeListener(callback) {
+    this.globalEntityChangeListeners.add(callback);
+    return () => this.globalEntityChangeListeners.delete(callback);
+  }
+
+  _notifyGlobalEntityChangeListeners(changedEntityIds) {
+    if (this.globalEntityChangeListeners.size === 0) return;
+
+    this.globalEntityChangeListeners.forEach(callback => {
+      try {
+        callback(changedEntityIds);
+      } catch (error) {
+        console.warn('[DataSourceManager] Global entity listener error:', error);
+      }
+    });
   }
 
   /**
@@ -94,7 +181,7 @@ export class DataSourceManager {
       callback(overlay, { sourceData: data });
     });
 
-    console.log(`[DataSourceManager] ✅ Subscribed overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.length || 0} total subscribers)`);
+    console.log(`[DataSourceManager] ✅ Subscribed overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.size || 0} total subscribers)`);
 
     return unsubscribe;
   }
@@ -135,6 +222,7 @@ export class DataSourceManager {
       summary: {
         totalSources: this.sources.size,
         activeSubscriptions: this.overlaySubscriptions.size,
+        entityCount: this.entityIndex.size,
         destroyed: this._destroyed
       }
     };
@@ -167,6 +255,8 @@ export class DataSourceManager {
 
     this.sources.clear();
     this.overlaySubscriptions.clear();
+    this.entityIndex.clear();
+    this.globalEntityChangeListeners.clear();
   }
 
   // Debug and introspection methods
@@ -174,6 +264,7 @@ export class DataSourceManager {
     return {
       sources: Array.from(this.sources.keys()),
       subscriptions: Array.from(this.overlaySubscriptions.keys()),
+      entities: Array.from(this.entityIndex.keys()),
       stats: this.getStats()
     };
   }
