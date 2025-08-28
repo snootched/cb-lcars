@@ -33,10 +33,17 @@ export class DataSourceManager {
     this._destroyed = false;
   }
 
+  /**
+   * Initialize data sources from configuration with history preloading
+   * @param {Object} dataSourceConfigs - Configuration for data sources
+   * @returns {Promise<number>} Number of sources created
+   */
   async initializeFromConfig(dataSourceConfigs) {
     if (this._destroyed) {
       throw new Error('DataSourceManager has been destroyed');
     }
+
+    console.log(`[DataSourceManager] 🚀 Initializing ${Object.keys(dataSourceConfigs || {}).length} data sources`);
 
     // Create all data sources from config
     const promises = Object.entries(dataSourceConfigs || {}).map(async ([name, config]) => {
@@ -53,7 +60,16 @@ export class DataSourceManager {
 
     await Promise.all(promises);
 
-    return this.sources.size;
+    // NEW: Wait for history preloading to complete
+    if (this.sources.size > 0) {
+      await this._waitForHistoryPreloading();
+    }
+
+    const successful = this.sources.size;
+    const failed = Object.keys(dataSourceConfigs || {}).length - successful;
+    console.log(`[DataSourceManager] ✅ Initialization complete: ${successful} successful, ${failed} failed`);
+
+    return successful;
   }
 
   async createDataSource(name, config) {
@@ -98,6 +114,45 @@ export class DataSourceManager {
     }
 
     return source;
+  }
+
+  /**
+   * NEW: Wait for all sources to complete their history loading
+   * @private
+   * @param {number} maxWaitMs - Maximum wait time in milliseconds
+   */
+  async _waitForHistoryPreloading(maxWaitMs = 10000) {
+    const startTime = Date.now();
+    const checkInterval = 100;
+
+    console.log(`[DataSourceManager] ⏳ Waiting for history preloading...`);
+
+    while (Date.now() - startTime < maxWaitMs) {
+      let allReady = true;
+      let totalSources = 0;
+      let readySources = 0;
+
+      for (const [name, source] of this.sources) {
+        totalSources++;
+        const stats = source.getStats();
+        if (stats.historyLoaded > 0 || !source.cfg.history?.enabled) {
+          readySources++;
+        } else {
+          allReady = false;
+        }
+      }
+
+      if (readySources > 0) {
+        console.log(`[DataSourceManager] History loading progress: ${readySources}/${totalSources} sources ready`);
+      }
+
+      if (allReady || totalSources === 0) {
+        console.log(`[DataSourceManager] ✅ History preloading complete in ${Date.now() - startTime}ms`);
+        break;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, checkInterval));
+    }
   }
 
   // NEW: EntityRuntime compatibility methods

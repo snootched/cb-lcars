@@ -89,24 +89,136 @@ export class MsdDataSource {
     this._destroyed = false;
   }
 
+  /**
+   * ENHANCED: Preload historical data with multiple fallback strategies
+   * @private
+   */
+  async _preloadHistory() {
+    if (!this.hass?.callService || !this.cfg.entity) return;
+
+    // Check if history is enabled in config
+    const historyConfig = this.cfg.history || {};
+    if (historyConfig.enabled === false) return;
+
+    const hours = Math.max(1, Math.min(168, historyConfig.hours || 6));
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - hours * 3600000);
+
+    console.log(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
+
+    try {
+      // Strategy 1: Try Home Assistant's history service (most reliable)
+      await this._preloadWithHistoryService(startTime, endTime);
+    } catch (error) {
+      console.warn(`[MsdDataSource] History service failed for ${this.cfg.entity}, trying statistics:`, error.message);
+
+      try {
+        // Strategy 2: Fall back to enhanced statistics
+        await this._preloadWithStatistics(startTime, endTime);
+      } catch (statError) {
+        console.warn(`[MsdDataSource] Statistics failed, trying state history:`, statError.message);
+        // Strategy 3: Final fallback (existing _preloadStateHistory method)
+        await this._preloadStateHistory(startTime, endTime);
+      }
+    }
+
+    console.log(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
+  }
+
+  /**
+   * NEW: Primary history loading using HA history service
+   * @private
+   * @param {Date} startTime - Start time for history query
+   * @param {Date} endTime - End time for history query
+   */
+  async _preloadWithHistoryService(startTime, endTime) {
+    const response = await this.hass.callService('history', 'get_history', {
+      entity_ids: [this.cfg.entity],
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString()
+    });
+
+    if (response && response[0]) {
+      const states = response[0];
+      console.log(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
+
+      for (const state of states) {
+        const timestamp = new Date(state.last_changed || state.last_updated).getTime();
+        const rawValue = this.cfg.attribute ? state.attributes?.[this.cfg.attribute] : state.state;
+        const value = this._toNumber(rawValue);
+
+        if (value !== null) {
+          this.buffer.push(timestamp, value);
+          this._stats.historyLoaded++;
+        }
+      }
+    }
+  }
+
+  /**
+   * ENHANCED: Statistics-based history loading with finer granularity
+   * @private
+   * @param {Date} startTime - Start time for history query
+   * @param {Date} endTime - End time for history query
+   */
+  async _preloadWithStatistics(startTime, endTime) {
+    // Use 5-minute periods for more granular data
+    const response = await this.hass.callService('recorder', 'get_statistics', {
+      statistic_ids: [this.cfg.entity],
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      period: '5minute'  // Changed from 'hour' to '5minute'
+    });
+
+    if (response && response[0]?.statistics) {
+      const statistics = response[0].statistics;
+      console.log(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
+
+      for (const stat of statistics) {
+        const timestamp = new Date(stat.start).getTime();
+        const value = this._extractStatisticValue(stat);
+
+        if (value !== null) {
+          this.buffer.push(timestamp, value);
+          this._stats.historyLoaded++;
+        }
+      }
+    }
+  }
+
+  /**
+   * Start the data source with proper initialization sequence
+   * @returns {Promise} Resolves when fully initialized
+   */
   async start() {
     if (this._started || this._destroyed) return;
 
     try {
-      // NEW: Initialize with current HASS state if available
+      console.log(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
+
+      // STEP 1: Preload historical data FIRST
+      if (this.hass?.callService) {
+        await this._preloadHistory();
+      }
+
+      // STEP 2: Initialize with current HASS state if available
       if (this.hass.states && this.hass.states[this.cfg.entity]) {
         const currentState = this.hass.states[this.cfg.entity];
         console.log(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
 
-        // Simulate initial state change to populate buffer
-        this._handleStateChange({
-          entity_id: this.cfg.entity,
-          new_state: currentState,
-          old_state: null
-        });
+        // FIXED: Use current timestamp for initial state
+        const currentTimestamp = Date.now();
+        const rawValue = this.cfg.attribute ? currentState.attributes?.[this.cfg.attribute] : currentState.state;
+        const value = this._toNumber(rawValue);
+
+        if (value !== null) {
+          console.log(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
+          this.buffer.push(currentTimestamp, value);
+          this._stats.currentValue = value;
+        }
       }
 
-      // FIXED: Await the subscription since subscribeEvents returns a Promise
+      // STEP 3: Setup real-time subscriptions
       this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
         if (event.event_type === 'state_changed' &&
             event.data?.entity_id === this.cfg.entity) {
@@ -116,59 +228,71 @@ export class MsdDataSource {
       }, 'state_changed');
 
       this._started = true;
-      console.log(`[MsdDataSource] ✅ Subscribed to HA events for ${this.cfg.entity}`);
+      console.log(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
+
+      // STEP 4: Emit initial data to any existing subscribers
+      this._emitInitialData();
 
     } catch (error) {
-      console.error(`[MsdDataSource] Failed to subscribe to HA events for ${this.cfg.entity}:`, error);
+      console.error(`[MsdDataSource] ❌ Failed to initialize ${this.cfg.entity}:`, error);
       throw error;
     }
   }
 
-  async stop() {
-    this._started = false;
+  /**
+   * NEW: Emit initial data to subscribers after full initialization
+   * @private
+   */
+  _emitInitialData() {
+    if (this.subscribers.size > 0) {
+      const lastPoint = this.buffer.last();
+      if (lastPoint) {
+        console.log(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        const emitData = {
+          t: lastPoint.t,
+          v: lastPoint.v,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          entity: this.cfg.entity,
+          historyReady: this._stats.historyLoaded > 0
+        };
 
-    if (this.haUnsubscribe) {
-      try {
-        this.haUnsubscribe();
-      } catch (error) {
-        console.warn('[MsdDataSource] HA unsubscribe error:', error);
+        this.subscribers.forEach(callback => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            console.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+          }
+        });
       }
-      this.haUnsubscribe = null;
     }
-
-    if (this._pendingRaf) {
-      cancelAnimationFrame(this._pendingRaf);
-      this._pendingRaf = 0;
-    }
-
-    this._pending = false;
-  }
-
-  destroy() {
-    this._destroyed = true;
-    this.stop();
-    this.subscribers.clear();
-    this.buffer.clear();
   }
 
   async _preloadHistory() {
-    if (!this.hass?.callService || !this.cfg.entity) return;
+    if (!this.hass?.connection || !this.cfg.entity) {
+      console.warn('[MsdDataSource] No HASS connection or entity for history preload');
+      return;
+    }
 
-    const hours = Math.max(1, Math.min(168, this.cfg.history.hours || 6)); // 1-168 hours
+    const hours = Math.max(1, Math.min(168, this.cfg.history?.hours || 6)); // 1-168 hours
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - hours * 3600000);
 
+    console.log(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
+
     try {
-      // Use Home Assistant statistics service for efficient history
-      const response = await this.hass.callService('recorder', 'get_statistics', {
-        statistic_ids: [this.cfg.entity],
+      // Use modern WebSocket call for statistics (preferred)
+      const statisticsData = await this.hass.connection.sendMessagePromise({
+        type: 'recorder/statistics_during_period',
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
+        statistic_ids: [this.cfg.entity],
         period: 'hour'
       });
 
-      if (response && response[0]?.statistics) {
-        const statistics = response[0].statistics;
+      if (statisticsData && statisticsData[this.cfg.entity]) {
+        const statistics = statisticsData[this.cfg.entity];
+        console.log(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`);
 
         for (const stat of statistics) {
           const timestamp = new Date(stat.start).getTime();
@@ -179,25 +303,35 @@ export class MsdDataSource {
             this._stats.historyLoaded++;
           }
         }
+
+        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
+        return; // Success with statistics
       }
     } catch (error) {
-      // Fallback: try state history if statistics fail
       console.warn('[MsdDataSource] Statistics failed, trying state history:', error.message);
-      await this._preloadStateHistory(startTime, endTime);
     }
+
+    // Fallback: try state history via WebSocket
+    await this._preloadStateHistoryWS(startTime, endTime);
   }
 
-  async _preloadStateHistory(startTime, endTime) {
+  async _preloadStateHistoryWS(startTime, endTime) {
     try {
-      // Fallback to direct state history
-      const response = await this.hass.callService('recorder', 'get_history', {
-        entity_ids: [this.cfg.entity],
+      console.log(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
+
+      // Use modern WebSocket call for history
+      const historyData = await this.hass.connection.sendMessagePromise({
+        type: 'history/history_during_period',
         start_time: startTime.toISOString(),
-        end_time: endTime.toISOString()
+        end_time: endTime.toISOString(),
+        entity_ids: [this.cfg.entity],
+        minimal_response: true,
+        no_attributes: true
       });
 
-      if (response && response[0]) {
-        const states = response[0];
+      if (historyData && historyData[0]) {
+        const states = historyData[0];
+        console.log(`[MsdDataSource] 📊 Got ${states.length} history states`);
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -209,56 +343,104 @@ export class MsdDataSource {
             this._stats.historyLoaded++;
           }
         }
+
+        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
+      } else {
+        console.warn('[MsdDataSource] No history data returned from WebSocket call');
       }
     } catch (error) {
-      console.warn('[MsdDataSource] State history fallback also failed:', error.message);
+      console.error('[MsdDataSource] WebSocket state history also failed:', error);
+
+      // Final fallback: try direct REST API if available
+      await this._preloadHistoryREST(startTime, endTime);
     }
   }
 
-  _extractStatisticValue(stat) {
-    // Priority order for statistic values
-    if (Number.isFinite(stat.mean)) return stat.mean;
-    if (Number.isFinite(stat.state)) return stat.state;
-    if (Number.isFinite(stat.sum)) return stat.sum;
-    if (Number.isFinite(stat.max)) return stat.max;
-    if (Number.isFinite(stat.min)) return stat.min;
-    return null;
+  async _preloadHistoryREST(startTime, endTime) {
+    try {
+      console.log(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
+
+      const startParam = startTime.toISOString();
+      const url = `/api/history/period/${startParam}?filter_entity_id=${this.cfg.entity}&minimal_response&no_attributes`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.hass.auth?.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const historyData = await response.json();
+
+      if (historyData && historyData[0]) {
+        const states = historyData[0];
+        console.log(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
+
+        for (const state of states) {
+          const timestamp = new Date(state.last_changed || state.last_updated).getTime();
+          const rawValue = this.cfg.attribute ? state.attributes?.[this.cfg.attribute] : state.state;
+          const value = this._toNumber(rawValue);
+
+          if (value !== null) {
+            this.buffer.push(timestamp, value);
+            this._stats.historyLoaded++;
+          }
+        }
+
+        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
+      }
+    } catch (error) {
+      console.error('[MsdDataSource] REST history fallback also failed:', error);
+    }
   }
 
   /**
-   * Handle Home Assistant state change events
-   * @param {Object} stateChangeData - HA state_changed event data
+   * Handle state change from Home Assistant
+   * @private
+   * @param {Object} eventData - State change event data
    */
-  _handleStateChange(stateChangeData) {
-    if (this._destroyed || !this._started) return;
+  _handleStateChange(eventData) {
+    if (!eventData?.new_state || this._destroyed) return;
 
-    const newState = stateChangeData.new_state;
-    if (!newState || newState.entity_id !== this.cfg.entity) return;
+    // FIXED: Use current timestamp instead of state timestamp
+    const timestamp = Date.now();
+    const rawValue = this.cfg.attribute
+      ? eventData.new_state.attributes?.[this.cfg.attribute]
+      : eventData.new_state.state;
 
-    // Extract numeric value from state
-    const value = parseFloat(newState.state);
-    if (isNaN(value)) {
-      console.warn(`[MsdDataSource] Non-numeric state for ${this.cfg.entity}:`, newState.state);
-      this._stats.invalid++;
-      return;
-    }
+    const value = this._toNumber(rawValue);
 
-    const timestamp = new Date(newState.last_changed || newState.last_updated).getTime();
+    if (value !== null) {
+      console.log(`[MsdDataSource] 📊 State change for ${this.cfg.entity}: ${value} at ${timestamp}`);
 
-    console.log(`[MsdDataSource] 📊 State change for ${this.cfg.entity}: ${value} at ${timestamp}`);
+      // Add to buffer with proper timestamp
+      this.buffer.push(timestamp, value);
+      this._stats.updates++;
+      this._stats.currentValue = value;
 
-    // Update statistics
-    this._stats.received++;
+      // Emit to subscribers
+      console.log(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers: ${value}`);
 
-    // Add to buffer
-    this.buffer.push({ t: timestamp, v: value });
+      const emitData = {
+        t: timestamp,
+        v: value,
+        buffer: this.buffer,
+        stats: { ...this._stats },
+        entity: this.cfg.entity,
+        historyReady: this._stats.historyLoaded > 0
+      };
 
-    // Store current state for EntityRuntime compatibility
-    this.currentState = newState;
-
-    // Check if we should emit to subscribers
-    if (this._shouldEmit(value, timestamp)) {
-      this._emit({ t: timestamp, v: value, buffer: this.buffer, stats: this._stats });
+      this.subscribers.forEach(callback => {
+        try {
+          callback(emitData);
+        } catch (error) {
+          console.error(`[MsdDataSource] Callback error for ${this.cfg.entity}:`, error);
+        }
+      });
     }
   }
 
@@ -520,13 +702,22 @@ export class MsdDataSource {
     };
   }
 
+  /**
+   * Get current data with enhanced metadata
+   * @returns {Object|null} Current data object or null
+   */
   getCurrentData() {
     const lastPoint = this.buffer.last();
-    return lastPoint ? {
-      t: lastPoint.t,
-      v: lastPoint.v,
-      buffer: this.buffer
-    } : null;
+    return {
+      t: lastPoint?.t,
+      v: lastPoint?.v,
+      buffer: this.buffer,
+      stats: { ...this._stats },
+      entity: this.cfg.entity,
+      historyReady: this._stats.historyLoaded > 0,
+      bufferSize: this.buffer.size(),
+      started: this._started
+    };
   }
 
   // NEW: Add EntityRuntime-compatible method
@@ -535,5 +726,45 @@ export class MsdDataSource {
       state: this.currentState.state,
       attributes: this.currentState.attributes || {}
     } : null;
+  }
+
+  /**
+   * Stop the data source and release resources
+   */
+  async stop() {
+    this._started = false;
+
+    if (this.haUnsubscribe) {
+      try {
+        this.haUnsubscribe();
+      } catch (error) {
+        console.warn('[MsdDataSource] HA unsubscribe error:', error);
+      }
+      this.haUnsubscribe = null;
+    }
+
+    if (this._pendingRaf) {
+      cancelAnimationFrame(this._pendingRaf);
+      this._pendingRaf = 0;
+    }
+
+    this._pending = false;
+  }
+
+  destroy() {
+    this._destroyed = true;
+    this.stop();
+    this.subscribers.clear();
+    this.buffer.clear();
+  }
+
+  _extractStatisticValue(stat) {
+    // Priority order for statistic values
+    if (Number.isFinite(stat.mean)) return stat.mean;
+    if (Number.isFinite(stat.state)) return stat.state;
+    if (Number.isFinite(stat.sum)) return stat.sum;
+    if (Number.isFinite(stat.max)) return stat.max;
+    if (Number.isFinite(stat.min)) return stat.min;
+    return null;
   }
 }

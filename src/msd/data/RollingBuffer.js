@@ -42,19 +42,29 @@ export class RollingBuffer {
    * Automatically handles capacity overflow by replacing oldest data
    */
   push(timestamp, value) {
+    // Enhanced timestamp validation
+    const now = Date.now();
+    const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
+    const oneHourFromNow = now + (60 * 60 * 1000);
+
+    // Check for reasonable timestamp range
+    if (timestamp < oneYearAgo || timestamp > oneHourFromNow) {
+      console.warn(`[RollingBuffer] Suspicious timestamp: ${timestamp} (${new Date(timestamp).toISOString()}), current: ${now} (${new Date(now).toISOString()})`);
+      // Don't reject, but log for debugging
+    }
+
     // Validate inputs
     if (!Number.isFinite(timestamp) || timestamp < 0) {
       console.warn('[RollingBuffer] Invalid timestamp:', timestamp);
       return;
     }
 
-    if (!Number.isFinite(value)) {
-      console.warn('[RollingBuffer] Invalid value:', value);
+    if (typeof value !== 'number' || !isFinite(value)) {
+      console.warn(`[RollingBuffer] Invalid value: ${value} for timestamp ${timestamp}`);
       return;
     }
 
     // AGGRESSIVE COALESCING: Skip if very recent push with similar timestamp
-    const now = Date.now();
     if (this._size > 0 && (now - this._lastPushTime) < this._coalescingThresholdMs) {
       // Check if timestamp is very close to last timestamp
       const lastIndex = this._head === 0 ? this.capacity - 1 : this._head - 1;
@@ -90,6 +100,8 @@ export class RollingBuffer {
     }
 
     this._lastPushTime = now;
+
+    console.log(`[RollingBuffer] Added point: ${value} at ${new Date(timestamp).toISOString()} (buffer size: ${this._size})`);
   }
 
   /**
@@ -117,6 +129,34 @@ export class RollingBuffer {
     }
 
     return { t, v };
+  }
+
+  /**
+   * Get all data points in chronological order
+   * @returns {Array} Array of {t: timestamp, v: value} objects
+   */
+  getAll() {
+    this._stats.queries++;
+
+    if (this._size === 0) {
+      return [];
+    }
+
+    const result = new Array(this._size);
+
+    // Calculate start position (oldest data)
+    const startPos = this._full ? this._head : 0;
+
+    // Copy data in chronological order
+    for (let i = 0; i < this._size; i++) {
+      const bufferIndex = (startPos + i) % this.capacity;
+      result[i] = {
+        t: this._timestamps[bufferIndex],
+        v: this._values[bufferIndex]
+      };
+    }
+
+    return result;
   }
 
   /**
