@@ -150,27 +150,19 @@ export class AdvancedRenderer {
     if (!this.mountEl) return;
 
     const sparklines = this.mountEl.querySelectorAll(
-      `[data-data-source="${updateData.sourceId}"]`
+      `[data-source="${updateData.sourceId}"]`
     );
 
-    sparklines.forEach(sparklineContainer => {
-      const svg = sparklineContainer.querySelector('svg');
-      if (!svg) return;
+    sparklines.forEach(sparklineElement => {
+      const overlay = this.lastRenderArgs.overlays?.find(o =>
+        o.id === sparklineElement.getAttribute('data-overlay-id')
+      );
+      if (!overlay) return;
 
-      svg.innerHTML = '';
-
-      if (updateData.historicalData?.length > 0) {
-        const rect = sparklineContainer.getBoundingClientRect();
-        const bounds = {
-          width: rect.width || parseInt(sparklineContainer.style.width),
-          height: rect.height || parseInt(sparklineContainer.style.height)
-        };
-
-        const path = this.createSparklinePath(updateData.historicalData, bounds);
-        if (path) {
-          svg.appendChild(path);
-        }
-      }
+      // Use SparklineRenderer's update method
+      import('./SparklineRenderer.js').then(({ SparklineRenderer }) => {
+        SparklineRenderer.updateSparklineData(sparklineElement, overlay, updateData);
+      });
     });
   }
 }

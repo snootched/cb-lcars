@@ -160,6 +160,7 @@ export class DataSourceManager {
 
   /**
    * Subscribe an overlay to data source updates
+   * Enhanced for sparkline real-time updates
    * @param {Object} overlay - Overlay configuration with source property
    * @param {Function} callback - Callback function for updates
    */
@@ -175,13 +176,33 @@ export class DataSourceManager {
       return;
     }
 
-    // Subscribe to the data source
+    // Subscribe to the data source with enhanced data for sparklines
     const unsubscribe = source.subscribe((data) => {
-      // Call the callback with overlay and update data
-      callback(overlay, { sourceData: data });
+      // Enhanced callback data for sparklines
+      const enhancedData = {
+        ...data,
+        sourceId: overlay.source,
+        overlayId: overlay.id,
+        overlayType: overlay.type,
+        // Include buffer reference for sparklines
+        buffer: overlay.type === 'sparkline' ? data.buffer : undefined,
+        // Include historical data if available
+        historicalData: overlay.type === 'sparkline' && data.buffer ?
+          data.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
+      };
+
+      // Call the callback with overlay and enhanced update data
+      callback(overlay, enhancedData);
     });
 
-    console.log(`[DataSourceManager] ✅ Subscribed overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.size || 0} total subscribers)`);
+    // Store the unsubscribe function
+    if (!this.overlaySubscriptions.has(overlay.id)) {
+      this.overlaySubscriptions.set(overlay.id, []);
+    }
+    this.overlaySubscriptions.get(overlay.id).push(unsubscribe);
+    this._stats.subscriptionsActive++;
+
+    console.log(`[DataSourceManager] ✅ Subscribed ${overlay.type} overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.size || 0} total subscribers)`);
 
     return unsubscribe;
   }
