@@ -5,7 +5,7 @@
 
 import { PerformancePanel } from './panels/PerformancePanel.js';
 import { ValidationPanel } from './panels/ValidationPanel.js';
-import { EntityPanel } from './panels/EntityPanel.js';
+import { DataSourcePanel } from './panels/DataSourcePanel.js';
 import { RoutingPanel } from './panels/RoutingPanel.js';
 
 export class MsdHudManager {
@@ -13,7 +13,7 @@ export class MsdHudManager {
     this.panels = {
       performance: new PerformancePanel(),
       validation: new ValidationPanel(),
-      entities: new EntityPanel(),
+      dataSources: new DataSourcePanel(),
       routing: new RoutingPanel()
     };
 

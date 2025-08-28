@@ -11,14 +11,20 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   dbg.featureFlags = dbg.featureFlags || {};
   dbg.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
 
-  // Core pipeline access
+  // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
-  dbg.pipeline = {
-    merged: mergedConfig,
-    cardModel: pipelineApi.cardModel,
-    rulesEngine: systemsManager.rulesEngine,
-    router: systemsManager.router
-  };
+
+  // Add backward compatibility getter with deprecation warning
+  if (!dbg.hasOwnProperty('pipeline')) {
+    Object.defineProperty(dbg, 'pipeline', {
+      get() {
+        console.warn('[MSD Debug] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
+        return this.pipelineInstance;
+      },
+      configurable: true
+    });
+  }
+
   dbg._provenance = provenance;
 
   // Entity system

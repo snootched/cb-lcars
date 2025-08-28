@@ -79,15 +79,12 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
   // Set up debug tracking
   if (window.__msdDebug) {
-    // REMOVED: Don't try to set pipeline directly - this is handled by the debug interface
-    // window.__msdDebug.pipeline = api;  // This line was causing the error
-
     // Store reference to systems for debugging
     window.__msdDebug.systemsManager = systemsManager;
 
     window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
     window.__msdDebug.pipelineInstance = pipelineApi;
-    window.__msdDebug.pipeline = { merged: mergedConfig };
+
     window.__msdDebug._provenance = provenance;
   }
 
@@ -120,7 +117,7 @@ function createDisabledPipeline(mergedConfig, issues, provenance) {
     window.__msdDebug = window.__msdDebug || {};
     window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
     window.__msdDebug.pipelineInstance = disabledPipeline;
-    window.__msdDebug.pipeline = { merged: mergedConfig };
+
     window.__msdDebug._provenance = provenance;
   }
   return disabledPipeline;

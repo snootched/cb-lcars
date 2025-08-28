@@ -35,20 +35,15 @@ export { mergePacks, validateMerged };
 
   // Enhanced debug interface
   Object.assign(window.__msdDebug, {
-    // FIXED: Use pipelineInstance instead of pipeline property
+    // Authoritative pipeline instance
     pipelineInstance: null,
-
-    // Enhanced pipeline access with getter that doesn't conflict
-    get pipeline() {
-      return this.pipelineInstance;
-    },
 
     // Initialize MSD pipeline
     async initMsdPipeline(mergedConfig, mount, hass) {
       try {
         const pipelineApi = await initMsdPipeline(mergedConfig, mount, hass);
 
-        // FIXED: Set the pipelineInstance property instead of pipeline
+        // Set the authoritative pipelineInstance property
         this.pipelineInstance = pipelineApi;
 
         return pipelineApi;
@@ -59,39 +54,15 @@ export { mergePacks, validateMerged };
     }
   });
 
-  // FIXED: Only define getters AFTER we've confirmed they don't conflict
-  // Check if dataSources property already exists before creating getter
-  if (!window.__msdDebug.hasOwnProperty('dataSources')) {
-    // DataSources property with getter
-    Object.defineProperty(window.__msdDebug, 'dataSources', {
-      get() {
-        const dsManager = window.__msdDebug.dataSourceManager;
-        if (!dsManager) {
-          return {
-            stats: () => ({ error: 'DataSourceManager not available' })
-          };
-        }
-
-        return {
-          stats: () => dsManager.getStats(),
-          manager: dsManager,
-          listIds: () => dsManager.listIds(),
-          getEntity: (id) => dsManager.getEntity(id)
-        };
-      },
-      configurable: true  // Allow it to be redefined if needed
-    });
-  }
-
-  // Check if dataSourceManager property already exists before creating getter
-  if (!window.__msdDebug.hasOwnProperty('dataSourceManager')) {
-    // DataSourceManager property with getter
-    Object.defineProperty(window.__msdDebug, 'dataSourceManager', {
-      get() {
-        return window.__msdDebug.pipelineInstance?.dataSourceManager ||
-               window.__msdDebug.pipelineInstance?.systemsManager?.dataSourceManager;
-      },
-      configurable: true  // Allow it to be redefined if needed
-    });
-  }
+  // DataSourceManager property with getter
+  Object.defineProperty(window.__msdDebug, 'dataSourceManager', {
+    get() {
+      // Simplified: Use pipelineInstance as single source of truth
+      return window.__msdDebug.pipelineInstance?.dataSourceManager ||
+             window.__msdDebug.pipelineInstance?.systemsManager?.dataSourceManager;
+    },
+    configurable: true  // Allow it to be redefined if needed
+  });
 })();
+
+

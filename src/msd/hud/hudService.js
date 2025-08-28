@@ -923,19 +923,29 @@
   (function trapPipelineInstance(){
     const dbg = W.__msdDebug;
     if (!dbg || dbg.__hudPipelineTrap) return;
+
     let _pi = dbg.pipelineInstance;
-    Object.defineProperty(dbg, 'pipelineInstance', {
-      get(){ return _pi; },
-      set(v){
-        _pi = v;
-        try {
-          captureUserConfigFromPipeline(v);    // NEW
-          quickHarvest(v);
-          snapshotFromPipeline();
-          scheduleRender();
-        } catch(e){}
-      }
-    });
+
+    // Only create trap if pipelineInstance doesn't already have a setter
+    const descriptor = Object.getOwnPropertyDescriptor(dbg, 'pipelineInstance');
+    if (!descriptor || !descriptor.set) {
+      Object.defineProperty(dbg, 'pipelineInstance', {
+        get(){ return _pi; },
+        set(v){
+          _pi = v;
+          try {
+            captureUserConfigFromPipeline(v);
+            quickHarvest(v);
+            snapshotFromPipeline();
+            scheduleRender();
+          } catch(e){
+            console.warn('[HUD] Pipeline instance update failed:', e);
+          }
+        },
+        configurable: true
+      });
+    }
+
     // If pre-existing instance already there at load time, capture it
     if (_pi) {
       try { captureUserConfigFromPipeline(_pi); } catch {}

@@ -200,7 +200,7 @@ cb-lcars-msd-v1-comprehensive:
   custom_fields:
     msd_svg_base: |
       [[[
-        // FIXED: Enable comprehensive debugging and force MSD v1
+        // Enable comprehensive debugging and force MSD v1
         window.CBLCARS_MSD_V1_ENABLE = true;
         window.cblcars = window.cblcars || {};
         window.cblcars._debugFlags = {
@@ -214,7 +214,6 @@ cb-lcars-msd-v1-comprehensive:
         // Access MSD config from root level
         const msdConfig = this._config?.msd || this.config?.msd;
 
-        // FIXED: Add debug logging for percentage resolution
         console.group('[MSD v1 Comprehensive Test Debug]');
         console.log('Raw config anchors:', msdConfig.anchors);
 
@@ -224,19 +223,27 @@ cb-lcars-msd-v1-comprehensive:
         const viewBox = window.cblcars.getSvgViewBox(svgContent);
         const aspect = window.cblcars.getSvgAspectRatio(viewBox);
 
-        // FIXED: Proper anchor resolution including percentages
+        // ENHANCED: Process anchors with better SVG extraction and logging
         const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
         const userAnchors = msdConfig.anchors || {};
 
-        // Process user anchors to resolve percentages
+        console.log('Raw SVG anchors found:', Object.keys(svgAnchors).length);
+        console.log('Raw SVG anchor names:', Object.keys(svgAnchors));
+        console.log('User config anchors:', Object.keys(userAnchors));
+
         const resolvedAnchors = {};
         const [minX, minY, vw, vh] = viewBox;
 
+        // First, add all SVG anchors
+        for (const [name, pos] of Object.entries(svgAnchors)) {
+          resolvedAnchors[name] = pos;
+        }
+
+        // Then process and add user anchors (with percentage resolution)
         for (const [name, pos] of Object.entries(userAnchors)) {
           if (Array.isArray(pos) && pos.length === 2) {
             let [x, y] = pos;
 
-            // Resolve percentage coordinates
             if (typeof x === 'string' && x.endsWith('%')) {
               x = minX + (parseFloat(x) / 100) * vw;
             }
@@ -250,16 +257,27 @@ cb-lcars-msd-v1-comprehensive:
           }
         }
 
+        // IMPORTANT: Store resolved anchors globally so pipeline can access them
         this._msdViewBox = viewBox;
-        this._msdAnchors = { ...svgAnchors, ...resolvedAnchors };
+        this._msdAnchors = resolvedAnchors;
 
-        // Log resolved anchors
-        console.log('ViewBox:', viewBox);
-        console.log('SVG Anchors:', Object.keys(svgAnchors).length);
-        console.log('Resolved User Anchors:', resolvedAnchors);
-        console.log('Final Anchor Count:', Object.keys(this._msdAnchors).length);
-        console.log('Data Sources:', Object.keys(msdConfig.data_sources || {}));
-        console.log('Overlays:', (msdConfig.overlays || []).length);
+        // ADDED: Also store on window for pipeline access
+        window._msdTestAnchors = resolvedAnchors;
+
+        console.log('Final resolved anchors:', Object.keys(resolvedAnchors).length);
+        console.log('Final anchor names:', Object.keys(resolvedAnchors));
+        console.log('SVG anchors contributed:', Object.keys(svgAnchors).length);
+        console.log('User anchors contributed:', Object.keys(userAnchors).length);
+
+        // Check for the mystery anchors
+        const mysteryAnchors = Object.keys(resolvedAnchors).filter(name =>
+          !Object.keys(svgAnchors).includes(name) &&
+          !Object.keys(userAnchors).includes(name)
+        );
+        if (mysteryAnchors.length > 0) {
+          console.warn('Mystery anchors found (not from SVG or config):', mysteryAnchors);
+        }
+
         console.groupEnd();
 
         return `<div id="msd-v1-comprehensive-wrapper" style="width:100%;height:100%;border:2px solid cyan;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
@@ -267,51 +285,25 @@ cb-lcars-msd-v1-comprehensive:
 
     msd_svg_overlays: |
       [[[
-        // FIXED: Don't check pipeline instance - let the pipeline handle its own rendering
-        // The AdvancedRenderer will automatically inject overlays when pipeline initializes
-
-        const msdConfig = this._config?.msd || this.config?.msd;
-
-        // If MSD v1 pipeline is available, return minimal markup and let it handle rendering
-        if (window.__msdDebug?.initMsdPipeline) {
-          console.log('[MSD v1 Comprehensive] MSD v1 pipeline available - letting AdvancedRenderer handle overlays');
-
-          // Return empty - the AdvancedRenderer injects directly into SVG
-          return '<!-- MSD v1 Pipeline Handles Overlay Rendering -->';
-        }
-
-        // Fallback to legacy renderer only if MSD v1 not available
-        console.warn('[MSD v1 Comprehensive] MSD v1 pipeline not available - using legacy renderer');
-
-        const overlays = msdConfig.overlays || [];
-        const { svgMarkup } = window.cblcars.renderMsdOverlay({
-          overlays,
-          anchors: this._msdAnchors,
-          hass,
-          root: this.shadowRoot,
-          viewBox: this._msdViewBox,
-          dataSources: msdConfig.data_sources || {}
-        });
-
-        return svgMarkup;
+        // MSD v1 handles overlay rendering automatically once pipeline initializes
+        // No need to check for pipeline availability here - just let it handle rendering
+        console.log('[MSD v1 Comprehensive] Overlay field evaluated - letting pipeline handle rendering');
+        return '<!-- MSD v1 Pipeline Will Handle Overlay Rendering -->';
       ]]]
 
     msd_controls: |
       [[[
-        // FIXED: MSD v1 pipeline initialization with HASS parameter
         try {
           if (!this._msdV1ComprehensiveBoot) {
-
             // Check if MSD v1 system is loaded
             if (typeof window.__msdDebug === 'undefined') {
-              console.error('[MSD v1 Comprehensive] window.__msdDebug not found - MSD v1 system not loaded');
-              return `<div style="color:red;padding:10px;">MSD v1 system not loaded. Check if src/msd/* files are imported in main bundle.</div>`;
+              console.error('[MSD v1 Comprehensive] window.__msdDebug not found');
+              return `<div style="color:red;padding:10px;">MSD v1 system not loaded</div>`;
             }
 
             if (!window.__msdDebug.initMsdPipeline) {
               console.error('[MSD v1 Comprehensive] initMsdPipeline not found');
-              console.log('[MSD v1 Comprehensive] Available methods:', Object.keys(window.__msdDebug));
-              return `<div style="color:red;padding:10px;">initMsdPipeline not available. Available: ${Object.keys(window.__msdDebug).join(', ')}</div>`;
+              return `<div style="color:red;padding:10px;">initMsdPipeline not available</div>`;
             }
 
             this._msdV1ComprehensiveBoot = true;
@@ -320,95 +312,78 @@ cb-lcars-msd-v1-comprehensive:
             const mount = baseWrapper || this.shadowRoot;
             const realHass = this.___hass || hass;
 
-            console.log('[MSD v1 Comprehensive] Initializing pipeline with config and HASS:', msdConfig);
-            console.log('[MSD v1 Comprehensive] Mount element:', mount.id || mount.className || 'shadowRoot');
-            console.log('[MSD v1 Comprehensive] HASS available:', !!realHass, 'entities:', Object.keys(realHass?.states || {}).length);
+            // SIMPLIFIED: Use pre-processed anchors for comprehensive test
+            const enhancedConfig = { ...msdConfig };
+            if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
+              console.log('[MSD v1 Comprehensive] Using pre-processed anchors:', Object.keys(window._msdTestAnchors).length);
+              enhancedConfig.anchors = window._msdTestAnchors;
+            }
 
-            // FIXED: Pass HASS directly to pipeline initialization
-            window.__msdDebug.initMsdPipeline(msdConfig, mount, realHass).then(p => {
-              window.__msdDebug.pipelineInstance = p;
+            console.log('[MSD v1 Comprehensive] Initializing pipeline with HASS');
+
+            window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+              const resolvedModel = pipeline.getResolvedModel?.();
+              const pipelineAnchors = resolvedModel?.anchors || {};
 
               const stats = {
-                enabled: p.enabled,
-                overlayCount: p.getResolvedModel?.()?.overlays?.length || 0,
-                anchorCount: Object.keys(p.getResolvedModel?.()?.anchors || {}).length,
+                enabled: pipeline.enabled,
+                overlayCount: resolvedModel?.overlays?.length || 0,
+                anchorCount: Object.keys(pipelineAnchors).length,
                 dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
                 ruleCount: (msdConfig.rules || []).length,
-                errors: p.errors?.length || 0
+                errors: pipeline.errors?.length || 0
               };
 
-              console.group('[MSD v1 Comprehensive] Pipeline Started with HASS');
+              console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
               console.table(stats);
 
-              if (p.errors?.length) {
-                console.error('Pipeline Errors:', p.errors);
+              // SIMPLIFIED: Basic anchor verification
+              const configAnchors = Object.keys(msdConfig.anchors || {}).length;
+              const svgAnchors = Object.keys(window._msdTestAnchors || {}).length - configAnchors;
+              const routingAnchors = Object.keys(pipelineAnchors).length - Object.keys(window._msdTestAnchors || {}).length;
+
+              console.log(`📊 Anchor Summary: ${configAnchors} config + ${svgAnchors} SVG + ${routingAnchors} routing = ${Object.keys(pipelineAnchors).length} total`);
+
+              if (pipeline.errors?.length) {
+                console.error('Pipeline Errors:', pipeline.errors);
               } else {
-                console.log('✅ Pipeline started successfully with real HASS data');
+                console.log('✅ All systems operational');
               }
-
-              // Log resolved model for debugging
-              const resolvedModel = p.getResolvedModel?.();
-              if (resolvedModel) {
-                console.log('Resolved Anchors:', Object.keys(resolvedModel.anchors || {}));
-                console.log('Resolved Overlays:', (resolvedModel.overlays || []).map(o => o.id));
-              }
-
-              // ENHANCED: Check DataSourceManager status
-              setTimeout(() => {
-                const dsStats = window.__msdDebug.dataSources?.stats?.() || {};
-                console.log('[MSD v1 Comprehensive] DataSourceManager status:', dsStats);
-
-                // FIXED: Check actual subscriber counts from individual sources
-                const actualSubscriptions = dsStats.manager?.subscriptionsActive || 0;
-                const sourcesCreated = dsStats.manager?.sourcesCreated || 0;
-
-                // ADDED: Calculate total subscribers from individual sources
-                let totalSubscribers = 0;
-                if (dsStats.sources) {
-                  totalSubscribers = Object.values(dsStats.sources).reduce((sum, source) =>
-                    sum + (source.subscribers || 0), 0
-                  );
-                }
-
-                if (dsStats.error) {
-                  console.warn('⚠️ DataSourceManager not initialized:', dsStats.error);
-                  console.warn('⚠️ Sparklines will show realistic mock data based on current entity values');
-                } else if (sourcesCreated > 0 && totalSubscribers > 0) {
-                  console.log('✅ DataSources created:', sourcesCreated);
-                  console.log('✅ Total subscribers:', totalSubscribers);
-                  console.log('✅ Sparklines using REAL-TIME Home Assistant data');
-                } else if (sourcesCreated > 0) {
-                  console.log('✅ DataSources created:', sourcesCreated);
-                  console.warn('⚠️ No active subscriptions - sparklines will show realistic mock data');
-                } else {
-                  console.warn('⚠️ No DataSources created - sparklines will show mock data');
-                }
-
-                // ADDED: Additional verification
-                const entityStats = window.__msdDebug.entities?.stats?.() || {};
-                console.log('[MSD v1 Comprehensive] Entity stats:', entityStats);
-
-                if (entityStats.count > 0) {
-                  console.log('✅ EntityRuntime has', entityStats.count, 'entities loaded');
-                } else {
-                  console.warn('⚠️ No entities loaded in EntityRuntime');
-                }
-
-                // ADDED: Show detailed subscription info if available
-                if (dsStats.sources) {
-                  const sourceDetails = Object.entries(dsStats.sources).map(([name, stats]) =>
-                    `${name}: ${stats.subscribers} subscribers, ${stats.received} received`
-                  );
-                  console.log('📊 Data Source Details:', sourceDetails.join(', '));
-                }
-              }, 500);
-
               console.groupEnd();
 
-              // REMOVED: No longer need manual entity ingestion - pipeline handles it now
-              // Entities should be pre-loaded during pipeline initialization
+              // Check consolidated pipeline access
+              setTimeout(() => {
+                console.log('[MSD v1 Comprehensive] Verifying consolidated interface...');
 
-              // Show HUD after pipeline starts
+                const pipelineInstance = window.__msdDebug.pipelineInstance;
+                const dsManager = pipelineInstance?.dataSourceManager ||
+                                 pipelineInstance?.systemsManager?.dataSourceManager ||
+                                 window.__msdDebug.dataSourceManager;
+
+                if (dsManager) {
+                  const entityIds = dsManager.listIds();
+                  console.log(`✅ DataSourceManager: ${entityIds.length} entities available`);
+
+                  if (entityIds.length > 0) {
+                    // Test rules with consolidated access
+                    const rulesEngine = pipelineInstance?.rulesEngine;
+                    if (rulesEngine) {
+                      console.log('✅ Rules engine operational via consolidated interface');
+                      try {
+                        const getEntity = (id) => dsManager?.getEntity(id);
+                        const rulesResult = rulesEngine.evaluateDirty({ getEntity });
+                        console.log(`📊 Rules: ${rulesResult.overlayPatches?.length || 0} patches, ${rulesResult.profilesAdd?.length || 0} profiles`);
+                      } catch (error) {
+                        console.warn('⚠️ Rules evaluation failed:', error.message);
+                      }
+                    }
+                  }
+                } else {
+                  console.warn('⚠️ DataSourceManager not found via consolidated interface');
+                }
+              }, 1000);
+
+              // Show HUD
               setTimeout(() => {
                 if (window.__msdDebug?.hud?.show) {
                   window.__msdDebug.hud.show();
@@ -418,11 +393,69 @@ cb-lcars-msd-v1-comprehensive:
 
             }).catch(err => {
               console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
-              console.log('[MSD v1 Comprehensive] Error details:', err.stack || err.message || err);
             });
           }
 
-          // Enable debug rendering after short delay
+          // Enable debug rendering
+          setTimeout(() => {
+            try {
+              if (window.__msdDebug?.debug?.render) {
+                window.__msdDebug.debug.render(this.shadowRoot, this._msdViewBox, {
+                  anchors: this._msdAnchors
+                });
+                console.log('[MSD v1 Comprehensive] Debug visualization enabled');
+              }
+            } catch(e) {
+              console.warn('[MSD v1 Comprehensive] Debug rendering failed:', e);
+            }
+          }, 500);
+
+        } catch(e) {
+          console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
+          return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
+        }
+
+        const vb = this._msdViewBox || [0,0,1920,1200];
+        const aspect = window.cblcars.getSvgAspectRatio(vb);
+        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
+      ]]]
+                        console.log(`  📊 ${entityId}: ${entity.state}`);
+                      }
+                    });
+
+                    const rulesEngine = pipelineInstance?.rulesEngine;
+                    if (rulesEngine) {
+                      console.log('✅ Rules engine available via consolidated interface');
+                      try {
+                        const getEntity = (id) => dsManager?.getEntity(id);
+                        const rulesResult = rulesEngine.evaluateDirty({ getEntity });
+                        console.log('📊 Rules evaluation:', {
+                          overlayPatches: rulesResult.overlayPatches?.length || 0,
+                          profilesAdd: rulesResult.profilesAdd?.length || 0
+                        });
+                      } catch (error) {
+                        console.warn('⚠️ Rules evaluation failed:', error.message);
+                      }
+                    }
+                  }
+                } else {
+                  console.warn('⚠️ DataSourceManager not found via consolidated interface');
+                }
+              }, 1000);
+
+              setTimeout(() => {
+                if (window.__msdDebug?.hud?.show) {
+                  window.__msdDebug.hud.show();
+                  console.log('[MSD v1 Comprehensive] HUD activated');
+                }
+              }, 2000);
+
+            }).catch(err => {
+              console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
+            });
+          }
+
+          // Enable debug rendering
           setTimeout(() => {
             try {
               if (window.__msdDebug?.debug?.render) {
