@@ -27,13 +27,10 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
 
   dbg._provenance = provenance;
 
-  // Entity system
-  setupEntityDebugInterface(dbg, systemsManager);
-
   // Routing system
   setupRoutingDebugInterface(dbg, pipelineApi, systemsManager);
 
-  // Data sources
+  // Data sources - our current entity management system
   setupDataSourceDebugInterface(dbg, systemsManager);
 
   // Rendering and debug visualization
@@ -44,68 +41,6 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
 
   console.log('[MSD v1] Debug interface setup complete');
   console.log('[MSD v1] Available methods:', Object.keys(dbg));
-}
-
-function setupEntityDebugInterface(dbg, systemsManager) {
-  dbg.entities = {
-    list: () => {
-      try {
-        return systemsManager.entityRuntime?.listIds?.() || [];
-      } catch (e) {
-        console.warn('[MSD v1] entities.list failed:', e);
-        return [];
-      }
-    },
-    get: (id) => {
-      try {
-        return systemsManager.entityRuntime?.getEntity?.(id) || null;
-      } catch (e) {
-        console.warn(`[MSD v1] entities.get(${id}) failed:`, e);
-        return null;
-      }
-    },
-    stats: () => {
-      try {
-        const runtimeStats = systemsManager.entityRuntime?.stats?.() || {};
-        const entityCount = systemsManager.entityRuntime?.listIds?.()?.length || 0;
-        return {
-          count: entityCount,
-          subscribed: runtimeStats.subscribed || 0,
-          updated: runtimeStats.updated || 0,
-          cacheHits: runtimeStats.cacheHits || 0,
-          ...runtimeStats
-        };
-      } catch (e) {
-        console.warn('[MSD v1] entities.stats failed:', e);
-        return { count: 0, subscribed: 0, updated: 0, error: e.message };
-      }
-    },
-    ingest: (statesObj) => {
-      try {
-        console.log('[MSD v1] Manual entity ingestion:', Object.keys(statesObj || {}).length, 'entities');
-        return systemsManager.entityRuntime?.ingestHassStates?.(statesObj || {});
-      } catch (e) {
-        console.warn('[MSD v1] entities.ingest failed:', e);
-      }
-    },
-    testIngestion: () => {
-      const testStates = {
-        'sensor.test_entity': {
-          state: '42',
-          attributes: { unit: 'test' },
-          last_changed: new Date().toISOString(),
-          last_updated: new Date().toISOString()
-        }
-      };
-      console.log('[MSD v1] Testing entity ingestion...');
-      systemsManager.entityRuntime.ingestHassStates(testStates);
-      const result = systemsManager.entityRuntime.getEntity('sensor.test_entity');
-      console.log('[MSD v1] Test result:', result);
-      return result;
-    }
-  };
-
-  dbg.updateEntities = (map) => systemsManager.updateEntities(map);
 }
 
 function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
@@ -143,7 +78,7 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
 }
 
 function setupDataSourceDebugInterface(dbg, systemsManager) {
-  // FIXED: Don't overwrite dataSources if it already exists as a getter
+  // ENHANCED: Make this the primary entity access system
   if (!dbg.hasOwnProperty('dataSources')) {
     dbg.dataSources = {
       stats: () => systemsManager.dataSourceManager?.getStats() || { error: 'DataSourceManager not initialized' },
@@ -172,6 +107,32 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
       console.log('[DebugInterface] Created dataSourcesDebug as alternative access due to getter conflict');
     }
   }
+
+  // ADDED: Legacy compatibility layer for any remaining entity access patterns
+  // This provides entity-like access through DataSourceManager
+  dbg.entities = {
+    list: () => {
+      console.warn('[MSD Debug] entities.list() is deprecated. Use window.__msdDebug.dataSourceManager.listIds() instead.');
+      return systemsManager.dataSourceManager?.listIds() || [];
+    },
+    get: (id) => {
+      console.warn('[MSD Debug] entities.get() is deprecated. Use window.__msdDebug.dataSourceManager.getEntity() instead.');
+      return systemsManager.dataSourceManager?.getEntity(id) || null;
+    },
+    stats: () => {
+      console.warn('[MSD Debug] entities.stats() is deprecated. Use window.__msdDebug.dataSources.stats() instead.');
+      const dsStats = systemsManager.dataSourceManager?.getStats() || {};
+      const entityCount = systemsManager.dataSourceManager?.listIds()?.length || 0;
+
+      // Transform DataSourceManager stats to legacy format for compatibility
+      return {
+        count: entityCount,
+        subscribed: Object.keys(dsStats.sources || {}).length,
+        updated: Object.values(dsStats.sources || {}).reduce((sum, source) => sum + (source.received || 0), 0),
+        cacheHits: Object.values(dsStats.sources || {}).reduce((sum, source) => sum + (source.cacheHits || 0), 0)
+      };
+    }
+  };
 }
 
 function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi) {
