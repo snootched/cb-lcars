@@ -125,6 +125,7 @@ export class ModelBuilder {
     });
   }
 
+  /* OLD
   _subscribeOverlaysToDataSources(baseOverlays) {
     if (this.systems.dataSourceManager && baseOverlays) {
       let subscriptionCount = 0;
@@ -153,6 +154,140 @@ export class ModelBuilder {
       }
     }
   }
+  */
+
+
+
+  _subscribeOverlaysToDataSources(baseOverlays) {
+    if (!this.systems.dataSourceManager || !baseOverlays) {
+      console.log('[MSD v1] Skipping overlay subscriptions - no DataSourceManager or overlays');
+      return;
+    }
+
+    let subscriptionCount = 0;
+    let pendingSubscriptions = 0;
+
+    baseOverlays.forEach(overlay => {
+      if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
+        try {
+          // Check if data source exists and is ready
+          const dataSource = this.systems.dataSourceManager.getSource(overlay.source);
+          if (!dataSource) {
+            console.warn(`[MSD v1] Data source '${overlay.source}' not found for overlay ${overlay.id}`);
+            return;
+          }
+
+          // Check data source readiness
+          const currentData = dataSource.getCurrentData();
+          const isReady = currentData && (currentData.bufferSize > 0 || currentData.v !== undefined);
+
+          console.log(`[MSD v1] Subscribing overlay ${overlay.id} to source ${overlay.source}:`, {
+            sourceReady: isReady,
+            bufferSize: currentData?.bufferSize || 0,
+            hasValue: currentData?.v !== undefined
+          });
+
+          // Subscribe with enhanced callback
+          const unsubscribe = this.systems.dataSourceManager.subscribeOverlay(overlay, (overlayConfig, updateData) => {
+            console.log(`[MSD v1] 📊 Data update for overlay ${overlayConfig.id}:`, {
+              value: updateData.v,
+              bufferSize: updateData.buffer?.size?.() || 0,
+              hasHistoricalData: !!(updateData.historicalData?.length),
+              sourceReady: true
+            });
+
+            // Update the renderer with real data
+            if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
+              try {
+                this.systems.renderer.updateOverlayData(overlayConfig.id, updateData);
+              } catch (error) {
+                console.error(`[MSD v1] Error updating overlay ${overlayConfig.id}:`, error);
+              }
+            } else {
+              console.warn(`[MSD v1] Renderer not available for overlay update: ${overlayConfig.id}`);
+            }
+          });
+
+          if (unsubscribe) {
+            subscriptionCount++;
+            if (isReady) {
+              console.log(`[MSD v1] ✅ Subscribed overlay ${overlay.id} to ready source ${overlay.source}`);
+            } else {
+              pendingSubscriptions++;
+              console.log(`[MSD v1] ⏳ Subscribed overlay ${overlay.id} to pending source ${overlay.source}`);
+            }
+
+            // Store unsubscribe function for cleanup
+            if (!this._overlayUnsubscribers) {
+              this._overlayUnsubscribers = new Map();
+            }
+            if (!this._overlayUnsubscribers.has(overlay.id)) {
+              this._overlayUnsubscribers.set(overlay.id, []);
+            }
+            this._overlayUnsubscribers.get(overlay.id).push(unsubscribe);
+          }
+
+        } catch (error) {
+          console.warn(`[MSD v1] ⚠️ Failed to subscribe overlay ${overlay.id} to source ${overlay.source}:`, error.message);
+        }
+      }
+    });
+
+    if (subscriptionCount > 0) {
+      console.log(`[MSD v1] ✅ Established ${subscriptionCount} overlay data subscriptions (${pendingSubscriptions} pending data)`);
+    }
+
+    // Monitor pending subscriptions and log when they become ready
+    if (pendingSubscriptions > 0) {
+      this._monitorPendingSubscriptions(baseOverlays, pendingSubscriptions);
+    }
+  }
+
+
+
+
+  /**
+   * Monitor pending subscriptions and report when data becomes available
+   * @private
+   * @param {Array} baseOverlays - Array of overlay configurations
+   * @param {number} pendingCount - Initial count of pending subscriptions
+   */
+  _monitorPendingSubscriptions(baseOverlays, pendingCount) {
+    let checkCount = 0;
+    const maxChecks = 50; // Maximum number of checks (5 seconds with 100ms intervals)
+
+    const checkInterval = setInterval(() => {
+      checkCount++;
+      let stillPending = 0;
+
+      baseOverlays.forEach(overlay => {
+        if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
+          const dataSource = this.systems.dataSourceManager.getSource(overlay.source);
+          if (dataSource) {
+            const currentData = dataSource.getCurrentData();
+            const isReady = currentData && (currentData.bufferSize > 0 || currentData.v !== undefined);
+            if (!isReady) {
+              stillPending++;
+            }
+          }
+        }
+      });
+
+      if (stillPending === 0) {
+        console.log(`[MSD v1] 🎉 All overlay data sources are now ready (checked ${checkCount} times)`);
+        clearInterval(checkInterval);
+      } else if (checkCount >= maxChecks) {
+        console.warn(`[MSD v1] ⏰ Timeout waiting for ${stillPending} data sources to become ready`);
+        clearInterval(checkInterval);
+      } else if (checkCount % 10 === 0) {
+        // Log progress every second (10 * 100ms)
+        console.log(`[MSD v1] ⏳ Still waiting for ${stillPending} data sources (${checkCount * 100}ms elapsed)`);
+      }
+    }, 100); // Check every 100ms
+  }
+
+
+
 
   _applyRules() {
     return this.systems.rulesEngine.evaluateDirty({
@@ -217,4 +352,28 @@ export class ModelBuilder {
 
     return { activeAnimations, animDiff, tlDiff };
   }
+
+
+  /**
+   * Clean up overlay subscriptions
+   * @public
+   */
+  destroy() {
+    if (this._overlayUnsubscribers) {
+      console.log(`[MSD v1] Cleaning up ${this._overlayUnsubscribers.size} overlay subscriptions`);
+
+      for (const [overlayId, unsubscribers] of this._overlayUnsubscribers) {
+        unsubscribers.forEach(unsubscribe => {
+          try {
+            unsubscribe();
+          } catch (error) {
+            console.warn(`[MSD v1] Error unsubscribing overlay ${overlayId}:`, error);
+          }
+        });
+      }
+
+      this._overlayUnsubscribers.clear();
+    }
+  }
+
 }

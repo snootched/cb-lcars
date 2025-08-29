@@ -63,7 +63,17 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
   // Initial render
   console.log('[MSD v1] Computing initial resolved model');
-  reRender();
+  console.log('[MSD v1] DataSourceManager status:', {
+    sourcesCount: systemsManager.dataSourceManager?.getAllSources?.()?.length || 0,
+    entityCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
+  });
+
+  const initialRenderResult = reRender();
+
+  console.log('[MSD v1] Initial render completed:', {
+    overlayCount: initialRenderResult?.overlayCount || 0,
+    errors: initialRenderResult?.errors || 0
+  });
 
   // Create pipeline API
   const pipelineApi = createPipelineApi(

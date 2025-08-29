@@ -14,6 +14,9 @@ export class AdvancedRenderer {
     this.overlayElements = new Map();
     this.lastRenderArgs = null;
     this.lineRenderer = new LineOverlayRenderer(routerCore);
+
+    // NEW: Track overlay elements for efficient updates
+    this.overlayElementCache = new Map(); // overlayId -> DOM element
   }
 
   render(resolvedModel) {
@@ -98,6 +101,8 @@ export class AdvancedRenderer {
     }
   }
 
+
+  /* OLD
   injectSvgContent(svgContent) {
     const svg = this.mountEl.querySelector('svg');
     if (!svg) {
@@ -133,6 +138,57 @@ export class AdvancedRenderer {
       console.error('[AdvancedRenderer] Failed to inject SVG content:', error);
     }
   }
+  */
+
+injectSvgContent(svgContent) {
+  const svg = this.mountEl.querySelector('svg');
+  if (!svg) {
+    console.warn('[AdvancedRenderer] No SVG element found for overlay injection');
+    return;
+  }
+
+  let overlayGroup = svg.querySelector('#msd-overlay-container');
+  if (!overlayGroup) {
+    overlayGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    overlayGroup.setAttribute('id', 'msd-overlay-container');
+    svg.appendChild(overlayGroup);
+  } else {
+    overlayGroup.innerHTML = '';
+  }
+
+  try {
+    overlayGroup.innerHTML = svgContent;
+    console.log('[AdvancedRenderer] SVG content injected successfully');
+
+    // NEW: Build element cache after injection
+    this.overlayElementCache.clear();
+    const overlayElements = overlayGroup.querySelectorAll('[data-overlay-id]');
+    overlayElements.forEach(element => {
+      const overlayId = element.getAttribute('data-overlay-id');
+      if (overlayId) {
+        this.overlayElementCache.set(overlayId, element);
+        console.log(`[AdvancedRenderer] Cached element for overlay: ${overlayId}`);
+      }
+    });
+
+    // Verify injection
+    const sparklines = overlayGroup.querySelectorAll('[data-overlay-type="sparkline"]');
+    const lines = overlayGroup.querySelectorAll('[data-overlay-type="line"]');
+    const texts = overlayGroup.querySelectorAll('[data-overlay-type="text"]');
+
+    console.log('[AdvancedRenderer] Injected elements:', {
+      sparklines: sparklines.length,
+      lines: lines.length,
+      texts: texts.length,
+      cached: this.overlayElementCache.size
+    });
+
+  } catch (error) {
+    console.error('[AdvancedRenderer] Failed to inject SVG content:', error);
+  }
+}
+
+
 
   // === DATA UPDATE METHODS ===
 
@@ -141,6 +197,7 @@ export class AdvancedRenderer {
    * @param {string} overlayId - ID of the overlay to update
    * @param {Object} sourceData - Data from the data source
    */
+  /*
   updateOverlayData(overlayId, sourceData) {
     // Enhanced logging to debug the data structure
     console.log('[AdvancedRenderer] updateOverlayData called:', {
@@ -211,6 +268,75 @@ export class AdvancedRenderer {
       SparklineRenderer.updateSparklineData(overlayElement, overlay, sourceData);
     }
   }
+  */
+
+
+/**
+ * Update overlay data when data source changes
+ * @param {string} overlayId - ID of the overlay to update
+ * @param {Object} sourceData - Data from the data source
+ */
+updateOverlayData(overlayId, sourceData) {
+  console.log('[AdvancedRenderer] updateOverlayData called:', {
+    overlayId,
+    hasSourceData: !!sourceData,
+    sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
+    hasBuffer: !!(sourceData?.buffer),
+    bufferSize: sourceData?.buffer?.size?.() || 0,
+    hasCachedElement: this.overlayElementCache.has(overlayId)
+  });
+
+  if (!sourceData) {
+    console.warn('[AdvancedRenderer] updateOverlayData: Missing sourceData');
+    return;
+  }
+
+  // Try cached element first
+  let overlayElement = this.overlayElementCache.get(overlayId);
+
+  if (!overlayElement) {
+    console.log(`[AdvancedRenderer] No cached element for ${overlayId}, searching DOM`);
+
+    // Fallback to DOM search
+    const svg = this.lastRenderArgs?.svg || this.mountEl?.querySelector('svg');
+    if (svg) {
+      overlayElement = svg.querySelector(`[data-overlay-id="${overlayId}"]`);
+      if (overlayElement) {
+        // Update cache
+        this.overlayElementCache.set(overlayId, overlayElement);
+        console.log(`[AdvancedRenderer] Found and cached element for ${overlayId}`);
+      }
+    }
+
+    // Final fallback to shadow root search
+    if (!overlayElement) {
+      overlayElement = SparklineRenderer.findElementInShadowRoots(`[data-overlay-id="${overlayId}"]`);
+      if (overlayElement) {
+        this.overlayElementCache.set(overlayId, overlayElement);
+        console.log(`[AdvancedRenderer] Found element via shadow root search for ${overlayId}`);
+      }
+    }
+  }
+
+  if (!overlayElement) {
+    console.warn(`[AdvancedRenderer] Could not find overlay element: ${overlayId}`);
+    return;
+  }
+
+  const overlay = this.lastRenderArgs?.overlays?.find(o => o.id === overlayId);
+  if (!overlay) {
+    console.warn(`[AdvancedRenderer] Could not find overlay config: ${overlayId}`);
+    return;
+  }
+
+  // Delegate to type-specific renderer
+  if (overlay.type === 'sparkline') {
+    SparklineRenderer.updateSparklineData(overlayElement, overlay, sourceData);
+  } else {
+    console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
+  }
+}
+
 
   handleDataSourceUpdate(updateData) {
     if (!this.mountEl) return;
@@ -248,6 +374,7 @@ export class AdvancedRenderer {
   destroy() {
     SparklineRenderer.clearAllRetryStates();
     this.overlayElements.clear();
+    this.overlayElementCache.clear();
     this.lastRenderArgs = null;
   }
 }

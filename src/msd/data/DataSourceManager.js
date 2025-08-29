@@ -233,6 +233,9 @@ export class DataSourceManager {
 
     console.log(`[DataSourceManager] 🔗 Setting up subscription for ${overlay.id} to ${overlay.source}`);
 
+
+
+    /* OLD
     // Subscribe to the data source with enhanced data for sparklines
     const unsubscribe = source.subscribe((data) => {
       // Enhanced callback data for sparklines
@@ -260,6 +263,59 @@ export class DataSourceManager {
       // Call the callback with overlay and enhanced update data
       callback(overlay, enhancedData);
     });
+    */
+
+    // Subscribe to the data source with enhanced data for sparklines
+    const unsubscribe = source.subscribe((data) => {
+      // Enhanced callback data for sparklines
+      const enhancedData = {
+        ...data,
+        sourceId: overlay.source,
+        overlayId: overlay.id,
+        overlayType: overlay.type,
+        // Include buffer reference for sparklines
+        buffer: overlay.type === 'sparkline' ? data.buffer : undefined,
+        // Include historical data if available
+        historicalData: overlay.type === 'sparkline' && data.buffer ?
+          data.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
+      };
+
+      // DEBUG: Log what we're about to send
+      console.log(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
+        hasBuffer: !!enhancedData.buffer,
+        bufferSize: enhancedData.buffer?.size?.() || 0,
+        hasHistoricalData: !!enhancedData.historicalData,
+        historicalDataLength: enhancedData.historicalData?.length || 0,
+        currentValue: enhancedData.v
+      });
+
+      // Call the callback with overlay and enhanced update data
+      callback(overlay, enhancedData);
+    });
+
+    // CRITICAL: Provide immediate callback if data already exists
+    // This fixes the timing issue where overlays subscribe after data is ready
+    const currentData = source.getCurrentData();
+    if (currentData && (currentData.buffer?.size?.() > 0 || currentData.v !== undefined)) {
+      console.log(`[DataSourceManager] 🔄 Providing immediate data for ${overlay.id}`);
+
+      const immediateData = {
+        ...currentData,
+        sourceId: overlay.source,
+        overlayId: overlay.id,
+        overlayType: overlay.type,
+        buffer: overlay.type === 'sparkline' ? currentData.buffer : undefined,
+        historicalData: overlay.type === 'sparkline' && currentData.buffer ?
+          currentData.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
+      };
+
+      // Use setTimeout to avoid blocking the subscription setup
+      setTimeout(() => {
+        callback(overlay, immediateData);
+      }, 0);
+    }
+
+
 
     // Store the unsubscribe function
     if (!this.overlaySubscriptions.has(overlay.id)) {

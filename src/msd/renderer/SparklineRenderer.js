@@ -506,6 +506,7 @@ export class SparklineRenderer {
    * @param {Object} overlay - Overlay configuration
    * @param {Object} sourceData - New data from the data source
    */
+  /* OLD
   static updateSparklineData(sparklineElement, overlay, sourceData) {
     console.log(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
       hasBuffer: !!(sourceData?.buffer),
@@ -602,6 +603,173 @@ export class SparklineRenderer {
 
     } catch (error) {
       console.error('[SparklineRenderer] Error updating sparkline data:', error);
+    }
+  }
+  */
+
+
+  /**
+   * Update sparkline data dynamically when data source changes
+   * @param {Element} sparklineElement - The sparkline SVG element
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - New data from the data source
+   */
+  static updateSparklineData(sparklineElement, overlay, sourceData) {
+    console.log(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
+      hasBuffer: !!(sourceData?.buffer),
+      bufferSize: sourceData?.buffer?.size?.() || 0,
+      hasHistoricalData: !!(sourceData?.historicalData),
+      historicalDataLength: sourceData?.historicalData?.length || 0,
+      sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
+      currentStatus: sparklineElement.getAttribute('data-status'),
+      elementFound: !!sparklineElement,
+      currentValue: sourceData?.v
+    });
+
+    if (!sparklineElement || !overlay || !sourceData) {
+      console.warn('[SparklineRenderer] updateSparklineData: Missing required parameters');
+      return;
+    }
+
+    // Check if this is a placeholder that needs upgrading
+    const currentStatus = sparklineElement.getAttribute('data-status');
+    const isPlaceholder = currentStatus === 'MANAGER_NOT_AVAILABLE' || currentStatus === 'LOADING';
+
+    if (isPlaceholder && (sourceData.buffer || sourceData.historicalData)) {
+      console.log(`[SparklineRenderer] Upgrading placeholder sparkline ${overlay.id}`);
+      this._upgradeFromPlaceholder(sparklineElement, overlay, sourceData);
+      return;
+    }
+
+    // Find the path element to update
+    const pathElement = sparklineElement.querySelector('path');
+    if (!pathElement) {
+      console.warn(`[SparklineRenderer] No path element found for ${overlay.id} - might still be a placeholder`);
+      return;
+    }
+
+    try {
+      // Extract dimensions from overlay config
+      const bounds = {
+        width: overlay.size?.[0] || 200,
+        height: overlay.size?.[1] || 60
+      };
+
+      // Convert source data to sparkline format
+      const historicalData = this._extractHistoricalData(sourceData);
+
+      if (historicalData.length > 1) {
+        const newPathData = this.createSparklinePath(historicalData, bounds);
+        pathElement.setAttribute('d', newPathData);
+
+        // Update status attributes
+        sparklineElement.removeAttribute('data-status');
+        sparklineElement.setAttribute('data-last-update', Date.now());
+
+        console.log(`[SparklineRenderer] ✅ Updated sparkline ${overlay.id} with ${historicalData.length} points`);
+      } else {
+        console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
+
+        // Set loading status if we don't have enough data yet
+        if (historicalData.length === 0) {
+          sparklineElement.setAttribute('data-status', 'NO_DATA');
+        } else {
+          sparklineElement.setAttribute('data-status', 'INSUFFICIENT_DATA');
+        }
+      }
+
+    } catch (error) {
+      console.error(`[SparklineRenderer] Error updating sparkline ${overlay.id}:`, error);
+      sparklineElement.setAttribute('data-status', 'ERROR');
+    }
+  }
+
+
+  /**
+   * Extract historical data from various source data formats
+   * @private
+   * @param {Object} sourceData - Data from the data source
+   * @returns {Array} Array of {timestamp, value} objects
+   */
+  static _extractHistoricalData(sourceData) {
+    let historicalData = [];
+
+    // Method 1: Use buffer data directly
+    if (sourceData.buffer && typeof sourceData.buffer.getAll === 'function') {
+      const bufferData = sourceData.buffer.getAll();
+      historicalData = bufferData.map(point => ({
+        timestamp: point.t,
+        value: point.v
+      }));
+      console.log('[SparklineRenderer] Using buffer data:', historicalData.length, 'points');
+    }
+    // Method 2: Use pre-formatted historical data
+    else if (sourceData.historicalData && Array.isArray(sourceData.historicalData)) {
+      historicalData = sourceData.historicalData;
+      console.log('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
+    }
+    // Method 3: Generate from single current value (fallback for testing)
+    else if (sourceData.v !== undefined && sourceData.t !== undefined) {
+      console.log('[SparklineRenderer] Generating demo data from current value:', sourceData.v);
+      const now = Date.now();
+      for (let i = 0; i < 20; i++) {
+        historicalData.push({
+          timestamp: now - (19 - i) * 60000,
+          value: sourceData.v + (Math.random() - 0.5) * (sourceData.v * 0.1) // ±10% variation
+        });
+      }
+    }
+
+    return historicalData;
+  }
+
+  /**
+   * Upgrade a placeholder sparkline element with real data
+   * @private
+   * @param {Element} sparklineElement - The placeholder sparkline element
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Data from the data source
+   */
+  static _upgradeFromPlaceholder(sparklineElement, overlay, sourceData) {
+    console.log(`[SparklineRenderer] Upgrading placeholder sparkline ${overlay.id}`);
+
+    const gTransform = sparklineElement.querySelector('g[transform]');
+    if (!gTransform) {
+      console.warn(`[SparklineRenderer] Could not find transform group for upgrade in ${overlay.id}`);
+      return;
+    }
+
+    // Extract size from overlay
+    const size = overlay.size || [200, 60];
+    const [width, height] = size;
+    const style = overlay.finalStyle || overlay.style || {};
+    const strokeColor = style.color || 'var(--lcars-yellow)';
+
+    // Get historical data
+    const historicalData = this._extractHistoricalData(sourceData);
+
+    if (historicalData.length > 1) {
+      // Generate new path data
+      const pathData = this.createSparklinePath(historicalData, { width, height });
+
+      console.log(`[SparklineRenderer] Generated path data for upgrade of ${overlay.id}`);
+
+      // Replace placeholder content with real sparkline
+      gTransform.innerHTML = `
+        <path d="${pathData}"
+              fill="none"
+              stroke="${strokeColor}"
+              stroke-width="${style.width || 2}"
+              vector-effect="non-scaling-stroke"/>
+      `;
+
+      // Update element attributes to reflect new state
+      sparklineElement.removeAttribute('data-status');
+      sparklineElement.setAttribute('data-last-update', Date.now());
+
+      console.log(`[SparklineRenderer] ✅ Upgraded sparkline ${overlay.id} with ${historicalData.length} data points`);
+    } else {
+      console.warn(`[SparklineRenderer] Cannot upgrade ${overlay.id} - insufficient data: ${historicalData.length} points`);
     }
   }
 
@@ -1099,6 +1267,47 @@ export class SparklineRenderer {
   static clearAllRetryStates() {
     this.retryAttempts.clear();
   }
+
+
+
+  /**
+   * Debug method to check sparkline update status
+   * Call from console: SparklineRenderer.debugSparklineUpdates()
+   */
+  static debugSparklineUpdates() {
+    console.log('🔍 Sparkline Update Debug Report');
+    console.log('================================');
+
+    const sparklines = document.querySelectorAll('[data-overlay-type="sparkline"]');
+    console.log(`Found ${sparklines.length} sparkline elements`);
+
+    sparklines.forEach((element, index) => {
+      const overlayId = element.getAttribute('data-overlay-id');
+      const source = element.getAttribute('data-source');
+      const status = element.getAttribute('data-status');
+      const lastUpdate = element.getAttribute('data-last-update');
+      const pathElement = element.querySelector('path');
+
+      console.log(`Sparkline ${index + 1}:`, {
+        id: overlayId,
+        source: source,
+        status: status || 'OK',
+        lastUpdate: lastUpdate ? new Date(parseInt(lastUpdate)).toISOString() : 'Never',
+        hasPath: !!pathElement,
+        pathData: pathElement?.getAttribute('d')?.substring(0, 50) + '...' || 'None'
+      });
+    });
+
+    // Check data source manager
+    const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+    if (dsm) {
+      const stats = dsm.getStats();
+      console.log('DataSourceManager stats:', stats);
+    } else {
+      console.warn('DataSourceManager not accessible via debug interface');
+    }
+  }
+
 }
 
 // Expose SparklineRenderer to window for console debugging

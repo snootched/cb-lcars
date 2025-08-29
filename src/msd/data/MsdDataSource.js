@@ -613,6 +613,7 @@ export class MsdDataSource {
     }
   }
 
+  /* OLD
   subscribe(callback) {
     if (typeof callback !== 'function') {
       console.warn('[MsdDataSource] Subscribe requires a function callback');
@@ -641,6 +642,57 @@ export class MsdDataSource {
       this.subscribers.delete(callback);
     };
   }
+  */
+
+
+  subscribe(callback) {
+    if (typeof callback !== 'function') {
+      console.warn('[MsdDataSource] Subscribe requires a function callback');
+      return () => {};
+    }
+
+    this.subscribers.add(callback);
+
+    // Enhanced immediate hydration with current data
+    const lastPoint = this.buffer.last();
+    if (lastPoint) {
+      try {
+        const currentData = {
+          t: lastPoint.t,
+          v: lastPoint.v,
+          buffer: this.buffer,
+          stats: { ...this._stats }
+        };
+
+        console.log(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
+          entity: this.cfg.entity,
+          value: lastPoint.v,
+          bufferSize: this.buffer.size(),
+          timestamp: new Date(lastPoint.t).toISOString()
+        });
+
+        // Use setTimeout to avoid blocking the subscription
+        setTimeout(() => {
+          callback(currentData);
+        }, 0);
+
+      } catch (error) {
+        console.warn('[MsdDataSource] Initial callback error:', error);
+      }
+    } else {
+      console.log(`[MsdDataSource] No data available for immediate hydration:`, {
+        entity: this.cfg.entity,
+        bufferSize: this.buffer.size(),
+        started: this._started
+      });
+    }
+
+    // Return unsubscribe function
+    return () => {
+      this.subscribers.delete(callback);
+    };
+  }
+
 
   _toNumber(rawValue) {
     if (rawValue === null || rawValue === undefined) return null;
@@ -706,11 +758,45 @@ export class MsdDataSource {
    * Get current data with enhanced metadata
    * @returns {Object|null} Current data object or null
    */
+  /* OLD
   getCurrentData() {
     const lastPoint = this.buffer.last();
     return {
       t: lastPoint?.t,
       v: lastPoint?.v,
+      buffer: this.buffer,
+      stats: { ...this._stats },
+      entity: this.cfg.entity,
+      historyReady: this._stats.historyLoaded > 0,
+      bufferSize: this.buffer.size(),
+      started: this._started
+    };
+  }
+  */
+
+  /**
+   * Get current data with enhanced metadata
+   * @returns {Object|null} Current data object or null
+   */
+  getCurrentData() {
+    const lastPoint = this.buffer.last();
+    if (!lastPoint) {
+      // Return minimal data structure even if no data points exist
+      return {
+        t: null,
+        v: null,
+        buffer: this.buffer,
+        stats: { ...this._stats },
+        entity: this.cfg.entity,
+        historyReady: this._stats.historyLoaded > 0,
+        bufferSize: 0,
+        started: this._started
+      };
+    }
+
+    return {
+      t: lastPoint.t,
+      v: lastPoint.v,
       buffer: this.buffer,
       stats: { ...this._stats },
       entity: this.cfg.entity,
