@@ -132,11 +132,12 @@ export class ModelBuilder {
         if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
           try {
             this.systems.dataSourceManager.subscribeOverlay(overlay, (overlay, updateData) => {
-              console.log('[MSD v1] 📊 Data update for overlay', overlay.id, 'value:', updateData.sourceData?.v);
+              // FIX: updateData IS the source data, not updateData.sourceData
+              console.log('[MSD v1] 📊 Data update for overlay', overlay.id, 'value:', updateData.v);
 
-              // Update the renderer with real data
+              // Update the renderer with real data - pass updateData directly
               if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
-                this.systems.renderer.updateOverlayData(overlay.id, updateData.sourceData);
+                this.systems.renderer.updateOverlayData(overlay.id, updateData);
               }
             });
             subscriptionCount++;

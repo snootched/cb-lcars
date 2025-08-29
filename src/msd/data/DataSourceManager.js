@@ -231,6 +231,8 @@ export class DataSourceManager {
       return;
     }
 
+    console.log(`[DataSourceManager] 🔗 Setting up subscription for ${overlay.id} to ${overlay.source}`);
+
     // Subscribe to the data source with enhanced data for sparklines
     const unsubscribe = source.subscribe((data) => {
       // Enhanced callback data for sparklines
@@ -245,6 +247,15 @@ export class DataSourceManager {
         historicalData: overlay.type === 'sparkline' && data.buffer ?
           data.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
       };
+
+      // DEBUG: Log what we're about to send
+      console.log(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
+        hasBuffer: !!enhancedData.buffer,
+        bufferSize: enhancedData.buffer?.size?.() || 0,
+        hasHistoricalData: !!enhancedData.historicalData,
+        historicalDataLength: enhancedData.historicalData?.length || 0,
+        currentValue: enhancedData.v
+      });
 
       // Call the callback with overlay and enhanced update data
       callback(overlay, enhancedData);

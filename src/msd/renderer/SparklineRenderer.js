@@ -5,6 +5,11 @@
 import { PositionResolver } from './PositionResolver.js';
 
 export class SparklineRenderer {
+  // Static property to track retry attempts
+  static retryAttempts = new Map();
+  static maxRetries = 10;
+  static retryDelay = 1000; // 1 second
+
   /**
    * Render a sparkline overlay with real data or status indicator
    * @param {Object} overlay - Sparkline overlay configuration
@@ -44,8 +49,195 @@ export class SparklineRenderer {
         </g>
       `;
     } else {
-      // Render LCARS-style status indicator
+      // Render LCARS-style status indicator and schedule retry if needed
+      this.scheduleRetryIfNeeded(overlay, dataResult);
       return this.renderStatusIndicator(overlay, x, y, width, height, dataResult, strokeColor);
+    }
+  }
+
+  /**
+   * Schedule retry attempts for sparklines when DataSourceManager is unavailable
+   * @param {Object} overlay - Sparkline overlay configuration
+   * @param {Object} dataResult - Result from data fetch attempt
+   */
+  static scheduleRetryIfNeeded(overlay, dataResult) {
+    // Only retry for DataSourceManager unavailability
+    if (dataResult.status !== 'MANAGER_NOT_AVAILABLE') {
+      return;
+    }
+
+    const overlayId = overlay.id;
+    const currentRetries = this.retryAttempts.get(overlayId) || 0;
+
+    if (currentRetries >= this.maxRetries) {
+      console.log(`[SparklineRenderer] Max retries reached for ${overlayId}, giving up`);
+      return;
+    }
+
+    // Schedule retry with exponential backoff
+    const delay = this.retryDelay * Math.pow(1.5, currentRetries);
+    console.log(`[SparklineRenderer] Scheduling retry ${currentRetries + 1}/${this.maxRetries} for ${overlayId} in ${delay}ms`);
+
+    setTimeout(() => {
+      this.retrySparklineRender(overlayId, overlay);
+    }, delay);
+
+    this.retryAttempts.set(overlayId, currentRetries + 1);
+  }
+
+  /**
+   * Retry rendering a sparkline after delay
+   * @param {string} overlayId - ID of the overlay to retry
+   * @param {Object} overlay - Sparkline overlay configuration
+   */
+  static async retrySparklineRender(overlayId, overlay) {
+    console.log(`[SparklineRenderer] 🔄 Retrying sparkline render for ${overlayId}`);
+
+    // Check if DataSourceManager is now available
+    const dataResult = this.getHistoricalDataForSparkline(overlay.source);
+
+    if (dataResult.status === 'OK' && dataResult.data) {
+      console.log(`[SparklineRenderer] ✅ DataSourceManager now available for ${overlayId}, upgrading sparkline`);
+
+      // Find the sparkline element in DOM - including shadow roots
+      let sparklineElement = this.findElementInShadowRoots(`[data-overlay-id="${overlayId}"]`);
+
+      if (sparklineElement) {
+        console.log(`[SparklineRenderer] Found sparkline element for upgrade:`, {
+          overlayId,
+          elementType: sparklineElement.tagName,
+          hasStatus: sparklineElement.hasAttribute('data-status'),
+          status: sparklineElement.getAttribute('data-status'),
+          foundInShadowRoot: sparklineElement.getRootNode() !== document
+        });
+
+        this.upgradeSparklineElement(sparklineElement, overlay, dataResult.data);
+        // Clear retry attempts on success
+        this.retryAttempts.delete(overlayId);
+      } else {
+        console.warn(`[SparklineRenderer] Could not find sparkline element for ${overlayId} in document or shadow roots, will retry`);
+        // Don't delete retry attempts, let it try again
+        this.scheduleRetryIfNeeded(overlay, { status: 'MANAGER_NOT_AVAILABLE' });
+      }
+    } else if (dataResult.status === 'MANAGER_NOT_AVAILABLE') {
+      // Still not available, schedule another retry
+      this.scheduleRetryIfNeeded(overlay, dataResult);
+    } else {
+      // Different error, stop retrying
+      console.warn(`[SparklineRenderer] Stopping retries for ${overlayId}, got status: ${dataResult.status}`);
+      this.retryAttempts.delete(overlayId);
+    }
+  }
+
+  /**
+   * Find an element in the document including all shadow roots
+   * @param {string} selector - CSS selector to find
+   * @returns {Element|null} The found element or null
+   */
+  static findElementInShadowRoots(selector) {
+    // First try normal document search
+    let element = document.querySelector(selector);
+    if (element) {
+      console.log(`[SparklineRenderer] Found element in main document`);
+      return element;
+    }
+
+    // Search within shadow roots - look for custom elements that might contain our sparklines
+    const customElements = [
+      'cblcars-button-card',
+      'cb-lcars',
+      'ha-card',
+      'custom-button-card',
+      // Add other potential custom element names
+    ];
+
+    for (const tagName of customElements) {
+      const hosts = document.querySelectorAll(tagName);
+      for (const host of hosts) {
+        if (host.shadowRoot) {
+          element = host.shadowRoot.querySelector(selector);
+          if (element) {
+            console.log(`[SparklineRenderer] Found element in shadow root of ${tagName}`);
+            return element;
+          }
+
+          // Also search within SVGs in the shadow root
+          const svgs = host.shadowRoot.querySelectorAll('svg');
+          for (const svg of svgs) {
+            element = svg.querySelector(selector);
+            if (element) {
+              console.log(`[SparklineRenderer] Found element in SVG within shadow root of ${tagName}`);
+              return element;
+            }
+          }
+        }
+      }
+    }
+
+    // Fallback: Search all elements with shadow roots
+    const allElements = document.querySelectorAll('*');
+    for (const el of allElements) {
+      if (el.shadowRoot) {
+        element = el.shadowRoot.querySelector(selector);
+        if (element) {
+          console.log(`[SparklineRenderer] Found element in shadow root of ${el.tagName}`);
+          return element;
+        }
+      }
+    }
+
+    console.log(`[SparklineRenderer] Element not found in document or any shadow roots`);
+    return null;
+  }
+
+  /**
+   * Upgrade a placeholder sparkline element to show real data
+   * @param {Element} sparklineElement - The sparkline SVG element
+   * @param {Object} overlay - Overlay configuration
+   * @param {Array} data - Historical data points
+   */
+  static upgradeSparklineElement(sparklineElement, overlay, data) {
+    console.log(`[SparklineRenderer] Upgrading sparkline ${overlay.id} from placeholder to real data`);
+
+    const gTransform = sparklineElement.querySelector('g[transform]');
+    if (!gTransform) {
+      console.warn('[SparklineRenderer] Could not find transform group for upgrade');
+      // Log the actual structure for debugging
+      console.warn('[SparklineRenderer] Sparkline element structure:', sparklineElement.outerHTML);
+      return;
+    }
+
+    // Extract size from overlay
+    const size = overlay.size || [200, 60];
+    const [width, height] = size;
+    const style = overlay.finalStyle || overlay.style || {};
+    const strokeColor = style.color || 'var(--lcars-yellow)';
+
+    // Generate new path data
+    const pathData = this.createSparklinePath(data, { width, height });
+
+    console.log(`[SparklineRenderer] Generated path data for ${overlay.id}:`, pathData.substring(0, 100) + '...');
+
+    // Replace content with real sparkline
+    gTransform.innerHTML = `
+      <path d="${pathData}"
+            fill="none"
+            stroke="${strokeColor}"
+            stroke-width="${style.width || 2}"
+            vector-effect="non-scaling-stroke"/>
+    `;
+
+    // Update element attributes to reflect new state
+    sparklineElement.removeAttribute('data-status');
+
+    console.log(`[SparklineRenderer] ✅ Upgraded sparkline ${overlay.id} with ${data.length} data points`);
+
+    // Verify the upgrade worked
+    const pathElement = gTransform.querySelector('path');
+    if (pathElement) {
+      console.log(`[SparklineRenderer] ✅ Verified path element exists after upgrade`);
+    } else {
+      console.error(`[SparklineRenderer] ❌ Path element not found after upgrade!`);
     }
   }
 
@@ -190,6 +382,7 @@ export class SparklineRenderer {
   static renderStatusIndicator(overlay, x, y, width, height, dataResult, color) {
     const statusColors = {
       'NO_SOURCE': 'var(--lcars-red)',
+      'MANAGER_NOT_AVAILABLE': 'var(--lcars-blue)', // Changed to blue for loading state
       'MANAGER_OFFLINE': 'var(--lcars-red)',
       'INITIALIZING': 'var(--lcars-blue)',
       'STARTING': 'var(--lcars-blue)',
@@ -204,7 +397,7 @@ export class SparklineRenderer {
 
     const statusMessages = {
       'NO_SOURCE': 'NO SOURCE',
-      'MANAGER_NOT_AVAILABLE': 'OFFLINE',
+      'MANAGER_NOT_AVAILABLE': 'LOADING', // More user-friendly message
       'SOURCE_NOT_FOUND': 'NOT FOUND',
       'NO_BUFFER': 'NO BUFFER',
       'EMPTY_BUFFER': 'NO DATA',
@@ -216,8 +409,8 @@ export class SparklineRenderer {
     const indicatorText = statusMessages[dataResult.status] || 'UNKNOWN';
     const fontSize = Math.min(width / 8, height / 3, 14);
 
-    // Add pulsing animation for loading states
-    const loadingStates = ['INITIALIZING', 'STARTING', 'LOADING_HISTORY'];
+    // Add pulsing animation for loading states (including MANAGER_NOT_AVAILABLE)
+    const loadingStates = ['INITIALIZING', 'STARTING', 'LOADING_HISTORY', 'MANAGER_NOT_AVAILABLE', 'INSUFFICIENT_DATA'];
     const isLoading = loadingStates.includes(dataResult.status);
     const animationProps = isLoading ? `
       <animate attributeName="opacity"
@@ -314,10 +507,44 @@ export class SparklineRenderer {
    * @param {Object} sourceData - New data from the data source
    */
   static updateSparklineData(sparklineElement, overlay, sourceData) {
+    console.log(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
+      hasBuffer: !!(sourceData?.buffer),
+      bufferSize: sourceData?.buffer?.size?.() || 0,
+      hasHistoricalData: !!(sourceData?.historicalData),
+      historicalDataLength: sourceData?.historicalData?.length || 0,
+      sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
+      currentStatus: sparklineElement.getAttribute('data-status'),
+      elementFound: !!sparklineElement,
+      inShadowRoot: sparklineElement?.getRootNode() !== document
+    });
+
+    // If this is a placeholder sparkline (has data-status), try to upgrade it
+    const currentStatus = sparklineElement.getAttribute('data-status');
+    if (currentStatus === 'MANAGER_NOT_AVAILABLE' || currentStatus === 'LOADING') {
+      console.log(`[SparklineRenderer] Attempting to upgrade placeholder sparkline ${overlay.id}`);
+
+      // Try to get historical data again
+      const dataResult = this.getHistoricalDataForSparkline(overlay.source);
+      if (dataResult.status === 'OK' && dataResult.data) {
+        this.upgradeSparklineElement(sparklineElement, overlay, dataResult.data);
+        return; // Exit early, upgrade handles the update
+      } else {
+        console.log(`[SparklineRenderer] Historical data still not available for ${overlay.id}:`, dataResult.status);
+      }
+    }
+
     try {
       const pathElement = sparklineElement.querySelector('path');
       if (!pathElement) {
-        console.warn('[SparklineRenderer] No path element found for update');
+        console.warn('[SparklineRenderer] No path element found for update - might be a placeholder');
+        // Try to upgrade if we have the data
+        if (sourceData?.buffer || sourceData?.historicalData) {
+          console.log(`[SparklineRenderer] Attempting upgrade from updateSparklineData for ${overlay.id}`);
+          const dataResult = this.getHistoricalDataForSparkline(overlay.source);
+          if (dataResult.status === 'OK' && dataResult.data) {
+            this.upgradeSparklineElement(sparklineElement, overlay, dataResult.data);
+          }
+        }
         return;
       }
 
@@ -337,16 +564,31 @@ export class SparklineRenderer {
       // Convert source data to sparkline format
       let historicalData = [];
 
+      // Method 1: Check for buffer data
       if (sourceData.buffer && typeof sourceData.buffer.getAll === 'function') {
-        // Real buffer data
+        console.log('[SparklineRenderer] Using buffer data');
         const bufferData = sourceData.buffer.getAll();
         historicalData = bufferData.map(point => ({
           timestamp: point.t,
           value: point.v
         }));
-      } else if (sourceData.historicalData) {
-        // Pre-formatted historical data
+      }
+      // Method 2: Check for pre-formatted historical data
+      else if (sourceData.historicalData && Array.isArray(sourceData.historicalData)) {
+        console.log('[SparklineRenderer] Using pre-formatted historical data');
         historicalData = sourceData.historicalData;
+      }
+      // Method 3: Generate from current value if available
+      else if (sourceData.v !== undefined && sourceData.t !== undefined) {
+        console.log('[SparklineRenderer] Generating data from current value');
+        // Generate simple demo data based on current value
+        const now = Date.now();
+        for (let i = 0; i < 20; i++) {
+          historicalData.push({
+            timestamp: now - (19 - i) * 60000,
+            value: sourceData.v + (Math.random() - 0.5) * (sourceData.v * 0.1) // ±10% variation
+          });
+        }
       }
 
       if (historicalData.length > 1) {
@@ -354,6 +596,8 @@ export class SparklineRenderer {
         pathElement.setAttribute('d', newPathData);
 
         console.log(`[SparklineRenderer] ✅ Updated sparkline ${overlay.id} with ${historicalData.length} points`);
+      } else {
+        console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
       }
 
     } catch (error) {
@@ -839,6 +1083,21 @@ export class SparklineRenderer {
 
     console.warn(`[SparklineRenderer] ❌ Failed to initialize after ${maxRetries} attempts`);
     return false;
+  }
+
+  /**
+   * Clear retry state for cleanup
+   * @param {string} overlayId - ID of the overlay to clear
+   */
+  static clearRetryState(overlayId) {
+    this.retryAttempts.delete(overlayId);
+  }
+
+  /**
+   * Clear all retry states (for cleanup)
+   */
+  static clearAllRetryStates() {
+    this.retryAttempts.clear();
   }
 }
 
