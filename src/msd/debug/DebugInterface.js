@@ -1,8 +1,6 @@
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { MsdIntrospection } from '../introspection/MsdIntrospection.js';
 
-
-
 export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
   if (typeof window === 'undefined') return;
 
@@ -51,56 +49,6 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
     console.log('[MSD v1] Debug mode disabled by config');
   }
 }
-
-
-/*
-export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
-  if (typeof window === 'undefined') return;
-
-  const dbg = window.__msdDebug = window.__msdDebug || {};
-
-  // Extract debug config from mergedConfig
-  const debugConfig = mergedConfig?.debug || {};
-
-  // Core pipeline access - UNIFIED: Only set pipelineInstance
-  dbg.pipelineInstance = pipelineApi;
-
-  // Add backward compatibility getter with deprecation warning
-  if (!dbg.hasOwnProperty('pipeline')) {
-    Object.defineProperty(dbg, 'pipeline', {
-      get() {
-        console.warn('[MSD Debug] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
-        return this.pipelineInstance;
-      },
-      configurable: true
-    });
-  }
-
-  dbg._provenance = provenance;
-
-  // Routing system
-  setupRoutingDebugInterface(dbg, pipelineApi, systemsManager);
-
-  // Data sources - our current entity management system
-  setupDataSourceDebugInterface(dbg, systemsManager);
-
-  // Rendering and debug visualization
-  setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig);
-
-  // Performance and validation
-  setupUtilityDebugInterface(dbg, mergedConfig, systemsManager);
-
-  console.log('[MSD v1] Debug interface setup complete');
-  console.log('[MSD v1] Available methods:', Object.keys(dbg));
-
-  // Log debug config state
-  if (debugConfig.enabled) {
-    console.log('[MSD v1] Debug mode enabled:', debugConfig);
-  } else {
-    console.log('[MSD v1] Debug mode disabled by config');
-  }
-}
-*/
 
 function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
   dbg.routing = {
@@ -194,69 +142,60 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
   };
 }
 
-
-/*
-function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi) {
-  dbg.renderAdvanced = (options) => {
-    try {
-      console.log('[MSD v1] renderAdvanced called - using AdvancedRenderer');
-      const model = modelBuilder.getResolvedModel();
-      if (model) {
-        return systemsManager.renderer.render(model);
-      }
-      console.warn('[MSD v1] renderAdvanced: No resolved model available');
-      return { svgMarkup: '' };
-    } catch (error) {
-      console.error('[MSD v1] renderAdvanced failed:', error);
-      return { svgMarkup: '', error: error.message };
-    }
-  };
-
-  dbg.debug = {
-    render: (root, viewBox, options) => {
-      try {
-        const model = modelBuilder.getResolvedModel();
-        if (model) {
-          systemsManager.debugRenderer.render(root, viewBox, {
-            anchors: options?.anchors || model.anchors || {}
-          });
-        } else {
-          console.warn('[MSD v1] debug.render: No resolved model available');
-        }
-      } catch (error) {
-        console.warn('[MSD v1] debug.render failed:', error);
-      }
-    }
-  };
-
-  dbg.hud = {
-    show: () => systemsManager.hudManager.show(),
-    hide: () => systemsManager.hudManager.hide(),
-    toggle: () => systemsManager.hudManager.toggle(),
-    state: () => ({
-      visible: systemsManager.hudManager.state?.visible || false,
-      activePanel: systemsManager.hudManager.state?.activePanel || 'unknown',
-      refreshRate: systemsManager.hudManager.state?.refreshRate || 2000
-    })
-  };
-
-  dbg.introspection = {
-    listOverlays: (root) => MsdIntrospection.listOverlays(root),
-    getOverlayBBox: (id, root) => MsdIntrospection.getOverlayBBox(id, root),
-    highlight: (ids, opts) => MsdIntrospection.highlight(ids, opts)
-  };
-
-  dbg.controls = {
-    render: (overlays, model) => systemsManager.controlsRenderer.renderControls(overlays, model),
-    relayout: () => systemsManager.controlsRenderer.relayout()
-  };
-}
-*/
-
-
 function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig) {
   console.log('[MSD Debug Interface] Setting up rendering interface with config:', debugConfig);
 
+  // FIXED: Store shadowRoot context for debug operations
+  let debugShadowRoot = null;
+  let lastUsedRoot = null;
+
+  /**
+   * Store the shadowRoot context from the render call
+   * This allows us to find elements within the correct scope later
+   */
+  function setDebugContext(root) {
+    if (root && root.querySelector) {
+      debugShadowRoot = root;
+      lastUsedRoot = root;
+      console.log('[MSD Debug] Stored debug context:', root.constructor.name);
+    }
+  }
+
+  /**
+   * Find MSD wrapper element within the correct scope (shadowRoot)
+   */
+  function findMsdWrapper() {
+    const searchRoots = [debugShadowRoot, lastUsedRoot].filter(Boolean);
+
+    for (const root of searchRoots) {
+      if (!root || !root.querySelector) continue;
+
+      // Try multiple selectors within this shadowRoot
+      const selectors = [
+        '#msd-v1-comprehensive-wrapper',
+        '[id*="msd-v1"]',
+        '[id*="msd"]',
+        '.msd-container',
+        'div[style*="border:2px solid cyan"]'  // Fallback to the wrapper div style
+      ];
+
+      for (const selector of selectors) {
+        try {
+          const element = root.querySelector(selector);
+          if (element) {
+            console.log(`[MSD Debug] Found wrapper using selector '${selector}' in ${root.constructor.name}`);
+            return element;
+          }
+        } catch (e) {
+          // Continue to next selector
+        }
+      }
+    }
+
+    console.warn('[MSD Debug] Could not find MSD wrapper in any known shadowRoot');
+    return null;
+  }
+
   dbg.renderAdvanced = (options) => {
     try {
       console.log('[MSD v1] renderAdvanced called - using AdvancedRenderer');
@@ -272,14 +211,17 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     }
   };
 
-  // FIXED: Always create the debug object with methods, regardless of config
+  // ENHANCED: Complete debug object with all console methods
   dbg.debug = {
     render: (root, viewBox, options = {}) => {
       console.log('[MSD Debug] render() called with config enabled:', debugConfig?.enabled);
 
+      // FIXED: Store the shadowRoot context for later use
+      setDebugContext(root);
+
       // Check if debug is enabled in config
       if (!debugConfig?.enabled) {
-        console.log('[MSD v1] Debug rendering disabled by config');
+        console.log('[MSD v1] Debug rendering disabled by config - enabled value:', debugConfig?.enabled);
         return;
       }
 
@@ -293,7 +235,10 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
             showAnchors: debugConfig?.overlays?.anchors,
             showBoundingBoxes: debugConfig?.overlays?.bounding_boxes,
             showRouting: debugConfig?.overlays?.routing,
-            showPerformance: debugConfig?.overlays?.performance
+            showPerformance: debugConfig?.overlays?.performance,
+            // Include model data for rendering
+            anchors: options?.anchors || model.anchors || {},
+            overlays: model.overlays || []
           };
 
           console.log('[MSD Debug] Calling debugRenderer.render with options:', renderOptions);
@@ -308,63 +253,209 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       }
     },
 
-    // Add methods to dynamically control debug features
+    // Core feature control methods
     enable: (feature) => {
+      console.log(`[MSD Debug] Enabling feature: ${feature}`);
+
       if (!debugConfig.overlays) debugConfig.overlays = {};
+
       if (feature === 'all') {
         debugConfig.enabled = true;
         debugConfig.overlays.anchors = true;
         debugConfig.overlays.bounding_boxes = true;
         debugConfig.overlays.routing = true;
         debugConfig.overlays.performance = true;
-      } else if (feature === 'anchors' || feature === 'bounding_boxes' || feature === 'routing' || feature === 'performance') {
+      } else if (['anchors', 'bounding_boxes', 'routing', 'performance'].includes(feature)) {
         debugConfig.enabled = true;
         debugConfig.overlays[feature] = true;
       }
-      console.log(`[MSD v1] Debug feature '${feature}' enabled`);
+
+      console.log(`[MSD v1] Debug feature '${feature}' enabled - config now:`, debugConfig);
 
       // Re-render debug if currently active
-      setTimeout(() => {
-        if (dbg.debug && typeof dbg.debug.render === 'function') {
-          // Try to find the current root element
-          const wrapper = document.getElementById('msd-v1-comprehensive-wrapper');
-          if (wrapper) {
-            dbg.debug.render(wrapper.closest('.card-content') || wrapper.parentElement);
-          }
-        }
-      }, 100);
+      dbg.debug.refresh();
     },
 
     disable: (feature) => {
+      console.log(`[MSD Debug] Disabling feature: ${feature}`);
+
+      if (!debugConfig.overlays) return;
+
       if (feature === 'all') {
         debugConfig.enabled = false;
-      } else if (debugConfig.overlays && debugConfig.overlays.hasOwnProperty(feature)) {
+        debugConfig.overlays.anchors = false;
+        debugConfig.overlays.bounding_boxes = false;
+        debugConfig.overlays.routing = false;
+        debugConfig.overlays.performance = false;
+      } else if (['anchors', 'bounding_boxes', 'routing', 'performance'].includes(feature)) {
         debugConfig.overlays[feature] = false;
-      }
-      console.log(`[MSD v1] Debug feature '${feature}' disabled`);
 
-      // Re-render debug if currently active
+        // Disable debug entirely if no features are enabled
+        const anyEnabled = Object.values(debugConfig.overlays).some(enabled => enabled);
+        if (!anyEnabled) {
+          debugConfig.enabled = false;
+        }
+      }
+
+      console.log(`[MSD v1] Debug feature '${feature}' disabled - config now:`, debugConfig);
+
+      // Re-render debug
+      dbg.debug.refresh();
+    },
+
+    toggle: (feature) => {
+      if (!debugConfig.overlays) debugConfig.overlays = {};
+
+      if (feature === 'all') {
+        const currentlyEnabled = debugConfig.enabled;
+        if (currentlyEnabled) {
+          dbg.debug.disable('all');
+        } else {
+          dbg.debug.enable('all');
+        }
+      } else if (['anchors', 'bounding_boxes', 'routing', 'performance'].includes(feature)) {
+        const currentlyEnabled = debugConfig.overlays[feature];
+        if (currentlyEnabled) {
+          dbg.debug.disable(feature);
+        } else {
+          dbg.debug.enable(feature);
+        }
+      }
+    },
+
+    // FIXED: Force re-render of debug overlays with proper shadowRoot context
+    refresh: () => {
+      console.log('[MSD Debug] Refreshing debug overlays...');
+
       setTimeout(() => {
-        if (dbg.debug && typeof dbg.debug.render === 'function') {
-          const wrapper = document.getElementById('msd-v1-comprehensive-wrapper');
+        try {
+          // FIXED: Use our shadowRoot-aware wrapper finder
+          const wrapper = findMsdWrapper();
+
           if (wrapper) {
-            dbg.debug.render(wrapper.closest('.card-content') || wrapper.parentElement);
+            const model = modelBuilder.getResolvedModel();
+            if (model) {
+              console.log('[MSD Debug] Found wrapper, calling render with model:', {
+                anchorCount: Object.keys(model.anchors || {}).length,
+                overlayCount: model.overlays?.length || 0,
+                viewBox: model.viewBox,
+                wrapperType: wrapper.constructor.name,
+                wrapperId: wrapper.id
+              });
+
+              // FIXED: Use the shadowRoot context, not the wrapper's parent
+              const renderRoot = debugShadowRoot || lastUsedRoot;
+              if (renderRoot) {
+                dbg.debug.render(renderRoot, model.viewBox, {
+                  anchors: model.anchors,
+                  overlays: model.overlays
+                });
+              } else {
+                console.warn('[MSD Debug] No stored shadowRoot context for rendering');
+              }
+            } else {
+              console.warn('[MSD Debug] No resolved model available for refresh');
+            }
+          } else {
+            console.warn('[MSD Debug] Could not find MSD wrapper element for refresh');
+
+            // DEBUGGING: Log available elements in known shadowRoots
+            [debugShadowRoot, lastUsedRoot].filter(Boolean).forEach((root, index) => {
+              if (root && root.querySelectorAll) {
+                const allDivs = root.querySelectorAll('div[id]');
+                console.log(`[MSD Debug] Available divs with IDs in shadowRoot ${index}:`,
+                  Array.from(allDivs).map(div => ({ id: div.id, classes: div.className }))
+                );
+              }
+            });
           }
+        } catch (error) {
+          console.warn('[MSD v1] Debug refresh failed:', error);
         }
       }, 100);
     },
 
     status: () => {
+      const rendererState = systemsManager.debugRenderer?.getDebugState?.() || {};
       return {
-        enabled: debugConfig?.enabled || false,
-        overlays: debugConfig?.overlays || {},
-        console: debugConfig?.console || {},
-        hud: debugConfig?.hud || {}
+        config: {
+          enabled: debugConfig?.enabled || false,
+          overlays: debugConfig?.overlays || {},
+          console: debugConfig?.console || {},
+          hud: debugConfig?.hud || {}
+        },
+        renderer: rendererState,
+        context: {
+          hasShadowRoot: Boolean(debugShadowRoot),
+          hasLastRoot: Boolean(lastUsedRoot),
+          canFindWrapper: Boolean(findMsdWrapper())
+        }
       };
+    },
+
+    // CONSOLE-ACCESSIBLE NESTED METHODS
+    anchors: {
+      show: () => {
+        console.log('[MSD Debug] Showing anchor markers');
+        dbg.debug.enable('anchors');
+      },
+      hide: () => {
+        console.log('[MSD Debug] Hiding anchor markers');
+        dbg.debug.disable('anchors');
+      },
+      toggle: () => {
+        console.log('[MSD Debug] Toggling anchor markers');
+        dbg.debug.toggle('anchors');
+      }
+    },
+
+    bounding: {
+      show: () => {
+        console.log('[MSD Debug] Showing bounding boxes');
+        dbg.debug.enable('bounding_boxes');
+      },
+      hide: () => {
+        console.log('[MSD Debug] Hiding bounding boxes');
+        dbg.debug.disable('bounding_boxes');
+      },
+      toggle: () => {
+        console.log('[MSD Debug] Toggling bounding boxes');
+        dbg.debug.toggle('bounding_boxes');
+      }
+    },
+
+    routing: {
+      show: () => {
+        console.log('[MSD Debug] Showing routing guides');
+        dbg.debug.enable('routing');
+      },
+      hide: () => {
+        console.log('[MSD Debug] Hiding routing guides');
+        dbg.debug.disable('routing');
+      },
+      toggle: () => {
+        console.log('[MSD Debug] Toggling routing guides');
+        dbg.debug.toggle('routing');
+      }
+    },
+
+    performance: {
+      show: () => {
+        console.log('[MSD Debug] Showing performance overlay');
+        dbg.debug.enable('performance');
+      },
+      hide: () => {
+        console.log('[MSD Debug] Hiding performance overlay');
+        dbg.debug.disable('performance');
+      },
+      toggle: () => {
+        console.log('[MSD Debug] Toggling performance overlay');
+        dbg.debug.toggle('performance');
+      }
     }
   };
 
-  // Updated HUD with auto-show based on config
+  // Rest of the function remains the same...
   dbg.hud = {
     show: () => systemsManager.hudManager.show(),
     hide: () => systemsManager.hudManager.hide(),
@@ -375,7 +466,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       refreshRate: systemsManager.hudManager.state?.refreshRate || 2000
     }),
 
-    // Auto-show based on config
     init: () => {
       if (debugConfig?.hud?.auto_show) {
         setTimeout(() => {
@@ -386,7 +476,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     }
   };
 
-  // Initialize HUD auto-show if configured
   setTimeout(() => dbg.hud.init(), 100);
 
   dbg.introspection = {
@@ -402,8 +491,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 
   console.log('[MSD Debug Interface] Rendering interface setup complete, debug methods created');
 }
-
-
 
 function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
   // Rules system

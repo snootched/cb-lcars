@@ -13,6 +13,20 @@ cb-lcars-msd-v1-comprehensive:
   msd:
     version: 1
 
+    # Add explicit debug configuration to test config-based debug control
+    debug:
+      enabled: true
+      overlays:
+        anchors: true
+        bounding_boxes: true
+        routing: true
+        performance: true
+      console:
+        verbose: true
+        timing: true
+      hud:
+        auto_show: true
+
     base_svg:
       source: builtin:ncc-1701-a-blue
 
@@ -197,25 +211,180 @@ cb-lcars-msd-v1-comprehensive:
         - left: 0
         - z-index: 100
 
+
   custom_fields:
     msd_svg_base: |
       [[[
-        // Enable comprehensive debugging and force MSD v1
-        window.CBLCARS_MSD_V1_ENABLE = true;
-        window.cblcars = window.cblcars || {};
-        window.cblcars._debugFlags = {
-          overlay: true,
-          connectors: true,
-          geometry: true,
-          perf: true,
-          validation: true
-        };
+        // Access MSD config from root level
+        const msdConfig = this._config?.msd || this.config?.msd;
+
+        console.group('[MSD v1 Comprehensive Test Debug]');
+        console.log('Raw config anchors:', msdConfig.anchors);
+        console.log('Debug config:', msdConfig.debug);
+
+        let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
+        if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
+
+        const viewBox = window.cblcars.getSvgViewBox(svgContent);
+        const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+
+        // Process anchors with better SVG extraction and logging
+        const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
+        const userAnchors = msdConfig.anchors || {};
+
+        console.log('Raw SVG anchors found:', Object.keys(svgAnchors).length);
+        console.log('User config anchors:', Object.keys(userAnchors));
+
+        const resolvedAnchors = {};
+        const [minX, minY, vw, vh] = viewBox;
+
+        // First, add all SVG anchors
+        for (const [name, pos] of Object.entries(svgAnchors)) {
+          resolvedAnchors[name] = pos;
+        }
+
+        // Then process and add user anchors (with percentage resolution)
+        for (const [name, pos] of Object.entries(userAnchors)) {
+          if (Array.isArray(pos) && pos.length === 2) {
+            let [x, y] = pos;
+            if (typeof x === 'string' && x.endsWith('%')) {
+              x = minX + (parseFloat(x) / 100) * vw;
+            }
+            if (typeof y === 'string' && y.endsWith('%')) {
+              y = minY + (parseFloat(y) / 100) * vh;
+            }
+            resolvedAnchors[name] = [Number(x), Number(y)];
+          } else {
+            resolvedAnchors[name] = pos;
+          }
+        }
+
+        // Store resolved anchors globally so pipeline can access them
+        this._msdViewBox = viewBox;
+        this._msdAnchors = resolvedAnchors;
+        window._msdTestAnchors = resolvedAnchors;
+
+        console.log('Final resolved anchors:', Object.keys(resolvedAnchors).length);
+        console.groupEnd();
+
+        return `<div id="msd-v1-comprehensive-wrapper" style="width:100%;height:100%;border:2px solid cyan;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
+      ]]]
+
+    msd_svg_overlays: |
+      [[[
+        console.log('[MSD v1 Comprehensive] Overlay field evaluated - letting pipeline handle rendering');
+        return '<!-- MSD v1 Pipeline Will Handle Overlay Rendering -->';
+      ]]]
+
+    msd_controls: |
+      [[[
+        try {
+          if (!this._msdV1ComprehensiveBoot) {
+            // Check if MSD v1 system is loaded
+            if (typeof window.__msdDebug === 'undefined') {
+              console.error('[MSD v1 Comprehensive] window.__msdDebug not found');
+              return `<div style="color:red;padding:10px;">MSD v1 system not loaded</div>`;
+            }
+
+            if (!window.__msdDebug.initMsdPipeline) {
+              console.error('[MSD v1 Comprehensive] initMsdPipeline not found');
+              return `<div style="color:red;padding:10px;">initMsdPipeline not available</div>`;
+            }
+
+            this._msdV1ComprehensiveBoot = true;
+            const msdConfig = this._config?.msd || this.config?.msd;
+            const baseWrapper = this.shadowRoot.getElementById('msd-v1-comprehensive-wrapper');
+            const mount = baseWrapper || this.shadowRoot;
+            const realHass = this.___hass || hass;
+
+            // Use pre-processed anchors for comprehensive test
+            const enhancedConfig = { ...msdConfig };
+            if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
+              console.log('[MSD v1 Comprehensive] Using pre-processed anchors:', Object.keys(window._msdTestAnchors).length);
+              enhancedConfig.anchors = window._msdTestAnchors;
+            }
+
+            console.log('[MSD v1 Comprehensive] Initializing pipeline with debug config:', enhancedConfig.debug);
+
+            window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+              const resolvedModel = pipeline.getResolvedModel?.();
+              const pipelineAnchors = resolvedModel?.anchors || {};
+
+              const stats = {
+                enabled: pipeline.enabled,
+                overlayCount: resolvedModel?.overlays?.length || 0,
+                anchorCount: Object.keys(pipelineAnchors).length,
+                dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
+                ruleCount: (msdConfig.rules || []).length,
+                errors: pipeline.errors?.length || 0
+              };
+
+              console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
+              console.table(stats);
+
+              if (pipeline.errors?.length) {
+                console.error('Pipeline Errors:', pipeline.errors);
+              } else {
+                console.log('✅ All systems operational');
+              }
+              console.groupEnd();
+
+              // Verify debug system integration
+              setTimeout(() => {
+                console.log('[MSD v1 Comprehensive] Testing debug system...');
+
+                const debugStatus = window.__msdDebug?.debug?.status?.();
+                if (debugStatus) {
+                  console.log('Debug Status:', debugStatus);
+
+                  // Test debug rendering
+                  if (window.__msdDebug.debug.render) {
+                    console.log('🔧 Testing debug render...');
+                    window.__msdDebug.debug.render(this.shadowRoot, resolvedModel?.viewBox, {
+                      anchors: resolvedModel?.anchors,
+                      overlays: resolvedModel?.overlays
+                    });
+                  }
+                }
+
+                // Show available console commands
+                console.group('[MSD v1 Debug] Available Console Commands:');
+                console.log('🎯 window.__msdDebug.debug.anchors.show() - Show anchor markers');
+                console.log('📦 window.__msdDebug.debug.bounding.show() - Show bounding boxes');
+                console.log('🛣️  window.__msdDebug.debug.routing.show() - Show routing guides');
+                console.log('⚡ window.__msdDebug.debug.performance.show() - Show performance overlay');
+                console.log('🔄 window.__msdDebug.debug.refresh() - Refresh debug overlays');
+                console.log('📊 window.__msdDebug.debug.status() - Show debug status');
+                console.groupEnd();
+              }, 1000);
+
+            }).catch(err => {
+              console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
+            });
+          }
+
+        } catch(e) {
+          console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
+          return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
+        }
+
+        const vb = this._msdViewBox || [0,0,1920,1200];
+        const aspect = window.cblcars.getSvgAspectRatio(vb);
+        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
+      ]]]
+
+
+
+  custom_fields2:
+    msd_svg_base: |
+      [[[
 
         // Access MSD config from root level
         const msdConfig = this._config?.msd || this.config?.msd;
 
         console.group('[MSD v1 Comprehensive Test Debug]');
         console.log('Raw config anchors:', msdConfig.anchors);
+        console.log('Debug config:', msdConfig.debug);
 
         let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
         if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
@@ -319,7 +488,7 @@ cb-lcars-msd-v1-comprehensive:
               enhancedConfig.anchors = window._msdTestAnchors;
             }
 
-            console.log('[MSD v1 Comprehensive] Initializing pipeline with HASS');
+            console.log('[MSD v1 Comprehensive] Initializing pipeline with debug config:', enhancedConfig.debug);
 
             window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
               const resolvedModel = pipeline.getResolvedModel?.();
@@ -351,14 +520,32 @@ cb-lcars-msd-v1-comprehensive:
               }
               console.groupEnd();
 
+              // ENHANCED: Better HUD initialization with explicit config checking
+              setTimeout(() => {
+                const debugConfig = enhancedConfig.debug || {};
+                console.log('[MSD v1 Comprehensive] Debug config for HUD:', debugConfig);
+
+                if (debugConfig.hud?.auto_show) {
+                  console.log('[MSD v1 Comprehensive] Attempting to show HUD based on config...');
+                  if (window.__msdDebug.hud?.show) {
+                    window.__msdDebug.hud.show();
+                    console.log('[MSD v1 Comprehensive] ✅ HUD show() called');
+                  } else {
+                    console.warn('[MSD v1 Comprehensive] ⚠️ HUD.show() not available');
+                  }
+                } else {
+                  console.log('[MSD v1 Comprehensive] HUD auto_show disabled by config');
+                }
+              }, 1500);
+
               // Check consolidated pipeline access
               setTimeout(() => {
                 console.log('[MSD v1 Comprehensive] Verifying consolidated interface...');
 
                 const pipelineInstance = window.__msdDebug.pipelineInstance;
                 const dsManager = pipelineInstance?.dataSourceManager ||
-                                 pipelineInstance?.systemsManager?.dataSourceManager ||
-                                 window.__msdDebug.dataSourceManager;
+                                pipelineInstance?.systemsManager?.dataSourceManager ||
+                                window.__msdDebug.dataSourceManager;
 
                 if (dsManager) {
                   const entityIds = dsManager.listIds();
@@ -381,14 +568,6 @@ cb-lcars-msd-v1-comprehensive:
                 } else {
                   console.warn('⚠️ DataSourceManager not found via consolidated interface');
                 }
-              }, 1000);
-
-              // Show HUD
-              setTimeout(() => {
-                if (window.__msdDebug?.hud?.show) {
-                  window.__msdDebug.hud.show();
-                  console.log('[MSD v1 Comprehensive] HUD activated');
-                }
               }, 2000);
 
             }).catch(err => {
@@ -396,19 +575,32 @@ cb-lcars-msd-v1-comprehensive:
             });
           }
 
-          // Enable debug rendering
+          // ENHANCED: Debug rendering with better config checking and logging
           setTimeout(() => {
             try {
+              const msdConfig = this._config?.msd || this.config?.msd;
+              const debugConfig = msdConfig?.debug || {};
+
+              console.log('[MSD v1 Comprehensive] Debug rendering check:', {
+                enabled: debugConfig.enabled,
+                overlays: debugConfig.overlays,
+                debugRenderAvailable: !!window.__msdDebug?.debug?.render
+              });
+
               if (window.__msdDebug?.debug?.render) {
+                // Pass the full debug config to the renderer
                 window.__msdDebug.debug.render(this.shadowRoot, this._msdViewBox, {
-                  anchors: this._msdAnchors
+                  anchors: this._msdAnchors,
+                  debugConfig: debugConfig // Pass the config explicitly
                 });
-                console.log('[MSD v1 Comprehensive] Debug visualization enabled');
+                console.log('[MSD v1 Comprehensive] ✅ Debug render called with config');
+              } else {
+                console.warn('[MSD v1 Comprehensive] ⚠️ Debug render not available');
               }
             } catch(e) {
               console.warn('[MSD v1 Comprehensive] Debug rendering failed:', e);
             }
-          }, 500);
+          }, 800);
 
         } catch(e) {
           console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
@@ -419,63 +611,3 @@ cb-lcars-msd-v1-comprehensive:
         const aspect = window.cblcars.getSvgAspectRatio(vb);
         return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
       ]]]
-                        console.log(`  📊 ${entityId}: ${entity.state}`);
-                      }
-                    });
-
-                    const rulesEngine = pipelineInstance?.rulesEngine;
-                    if (rulesEngine) {
-                      console.log('✅ Rules engine available via consolidated interface');
-                      try {
-                        const getEntity = (id) => dsManager?.getEntity(id);
-                        const rulesResult = rulesEngine.evaluateDirty({ getEntity });
-                        console.log('📊 Rules evaluation:', {
-                          overlayPatches: rulesResult.overlayPatches?.length || 0,
-                          profilesAdd: rulesResult.profilesAdd?.length || 0
-                        });
-                      } catch (error) {
-                        console.warn('⚠️ Rules evaluation failed:', error.message);
-                      }
-                    }
-                  }
-                } else {
-                  console.warn('⚠️ DataSourceManager not found via consolidated interface');
-                }
-              }, 1000);
-
-              setTimeout(() => {
-                if (window.__msdDebug?.hud?.show) {
-                  window.__msdDebug.hud.show();
-                  console.log('[MSD v1 Comprehensive] HUD activated');
-                }
-              }, 2000);
-
-            }).catch(err => {
-              console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
-            });
-          }
-
-          // Enable debug rendering
-          setTimeout(() => {
-            try {
-              if (window.__msdDebug?.debug?.render) {
-                window.__msdDebug.debug.render(this.shadowRoot, this._msdViewBox, {
-                  anchors: this._msdAnchors
-                });
-                console.log('[MSD v1 Comprehensive] Debug rendering enabled');
-              }
-            } catch(e) {
-              console.warn('[MSD v1 Comprehensive] Debug rendering failed:', e);
-            }
-          }, 500);
-
-        } catch(e) {
-          console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
-          return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
-        }
-
-        const vb = this._msdViewBox || [0,0,1920,1200];
-        const aspect = window.cblcars.getSvgAspectRatio(vb);
-        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
-      ]]]
-
