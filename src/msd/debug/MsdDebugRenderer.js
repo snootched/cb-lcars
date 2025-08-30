@@ -237,16 +237,15 @@ export class MsdDebugRenderer {
 
   // FIXED: Integration method for window.__msdDebug with proper DOM element checking
   // UPDATED: Suppress warning when debug renderer is working correctly
+  // UPDATED: Integration method for window.__msdDebug with proper config handling
+
   render(root, viewBox, opts = {}) {
+
+    console.log('[MsdDebugRenderer] render() called with options:', opts);
+
     // Check if root is a valid DOM element with querySelector
     if (!root || typeof root.querySelector !== 'function') {
-      // SUPPRESSED: Only warn if debug flags suggest this should work
-      const shouldWarn = opts.debug || (typeof window !== 'undefined' && window.cblcars?._debugFlags?.verbose);
-
-      if (shouldWarn) {
-        console.warn('[MsdDebugRenderer] Invalid root element - missing querySelector method');
-        console.warn('[MsdDebugRenderer] Root type:', typeof root, 'Root:', root);
-      }
+      console.warn('[MsdDebugRenderer] Invalid root element - missing querySelector method');
       return;
     }
 
@@ -257,7 +256,35 @@ export class MsdDebugRenderer {
     }
 
     this.integrateWithAdvancedRenderer(svgElement, viewBox, opts.anchors);
-    this.toggle(true);
+
+    // Clear existing debug layer
+    if (this.debugLayer) {
+      this.debugLayer.innerHTML = '';
+    }
+
+    // Render based on config options
+    if (opts.showAnchors && opts.anchors) {
+      console.log('[MsdDebugRenderer] Rendering anchor markers');
+      this.renderDebugMarkers();
+    }
+
+    if (opts.showBoundingBoxes) {
+      console.log('[MsdDebugRenderer] Rendering bounding boxes');
+      // We need overlay data for this - will need to be passed in opts
+      if (opts.overlays) {
+        this.renderOverlayBounds(opts.overlays);
+      }
+    }
+
+    if (opts.showRouting) {
+      console.log('[MsdDebugRenderer] Rendering routing guides');
+      // Routing visualization not fully implemented yet
+    }
+
+    // Show the debug layer
+    if (this.debugLayer) {
+      this.debugLayer.style.display = 'block';
+    }
   }
 }
 

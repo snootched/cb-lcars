@@ -1,4 +1,3 @@
-import { isMsdV1Enabled, MSD_V1_ENABLE } from './featureFlags.js';
 import { initMsdPipeline, initMsdHud } from './pipeline/PipelineCore.js';
 import { processMsdConfig } from './pipeline/ConfigProcessor.js';
 import { mergePacks, validateMerged } from './pipeline/ConfigProcessor.js';
@@ -29,9 +28,6 @@ export { mergePacks, validateMerged };
     initMsdPipeline,
     initMsdHud
   });
-
-  window.__msdDebug.featureFlags = window.__msdDebug.featureFlags || {};
-  window.__msdDebug.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
 
   // Enhanced debug interface
   Object.assign(window.__msdDebug, {

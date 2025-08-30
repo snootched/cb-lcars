@@ -390,7 +390,7 @@ class CBLCARSBaseCard extends ButtonCard {
         this._config = {
             ...config,
             template: mergedTemplates,
-            triggers_update: triggersUpdate
+            //triggers_update: triggersUpdate
         };
 
         // Load all fonts from the config (dynamically loads fonts based on the config)

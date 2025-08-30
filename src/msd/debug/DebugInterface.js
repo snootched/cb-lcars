@@ -1,15 +1,66 @@
-import { MSD_V1_ENABLE } from '../featureFlags.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { MsdIntrospection } from '../introspection/MsdIntrospection.js';
+
+
 
 export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
   if (typeof window === 'undefined') return;
 
   const dbg = window.__msdDebug = window.__msdDebug || {};
 
-  // Feature flags
-  dbg.featureFlags = dbg.featureFlags || {};
-  dbg.featureFlags.MSD_V1_ENABLE = MSD_V1_ENABLE;
+  // Extract debug config from mergedConfig
+  const debugConfig = mergedConfig?.debug || {};
+
+  console.log('[MSD Debug Interface] Setting up with config:', debugConfig);
+
+  // Core pipeline access - UNIFIED: Only set pipelineInstance
+  dbg.pipelineInstance = pipelineApi;
+
+  // Add backward compatibility getter with deprecation warning
+  if (!dbg.hasOwnProperty('pipeline')) {
+    Object.defineProperty(dbg, 'pipeline', {
+      get() {
+        console.warn('[MSD Debug] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
+        return this.pipelineInstance;
+      },
+      configurable: true
+    });
+  }
+
+  dbg._provenance = provenance;
+
+  // Routing system
+  setupRoutingDebugInterface(dbg, pipelineApi, systemsManager);
+
+  // Data sources - our current entity management system
+  setupDataSourceDebugInterface(dbg, systemsManager);
+
+  // Rendering and debug visualization - now with config control
+  setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig);
+
+  // Performance and validation
+  setupUtilityDebugInterface(dbg, mergedConfig, systemsManager);
+
+  console.log('[MSD v1] Debug interface setup complete');
+  console.log('[MSD v1] Available methods:', Object.keys(dbg));
+
+  // Log debug config state
+  if (debugConfig.enabled) {
+    console.log('[MSD v1] Debug mode enabled:', debugConfig);
+  } else {
+    console.log('[MSD v1] Debug mode disabled by config');
+  }
+}
+
+
+/*
+export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
+  if (typeof window === 'undefined') return;
+
+  const dbg = window.__msdDebug = window.__msdDebug || {};
+
+  // Extract debug config from mergedConfig
+  const debugConfig = mergedConfig?.debug || {};
 
   // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
@@ -34,14 +85,22 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   setupDataSourceDebugInterface(dbg, systemsManager);
 
   // Rendering and debug visualization
-  setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi);
+  setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig);
 
   // Performance and validation
   setupUtilityDebugInterface(dbg, mergedConfig, systemsManager);
 
   console.log('[MSD v1] Debug interface setup complete');
   console.log('[MSD v1] Available methods:', Object.keys(dbg));
+
+  // Log debug config state
+  if (debugConfig.enabled) {
+    console.log('[MSD v1] Debug mode enabled:', debugConfig);
+  } else {
+    console.log('[MSD v1] Debug mode disabled by config');
+  }
 }
+*/
 
 function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
   dbg.routing = {
@@ -135,6 +194,8 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
   };
 }
 
+
+/*
 function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi) {
   dbg.renderAdvanced = (options) => {
     try {
@@ -190,6 +251,159 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     relayout: () => systemsManager.controlsRenderer.relayout()
   };
 }
+*/
+
+
+function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig) {
+  console.log('[MSD Debug Interface] Setting up rendering interface with config:', debugConfig);
+
+  dbg.renderAdvanced = (options) => {
+    try {
+      console.log('[MSD v1] renderAdvanced called - using AdvancedRenderer');
+      const model = modelBuilder.getResolvedModel();
+      if (model) {
+        return systemsManager.renderer.render(model);
+      }
+      console.warn('[MSD v1] renderAdvanced: No resolved model available');
+      return { svgMarkup: '' };
+    } catch (error) {
+      console.error('[MSD v1] renderAdvanced failed:', error);
+      return { svgMarkup: '', error: error.message };
+    }
+  };
+
+  // FIXED: Always create the debug object with methods, regardless of config
+  dbg.debug = {
+    render: (root, viewBox, options = {}) => {
+      console.log('[MSD Debug] render() called with config enabled:', debugConfig?.enabled);
+
+      // Check if debug is enabled in config
+      if (!debugConfig?.enabled) {
+        console.log('[MSD v1] Debug rendering disabled by config');
+        return;
+      }
+
+      try {
+        const model = modelBuilder.getResolvedModel();
+        if (model) {
+          // Create render options based on config
+          const renderOptions = {
+            ...options,
+            // Pass config-based flags to the renderer
+            showAnchors: debugConfig?.overlays?.anchors,
+            showBoundingBoxes: debugConfig?.overlays?.bounding_boxes,
+            showRouting: debugConfig?.overlays?.routing,
+            showPerformance: debugConfig?.overlays?.performance
+          };
+
+          console.log('[MSD Debug] Calling debugRenderer.render with options:', renderOptions);
+
+          // The MsdDebugRenderer expects different parameters
+          systemsManager.debugRenderer.render(root, viewBox, renderOptions);
+        } else {
+          console.warn('[MSD v1] debug.render: No resolved model available');
+        }
+      } catch (error) {
+        console.warn('[MSD v1] debug.render failed:', error);
+      }
+    },
+
+    // Add methods to dynamically control debug features
+    enable: (feature) => {
+      if (!debugConfig.overlays) debugConfig.overlays = {};
+      if (feature === 'all') {
+        debugConfig.enabled = true;
+        debugConfig.overlays.anchors = true;
+        debugConfig.overlays.bounding_boxes = true;
+        debugConfig.overlays.routing = true;
+        debugConfig.overlays.performance = true;
+      } else if (feature === 'anchors' || feature === 'bounding_boxes' || feature === 'routing' || feature === 'performance') {
+        debugConfig.enabled = true;
+        debugConfig.overlays[feature] = true;
+      }
+      console.log(`[MSD v1] Debug feature '${feature}' enabled`);
+
+      // Re-render debug if currently active
+      setTimeout(() => {
+        if (dbg.debug && typeof dbg.debug.render === 'function') {
+          // Try to find the current root element
+          const wrapper = document.getElementById('msd-v1-comprehensive-wrapper');
+          if (wrapper) {
+            dbg.debug.render(wrapper.closest('.card-content') || wrapper.parentElement);
+          }
+        }
+      }, 100);
+    },
+
+    disable: (feature) => {
+      if (feature === 'all') {
+        debugConfig.enabled = false;
+      } else if (debugConfig.overlays && debugConfig.overlays.hasOwnProperty(feature)) {
+        debugConfig.overlays[feature] = false;
+      }
+      console.log(`[MSD v1] Debug feature '${feature}' disabled`);
+
+      // Re-render debug if currently active
+      setTimeout(() => {
+        if (dbg.debug && typeof dbg.debug.render === 'function') {
+          const wrapper = document.getElementById('msd-v1-comprehensive-wrapper');
+          if (wrapper) {
+            dbg.debug.render(wrapper.closest('.card-content') || wrapper.parentElement);
+          }
+        }
+      }, 100);
+    },
+
+    status: () => {
+      return {
+        enabled: debugConfig?.enabled || false,
+        overlays: debugConfig?.overlays || {},
+        console: debugConfig?.console || {},
+        hud: debugConfig?.hud || {}
+      };
+    }
+  };
+
+  // Updated HUD with auto-show based on config
+  dbg.hud = {
+    show: () => systemsManager.hudManager.show(),
+    hide: () => systemsManager.hudManager.hide(),
+    toggle: () => systemsManager.hudManager.toggle(),
+    state: () => ({
+      visible: systemsManager.hudManager.state?.visible || false,
+      activePanel: systemsManager.hudManager.state?.activePanel || 'unknown',
+      refreshRate: systemsManager.hudManager.state?.refreshRate || 2000
+    }),
+
+    // Auto-show based on config
+    init: () => {
+      if (debugConfig?.hud?.auto_show) {
+        setTimeout(() => {
+          systemsManager.hudManager.show();
+          console.log('[MSD v1] HUD auto-shown based on config');
+        }, 2000);
+      }
+    }
+  };
+
+  // Initialize HUD auto-show if configured
+  setTimeout(() => dbg.hud.init(), 100);
+
+  dbg.introspection = {
+    listOverlays: (root) => MsdIntrospection.listOverlays(root),
+    getOverlayBBox: (id, root) => MsdIntrospection.getOverlayBBox(id, root),
+    highlight: (ids, opts) => MsdIntrospection.highlight(ids, opts)
+  };
+
+  dbg.controls = {
+    render: (overlays, model) => systemsManager.controlsRenderer.renderControls(overlays, model),
+    relayout: () => systemsManager.controlsRenderer.relayout()
+  };
+
+  console.log('[MSD Debug Interface] Rendering interface setup complete, debug methods created');
+}
+
+
 
 function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
   // Rules system

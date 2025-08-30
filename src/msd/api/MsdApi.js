@@ -1,7 +1,7 @@
 /**
  * Phase 4: Unified MSD API structure
  * Provides window.cblcars.msd.api namespace
- * Feature flag controlled - replaces old introspection API when enabled
+ * MSD v1 is now the stable system - no feature flag needed
  */
 
 export class MsdApi {
@@ -59,19 +59,6 @@ export class MsdApi {
     if (typeof window !== 'undefined') return window;
     if (typeof global !== 'undefined' && global.window) return global.window;
     return null;
-  }
-
-  static isMsdV1Enabled() {
-    const window = this.getWindow();
-    if (!window) return false;
-
-    // Check for global enable function
-    if (typeof global !== 'undefined' && typeof global.isMsdV1Enabled === 'function') {
-      return global.isMsdV1Enabled();
-    }
-
-    // Default to enabled for testing
-    return true;
   }
 
   static listOverlays(root) {

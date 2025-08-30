@@ -1,4 +1,3 @@
-import { isMsdV1Enabled } from '../featureFlags.js';
 import { processAndValidateConfig } from './ConfigProcessor.js';
 import { SystemsManager } from './SystemsManager.js';
 import { ModelBuilder } from './ModelBuilder.js';
@@ -11,8 +10,6 @@ import { diffItem } from '../export/diffItem.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
 
 export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
-  if (!isMsdV1Enabled()) return { enabled: false };
-
   // Process and validate configuration
   const { mergedConfig, issues, provenance } = await processAndValidateConfig(userMsdConfig);
 
