@@ -158,6 +158,17 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
 
     getResolvedModel: () => modelBuilder.getResolvedModel(),
 
+    // FIX: Ensure reRender is properly exposed
+    reRender: () => {
+      try {
+        console.log('[MSD v1] Manual re-render triggered');
+        return reRender();
+      } catch (error) {
+        console.error('[MSD v1] Manual re-render failed:', error);
+        return { success: false, error: error.message };
+      }
+    },
+
     setAnchor(id, pt) {
       if (!id || !Array.isArray(pt) || pt.length !== 2) return false;
       if (!cardModel.anchors) cardModel.anchors = {};
@@ -189,6 +200,7 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
 
     // Enhanced debugging - make DataSourceManager easily accessible
     getDataSourceManager: () => systemsManager.dataSourceManager,
+    _reRenderCallback: reRender
   };
 
   return api;

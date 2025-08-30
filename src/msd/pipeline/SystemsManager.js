@@ -186,14 +186,17 @@ export class SystemsManager {
     if (debugConfig.enabled && this._shouldRenderDebugFromConfig(debugConfig)) {
       console.log('[MSD v1] Rendering debug visualization from config:', debugConfig.overlays);
 
-      this.debugRenderer.render(mountEl, resolvedModel.viewBox, {
+      // FIX: Ensure routing system is available for debug rendering
+      const debugOptions = {
         anchors: resolvedModel.anchors,
         overlays: resolvedModel.overlays,
         showAnchors: debugConfig.overlays?.anchors,
         showBoundingBoxes: debugConfig.overlays?.bounding_boxes,
-        showRouting: debugConfig.overlays?.routing,
+        showRouting: debugConfig.overlays?.routing && this.router && typeof this.router.computePath === 'function',
         showPerformance: debugConfig.overlays?.performance
-      });
+      };
+
+      this.debugRenderer.render(mountEl, resolvedModel.viewBox, debugOptions);
     }
 
     // Render controls if any exist

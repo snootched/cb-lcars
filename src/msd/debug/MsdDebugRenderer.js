@@ -198,9 +198,14 @@ export class MsdDebugRenderer {
     if (!this.debugLayer) return;
 
     // Clear existing bounding boxes
-    this.boundingBoxes.forEach(({ bbox, label }) => {
-      bbox.remove();
-      label.remove();
+    this.boundingBoxes.forEach((bboxObj, id) => {
+      // bboxObj is { rect, label } - remove both elements
+      if (bboxObj.rect && bboxObj.rect.remove) {
+        bboxObj.rect.remove();
+      }
+      if (bboxObj.label && bboxObj.label.remove) {
+        bboxObj.label.remove();
+      }
     });
     this.boundingBoxes.clear();
 
@@ -211,10 +216,10 @@ export class MsdDebugRenderer {
         const width = overlay.size ? overlay.size[0] : 100;
         const height = overlay.size ? overlay.size[1] : 20;
 
-        const bbox = this.createBoundingBox(overlay.id, x, y, width, height);
-        this.debugLayer.appendChild(bbox.rect);
-        this.debugLayer.appendChild(bbox.label);
-        this.boundingBoxes.set(overlay.id, bbox);
+        const bboxObj = this.createBoundingBox(overlay.id, x, y, width, height);
+        this.debugLayer.appendChild(bboxObj.rect);
+        this.debugLayer.appendChild(bboxObj.label);
+        this.boundingBoxes.set(overlay.id, bboxObj);
         bboxCount++;
       }
     });
@@ -254,7 +259,7 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Render routing guides - NEW implementation
+   * Render routing guides
    */
   renderRoutingGuides(opts) {
     if (!this.debugLayer) return;
@@ -270,19 +275,32 @@ export class MsdDebugRenderer {
       return;
     }
 
+    // FIX: Also check if routing.inspect is available (timing issue)
+    if (!routing.inspect || typeof routing.inspect !== 'function') {
+      console.warn('[MsdDebugRenderer] Routing system not fully initialized yet');
+      return;
+    }
+
     // Get line overlays from model
     const overlays = opts.overlays || [];
     const lineOverlays = overlays.filter(o => o.type === 'line');
 
+    if (lineOverlays.length === 0) {
+      console.log('[MsdDebugRenderer] No line overlays found for routing visualization');
+      return;
+    }
+
     let routeCount = 0;
     lineOverlays.forEach(overlay => {
       try {
-        const routeInfo = routing.inspect?.(overlay.id);
+        const routeInfo = routing.inspect(overlay.id);
         if (routeInfo && routeInfo.pts && routeInfo.pts.length > 1) {
           const routeOverlay = this.createRoutingOverlay(overlay.id, routeInfo);
           this.debugLayer.appendChild(routeOverlay);
           this.routingOverlays.set(overlay.id, routeOverlay);
           routeCount++;
+        } else {
+          console.log(`[MsdDebugRenderer] No route info available for overlay ${overlay.id}`);
         }
       } catch (error) {
         console.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
