@@ -54,6 +54,7 @@ export class ModelBuilder {
       overlays: overlaysWithPatches,
       animations: animDiff.active,
       timelines: tlDiff.active,
+      config: this.mergedConfig,
       active_profiles: this.runtimeActiveProfiles.slice()
     };
 

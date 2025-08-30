@@ -173,12 +173,27 @@ export class SystemsManager {
     }
   }
 
-  renderDebugAndControls(resolvedModel) {
-    // Render debug visualization if flags enabled
-    const debugFlags = this._getDebugFlags();
-    if (this._shouldRenderDebug(debugFlags)) {
-      console.log('[MSD v1] Rendering debug visualization');
-      this.debugRenderer.render(resolvedModel, debugFlags);
+  /**
+   * Render debug overlays and controls
+   * @param {Object} resolvedModel - The resolved model
+   * @param {Element} mountEl - The shadowRoot/mount element
+   */
+  renderDebugAndControls(resolvedModel, mountEl = null) {
+    // Extract debug config from the resolved model's config
+    const debugConfig = resolvedModel?.config?.debug || {};
+
+    // Render debug visualization if enabled in config
+    if (debugConfig.enabled && this._shouldRenderDebugFromConfig(debugConfig)) {
+      console.log('[MSD v1] Rendering debug visualization from config:', debugConfig.overlays);
+
+      this.debugRenderer.render(mountEl, resolvedModel.viewBox, {
+        anchors: resolvedModel.anchors,
+        overlays: resolvedModel.overlays,
+        showAnchors: debugConfig.overlays?.anchors,
+        showBoundingBoxes: debugConfig.overlays?.bounding_boxes,
+        showRouting: debugConfig.overlays?.routing,
+        showPerformance: debugConfig.overlays?.performance
+      });
     }
 
     // Render controls if any exist
@@ -189,10 +204,33 @@ export class SystemsManager {
     }
   }
 
+  /**
+   * Check if debug should be rendered based on config
+   * @param {Object} debugConfig - Debug configuration
+   * @returns {boolean} Whether debug should be rendered
+   */
+  _shouldRenderDebugFromConfig(debugConfig) {
+    if (!debugConfig || !debugConfig.overlays) return false;
+
+    return debugConfig.overlays.anchors ||
+          debugConfig.overlays.bounding_boxes ||
+          debugConfig.overlays.routing ||
+          debugConfig.overlays.performance;
+  }
+
+  /**
+   * Legacy debug flag support (for backward compatibility)
+   * @returns {Object} Debug flags
+   */
   _getDebugFlags() {
     return window.cblcars?._debugFlags || {};
   }
 
+  /**
+   * Legacy debug check (for backward compatibility)
+   * @param {Object} debugFlags - Debug flags
+   * @returns {boolean} Whether debug should be rendered
+   */
   _shouldRenderDebug(debugFlags) {
     return debugFlags && (debugFlags.overlay || debugFlags.connectors || debugFlags.geometry);
   }

@@ -46,8 +46,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     console.log(`[MSD v1] Re-rendering with AdvancedRenderer - overlays: ${resolvedModel.overlays.length}`);
     const renderResult = systemsManager.renderer.render(resolvedModel);
 
-    // Render debug and controls if needed
-    systemsManager.renderDebugAndControls(resolvedModel);
+    // Render debug and controls if needed - PASS mountEl (shadowRoot)
+    systemsManager.renderDebugAndControls(resolvedModel, mountEl);
 
     const renderTime = performance.now() - startTime;
     console.log(`[MSD v1] Render completed in ${renderTime.toFixed(2)}ms`);

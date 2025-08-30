@@ -617,6 +617,22 @@ async function processLayer(merged, layer) {
     merged.data_sources = { ...merged.data_sources, ...layer.data.data_sources };
   }
 
+  // Process debug configuration
+  if (layer.data.debug) {
+    merged.debug = { ...merged.debug, ...layer.data.debug };
+
+    // Track debug config provenance
+    if (!merged.__provenance.debug) {
+      merged.__provenance.debug = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.debug.overridden = true;
+      merged.__provenance.debug.override_layer = layer.pack;
+    }
+  }
+
   if (Array.isArray(layer.data.active_profiles)) {
     merged.active_profiles = [...layer.data.active_profiles];
   }
@@ -671,7 +687,7 @@ export function exportCollapsed(userMsd) {
   const keep = [
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
     'rules', 'profiles', 'timelines', 'palettes', 'routing',
-    'active_profiles', 'remove'
+    'active_profiles', 'remove', 'debug'
   ];
 
   keep.forEach(k => {
