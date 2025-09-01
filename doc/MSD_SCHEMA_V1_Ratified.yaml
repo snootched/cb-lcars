@@ -1,0 +1,402 @@
+# LCARS MSD Clean‑Slate Schema (v1 – RATIFIED)
+# This schema merges all features, commentary, and documentation from prior drafts.
+# Key features:
+#  - view_box:auto support, with base_svg extraction
+#  - anchors system (SVG + user overrides, percent support)
+#  - overlays referencing anchors or coordinates
+#  - routing, profiles, palettes, animations, timelines, rules, overlays, HUD
+#  - value_map, map_range_cond, animation_ref, corner_style/arc support
+#  - Extensive commentary and validation notes
+
+msd:
+  version: 1
+
+  # Optional: Source SVG & auto viewBox extraction.
+  # If present and view_box:'auto' (or omitted), the SVG's internal viewBox becomes the canonical coordinate system.
+  base_svg:
+    source: builtin:ncc-1701-a-blue   # Formats:
+                                      #   builtin:<key>  (look up packaged SVG)
+                                      #   /local/...svg  (from HA www directory)
+                                      #   url:https://... (optional future extension)
+    # (Optional) post-load transformations (future placeholders):
+    # remove_ids: [idA, idB]          # Strip elements before anchor extraction (NOT IMPLEMENTED YET)
+    # id_prefix: lcars_               # Prefix all extracted ids (NOT IMPLEMENTED YET)
+
+  # Either an explicit [minX,minY,width,height] OR the literal 'auto'
+  # Omit or set to 'auto' to derive from base_svg (if supplied); fallback default [0,0,400,200].
+  view_box: auto
+
+  # User-defined / overriding anchors. Keys = anchor IDs; values = [x,y]
+  # Coordinates may be numbers or percentage strings ("50%").
+  # Duplicate IDs from SVG override the extracted coordinates.
+  anchors:
+    cpu: [120, 80]
+    mem: ["60%", "40%"]
+    pct_anchor: ["75%", "50%"]
+    # Example overriding an SVG anchor:
+    # existing_svg_anchor: [400, 220]
+
+  # (Optional) use packs – if omitted, builtin:[core] assumed
+  use_packs:
+    builtin: [core]
+    external: []
+
+  # Remove items by id AFTER merges
+  remove:
+    animations: []
+    rules: []
+    overlays: []
+    profiles: []
+
+  palettes:
+    default:
+      accent1: "var(--lcars-orange)"
+      accent2: "var(--lcars-yellow)"
+      danger:  "var(--lcars-red)"
+      info:    "var(--lcars-cyan)"
+
+  data_sources:
+    cpu_temp:
+      entity: sensor.cpu_temp
+      window_seconds: 3600
+      minEmitMs: 250
+      coalesceMs: 120
+      maxDelayMs: 800
+      emitOnSameValue: false
+      history: { preload: true, hours: 6 }
+
+  profiles:
+    - id: normal
+      defaults:
+        line: { color: var(--lcars-orange), width: 2, corner_style: round, corner_radius: 12 }
+        text: { color: var(--lcars-orange), font_size: 14 }
+    - id: red_alert
+      defaults:
+        line: { color: var(--lcars-red), width: 3 }
+        text: { color: var(--lcars-red) }
+
+  active_profiles: [normal]
+
+  routing:
+    default_mode: manhattan
+    clearance: 8
+    grid_resolution: 56
+    # Channel shaping knobs:
+    channel_target_coverage: 0.6              # coverage goal for prefer
+    channel_shaping_max_attempts: 12          # max elbow adjustments
+    channel_shaping_span: 32                  # px shift per attempt
+    channel_min_coverage_gain: 0.04           # minimum coverage delta to accept an adjustment
+    grid_resolution_multipliers: [1, 1.5, 2]  # (from v2)
+    grid_resolution_max: 320                  # (from v2)
+    smart_proximity: 6                        # (from v2)
+    cost_defaults:
+      distance: 1
+      bend: 12
+      proximity: 4
+      channel: 0.6
+      spacing: 8
+    fallback:
+      max_cost_multiple: 4.0
+      enable_two_elbow: true
+    channels:
+      - id: main_bus
+        rect: [400, 200, 800, 120]
+      - id: aux_bus
+        rect: [400, 600, 800, 120]
+    smoothing_mode: none          # none|chaikin (invalid → none + warning counter)
+    smoothing_iterations: 0       # iterations (0 disables)
+    smoothing_max_points: 160     # safety cap
+
+  animations:
+    - id: pulse_fast
+      preset: pulse
+      params:
+        duration: 1200
+        loop: true
+        alternate: true
+        max_scale: 1.15
+        min_opacity: 0.65
+    - id: trace_cpu_route
+      preset: motionpath
+      params:
+        path_selector: "#line_cpu"
+        tracer: { r: 4, fill: var(--lcars-orange) }
+        duration: 4000
+        loop: true
+
+  timelines:
+    - id: intro_sequence
+      globals: { autoplay: true, easing: easeInOutSine }
+      steps:
+        - targets: "#panel_title"
+          preset: fade
+          params: { duration: 500 }
+        - targets: "#line_cpu"
+          offset: "+=120"
+          preset: draw
+          params: { duration: 1000 }
+
+  overlays:
+    - id: panel_title
+      type: text
+      position: [40, 40]          # or "cpu" to reference anchor id
+      style:
+        value: "CPU"
+        color: var(--lcars-orange)
+        font_size: 24
+        align: start
+      animation_ref: pulse_fast
+
+    - id: spark_temp
+      type: sparkline
+      position: [40, 80]
+      size: [220, 60]
+      style:
+        source: cpu_temp
+        color: var(--lcars-yellow)
+        width: 2
+        markers: { r: 2, fill: var(--lcars-yellow) }
+        label_last:
+          decimals: 1
+          format: "{v}°C"
+          offset: [8, -10]
+          fill: var(--lcars-orange)
+        grid: { x: 6, y: 4, color: "rgba(255,255,255,0.12)", opacity: 0.5 }
+        # Dynamic stroke width example:
+        width_dynamic:
+          value_map:
+            entity: sensor.cpu_temp
+            input: [20, 90]
+            output: [1, 6]
+            clamp: true
+            round: 0
+
+    - id: line_cpu
+      type: line
+      anchor: cpu
+      attach_to: spark_temp
+      route: auto
+      route_mode: auto
+      style:
+        color: var(--lcars-orange)
+        width: 2
+        corner_style: round   # corner_style: round | bevel | miter (default miter); round uses corner_radius; others ignore radius for Wave 5
+        corner_radius: 12
+      animation_ref: trace_cpu_route
+
+    - id: example_line_all_supported
+      type: line
+      anchor: cpu                # Anchor ID or [x, y] coordinates
+      attach_to: mem             # Anchor ID or [x, y] coordinates
+
+      # --- Routing options ---
+      route: auto                # Routing strategy: auto | manhattan | grid | smart
+      route_mode: manhattan      # Explicit routing mode (overrides 'route' if present)
+      route_mode_full: auto      # Advanced routing mode (rarely needed)
+      route_channels: [main_bus] # Channel-aware routing (array of channel IDs)
+      channel_mode: prefer       # Channel mode: prefer | avoid | force
+      clearance: 8               # Minimum px from obstacles
+      proximity: 4               # Penalty for proximity to obstacles
+      attach_side: right         # Side of anchor to attach: auto | left | right | top | bottom
+
+      # --- Corner and smoothing options ---
+      corner_style: round        # Elbow style: round | bevel | miter (default: miter)
+      corner_radius: 12          # Arc radius for round elbows (px, capped to half adjacent segment)
+      smoothing_mode: chaikin    # Smoothing: none | chaikin (corner cutting)
+      smoothing_iterations: 2    # Number of smoothing passes
+      smoothing_max_points: 80   # Max points after smoothing
+
+      # --- SVG style options ---
+      style:
+        # --- Core stroke properties ---
+        color: var(--lcars-orange)           # Stroke color (CSS variable, hex, etc.)
+        width: 3                             # Stroke width (px)
+        opacity: 0.85                        # Stroke opacity (0–1)
+
+        # --- Stroke styling ---
+        line_cap: round                      # Line cap style: round | butt | square
+        line_join: miter                     # Line join style: round | bevel | miter
+        miter_limit: 6                       # Miter limit for sharp corners
+
+        # --- Dash patterns ---
+        dash_array: "6,2"                    # Dash pattern: "length,gap"
+        dash_offset: 2                       # Dash offset (px)
+
+        # --- Fill properties ---
+        fill: none                           # Fill color (for thick lines or effects)
+        fill_opacity: 1                      # Fill opacity (0–1)
+
+        # --- Gradient support ---
+        gradient:                            # Linear or radial gradient config
+          type: linear                       # linear | radial
+          direction: diagonal                # horizontal | vertical | diagonal | diagonal-reverse
+          stops:
+            - offset: "0%"
+              color: "#ff6600"
+            - offset: "100%"
+              color: "#ffcc00"
+
+        # --- Pattern support ---
+        pattern:                             # Pattern config (dots, grid, diagonal)
+          type: dots
+          size: 8
+          color: "#fff"
+          opacity: 0.4
+
+        # --- Markers ---
+        marker_start:                        # Marker at start (arrow, dot, diamond, square)
+          type: arrow
+          size: large
+          color: var(--lcars-yellow)
+          rotate: true
+
+        marker_mid:                          # Marker at midpoints
+          type: dot
+          size: small
+          color: var(--lcars-cyan)
+
+        marker_end:                          # Marker at end
+          type: diamond
+          size: medium
+          color: var(--lcars-red)
+          rotate: false
+
+        # --- Effects ---
+        glow:                                # Glow effect (SVG filter)
+          color: var(--lcars-cyan)
+          size: 6
+          opacity: 0.7
+
+        shadow:                              # Drop shadow effect (SVG filter)
+          color: "rgba(0,0,0,0.4)"
+          offset: [3, 3]
+          blur: 4
+
+        # --- Animation attributes ---
+        animatable: true                     # Enable animation attributes (future)
+        pulse_speed: 1200                    # Pulse animation speed (ms, future)
+        flow_speed: 800                      # Flow animation speed (ms, future)
+
+        # --- LCARS-specific features ---
+        segment_colors:                      # Multi-color segments (parsed, not rendered visually yet)
+          - color: var(--lcars-orange)
+            start: 0
+            end: 0.5
+          - color: var(--lcars-yellow)
+            start: 0.5
+            end: 1
+
+        status_indicator: "active"           # Custom status indicator (parsed, not rendered visually yet)
+
+      # Optionally reference an animation preset
+      animation_ref: pulse_fast
+
+  # ------------------------------------------------------------------
+  # Supported Properties Reference (for line overlays)
+  # ------------------------------------------------------------------
+  # Routing:
+  #   route, route_mode, route_mode_full, route_channels, channel_mode,
+  #   clearance, proximity, attach_side,
+  #   corner_style, corner_radius,
+  #   smoothing_mode, smoothing_iterations, smoothing_max_points
+  #
+  # SVG Style:
+  #   color, width, opacity,
+  #   line_cap, line_join, miter_limit,
+  #   dash_array, dash_offset,
+  #   fill, fill_opacity,
+  #   gradient, pattern,
+  #   marker_start, marker_mid, marker_end,
+  #   glow, shadow,
+  #   animatable, pulse_speed, flow_speed,
+  #   segment_colors, status_indicator
+  #
+  # Animation:
+  #   animation_ref
+  #
+  # Only properties listed above are supported by code in the renderer or routing.
+  # Do not add undocumented or future-facing options to configs.
+  # ------------------------------------------------------------------
+
+  rules:
+    - id: cpu_hot
+      priority: 20
+      when:
+        all:
+          - entity: sensor.cpu_temp
+            above: 75
+      apply:
+        overlays:
+          - id: line_cpu
+            style: { color: var(--lcars-red), width: 4 }
+        profiles_add: [red_alert]
+        animations:
+          - ref: pulse_fast
+            override:
+              params:
+                duration: 900
+
+    - id: cpu_cool_hours
+      priority: 5
+      when:
+        all:
+          - time_between: "00:00-06:00"
+          - entity: sensor.cpu_temp
+            below: 40
+      apply:
+        overlays:
+          - id: panel_title
+            style: { color: var(--lcars-cyan) }
+
+    - id: cpu_temp_mapped
+      when:
+        all:
+          - map_range_cond:
+              entity: sensor.cpu_temp
+              input: [20, 90]
+              output: [0, 1]
+              above: 0.6   # threshold on mapped value
+      apply:
+        overlays:
+          - id: spark_temp
+            style:
+              color: var(--lcars-red)
+
+  hud:
+    workbench:
+      snap_grid: 4
+      show_rule_badges: true
+
+# ------------------------------------------------------------------
+# SCHEMA NOTES / VALIDATION RULES (RATIFIED)
+# ------------------------------------------------------------------
+# 1. Overlays require id + type; coordinate fields (anchor, attach_to, position) accept anchor id or [x,y] (numbers or percentages).
+# 2. value_map structure valid anywhere a numeric style param expected (not inside rules conditions).
+# 3. map_range_cond is optional rule condition enabling direct threshold tests on a mapped numeric domain.
+# 4. Removal lists execute after all merges (packs).
+# 5. Animations: 'preset' must exist in runtime preset registry; override.params deep merges.
+# 6. Rules: 'apply.overlays[].style' shallow merges into final overlay style after profile merges.
+# 7. Time format: "HH:MM-HH:MM" 24h; validation enforces start != end and correct range.
+# 8. Regex operator: pattern validated (invalid => rule ignored with warning).
+# 9. priority: integer; higher executes earlier. Ties break by declaration order.
+# 10. stop (optional): if true stops further rule effects on overlays modified *in that rule* (overlay-scoped).
+# 11. corner_style accepted: round | bevel | miter. round uses corner_radius (Wave 5.5 adds arc path substitution). bevel = straight cut; miter = sharp vertex.
+# 12. Overlay point fields (anchor, attach_to, position) accept:
+#     - anchor id (string) referencing merged anchor map
+#     - [x,y] numbers
+#     - [ "<pct>%", "<pct>%" ] (resolved after final view_box known)
+# 13. Resolution timing:
+#     1. Load base_svg (if any)
+#     2. If view_box:auto -> extract SVG viewBox
+#     3. Extract SVG anchors
+#     4. Merge user msd.anchors (override duplicates)
+#     5. Resolve overlay point references
+# 14. Validation errors:
+#     - anchor id referenced but absent after merge
+#     - coordinate array not length 2 or contains invalid entries
+#     - view_box neither array[4] nor 'auto'
+# Corner Arc Notes (M5.5):
+# - corner_style: round enables arc substitution (90° A commands) per interior elbow.
+# - corner_radius capped to half of each adjacent segment length.
+# - Future (Wave 11): corner_arc_subdiv / smoothing quality levels.
+# - meta.arc emitted for debug (count, trimPx).

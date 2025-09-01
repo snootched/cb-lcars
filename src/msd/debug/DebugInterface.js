@@ -239,6 +239,7 @@ dbg.debug = {
           showBoundingBoxes: debugConfig?.overlays?.bounding_boxes,
           showRouting: debugConfig?.overlays?.routing,
           showPerformance: debugConfig?.overlays?.performance,
+          scale: debugConfig?.scale || 1.0,
           anchors: options?.anchors || model.anchors || {},
           overlays: model.overlays || []
         };

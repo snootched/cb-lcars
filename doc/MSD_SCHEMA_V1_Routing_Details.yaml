@@ -1,0 +1,144 @@
+# LCARS MSD Supplementary Example: Global and Per-Overlay Routing/Style Options
+
+msd:
+  # --- Global Routing Configuration ---
+  routing:
+    default_mode: manhattan                # Default routing mode for overlays
+    clearance: 8                           # Default minimum px from obstacles
+    grid_resolution: 56                    # Routing grid size (px)
+    channel_target_coverage: 0.6           # Channel coverage goal for 'prefer'
+    channel_shaping_max_attempts: 12       # Max elbow adjustments for channel shaping
+    channel_shaping_span: 32               # px shift per attempt
+    channel_min_coverage_gain: 0.04        # Minimum coverage delta to accept adjustment
+    grid_resolution_multipliers: [1, 1.5, 2] # Advanced grid tuning
+    grid_resolution_max: 320               # Max grid resolution
+    smart_proximity: 6                     # Smart routing proximity tuning
+    cost_defaults:                         # Routing cost weights
+      distance: 1
+      bend: 12
+      proximity: 4
+      channel: 0.6
+      spacing: 8
+    fallback:
+      max_cost_multiple: 4.0
+      enable_two_elbow: true
+    channels:                              # Channel definitions for channel-aware routing
+      - id: main_bus
+        rect: [400, 200, 800, 120]
+      - id: aux_bus
+        rect: [400, 600, 800, 120]
+    smoothing_mode: none                   # Default smoothing: none | chaikin
+    smoothing_iterations: 0                # Default smoothing passes
+    smoothing_max_points: 160              # Default max points after smoothing
+
+  overlays:
+    # --- Overlay using only global routing options ---
+    - id: line_global_defaults
+      type: line
+      anchor: cpu
+      attach_to: mem
+      style:
+        color: var(--lcars-orange)
+        width: 2
+        # No per-overlay routing options; uses global defaults
+
+    # --- Overlay overriding routing and style options ---
+    - id: line_per_overlay
+      type: line
+      anchor: cpu
+      attach_to: mem
+      route: grid                           # Per-overlay routing strategy
+      route_mode: grid                      # Explicit routing mode
+      route_mode_full: grid                 # Advanced routing mode
+      route_channels: [main_bus]            # Channel-aware routing
+      channel_mode: force                   # Channel mode: prefer | avoid | force
+      clearance: 16                         # Override global clearance
+      proximity: 10                         # Override global proximity
+      attach_side: left                     # Attach to left side of anchor
+      corner_style: round                   # Elbow style: round | bevel | miter
+      corner_radius: 20                     # Arc radius for round elbows
+      smoothing_mode: chaikin               # Override global smoothing
+      smoothing_iterations: 3               # Override global smoothing passes
+      smoothing_max_points: 100             # Override global max points
+
+      style:
+        color: var(--lcars-yellow)
+        width: 4
+        opacity: 0.9
+        line_cap: round
+        line_join: round
+        miter_limit: 8
+        dash_array: "10,4"
+        dash_offset: 3
+        fill: none
+        fill_opacity: 1
+        gradient:
+          type: linear
+          direction: horizontal
+          stops:
+            - offset: "0%"
+              color: "#fff200"
+            - offset: "100%"
+              color: "#ff6600"
+        pattern:
+          type: grid
+          size: 6
+          color: "#fff"
+          opacity: 0.2
+        marker_start:
+          type: arrow
+          size: medium
+          color: var(--lcars-yellow)
+          rotate: true
+        marker_end:
+          type: dot
+          size: small
+          color: var(--lcars-orange)
+        glow:
+          color: var(--lcars-yellow)
+          size: 8
+          opacity: 0.5
+        shadow:
+          color: "rgba(0,0,0,0.3)"
+          offset: [2, 2]
+          blur: 3
+        animatable: true
+        pulse_speed: 900
+        flow_speed: 600
+        segment_colors:
+          - color: var(--lcars-yellow)
+            start: 0
+            end: 0.7
+          - color: var(--lcars-orange)
+            start: 0.7
+            end: 1
+        status_indicator: "active"
+
+      animation_ref: pulse_fast
+
+  # --- Supported Routing and Style Properties ---
+  # Global (routing:):
+  #   default_mode, clearance, grid_resolution, channel_target_coverage,
+  #   channel_shaping_max_attempts, channel_shaping_span, channel_min_coverage_gain,
+  #   grid_resolution_multipliers, grid_resolution_max, smart_proximity,
+  #   cost_defaults, fallback, channels,
+  #   smoothing_mode, smoothing_iterations, smoothing_max_points
+  #
+  # Per-overlay (overlays[]):
+  #   route, route_mode, route_mode_full, route_channels, channel_mode,
+  #   clearance, proximity, attach_side,
+  #   corner_style, corner_radius,
+  #   smoothing_mode, smoothing_iterations, smoothing_max_points
+  #
+  # SVG Style (overlays[].style):
+  #   color, width, opacity,
+  #   line_cap, line_join, miter_limit,
+  #   dash_array, dash_offset,
+  #   fill, fill_opacity,
+  #   gradient, pattern,
+  #   marker_start, marker_mid, marker_end,
+  #   glow, shadow,
+  #   animatable, pulse_speed, flow_speed,
+  #   segment_colors, status_indicator
+  #
+  #

@@ -3,6 +3,8 @@ import { perfTime, perfCount } from '../util/performance.js';
 /**
  * Profile system for layered style resolution
  * Handles active_profiles precedence and profile-specific overrides
+ *
+ * FIXED: Overlay styles now have HIGHER precedence than profile styles
  */
 export class ProfileResolver {
   constructor() {
@@ -106,21 +108,13 @@ export class ProfileResolver {
 
   /**
    * Build ordered style layers for an overlay
+   *
+   * FIXED: Corrected precedence order - overlays should override profiles
    */
   buildStyleLayers(overlay) {
     const layers = [];
 
-    // Layer 1: Base overlay style (lowest precedence)
-    if (overlay.style) {
-      layers.push({
-        source: 'overlay',
-        sourceId: overlay.id,
-        style: overlay.style,
-        precedence: 100
-      });
-    }
-
-    // Layer 2-N: Active profile styles (in order, later = higher precedence)
+    // Layer 1-N: Active profile styles (LOWEST precedence - applied first)
     this.activeProfiles.forEach((profileId, index) => {
       const profile = this.profileIndex.get(profileId);
 
@@ -133,11 +127,21 @@ export class ProfileResolver {
             source: 'profile',
             sourceId: profileId,
             style: overlayStyle,
-            precedence: 200 + index // Later profiles have higher precedence
+            precedence: 100 + index // Earlier profiles have lower precedence
           });
         }
       }
     });
+
+    // Layer N+1: Base overlay style (HIGHEST precedence - applied last)
+    if (overlay.style) {
+      layers.push({
+        source: 'overlay',
+        sourceId: overlay.id,
+        style: overlay.style,
+        precedence: 1000 // Much higher than any profile
+      });
+    }
 
     // Sort by precedence (lower numbers first, higher numbers override)
     return layers.sort((a, b) => a.precedence - b.precedence);
