@@ -36,6 +36,7 @@ export class SparklineRenderer {
    * @returns {string} Complete SVG markup for the styled sparkline
    */
   renderSparkline(overlay, anchors, viewBox) {
+
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
       console.warn('[SparklineRenderer] Sparkline overlay position could not be resolved:', overlay.id);
@@ -48,12 +49,13 @@ export class SparklineRenderer {
 
     try {
       // Get data from source
-      const dataResult = this.getHistoricalDataForSparkline(overlay.source);
-
+      const dataResult = SparklineRenderer.getHistoricalDataForSparkline(overlay.source);
       // Extract comprehensive styling
       const style = overlay.finalStyle || overlay.style || {};
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
+
+      console.log(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
 
       if (dataResult.status === 'OK' && dataResult.data && dataResult.data.length >= 2) {
         // Render real sparkline with advanced features
@@ -68,7 +70,6 @@ export class SparklineRenderer {
           sparklineStyle, animationAttributes
         );
       }
-
     } catch (error) {
       console.error(`[SparklineRenderer] Enhanced rendering failed for sparkline ${overlay.id}:`, error);
       return this._renderFallbackSparkline(overlay, x, y, width, height);
