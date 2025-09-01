@@ -555,6 +555,9 @@ export class SparklineRenderer {
       case 'chaikin':
         path = this._createChaikinPath(points, sparklineStyle.path_precision, width);
         break;
+      case 'constrained':
+        path = this._createConstrainedSmoothPath(points, sparklineStyle.path_precision, width);
+        break;
       case 'bezier':
         path = this._createBezierPath(points, sparklineStyle.path_precision);
         break;
@@ -747,6 +750,71 @@ export class SparklineRenderer {
       const cp2y = p2.y - (p3.y - p1.y) / 6;
 
       pathSegments.push(`C ${cp1x.toFixed(precision)} ${cp1y.toFixed(precision)} ${cp2x.toFixed(precision)} ${cp2y.toFixed(precision)} ${p2.x.toFixed(precision)} ${p2.y.toFixed(precision)}`);
+    }
+
+    return pathSegments.join(' ');
+  }
+
+  /**
+   * Create constrained smooth path that passes through all data points
+   * @private
+   */
+  _createConstrainedSmoothPath(points, precision, targetWidth) {
+    if (points.length < 3) return this._createLinearPath(points, precision);
+
+    const pathSegments = [];
+
+    // Start at first point
+    pathSegments.push(`M ${points[0].x.toFixed(precision)} ${points[0].y.toFixed(precision)}`);
+
+    // Create smooth curves between each pair of points
+    for (let i = 0; i < points.length - 1; i++) {
+      const current = points[i];
+      const next = points[i + 1];
+
+      // Calculate control points for smooth curve
+      let cp1x, cp1y, cp2x, cp2y;
+
+      if (i === 0) {
+        // First segment - use next point for direction
+        const next2 = points[i + 2] || next;
+        cp1x = current.x + (next.x - current.x) * 0.3;
+        cp1y = current.y + (next.y - current.y) * 0.2;
+        cp2x = next.x - (next2.x - current.x) * 0.2;
+        cp2y = next.y - (next2.y - current.y) * 0.1;
+      } else if (i === points.length - 2) {
+        // Last segment - use previous point for direction
+        const prev = points[i - 1];
+        cp1x = current.x + (next.x - prev.x) * 0.2;
+        cp1y = current.y + (next.y - prev.y) * 0.1;
+        cp2x = next.x - (next.x - current.x) * 0.3;
+        cp2y = next.y - (next.y - current.y) * 0.2;
+      } else {
+        // Middle segments - use surrounding points for smooth direction
+        const prev = points[i - 1];
+        const next2 = points[i + 2];
+
+        const prevSlope = {
+          x: next.x - prev.x,
+          y: next.y - prev.y
+        };
+        const nextSlope = {
+          x: next2.x - current.x,
+          y: next2.y - current.y
+        };
+
+        // Smooth the transition
+        cp1x = current.x + prevSlope.x * 0.25;
+        cp1y = current.y + prevSlope.y * 0.15;
+        cp2x = next.x - nextSlope.x * 0.25;
+        cp2y = next.y - nextSlope.y * 0.15;
+      }
+
+      // Clamp control points to reasonable bounds
+      cp1x = Math.max(current.x, Math.min(next.x, cp1x));
+      cp2x = Math.max(current.x, Math.min(next.x, cp2x));
+
+      pathSegments.push(`C ${cp1x.toFixed(precision)} ${cp1y.toFixed(precision)} ${cp2x.toFixed(precision)} ${cp2y.toFixed(precision)} ${next.x.toFixed(precision)} ${next.y.toFixed(precision)}`);
     }
 
     return pathSegments.join(' ');
@@ -1237,7 +1305,7 @@ export class SparklineRenderer {
    */
   getCapabilities() {
     return {
-      pathSmoothing: ['none', 'chaikin', 'bezier', 'spline', 'stepped'],
+      pathSmoothing: ['none', 'constrained', 'chaikin', 'bezier', 'spline', 'stepped'],
       dataVisualization: ['points', 'thresholds', 'zero-line', 'value-labels'],
       styling: ['gradients', 'patterns', 'area-fill', 'dash-patterns'],
       effects: ['glow', 'shadow', 'blur'],
