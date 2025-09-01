@@ -559,10 +559,10 @@ export class SparklineRenderer {
         path = this._createConstrainedSmoothPath(points, sparklineStyle.path_precision, width);
         break;
       case 'bezier':
-        path = this._createBezierPath(points, sparklineStyle.path_precision);
+        path = this._createBezierPath(points, sparklineStyle.path_precision, width);
         break;
       case 'spline':
-        path = this._createSplinePath(points, sparklineStyle.path_precision);
+        path = this._createSplinePath(points, sparklineStyle.path_precision, width);
         break;
       case 'stepped':
         path = this._createSteppedPath(points, sparklineStyle.path_precision);
@@ -699,10 +699,10 @@ export class SparklineRenderer {
   }
 
   /**
-   * Create Bezier curved path
+   * Create Bezier curved path with width normalization
    * @private
    */
-  _createBezierPath(points, precision) {
+  _createBezierPath(points, precision, targetWidth) {
     if (points.length < 3) return this._createLinearPath(points, precision);
 
     const pathSegments = [`M ${points[0].x.toFixed(precision)} ${points[0].y.toFixed(precision)}`];
@@ -729,30 +729,62 @@ export class SparklineRenderer {
   }
 
   /**
-   * Create spline path
+   * Create spline path with width normalization
    * @private
    */
-  _createSplinePath(points, precision) {
-    if (points.length < 4) return this._createBezierPath(points, precision);
+  _createSplinePath(points, precision, targetWidth) {
+    if (points.length < 4) return this._createBezierPath(points, precision, targetWidth);
 
-    const pathSegments = [`M ${points[0].x.toFixed(precision)} ${points[0].y.toFixed(precision)}`];
+    // Generate spline points
+    const splinePoints = [];
 
+    // Start with first point
+    splinePoints.push(points[0]);
+
+    // Generate intermediate spline points
     for (let i = 1; i < points.length - 2; i++) {
       const p0 = points[i - 1];
       const p1 = points[i];
       const p2 = points[i + 1];
       const p3 = points[i + 2];
 
-      // Catmull-Rom spline control points
-      const cp1x = p1.x + (p2.x - p0.x) / 6;
-      const cp1y = p1.y + (p2.y - p0.y) / 6;
-      const cp2x = p2.x - (p3.x - p1.x) / 6;
-      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      // Catmull-Rom spline - generate multiple points along the curve
+      const segments = 10; // Number of segments between each pair of points
+      for (let t = 0; t <= segments; t++) {
+        const u = t / segments;
+        const u2 = u * u;
+        const u3 = u2 * u;
 
-      pathSegments.push(`C ${cp1x.toFixed(precision)} ${cp1y.toFixed(precision)} ${cp2x.toFixed(precision)} ${cp2y.toFixed(precision)} ${p2.x.toFixed(precision)} ${p2.y.toFixed(precision)}`);
+        // Catmull-Rom basis functions
+        const f1 = -0.5 * u3 + u2 - 0.5 * u;
+        const f2 = 1.5 * u3 - 2.5 * u2 + 1;
+        const f3 = -1.5 * u3 + 2 * u2 + 0.5 * u;
+        const f4 = 0.5 * u3 - 0.5 * u2;
+
+        const x = f1 * p0.x + f2 * p1.x + f3 * p2.x + f4 * p3.x;
+        const y = f1 * p0.y + f2 * p1.y + f3 * p2.y + f4 * p3.y;
+
+        splinePoints.push({ x, y });
+      }
     }
 
-    return pathSegments.join(' ');
+    // Add final point
+    splinePoints.push(points[points.length - 1]);
+
+    // Normalize X coordinates to span full width
+    if (splinePoints.length > 1) {
+      const minX = Math.min(...splinePoints.map(p => p.x));
+      const maxX = Math.max(...splinePoints.map(p => p.x));
+      const currentWidth = maxX - minX;
+
+      if (currentWidth > 0) {
+        splinePoints.forEach(point => {
+          point.x = ((point.x - minX) / currentWidth) * targetWidth;
+        });
+      }
+    }
+
+    return this._createLinearPath(splinePoints, precision);
   }
 
   /**
