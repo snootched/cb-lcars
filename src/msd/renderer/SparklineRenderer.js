@@ -490,7 +490,12 @@ export class SparklineRenderer {
 
     const bracketColor = sparklineStyle.bracket_color || sparklineStyle.color;
     const strokeWidth = sparklineStyle.bracket_width;
-    const gap = sparklineStyle.bracket_gap;
+
+    // Auto-adjust bracket gap for smoothed sparklines
+    let gap = sparklineStyle.bracket_gap;
+    if (sparklineStyle.smoothing_mode !== 'none') {
+      gap = Math.max(gap, 12); // Minimum gap for smoothed sparklines
+    }
 
     return `<g data-feature="brackets">
               <path d="M ${-gap - 4} 0 L ${-gap/2} 0 L ${-gap/2} ${height} L ${-gap - 4} ${height}"
@@ -544,19 +549,27 @@ export class SparklineRenderer {
     const { width, height } = bounds;
     const points = this._calculateDataPointPositions(data, bounds, sparklineStyle);
 
-    // Apply smoothing based on mode
+    // Apply smoothing based on mode with proper width normalization
+    let path;
     switch (sparklineStyle.smoothing_mode) {
       case 'chaikin':
-        return this._createChaikinPath(points, sparklineStyle.path_precision);
+        path = this._createChaikinPath(points, sparklineStyle.path_precision, width);
+        break;
       case 'bezier':
-        return this._createBezierPath(points, sparklineStyle.path_precision);
+        path = this._createBezierPath(points, sparklineStyle.path_precision);
+        break;
       case 'spline':
-        return this._createSplinePath(points, sparklineStyle.path_precision);
+        path = this._createSplinePath(points, sparklineStyle.path_precision);
+        break;
       case 'stepped':
-        return this._createSteppedPath(points, sparklineStyle.path_precision);
+        path = this._createSteppedPath(points, sparklineStyle.path_precision);
+        break;
       default:
-        return this._createLinearPath(points, sparklineStyle.path_precision);
+        path = this._createLinearPath(points, sparklineStyle.path_precision);
+        break;
     }
+
+    return path;
   }
 
   /**
@@ -632,10 +645,10 @@ export class SparklineRenderer {
   }
 
   /**
-   * Create Chaikin smoothed path
+   * Create Chaikin smoothed path with width normalization
    * @private
    */
-  _createChaikinPath(points, precision) {
+  _createChaikinPath(points, precision, targetWidth) {
     if (points.length < 3) return this._createLinearPath(points, precision);
 
     // Chaikin subdivision algorithm
@@ -663,6 +676,20 @@ export class SparklineRenderer {
       }
 
       smoothedPoints = newPoints;
+    }
+
+    // Normalize X coordinates to span full width
+    if (smoothedPoints.length > 1) {
+      const minX = Math.min(...smoothedPoints.map(p => p.x));
+      const maxX = Math.max(...smoothedPoints.map(p => p.x));
+      const currentWidth = maxX - minX;
+
+      if (currentWidth > 0) {
+        smoothedPoints = smoothedPoints.map(point => ({
+          x: ((point.x - minX) / currentWidth) * targetWidth,
+          y: point.y
+        }));
+      }
     }
 
     return this._createLinearPath(smoothedPoints, precision);
