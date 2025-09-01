@@ -137,9 +137,19 @@ export class SparklineRenderer {
 
       // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
+      bracket_width: Number(style.bracket_width || style.bracketWidth || 2), // Configurable bracket stroke width
+      bracket_color: style.bracket_color || style.bracketColor || null, // Separate bracket color
+      bracket_gap: Number(style.bracket_gap || style.bracketGap || 6), // Distance from sparkline
+
       status_indicator: style.status_indicator || style.statusIndicator || false,
       scan_line: style.scan_line || style.scanLine || false,
+
       grid_lines: style.grid_lines || style.gridLines || false,
+      grid_color: style.grid_color || style.gridColor || 'var(--lcars-gray)',
+      grid_opacity: Number(style.grid_opacity || style.gridOpacity || 0.4), // Increased default opacity
+      grid_stroke_width: Number(style.grid_stroke_width || style.gridStrokeWidth || 1), // Configurable grid stroke width
+      grid_horizontal_count: Number(style.grid_horizontal_count || style.gridHorizontalCount || 3),
+      grid_vertical_count: Number(style.grid_vertical_count || style.gridVerticalCount || 5),
 
       // Animation states (for future anime.js integration)
       animatable: style.animatable !== false,
@@ -263,25 +273,24 @@ export class SparklineRenderer {
   _buildGridLines(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.grid_lines) return '';
 
-    const gridColor = 'var(--lcars-gray)';
-    const gridOpacity = 0.2;
-    const horizontalLines = 3;
-    const verticalLines = 5;
-
     const lines = [];
 
     // Horizontal grid lines
-    for (let i = 1; i < horizontalLines; i++) {
-      const y = (height / horizontalLines) * i;
+    for (let i = 1; i < sparklineStyle.grid_horizontal_count; i++) {
+      const y = (height / sparklineStyle.grid_horizontal_count) * i;
       lines.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}"
-                        stroke="${gridColor}" stroke-width="0.5" opacity="${gridOpacity}"/>`);
+                        stroke="${sparklineStyle.grid_color}"
+                        stroke-width="${sparklineStyle.grid_stroke_width}"
+                        opacity="${sparklineStyle.grid_opacity}"/>`);
     }
 
     // Vertical grid lines
-    for (let i = 1; i < verticalLines; i++) {
-      const x = (width / verticalLines) * i;
+    for (let i = 1; i < sparklineStyle.grid_vertical_count; i++) {
+      const x = (width / sparklineStyle.grid_vertical_count) * i;
       lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}"
-                        stroke="${gridColor}" stroke-width="0.5" opacity="${gridOpacity}"/>`);
+                        stroke="${sparklineStyle.grid_color}"
+                        stroke-width="${sparklineStyle.grid_stroke_width}"
+                        opacity="${sparklineStyle.grid_opacity}"/>`);
     }
 
     return `<g data-feature="grid-lines">${lines.join('\n')}</g>`;
@@ -479,16 +488,15 @@ export class SparklineRenderer {
   _buildBrackets(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.bracket_style) return '';
 
-    const bracketWidth = 6;
-    const bracketHeight = height;
-    const color = sparklineStyle.color;
-    const strokeWidth = Math.max(1, sparklineStyle.width * 0.5);
+    const bracketColor = sparklineStyle.bracket_color || sparklineStyle.color;
+    const strokeWidth = sparklineStyle.bracket_width;
+    const gap = sparklineStyle.bracket_gap;
 
     return `<g data-feature="brackets">
-              <path d="M ${-bracketWidth - 2} 0 L ${-2} 0 L ${-2} ${bracketHeight} L ${-bracketWidth - 2} ${bracketHeight}"
-                    stroke="${color}" stroke-width="${strokeWidth}" fill="none"/>
-              <path d="M ${width + 2} 0 L ${width + bracketWidth + 2} 0 L ${width + bracketWidth + 2} ${bracketHeight} L ${width + 2} ${bracketHeight}"
-                    stroke="${color}" stroke-width="${strokeWidth}" fill="none"/>
+              <path d="M ${-gap - 4} 0 L ${-gap/2} 0 L ${-gap/2} ${height} L ${-gap - 4} ${height}"
+                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
+              <path d="M ${width + gap/2} 0 L ${width + gap + 4} 0 L ${width + gap + 4} ${height} L ${width + gap/2} ${height}"
+                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
             </g>`;
   }
 
@@ -1060,110 +1068,21 @@ export class SparklineRenderer {
    * @private
    */
   _updateSparklineElement(sparklineElement, overlay, sourceData) {
-    // Check if this is a status indicator that needs to be upgraded to a real sparkline
     const currentStatus = sparklineElement.getAttribute('data-status');
     const isStatusIndicator = currentStatus !== null;
 
+    // If status indicator and data is now available, upgrade
     if (isStatusIndicator && (sourceData.buffer || sourceData.historicalData)) {
-      console.log(`[SparklineRenderer] Upgrading status indicator ${overlay.id} to real sparkline`);
       this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
       return;
     }
 
-    // ENHANCED: Find the path element with better legacy compatibility
-    let pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
+    // Only support new markup
+    const pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
     if (!pathElement) {
-      // Fall back to any path element for backward compatibility
-      pathElement = sparklineElement.querySelector('path');
-
-      // LEGACY COMPATIBILITY: Add the data-feature attribute to legacy paths
-      if (pathElement && !pathElement.getAttribute('data-feature')) {
-        console.log(`[SparklineRenderer] Adding data-feature="main-path" to legacy path for ${overlay.id}`);
-        pathElement.setAttribute('data-feature', 'main-path');
-      }
-    }
-
-    if (!pathElement) {
-      console.warn(`[SparklineRenderer] No path element found for ${overlay.id} - might still be a status indicator or need full re-render`);
-
-      // Try to re-render the entire sparkline if we have data
+      // If no path, try to upgrade if data is available
       const historicalData = this._extractHistoricalData(sourceData);
       if (historicalData.length > 1) {
-        console.log(`[SparklineRenderer] Attempting full re-render of ${overlay.id}`);
-        this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
-      }
-      return;
-    }
-
-    try {
-      // Extract dimensions from overlay config
-      const bounds = {
-        width: overlay.size?.[0] || 200,
-        height: overlay.size?.[1] || 60
-      };
-
-      // Convert source data to sparkline format
-      const historicalData = this._extractHistoricalData(sourceData);
-
-      if (historicalData.length > 1) {
-        // Re-resolve styles for consistency
-        const style = overlay.finalStyle || overlay.style || {};
-        const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
-
-        // Generate new path
-        const processedData = this._processDataForRendering(historicalData, sparklineStyle);
-        const newPathData = this._createSparklinePath(processedData, bounds, sparklineStyle);
-
-        pathElement.setAttribute('d', newPathData);
-
-        // Update status attributes
-        sparklineElement.removeAttribute('data-status');
-        sparklineElement.setAttribute('data-last-update', Date.now());
-
-        console.log(`[SparklineRenderer] ✅ Updated sparkline ${overlay.id} with ${historicalData.length} points`);
-      } else {
-        console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
-        sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
-      }
-
-    } catch (error) {
-      console.error(`[SparklineRenderer] Error updating sparkline ${overlay.id}:`, error);
-      sparklineElement.setAttribute('data-status', 'ERROR');
-    }
-  }
-
-
-
-
-  /**
-   * Instance method to update sparkline element
-   * @private
-   */
-  _updateSparklineElement2(sparklineElement, overlay, sourceData) {
-    // Check if this is a status indicator that needs to be upgraded to a real sparkline
-    const currentStatus = sparklineElement.getAttribute('data-status');
-    const isStatusIndicator = currentStatus !== null;
-
-    if (isStatusIndicator && (sourceData.buffer || sourceData.historicalData)) {
-      console.log(`[SparklineRenderer] Upgrading status indicator ${overlay.id} to real sparkline`);
-      this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
-      return;
-    }
-
-    // Find the path element to update - try enhanced version first, then fall back to old version
-    let pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
-    if (!pathElement) {
-      // Fall back to any path element for backward compatibility
-      pathElement = sparklineElement.querySelector('path');
-    }
-
-    if (!pathElement) {
-      console.warn(`[SparklineRenderer] No path element found for ${overlay.id} - might still be a status indicator or need full re-render`);
-
-      // Try to re-render the entire sparkline if we have data
-      const historicalData = this._extractHistoricalData(sourceData);
-      if (historicalData.length > 1) {
-        console.log(`[SparklineRenderer] Attempting full re-render of ${overlay.id}`);
         this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
       }
       return;
@@ -1211,49 +1130,40 @@ export class SparklineRenderer {
    * @private
    */
   _upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData) {
-    console.log(`[SparklineRenderer] Upgrading status indicator ${overlay.id} to real sparkline`);
-
-    // Get historical data
     const historicalData = this._extractHistoricalData(sourceData);
 
     if (historicalData.length > 1) {
-      // Re-render the entire sparkline with new data
-      const position = [0, 0]; // Relative to existing transform
       const size = overlay.size || [200, 60];
       const [width, height] = size;
-
-      // Re-resolve styles
       const style = overlay.finalStyle || overlay.style || {};
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      // Generate new content
-      const newContent = this._renderEnhancedSparkline(
-        overlay, 0, 0, width, height, historicalData,
-        sparklineStyle, animationAttributes
-      );
+      // Generate complete enhanced sparkline with ALL features
+      const svgParts = [
+        this._buildDefinitions(sparklineStyle, overlay.id),
+        this._buildSparklineBackground(width, height, sparklineStyle, overlay.id),
+        this._buildGridLines(width, height, sparklineStyle, overlay.id),
+        this._buildThresholdLines(historicalData, width, height, sparklineStyle, overlay.id),
+        this._buildZeroLine(historicalData, width, height, sparklineStyle, overlay.id),
+        this._buildAreaFill(historicalData, width, height, sparklineStyle, overlay.id),
+        this._buildMainSparklinePath(historicalData, width, height, sparklineStyle, overlay.id, animationAttributes),
+        this._buildDataPoints(historicalData, width, height, sparklineStyle, overlay.id),
+        this._buildValueLabel(historicalData, width, height, sparklineStyle, overlay.id),
+        this._buildBrackets(width, height, sparklineStyle, overlay.id),
+        this._buildStatusIndicator(width, height, sparklineStyle, overlay.id),
+        this._buildScanLine(width, height, sparklineStyle, overlay.id)
+      ].filter(Boolean);
 
-      // Replace the inner content (preserve the outer g element and its attributes)
-      const transformGroup = sparklineElement.querySelector('g[transform]');
-      if (transformGroup) {
-        // Extract the inner content from the new render
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = newContent;
-        const newTransformGroup = tempDiv.querySelector('g[transform]');
+      // Replace entire innerHTML with complete sparkline content
+      sparklineElement.innerHTML = svgParts.join('\n');
 
-        if (newTransformGroup) {
-          transformGroup.innerHTML = newTransformGroup.innerHTML;
-        }
-      }
-
-      // Update element attributes
       sparklineElement.removeAttribute('data-status');
       sparklineElement.setAttribute('data-last-update', Date.now());
       sparklineElement.setAttribute('data-sparkline-features', sparklineStyle.features.join(','));
 
-      console.log(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to sparkline with ${historicalData.length} data points`);
+      console.log(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to full sparkline with ${sparklineStyle.features.length} features and ${historicalData.length} data points`);
     } else {
-      console.warn(`[SparklineRenderer] Cannot upgrade ${overlay.id} - insufficient data: ${historicalData.length} points`);
       sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
     }
   }
