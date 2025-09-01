@@ -530,7 +530,7 @@ export class SparklineRenderer {
    */
   _createSparklinePath(data, bounds, sparklineStyle) {
     if (!data || data.length < 2) {
-      return `M 0 ${bounds.height/2} L ${bounds.width} ${bounds.height/2}`;
+      return `M 0 ${bounds.height / 2} L ${bounds.width} ${bounds.height / 2}`;
     }
 
     const { width, height } = bounds;
@@ -790,19 +790,19 @@ export class SparklineRenderer {
 
     const svgParts = [
       this._buildDefinitions(sparklineStyle, overlay.id),
-      sparklineStyle.bracket_style ? this._buildBrackets(width, height, {...sparklineStyle, color: indicatorColor}, overlay.id) : '',
+      sparklineStyle.bracket_style ? this._buildBrackets(width, height, { ...sparklineStyle, color: indicatorColor }, overlay.id) : '',
       `<rect width="${width}" height="${height}"
              fill="none" stroke="${indicatorColor}" stroke-width="2"
              stroke-dasharray="${isLoading ? '4,2' : '8,4'}" opacity="0.6">
         ${animationProps}
        </rect>`,
-      `<text x="${width/2}" y="${height/2}"
+      `<text x="${width / 2}" y="${height / 2}"
              fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
              font-family="var(--lcars-font-family, monospace)"
              font-size="${fontSize}" font-weight="bold">
         ${indicatorText}
        </text>`,
-      width > 120 ? `<text x="${width/2}" y="${height/2 + fontSize + 4}"
+      width > 120 ? `<text x="${width / 2}" y="${height / 2 + fontSize + 4}"
                            fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
                            font-family="var(--lcars-font-family, monospace)"
                            font-size="${Math.max(8, fontSize * 0.6)}" opacity="0.7">
@@ -918,7 +918,7 @@ export class SparklineRenderer {
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="sparkline" data-fallback="true">
               <g transform="translate(${x}, ${y})">
-                <path d="M 0 ${height/2} L ${width} ${height/2}"
+                <path d="M 0 ${height / 2} L ${width} ${height / 2}"
                       fill="none" stroke="${color}" stroke-width="${strokeWidth}"
                       vector-effect="non-scaling-stroke"/>
               </g>
@@ -1054,11 +1054,92 @@ export class SparklineRenderer {
     instance._updateSparklineElement(sparklineElement, overlay, sourceData);
   }
 
+
   /**
    * Instance method to update sparkline element
    * @private
    */
   _updateSparklineElement(sparklineElement, overlay, sourceData) {
+    // Check if this is a status indicator that needs to be upgraded to a real sparkline
+    const currentStatus = sparklineElement.getAttribute('data-status');
+    const isStatusIndicator = currentStatus !== null;
+
+    if (isStatusIndicator && (sourceData.buffer || sourceData.historicalData)) {
+      console.log(`[SparklineRenderer] Upgrading status indicator ${overlay.id} to real sparkline`);
+      this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
+      return;
+    }
+
+    // ENHANCED: Find the path element with better legacy compatibility
+    let pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
+    if (!pathElement) {
+      // Fall back to any path element for backward compatibility
+      pathElement = sparklineElement.querySelector('path');
+
+      // LEGACY COMPATIBILITY: Add the data-feature attribute to legacy paths
+      if (pathElement && !pathElement.getAttribute('data-feature')) {
+        console.log(`[SparklineRenderer] Adding data-feature="main-path" to legacy path for ${overlay.id}`);
+        pathElement.setAttribute('data-feature', 'main-path');
+      }
+    }
+
+    if (!pathElement) {
+      console.warn(`[SparklineRenderer] No path element found for ${overlay.id} - might still be a status indicator or need full re-render`);
+
+      // Try to re-render the entire sparkline if we have data
+      const historicalData = this._extractHistoricalData(sourceData);
+      if (historicalData.length > 1) {
+        console.log(`[SparklineRenderer] Attempting full re-render of ${overlay.id}`);
+        this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
+      }
+      return;
+    }
+
+    try {
+      // Extract dimensions from overlay config
+      const bounds = {
+        width: overlay.size?.[0] || 200,
+        height: overlay.size?.[1] || 60
+      };
+
+      // Convert source data to sparkline format
+      const historicalData = this._extractHistoricalData(sourceData);
+
+      if (historicalData.length > 1) {
+        // Re-resolve styles for consistency
+        const style = overlay.finalStyle || overlay.style || {};
+        const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
+
+        // Generate new path
+        const processedData = this._processDataForRendering(historicalData, sparklineStyle);
+        const newPathData = this._createSparklinePath(processedData, bounds, sparklineStyle);
+
+        pathElement.setAttribute('d', newPathData);
+
+        // Update status attributes
+        sparklineElement.removeAttribute('data-status');
+        sparklineElement.setAttribute('data-last-update', Date.now());
+
+        console.log(`[SparklineRenderer] ✅ Updated sparkline ${overlay.id} with ${historicalData.length} points`);
+      } else {
+        console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
+        sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
+      }
+
+    } catch (error) {
+      console.error(`[SparklineRenderer] Error updating sparkline ${overlay.id}:`, error);
+      sparklineElement.setAttribute('data-status', 'ERROR');
+    }
+  }
+
+
+
+
+  /**
+   * Instance method to update sparkline element
+   * @private
+   */
+  _updateSparklineElement2(sparklineElement, overlay, sourceData) {
     // Check if this is a status indicator that needs to be upgraded to a real sparkline
     const currentStatus = sparklineElement.getAttribute('data-status');
     const isStatusIndicator = currentStatus !== null;
