@@ -140,6 +140,8 @@ export class SparklineRenderer {
       bracket_width: Number(style.bracket_width || style.bracketWidth || 2), // Configurable bracket stroke width
       bracket_color: style.bracket_color || style.bracketColor || null, // Separate bracket color
       bracket_gap: Number(style.bracket_gap || style.bracketGap || 6), // Distance from sparkline
+      bracket_corner_radius: Number(style.bracket_corner_radius || style.bracketCornerRadius || 0),
+      bracket_style_mode: (style.bracket_style_mode || style.bracketStyleMode || 'square').toLowerCase(),
 
       status_indicator: style.status_indicator || style.statusIndicator || false,
       scan_line: style.scan_line || style.scanLine || false,
@@ -482,7 +484,7 @@ export class SparklineRenderer {
   }
 
   /**
-   * Build LCARS-style brackets with proper orientation
+   * Build LCARS-style brackets with proper orientation and corner styling
    * @private
    */
   _buildBrackets(width, height, sparklineStyle, overlayId) {
@@ -491,18 +493,115 @@ export class SparklineRenderer {
     const bracketColor = sparklineStyle.bracket_color || sparklineStyle.color;
     const strokeWidth = sparklineStyle.bracket_width;
 
-    // Auto-adjust bracket gap for smoothed sparklines
     let gap = sparklineStyle.bracket_gap;
     if (sparklineStyle.smoothing_mode !== 'none') {
-      gap = Math.max(gap, 12); // Minimum gap for smoothed sparklines
+      gap = Math.max(gap, 12);
+    }
+
+    const cornerRadius = sparklineStyle.bracket_corner_radius;
+    const styleMode = sparklineStyle.bracket_style_mode;
+
+    let leftBracketPath, rightBracketPath;
+    if (styleMode === 'rounded' && cornerRadius > 0) {
+      leftBracketPath = this._buildRoundedBracketPath('left', gap, height, cornerRadius);
+      rightBracketPath = this._buildRoundedBracketPath('right', width, gap, height, cornerRadius);
+    } else if (styleMode === 'lcars') {
+      leftBracketPath = this._buildLcarsBracketPath('left', gap, height);
+      rightBracketPath = this._buildLcarsBracketPath('right', width, gap, height);
+    } else {
+      leftBracketPath = this._buildSquareBracketPath('left', gap, height);
+      rightBracketPath = this._buildSquareBracketPath('right', width, gap, height);
     }
 
     return `<g data-feature="brackets">
-              <path d="M ${-gap - 4} 0 L ${-gap - 4} ${height} M ${-gap - 4} 0 L ${-gap/2} 0 M ${-gap - 4} ${height} L ${-gap/2} ${height}"
-                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-              <path d="M ${width + gap/2} 0 L ${width + gap + 4} 0 M ${width + gap + 4} 0 L ${width + gap + 4} ${height} M ${width + gap/2} ${height} L ${width + gap + 4} ${height}"
-                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
+              <path d="${leftBracketPath}" stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
+              <path d="${rightBracketPath}" stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
             </g>`;
+  }
+
+  /**
+   * Build square corner bracket path
+   * @private
+   */
+  _buildSquareBracketPath(side, gapOrWidth, gapOrHeight, height) {
+    if (side === 'left') {
+      const gap = gapOrWidth;
+      const h = gapOrHeight;
+      return `M ${-gap - 4} 0 L ${-gap - 4} ${h} M ${-gap - 4} 0 L ${-gap/2} 0 M ${-gap - 4} ${h} L ${-gap/2} ${h}`;
+    } else {
+      const width = gapOrWidth;
+      const gap = gapOrHeight;
+      const h = height;
+      return `M ${width + gap/2} 0 L ${width + gap + 4} 0 M ${width + gap + 4} 0 L ${width + gap + 4} ${h} M ${width + gap/2} ${h} L ${width + gap + 4} ${h}`;
+    }
+  }
+
+  /**
+   * Build rounded corner bracket path
+   * @private
+   */
+  _buildRoundedBracketPath(side, gapOrWidth, gapOrHeight, heightOrRadius, radiusOrHeight) {
+    if (side === 'left') {
+      const gap = gapOrWidth;
+      const h = gapOrHeight;
+      const radius = heightOrRadius;
+      const minRadius = Math.min(radius, gap/4, h/6);
+      return `M ${-gap - 4} ${minRadius}
+              A ${minRadius} ${minRadius} 0 0 1 ${-gap - 4 + minRadius} 0
+              L ${-gap/2} 0
+              M ${-gap - 4} ${h - minRadius}
+              A ${minRadius} ${minRadius} 0 0 0 ${-gap - 4 + minRadius} ${h}
+              L ${-gap/2} ${h}
+              M ${-gap - 4} ${minRadius}
+              L ${-gap - 4} ${h - minRadius}`;
+    } else {
+      const width = gapOrWidth;
+      const gap = gapOrHeight;
+      const h = heightOrRadius;
+      const radius = radiusOrHeight;
+      const minRadius = Math.min(radius, gap/4, h/6);
+      return `M ${width + gap/2} 0
+              L ${width + gap + 4 - minRadius} 0
+              A ${minRadius} ${minRadius} 0 0 1 ${width + gap + 4} ${minRadius}
+              M ${width + gap/2} ${h}
+              L ${width + gap + 4 - minRadius} ${h}
+              A ${minRadius} ${minRadius} 0 0 0 ${width + gap + 4} ${h - minRadius}
+              M ${width + gap + 4} ${minRadius}
+              L ${width + gap + 4} ${h - minRadius}`;
+    }
+  }
+
+  /**
+   * Build LCARS-style bracket path with characteristic corner cuts
+   * @private
+   */
+  _buildLcarsBracketPath(side, gapOrWidth, gapOrHeight, height) {
+    if (side === 'left') {
+      const gap = gapOrWidth;
+      const h = gapOrHeight;
+      const cutSize = Math.min(4, gap/4, h/10);
+      return `M ${-gap - 4} ${cutSize}
+              L ${-gap - 4 + cutSize} 0
+              L ${-gap/2} 0
+              M ${-gap - 4} ${h - cutSize}
+              L ${-gap - 4 + cutSize} ${h}
+              L ${-gap/2} ${h}
+              M ${-gap - 4} ${cutSize}
+              L ${-gap - 4} ${h - cutSize}`;
+    } else {
+      const width = gapOrWidth;
+      const gap = gapOrHeight;
+      const h = height;
+      const cutSize = Math.min(4, gap/4, h/10);
+      return `M ${width + gap/2} 0
+              L ${width + gap + 4 - cutSize} 0
+              L ${width + gap + 4} ${cutSize}
+              M ${width + gap/2} ${h}
+              L ${width + gap + 4 - cutSize} ${h}
+              L ${width + gap + 4} ${h - cutSize}
+              M ${width + gap + 4} ${cutSize}
+              L ${width + gap + 4} ${h - cutSize}`;
+    }
   }
 
   /**
