@@ -482,7 +482,7 @@ export class SparklineRenderer {
   }
 
   /**
-   * Build LCARS-style brackets
+   * Build LCARS-style brackets with proper orientation
    * @private
    */
   _buildBrackets(width, height, sparklineStyle, overlayId) {
@@ -498,9 +498,9 @@ export class SparklineRenderer {
     }
 
     return `<g data-feature="brackets">
-              <path d="M ${-gap - 4} 0 L ${-gap/2} 0 L ${-gap/2} ${height} L ${-gap - 4} ${height}"
+              <path d="M ${-gap - 4} 0 L ${-gap - 4} ${height} M ${-gap - 4} 0 L ${-gap/2} 0 M ${-gap - 4} ${height} L ${-gap/2} ${height}"
                     stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-              <path d="M ${width + gap/2} 0 L ${width + gap + 4} 0 L ${width + gap + 4} ${height} L ${width + gap/2} ${height}"
+              <path d="M ${width + gap/2} 0 L ${width + gap + 4} 0 M ${width + gap + 4} 0 L ${width + gap + 4} ${height} M ${width + gap/2} ${height} L ${width + gap + 4} ${height}"
                     stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
             </g>`;
   }
