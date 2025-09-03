@@ -140,6 +140,7 @@ export class TextOverlayRenderer {
 
       // LCARS-specific features
       status_indicator: style.status_indicator || null,
+      status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
       bracket_style: style.bracket_style || null,
       highlight: style.highlight || false,
 
@@ -452,16 +453,74 @@ export class TextOverlayRenderer {
    */
   _buildStatusIndicator(x, y, textStyle, overlayId) {
     const indicatorSize = textStyle.fontSize * 0.4;
-    const indicatorX = x - indicatorSize - 8;
-    const indicatorY = y - indicatorSize / 2;
+    const statusColor = typeof textStyle.status_indicator === 'string'
+      ? textStyle.status_indicator
+      : 'var(--lcars-green)';
 
-    const statusColor = typeof textStyle.status_indicator === 'string' ?
-      textStyle.status_indicator : 'var(--lcars-green)';
+    // New: support configurable position
+    const position = textStyle.status_indicator_position || 'left-center';
+
+    // Estimate text width and height (for positioning)
+    const textWidth = (textStyle.maxWidth && textStyle.maxWidth > 0)
+      ? textStyle.maxWidth
+      : (textStyle.multiline
+          ? Math.max(...(textStyle.value || '').split('\n').map(line => line.length)) * textStyle.fontSize * 0.6
+          : (textStyle.value || '').length * textStyle.fontSize * 0.6);
+    const textHeight = textStyle.fontSize * (textStyle.multiline ? (textStyle.value || '').split('\n').length : 1) * textStyle.lineHeight;
+
+    // Calculate indicator position based on option
+    let indicatorX = x, indicatorY = y;
+    switch (position) {
+      case 'top-left':
+        indicatorX = x - textWidth / 2 - indicatorSize;
+        indicatorY = y - textHeight / 2 - indicatorSize;
+        break;
+      case 'top-right':
+        indicatorX = x + textWidth / 2 + indicatorSize;
+        indicatorY = y - textHeight / 2 - indicatorSize;
+        break;
+      case 'bottom-left':
+        indicatorX = x - textWidth / 2 - indicatorSize;
+        indicatorY = y + textHeight / 2 + indicatorSize;
+        break;
+      case 'bottom-right':
+        indicatorX = x + textWidth / 2 + indicatorSize;
+        indicatorY = y + textHeight / 2 + indicatorSize;
+        break;
+      case 'top':
+        indicatorX = x;
+        indicatorY = y - textHeight / 2 - indicatorSize;
+        break;
+      case 'bottom':
+        indicatorX = x;
+        indicatorY = y + textHeight / 2 + indicatorSize;
+        break;
+      case 'left-center':
+      case 'left':
+        indicatorX = x - textWidth / 2 - indicatorSize;
+        indicatorY = y;
+        break;
+      case 'right-center':
+      case 'right':
+        indicatorX = x + textWidth / 2 + indicatorSize;
+        indicatorY = y;
+        break;
+      case 'center':
+        indicatorX = x;
+        indicatorY = y;
+        break;
+      default:
+        // fallback to left-center
+        indicatorX = x - indicatorSize - 8;
+        indicatorY = y;
+    }
 
     return `<circle cx="${indicatorX}" cy="${indicatorY}" r="${indicatorSize}"
                     fill="${statusColor}"
                     data-decoration="status-indicator"/>`;
   }
+
+
 
   /**
    * Create gradient definition for text
@@ -566,7 +625,9 @@ export class TextOverlayRenderer {
     }
 
     return `<filter id="${filterId}">
-              <feGaussianBlur stdDeviation="${blur}" result="coloredBlur"/>
+              <feGaussianBlur stdDeviation="${blur}" result="blur"/>
+              <feFlood flood-color="${color}" flood-opacity="${intensity}" result="color"/>
+              <feComposite in="color" in2="blur" operator="in" result="coloredBlur"/>
               <feMerge>
                 <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="SourceGraphic"/>

@@ -1,0 +1,236 @@
+# MSD Text Overlay Style Configuration Schema
+# Complete documentation of all text styling properties available in the enhanced TextOverlayRenderer
+
+overlays:
+  - id: example_text
+    type: text
+    position: [100, 50]  # or anchor reference
+    style:
+
+      # === CORE TEXT PROPERTIES ===
+
+      # Text content (multiple ways to specify)
+      value: "Display Text"           # Primary text content
+      text: "Display Text"            # Alternative property name
+      content: "Display Text"         # Alternative property name
+
+      # Basic styling
+      color: "var(--lcars-orange)"    # Text fill color
+      fill: "#ff6600"                 # Alternative color property (CSS-style)
+      font_size: 16                   # Font size in pixels
+      fontSize: 16                    # Alternative camelCase property
+      font_family: "inherit"          # Font family
+      fontFamily: "Roboto, sans-serif" # Alternative camelCase
+      font_weight: "normal"           # Font weight (normal, bold, 100-900)
+      fontWeight: 600                 # Alternative camelCase
+      font_style: "normal"            # Font style (normal, italic, oblique)
+      fontStyle: "italic"             # Alternative camelCase
+
+      # Opacity and visibility
+      opacity: 1.0                    # Text opacity (0.0 to 1.0)
+      visibility: "visible"           # CSS visibility (visible, hidden)
+
+      # === TEXT POSITIONING & ALIGNMENT ===
+
+      text_anchor: "start"            # Text anchor (start, middle, end)
+      textAnchor: "middle"            # Alternative camelCase
+      dominant_baseline: "auto"       # Baseline alignment (auto, hanging, middle, central, alphabetic, ideographic)
+      dominantBaseline: "central"     # Alternative camelCase
+      alignment_baseline: "auto"      # Alignment baseline (auto, baseline, before-edge, text-before-edge, middle, central, after-edge, text-after-edge, ideographic, alphabetic, hanging, mathematical)
+      alignmentBaseline: "middle"     # Alternative camelCase
+
+      # === ADVANCED TEXT STYLING ===
+
+      # Text spacing
+      letter_spacing: "normal"        # Letter spacing (normal, or length value like "2px")
+      letterSpacing: "1px"           # Alternative camelCase
+      word_spacing: "normal"          # Word spacing (normal, or length value)
+      wordSpacing: "3px"             # Alternative camelCase
+      text_decoration: "none"         # Text decoration (none, underline, overline, line-through)
+      textDecoration: "underline"     # Alternative camelCase
+
+      # === STROKE/OUTLINE TEXT ===
+
+      stroke: "#000000"               # Stroke color for outlined text
+      stroke_width: 0                 # Stroke width (0 = no stroke)
+      strokeWidth: 2                  # Alternative camelCase
+      stroke_opacity: 1.0             # Stroke opacity
+      strokeOpacity: 0.8              # Alternative camelCase
+      stroke_linecap: "butt"          # Stroke line cap (butt, round, square)
+      strokeLinecap: "round"          # Alternative camelCase
+      stroke_linejoin: "miter"        # Stroke line join (miter, round, bevel)
+      strokeLinejoin: "round"         # Alternative camelCase
+      stroke_dasharray: "5,5"         # Stroke dash pattern
+      strokeDasharray: "10,5,2,5"     # Alternative camelCase
+      stroke_dashoffset: 0            # Stroke dash offset
+      strokeDashoffset: 3             # Alternative camelCase
+
+      # === GRADIENT FILLS ===
+
+      # Simple gradient (string format)
+      gradient: "red,blue"            # Simple two-color gradient
+
+      # Advanced gradient (object format)
+      gradient:
+        type: "linear"                # Gradient type (linear, radial)
+        x1: "0%"                     # Linear gradient start X
+        y1: "0%"                     # Linear gradient start Y
+        x2: "100%"                   # Linear gradient end X
+        y2: "0%"                     # Linear gradient end Y
+        cx: "50%"                    # Radial gradient center X
+        cy: "50%"                    # Radial gradient center Y
+        r: "50%"                     # Radial gradient radius
+        stops:                       # Gradient color stops
+          - offset: "0%"
+            color: "#ff6600"
+          - offset: "50%"
+            color: "#ffcc00"
+          - offset: "100%"
+            color: "#ff0000"
+
+      # === PATTERN FILLS ===
+
+      # Simple patterns
+      pattern: "dots"                 # Predefined patterns (dots, lines)
+
+      # Advanced pattern configuration
+      pattern:
+        type: "dots"                  # Pattern type
+        width: 10                     # Pattern width
+        height: 10                    # Pattern height
+        patternUnits: "userSpaceOnUse" # Pattern units
+        content: "<circle cx='5' cy='5' r='2' fill='currentColor'/>" # Custom SVG content
+
+      # === VISUAL EFFECTS ===
+
+      # Glow effects
+      glow: true                      # Simple glow with defaults
+      glow: "#ff6600"                 # Glow with specific color
+      glow:                           # Advanced glow configuration
+        color: "var(--lcars-orange)"  # Glow color
+        blur: 3                       # Blur radius
+        intensity: 1                  # Glow intensity
+
+      # Drop shadow effects
+      shadow: "2 2 3 rgba(0,0,0,0.5)" # CSS-style shadow (offsetX offsetY blur color)
+      shadow:                         # Advanced shadow configuration
+        offsetX: 2                    # Shadow X offset
+        offsetY: 2                    # Shadow Y offset
+        blur: 3                       # Shadow blur radius
+        color: "rgba(0,0,0,0.5)"     # Shadow color
+
+      # Blur effects
+      blur: 1                         # Simple blur radius
+
+      # === MULTILINE TEXT SUPPORT ===
+
+      multiline: false                # Enable multiline text rendering
+      line_height: 1.2                # Line height multiplier
+      lineHeight: 1.5                 # Alternative camelCase
+      max_width: 0                    # Maximum width for text wrapping (0 = no limit)
+      maxWidth: 200                   # Alternative camelCase
+      text_wrapping: "none"           # Text wrapping mode (none, word, char)
+      textWrapping: "word"            # Alternative camelCase
+
+      # === LCARS-SPECIFIC FEATURES ===
+
+      # Status indicators
+      status_indicator: true          # Simple status dot
+      status_indicator: "#00ff00"     # Status dot with specific color
+      status_indicator: "var(--lcars-green)" # Status dot with CSS variable
+
+      # LCARS bracket decoration
+      bracket_style: true             # Enable LCARS-style brackets around text
+      bracket_style: "standard"       # Bracket style variant
+
+      # Highlight background
+      highlight: true                 # Simple highlight with default color
+      highlight: "rgba(255,255,0,0.3)" # Highlight with specific color
+
+      # === ANIMATION PROPERTIES ===
+
+      # Animation control
+      animatable: true                # Enable animations (default: true)
+
+      # Animation speeds (for future anime.js v4 integration)
+      pulse_speed: 0                  # Pulse animation speed (0 = disabled)
+      pulseSpeed: 1000               # Alternative camelCase (duration in ms)
+      fade_speed: 0                   # Fade animation speed
+      fadeSpeed: 2000                # Alternative camelCase
+      typewriter_speed: 0            # Typewriter effect speed
+      typewriterSpeed: 50            # Alternative camelCase (chars per second)
+
+# === USAGE EXAMPLES ===
+
+# Simple text with basic styling
+- id: simple_text
+  type: text
+  position: [50, 50]
+  style:
+    value: "System Status"
+    color: "var(--lcars-orange)"
+    font_size: 18
+    font_weight: "bold"
+
+# Advanced styled text with effects
+- id: fancy_text
+  type: text
+  position: [100, 100]
+  style:
+    value: "CRITICAL ALERT"
+    font_size: 24
+    font_family: "Orbitron, monospace"
+    text_anchor: "middle"
+    gradient:
+      type: "linear"
+      stops:
+        - offset: "0%"
+          color: "#ff0000"
+        - offset: "100%"
+          color: "#ffff00"
+    glow:
+      color: "#ff0000"
+      blur: 5
+      intensity: 1.5
+    stroke: "#000000"
+    stroke_width: 1
+    bracket_style: true
+    status_indicator: "#ff0000"
+    pulse_speed: 1000
+
+# Multiline text with wrapping
+- id: multiline_text
+  type: text
+  position: [200, 150]
+  style:
+    value: "This is a long text that will be wrapped across multiple lines"
+    multiline: true
+    max_width: 200
+    line_height: 1.4
+    text_wrapping: "word"
+    text_anchor: "start"
+
+# Text with pattern fill and shadow
+- id: patterned_text
+  type: text
+  position: [300, 200]
+  style:
+    value: "LCARS INTERFACE"
+    font_size: 20
+    pattern: "dots"
+    shadow:
+      offsetX: 3
+      offsetY: 3
+      blur: 2
+      color: "rgba(0,0,0,0.7)"
+    highlight: "rgba(255,165,0,0.2)"
+
+# Template-driven text with entity data
+- id: dynamic_text
+  type: text
+  position: [150, 250]
+  style:
+    value: "CPU: {{states('sensor.cpu_usage')}}%"
+    color: "var(--lcars-blue)"
+    font_family: "monospace"
+    typewriter_speed: 20
