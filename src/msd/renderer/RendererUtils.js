@@ -345,6 +345,48 @@ export class RendererUtils {
   }
 
   /**
+   * Resolve effective font-family when textStyle uses 'inherit'.
+   * Tries: svg element -> container element -> documentElement -> fallback.
+   */
+  static resolveFontFamily(textStyle, containerElement) {
+    if (textStyle.fontFamily && textStyle.fontFamily !== 'inherit') {
+      return textStyle.fontFamily;
+    }
+    try {
+      const svg = containerElement?.querySelector?.('svg');
+      const target = svg || containerElement || document.documentElement;
+      const computed = window.getComputedStyle(target).fontFamily;
+      if (computed && computed !== 'inherit') return computed;
+    } catch (e) {
+      console.warn('[RendererUtils] resolveFontFamily failed:', e);
+    }
+    return 'Arial, sans-serif';
+  }
+
+  /**
+   * Build a font string adjusted for measurement so canvas uses the ACTUAL on-screen pixel size.
+   * Without this, we measure at raw user-unit size (too large when viewBox scales down),
+   * leading to overestimated widths and misplaced decorations (e.g., status indicator).
+   */
+  static buildMeasurementFontString(textStyle, containerElement) {
+    // Resolve actual inherited font-family instead of fallback
+    const fontFamily = this.resolveFontFamily(textStyle, containerElement);
+    const fontStyle = (textStyle.fontStyle && textStyle.fontStyle !== 'normal') ? `${textStyle.fontStyle} ` : '';
+    const fontWeight = (textStyle.fontWeight && textStyle.fontWeight !== 'normal') ? `${textStyle.fontWeight} ` : '';
+
+    let adjustedPx = textStyle.fontSize;
+    if (containerElement) {
+      const transformInfo = this._getSvgTransformInfo(containerElement);
+      if (transformInfo) {
+        const screenPxPerViewBoxUnit = transformInfo.screenRect.width / transformInfo.viewBox[2];
+        adjustedPx = textStyle.fontSize * screenPxPerViewBoxUnit;
+      }
+    }
+
+    return `${fontStyle}${fontWeight}${adjustedPx}px ${fontFamily}`;
+  }
+
+  /**
    * Clear text measurement cache
    */
   static clearTextMeasureCache() {

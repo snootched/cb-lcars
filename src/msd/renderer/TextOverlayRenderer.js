@@ -413,7 +413,8 @@ export class TextOverlayRenderer {
    * @returns {string} SVG markup for LCARS brackets
    */
   _buildBrackets(textContent, x, y, textStyle, overlayId) {
-    const font = RendererUtils.buildFontString(textStyle);
+    // Use measurement-adjusted font (prevents width overestimation)
+    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
     let bbox;
 
     if (textStyle.multiline) {
@@ -479,7 +480,7 @@ export class TextOverlayRenderer {
    * @private
    */
   _buildHighlight(textContent, x, y, textStyle, overlayId) {
-    const font = RendererUtils.buildFontString(textStyle);
+    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
     let bbox;
 
     if (textStyle.multiline) {
@@ -565,9 +566,9 @@ export class TextOverlayRenderer {
 
     const position = textStyle.status_indicator_position || 'left-center';
 
-    // Get precise text measurements using RendererUtils with container for coordinate transformation
+    // Replace base font with measurement-adjusted font
     const textContent = textStyle._cachedContent || textStyle.value || '';
-    const font = RendererUtils.buildFontString(textStyle);
+    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
 
     // Get the SVG transform info for debugging and padding calculation
     const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
@@ -1056,9 +1057,9 @@ export class TextOverlayRenderer {
   getAttachmentPoints(overlay, x, y) {
     const textContent = this._resolveTextContent(overlay, overlay.finalStyle || {});
     const textStyle = this._resolveTextStyles(overlay.finalStyle || {}, overlay.id);
-    const font = RendererUtils.buildFontString(textStyle);
+    // Use adjusted font for consistent connector attachment
+    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
 
-    // Use RendererUtils methods which handle coordinate transformation properly
     return RendererUtils.getTextAttachmentPoints(
       textContent,
       x,
