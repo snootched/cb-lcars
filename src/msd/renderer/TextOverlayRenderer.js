@@ -4,6 +4,7 @@
  */
 
 import { PositionResolver } from './PositionResolver.js';
+import { RendererUtils } from './RendererUtils.js';
 
 export class TextOverlayRenderer {
   constructor() {
@@ -54,6 +55,9 @@ export class TextOverlayRenderer {
         console.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
         return '';
       }
+
+      // CACHE TEXT CONTENT IN STYLE FOR DECORATION METHODS
+      textStyle._cachedContent = textContent;
 
       // Build SVG group with all features
       const svgParts = [
@@ -397,19 +401,65 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Build LCARS-style brackets around text
+   * Build LCARS-style brackets with precise measurements
    * @private
+   * @param {string} textContent - Text content for measurement
+   * @param {number} x - Text x position
+   * @param {number} y - Text y position
+   * @param {Object} textStyle - Resolved text style configuration
+   * @param {string} overlayId - Overlay ID for unique identification
+   * @returns {string} SVG markup for LCARS brackets
    */
   _buildBrackets(textContent, x, y, textStyle, overlayId) {
-    // Estimate text width (rough approximation)
-    const textWidth = textContent.length * textStyle.fontSize * 0.6;
-    const bracketHeight = textStyle.fontSize * 1.2;
-    const bracketWidth = 8;
+    const font = RendererUtils.buildFontString(textStyle);
+    let bbox;
 
-    const leftX = x - bracketWidth - 4;
-    const rightX = x + textWidth + 4;
-    const topY = y - bracketHeight * 0.8;
-    const bottomY = y + bracketHeight * 0.2;
+    if (textStyle.multiline) {
+      // For multiline text, get comprehensive measurements
+      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
+      // Create bbox-like object from multiline measurements
+      let left = x;
+      if (textStyle.textAnchor === 'middle') {
+        left = x - multilineMetrics.width / 2;
+      } else if (textStyle.textAnchor === 'end') {
+        left = x - multilineMetrics.width;
+      }
+
+      let top = y - multilineMetrics.lineMetrics[0]?.ascent || 0;
+      if (textStyle.dominantBaseline === 'middle') {
+        top = y - multilineMetrics.height / 2;
+      } else if (textStyle.dominantBaseline === 'hanging') {
+        top = y;
+      }
+
+      bbox = {
+        left,
+        right: left + multilineMetrics.width,
+        top,
+        bottom: top + multilineMetrics.height,
+        width: multilineMetrics.width,
+        height: multilineMetrics.height
+      };
+    } else {
+      // Single line text - use standard bounding box
+      bbox = RendererUtils.getTextBoundingBox(
+        textContent,
+        x,
+        y,
+        font,
+        textStyle.textAnchor,
+        textStyle.dominantBaseline
+      );
+    }
+
+    const bracketWidth = 8;
+    const padding = 4;
+    const extraHeight = 4; // Additional height for visual appeal
+
+    const leftX = bbox.left - bracketWidth - padding;
+    const rightX = bbox.right + padding;
+    const topY = bbox.top - extraHeight;
+    const bottomY = bbox.bottom + extraHeight;
 
     const bracketColor = textStyle.color;
     const strokeWidth = Math.max(1, textStyle.fontSize / 16);
@@ -423,33 +473,104 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Build highlight background
+   * Build highlight background with precise measurements
    * @private
+   * @param {string} textContent - Text content for measurement
+   * @param {number} x - Text x position
+   * @param {number} y - Text y position
+   * @param {Object} textStyle - Resolved text style configuration
+   * @param {string} overlayId - Overlay ID for unique identification
+   * @returns {string} SVG markup for highlight background
    */
   _buildHighlight(textContent, x, y, textStyle, overlayId) {
-    const textWidth = textContent.length * textStyle.fontSize * 0.6;
-    const highlightHeight = textStyle.fontSize * 1.1;
+    const font = RendererUtils.buildFontString(textStyle);
+    let bbox;
 
-    let highlightX = x;
-    if (textStyle.textAnchor === 'middle') {
-      highlightX -= textWidth / 2;
-    } else if (textStyle.textAnchor === 'end') {
-      highlightX -= textWidth;
+    if (textStyle.multiline) {
+      // For multiline text, get comprehensive measurements
+      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
+      // Create bbox-like object from multiline measurements
+      let left = x;
+      if (textStyle.textAnchor === 'middle') {
+        left = x - multilineMetrics.width / 2;
+      } else if (textStyle.textAnchor === 'end') {
+        left = x - multilineMetrics.width;
+      }
+
+      let top = y - multilineMetrics.lineMetrics[0]?.ascent || 0;
+      if (textStyle.dominantBaseline === 'middle') {
+        top = y - multilineMetrics.height / 2;
+      } else if (textStyle.dominantBaseline === 'hanging') {
+        top = y;
+      }
+
+      bbox = {
+        left,
+        right: left + multilineMetrics.width,
+        top,
+        bottom: top + multilineMetrics.height,
+        width: multilineMetrics.width,
+        height: multilineMetrics.height
+      };
+    } else {
+      // Single line text - use standard bounding box
+      bbox = RendererUtils.getTextBoundingBox(
+        textContent,
+        x,
+        y,
+        font,
+        textStyle.textAnchor,
+        textStyle.dominantBaseline
+      );
     }
 
-    const highlightY = y - textStyle.fontSize * 0.8;
+    const padding = 2;
+    const highlightX = bbox.left - padding;
+    const highlightY = bbox.top - padding;
+    const highlightWidth = bbox.width + (padding * 2);
+    const highlightHeight = bbox.height + (padding * 2);
+
     const highlightColor = typeof textStyle.highlight === 'string' ?
       textStyle.highlight : 'rgba(255, 255, 0, 0.3)';
 
-    return `<rect x="${highlightX - 2}" y="${highlightY}"
-                  width="${textWidth + 4}" height="${highlightHeight}"
+    return `<rect x="${highlightX}" y="${highlightY}"
+                  width="${highlightWidth}" height="${highlightHeight}"
                   fill="${highlightColor}" rx="2"
                   data-decoration="highlight"/>`;
   }
 
+
   /**
-   * Build status indicator
+   * Get attachment points for line connectors
+   * @public
+   * @param {Object} overlay - Text overlay configuration
+   * @param {number} x - Text x position
+   * @param {number} y - Text y position
+   * @returns {Object} Object with attachment points
+   */
+  getAttachmentPoints(overlay, x, y) {
+    const textContent = this._resolveTextContent(overlay, overlay.finalStyle || {});
+    const textStyle = this._resolveTextStyles(overlay.finalStyle || {}, overlay.id);
+    const font = RendererUtils.buildFontString(textStyle);
+
+    return RendererUtils.getTextAttachmentPoints(
+      textContent,
+      x,
+      y,
+      font,
+      textStyle.textAnchor,
+      textStyle.dominantBaseline
+    );
+  }
+
+  /**
+   * Build status indicator with precise positioning
    * @private
+   * @param {number} x - Text x position
+   * @param {number} y - Text y position
+   * @param {Object} textStyle - Resolved text style configuration
+   * @param {string} overlayId - Overlay ID for unique identification
+   * @returns {string} SVG markup for status indicator
    */
   _buildStatusIndicator(x, y, textStyle, overlayId) {
     const indicatorSize = textStyle.fontSize * 0.4;
@@ -457,69 +578,106 @@ export class TextOverlayRenderer {
       ? textStyle.status_indicator
       : 'var(--lcars-green)';
 
-    // New: support configurable position
     const position = textStyle.status_indicator_position || 'left-center';
 
-    // Estimate text width and height (for positioning)
-    const textWidth = (textStyle.maxWidth && textStyle.maxWidth > 0)
-      ? textStyle.maxWidth
-      : (textStyle.multiline
-          ? Math.max(...(textStyle.value || '').split('\n').map(line => line.length)) * textStyle.fontSize * 0.6
-          : (textStyle.value || '').length * textStyle.fontSize * 0.6);
-    const textHeight = textStyle.fontSize * (textStyle.multiline ? (textStyle.value || '').split('\n').length : 1) * textStyle.lineHeight;
+    // Get precise text measurements using RendererUtils
+    const textContent = textStyle._cachedContent || textStyle.value || '';
+    const font = RendererUtils.buildFontString(textStyle);
 
-    // Calculate indicator position based on option
+    let bbox;
+    if (textStyle.multiline) {
+      // For multiline text, get comprehensive measurements
+      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
+      // Create bbox-like object from multiline measurements
+      let left = x;
+      if (textStyle.textAnchor === 'middle') {
+        left = x - multilineMetrics.width / 2;
+      } else if (textStyle.textAnchor === 'end') {
+        left = x - multilineMetrics.width;
+      }
+
+      let top = y - multilineMetrics.lineMetrics[0]?.ascent || 0;
+      if (textStyle.dominantBaseline === 'middle') {
+        top = y - multilineMetrics.height / 2;
+      } else if (textStyle.dominantBaseline === 'hanging') {
+        top = y;
+      }
+
+      bbox = {
+        left,
+        right: left + multilineMetrics.width,
+        top,
+        bottom: top + multilineMetrics.height,
+        width: multilineMetrics.width,
+        height: multilineMetrics.height,
+        centerX: left + multilineMetrics.width / 2,
+        centerY: top + multilineMetrics.height / 2
+      };
+    } else {
+      // Single line text - use standard bounding box
+      bbox = RendererUtils.getTextBoundingBox(
+        textContent,
+        x,
+        y,
+        font,
+        textStyle.textAnchor,
+        textStyle.dominantBaseline
+      );
+    }
+
+    // Calculate indicator position based on actual text bounds
     let indicatorX = x, indicatorY = y;
+    const padding = indicatorSize; // Use indicator size as padding distance
+
     switch (position) {
       case 'top-left':
-        indicatorX = x - textWidth / 2 - indicatorSize;
-        indicatorY = y - textHeight / 2 - indicatorSize;
+        indicatorX = bbox.left - padding;
+        indicatorY = bbox.top - padding;
         break;
       case 'top-right':
-        indicatorX = x + textWidth / 2 + indicatorSize;
-        indicatorY = y - textHeight / 2 - indicatorSize;
+        indicatorX = bbox.right + padding;
+        indicatorY = bbox.top - padding;
         break;
       case 'bottom-left':
-        indicatorX = x - textWidth / 2 - indicatorSize;
-        indicatorY = y + textHeight / 2 + indicatorSize;
+        indicatorX = bbox.left - padding;
+        indicatorY = bbox.bottom + padding;
         break;
       case 'bottom-right':
-        indicatorX = x + textWidth / 2 + indicatorSize;
-        indicatorY = y + textHeight / 2 + indicatorSize;
+        indicatorX = bbox.right + padding;
+        indicatorY = bbox.bottom + padding;
         break;
       case 'top':
-        indicatorX = x;
-        indicatorY = y - textHeight / 2 - indicatorSize;
+        indicatorX = bbox.centerX;
+        indicatorY = bbox.top - padding;
         break;
       case 'bottom':
-        indicatorX = x;
-        indicatorY = y + textHeight / 2 + indicatorSize;
+        indicatorX = bbox.centerX;
+        indicatorY = bbox.bottom + padding;
         break;
       case 'left-center':
       case 'left':
-        indicatorX = x - textWidth / 2 - indicatorSize;
-        indicatorY = y;
+        indicatorX = bbox.left - padding;
+        indicatorY = bbox.centerY;
         break;
       case 'right-center':
       case 'right':
-        indicatorX = x + textWidth / 2 + indicatorSize;
-        indicatorY = y;
+        indicatorX = bbox.right + padding;
+        indicatorY = bbox.centerY;
         break;
       case 'center':
-        indicatorX = x;
-        indicatorY = y;
+        indicatorX = bbox.centerX;
+        indicatorY = bbox.centerY;
         break;
       default:
         // fallback to left-center
-        indicatorX = x - indicatorSize - 8;
-        indicatorY = y;
+        indicatorX = bbox.left - padding - 4;
+        indicatorY = bbox.centerY;
     }
 
     return `<circle cx="${indicatorX}" cy="${indicatorY}" r="${indicatorSize}"
                     fill="${statusColor}"
                     data-decoration="status-indicator"/>`;
   }
-
 
 
   /**

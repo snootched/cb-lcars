@@ -5,6 +5,219 @@
 
 export class RendererUtils {
 
+
+  /**
+   * Text measurement utilities using HTML Canvas
+   * Static methods for precise text dimension calculations
+   */
+
+  /**
+   * Get or create cached canvas context for text measurements
+   * @private
+   * @returns {CanvasRenderingContext2D}
+   */
+  static _getTextMeasureContext() {
+    if (!window.cblcars) window.cblcars = {};
+
+    if (!window.cblcars._textMeasureCanvas) {
+      window.cblcars._textMeasureCanvas = document.createElement("canvas");
+      window.cblcars._textMeasureContext = window.cblcars._textMeasureCanvas.getContext("2d");
+      window.cblcars._textMeasureCache = new Map();
+    }
+
+    return window.cblcars._textMeasureContext;
+  }
+
+  /**
+   * Measure text dimensions using canvas context
+   * @param {string} text - Text to measure
+   * @param {string} font - CSS font string (e.g., "bold 16px Arial")
+   * @param {boolean} useCache - Whether to use cached measurements
+   * @returns {{width: number, height: number, ascent: number, descent: number}}
+   */
+  static measureText(text, font = "16px Arial", useCache = true) {
+    if (!text) return { width: 0, height: 0, ascent: 0, descent: 0 };
+
+    const cacheKey = `${text}::${font}`;
+    const cache = window.cblcars?._textMeasureCache;
+
+    if (useCache && cache && cache.has(cacheKey)) {
+      return cache.get(cacheKey);
+    }
+
+    const ctx = this._getTextMeasureContext();
+    ctx.font = font;
+    const metrics = ctx.measureText(text);
+
+    const result = {
+      width: metrics.width,
+      height: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent,
+      ascent: metrics.actualBoundingBoxAscent,
+      descent: metrics.actualBoundingBoxDescent,
+      actualLeft: metrics.actualBoundingBoxLeft || 0,
+      actualRight: metrics.actualBoundingBoxRight || metrics.width
+    };
+
+    if (useCache && cache) {
+      cache.set(cacheKey, result);
+    }
+
+    return result;
+  }
+
+  /**
+   * Measure multiline text with proper line spacing
+   * @param {string} text - Multiline text (with \n separators)
+   * @param {string} font - CSS font string
+   * @param {number} lineHeight - Line height multiplier (default 1.2)
+   * @param {boolean} useCache - Whether to use cached measurements
+   * @returns {{width: number, height: number, lines: Array, lineMetrics: Array}}
+   */
+  static measureMultilineText(text, font = "16px Arial", lineHeight = 1.2, useCache = true) {
+    if (!text) return { width: 0, height: 0, lines: [], lineMetrics: [] };
+
+    const lines = text.split('\n');
+    const lineMetrics = lines.map(line => this.measureText(line, font, useCache));
+
+    const maxWidth = Math.max(...lineMetrics.map(m => m.width));
+    const fontSize = this._parseFontSize(font);
+    const totalHeight = lines.length > 1
+      ? lineMetrics[0].ascent + ((lines.length - 1) * fontSize * lineHeight) + lineMetrics[lineMetrics.length - 1].descent
+      : lineMetrics[0]?.height || 0;
+
+    return {
+      width: maxWidth,
+      height: totalHeight,
+      lines,
+      lineMetrics
+    };
+  }
+
+  /**
+   * Calculate text bounding box at specific position
+   * @param {string} text - Text content
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {string} font - CSS font string
+   * @param {string} textAnchor - SVG text-anchor value ('start', 'middle', 'end')
+   * @param {string} dominantBaseline - SVG dominant-baseline value
+   * @returns {{left: number, right: number, top: number, bottom: number, width: number, height: number}}
+   */
+  static getTextBoundingBox(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto') {
+    const metrics = this.measureText(text, font);
+
+    // Adjust for text anchor
+    let left = x;
+    if (textAnchor === 'middle') {
+      left = x - metrics.width / 2;
+    } else if (textAnchor === 'end') {
+      left = x - metrics.width;
+    }
+
+    // Adjust for baseline
+    let top = y - metrics.ascent;
+    if (dominantBaseline === 'middle') {
+      top = y - metrics.height / 2;
+    } else if (dominantBaseline === 'hanging') {
+      top = y;
+    }
+
+    return {
+      left,
+      right: left + metrics.width,
+      top,
+      bottom: top + metrics.height,
+      width: metrics.width,
+      height: metrics.height,
+      centerX: left + metrics.width / 2,
+      centerY: top + metrics.height / 2
+    };
+  }
+
+  /**
+   * Get attachment points for connecting lines to text
+   * @param {string} text - Text content
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {string} font - CSS font string
+   * @param {string} textAnchor - SVG text-anchor value
+   * @param {string} dominantBaseline - SVG dominant-baseline value
+   * @returns {Object} Object with attachment points (top, bottom, left, right, etc.)
+   */
+  static getTextAttachmentPoints(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto') {
+    const bbox = this.getTextBoundingBox(text, x, y, font, textAnchor, dominantBaseline);
+
+    return {
+      // Cardinal directions
+      top: [bbox.centerX, bbox.top],
+      bottom: [bbox.centerX, bbox.bottom],
+      left: [bbox.left, bbox.centerY],
+      right: [bbox.right, bbox.centerY],
+      center: [bbox.centerX, bbox.centerY],
+
+      // Corners
+      topLeft: [bbox.left, bbox.top],
+      topRight: [bbox.right, bbox.top],
+      bottomLeft: [bbox.left, bbox.bottom],
+      bottomRight: [bbox.right, bbox.bottom],
+
+      // With padding for visual clearance
+      topPadded: [bbox.centerX, bbox.top - 4],
+      bottomPadded: [bbox.centerX, bbox.bottom + 4],
+      leftPadded: [bbox.left - 4, bbox.centerY],
+      rightPadded: [bbox.right + 4, bbox.centerY]
+    };
+  }
+
+  /**
+   * Build CSS font string from text style object
+   * @param {Object} textStyle - Text style configuration
+   * @returns {string} CSS font string
+   */
+  static buildFontString(textStyle) {
+    const parts = [];
+
+    if (textStyle.fontStyle && textStyle.fontStyle !== 'normal') parts.push(textStyle.fontStyle);
+    if (textStyle.fontWeight && textStyle.fontWeight !== 'normal') parts.push(textStyle.fontWeight);
+    parts.push(`${textStyle.fontSize || 16}px`);
+    if (textStyle.fontFamily && textStyle.fontFamily !== 'inherit') {
+      parts.push(textStyle.fontFamily);
+    } else {
+      parts.push('Arial'); // Fallback
+    }
+
+    return parts.join(' ');
+  }
+
+  /**
+   * Parse font size from CSS font string
+   * @private
+   */
+  static _parseFontSize(font) {
+    const match = font.match(/(\d+(?:\.\d+)?)px/);
+    return match ? parseFloat(match[1]) : 16;
+  }
+
+  /**
+   * Clear text measurement cache
+   */
+  static clearTextMeasureCache() {
+    if (window.cblcars?._textMeasureCache) {
+      window.cblcars._textMeasureCache.clear();
+    }
+  }
+
+  /**
+   * Get text measurement cache statistics
+   */
+  static getTextMeasureCacheStats() {
+    const cache = window.cblcars?._textMeasureCache;
+    return {
+      size: cache?.size || 0,
+      keys: cache ? Array.from(cache.keys()) : []
+    };
+  }
+
   /**
    * Parse gradient configuration from various formats
    * @param {string|object} gradientConfig - Gradient configuration
