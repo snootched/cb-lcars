@@ -125,11 +125,15 @@ export class RendererUtils {
    */
   static _transformTextMetrics(metrics, containerElement) {
     const transformInfo = this._getSvgTransformInfo(containerElement);
-    if (!transformInfo) return metrics;
+    if (!transformInfo) {
+      // No transformation available - return original metrics
+      console.warn('[RendererUtils] No transform info available, using pixel metrics');
+      return metrics;
+    }
 
     const { pixelToViewBox } = transformInfo;
 
-    return {
+    const transformed = {
       ...metrics,
       width: pixelToViewBox(metrics._pixelWidth || metrics.width),
       height: pixelToViewBox(metrics._pixelHeight || metrics.height),
@@ -138,6 +142,23 @@ export class RendererUtils {
       actualLeft: pixelToViewBox(metrics.actualLeft),
       actualRight: pixelToViewBox(metrics.actualRight)
     };
+
+    console.log('[RendererUtils] Transformed text metrics:', {
+      original: {
+        width: metrics.width,
+        height: metrics.height
+      },
+      transformed: {
+        width: transformed.width,
+        height: transformed.height
+      },
+      scaleInfo: {
+        scaleX: transformInfo.scaleX,
+        scaleY: transformInfo.scaleY
+      }
+    });
+
+    return transformed;
   }
 
   /**
@@ -200,7 +221,7 @@ export class RendererUtils {
   static getTextBoundingBox(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto', containerElement = null) {
     const metrics = this.measureText(text, font, true, containerElement);
 
-    // Adjust for text anchor
+    // Adjust for text anchor (x, y are already in viewBox coordinates)
     let left = x;
     if (textAnchor === 'middle') {
       left = x - metrics.width / 2;
@@ -208,7 +229,7 @@ export class RendererUtils {
       left = x - metrics.width;
     }
 
-    // Adjust for baseline
+    // Adjust for baseline (y is already in viewBox coordinates)
     let top = y - metrics.ascent;
     if (dominantBaseline === 'middle') {
       top = y - metrics.height / 2;
@@ -216,7 +237,7 @@ export class RendererUtils {
       top = y;
     }
 
-    return {
+    const bbox = {
       left,
       right: left + metrics.width,
       top,
@@ -226,6 +247,23 @@ export class RendererUtils {
       centerX: left + metrics.width / 2,
       centerY: top + metrics.height / 2
     };
+
+    console.log('[RendererUtils] Text bounding box calculation:', {
+      text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
+      inputPosition: { x, y },
+      textAnchor,
+      dominantBaseline,
+      metrics: {
+        width: metrics.width,
+        height: metrics.height,
+        ascent: metrics.ascent,
+        descent: metrics.descent
+      },
+      bbox,
+      hasContainer: !!containerElement
+    });
+
+    return bbox;
   }
 
   /**
@@ -242,9 +280,10 @@ export class RendererUtils {
   static getTextAttachmentPoints(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto', containerElement = null) {
     const bbox = this.getTextBoundingBox(text, x, y, font, textAnchor, dominantBaseline, containerElement);
 
-    // Calculate padding in viewBox coordinates
+    // Calculate padding in viewBox coordinates - don't double-transform
     const transformInfo = this._getSvgTransformInfo(containerElement);
-    const padding = transformInfo ? transformInfo.pixelToViewBox(4) : 4;
+    const basePadding = 4; // Base padding value
+    const padding = transformInfo ? transformInfo.pixelToViewBox(basePadding) : basePadding;
 
     return {
       // Cardinal directions

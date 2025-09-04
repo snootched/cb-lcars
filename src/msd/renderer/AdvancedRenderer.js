@@ -87,10 +87,17 @@ export class AdvancedRenderer {
       return '';
     }
 
-    const svgContainer = this.mountEl.querySelector('svg');
+    // Ensure SVG container is available before rendering
+    const svgContainer = this.mountEl;
+    const svg = svgContainer?.querySelector('svg');
+
+    if (!svg) {
+      console.warn('[AdvancedRenderer] SVG element not found in container for overlay:', overlay.id);
+    }
 
     switch (overlay.type) {
       case 'text':
+        // Pass the mount element (which contains the SVG) for coordinate calculations
         return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
