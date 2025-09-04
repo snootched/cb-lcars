@@ -1070,4 +1070,49 @@ export class TextOverlayRenderer {
       this.container
     );
   }
+
+  /**
+   * Compute attachment points & bbox for a text overlay without rendering (used by line routing).
+   * Returns null if position or content invalid.
+   */
+  static computeAttachmentPoints(overlay, anchors, container) {
+    if (!overlay || overlay.type !== 'text') return null;
+    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    if (!position) return null;
+    const [x, y] = position;
+    const instance = new TextOverlayRenderer();
+    const style = overlay.finalStyle || overlay.style || {};
+    const textStyle = instance._resolveTextStyles(style, overlay.id);
+    const textContent = instance._resolveTextContent(overlay, style);
+    if (!textContent) return null;
+    // Measurement font (correct inherited font + scaling)
+    const font = RendererUtils.buildMeasurementFontString(textStyle, container);
+    const bbox = RendererUtils.getTextBoundingBox(
+      textContent,
+      x,
+      y,
+      font,
+      textStyle.textAnchor,
+      textStyle.dominantBaseline,
+      container
+    );
+    const points = RendererUtils.getTextAttachmentPoints(
+      textContent,
+      x,
+      y,
+      font,
+      textStyle.textAnchor,
+      textStyle.dominantBaseline,
+      container
+    );
+    return {
+      id: overlay.id,
+      center: points.center,
+      points,
+      bbox,
+      textStyle,
+      x,
+      y
+    };
+  }
 }

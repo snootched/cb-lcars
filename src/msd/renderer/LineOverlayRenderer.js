@@ -13,6 +13,12 @@ export class LineOverlayRenderer {
     this.markerCache = new Map();
     this.gradientCache = new Map();
     this.patternCache = new Map();
+
+    this.textAttachmentPoints = new Map();
+  }
+
+  setTextAttachmentPoints(map) {
+    this.textAttachmentPoints = map || new Map();
   }
 
   /**
@@ -28,8 +34,16 @@ export class LineOverlayRenderer {
       return '';
     }
 
-    const anchor1 = PositionResolver.resolvePosition(overlay.anchor, anchors);
-    const anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
+    let anchor1 = PositionResolver.resolvePosition(overlay.anchor, anchors);
+    let anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
+
+    // If attach_to not an anchor but matches a text overlay id we have attachment points
+    let attachMeta = null;
+    if (!anchor2 && overlay.attach_to && this.textAttachmentPoints.has(overlay.attach_to)) {
+      attachMeta = this.textAttachmentPoints.get(overlay.attach_to);
+      // Compute smart attachment point
+      anchor2 = this._computeTextAttachPoint(anchor1, attachMeta, overlay);
+    }
 
     if (!anchor1 || !anchor2) {
       console.warn(`[LineOverlayRenderer] Line ${overlay.id} missing anchor points`);
@@ -638,5 +652,76 @@ export class LineOverlayRenderer {
       dashPatterns: true,
       advanced: true
     };
+  }
+
+  /**
+   * Choose attachment point on target text overlay bbox, honoring attach_side or auto.
+   * Applies configurable gap (attach_gap | gap | line_gap) in outward normal direction.
+   */
+  _computeTextAttachPoint(origin, attachMeta, overlay) {
+    if (!origin || !attachMeta) return attachMeta?.center;
+
+    const raw = overlay._raw || overlay.raw || overlay;
+    const sidePref = (raw.attach_side || raw.attachSide || 'auto').toLowerCase();
+    const gapRaw = raw.attach_gap ?? raw.attachment_gap ?? raw.line_gap ?? raw.gap;
+    const gap = Number(gapRaw ?? 4);
+    const { bbox, points } = attachMeta;
+    const center = points.center;
+    let side = sidePref;
+
+    if (side === 'auto') {
+      const dx = origin[0] - center[0];
+      const dy = origin[1] - center[1];
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        side = dx <= 0 ? 'left' : 'right';
+      } else {
+        side = dy <= 0 ? 'top' : 'bottom';
+      }
+    }
+
+    let basePoint;
+    let outward = [0,0];
+    switch (side) {
+      case 'left':
+      case 'left-center':
+        basePoint = [bbox.left, center[1]];
+        outward = [-1,0];
+        break;
+      case 'right':
+      case 'right-center':
+        basePoint = [bbox.right, center[1]];
+        outward = [1,0];
+        break;
+      case 'top':
+      case 'top-center':
+        basePoint = [center[0], bbox.top];
+        outward = [0,-1];
+        break;
+      case 'bottom':
+      case 'bottom-center':
+        basePoint = [center[0], bbox.bottom];
+        outward = [0,1];
+        break;
+      default:
+        basePoint = [bbox.left, center[1]];
+        outward = [-1,0];
+    }
+
+    // Apply gap outward
+    const attachPoint = [
+      basePoint[0] + outward[0] * gap,
+      basePoint[1] + outward[1] * gap
+    ];
+
+    // Store meta for potential debug / future features
+    overlay._attachComputed = {
+      targetOverlay: attachMeta.id,
+      sideChosen: side,
+      gap,
+      basePoint,
+      attachPoint
+    };
+
+    return attachPoint;
   }
 }

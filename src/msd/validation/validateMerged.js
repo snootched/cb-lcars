@@ -97,6 +97,13 @@ function validateOverlays(config, issues) {
 
   const anchors = new Set(Object.keys(config.anchors || {}));
 
+  // Add overlay IDs as "virtual anchors" - any overlay can be an attachment target
+  config.overlays.forEach(overlay => {
+    if (overlay && overlay.id) {
+      anchors.add(overlay.id); // Make overlay IDs valid anchor targets
+    }
+  });
+
   config.overlays.forEach(overlay => {
     if (!overlay.id) {
       issues.errors.push({
@@ -394,3 +401,4 @@ function validateCoordinateArray(coords, issues, context) {
     }
   });
 }
+

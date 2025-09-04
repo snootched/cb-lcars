@@ -20,10 +20,20 @@ export async function processAndValidateConfig(userMsdConfig) {
   const t1 = performance.now();
   try { window.__msdDebug && (window.__msdDebug._validationMs = (t1 - t0)); } catch {}
 
-  // Anchor validation
+  // Anchor validation - UPDATED to accept overlay IDs as virtual anchors
   try {
     const existingCodes = new Set(issues.errors.map(e=>e.code));
     const anchorSet = new Set(Object.keys(mergedConfig.anchors || {}));
+
+    // Add overlay IDs as valid anchor targets (same as in validateMerged)
+    const overlayIds = new Set();
+    (mergedConfig.overlays || []).forEach(overlay => {
+      if (overlay && overlay.id) {
+        overlayIds.add(overlay.id);
+        anchorSet.add(overlay.id); // Make overlay IDs valid anchor targets
+      }
+    });
+
     (mergedConfig.overlays || []).forEach(o=>{
       if (!o || !o.id) return;
       const aRefs = [];

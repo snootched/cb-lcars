@@ -17,6 +17,7 @@ export class AdvancedRenderer {
 
     // Track overlay elements for efficient updates
     this.overlayElementCache = new Map(); // overlayId -> DOM element
+    this.textAttachmentPoints = new Map();
   }
 
   render(resolvedModel) {
@@ -35,6 +36,16 @@ export class AdvancedRenderer {
       const existingOverlays = this.mountEl.querySelectorAll('[data-overlay-id]');
       existingOverlays.forEach(el => el.remove());
     }
+
+    // Precompute text overlay attachment points BEFORE rendering anything
+    this.textAttachmentPoints.clear();
+    overlays.filter(o => o.type === 'text').forEach(tov => {
+      const ap = TextOverlayRenderer.computeAttachmentPoints(tov, anchors, this.mountEl);
+      if (ap) this.textAttachmentPoints.set(tov.id, ap);
+    });
+
+    // Provide to line renderer
+    this.lineRenderer.setTextAttachmentPoints(this.textAttachmentPoints);
 
     // Render each overlay
     let svgContent = '';
@@ -97,7 +108,9 @@ export class AdvancedRenderer {
 
     switch (overlay.type) {
       case 'text':
-        // Pass the mount element (which contains the SVG) for coordinate calculations
+        // Update (in case dynamic overlays later): recompute & refresh map
+        const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
+        if (ap) this.textAttachmentPoints.set(overlay.id, ap);
         return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
