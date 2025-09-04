@@ -29,20 +29,61 @@ export class RendererUtils {
   }
 
   /**
+   * Get the SVG container and its current transformation matrix
+   * @param {Element} containerElement - The SVG container element
+   * @returns {Object|null} Object with svg element and transformation info
+   */
+  static _getSvgTransformInfo(containerElement) {
+    try {
+      const svg = containerElement?.querySelector('svg');
+      if (!svg) return null;
+
+      // Get the viewBox and current dimensions
+      const viewBox = svg.viewBox.baseVal;
+      const rect = svg.getBoundingClientRect();
+
+      // Calculate scale factors
+      const scaleX = viewBox.width / rect.width;
+      const scaleY = viewBox.height / rect.height;
+
+      return {
+        svg,
+        viewBox: [viewBox.x, viewBox.y, viewBox.width, viewBox.height],
+        screenRect: { width: rect.width, height: rect.height },
+        scaleX,
+        scaleY,
+        // For pixel-to-viewbox conversion
+        pixelToViewBox: (pixelSize) => pixelSize * Math.max(scaleX, scaleY)
+      };
+    } catch (error) {
+      console.warn('[RendererUtils] Failed to get SVG transform info:', error);
+      return null;
+    }
+  }
+
+  /**
    * Measure text dimensions using canvas context
    * @param {string} text - Text to measure
    * @param {string} font - CSS font string (e.g., "bold 16px Arial")
    * @param {boolean} useCache - Whether to use cached measurements
+   * @param {Element} containerElement - SVG container for coordinate transformation
    * @returns {{width: number, height: number, ascent: number, descent: number}}
    */
-  static measureText(text, font = "16px Arial", useCache = true) {
+  static measureText(text, font = "16px Arial", useCache = true, containerElement = null) {
     if (!text) return { width: 0, height: 0, ascent: 0, descent: 0 };
 
     const cacheKey = `${text}::${font}`;
     const cache = window.cblcars?._textMeasureCache;
 
     if (useCache && cache && cache.has(cacheKey)) {
-      return cache.get(cacheKey);
+      const cached = cache.get(cacheKey);
+
+      // Apply coordinate transformation if container provided
+      if (containerElement) {
+        return this._transformTextMetrics(cached, containerElement);
+      }
+
+      return cached;
     }
 
     const ctx = this._getTextMeasureContext();
@@ -55,56 +96,109 @@ export class RendererUtils {
       ascent: metrics.actualBoundingBoxAscent,
       descent: metrics.actualBoundingBoxDescent,
       actualLeft: metrics.actualBoundingBoxLeft || 0,
-      actualRight: metrics.actualBoundingBoxRight || metrics.width
+      actualRight: metrics.actualBoundingBoxRight || metrics.width,
+      // Store original pixel values for transformation
+      _pixelWidth: metrics.width,
+      _pixelHeight: metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent,
+      _pixelAscent: metrics.actualBoundingBoxAscent,
+      _pixelDescent: metrics.actualBoundingBoxDescent
     };
 
     if (useCache && cache) {
       cache.set(cacheKey, result);
     }
 
+    // Apply coordinate transformation if container provided
+    if (containerElement) {
+      return this._transformTextMetrics(result, containerElement);
+    }
+
     return result;
   }
 
   /**
-   * Measure multiline text with proper line spacing
+   * Transform text metrics from pixel space to viewBox coordinate space
+   * @private
+   * @param {Object} metrics - Original pixel-based metrics
+   * @param {Element} containerElement - SVG container for transformation
+   * @returns {Object} Transformed metrics in viewBox coordinates
+   */
+  static _transformTextMetrics(metrics, containerElement) {
+    const transformInfo = this._getSvgTransformInfo(containerElement);
+    if (!transformInfo) return metrics;
+
+    const { pixelToViewBox } = transformInfo;
+
+    return {
+      ...metrics,
+      width: pixelToViewBox(metrics._pixelWidth || metrics.width),
+      height: pixelToViewBox(metrics._pixelHeight || metrics.height),
+      ascent: pixelToViewBox(metrics._pixelAscent || metrics.ascent),
+      descent: pixelToViewBox(metrics._pixelDescent || metrics.descent),
+      actualLeft: pixelToViewBox(metrics.actualLeft),
+      actualRight: pixelToViewBox(metrics.actualRight)
+    };
+  }
+
+  /**
+   * Measure multiline text with proper line spacing and coordinate transformation
    * @param {string} text - Multiline text (with \n separators)
    * @param {string} font - CSS font string
    * @param {number} lineHeight - Line height multiplier (default 1.2)
    * @param {boolean} useCache - Whether to use cached measurements
+   * @param {Element} containerElement - SVG container for coordinate transformation
    * @returns {{width: number, height: number, lines: Array, lineMetrics: Array}}
    */
-  static measureMultilineText(text, font = "16px Arial", lineHeight = 1.2, useCache = true) {
+  static measureMultilineText(text, font = "16px Arial", lineHeight = 1.2, useCache = true, containerElement = null) {
     if (!text) return { width: 0, height: 0, lines: [], lineMetrics: [] };
 
     const lines = text.split('\n');
-    const lineMetrics = lines.map(line => this.measureText(line, font, useCache));
+    const lineMetrics = lines.map(line => this.measureText(line, font, useCache, containerElement));
 
     const maxWidth = Math.max(...lineMetrics.map(m => m.width));
     const fontSize = this._parseFontSize(font);
+
+    // Apply transformation to fontSize if container provided
+    let adjustedFontSize = fontSize;
+    let adjustedLineHeight = lineHeight;
+
+    if (containerElement) {
+      const transformInfo = this._getSvgTransformInfo(containerElement);
+      if (transformInfo) {
+        adjustedFontSize = transformInfo.pixelToViewBox(fontSize);
+        // Line height is a multiplier, so we need to apply it to the transformed font size
+        adjustedLineHeight = lineHeight;
+      }
+    }
+
     const totalHeight = lines.length > 1
-      ? lineMetrics[0].ascent + ((lines.length - 1) * fontSize * lineHeight) + lineMetrics[lineMetrics.length - 1].descent
+      ? lineMetrics[0].ascent + ((lines.length - 1) * adjustedFontSize * adjustedLineHeight) + lineMetrics[lineMetrics.length - 1].descent
       : lineMetrics[0]?.height || 0;
 
     return {
       width: maxWidth,
       height: totalHeight,
       lines,
-      lineMetrics
+      lineMetrics,
+      // Store transform info for debugging
+      _transformApplied: !!containerElement,
+      _adjustedFontSize: adjustedFontSize
     };
   }
 
   /**
-   * Calculate text bounding box at specific position
+   * Calculate text bounding box at specific position with proper coordinate transformation
    * @param {string} text - Text content
-   * @param {number} x - X position
-   * @param {number} y - Y position
+   * @param {number} x - X position in viewBox coordinates
+   * @param {number} y - Y position in viewBox coordinates
    * @param {string} font - CSS font string
    * @param {string} textAnchor - SVG text-anchor value ('start', 'middle', 'end')
    * @param {string} dominantBaseline - SVG dominant-baseline value
+   * @param {Element} containerElement - SVG container for coordinate transformation
    * @returns {{left: number, right: number, top: number, bottom: number, width: number, height: number}}
    */
-  static getTextBoundingBox(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto') {
-    const metrics = this.measureText(text, font);
+  static getTextBoundingBox(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto', containerElement = null) {
+    const metrics = this.measureText(text, font, true, containerElement);
 
     // Adjust for text anchor
     let left = x;
@@ -135,17 +229,22 @@ export class RendererUtils {
   }
 
   /**
-   * Get attachment points for connecting lines to text
+   * Get attachment points for connecting lines to text with proper coordinate transformation
    * @param {string} text - Text content
    * @param {number} x - X position
    * @param {number} y - Y position
    * @param {string} font - CSS font string
    * @param {string} textAnchor - SVG text-anchor value
    * @param {string} dominantBaseline - SVG dominant-baseline value
+   * @param {Element} containerElement - SVG container for coordinate transformation
    * @returns {Object} Object with attachment points (top, bottom, left, right, etc.)
    */
-  static getTextAttachmentPoints(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto') {
-    const bbox = this.getTextBoundingBox(text, x, y, font, textAnchor, dominantBaseline);
+  static getTextAttachmentPoints(text, x, y, font = "16px Arial", textAnchor = 'start', dominantBaseline = 'auto', containerElement = null) {
+    const bbox = this.getTextBoundingBox(text, x, y, font, textAnchor, dominantBaseline, containerElement);
+
+    // Calculate padding in viewBox coordinates
+    const transformInfo = this._getSvgTransformInfo(containerElement);
+    const padding = transformInfo ? transformInfo.pixelToViewBox(4) : 4;
 
     return {
       // Cardinal directions
@@ -161,12 +260,23 @@ export class RendererUtils {
       bottomLeft: [bbox.left, bbox.bottom],
       bottomRight: [bbox.right, bbox.bottom],
 
-      // With padding for visual clearance
-      topPadded: [bbox.centerX, bbox.top - 4],
-      bottomPadded: [bbox.centerX, bbox.bottom + 4],
-      leftPadded: [bbox.left - 4, bbox.centerY],
-      rightPadded: [bbox.right + 4, bbox.centerY]
+      // With padding for visual clearance (properly scaled)
+      topPadded: [bbox.centerX, bbox.top - padding],
+      bottomPadded: [bbox.centerX, bbox.bottom + padding],
+      leftPadded: [bbox.left - padding, bbox.centerY],
+      rightPadded: [bbox.right + padding, bbox.centerY]
     };
+  }
+
+  /**
+   * Parse font size from CSS font string
+   * @private
+   * @param {string} font - CSS font string
+   * @returns {number} Font size in pixels
+   */
+  static _parseFontSize(font) {
+    const match = font.match(/(\d+(?:\.\d+)?)px/);
+    return match ? parseFloat(match[1]) : 16;
   }
 
   /**
@@ -177,25 +287,22 @@ export class RendererUtils {
   static buildFontString(textStyle) {
     const parts = [];
 
-    if (textStyle.fontStyle && textStyle.fontStyle !== 'normal') parts.push(textStyle.fontStyle);
-    if (textStyle.fontWeight && textStyle.fontWeight !== 'normal') parts.push(textStyle.fontWeight);
-    parts.push(`${textStyle.fontSize || 16}px`);
+    if (textStyle.fontStyle && textStyle.fontStyle !== 'normal') {
+      parts.push(textStyle.fontStyle);
+    }
+    if (textStyle.fontWeight && textStyle.fontWeight !== 'normal') {
+      parts.push(textStyle.fontWeight);
+    }
+
+    parts.push(`${textStyle.fontSize}px`);
+
     if (textStyle.fontFamily && textStyle.fontFamily !== 'inherit') {
       parts.push(textStyle.fontFamily);
     } else {
-      parts.push('Arial'); // Fallback
+      parts.push('Arial, sans-serif');
     }
 
     return parts.join(' ');
-  }
-
-  /**
-   * Parse font size from CSS font string
-   * @private
-   */
-  static _parseFontSize(font) {
-    const match = font.match(/(\d+(?:\.\d+)?)px/);
-    return match ? parseFloat(match[1]) : 16;
   }
 
   /**

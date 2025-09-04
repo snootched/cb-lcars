@@ -21,9 +21,10 @@ export class TextOverlayRenderer {
    * @param {Array} viewBox - SVG viewBox dimensions
    * @returns {string} Complete SVG markup for the styled text
    */
-  static render(overlay, anchors, viewBox) {
+  static render(overlay, anchors, viewBox, svgContainer) {
     // Create instance for non-static methods
     const instance = new TextOverlayRenderer();
+    instance.container = svgContainer; // Set the container for the instance
     return instance.renderText(overlay, anchors, viewBox);
   }
 
@@ -473,22 +474,23 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Build highlight background with precise measurements
+   * Build highlight background with precise measurements and coordinate transformation
    * @private
-   * @param {string} textContent - Text content for measurement
-   * @param {number} x - Text x position
-   * @param {number} y - Text y position
-   * @param {Object} textStyle - Resolved text style configuration
-   * @param {string} overlayId - Overlay ID for unique identification
-   * @returns {string} SVG markup for highlight background
    */
   _buildHighlight(textContent, x, y, textStyle, overlayId) {
     const font = RendererUtils.buildFontString(textStyle);
     let bbox;
 
     if (textStyle.multiline) {
-      // For multiline text, get comprehensive measurements
-      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
+      // For multiline text, get comprehensive measurements with coordinate transformation
+      const multilineMetrics = RendererUtils.measureMultilineText(
+        textContent,
+        font,
+        textStyle.lineHeight,
+        true,
+        this.container // Pass container for coordinate transformation
+      );
+
       // Create bbox-like object from multiline measurements
       let left = x;
       if (textStyle.textAnchor === 'middle') {
@@ -513,40 +515,41 @@ export class TextOverlayRenderer {
         height: multilineMetrics.height
       };
     } else {
-      // Single line text - use standard bounding box
+      // Single line text - use standard bounding box with coordinate transformation
       bbox = RendererUtils.getTextBoundingBox(
         textContent,
         x,
         y,
         font,
         textStyle.textAnchor,
-        textStyle.dominantBaseline
+        textStyle.dominantBaseline,
+        this.container // Pass container for coordinate transformation
       );
     }
 
-    const padding = 2;
+    // Get properly scaled padding
+    const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
+    const padding = transformInfo ? transformInfo.pixelToViewBox(2) : 2;
+
     const highlightX = bbox.left - padding;
     const highlightY = bbox.top - padding;
     const highlightWidth = bbox.width + (padding * 2);
     const highlightHeight = bbox.height + (padding * 2);
 
     const highlightColor = typeof textStyle.highlight === 'string' ?
-      textStyle.highlight : 'rgba(255, 255, 0, 0.3)';
+      textStyle.highlight : 'var(--lcars-blue-light)';
+    const highlightOpacity = typeof textStyle.highlight_opacity === 'number' ?
+      textStyle.highlight_opacity : 0.3;
 
     return `<rect x="${highlightX}" y="${highlightY}"
                   width="${highlightWidth}" height="${highlightHeight}"
-                  fill="${highlightColor}" rx="2"
+                  fill="${highlightColor}" fill-opacity="${highlightOpacity}"
                   data-decoration="highlight"/>`;
   }
 
-
   /**
-   * Get attachment points for line connectors
+   * Get attachment points for line connectors with proper coordinate transformation
    * @public
-   * @param {Object} overlay - Text overlay configuration
-   * @param {number} x - Text x position
-   * @param {number} y - Text y position
-   * @returns {Object} Object with attachment points
    */
   getAttachmentPoints(overlay, x, y) {
     const textContent = this._resolveTextContent(overlay, overlay.finalStyle || {});
@@ -559,12 +562,13 @@ export class TextOverlayRenderer {
       y,
       font,
       textStyle.textAnchor,
-      textStyle.dominantBaseline
+      textStyle.dominantBaseline,
+      this.container // Pass container for coordinate transformation
     );
   }
 
   /**
-   * Build status indicator with precise positioning
+   * Build status indicator with precise positioning and proper coordinate transformation
    * @private
    * @param {number} x - Text x position
    * @param {number} y - Text y position
@@ -580,14 +584,21 @@ export class TextOverlayRenderer {
 
     const position = textStyle.status_indicator_position || 'left-center';
 
-    // Get precise text measurements using RendererUtils
+    // Get precise text measurements using RendererUtils with container for coordinate transformation
     const textContent = textStyle._cachedContent || textStyle.value || '';
     const font = RendererUtils.buildFontString(textStyle);
 
     let bbox;
     if (textStyle.multiline) {
-      // For multiline text, get comprehensive measurements
-      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
+      // For multiline text, get comprehensive measurements with coordinate transformation
+      const multilineMetrics = RendererUtils.measureMultilineText(
+        textContent,
+        font,
+        textStyle.lineHeight,
+        true,
+        this.container // Pass container for coordinate transformation
+      );
+
       // Create bbox-like object from multiline measurements
       let left = x;
       if (textStyle.textAnchor === 'middle') {
@@ -614,20 +625,21 @@ export class TextOverlayRenderer {
         centerY: top + multilineMetrics.height / 2
       };
     } else {
-      // Single line text - use standard bounding box
+      // Single line text - use standard bounding box with coordinate transformation
       bbox = RendererUtils.getTextBoundingBox(
         textContent,
         x,
         y,
         font,
         textStyle.textAnchor,
-        textStyle.dominantBaseline
+        textStyle.dominantBaseline,
+        this.container // Pass container for coordinate transformation
       );
     }
 
-    // Calculate indicator position based on actual text bounds
+    // Calculate indicator position based on actual text bounds (now in correct coordinate space)
     let indicatorX = x, indicatorY = y;
-    const padding = indicatorSize; // Use indicator size as padding distance
+    const padding = indicatorSize; // Padding will be properly scaled by the coordinate transformation
 
     switch (position) {
       case 'top-left':

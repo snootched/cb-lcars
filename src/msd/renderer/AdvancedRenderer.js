@@ -87,9 +87,11 @@ export class AdvancedRenderer {
       return '';
     }
 
+    const svgContainer = this.mountEl.querySelector('svg');
+
     switch (overlay.type) {
       case 'text':
-        return TextOverlayRenderer.render(overlay, anchors, viewBox);
+        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':
