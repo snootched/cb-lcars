@@ -9,7 +9,8 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   // Extract debug config from mergedConfig
   const debugConfig = mergedConfig?.debug || {};
 
-  console.log('[MSD Debug Interface] Setting up with config:', debugConfig);
+  // REDUCED: Minimal startup logging
+  console.log('[MSD v1] Debug interface ready - type window.__msdDebug.help() for usage');
 
   // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
@@ -42,13 +43,13 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   console.log('[MSD v1] Debug interface setup complete');
   console.log('[MSD v1] Available methods:', Object.keys(dbg));
 
-  // Log debug config state
+  // Log debug config state (REDUCED)
   if (debugConfig.enabled) {
-    console.log('[MSD v1] Debug mode enabled:', debugConfig);
-  } else {
-    console.log('[MSD v1] Debug mode disabled by config');
+    console.log('[MSD v1] Debug mode enabled');
   }
 }
+
+// ...existing code...
 
 function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
   dbg.routing = {
@@ -143,15 +144,13 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
 }
 
 function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelineApi, debugConfig) {
-  console.log('[MSD Debug Interface] Setting up DebugManager-powered interface');
-
+  // REDUCED: Minimal setup logging
   const debugManager = systemsManager.debugManager;
 
   // Enhanced debug object powered by DebugManager
   dbg.debug = {
     // Core feature control methods using DebugManager
     enable: (feature) => {
-      console.log(`[MSD Debug] Enabling feature: ${feature}`);
       if (feature === 'all') {
         debugManager.enableMultiple(['anchors', 'bounding_boxes', 'routing', 'performance']);
       } else {
@@ -163,7 +162,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
-            console.log('[MSD Debug] Triggering re-render after enable');
             pipelineInstance.reRender();
           }
         } catch (error) {
@@ -173,7 +171,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     },
 
     disable: (feature) => {
-      console.log(`[MSD Debug] Disabling feature: ${feature}`);
       if (feature === 'all') {
         debugManager.disableMultiple(['anchors', 'bounding_boxes', 'routing', 'performance']);
       } else {
@@ -185,7 +182,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
-            console.log('[MSD Debug] Triggering re-render after disable');
             pipelineInstance.reRender();
           }
         } catch (error) {
@@ -254,12 +250,11 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 
     // Manual refresh triggers re-render
     refresh: () => {
-      console.log('[MSD Debug] Refreshing debug overlays via pipeline re-render...');
       try {
         const pipelineInstance = window.__msdDebug?.pipelineInstance;
         if (pipelineInstance?.reRender) {
           pipelineInstance.reRender();
-          console.log('[MSD Debug] Pipeline re-render triggered');
+          console.log('[MSD Debug] Debug overlays refreshed');
         }
       } catch (error) {
         console.warn('[MSD Debug] Failed to trigger pipeline re-render:', error);
@@ -291,7 +286,6 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       toggle: () => debugManager.toggle('performance')
     }
   };
-
 
   /*
   // Keep the shadowRoot tracking code - it's still used by testRender and other methods
@@ -398,7 +392,83 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     relayout: () => systemsManager.controlsRenderer.relayout()
   };
 
-  console.log('[MSD Debug Interface] DebugManager-powered interface setup complete');
+  // ADD: Help system
+  dbg.help = function() {
+    console.log(`
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                          MSD Debug Interface Help                            ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Debug Features:                                                              ║
+║   __msdDebug.debug.enable('anchors')       - Show anchor point markers      ║
+║   __msdDebug.debug.enable('bounding_boxes') - Show overlay bounding boxes   ║
+║   __msdDebug.debug.enable('routing')       - Show routing path visualization║
+║   __msdDebug.debug.enable('performance')   - Show performance metrics       ║
+║   __msdDebug.debug.enable('all')           - Enable all features            ║
+║                                                                              ║
+║   __msdDebug.debug.disable('feature')      - Disable specific feature       ║
+║   __msdDebug.debug.status()                - Show current debug state       ║
+║   __msdDebug.debug.setScale(1.5)           - Set debug element scale        ║
+║   __msdDebug.debug.refresh()               - Force re-render debug overlays ║
+║                                                                              ║
+║ Quick Access:                                                                ║
+║   __msdDebug.debug.anchors.toggle()        - Toggle anchor markers          ║
+║   __msdDebug.debug.bounding.toggle()       - Toggle bounding boxes          ║
+║   __msdDebug.debug.routing.toggle()        - Toggle routing guides          ║
+║   __msdDebug.debug.performance.toggle()    - Toggle performance overlay     ║
+║                                                                              ║
+║ Data & Entities:                                                             ║
+║   __msdDebug.dataSources.stats()           - Data source statistics         ║
+║   __msdDebug.dataSources.list()            - List all data sources          ║
+║   __msdDebug.dataSources.get('name')       - Get specific data source       ║
+║                                                                              ║
+║ Routing:                                                                     ║
+║   __msdDebug.routing.inspect('overlay_id') - Inspect routing path           ║
+║   __msdDebug.routing.stats()               - Routing system statistics      ║
+║   __msdDebug.routing.invalidate()          - Clear routing cache            ║
+║                                                                              ║
+║ Performance:                                                                 ║
+║   __msdDebug.getPerf()                     - Get performance metrics        ║
+║   __msdDebug.perf()                        - Alternative performance data   ║
+║                                                                              ║
+║ Other Tools:                                                                 ║
+║   __msdDebug.hud.toggle()                  - Toggle HUD overlay             ║
+║   __msdDebug.rules.trace()                 - Show rules engine trace        ║
+║   __msdDebug.validation.issues()           - Show configuration issues      ║
+║   __msdDebug.usage()                       - Show simplified usage examples ║
+║                                                                              ║
+║ Pipeline:                                                                    ║
+║   __msdDebug.pipelineInstance              - Direct pipeline access         ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+    `);
+  };
+
+  // ADD: Simplified usage examples
+  dbg.usage = function() {
+    console.log(`
+🔧 Quick MSD Debug Commands:
+
+Enable debug features:
+  __msdDebug.debug.enable('anchors')      # Show anchor points
+  __msdDebug.debug.enable('bounding_boxes') # Show overlay bounds
+  __msdDebug.debug.enable('all')          # Enable everything
+
+Check status:
+  __msdDebug.debug.status()               # Current debug state
+  __msdDebug.dataSources.stats()          # Data source info
+  __msdDebug.getPerf()                    # Performance metrics
+
+Quick toggles:
+  __msdDebug.debug.anchors.toggle()       # Toggle anchors
+  __msdDebug.debug.routing.toggle()       # Toggle routing guides
+
+For full help: __msdDebug.help()
+    `);
+  };
+
+  // Log debug config state (REDUCED)
+  if (debugConfig.enabled) {
+    console.log('[MSD v1] Debug mode enabled');
+  }
 }
 
 function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {

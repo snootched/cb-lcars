@@ -189,7 +189,25 @@ export class SystemsManager {
   }
 
   /**
-   * Render debug overlays and controls using DebugManager
+   * Essential cleanup method
+   */
+  destroy() {
+    if (this.debugRenderer) {
+      this.debugRenderer.destroy();
+    }
+
+    // Clear render timeout
+    if (this._renderTimeout) {
+      clearTimeout(this._renderTimeout);
+      this._renderTimeout = null;
+    }
+
+    // Clear re-render callback
+    this._reRenderCallback = null;
+  }
+
+  /**
+   * Render debug overlays and controls using DebugManager with basic performance tracking
    * @param {Object} resolvedModel - The resolved model
    * @param {Element} mountEl - The shadowRoot/mount element
    */
@@ -206,9 +224,22 @@ export class SystemsManager {
       overlaysCount: (resolvedModel?.overlays || []).length
     });
 
+    // Use existing MSD perf counter system
+    const W = typeof window !== 'undefined' ? window : {};
+    const perfStore = W.__msdDebug?.__perfStore;
+    function perfCount(k, inc = 1) {
+      if (perfStore?.counters) {
+        perfStore.counters[k] = (perfStore.counters[k] || 0) + inc;
+      }
+    }
+
+    // Count debug render attempt
+    perfCount('debug.render.attempts');
+
     // Use DebugManager to determine what to render
     if (this.debugManager.isAnyEnabled()) {
       console.log('[MSD v1] Rendering debug visualization via DebugManager');
+      perfCount('debug.render.active');
 
       const debugOptions = {
         anchors: resolvedModel.anchors,
@@ -226,6 +257,7 @@ export class SystemsManager {
       try {
         if (!this.debugRenderer) {
           console.error('[SystemsManager] ❌ Debug renderer not initialized');
+          perfCount('debug.render.errors');
           return;
         }
 
@@ -236,18 +268,23 @@ export class SystemsManager {
 
         this.debugRenderer.render(mountEl, resolvedModel.viewBox, debugOptions);
         console.log('[SystemsManager] ✅ Debug renderer called successfully');
+        perfCount('debug.render.success');
+
       } catch (error) {
         console.error('[SystemsManager] ❌ Debug renderer failed:', error);
         console.error('[SystemsManager] Error stack:', error.stack);
+        perfCount('debug.render.errors');
       }
     } else {
       console.log('[MSD v1] No debug features enabled, skipping debug render');
+      perfCount('debug.render.skipped');
     }
 
     // Render controls if any exist
     const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
     if (controlOverlays.length > 0) {
       console.log('[MSD v1] Rendering control overlays:', controlOverlays.length);
+      perfCount('debug.controls.rendered', controlOverlays.length);
       this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
     }
   }

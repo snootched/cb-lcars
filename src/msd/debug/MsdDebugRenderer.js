@@ -33,14 +33,13 @@ export class MsdDebugRenderer {
 
     // Subscribe to debug state changes for reactive rendering
     this.unsubscribeDebug = this.debugManager.onChange((event) => {
-      console.log('[MsdDebugRenderer] Debug state changed:', event.type);
-
+      // REDUCED: Only log significant events
       if (event.type === 'feature' || event.type === 'scale' || event.type === 'router-ready') {
         this._scheduleRerender();
       }
     });
 
-    console.log('[MsdDebugRenderer] Initialized with DebugManager subscription');
+    // REDUCED: Minimal initialization logging
   }
 
   /**
@@ -59,39 +58,29 @@ export class MsdDebugRenderer {
    * @param {Object} opts - Render options
    */
   render(root, viewBox, opts = {}) {
-    console.log('[MsdDebugRenderer] render() called with:', {
-      root: !!root,
-      rootType: root?.constructor?.name,
-      viewBox: viewBox,
-      opts: opts,
-      debugManagerReady: !!(this.debugManager && this.debugManager.initialized)
-    });
+    // REDUCED: Only log if debug is actually enabled
+    const debugState = this.debugManager?.getSnapshot();
+    if (!debugState?.enabled) {
+      return;
+    }
 
     // Store context for reactive re-renders
     this._lastRenderContext = { root, viewBox, opts };
 
     if (!this.debugManager || !this.debugManager.initialized) {
-      console.warn('[MsdDebugRenderer] DebugManager not ready, skipping render');
       return;
     }
 
-    const debugState = this.debugManager.getSnapshot();
-    console.log('[MsdDebugRenderer] DebugManager state:', debugState);
-
     if (!root || typeof root.querySelector !== 'function') {
-      console.warn('[MsdDebugRenderer] Invalid root element - root:', root);
+      console.warn('[MsdDebugRenderer] Invalid root element');
       return;
     }
 
     const svgElement = root.querySelector('svg');
     if (!svgElement) {
       console.warn('[MsdDebugRenderer] No SVG element found in root');
-      // Try to find SVG in different locations
-      console.log('[MsdDebugRenderer] Root HTML:', root.innerHTML?.slice(0, 200) + '...');
       return;
     }
-
-    console.log('[MsdDebugRenderer] Found SVG element:', svgElement.tagName);
 
     // Update scale from DebugManager
     this.setScale(debugState.scale);
@@ -102,7 +91,6 @@ export class MsdDebugRenderer {
     // Clear existing debug content
     if (this.debugLayer) {
       this.debugLayer.innerHTML = '';
-      console.log('[MsdDebugRenderer] Cleared debug layer');
     }
 
     // Exit early if no features enabled
@@ -110,16 +98,11 @@ export class MsdDebugRenderer {
       if (this.debugLayer) {
         this.debugLayer.style.display = 'none';
       }
-      console.log('[MsdDebugRenderer] Debug not enabled, hiding layer');
       return;
     }
 
-    console.log('[MsdDebugRenderer] Rendering features:', {
-      anchors: debugState.anchors && !!opts.anchors,
-      boundingBoxes: debugState.bounding_boxes && !!opts.overlays,
-      routing: debugState.routing && this.debugManager.canRenderRouting(),
-      performance: debugState.performance
-    });
+    // REDUCED: Only log when actually rendering features
+    console.log('[MsdDebugRenderer] Rendering debug features');
 
     // Render enabled features using DebugManager state
     if (debugState.anchors && opts.anchors) {
@@ -145,10 +128,7 @@ export class MsdDebugRenderer {
     // Show debug layer
     if (this.debugLayer) {
       this.debugLayer.style.display = 'block';
-      console.log('[MsdDebugRenderer] ✅ Debug layer shown');
     }
-
-    console.log('[MsdDebugRenderer] Debug features rendered via DebugManager');
   }
 
   /**
@@ -576,13 +556,18 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Cleanup subscriptions
+   * Essential cleanup to prevent memory leaks
    */
   destroy() {
+    // Unsubscribe from debug manager changes
     if (this.unsubscribeDebug) {
       this.unsubscribeDebug();
       this.unsubscribeDebug = null;
     }
+
+    // Clear debug layer reference
+    this.debugLayer = null;
+    this._lastRenderContext = null;
   }
 }
 

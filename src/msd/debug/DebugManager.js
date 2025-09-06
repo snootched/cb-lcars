@@ -27,6 +27,10 @@ export class DebugManager {
 
     /** @type {Array<Function>} Actions queued before init */
     this.pendingInitActions = [];
+
+    // Add debouncing properties
+    this._notifyTimeout = null;
+    this._pendingNotification = null;
   }
 
   /**
@@ -34,7 +38,10 @@ export class DebugManager {
    * @param {Object} debugConfig - Debug configuration from MSD config
    */
   init(debugConfig = {}) {
-    console.log('[DebugManager] Initializing with config:', debugConfig);
+    // REDUCED: Only log if debug is actually enabled
+    if (debugConfig && Object.keys(debugConfig).length > 0) {
+      console.log('[DebugManager] Initializing with config:', debugConfig);
+    }
 
     // FIXED: Apply initial config - handle both flat and nested structures
     if (debugConfig.overlays) {
@@ -60,7 +67,11 @@ export class DebugManager {
 
     this.initialized = true;
 
-    console.log('[DebugManager] State after config init:', this.state);
+    // REDUCED: Only log state if features are enabled
+    const hasEnabledFeatures = this.isAnyEnabled();
+    if (hasEnabledFeatures) {
+      console.log('[DebugManager] State after config init:', this.state);
+    }
 
     // Process pending init actions
     this.pendingInitActions.forEach(action => action());
@@ -72,7 +83,7 @@ export class DebugManager {
       this.pendingRouterActions = [];
     }
 
-    this._notifyChange('init');
+    this._scheduleNotification('init');
   }
 
   /**
@@ -85,7 +96,7 @@ export class DebugManager {
     if (this.initialized) {
       this.pendingRouterActions.forEach(action => action());
       this.pendingRouterActions = [];
-      this._notifyChange('router-ready');
+      this._scheduleNotification('router-ready');
     }
   }
 
@@ -122,7 +133,7 @@ export class DebugManager {
       const newScale = Math.max(0.1, Math.min(3.0, Number(scale) || 1));
       if (newScale !== this.state.scale) {
         this.state.scale = newScale;
-        this._notifyChange('scale', { scale: newScale });
+        this._scheduleNotification('scale', { scale: newScale });
       }
     };
 
@@ -203,6 +214,54 @@ export class DebugManager {
   }
 
   /**
+   * Schedule debounced notification to prevent excessive callbacks
+   * @param {string} type - Change type
+   * @param {Object} details - Change details
+   * @private
+   */
+  _scheduleNotification(type, details) {
+    // Clear existing timeout
+    if (this._notifyTimeout) {
+      clearTimeout(this._notifyTimeout);
+    }
+
+    // Store pending notification
+    this._pendingNotification = { type, details };
+
+    // Schedule debounced notification (~60fps)
+    this._notifyTimeout = setTimeout(() => {
+      if (this._pendingNotification) {
+        this._notifyChange(this._pendingNotification.type, this._pendingNotification.details);
+        this._pendingNotification = null;
+      }
+      this._notifyTimeout = null;
+    }, 16);
+  }
+
+  /**
+   * Notify callbacks of state changes
+   * @param {string} type - Change type
+   * @param {Object} details - Change details
+   * @private
+   */
+  _notifyChange(type, details = {}) {
+    const event = {
+      type,
+      details,
+      snapshot: this.getSnapshot(),
+      timestamp: Date.now()
+    };
+
+    this.callbacks.forEach(callback => {
+      try {
+        callback(event);
+      } catch (error) {
+        console.warn('[DebugManager] Callback error:', error);
+      }
+    });
+  }
+
+  /**
    * Set feature state with proper queuing
    * @param {string} feature - Feature name
    * @param {boolean} enabled - Enable state
@@ -217,7 +276,7 @@ export class DebugManager {
     const action = () => {
       if (this.state[feature] !== enabled) {
         this.state[feature] = enabled;
-        this._notifyChange('feature', { feature, enabled });
+        this._scheduleNotification('feature', { feature, enabled });
       }
     };
 
@@ -244,27 +303,5 @@ export class DebugManager {
     }
 
     action();
-  }
-
-  /**
-   * Notify callbacks of state changes
-   * @param {string} type - Change type
-   * @param {Object} details - Change details
-   * @private
-   */
-  _notifyChange(type, details = {}) {
-    const event = {
-      type,
-      details,
-      snapshot: this.getSnapshot()
-    };
-
-    this.callbacks.forEach(callback => {
-      try {
-        callback(event);
-      } catch (error) {
-        console.warn('[DebugManager] Callback error:', error);
-      }
-    });
   }
 }
