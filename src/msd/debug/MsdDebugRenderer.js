@@ -1,8 +1,8 @@
 /**
  * Phase 2: Debug visualization renderer
- * Shows anchor markers, overlay bounding boxes, routing guidelines, performance overlays
+ * Shows anchor markers, overlay bounding boxes, routing guidelines, performance overlays.
+ * Handles timing resilience for systems that may not be fully initialized at first render.
  */
-
 export class MsdDebugRenderer {
   constructor() {
     this.enabled = false;
@@ -12,16 +12,35 @@ export class MsdDebugRenderer {
     this.routingOverlays = new Map();
     this.performanceOverlays = new Map();
 
-    // Add scale factor
-    this.scale = 1.0; // Default scale
+    this.scale = 1.0;
 
-    // Track individual debug feature states
-    this.features = {
-      anchors: false,
-      bounding_boxes: false,
-      routing: false,
-      performance: false
-    };
+    // Remove old feature flags - now managed by DebugManager
+    this.debugManager = null;
+    this.unsubscribeDebug = null;
+
+    // Store last render context for reactive re-renders
+    this._lastRenderContext = null;
+
+    // Remove retry mechanism - no longer needed
+  }
+
+  /**
+   * Initialize with systems manager and subscribe to debug changes
+   * @param {SystemsManager} systemsManager - Systems manager instance
+   */
+  init(systemsManager) {
+    this.debugManager = systemsManager.debugManager;
+
+    // Subscribe to debug state changes for reactive rendering
+    this.unsubscribeDebug = this.debugManager.onChange((event) => {
+      console.log('[MsdDebugRenderer] Debug state changed:', event.type);
+
+      if (event.type === 'feature' || event.type === 'scale' || event.type === 'router-ready') {
+        this._scheduleRerender();
+      }
+    });
+
+    console.log('[MsdDebugRenderer] Initialized with DebugManager subscription');
   }
 
   /**
@@ -34,30 +53,48 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Main render method - now properly respects debug config
+   * Main render method - now powered by DebugManager state
    * @param {Element} root - DOM root element
    * @param {Array} viewBox - SVG viewBox [x, y, width, height]
-   * @param {Object} opts - Render options including debug config
+   * @param {Object} opts - Render options
    */
   render(root, viewBox, opts = {}) {
-    console.log('[MsdDebugRenderer] render() called with options:', opts);
+    console.log('[MsdDebugRenderer] render() called with:', {
+      root: !!root,
+      rootType: root?.constructor?.name,
+      viewBox: viewBox,
+      opts: opts,
+      debugManagerReady: !!(this.debugManager && this.debugManager.initialized)
+    });
 
-    // Check if root is a valid DOM element with querySelector
+    // Store context for reactive re-renders
+    this._lastRenderContext = { root, viewBox, opts };
+
+    if (!this.debugManager || !this.debugManager.initialized) {
+      console.warn('[MsdDebugRenderer] DebugManager not ready, skipping render');
+      return;
+    }
+
+    const debugState = this.debugManager.getSnapshot();
+    console.log('[MsdDebugRenderer] DebugManager state:', debugState);
+
     if (!root || typeof root.querySelector !== 'function') {
-      console.warn('[MsdDebugRenderer] Invalid root element - missing querySelector method');
+      console.warn('[MsdDebugRenderer] Invalid root element - root:', root);
       return;
     }
 
     const svgElement = root.querySelector('svg');
     if (!svgElement) {
       console.warn('[MsdDebugRenderer] No SVG element found in root');
+      // Try to find SVG in different locations
+      console.log('[MsdDebugRenderer] Root HTML:', root.innerHTML?.slice(0, 200) + '...');
       return;
     }
 
-    // Set scale factor from options
-    if (opts.scale !== undefined) {
-      this.setScale(opts.scale);
-    }
+    console.log('[MsdDebugRenderer] Found SVG element:', svgElement.tagName);
+
+    // Update scale from DebugManager
+    this.setScale(debugState.scale);
 
     // Setup debug layer
     this.integrateWithAdvancedRenderer(svgElement, viewBox, opts.anchors);
@@ -65,107 +102,180 @@ export class MsdDebugRenderer {
     // Clear existing debug content
     if (this.debugLayer) {
       this.debugLayer.innerHTML = '';
+      console.log('[MsdDebugRenderer] Cleared debug layer');
     }
 
-    // Update feature states based on options
-    this.updateFeatureStates(opts);
-
-    // Render enabled features
-    this.renderEnabledFeatures(opts);
-
-    // Show/hide debug layer based on whether any features are enabled
-    const anyEnabled = Object.values(this.features).some(enabled => enabled);
-    if (this.debugLayer) {
-      this.debugLayer.style.display = anyEnabled ? 'block' : 'none';
+    // Exit early if no features enabled
+    if (!debugState.enabled) {
+      if (this.debugLayer) {
+        this.debugLayer.style.display = 'none';
+      }
+      console.log('[MsdDebugRenderer] Debug not enabled, hiding layer');
+      return;
     }
 
-    console.log('[MsdDebugRenderer] Debug features rendered:', this.features);
-  }
+    console.log('[MsdDebugRenderer] Rendering features:', {
+      anchors: debugState.anchors && !!opts.anchors,
+      boundingBoxes: debugState.bounding_boxes && !!opts.overlays,
+      routing: debugState.routing && this.debugManager.canRenderRouting(),
+      performance: debugState.performance
+    });
 
-  /**
-   * Update internal feature states based on render options
-   */
-  updateFeatureStates(opts) {
-    this.features.anchors = Boolean(opts.showAnchors);
-    this.features.bounding_boxes = Boolean(opts.showBoundingBoxes);
-    this.features.routing = Boolean(opts.showRouting);
-    this.features.performance = Boolean(opts.showPerformance);
-  }
-
-  /**
-   * Render all enabled debug features
-   */
-  renderEnabledFeatures(opts) {
-    if (this.features.anchors && opts.anchors) {
-      console.log('[MsdDebugRenderer] Rendering anchor markers');
+    // Render enabled features using DebugManager state
+    if (debugState.anchors && opts.anchors) {
+      console.log('[MsdDebugRenderer] Rendering anchors...');
       this.renderAnchorMarkers(opts.anchors);
     }
 
-    if (this.features.bounding_boxes && opts.overlays) {
-      console.log('[MsdDebugRenderer] Rendering bounding boxes');
+    if (debugState.bounding_boxes && opts.overlays) {
+      console.log('[MsdDebugRenderer] Rendering bounding boxes...');
       this.renderOverlayBounds(opts.overlays);
     }
 
-    if (this.features.routing) {
-      console.log('[MsdDebugRenderer] Rendering routing guides');
+    if (debugState.routing && this.debugManager.canRenderRouting()) {
+      console.log('[MsdDebugRenderer] Rendering routing guides...');
       this.renderRoutingGuides(opts);
     }
 
-    if (this.features.performance) {
-      console.log('[MsdDebugRenderer] Rendering performance overlays');
+    if (debugState.performance) {
+      console.log('[MsdDebugRenderer] Rendering performance overlays...');
       this.renderPerformanceOverlays(opts);
+    }
+
+    // Show debug layer
+    if (this.debugLayer) {
+      this.debugLayer.style.display = 'block';
+      console.log('[MsdDebugRenderer] ✅ Debug layer shown');
+    }
+
+    console.log('[MsdDebugRenderer] Debug features rendered via DebugManager');
+  }
+
+  /**
+   * Schedule a reactive re-render
+   * @private
+   */
+  _scheduleRerender() {
+    if (this._lastRenderContext) {
+      // Use requestAnimationFrame to avoid excessive re-renders
+      requestAnimationFrame(() => {
+        const { root, viewBox, opts } = this._lastRenderContext;
+        this.render(root, viewBox, opts);
+      });
     }
   }
 
   /**
-   * Find SVG element in DOM
+   * Render routing guides - simplified without retry mechanism
+   * @param {Object} opts - Render options
    */
-  findSvgElement() {
-    // Try multiple strategies to find SVG
-    const strategies = [
-      () => document.querySelector('svg'),
-      () => document.querySelector('[id*="msd"] svg'),
-      () => document.querySelector('.card-content svg'),
-      () => document.querySelector('ha-card svg')
-    ];
+  renderRoutingGuides(opts) {
+    if (!this.debugLayer) return;
 
-    for (const strategy of strategies) {
+    // Clear existing routes
+    this.routingOverlays.forEach(o => o.remove());
+    this.routingOverlays.clear();
+
+    // Get routing system from window.__msdDebug (set by pipeline)
+    const routing = opts.router || window.__msdDebug?.routing;
+
+    if (!routing || typeof routing.inspect !== 'function') {
+      console.log('[MsdDebugRenderer] Routing system not available for debug rendering');
+      return;
+    }
+
+    const overlays = opts.overlays || [];
+    const lineOverlays = overlays.filter(o => o.type === 'line');
+
+    if (lineOverlays.length === 0) {
+      console.log('[MsdDebugRenderer] No line overlays found for routing visualization');
+      return;
+    }
+
+    let routeCount = 0;
+    lineOverlays.forEach(overlay => {
       try {
-        const svg = strategy();
-        if (svg) return svg;
-      } catch (e) {
-        // Continue to next strategy
+        const routeInfo = routing.inspect(overlay.id);
+        if (routeInfo && routeInfo.pts && routeInfo.pts.length > 1) {
+          const routeOverlay = this.createRoutingOverlay(overlay.id, routeInfo);
+          this.debugLayer.appendChild(routeOverlay);
+          this.routingOverlays.set(overlay.id, routeOverlay);
+          routeCount++;
+        } else {
+          // Fine-grained debug, not necessarily an error
+          console.log(`[MsdDebugRenderer] No route info for overlay ${overlay.id}`);
+        }
+      } catch (error) {
+        console.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
+      }
+    });
+
+    console.log(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
+  }
+
+  /**
+   * Create routing visualization overlay group.
+   * @param {string} overlayId
+   * @param {Object} routeInfo
+   * @returns {SVGGElement}
+   */
+  createRoutingOverlay(overlayId, routeInfo) {
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', 'msd-debug-routing');
+
+    const points = routeInfo.pts || [];
+    points.forEach((pt, index) => {
+      if (Array.isArray(pt) && pt.length >= 2) {
+        const [x, y] = pt;
+        const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        waypoint.setAttribute('cx', x);
+        waypoint.setAttribute('cy', y);
+        waypoint.setAttribute('r', 2 * this.scale);
+        waypoint.setAttribute('fill', 'magenta');
+        waypoint.setAttribute('stroke', 'white');
+        waypoint.setAttribute('stroke-width', 1 * this.scale);
+        waypoint.setAttribute('opacity', '0.8');
+        group.appendChild(waypoint);
+
+        if (index === 0 || index === points.length - 1 || points.length <= 6) {
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', x + (4 * this.scale));
+            label.setAttribute('y', y - (4 * this.scale));
+            label.setAttribute('fill', 'magenta');
+            label.setAttribute('font-size', 8 * this.scale);
+            label.setAttribute('font-family', 'monospace');
+            label.setAttribute('opacity', '0.8');
+            label.textContent = index;
+            group.appendChild(label);
+        }
+      }
+    });
+
+    if (routeInfo.meta) {
+      const startPt = points[0];
+      if (startPt && Array.isArray(startPt) && startPt.length >= 2) {
+        const info = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        info.setAttribute('x', startPt[0]);
+        info.setAttribute('y', startPt[1] - (12 * this.scale));
+        info.setAttribute('fill', 'magenta');
+        info.setAttribute('font-size', 9 * this.scale);
+        info.setAttribute('font-family', 'monospace');
+        info.setAttribute('opacity', '0.9');
+        info.textContent = `${routeInfo.meta.strategy || 'auto'} (${Math.round(routeInfo.meta.cost || 0)})`;
+        group.appendChild(info);
       }
     }
 
-    return null;
-  }
-
-  /**
-   * Setup debug layer in SVG
-   */
-  ensureDebugLayer(svgElement) {
-    if (!svgElement) return;
-
-    let debugLayer = svgElement.querySelector('#msd-debug-layer');
-    if (!debugLayer) {
-      debugLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      debugLayer.id = 'msd-debug-layer';
-      debugLayer.style.pointerEvents = 'none';
-      debugLayer.style.zIndex = '1000';
-      svgElement.appendChild(debugLayer);
-    }
-
-    this.debugLayer = debugLayer;
+    return group;
   }
 
   /**
    * Render anchor markers
+   * @param {Object} anchors
    */
   renderAnchorMarkers(anchors) {
     if (!anchors || !this.debugLayer) return;
 
-    // Clear existing anchor markers
     this.anchorMarkers.forEach(marker => marker.remove());
     this.anchorMarkers.clear();
 
@@ -183,7 +293,11 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Create individual anchor marker
+   * Create individual anchor marker group element
+   * @param {string} name
+   * @param {number} x
+   * @param {number} y
+   * @returns {SVGGElement}
    */
   createAnchorMarker(name, x, y) {
     const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -196,14 +310,11 @@ export class MsdDebugRenderer {
     const fontSize = 12 * this.scale;
     const labelOffset = 12 * this.scale;
 
-    // Crosshair
     const crosshair = `
       <line x1="${-crosshairSize}" y1="0" x2="${crosshairSize}" y2="0" stroke="cyan" stroke-width="${strokeWidth}" opacity="0.8"/>
       <line x1="0" y1="${-crosshairSize}" x2="0" y2="${crosshairSize}" stroke="cyan" stroke-width="${strokeWidth}" opacity="0.8"/>
       <circle cx="0" cy="0" r="${circleRadius}" fill="cyan" stroke="white" stroke-width="${this.scale}" opacity="0.9"/>
     `;
-
-    // Label
     const label = `
       <text x="${labelOffset}" y="4" fill="cyan" font-size="${fontSize}" font-family="monospace" opacity="0.9">
         ${name} (${Math.round(x)}, ${Math.round(y)})
@@ -216,19 +327,14 @@ export class MsdDebugRenderer {
 
   /**
    * Render overlay bounding boxes
+   * @param {Array<Object>} overlays
    */
   renderOverlayBounds(overlays = []) {
     if (!this.debugLayer) return;
 
-    // Clear existing bounding boxes
-    this.boundingBoxes.forEach((bboxObj, id) => {
-      // bboxObj is { rect, label } - remove both elements
-      if (bboxObj.rect && bboxObj.rect.remove) {
-        bboxObj.rect.remove();
-      }
-      if (bboxObj.label && bboxObj.label.remove) {
-        bboxObj.label.remove();
-      }
+    this.boundingBoxes.forEach((bboxObj) => {
+      bboxObj.rect?.remove();
+      bboxObj.label?.remove();
     });
     this.boundingBoxes.clear();
 
@@ -251,10 +357,15 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Create bounding box visualization
+   * Create bounding box visualization objects
+   * @param {string} id
+   * @param {number} x
+   * @param {number} y
+   * @param {number} width
+   * @param {number} height
+   * @returns {{rect: SVGRectElement, label: SVGTextElement}}
    */
   createBoundingBox(id, x, y, width, height) {
-    // Rectangle
     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('x', x);
     rect.setAttribute('y', y);
@@ -267,7 +378,6 @@ export class MsdDebugRenderer {
     rect.setAttribute('opacity', '0.7');
     rect.setAttribute('class', 'msd-debug-bbox');
 
-    // Label
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', x + (2 * this.scale));
     label.setAttribute('y', y + (12 * this.scale));
@@ -282,229 +392,37 @@ export class MsdDebugRenderer {
   }
 
   /**
-   * Render routing guides
-   */
-  renderRoutingGuides(opts) {
-    if (!this.debugLayer) return;
-
-    // Clear existing routing overlays
-    this.routingOverlays.forEach(overlay => overlay.remove());
-    this.routingOverlays.clear();
-
-    // Get routing information from debug system
-    const routing = window.__msdDebug?.routing;
-    if (!routing) {
-      console.warn('[MsdDebugRenderer] No routing system available for debug visualization');
-      return;
-    }
-
-    // FIX: Also check if routing.inspect is available (timing issue)
-    if (!routing.inspect || typeof routing.inspect !== 'function') {
-      console.warn('[MsdDebugRenderer] Routing system not fully initialized yet');
-      return;
-    }
-
-    // Get line overlays from model
-    const overlays = opts.overlays || [];
-    const lineOverlays = overlays.filter(o => o.type === 'line');
-
-    if (lineOverlays.length === 0) {
-      console.log('[MsdDebugRenderer] No line overlays found for routing visualization');
-      return;
-    }
-
-    let routeCount = 0;
-    lineOverlays.forEach(overlay => {
-      try {
-        const routeInfo = routing.inspect(overlay.id);
-        if (routeInfo && routeInfo.pts && routeInfo.pts.length > 1) {
-          const routeOverlay = this.createRoutingOverlay(overlay.id, routeInfo);
-          this.debugLayer.appendChild(routeOverlay);
-          this.routingOverlays.set(overlay.id, routeOverlay);
-          routeCount++;
-        } else {
-          console.log(`[MsdDebugRenderer] No route info available for overlay ${overlay.id}`);
-        }
-      } catch (error) {
-        console.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
-      }
-    });
-
-    console.log(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
-  }
-
-  /**
-   * Create routing visualization overlay
-   */
-  createRoutingOverlay(overlayId, routeInfo) {
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    group.setAttribute('class', 'msd-debug-routing');
-
-    // Draw waypoints
-    const points = routeInfo.pts || [];
-    points.forEach((pt, index) => {
-      if (Array.isArray(pt) && pt.length >= 2) {
-        const [x, y] = pt;
-
-        // Waypoint marker
-        const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        waypoint.setAttribute('cx', x);
-        waypoint.setAttribute('cy', y);
-        waypoint.setAttribute('r', 2 * this.scale);
-        waypoint.setAttribute('fill', 'magenta');
-        waypoint.setAttribute('stroke', 'white');
-        waypoint.setAttribute('stroke-width', 1 * this.scale);
-        waypoint.setAttribute('opacity', '0.8');
-        group.appendChild(waypoint);
-
-        // Index label
-        if (index === 0 || index === points.length - 1 || points.length <= 6) {
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          label.setAttribute('x', x + (4 * this.scale));
-          label.setAttribute('y', y - (4 * this.scale));
-          label.setAttribute('fill', 'magenta');
-          label.setAttribute('font-size', 8 * this.scale);
-          label.setAttribute('font-family', 'monospace');
-          label.setAttribute('opacity', '0.8');
-          label.textContent = index;
-          group.appendChild(label);
-        }
-      }
-    });
-
-    // Strategy and cost info
-    if (routeInfo.meta) {
-      const startPt = points[0];
-      if (startPt && Array.isArray(startPt) && startPt.length >= 2) {
-        const info = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        info.setAttribute('x', startPt[0]);
-        info.setAttribute('y', startPt[1] - (12 * this.scale));
-        info.setAttribute('fill', 'magenta');
-        info.setAttribute('font-size', 9 * this.scale);
-        info.setAttribute('font-family', 'monospace');
-        info.setAttribute('opacity', '0.9');
-        info.textContent = `${routeInfo.meta.strategy || 'auto'} (${Math.round(routeInfo.meta.cost || 0)})`;
-        group.appendChild(info);
-      }
-    }
-
-    return group;
-  }
-
-  /**
-   * Render performance overlays - with scaling
-   */
-  /*
-  renderPerformanceOverlays(opts) {
-    if (!this.debugLayer) return;
-
-    // Clear existing performance overlays
-    this.performanceOverlays.forEach(overlay => overlay.remove());
-    this.performanceOverlays.clear();
-
-    // Get performance data
-    const perf = window.__msdDebug?.getPerf?.() || {};
-    const perfKeys = Object.keys(perf).slice(0, 10); // Limit to top 10
-
-    if (perfKeys.length === 0) {
-      console.log('[MsdDebugRenderer] No performance data available');
-      return;
-    }
-
-    // Create performance info overlay
-    const perfGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    perfGroup.setAttribute('class', 'msd-debug-performance');
-
-    // Scaled dimensions
-    const baseX = 10 * this.scale;
-    const baseY = 10 * this.scale;
-    const width = 200 * this.scale;
-    const lineHeight = 15 * this.scale;
-    const padding = 5 * this.scale;
-
-    // Background
-    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    bg.setAttribute('x', baseX);
-    bg.setAttribute('y', baseY);
-    bg.setAttribute('width', width);
-    bg.setAttribute('height', (20 + perfKeys.length * 15) * this.scale);
-    bg.setAttribute('fill', 'rgba(0,0,0,0.8)');
-    bg.setAttribute('stroke', 'yellow');
-    bg.setAttribute('stroke-width', 1 * this.scale);
-    bg.setAttribute('rx', 4 * this.scale);
-    perfGroup.appendChild(bg);
-
-    // Title
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    title.setAttribute('x', baseX + padding);
-    title.setAttribute('y', baseY + (15 * this.scale));
-    title.setAttribute('fill', 'yellow');
-    title.setAttribute('font-size', 12 * this.scale);
-    title.setAttribute('font-family', 'monospace');
-    title.setAttribute('font-weight', 'bold');
-    title.textContent = 'Performance';
-    perfGroup.appendChild(title);
-
-    // Performance entries
-    perfKeys.forEach((key, index) => {
-      const entry = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      entry.setAttribute('x', baseX + padding);
-      entry.setAttribute('y', baseY + (30 + index * 15) * this.scale);
-      entry.setAttribute('fill', 'yellow');
-      entry.setAttribute('font-size', 10 * this.scale);
-      entry.setAttribute('font-family', 'monospace');
-      entry.textContent = `${key}: ${perf[key]}`;
-      perfGroup.appendChild(entry);
-    });
-
-    this.debugLayer.appendChild(perfGroup);
-    this.performanceOverlays.set('perf-info', perfGroup);
-
-    console.log(`[MsdDebugRenderer] Rendered performance overlay with ${perfKeys.length} metrics at scale ${this.scale}`);
-  }
-  */
-
-
-  /**
    * Render performance overlays - with proper value formatting
+   * @param {Object} opts
    */
   renderPerformanceOverlays(opts) {
     if (!this.debugLayer) return;
 
-    // Clear existing performance overlays
-    this.performanceOverlays.forEach(overlay => overlay.remove());
+    this.performanceOverlays.forEach(o => o.remove());
     this.performanceOverlays.clear();
 
-    // Get performance data
     const perf = window.__msdDebug?.getPerf?.() || {};
-
-    // Extract meaningful data from the performance object
     const perfEntries = [];
 
-    // Add timers with formatted values
     if (perf.timers) {
       Object.entries(perf.timers).forEach(([key, data]) => {
         if (data && typeof data === 'object') {
           const avg = data.count > 0 ? (data.total / data.count) : 0;
-          perfEntries.push(`${key}: ${avg.toFixed(2)}ms avg`);
+            perfEntries.push(`${key}: ${avg.toFixed(2)}ms avg`);
         }
       });
     }
 
-    // Add counters
     if (perf.counters) {
       Object.entries(perf.counters).forEach(([key, value]) => {
         perfEntries.push(`${key}: ${value}`);
       });
     }
 
-    // Fallback: if structure is different, try to display raw values
     if (perfEntries.length === 0) {
       Object.entries(perf).slice(0, 10).forEach(([key, value]) => {
-        // Format the value properly
         let displayValue;
         if (typeof value === 'object' && value !== null) {
-          // Try to extract meaningful info from object
           if (value.count !== undefined && value.total !== undefined) {
             const avg = value.count > 0 ? (value.total / value.count) : 0;
             displayValue = `${avg.toFixed(2)}ms avg`;
@@ -523,30 +441,25 @@ export class MsdDebugRenderer {
       return;
     }
 
-    // Create performance info overlay
     const perfGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     perfGroup.setAttribute('class', 'msd-debug-performance');
 
-    // Scaled dimensions
     const baseX = 10 * this.scale;
     const baseY = 10 * this.scale;
     const width = 200 * this.scale;
-    const lineHeight = 15 * this.scale;
     const padding = 5 * this.scale;
 
-    // Background
     const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     bg.setAttribute('x', baseX);
     bg.setAttribute('y', baseY);
     bg.setAttribute('width', width);
-    bg.setAttribute('height', (20 + perfEntries.length * 15) * this.scale);
+    bg.setAttribute('height', (20 + perfEntries.slice(0, 8).length * 15) * this.scale);
     bg.setAttribute('fill', 'rgba(0,0,0,0.8)');
     bg.setAttribute('stroke', 'yellow');
     bg.setAttribute('stroke-width', 1 * this.scale);
     bg.setAttribute('rx', 4 * this.scale);
     perfGroup.appendChild(bg);
 
-    // Title
     const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     title.setAttribute('x', baseX + padding);
     title.setAttribute('y', baseY + (15 * this.scale));
@@ -557,7 +470,6 @@ export class MsdDebugRenderer {
     title.textContent = 'Performance';
     perfGroup.appendChild(title);
 
-    // Performance entries - limit to fit in overlay
     perfEntries.slice(0, 8).forEach((entryText, index) => {
       const entry = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       entry.setAttribute('x', baseX + padding);
@@ -565,7 +477,7 @@ export class MsdDebugRenderer {
       entry.setAttribute('fill', 'yellow');
       entry.setAttribute('font-size', 10 * this.scale);
       entry.setAttribute('font-family', 'monospace');
-      entry.textContent = entryText; // Now properly formatted
+      entry.textContent = entryText;
       perfGroup.appendChild(entry);
     });
 
@@ -575,54 +487,81 @@ export class MsdDebugRenderer {
     console.log(`[MsdDebugRenderer] Rendered performance overlay with ${perfEntries.length} metrics at scale ${this.scale}`);
   }
 
-
   /**
    * Connect to AdvancedRenderer's SVG structure
+   * @param {SVGElement} svgElement
+   * @param {Array} viewBox
+   * @param {Object} anchors
    */
   integrateWithAdvancedRenderer(svgElement, viewBox, anchors = {}) {
     if (!svgElement) return;
-
     this.ensureDebugLayer(svgElement);
     this.viewBox = viewBox;
     this.anchors = anchors;
   }
 
   /**
-   * Toggle debug visualization
+   * Setup debug layer container group inside the SVG.
+   * @param {SVGElement} svgElement
+   */
+  ensureDebugLayer(svgElement) {
+    if (!svgElement) {
+      console.warn('[MsdDebugRenderer] ensureDebugLayer: no SVG element provided');
+      return;
+    }
+
+    let debugLayer = svgElement.querySelector('#msd-debug-layer');
+    if (!debugLayer) {
+      console.log('[MsdDebugRenderer] Creating new debug layer');
+      debugLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      debugLayer.id = 'msd-debug-layer';
+      debugLayer.style.pointerEvents = 'none';
+      debugLayer.style.zIndex = '1000';
+      svgElement.appendChild(debugLayer);
+    } else {
+      console.log('[MsdDebugRenderer] Using existing debug layer');
+    }
+
+    this.debugLayer = debugLayer;
+  }
+
+  /**
+   * Toggle debug visualization on/off.
+   * @param {boolean} enabled
+   * @returns {boolean}
    */
   toggle(enabled = !this.enabled) {
     this.enabled = enabled;
-
     if (this.debugLayer) {
       this.debugLayer.style.display = enabled ? 'block' : 'none';
     }
-
     console.log(`[MsdDebugRenderer] Debug visualization ${enabled ? 'enabled' : 'disabled'}`);
     return enabled;
   }
 
   /**
-   * Enable/disable specific debug features
+   * Toggle a specific debug feature.
+   * @param {string} feature - Feature key
+   * @param {boolean} enabled - Desired state
    */
   toggleFeature(feature, enabled) {
     if (this.features.hasOwnProperty(feature)) {
       this.features[feature] = enabled;
       console.log(`[MsdDebugRenderer] Feature '${feature}' ${enabled ? 'enabled' : 'disabled'}`);
 
-      // Re-render if debug layer exists
-      if (this.debugLayer) {
-        // Trigger a re-render through the debug system
-        setTimeout(() => {
-          if (window.__msdDebug?.debug?.render) {
-            console.log(`[MsdDebugRenderer] Re-rendering after feature toggle: ${feature}`);
-          }
-        }, 10);
-      }
+      // Optionally re-render (future HUD integration may call up-stream)
+      setTimeout(() => {
+        if (this._lastRenderContext) {
+          const { root, viewBox, opts } = this._lastRenderContext;
+          this.render(root, viewBox, opts);
+        }
+      }, 10);
     }
   }
 
   /**
-   * Get current debug state
+   * Get current debug state summary.
+   * @returns {Object}
    */
   getDebugState() {
     return {
@@ -634,6 +573,16 @@ export class MsdDebugRenderer {
       routingOverlayCount: this.routingOverlays.size,
       performanceOverlayCount: this.performanceOverlays.size
     };
+  }
+
+  /**
+   * Cleanup subscriptions
+   */
+  destroy() {
+    if (this.unsubscribeDebug) {
+      this.unsubscribeDebug();
+      this.unsubscribeDebug = null;
+    }
   }
 }
 

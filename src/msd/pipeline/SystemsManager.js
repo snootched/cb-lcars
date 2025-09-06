@@ -2,11 +2,11 @@ import { AdvancedRenderer } from '../renderer/AdvancedRenderer.js';
 import { MsdDebugRenderer } from '../debug/MsdDebugRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { MsdHudManager } from '../hud/MsdHudManager.js';
-// REMOVED: EntityRuntime import - migration complete
 import { DataSourceManager } from '../data/DataSourceManager.js';
 import { RouterCore } from '../routing/RouterCore.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
 import { RulesEngine } from '../rules/RulesEngine.js';
+import { DebugManager } from '../debug/DebugManager.js';
 
 export class SystemsManager {
   constructor() {
@@ -18,6 +18,7 @@ export class SystemsManager {
     this.router = null;
     this.animRegistry = null;
     this.rulesEngine = null;
+    this.debugManager = new DebugManager();
     this._renderTimeout = null;
     this._reRenderCallback = null;
     this.mergedConfig = null; // Store for entity change handler
@@ -28,6 +29,13 @@ export class SystemsManager {
 
     // Store config for later use
     this.mergedConfig = mergedConfig;
+
+    // ENHANCED: Initialize debug manager early with config and better logging
+    const debugConfig = mergedConfig.debug || {};
+    console.log('[MSD v1] Raw debug config from mergedConfig:', debugConfig);
+
+    this.debugManager.init(debugConfig);
+    console.log('[MSD v1] DebugManager initialized with config:', debugConfig);
 
     // Initialize rules engine
     this.rulesEngine = new RulesEngine(mergedConfig.rules);
@@ -54,6 +62,13 @@ export class SystemsManager {
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
     this.hudManager = new MsdHudManager();
+
+    // Initialize debug renderer with systems manager reference
+    this.debugRenderer.init(this);
+
+    // Mark router as ready for debug system
+    this.debugManager.markRouterReady();
+    console.log('[MSD v1] RouterCore marked ready for debug system');
 
     // Initialize animation registry
     this.animRegistry = new AnimationRegistry();
@@ -174,29 +189,59 @@ export class SystemsManager {
   }
 
   /**
-   * Render debug overlays and controls
+   * Render debug overlays and controls using DebugManager
    * @param {Object} resolvedModel - The resolved model
    * @param {Element} mountEl - The shadowRoot/mount element
    */
   renderDebugAndControls(resolvedModel, mountEl = null) {
-    // Extract debug config from the resolved model's config
-    const debugConfig = resolvedModel?.config?.debug || {};
+    // Enhanced debugging to trace the issue
+    const debugState = this.debugManager.getSnapshot();
+    console.log('[SystemsManager] renderDebugAndControls called:', {
+      anyEnabled: this.debugManager.isAnyEnabled(),
+      debugState: debugState,
+      mountEl: !!mountEl,
+      mountElType: mountEl?.constructor?.name,
+      resolvedModel: !!resolvedModel,
+      anchorsCount: Object.keys(resolvedModel?.anchors || {}).length,
+      overlaysCount: (resolvedModel?.overlays || []).length
+    });
 
-    // Render debug visualization if enabled in config
-    if (debugConfig.enabled && this._shouldRenderDebugFromConfig(debugConfig)) {
-      console.log('[MSD v1] Rendering debug visualization from config:', debugConfig.overlays);
+    // Use DebugManager to determine what to render
+    if (this.debugManager.isAnyEnabled()) {
+      console.log('[MSD v1] Rendering debug visualization via DebugManager');
 
-      // FIX: Ensure routing system is available for debug rendering
       const debugOptions = {
         anchors: resolvedModel.anchors,
         overlays: resolvedModel.overlays,
-        showAnchors: debugConfig.overlays?.anchors,
-        showBoundingBoxes: debugConfig.overlays?.bounding_boxes,
-        showRouting: debugConfig.overlays?.routing && this.router && typeof this.router.computePath === 'function',
-        showPerformance: debugConfig.overlays?.performance
+        showAnchors: debugState.anchors,
+        showBoundingBoxes: debugState.bounding_boxes,
+        showRouting: this.debugManager.canRenderRouting(),
+        showPerformance: debugState.performance,
+        scale: debugState.scale
       };
 
-      this.debugRenderer.render(mountEl, resolvedModel.viewBox, debugOptions);
+      console.log('[SystemsManager] Debug options:', debugOptions);
+
+      // ENHANCED: Ensure debug renderer gets called with proper error handling
+      try {
+        if (!this.debugRenderer) {
+          console.error('[SystemsManager] ❌ Debug renderer not initialized');
+          return;
+        }
+
+        if (!mountEl) {
+          console.warn('[SystemsManager] ⚠️ No mount element provided, using renderer mount');
+          mountEl = this.renderer?.mountEl;
+        }
+
+        this.debugRenderer.render(mountEl, resolvedModel.viewBox, debugOptions);
+        console.log('[SystemsManager] ✅ Debug renderer called successfully');
+      } catch (error) {
+        console.error('[SystemsManager] ❌ Debug renderer failed:', error);
+        console.error('[SystemsManager] Error stack:', error.stack);
+      }
+    } else {
+      console.log('[MSD v1] No debug features enabled, skipping debug render');
     }
 
     // Render controls if any exist

@@ -11,7 +11,7 @@ export class MsdApi {
     window.cblcars = window.cblcars || {};
     window.cblcars.msd = window.cblcars.msd || {};
 
-    // Complete API structure
+    // Enhanced API structure with DebugManager integration
     window.cblcars.msd.api = {
       overlays: {
         list: (root) => this.listOverlays(root),
@@ -28,11 +28,25 @@ export class MsdApi {
       },
 
       debug: {
-        showAnchors: () => this.setDebugFlag('overlay', true),
-        showOverlays: () => this.setDebugFlag('overlay', true),
-        showConnectors: () => this.setDebugFlag('connectors', true),
-        showGeometry: () => this.setDebugFlag('geometry', true),
-        clear: () => this.clearDebugFlags()
+        enable: (feature) => this.enableDebugFeature(feature),
+        disable: (feature) => this.disableDebugFeature(feature),
+        toggle: (feature) => this.toggleDebugFeature(feature),
+        setScale: (scale) => this.setDebugScale(scale),
+        status: () => this.getDebugStatus(),
+
+        // Legacy methods with deprecation warnings
+        showAnchors: () => {
+          console.warn('[MsdApi] debug.showAnchors deprecated, use debug.enable("anchors")');
+          this.enableDebugFeature('anchors');
+        },
+        showOverlays: () => {
+          console.warn('[MsdApi] debug.showOverlays deprecated, use debug.enable("bounding_boxes")');
+          this.enableDebugFeature('bounding_boxes');
+        },
+        clear: () => {
+          console.warn('[MsdApi] debug.clear deprecated, use debug.disable("all")');
+          this.disableDebugFeature('all');
+        }
       },
 
       performance: {
@@ -238,6 +252,53 @@ export class MsdApi {
     } catch (_) {
       return { success: false };
     }
+  }
+
+  static enableDebugFeature(feature) {
+    const debugManager = this.getDebugManager();
+    if (debugManager) {
+      if (feature === 'all') {
+        debugManager.enableMultiple(['anchors', 'bounding_boxes', 'routing', 'performance']);
+      } else {
+        debugManager.enable(feature);
+      }
+    }
+  }
+
+  static disableDebugFeature(feature) {
+    const debugManager = this.getDebugManager();
+    if (debugManager) {
+      if (feature === 'all') {
+        debugManager.disableMultiple(['anchors', 'bounding_boxes', 'routing', 'performance']);
+      } else {
+        debugManager.disable(feature);
+      }
+    }
+  }
+
+  static toggleDebugFeature(feature) {
+    const debugManager = this.getDebugManager();
+    if (debugManager) {
+      debugManager.toggle(feature);
+    }
+  }
+
+  static setDebugScale(scale) {
+    const debugManager = this.getDebugManager();
+    if (debugManager) {
+      debugManager.setScale(scale);
+    }
+  }
+
+  static getDebugStatus() {
+    const debugManager = this.getDebugManager();
+    return debugManager ? debugManager.getSnapshot() : { error: 'DebugManager not available' };
+  }
+
+  static getDebugManager() {
+    const window = this.getWindow();
+    return window?.__msdDebug?.debugManager ||
+           window?.__msdDebug?.pipelineInstance?.systemsManager?.debugManager;
   }
 }
 

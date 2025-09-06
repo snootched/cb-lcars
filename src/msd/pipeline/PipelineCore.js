@@ -9,6 +9,16 @@ import { exportFullSnapshot, exportFullSnapshotJson } from '../export/exportFull
 import { diffItem } from '../export/diffItem.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
 
+/**
+ * Initialize the MSD processing/rendering pipeline.
+ * Handles config merge/validation, system initialization, initial render,
+ * debug interface binding, and exposes a unified pipeline API.
+ *
+ * @param {Object} userMsdConfig - User supplied MSD config.
+ * @param {HTMLElement|ShadowRoot} mountEl - Mount/root element (may be a shadowRoot).
+ * @param {Object|null} hass - Home Assistant instance (if available).
+ * @returns {Promise<Object>} Pipeline API
+ */
 export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // Process and validate configuration
   const { mergedConfig, issues, provenance } = await processAndValidateConfig(userMsdConfig);
@@ -35,10 +45,44 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   const systemsManager = new SystemsManager();
   await systemsManager.initializeSystems(mergedConfig, cardModel, mountEl, hass);
 
+  // Connect DebugManager to window.__msdDebug early for console access
+  if (typeof window !== 'undefined') {
+    window.__msdDebug = window.__msdDebug || {};
+    window.__msdDebug.debugManager = systemsManager.debugManager;
+    window.__msdDebug.routing = systemsManager.router;
+  }
+
+  // EARLY DEBUG BOOTSTRAP (Before first render):
+  // Provide a minimal __msdDebug object so debug renderers that run during the first render
+  // can access routing / perf safely. This prevents timing race warnings for routing guides.
+  if (typeof window !== 'undefined') {
+    window.__msdDebug = window.__msdDebug || {};
+    // Only set if not already present to avoid clobbering previous instrumentation
+    if (!window.__msdDebug.routing) {
+      window.__msdDebug.routing = systemsManager.router;
+    }
+    if (!window.__msdDebug.getPerf) {
+      window.__msdDebug.getPerf = () => perfGetAll();
+    }
+    if (!window.__msdDebug.systemsManager) {
+      window.__msdDebug.systemsManager = systemsManager;
+    }
+    // Dispatch an event so listeners (e.g., MsdDebugRenderer) can react when routing is ready.
+    try {
+      window.dispatchEvent(new CustomEvent('msd-routing-ready'));
+    } catch (e) {
+      // Non-fatal; older browsers or sandbox contexts might block custom events.
+    }
+  }
+
   // Initialize model builder
   const modelBuilder = new ModelBuilder(mergedConfig, cardModel, systemsManager);
 
-  // Create render function
+  /**
+   * Internal re-render function that recomputes the model
+   * and triggers the AdvancedRenderer + debug visualization pipeline.
+   * @returns {Object|undefined} Renderer result object
+   */
   function reRender() {
     const startTime = performance.now();
     const resolvedModel = modelBuilder.computeResolvedModel();
@@ -77,22 +121,27 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     mergedConfig, cardModel, systemsManager, modelBuilder, reRender
   );
 
-  // Setup debug interface
+  // Setup debug interface with DebugManager integration
   setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder);
 
   // Attach unified API
   console.log('[MSD v1] Attaching unified API');
   MsdApi.attach();
 
-  // Set up debug tracking
-  if (window.__msdDebug) {
-    // Store reference to systems for debugging
-    window.__msdDebug.systemsManager = systemsManager;
-
+  // Augment debug tracking (now that pipelineApi exists)
+  if (typeof window !== 'undefined') {
+    window.__msdDebug = window.__msdDebug || {};
     window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
     window.__msdDebug.pipelineInstance = pipelineApi;
-
     window.__msdDebug._provenance = provenance;
+
+    // Ensure routing reference is consistent (in case late changes happened)
+    if (!window.__msdDebug.routing) {
+      window.__msdDebug.routing = systemsManager.router;
+      try {
+        window.dispatchEvent(new CustomEvent('msd-routing-ready'));
+      } catch(_) {}
+    }
   }
 
   console.log('[MSD v1] Pipeline initialization complete');
@@ -124,26 +173,38 @@ function createDisabledPipeline(mergedConfig, issues, provenance) {
     window.__msdDebug = window.__msdDebug || {};
     window.__msdDebug.validation = { issues: () => mergedConfig.__issues };
     window.__msdDebug.pipelineInstance = disabledPipeline;
-
     window.__msdDebug._provenance = provenance;
   }
   return disabledPipeline;
 }
 
+/**
+ * Creates and returns the MSD pipeline external API.
+ * @param {Object} mergedConfig
+ * @param {Object} cardModel
+ * @param {SystemsManager} systemsManager
+ * @param {ModelBuilder} modelBuilder
+ * @param {Function} reRender
+ * @returns {Object} API
+ */
 function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder, reRender) {
   const api = {
-    // Core properties
     enabled: true,
     version: mergedConfig.version || 1,
     config: mergedConfig,
 
-    // Core systems - ENSURE DataSourceManager is exposed
+    // Core systems
     systemsManager,
-    dataSourceManager: systemsManager.dataSourceManager, // ADDED: Direct access
+    dataSourceManager: systemsManager.dataSourceManager,
     rulesEngine: systemsManager.rulesEngine,
     renderer: systemsManager.renderer,
     router: systemsManager.router,
 
+    /**
+     * Inspect routing for a given overlay id and compute path data.
+     * @param {string} id
+     * @returns {Object|null}
+     */
     routingInspect: (id) => {
       const resolvedModel = modelBuilder.getResolvedModel();
       const ov = (resolvedModel?.overlays || []).find(o => o.id === id);
@@ -158,7 +219,9 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
 
     getResolvedModel: () => modelBuilder.getResolvedModel(),
 
-    // FIX: Ensure reRender is properly exposed
+    /**
+     * Force a manual re-render.
+     */
     reRender: () => {
       try {
         console.log('[MSD v1] Manual re-render triggered');
@@ -169,6 +232,12 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
       }
     },
 
+    /**
+     * Set or update an anchor point.
+     * @param {string} id
+     * @param {Array<number>} pt
+     * @returns {boolean}
+     */
     setAnchor(id, pt) {
       if (!id || !Array.isArray(pt) || pt.length !== 2) return false;
       if (!cardModel.anchors) cardModel.anchors = {};
@@ -198,7 +267,16 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
     diffItem: (item) => diffItem(item),
     getPerf: () => perfGetAll(),
 
-    // Enhanced debugging - make DataSourceManager easily accessible
+    // Add debug API powered by DebugManager
+    debug: {
+      enable: (feature) => systemsManager.debugManager.enable(feature),
+      disable: (feature) => systemsManager.debugManager.disable(feature),
+      toggle: (feature) => systemsManager.debugManager.toggle(feature),
+      setScale: (scale) => systemsManager.debugManager.setScale(scale),
+      status: () => systemsManager.debugManager.getSnapshot(),
+      onChange: (callback) => systemsManager.debugManager.onChange(callback)
+    },
+
     getDataSourceManager: () => systemsManager.dataSourceManager,
     _reRenderCallback: reRender
   };
@@ -206,6 +284,12 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
   return api;
 }
 
+/**
+ * Initialize Heads-Up Display (HUD) controller.
+ * @param {Object} pipeline
+ * @param {HTMLElement|ShadowRoot} mountEl
+ * @returns {Promise<void>|null}
+ */
 export function initMsdHud(pipeline, mountEl) {
   if (!pipeline?.enabled) return null;
   import('../hud/HudController.js').then(mod => {
