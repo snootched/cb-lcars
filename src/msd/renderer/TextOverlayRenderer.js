@@ -747,6 +747,7 @@ export class TextOverlayRenderer {
 
     return `<circle cx="${indicatorX}" cy="${indicatorY}" r="${indicatorSize}"
                     fill="${statusColor}"
+                    data-status-pos="${position}"
                     data-decoration="status-indicator"/>`;
   }
 

@@ -277,21 +277,26 @@ export class AdvancedRenderer {
         if (!group) return;
         const bb = RendererUtils.getDomTextBBox(group);
         if (!bb) { anyUnstable = true; return; }
-        const recorded = parseFloat(group.getAttribute('data-text-width')||'0')||0;
-        const diff = Math.abs(bb.width - recorded);
-        if (diff > TOL) {
+        const recordedW = parseFloat(group.getAttribute('data-text-width')||'0')||0;
+        const recordedH = parseFloat(group.getAttribute('data-text-height')||'0')||0;
+        const diffW = Math.abs(bb.width - recordedW);
+        const diffH = Math.abs(bb.height - recordedH);
+        const needsRerender = (diffW > TOL) || (diffH > TOL);
+
+        if (needsRerender) {
           const newGroup = this._reRenderSingleTextOverlay(ov, anchorsRef, viewBox);
           if (newGroup) {
             const bb2 = RendererUtils.getDomTextBBox(newGroup);
             if (bb2) {
               newGroup.setAttribute('data-text-width', String(bb2.width));
               newGroup.setAttribute('data-text-height', String(bb2.height));
+              this._updateStatusIndicatorPosition(newGroup, bb2);
             }
             changedTargets.add(ov.id);
             anyUnstable = true;
           }
         } else {
-          if (diff > 0) {
+          if (diffW > 0 || diffH > 0) {
             group.setAttribute('data-text-width', String(bb.width));
             group.setAttribute('data-text-height', String(bb.height));
             changedTargets.add(ov.id);
@@ -299,8 +304,9 @@ export class AdvancedRenderer {
           if (group.getAttribute('data-font-stabilized') !== '1') {
             group.setAttribute('data-font-stabilized','1');
           }
-          const bbStable = RendererUtils.getDomTextBBox(group);
-          if (bbStable) this._updateTextAttachmentPointsFromDom(ov, group, bbStable);
+          this._updateTextAttachmentPointsFromDom(ov, group, bb);
+          // NEW: always update status indicator position even without re-render
+          this._updateStatusIndicatorPosition(group, bb);
         }
       });
 
@@ -605,6 +611,44 @@ export class AdvancedRenderer {
     } catch(e) {
       console.warn('[AdvancedRenderer] Re-render text overlay failed', overlay.id, e);
       return null;
+    }
+  }
+
+  _updateStatusIndicatorPosition(groupEl, textBBox) {
+    try {
+      if (!groupEl) return;
+      const circle = groupEl.querySelector('circle[data-decoration="status-indicator"]');
+      if (!circle) return;
+      // Read required data
+      const pos = circle.getAttribute('data-status-pos') || 'left-center';
+      const fontSize = Number(groupEl.getAttribute('data-font-size') || 16);
+      const indicatorSize = fontSize * 0.4;
+      // Padding calculation (mirror TextOverlayRenderer)
+      const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
+      const pixelPadding = 8;
+      const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
+
+      const bbox = textBBox; // has left/right/top/bottom/centerX/centerY
+      let cx = bbox.centerX, cy = bbox.centerY;
+      switch (pos) {
+        case 'top-left':     cx = bbox.left - padding;  cy = bbox.top - padding; break;
+        case 'top-right':    cx = bbox.right + padding; cy = bbox.top - padding; break;
+        case 'bottom-left':  cx = bbox.left - padding;  cy = bbox.bottom + padding; break;
+        case 'bottom-right': cx = bbox.right + padding; cy = bbox.bottom + padding; break;
+        case 'top':          cx = bbox.centerX;         cy = bbox.top - padding; break;
+        case 'bottom':       cx = bbox.centerX;         cy = bbox.bottom + padding; break;
+        case 'left':
+        case 'left-center':  cx = bbox.left - padding;  cy = bbox.centerY; break;
+        case 'right':
+        case 'right-center': cx = bbox.right + padding; cy = bbox.centerY; break;
+        case 'center':       cx = bbox.centerX;         cy = bbox.centerY; break;
+        default:             cx = bbox.left - padding;  cy = bbox.centerY;
+      }
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+      circle.setAttribute('r', indicatorSize);
+    } catch(_) {
+      // silent
     }
   }
 }
