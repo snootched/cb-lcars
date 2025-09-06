@@ -124,6 +124,11 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // Setup debug interface with DebugManager integration
   setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder);
 
+  // Initialize HUD service with mount element
+  if (typeof window !== 'undefined' && window.__msdDebug?.hud?.setMountElement) {
+    window.__msdDebug.hud.setMountElement(mountEl);
+  }
+
   // Attach unified API
   console.log('[MSD v1] Attaching unified API');
   MsdApi.attach();

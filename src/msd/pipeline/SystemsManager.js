@@ -61,7 +61,10 @@ export class SystemsManager {
     this.renderer = new AdvancedRenderer(mountEl, this.router);
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
+
+    // Initialize HUD manager with mount element
     this.hudManager = new MsdHudManager();
+    this.hudManager.init(mountEl);
 
     // Initialize debug renderer with systems manager reference
     this.debugRenderer.init(this);

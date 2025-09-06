@@ -88,10 +88,11 @@ export class MsdIntrospection {
 
   static highlight(ids, opts = {}) {
     const idList = Array.isArray(ids) ? ids : [ids];
-    const root = opts.root || (typeof document !== 'undefined' ? document : null);
+    const root = opts.root;
 
+    // Require explicit root element - no document fallback
     if (!root) {
-      console.warn('[MsdIntrospection] No root element provided for highlighting');
+      console.warn('[MsdIntrospection] Root element required for highlighting');
       return;
     }
 
@@ -108,8 +109,8 @@ export class MsdIntrospection {
       : Math.max(1.5, Math.round(viewBox[3] * 0.004));
     const duration = Math.max(250, opts.duration || 1500);
 
-    // Use proper createElementNS
-    const doc = (typeof document !== 'undefined') ? document : global.document;
+    // Use proper createElementNS from root's document
+    const doc = root.ownerDocument || root.document;
     if (!doc || !doc.createElementNS) {
       console.warn('[MsdIntrospection] createElementNS not available');
       return;

@@ -109,25 +109,29 @@
     scheduleRender();
   }
 
-  // DOM mount
+  // DOM mount - now requires explicit mount element
   function getMount(){
-    // Try existing layer
-    let layer = document.getElementById('cblcars-hud-layer');
-    // If layer missing, attempt lazy create inside known wrapper
+    // Remove automatic document searching - require explicit mount
+    if (!W.__msdDebug?.mountElement) {
+      console.warn('[HUD] No mount element available - call setMountElement() first');
+      return null;
+    }
+
+    const mountElement = W.__msdDebug.mountElement;
+
+    // Try existing layer within mount element
+    let layer = mountElement.querySelector('#cblcars-hud-layer');
     if (!layer) {
-      const wrapper = document.getElementById('cblcars-msd-wrapper') || document.body;
-      if (wrapper) {
-        layer = document.createElement('div');
-        layer.id = 'cblcars-hud-layer';
-        layer.style.cssText = 'position:relative;width:100%;height:100%;pointer-events:none;z-index:1000;';
-        wrapper.appendChild(layer);
-      }
+      layer = document.createElement('div');
+      layer.id = 'cblcars-hud-layer';
+      layer.style.cssText = 'position:relative;width:100%;height:100%;pointer-events:none;z-index:1000;';
+      mountElement.appendChild(layer);
     }
-    if (!layer) return null;
-    // Ensure pointer events for interactive children
+
     if (layer.style.pointerEvents === 'none') {
-      layer.style.pointerEvents = 'none'; // keep container non-hit
+      layer.style.pointerEvents = 'none';
     }
+
     let root = layer.querySelector('#msd-hud-root');
     if (!root) {
       root = document.createElement('div');
@@ -957,7 +961,22 @@
   let hudRulesDebug = false;
   function dlog(...a){ if (hudRulesDebug) console.info('[HUD.rules]', ...a); }
   const hud = {
+    // Add mount element management
+    setMountElement(mountEl) {
+      if (!mountEl) {
+        console.warn('[HUD] Invalid mount element provided');
+        return false;
+      }
+      W.__msdDebug = W.__msdDebug || {};
+      W.__msdDebug.mountElement = mountEl;
+      return true;
+    },
+
     show(){
+      if (!W.__msdDebug?.mountElement) {
+        console.warn('[HUD] Cannot show - no mount element set. Call setMountElement() first.');
+        return;
+      }
       state.visible = true;
       loadPanelPrefs();
       const mount = getMount(); if (mount) mount.style.display = '';

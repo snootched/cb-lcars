@@ -200,14 +200,15 @@ export class MsdDebugRenderer {
    * @returns {SVGGElement}
    */
   createRoutingOverlay(overlayId, routeInfo) {
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const doc = this.debugLayer.ownerDocument;
+    const group = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('class', 'msd-debug-routing');
 
     const points = routeInfo.pts || [];
     points.forEach((pt, index) => {
       if (Array.isArray(pt) && pt.length >= 2) {
         const [x, y] = pt;
-        const waypoint = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        const waypoint = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
         waypoint.setAttribute('cx', x);
         waypoint.setAttribute('cy', y);
         waypoint.setAttribute('r', 2 * this.scale);
@@ -218,7 +219,7 @@ export class MsdDebugRenderer {
         group.appendChild(waypoint);
 
         if (index === 0 || index === points.length - 1 || points.length <= 6) {
-          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          const label = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
             label.setAttribute('x', x + (4 * this.scale));
             label.setAttribute('y', y - (4 * this.scale));
             label.setAttribute('fill', 'magenta');
@@ -234,7 +235,7 @@ export class MsdDebugRenderer {
     if (routeInfo.meta) {
       const startPt = points[0];
       if (startPt && Array.isArray(startPt) && startPt.length >= 2) {
-        const info = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        const info = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
         info.setAttribute('x', startPt[0]);
         info.setAttribute('y', startPt[1] - (12 * this.scale));
         info.setAttribute('fill', 'magenta');
@@ -280,7 +281,7 @@ export class MsdDebugRenderer {
    * @returns {SVGGElement}
    */
   createAnchorMarker(name, x, y) {
-    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const group = this.debugLayer.ownerDocument.createElementNS('http://www.w3.org/2000/svg', 'g');
     group.setAttribute('transform', `translate(${x}, ${y})`);
     group.setAttribute('class', 'msd-debug-anchor');
 
@@ -346,7 +347,8 @@ export class MsdDebugRenderer {
    * @returns {{rect: SVGRectElement, label: SVGTextElement}}
    */
   createBoundingBox(id, x, y, width, height) {
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const doc = this.debugLayer.ownerDocument;
+    const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
     rect.setAttribute('x', x);
     rect.setAttribute('y', y);
     rect.setAttribute('width', width);
@@ -358,7 +360,7 @@ export class MsdDebugRenderer {
     rect.setAttribute('opacity', '0.7');
     rect.setAttribute('class', 'msd-debug-bbox');
 
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const label = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', x + (2 * this.scale));
     label.setAttribute('y', y + (12 * this.scale));
     label.setAttribute('fill', 'orange');
@@ -421,7 +423,8 @@ export class MsdDebugRenderer {
       return;
     }
 
-    const perfGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const doc = this.debugLayer.ownerDocument;
+    const perfGroup = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
     perfGroup.setAttribute('class', 'msd-debug-performance');
 
     const baseX = 10 * this.scale;
@@ -429,7 +432,7 @@ export class MsdDebugRenderer {
     const width = 200 * this.scale;
     const padding = 5 * this.scale;
 
-    const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    const bg = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
     bg.setAttribute('x', baseX);
     bg.setAttribute('y', baseY);
     bg.setAttribute('width', width);
@@ -440,7 +443,7 @@ export class MsdDebugRenderer {
     bg.setAttribute('rx', 4 * this.scale);
     perfGroup.appendChild(bg);
 
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    const title = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
     title.setAttribute('x', baseX + padding);
     title.setAttribute('y', baseY + (15 * this.scale));
     title.setAttribute('fill', 'yellow');
@@ -451,7 +454,7 @@ export class MsdDebugRenderer {
     perfGroup.appendChild(title);
 
     perfEntries.slice(0, 8).forEach((entryText, index) => {
-      const entry = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      const entry = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
       entry.setAttribute('x', baseX + padding);
       entry.setAttribute('y', baseY + (30 + index * 15) * this.scale);
       entry.setAttribute('fill', 'yellow');
@@ -493,7 +496,8 @@ export class MsdDebugRenderer {
     let debugLayer = svgElement.querySelector('#msd-debug-layer');
     if (!debugLayer) {
       console.log('[MsdDebugRenderer] Creating new debug layer');
-      debugLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const doc = svgElement.ownerDocument;
+      debugLayer = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
       debugLayer.id = 'msd-debug-layer';
       debugLayer.style.pointerEvents = 'none';
       debugLayer.style.zIndex = '1000';

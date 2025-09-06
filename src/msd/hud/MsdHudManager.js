@@ -26,6 +26,19 @@ export class MsdHudManager {
 
     this.hudElement = null;
     this.refreshInterval = null;
+    this.mountElement = null; // Add mount element storage
+  }
+
+  /**
+   * Initialize with mount element from pipeline
+   * @param {HTMLElement} mountElement - Mount element from pipeline
+   */
+  init(mountElement) {
+    if (!mountElement) {
+      console.warn('[MsdHudManager] No mount element provided');
+      return;
+    }
+    this.mountElement = mountElement;
   }
 
   show() {
@@ -53,6 +66,12 @@ export class MsdHudManager {
   createHudElement() {
     if (this.hudElement) return;
 
+    // Require mount element - no document.body fallback
+    if (!this.mountElement) {
+      console.warn('[MsdHudManager] HUD not initialized with mount element');
+      return;
+    }
+
     this.hudElement = document.createElement('div');
     this.hudElement.id = 'msd-debug-hud';
     this.hudElement.style.cssText = `
@@ -72,7 +91,8 @@ export class MsdHudManager {
       backdrop-filter: blur(10px);
     `;
 
-    document.body.appendChild(this.hudElement);
+    // Use mount element instead of document.body
+    this.mountElement.appendChild(this.hudElement);
     this.updateHudContent();
   }
 
