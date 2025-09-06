@@ -88,9 +88,21 @@ export class RouterCore {
     };
   }
 
+
+  /**
+   * Build a route request object with both entry and exit direction hints.
+   * If route_mode_last is not specified and the destination is an overlay with attach_side,
+   * auto-set route_mode_last based on attach_side (left/right → xy; top/bottom → yx).
+   * If only route_mode_last is set, use it for the last segment, first segment is auto.
+   * If neither is set, fallback to geometry-based auto.
+   * @param {object} overlay - The overlay config object
+   * @param {number[]} a1 - Start anchor [x, y]
+   * @param {number[]} a2 - End anchor [x, y]
+   * @returns {object} Route request with modeHint and modeHintLast
+   */
   buildRouteRequest(overlay, a1, a2) {
     const raw = overlay._raw || overlay.raw || {};
-    const fs = overlay.finalStyle || {};              // NEW: final style fallback
+    const fs = overlay.finalStyle || {};
     let channelMode = (raw.route_channel_mode || raw.routeChannelMode || raw.channel_mode || 'prefer').toLowerCase();
     if (!['prefer','avoid','force'].includes(channelMode)) {
       perfInc && perfInc('routing.channel.mode.invalid', 1);
@@ -109,6 +121,56 @@ export class RouterCore {
       try { perfInc('routing.smooth.mode.invalid', 1); } catch(_) {}
       smoothingMode = 'none';
     }
+
+    // Parse both first and last segment hints
+    let modeHint = (raw.route_mode || '').toLowerCase();
+    let modeHintLast = (raw.route_mode_last || '').toLowerCase();
+    let hintSourceFirst = modeHint ? 'explicit' : 'auto';
+    let hintSourceLast = modeHintLast ? 'explicit' : null;
+
+    // Improved destination overlay detection:
+    // 1. If attach_side is present we treat destination as an overlay (even if anchor not yet resolved)
+    // 2. If attach_to is not an existing anchor id we assume it is an overlay id (will be resolved later)
+    let isDestinationOverlay = false;
+    if (raw.attach_side) {
+      isDestinationOverlay = true;
+    } else if (typeof raw.attach_to === 'string' && raw.attach_to) {
+      if (!this.anchors[raw.attach_to]) {
+        isDestinationOverlay = true;
+      }
+    }
+
+    // Auto-set modeHintLast based on attach_side when not explicitly provided
+    if (!modeHintLast && isDestinationOverlay) {
+      const attachSide = (raw.attach_side || '').toLowerCase();
+      if (attachSide === 'left' || attachSide === 'right') {
+        modeHintLast = 'yx'; // final horizontal
+        hintSourceLast = 'attach_side';
+        try { perfInc('routing.hint.attach_side.horizontal',1); } catch(_){}
+      } else if (attachSide === 'top' || attachSide === 'bottom') {
+        modeHintLast = 'xy'; // final vertical
+        hintSourceLast = 'attach_side';
+        try { perfInc('routing.hint.attach_side.vertical',1); } catch(_){}
+      }
+    }
+    // Geometry-based first segment if not provided
+    if (!modeHint) {
+      const [x1, y1] = a1;
+      const [x2, y2] = a2;
+      if (Number.isFinite(x1+y1+x2+y2)) {
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        modeHint = dx >= dy ? 'xy' : 'yx';
+      } else {
+        modeHint = 'xy'; // safe fallback
+      }
+      hintSourceFirst = 'geometry';
+    }
+    if (!modeHintLast) {
+      modeHintLast = modeHint;
+      if (!hintSourceLast) hintSourceLast = hintSourceFirst;
+    }
+
     const smoothingIterations = Number(
       raw.smoothing_iterations ||
       raw.corner_smoothing_iterations ||
@@ -129,7 +191,10 @@ export class RouterCore {
       a: a1,
       b: a2,
       modeFull: (raw.route_mode_full || raw.route_mode || 'manhattan').toLowerCase(),
-      modeHint: (raw.route_mode || '').toLowerCase(), // xy / yx fallback
+      modeHint,
+      modeHintLast,
+      _hintSourceFirst: hintSourceFirst,
+      _hintSourceLast: hintSourceLast,
       avoidIds: Array.isArray(raw.avoid) ? raw.avoid.slice() : [],
       channels: (raw.route_channels || raw.routeChannels || []),
       channelMode,
@@ -137,20 +202,13 @@ export class RouterCore {
       cornerStyle: (raw.corner_style || raw.cornerStyle || fs.corner_style || 'miter').toLowerCase(),
       smoothingMode,
       smoothingIterations,
-      smoothingMaxPoints: Number(
-        raw.smoothing_max_points ||
-        fs.smoothing_max_points ||
-        this.config.smoothing_max_points ||
-        (this.config.smoothing && this.config.smoothing.max_points) ||
-        160
-      ),
+      smoothingMaxPoints,
       clearance: Number(raw.clearance || this.config.clearance || 0),
       proximity: Number(raw.smart_proximity || this.config.smart_proximity || 0),
-      // NEW smart tuning (with sane defaults)
       smart: {
-        detourSpan: Number(this.config.smart_detour_span || 48),         // px shift each side
+        detourSpan: Number(this.config.smart_detour_span || 48),
         maxExtraBends: Number(this.config.smart_max_extra_bends || 3),
-        minImprovement: Number(this.config.smart_min_improvement || 4),  // cost units
+        minImprovement: Number(this.config.smart_min_improvement || 4),
         maxDetoursPerElbow: Number(this.config.smart_max_detours_per_elbow || 4)
       },
       _rev: this._rev
@@ -397,17 +455,31 @@ export class RouterCore {
     return occ;
   }
 
+  /**
+   * Manhattan routing supporting independent first and last segment hints.
+   * @param {object} req - Route request with modeHint and modeHintLast
+   */
   _computeManhattan(req) {
-    const [x1,y1] = req.a;
-    const [x2,y2] = req.b;
-    const mode = (req.modeHint === 'yx') ? 'yx' : 'xy';
+    const [x1, y1] = req.a;
+    const [x2, y2] = req.b;
+    const firstMode = (req.modeHint === 'yx') ? 'yx' : 'xy';
+    const lastMode  = (req.modeHintLast === 'yx') ? 'yx' : 'xy';
     let pts;
     if (x1 === x2 || y1 === y2) {
       pts = [[x1,y1],[x2,y2]];
-    } else if (mode === 'yx') {
-      pts = [[x1,y1],[x1,y2],[x2,y2]];
     } else {
-      pts = [[x1,y1],[x2,y1],[x2,y2]];
+      // We honor lastMode for the final segment orientation.
+      // lastMode = 'xy' => final segment is along Y (because order x then y)
+      // lastMode = 'yx' => final segment is along X.
+      if (lastMode === 'xy') {
+        // Final vertical => elbow shares x2, start y1
+        pts = [[x1,y1],[x2,y1],[x2,y2]];
+      } else {
+        // lastMode === 'yx' final horizontal => elbow shares y2, start x1
+        pts = [[x1,y1],[x1,y2],[x2,y2]];
+      }
+      // If explicit first hint conflicts, we could insert an intermediate elbow (optional)
+      // For now, we accept 3-point L shape determined by lastMode.
     }
     const d = this._polylineToPath(pts);
     return {
@@ -417,7 +489,13 @@ export class RouterCore {
         strategy: 'manhattan-basic',
         cost: this._costSimple(pts),
         segments: pts.length - 1,
-        bends: Math.max(0, pts.length - 2)
+        bends: Math.max(0, pts.length - 2),
+        hint: {
+          first: req.modeHint,
+            last: req.modeHintLast,
+          sourceFirst: req._hintSourceFirst,
+          sourceLast: req._hintSourceLast
+        }
       }
     };
   }
@@ -472,8 +550,10 @@ export class RouterCore {
   _nearestObstacleBandOverlap(a, b, band) {
     // Axis-aligned segments only
     const vertical = a[0] === b[0];
-    const x1 = Math.min(a[0], b[0]), x2 = Math.max(a[0], b[0]);
-    const y1 = Math.min(a[1], b[1]), y2 = Math.max(a[1], b[1]);
+    const x1 = Math.min(a[0], b[0]);
+    const x2 = Math.max(a[0], b[0]);
+    const y1 = Math.min(a[1], b[1]);
+    const y2 = Math.max(a[1], b[1]);
     let worst = 0;
     for (const ob of this._obstacles) {
       // Quick reject bounding box enlarged by band

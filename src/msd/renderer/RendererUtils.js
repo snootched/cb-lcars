@@ -1086,4 +1086,30 @@ export class RendererUtils {
   static camelToKebab(str) {
     return str.replace(/([A-Z])/g, '-$1').toLowerCase();
   }
+
+  /**
+   * Get DOM text bounding box for glyphs (after font load)
+   * @param {Element} groupEl - SVG group element containing the text
+   * @returns {Object|null} Bounding box object with width, height, and position
+   */
+  static getDomTextBBox(groupEl) {
+    try {
+      if (!groupEl) return null;
+      const textEl = groupEl.querySelector('text');
+      if (!textEl) return null;
+      const bb = textEl.getBBox();
+      return {
+        width: bb.width,
+        height: bb.height,
+        left: bb.x,
+        top: bb.y,
+        right: bb.x + bb.width,
+        bottom: bb.y + bb.height,
+        centerX: bb.x + bb.width / 2,
+        centerY: bb.y + bb.height / 2
+      };
+    } catch(_) {
+      return null;
+    }
+  }
 }

@@ -42,26 +42,41 @@ export class TextOverlayRenderer {
       console.warn('[TextOverlayRenderer] Text overlay position could not be resolved:', overlay.id);
       return '';
     }
-
     const [x, y] = position;
 
     try {
-      // Extract comprehensive styling
       const style = overlay.finalStyle || overlay.style || {};
       const textStyle = this._resolveTextStyles(style, overlay.id);
-      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      // Get text content
+      // NEW: adopt computed font when 'inherit' (prevents initial fallback mismatch)
+      if (this.container && typeof window !== 'undefined') {
+        try {
+          const host = this.container;
+          const cs = host ? getComputedStyle(host) : null;
+            if (cs) {
+              if (textStyle.fontFamily === 'inherit' && cs.fontFamily) {
+                textStyle.fontFamily = cs.fontFamily;
+              }
+              // Update fontSize if defaulted / unreasonable
+              if ((!style.font_size && !style.fontSize) && cs.fontSize) {
+                const px = parseFloat(cs.fontSize);
+                if (!isNaN(px) && px > 0) textStyle.fontSize = px;
+              }
+            }
+        } catch (_) {}
+      }
+
+      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
       const textContent = this._resolveTextContent(overlay, style);
       if (!textContent) {
         console.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
         return '';
       }
-
-      // CACHE TEXT CONTENT IN STYLE FOR DECORATION METHODS
       textStyle._cachedContent = textContent;
 
-      // Build SVG group with all features
+      // NEW: single early measurement (width/height) used by decorations & emitted as attributes
+      const measure = this._measureTextBlock(textContent, x, y, textStyle);
+
       const svgParts = [
         this._buildDefinitions(textStyle, overlay.id),
         this._buildMainText(textContent, x, y, textStyle, overlay.id, animationAttributes),
@@ -74,10 +89,14 @@ export class TextOverlayRenderer {
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
                   data-text-features="${textStyle.features.join(',')}"
-                  data-animation-ready="${!!animationAttributes.hasAnimations}">
+                  data-animation-ready="${!!animationAttributes.hasAnimations}"
+                  data-text-width="${measure.width || 0}"
+                  data-text-height="${measure.height || 0}"
+                  data-font-family="${textStyle.fontFamily}"
+                  data-font-size="${textStyle.fontSize}"
+                  data-font-stabilized="0">
                 ${svgParts.join('\n')}
               </g>`;
-
     } catch (error) {
       console.error(`[TextOverlayRenderer] Enhanced rendering failed for text ${overlay.id}:`, error);
       return this._renderFallbackText(overlay, x, y);
@@ -1114,5 +1133,33 @@ export class TextOverlayRenderer {
       x,
       y
     };
+  }
+
+  // NEW: consolidated measurement helper (mirrors bracket/highlight logic)
+  _measureTextBlock(textContent, x, y, textStyle) {
+    try {
+      const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
+      if (textStyle.multiline) {
+        const mm = RendererUtils.measureMultilineText(
+          textContent,
+          font,
+          textStyle.lineHeight,
+          true,
+          this.container
+        );
+        return {
+          width: mm.width,
+          height: mm.height
+        };
+      } else {
+        const m = RendererUtils.measureText(textContent, font, true, this.container);
+        return {
+          width: m.width,
+          height: m.height
+        };
+      }
+    } catch (_) {
+      return { width: 0, height: 0 };
+    }
   }
 }
