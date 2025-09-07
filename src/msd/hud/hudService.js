@@ -109,34 +109,22 @@
     scheduleRender();
   }
 
-  // DOM mount - now requires explicit mount element
+  // DOM mount - FIXED: use document.body for proper z-index and scrolling
   function getMount(){
-    // Remove automatic document searching - require explicit mount
-    if (!W.__msdDebug?.mountElement) {
-      console.warn('[HUD] No mount element available - call setMountElement() first');
-      return null;
-    }
-
-    const mountElement = W.__msdDebug.mountElement;
-
-    // Try existing layer within mount element
-    let layer = mountElement.querySelector('#cblcars-hud-layer');
+    // Use document.body instead of mount element for better visibility and scrolling
+    let layer = document.body.querySelector('#cblcars-hud-layer');
     if (!layer) {
       layer = document.createElement('div');
       layer.id = 'cblcars-hud-layer';
-      layer.style.cssText = 'position:relative;width:100%;height:100%;pointer-events:none;z-index:1000;';
-      mountElement.appendChild(layer);
-    }
-
-    if (layer.style.pointerEvents === 'none') {
-      layer.style.pointerEvents = 'none';
+      layer.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:999999;';
+      document.body.appendChild(layer);
     }
 
     let root = layer.querySelector('#msd-hud-root');
     if (!root) {
       root = document.createElement('div');
       root.id = 'msd-hud-root';
-      root.style.cssText = 'position:absolute;top:6px;right:6px;font:11px/1.25 monospace;z-index:2000;color:#eee;pointer-events:auto;max-width:420px;';
+      root.style.cssText = 'position:fixed;top:16px;right:16px;font:11px/1.25 monospace;z-index:1000000;color:#eee;pointer-events:auto;max-width:420px;max-height:80vh;overflow-y:auto;';
       layer.appendChild(root);
     }
     return root;
@@ -187,13 +175,89 @@
     return `<div style="text-align:right;font-size:9px;opacity:0.55;margin-top:4px;">Wave 6 HUD alpha</div>`;
   }
 
+  // Add helper for silent debug status access
+  function getDebugStatusSilent() {
+    try {
+      const debug = window.__msdDebug?.debug;
+      if (!debug) return null;
+
+      // If there's already a silent method, use it
+      if (typeof debug.getStatus === 'function') {
+        return debug.getStatus();
+      }
+
+      // Otherwise, try to access internal state without triggering console output
+      if (debug._state) {
+        return { ...debug._state };
+      }
+
+      // Last resort: call status() with console suppression
+      const originalConsoleTable = console.table;
+      const originalConsoleLog = console.log;
+      console.table = () => {};
+      console.log = () => {};
+
+      let result;
+      try {
+        result = debug.status();
+      } finally {
+        console.table = originalConsoleTable;
+        console.log = originalConsoleLog;
+      }
+
+      return result;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Panel renderers
   registerPanel('issues', (st)=>{
-    if (!st.issues.length) return '<em>no issues</em>';
-    const last = st.issues.slice(-8).reverse().map(i=>`<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-      <span style="color:${i.severity==='error'?'#ff6666':i.severity==='warn'?'#ffcc66':'#66cfff'};">${i.severity||'info'}</span>
-      <span>${i.code||i.id||''}</span> - ${i.msg||i.message||''}</div>`).join('');
-    return last + (st.issues.length>8?`<div style="font-size:9px;opacity:0.6;">… ${st.issues.length-8} more</div>`:'');
+    // Enhanced issues aggregation
+    const allIssues = [];
+
+    // Add any stored issues from state
+    st.issues.forEach(issue => {
+      allIssues.push({
+        severity: issue.severity || 'info',
+        message: issue.msg || issue.message || 'Unknown issue',
+        type: 'system'
+      });
+    });
+
+    // Add debug status issues - FIXED: use silent helper
+    try {
+      const debugStatus = getDebugStatusSilent() || {};
+
+      if (!debugStatus.enabled) {
+        allIssues.push({
+          severity: 'warning',
+          message: 'Debug interface not enabled',
+          type: 'debug'
+        });
+      }
+    } catch (e) {
+      allIssues.push({
+        severity: 'error',
+        message: 'Debug interface error',
+        type: 'debug'
+      });
+    }
+
+    if (!allIssues.length) return '<em>no issues</em>';
+
+    const errors = allIssues.filter(i => i.severity === 'error').length;
+    const warnings = allIssues.filter(i => i.severity === 'warning').length;
+
+    const summary = `${errors} errors, ${warnings} warnings`;
+    const recentIssues = allIssues.slice(-6).reverse().map(i =>
+      `<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        <span style="color:${i.severity==='error'?'#ff6666':i.severity==='warn'?'#ffcc66':'#66cfff'};">${i.severity}</span>
+        <span>${i.type}</span> - ${i.message}
+      </div>`
+    ).join('');
+
+    return `<div style="margin-bottom:4px;font-weight:bold;">${summary}</div>${recentIssues}`;
   }, 100);
 
   registerPanel('routing', (st)=>{
@@ -264,6 +328,40 @@
       <span>${k}</span><span style="opacity:0.7;">${st.perf.snapshot[k]}</span>
     </div>`).join('');
   }, 40);
+
+  registerPanel('channels', (st)=>{
+    // Simple current occupancy display (legacy compatibility)
+    const routing = window.__msdDebug?.routing;
+    const current = routing?.channels?._occupancy || {};
+    const entries = Object.entries(current).slice(0, 6);
+
+    if (!entries.length) return '<em>no channel data</em>';
+
+    return entries.map(([id, count]) => {
+      const shortId = id.length > 15 ? id.substring(0, 12) + '...' : id;
+      return `<div style="display:flex;justify-content:space-between;">
+        <span>${shortId}</span><span style="opacity:0.7;">${count}</span>
+      </div>`;
+    }).join('');
+  }, 65);
+
+  registerPanel('flags', (st)=>{
+    try {
+      const status = getDebugStatusSilent() || {};
+      const enabledFeatures = ['anchors', 'bounding_boxes', 'routing', 'performance']
+        .filter(feature => status[feature]);
+
+      if (!enabledFeatures.length) return '<em>no debug features enabled</em>';
+
+      return enabledFeatures.slice(0, 8).map(feature =>
+        `<div style="display:flex;justify-content:space-between;">
+          <span>${feature.replace('_', ' ')}</span><span style="color:#00ff00;">✓</span>
+        </div>`
+      ).join('');
+    } catch (e) {
+      return '<em>debug interface not ready</em>';
+    }
+  }, 75);
 
   // Minimal interaction handlers
   document.addEventListener('click', e=>{
@@ -669,7 +767,7 @@
   function passiveRuleScan(){
     const dbg = W.__msdDebug;
     const p = dbg?.pipelineInstance;
-    const engine = p?.rulesEngine || p?._rulesEngine || dbg?.rulesEngine; // FIX: removed stray partial line
+    const engine = p?._rulesEngine || p?.rulesEngine || dbg?.rulesEngine;
     if (engine) {
       if (!engine.__hudPatched) patchRulesEngine(engine);
       if (Date.now() - state._ts.rulesLast > 3000) {
@@ -973,10 +1071,7 @@
     },
 
     show(){
-      if (!W.__msdDebug?.mountElement) {
-        console.warn('[HUD] Cannot show - no mount element set. Call setMountElement() first.');
-        return;
-      }
+      // Remove mount element requirement since we're using document.body
       state.visible = true;
       loadPanelPrefs();
       const mount = getMount(); if (mount) mount.style.display = '';
@@ -984,8 +1079,8 @@
       startPerfSampling();
       attachPipelineHooks();
       startPolling();
-      _hudCollectRules();              // NEW: immediate rule harvest attempt
-      setTimeout(_hudCollectRules, 400); // NEW: delayed harvest (pipeline may finish async)
+      _hudCollectRules();
+      setTimeout(_hudCollectRules, 400);
     },
     hide(){
       state.visible = false;
@@ -1100,5 +1195,6 @@
 
   // ...existing code continues...
 })();
+
 
 

@@ -7,6 +7,9 @@ import { PerformancePanel } from './panels/PerformancePanel.js';
 import { ValidationPanel } from './panels/ValidationPanel.js';
 import { DataSourcePanel } from './panels/DataSourcePanel.js';
 import { RoutingPanel } from './panels/RoutingPanel.js';
+import { ChannelTrendPanel } from './panels/ChannelTrendPanel.js';
+import { FlagsPanel } from './panels/FlagsPanel.js';
+import { IssuesPanel } from './panels/IssuesPanel.js';
 
 export class MsdHudManager {
   constructor() {
@@ -14,7 +17,10 @@ export class MsdHudManager {
       performance: new PerformancePanel(),
       validation: new ValidationPanel(),
       dataSources: new DataSourcePanel(),
-      routing: new RoutingPanel()
+      routing: new RoutingPanel(),
+      channelTrend: new ChannelTrendPanel(),
+      flags: new FlagsPanel(),
+      issues: new IssuesPanel()
     };
 
     this.state = {
@@ -66,12 +72,7 @@ export class MsdHudManager {
   createHudElement() {
     if (this.hudElement) return;
 
-    // Require mount element - no document.body fallback
-    if (!this.mountElement) {
-      console.warn('[MsdHudManager] HUD not initialized with mount element');
-      return;
-    }
-
+    // Use document.body for proper z-index stacking above Home Assistant menus
     this.hudElement = document.createElement('div');
     this.hudElement.id = 'msd-debug-hud';
     this.hudElement.style.cssText = `
@@ -86,13 +87,13 @@ export class MsdHudManager {
       color: #00ffff;
       font-family: monospace;
       font-size: 12px;
-      z-index: 10000;
+      z-index: 1000000;
       overflow-y: auto;
       backdrop-filter: blur(10px);
     `;
 
-    // Use mount element instead of document.body
-    this.mountElement.appendChild(this.hudElement);
+    // Use document.body instead of mount element for better visibility
+    document.body.appendChild(this.hudElement);
     this.updateHudContent();
   }
 
