@@ -1,94 +1,34 @@
 const STYLE_ID = 'msd-hud-styles-v1';
 const PANELS = ['packs','rules','overlays','issues','export','perf']; // added perf
 
+// LEGACY: This class is now superseded by MsdHudManager
+// Keeping for reference during transition
+
+console.warn('[HudController] This class is deprecated - use MsdHudManager instead');
+
+// COMPATIBILITY: Provide basic wrapper if anything still tries to use this
 export class HudController {
   constructor(pipeline, mountEl) {
-    this.pipeline = pipeline;
-    this.mountEl = mountEl;
-    this._ensureStyles();
-    this.root = document.createElement('div');
-    this.root.className = 'msd-hud';
-    this.tabBar = document.createElement('div');
-    this.tabBar.className = 'msd-hud-tabs';
-    this.panelContainer = document.createElement('div');
-    this.panelContainer.className = 'msd-hud-panels';
-    this.root.appendChild(this.tabBar);
-    this.root.appendChild(this.panelContainer);
-    mountEl.appendChild(this.root);
-    this.activePanel = 'packs';
-    this._buildTabs();
-  }
+    console.warn('[HudController] Redirecting to MsdHudManager');
 
-  _ensureStyles() {
-    if (document.getElementById(STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = `
-      .msd-hud { font: 12px/1.4 system-ui, sans-serif; background:#0e0f17ee; color:#eee; padding:6px; border:1px solid #444; border-radius:4px; max-width:900px; }
-      .msd-hud-tabs { display:flex; gap:4px; margin-bottom:6px; flex-wrap:wrap; }
-      .msd-hud-tabs button { background:#222; color:#ccc; border:1px solid #444; padding:4px 8px; cursor:pointer; border-radius:3px; font-size:11px; }
-      .msd-hud-tabs button.active { background:#555; color:#fff; }
-      .msd-hud-panels { max-height:320px; overflow:auto; }
-      .msd-hud table { border-collapse:collapse; width:100%; font-size:11px; }
-      .msd-hud th, .msd-hud td { border:1px solid #333; padding:2px 4px; vertical-align:top; }
-      .msd-hud th { background:#1c1f28; position:sticky; top:0; }
-      .msd-badge { display:inline-block; padding:0 4px; margin-right:4px; border-radius:2px; font-size:10px; background:#333; color:#ddd; }
-      .b-core { background:#555; }
-      .b-builtin { background:#663399; }
-      .b-user { background:#996515; }
-      .b-overridden { background:#8a6d00; }
-      .b-removed { background:#702020; }
-      .b-match { background:#2d5a2d; }
-      .b-nomatch { background:#5a2d2d; }
-      .msd-issues-err { color:#ff6464; }
-      .msd-issues-warn { color:#e3b341; }
-      .mono { font-family: ui-monospace, monospace; }
-      .nowrap { white-space:nowrap; }
-    `;
-    document.head.appendChild(style);
-  }
-
-  _buildTabs() {
-    this.tabBar.innerHTML = '';
-    PANELS.forEach(p => {
-      const btn = document.createElement('button');
-      btn.textContent = p;
-      if (p === this.activePanel) btn.classList.add('active');
-      btn.onclick = () => { this.activePanel = p; this._buildTabs(); this.refresh(); };
-      this.tabBar.appendChild(btn);
-    });
+    // Try to get the unified manager
+    const hudManager = window.__msdDebug?.hud?.manager;
+    if (hudManager) {
+      this.manager = hudManager;
+    } else {
+      console.error('[HudController] MsdHudManager not available');
+    }
   }
 
   refresh() {
-    const { merged, cardModel } = this.pipeline;
-    const resolved = this.pipeline.getResolvedModel();
-    this.panelContainer.innerHTML = '';
-    let panel;
-    switch (this.activePanel) {
-      case 'packs':
-        panel = buildPacksPanel(merged);
-        break;
-      case 'rules':
-        panel = buildRulesPanel(this.pipeline.rulesEngine);
-        break;
-      case 'overlays':
-        panel = buildOverlaysPanel(resolved);
-        break;
-      case 'issues':
-        panel = buildIssuesPanel(merged.__issues, cardModel.__issues);
-        break;
-      case 'export':
-        panel = buildExportPanel(this.pipeline);
-        break;
-      case 'perf':
-        panel = buildPerfPanel(this.pipeline);
-        break;
-      default:
-        panel = document.createElement('div');
-        panel.textContent = 'Unknown panel';
+    if (this.manager) {
+      this.manager.refresh();
     }
-    this.panelContainer.appendChild(panel);
   }
+
+  // Minimal compatibility methods
+  _buildTabs() { /* no-op */ }
+  _ensureStyles() { /* no-op */ }
 }
 
 /* ---------- Packs Panel ---------- */

@@ -62,9 +62,12 @@ export class SystemsManager {
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
 
-    // Initialize HUD manager with mount element
+    // REPLACED: Initialize unified HUD manager with document.body mounting
     this.hudManager = new MsdHudManager();
-    this.hudManager.init(mountEl);
+    this.hudManager.init(mountEl); // Pass mount element for pipeline context, but HUD uses document.body
+
+    // ADDED: Integrate HUD into global debug interface immediately
+    this._setupGlobalHudInterface();
 
     // Initialize debug renderer with systems manager reference
     this.debugRenderer.init(this);
@@ -349,5 +352,42 @@ export class SystemsManager {
 
   getEntity(id) {
     return this.dataSourceManager ? this.dataSourceManager.getEntity(id) : null;
+  }
+
+  // ADDED: Setup global HUD interface for unified access
+  _setupGlobalHudInterface() {
+    const W = typeof window !== 'undefined' ? window : {};
+    W.__msdDebug = W.__msdDebug || {};
+
+    // Replace any legacy HUD interface with unified manager
+    W.__msdDebug.hud = {
+      show: () => this.hudManager?.show(),
+      hide: () => this.hudManager?.hide(),
+      toggle: () => this.hudManager?.toggle(),
+      refresh: () => this.hudManager?.refresh(),
+      setRefreshRate: (ms) => this.hudManager?.setRefreshRate(ms),
+
+      // Legacy compatibility methods (no-op for smooth transition)
+      registerPanel: () => console.warn('[HUD] Legacy registerPanel deprecated - use class-based panels'),
+      publishIssue: () => console.warn('[HUD] Legacy publishIssue deprecated - panels auto-capture'),
+      publishRouting: () => console.warn('[HUD] Legacy publishRouting deprecated - panels auto-capture'),
+      publishRules: () => console.warn('[HUD] Legacy publishRules deprecated - panels auto-capture'),
+      publishPacks: () => console.warn('[HUD] Legacy publishPacks deprecated - panels auto-capture'),
+      publishPerf: () => console.warn('[HUD] Legacy publishPerf deprecated - panels auto-capture'),
+
+      // Expose manager for advanced usage
+      manager: this.hudManager
+    };
+
+    // ADDED: Auto-show if debug flags present
+    try {
+      if (W.cblcars?._debugFlags?.hud_auto || W.location?.search?.includes('hud=1')) {
+        this.hudManager.show();
+      }
+    } catch (e) {
+      console.warn('[SystemsManager] Auto-show HUD failed:', e);
+    }
+
+    console.log('[SystemsManager] Global HUD interface established');
   }
 }

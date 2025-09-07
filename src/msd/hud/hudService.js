@@ -1,4 +1,8 @@
 (function initHudService(){
+  // LEGACY SYSTEM DISABLED - Using unified MsdHudManager instead
+  console.log('[hudService] Legacy HUD system disabled - using MsdHudManager');
+  return;
+
   if (typeof window === 'undefined') return;
   const W = window;
 
