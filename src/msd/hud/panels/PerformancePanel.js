@@ -100,6 +100,10 @@ export class PerformancePanel {
     const regressions = [];
 
     try {
+      // FIXED: Use centralized debug status access for performance state
+      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+
+      // Get performance data using consistent approach
       const perfData = window.__msdDebug?.getPerf?.() || {};
 
       // Process timers

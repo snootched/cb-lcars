@@ -157,17 +157,18 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         debugManager.enable(feature);
       }
 
-      // ADDED: Force re-render after enabling
+      // FIXED: More aggressive re-render after enabling with proper timing
       setTimeout(() => {
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
+            console.log('[MSD Debug] Force re-render after enable:', feature);
             pipelineInstance.reRender();
           }
         } catch (error) {
           console.warn('[MSD Debug] Failed to trigger re-render:', error);
         }
-      }, 50);
+      }, 10);
     },
 
     disable: (feature) => {
@@ -177,17 +178,18 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         debugManager.disable(feature);
       }
 
-      // ADDED: Force re-render after disabling
+      // FIXED: More aggressive re-render after disabling with proper timing
       setTimeout(() => {
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
+            console.log('[MSD Debug] Force re-render after disable:', feature);
             pipelineInstance.reRender();
           }
         } catch (error) {
           console.warn('[MSD Debug] Failed to trigger re-render:', error);
         }
-      }, 50);
+      }, 10);
     },
 
     // Manual debug render test
@@ -238,12 +240,15 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     // Scale control via DebugManager
     setScale: (scale) => debugManager.setScale(scale),
 
-    // Status from DebugManager
+    // Status from DebugManager - FIXED: Use silent method by default
     status: () => {
       const state = debugManager.getSnapshot();
       console.table(state);
       return state;
     },
+
+    // ADDED: Silent status access for programmatic use
+    getStatus: () => debugManager.getSnapshot(),
 
     // Subscribe to DebugManager changes
     onChange: (callback) => debugManager.onChange(callback),

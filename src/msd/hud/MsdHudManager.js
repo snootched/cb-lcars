@@ -45,6 +45,11 @@ export class MsdHudManager {
       return;
     }
     this.mountElement = mountElement;
+
+    // FIXED: Store mount element in debug interface for panels to access
+    if (window.__msdDebug) {
+      window.__msdDebug.mountElement = mountElement;
+    }
   }
 
   show() {

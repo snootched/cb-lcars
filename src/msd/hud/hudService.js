@@ -134,6 +134,14 @@
   function scheduleRender(){
     if (!state.visible) return;
     if (renderPending) return;
+
+    // FIXED: Check if routing panel inputs are focused to avoid refresh conflicts
+    const routingPanel = window.__msdRoutingPanel;
+    if (routingPanel?.shouldSkipRefresh && routingPanel.shouldSkipRefresh()) {
+      // Skip this refresh cycle if user is typing in input fields
+      return;
+    }
+
     renderPending = true;
     requestAnimationFrame(()=>{ renderPending=false; render(); });
   }
@@ -175,41 +183,38 @@
     return `<div style="text-align:right;font-size:9px;opacity:0.55;margin-top:4px;">Wave 6 HUD alpha</div>`;
   }
 
-  // Add helper for silent debug status access
+  // ENHANCED: Centralized debug status access for all panels
   function getDebugStatusSilent() {
     try {
-      const debug = window.__msdDebug?.debug;
-      if (!debug) return null;
-
-      // If there's already a silent method, use it
-      if (typeof debug.getStatus === 'function') {
-        return debug.getStatus();
+      // Try debugManager first (preferred)
+      const debugManager = window.__msdDebug?.debugManager;
+      if (debugManager?.getSnapshot) {
+        return debugManager.getSnapshot();
       }
 
-      // Otherwise, try to access internal state without triggering console output
-      if (debug._state) {
+      // Fallback to pipelineInstance.systemsManager.debugManager
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const systemsDebugManager = pipelineInstance?.systemsManager?.debugManager;
+      if (systemsDebugManager?.getSnapshot) {
+        return systemsDebugManager.getSnapshot();
+      }
+
+      // Try debug._state directly (no console output)
+      const debug = window.__msdDebug?.debug;
+      if (debug?._state) {
         return { ...debug._state };
       }
 
-      // Last resort: call status() with console suppression
-      const originalConsoleTable = console.table;
-      const originalConsoleLog = console.log;
-      console.table = () => {};
-      console.log = () => {};
-
-      let result;
-      try {
-        result = debug.status();
-      } finally {
-        console.table = originalConsoleTable;
-        console.log = originalConsoleLog;
-      }
-
-      return result;
+      // Last resort fallback
+      return { enabled: false, initialized: false };
     } catch (e) {
-      return null;
+      return { enabled: false, initialized: false, error: e.message };
     }
   }
+
+  // ADDED: Make this available globally for panels
+  W.__msdDebug = W.__msdDebug || {};
+  W.__msdDebug.getDebugStatusSilent = getDebugStatusSilent;
 
   // Panel renderers
   registerPanel('issues', (st)=>{
@@ -1056,8 +1061,6 @@
   })();
 
   // Public API
-  let hudRulesDebug = false;
-  function dlog(...a){ if (hudRulesDebug) console.info('[HUD.rules]', ...a); }
   const hud = {
     // Add mount element management
     setMountElement(mountEl) {
@@ -1195,6 +1198,7 @@
 
   // ...existing code continues...
 })();
+
 
 
 

@@ -31,9 +31,17 @@ export class FlagsPanel {
           return;
         }
 
-        // Get current status and toggle
-        const status = window.__msdDebug.debug.status();
-        const currentlyEnabled = status[feature];
+        // FIXED: Use silent status access instead of status() which dumps to console
+        const debugManager = window.__msdDebug?.debugManager ||
+                           window.__msdDebug?.pipelineInstance?.systemsManager?.debugManager;
+
+        if (!debugManager) {
+          console.warn('[FlagsPanel] DebugManager not available');
+          return;
+        }
+
+        const currentStatus = debugManager.getSnapshot();
+        const currentlyEnabled = currentStatus[feature];
 
         if (currentlyEnabled) {
           window.__msdDebug.debug.disable(feature);
@@ -41,10 +49,27 @@ export class FlagsPanel {
           window.__msdDebug.debug.enable(feature);
         }
 
-        // Refresh HUD
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
-        }
+        // FIXED: Force immediate re-render after state change
+        setTimeout(() => {
+          try {
+            const pipelineInstance = window.__msdDebug?.pipelineInstance;
+            if (pipelineInstance?.reRender) {
+              console.log('[FlagsPanel] Triggering re-render after', feature, currentlyEnabled ? 'disable' : 'enable');
+              pipelineInstance.reRender();
+            } else {
+              console.warn('[FlagsPanel] No reRender method available on pipeline instance');
+            }
+          } catch (error) {
+            console.warn('[FlagsPanel] Failed to trigger re-render:', error);
+          }
+        }, 50);
+
+        // Refresh HUD after a delay to show updated state
+        setTimeout(() => {
+          if (window.__msdDebug?.hud?.refresh) {
+            window.__msdDebug.hud.refresh();
+          }
+        }, 100);
       },
 
       adjustScale: function(direction) {
@@ -78,73 +103,32 @@ export class FlagsPanel {
   }
 
   captureData() {
-    const features = {};
-    let scale = 1.0;
-    let debugReady = false;
+    const flags = {};
+    const debugFeatures = {};
 
     try {
-      // Get current debug status from MSD - use helper to avoid console spam
-      const status = this._getDebugStatusSilent();
-      if (status) {
-        debugReady = status.enabled && status.initialized;
-        scale = status.scale || 1.0;
+      // FIXED: Use centralized silent debug status access
+      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
 
-        // Extract feature states
-        this.debugFeatures.forEach(feature => {
-          features[feature] = Boolean(status[feature]);
-        });
-      } else {
-        console.warn('[FlagsPanel] Debug interface not available');
-      }
+      // FIXED: Properly capture debug features and readiness
+      Object.assign(debugFeatures, debugStatus);
 
+      // Get current debug flags (legacy support)
+      Object.assign(flags, window.__msdDebug?._debugFlags || {});
     } catch (e) {
       console.warn('[FlagsPanel] Data capture failed:', e);
     }
 
-    return { features, scale, debugReady };
-  }
-
-  _getDebugStatusSilent() {
-    try {
-      const debug = window.__msdDebug?.debug;
-      if (!debug) return null;
-
-      // If there's already a silent method, use it
-      if (typeof debug.getStatus === 'function') {
-        return debug.getStatus();
-      }
-
-      // Otherwise, try to access internal state without triggering console output
-      if (debug._state) {
-        return { ...debug._state };
-      }
-
-      // Last resort: call status() with console suppression
-      const originalConsoleTable = console.table;
-      const originalConsoleLog = console.log;
-      console.table = () => {};
-      console.log = () => {};
-
-      let result;
-      try {
-        result = debug.status();
-      } finally {
-        console.table = originalConsoleTable;
-        console.log = originalConsoleLog;
-      }
-
-      return result;
-    } catch (e) {
-      return null;
-    }
+    return { flags, debugFeatures };
   }
 
   renderHtml(flagsData) {
     let html = '<div class="msd-hud-panel"><h3>Debug Features</h3>';
 
-    const features = flagsData.features || {};
-    const scale = flagsData.scale || 1.0;
-    const debugReady = flagsData.debugReady || false;
+    // FIXED: Use debugFeatures instead of separate features object
+    const debugFeatures = flagsData.debugFeatures || {};
+    const scale = debugFeatures.scale || 1.0;
+    const debugReady = debugFeatures.initialized || false;
 
     // Debug status
     if (!debugReady) {
@@ -160,7 +144,8 @@ export class FlagsPanel {
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">';
 
     this.debugFeatures.forEach(feature => {
-      const isEnabled = Boolean(features[feature]);
+      // FIXED: Check debugFeatures instead of features
+      const isEnabled = Boolean(debugFeatures[feature]);
       const displayName = feature.replace('_', ' ');
       html += `<button onclick="window.__msdDebugFlagsPanel?.toggleFeature('${feature}')"
         style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
@@ -214,7 +199,8 @@ export class FlagsPanel {
     html += '</div></div>';
 
     // Status section
-    const enabledCount = Object.values(features).filter(Boolean).length;
+    // FIXED: Use debugFeatures to count enabled features
+    const enabledCount = this.debugFeatures.filter(feature => debugFeatures[feature]).length;
     html += `<div class="msd-hud-section msd-hud-summary">
       ${enabledCount}/${this.debugFeatures.length} features enabled
     </div>`;
@@ -223,3 +209,4 @@ export class FlagsPanel {
     return html;
   }
 }
+

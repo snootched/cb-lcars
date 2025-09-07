@@ -141,7 +141,7 @@ export class DebugManager {
   }
 
   /**
-   * Get current debug state snapshot
+   * Get current debug state snapshot (silent - no console output)
    * @returns {Object} Current state
    */
   getSnapshot() {
@@ -151,6 +151,16 @@ export class DebugManager {
       initialized: this.initialized,
       routerReady: this.routerReady
     };
+  }
+
+  /**
+   * Get status with console output (for manual debugging)
+   * @returns {Object} Current state
+   */
+  status() {
+    const snapshot = this.getSnapshot();
+    console.table(snapshot);
+    return snapshot;
   }
 
   /**
@@ -275,8 +285,22 @@ export class DebugManager {
 
     const action = () => {
       if (this.state[feature] !== enabled) {
+        console.log(`[DebugManager] Setting ${feature} to ${enabled}`);
         this.state[feature] = enabled;
         this._scheduleNotification('feature', { feature, enabled });
+
+        // FIXED: Trigger immediate re-render when feature state changes
+        setTimeout(() => {
+          try {
+            const pipelineInstance = window.__msdDebug?.pipelineInstance;
+            if (pipelineInstance?.reRender) {
+              console.log(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
+              pipelineInstance.reRender();
+            }
+          } catch (error) {
+            console.warn('[DebugManager] Auto re-render failed:', error);
+          }
+        }, 5);
       }
     };
 

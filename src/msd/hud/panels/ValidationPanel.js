@@ -9,11 +9,16 @@ export class ValidationPanel {
     const warnings = [];
 
     try {
-    // FIXED: Handle both browser and Node.js global window access
-    const window = (typeof global !== 'undefined' && global.window) ? global.window :
-                  (typeof window !== 'undefined') ? window : null;
+      // FIXED: Use centralized silent debug status access
+      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
+      let validationData = {};
 
-      const validationData = window.__msdDebug?.validation?.issues?.() || {};
+      if (debugStatus.enabled && window.__msdDebug?.validation?.issues) {
+        validationData = window.__msdDebug.validation.issues() || {};
+      } else {
+        // Fallback: try direct access without debug interface
+        validationData = window.__msdDebug?.pipelineInstance?.getValidationIssues?.() || {};
+      }
 
       if (validationData.errors) {
         validationData.errors.forEach(error => {
@@ -93,5 +98,6 @@ export class ValidationPanel {
 
     html += '</div>';
     return html;
-  }
+
+}
 }

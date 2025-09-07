@@ -55,7 +55,8 @@ export class IssuesPanel {
       }
 
       // Routing issues from debug features
-      const debugStatus = window.__msdDebug?.debug?.status?.() || {};
+      // FIXED: Use centralized silent debug status access
+      const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
       if (debugStatus.enabled) {
         // Check for routing problems (this would need actual routing diagnostics)
         const routing = window.__msdDebug?.routing;
@@ -96,14 +97,27 @@ export class IssuesPanel {
       }
 
       // Debug feature issues
-      if (!debugStatus.enabled || !debugStatus.initialized) {
+      // FIXED: Better debug feature status detection
+      if (!debugStatus.initialized) {
+        // Actually not initialized
         issues.debug.push({
           id: 'debug-status',
           type: 'debug',
           severity: 'warning',
-          message: 'Debug interface not fully initialized',
-          code: 'debug_not_ready',
+          message: 'Debug interface not initialized',
+          code: 'debug_not_initialized',
           clickAction: 'debug'
+        });
+      } else if (!debugStatus.enabled) {
+        // Initialized but no features enabled - this is not really an "issue"
+        // We could either skip this entirely or show an info message
+        issues.debug.push({
+          id: 'debug-features-disabled',
+          type: 'debug',
+          severity: 'info',
+          message: 'All debug features are disabled',
+          code: 'debug_features_off',
+          clickAction: 'enable-features'
         });
       }
 
@@ -210,10 +224,40 @@ export class IssuesPanel {
               break;
 
             case 'debug':
-              console.log('[IssuesPanel] Debug issue clicked');
-              // Could try to initialize debug interface
+              console.log('[IssuesPanel] Debug issue clicked - attempting to initialize debug interface');
+              // Try to initialize debug interface
               if (window.__msdDebug?.debug?.refresh) {
                 window.__msdDebug.debug.refresh();
+              }
+              break;
+
+            // ADDED: New action for enabling debug features
+            case 'enable-features':
+              console.log('[IssuesPanel] Enabling basic debug features');
+              if (window.__msdDebug?.debug) {
+                // Enable a basic set of debug features
+                window.__msdDebug.debug.enable('anchors');
+                window.__msdDebug.debug.enable('bounding_boxes');
+
+                // Show user feedback
+                const feedback = document.createElement('div');
+                feedback.style.cssText = `
+                  position: fixed;
+                  top: 20px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  background: rgba(0, 255, 0, 0.9);
+                  color: white;
+                  padding: 8px 16px;
+                  border-radius: 4px;
+                  font-size: 12px;
+                  z-index: 1000001;
+                  pointer-events: none;
+                `;
+                feedback.textContent = 'Debug features enabled: anchors, bounding_boxes';
+                document.body.appendChild(feedback);
+
+                setTimeout(() => feedback.remove(), 3000);
               }
               break;
           }
