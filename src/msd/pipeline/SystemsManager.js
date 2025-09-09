@@ -217,7 +217,7 @@ export class SystemsManager {
    * @param {Object} resolvedModel - The resolved model
    * @param {Element} mountEl - The shadowRoot/mount element
    */
-  renderDebugAndControls(resolvedModel, mountEl = null) {
+  async renderDebugAndControls(resolvedModel, mountEl = null) {
     // Enhanced debugging to trace the issue
     const debugState = this.debugManager.getSnapshot();
     console.log('[SystemsManager] renderDebugAndControls called:', {
@@ -227,7 +227,8 @@ export class SystemsManager {
       mountElType: mountEl?.constructor?.name,
       resolvedModel: !!resolvedModel,
       anchorsCount: Object.keys(resolvedModel?.anchors || {}).length,
-      overlaysCount: (resolvedModel?.overlays || []).length
+      overlaysCount: (resolvedModel?.overlays || []).length,
+      rendererContainer: !!this.renderer?.container
     });
 
     // Use existing MSD perf counter system
@@ -286,12 +287,26 @@ export class SystemsManager {
       perfCount('debug.render.skipped');
     }
 
-    // Render controls if any exist
-    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
+    // FIXED: Render controls asynchronously to ensure renderer container is ready
+    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control' || o.type === 'controls');
     if (controlOverlays.length > 0) {
       console.log('[MSD v1] Rendering control overlays:', controlOverlays.length);
+
+      // Ensure controls renderer has HASS context
+      if (this._currentHass) {
+        this.controlsRenderer.setHass(this._currentHass);
+      }
+
       perfCount('debug.controls.rendered', controlOverlays.length);
-      this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
+
+      // CHANGED: Use async renderControls to wait for container
+      try {
+        await this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
+        console.log('[SystemsManager] ✅ Controls rendered successfully');
+      } catch (error) {
+        console.error('[SystemsManager] ❌ Controls rendering failed:', error);
+        perfCount('debug.controls.errors');
+      }
     }
   }
 
@@ -332,6 +347,9 @@ export class SystemsManager {
       console.warn('[MSD v1] ingestHass called without valid hass.states');
       return;
     }
+
+    // Store HASS context for controls renderer
+    this._currentHass = hass;
 
     // DataSources handle HASS updates automatically via their subscriptions
     // No manual ingestion needed - handled by individual data sources

@@ -83,15 +83,15 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
    * and triggers the AdvancedRenderer + debug visualization pipeline.
    * @returns {Object|undefined} Renderer result object
    */
-  function reRender() {
+  async function reRender() {
     const startTime = performance.now();
     const resolvedModel = modelBuilder.computeResolvedModel();
 
     console.log(`[MSD v1] Re-rendering with AdvancedRenderer - overlays: ${resolvedModel.overlays.length}`);
     const renderResult = systemsManager.renderer.render(resolvedModel);
 
-    // Render debug and controls if needed - PASS mountEl (shadowRoot)
-    systemsManager.renderDebugAndControls(resolvedModel, mountEl);
+    // CHANGED: Await debug and controls rendering to ensure proper sequencing
+    await systemsManager.renderDebugAndControls(resolvedModel, mountEl);
 
     const renderTime = performance.now() - startTime;
     console.log(`[MSD v1] Render completed in ${renderTime.toFixed(2)}ms`);
@@ -102,14 +102,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // Connect reRender callback to systems
   systemsManager.setReRenderCallback(reRender);
 
-  // Initial render
+  // Initial render - CHANGED: Make async
   console.log('[MSD v1] Computing initial resolved model');
   console.log('[MSD v1] DataSourceManager status:', {
     sourcesCount: systemsManager.dataSourceManager?.getAllSources?.()?.length || 0,
     entityCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
   });
 
-  const initialRenderResult = reRender();
+  const initialRenderResult = await reRender();
 
   console.log('[MSD v1] Initial render completed:', {
     overlayCount: initialRenderResult?.overlayCount || 0,

@@ -19,10 +19,15 @@ export class MsdControlsRenderer {
   async renderControls(controlOverlays, resolvedModel) {
     if (!controlOverlays || !controlOverlays.length) return;
 
-    this.ensureControlsContainer();
+    // FIXED: Wait for renderer container to be ready with timeout
+    const container = await this.ensureControlsContainerAsync();
+    if (!container) {
+      console.warn('[MsdControlsRenderer] Failed to create controls container - skipping render');
+      return;
+    }
 
     // Clear existing controls
-    this.controlsContainer.innerHTML = '';
+    container.innerHTML = '';
     this.controlElements.clear();
 
     // Render each control overlay
@@ -118,41 +123,73 @@ export class MsdControlsRenderer {
       const cardType = overlay.card.type;
       let cardElement = null;
 
+      // FIXED: Handle both direct card types and Home Assistant card types
+      const haCardTypes = {
+        'light': 'hui-light-card',
+        'switch': 'hui-switch-card',
+        'sensor': 'hui-sensor-card',
+        'gauge': 'hui-gauge-card',
+        'button': 'hui-button-card',
+        'entities': 'hui-entities-card',
+        'glance': 'hui-glance-card'
+      };
+
+      const resolvedCardType = haCardTypes[cardType] || cardType;
+
       // Strategy 1: Try customElements.get and new constructor
       if (window.customElements && typeof window.customElements.get === 'function') {
         try {
-          const CardClass = window.customElements.get(cardType);
+          const CardClass = window.customElements.get(resolvedCardType);
           if (CardClass) {
             cardElement = new CardClass();
           }
         } catch (e) {
-          console.warn(`Failed to instantiate ${cardType} via constructor:`, e);
+          console.warn(`Failed to instantiate ${resolvedCardType} via constructor:`, e);
         }
       }
 
-      // Strategy 2: Try document.createElement
+      // Strategy 2: Try document.createElement with resolved type
       if (!cardElement) {
         try {
-          cardElement = document.createElement(cardType);
+          cardElement = document.createElement(resolvedCardType);
           // Verify it's actually a custom element, not just a generic element
-          if (cardElement.tagName.toLowerCase() === cardType && cardElement.setConfig) {
+          if (cardElement.tagName.toLowerCase() === resolvedCardType && cardElement.setConfig) {
             // Good - it's a real custom card element
-          } else if (cardElement.tagName.toLowerCase() !== cardType) {
+          } else if (cardElement.tagName.toLowerCase() !== resolvedCardType) {
             // Generic element created - try upgrading
             window.customElements?.upgrade?.(cardElement);
           }
         } catch (e) {
-          console.warn(`Failed to create element ${cardType}:`, e);
+          console.warn(`Failed to create element ${resolvedCardType}:`, e);
         }
       }
 
-      // Strategy 3: Fallback div with card type
+      // ENHANCED: Strategy 3 - Try creating through Home Assistant's card system
+      if (!cardElement && window.customCards) {
+        try {
+          // Some HA cards are registered in customCards registry
+          const cardConfig = { type: cardType, ...overlay.card.config };
+          if (window.customCards[cardType]) {
+            cardElement = window.customCards[cardType].getCard(cardConfig);
+          }
+        } catch (e) {
+          console.warn(`Failed to create via customCards ${cardType}:`, e);
+        }
+      }
+
+      // Strategy 4: Fallback div with card type
       if (!cardElement) {
         cardElement = document.createElement('div');
-        cardElement.setAttribute('data-card-type', cardType);
+        cardElement.setAttribute('data-card-type', resolvedCardType);
+        cardElement.style.border = '2px solid var(--primary-color)';
+        cardElement.style.padding = '8px';
+        cardElement.style.background = 'var(--card-background-color, #1f1f1f)';
+        cardElement.style.borderRadius = '4px';
+        cardElement.innerHTML = `<div style="color: var(--primary-text-color);">Card: ${cardType}</div>`;
+
         // Make it look like the expected card type for compatibility
         Object.defineProperty(cardElement, 'tagName', {
-          value: cardType.toUpperCase(),
+          value: resolvedCardType.toUpperCase(),
           writable: false
         });
       }
@@ -162,8 +199,9 @@ export class MsdControlsRenderer {
         if (typeof cardElement.setConfig === 'function') {
           try {
             cardElement.setConfig(overlay.card.config);
+            console.log(`[MSD Controls] Config applied to ${resolvedCardType}:`, overlay.card.config);
           } catch (e) {
-            console.warn(`Failed to set config on ${cardType}:`, e);
+            console.warn(`Failed to set config on ${resolvedCardType}:`, e);
           }
         }
         // Always store config as backup
@@ -175,12 +213,13 @@ export class MsdControlsRenderer {
         try {
           if ('hass' in cardElement || cardElement.hass !== undefined) {
             cardElement.hass = this.hass;
+            console.log(`[MSD Controls] HASS context applied to ${resolvedCardType}`);
           } else {
             // Store as private property if hass setter not available
             cardElement._hass = this.hass;
           }
         } catch (e) {
-          console.warn(`Failed to set hass on ${cardType}:`, e);
+          console.warn(`Failed to set hass on ${resolvedCardType}:`, e);
           cardElement._hass = this.hass;
         }
       }
@@ -200,7 +239,7 @@ export class MsdControlsRenderer {
     if (position && size) {
       // Convert viewBox coordinates to CSS pixels using CTM
       const css = this.mapViewBoxRectToHostCss(
-        { x: position[0], y: position[1], w: size.w, h: size.h },
+        { x: position[0], y: position[1], w: size[0], h: size[1] },
         resolvedModel
       );
 
@@ -212,16 +251,35 @@ export class MsdControlsRenderer {
         element.style.height = css.height;
         element.style.zIndex = overlay.z_index || 1000;
         element.style.pointerEvents = 'auto';
+        element.style.boxSizing = 'border-box';
+
+        console.log(`[MSD Controls] Positioned control ${overlay.id} at:`, css);
       }
     }
 
-    this.controlsContainer.appendChild(element);
+    // FIXED: Use the container we determined is valid
+    const targetContainer = this.controlsContainer;
+    if (targetContainer) {
+      targetContainer.appendChild(element);
+    } else {
+      console.error('[MSD Controls] No valid controls container to append to');
+    }
   }
 
   mapViewBoxRectToHostCss(vbRect, resolvedModel) {
     try {
-      const svg = this.renderer.container.querySelector('svg');
-      if (!svg) return null;
+      // FIXED: Use the actual container we're working with
+      const targetContainer = this.renderer.container || this.renderer.mountEl;
+      const svg = targetContainer?.querySelector('svg');
+
+      if (!svg) {
+        console.warn('[MsdControlsRenderer] No SVG found in container:', {
+          hasContainer: !!targetContainer,
+          containerType: targetContainer?.constructor?.name,
+          svgFound: !!svg
+        });
+        return null;
+      }
 
       // Mock CTM for testing environment
       const isNode = typeof window === 'undefined';
@@ -280,8 +338,81 @@ export class MsdControlsRenderer {
     }
   }
 
+  // ADDED: Async version that waits for renderer container
+  async ensureControlsContainerAsync() {
+    // Try immediate creation first
+    let container = this.ensureControlsContainer();
+    if (container) return container;
+
+    // If failed, wait for renderer container with timeout
+    const maxAttempts = 10;
+    const delayMs = 50;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Wait a bit for renderer to complete
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+
+      // Try again
+      container = this.ensureControlsContainer();
+      if (container) {
+        console.log(`[MsdControlsRenderer] Container ready after ${attempt + 1} attempts`);
+        return container;
+      }
+
+      console.log(`[MsdControlsRenderer] Attempt ${attempt + 1}/${maxAttempts} - renderer container not ready`);
+    }
+
+    console.error('[MsdControlsRenderer] Renderer container never became ready');
+    return null;
+  }
+
   ensureControlsContainer() {
-    if (this.controlsContainer && this.controlsContainer.parentNode === this.renderer.container) {
+    // ENHANCED: Add comprehensive debugging of the renderer state
+    console.log('[MsdControlsRenderer] Debugging renderer state:', {
+      hasRenderer: !!this.renderer,
+      rendererType: this.renderer?.constructor?.name,
+      hasContainer: !!this.renderer?.container,
+      containerType: this.renderer?.container?.constructor?.name,
+      rendererProps: this.renderer ? Object.keys(this.renderer) : [],
+      mountEl: this.renderer?.mountEl,
+      mountElType: this.renderer?.mountEl?.constructor?.name
+    });
+
+    // FIXED: Add better validation of renderer and container
+    if (!this.renderer) {
+      console.warn('[MsdControlsRenderer] No renderer available');
+      return null;
+    }
+
+    // FIXED: Check if renderer has mountEl instead of container
+    const targetContainer = this.renderer.container || this.renderer.mountEl;
+
+    if (!targetContainer) {
+      console.warn('[MsdControlsRenderer] Neither renderer.container nor renderer.mountEl available');
+      console.log('[MsdControlsRenderer] Available renderer properties:', Object.keys(this.renderer));
+      return null;
+    }
+
+    // ADDED: Verify target container is actually a DOM element
+    if (!targetContainer.appendChild || typeof targetContainer.appendChild !== 'function') {
+      console.warn('[MsdControlsRenderer] Target container is not a valid DOM element:', {
+        container: targetContainer,
+        type: targetContainer?.constructor?.name,
+        hasAppendChild: !!targetContainer.appendChild
+      });
+      return null;
+    }
+
+    // Update our container reference to use the correct target
+    if (!this.renderer.container) {
+      console.log('[MsdControlsRenderer] Using mountEl as container since renderer.container is not set');
+      this.renderer.container = targetContainer;
+    }
+
+    // Check if existing container is still valid and attached
+    if (this.controlsContainer &&
+        this.controlsContainer.parentNode === targetContainer &&
+        this.controlsContainer.isConnected !== false) {
       return this.controlsContainer;
     }
 
@@ -294,86 +425,116 @@ export class MsdControlsRenderer {
       return null;
     }
 
-    if (!this.renderer.container || typeof this.renderer.container.appendChild !== 'function') {
-      console.warn('[MsdControlsRenderer] Container or appendChild not available');
+    if (typeof targetContainer.appendChild !== 'function') {
+      console.warn('[MsdControlsRenderer] Container appendChild not available');
       return null;
     }
 
-    // Create the controls container element
-    this.controlsContainer = doc.createElement('div');
-    this.controlsContainer.id = 'msd-controls-container';
-
-    // Set style properties individually for Node.js compatibility
-    const style = this.controlsContainer.style;
-    if (style) {
-      style.position = 'absolute';
-      style.top = '0';
-      style.left = '0';
-      style.right = '0';
-      style.bottom = '0';
-      style.pointerEvents = 'none';
-      style.zIndex = '1000';
-    }
-
-    // Safe event listener attachment
-    if (typeof this.controlsContainer.addEventListener === 'function') {
-      this.controlsContainer.addEventListener('pointerdown', (e) => {
-        if (e.target !== this.controlsContainer) {
-          e.target.style.pointerEvents = 'auto';
+    // FIXED: Clean up any existing container first
+    if (this.controlsContainer) {
+      try {
+        if (this.controlsContainer.remove) {
+          this.controlsContainer.remove();
+        } else if (this.controlsContainer.parentNode) {
+          this.controlsContainer.parentNode.removeChild(this.controlsContainer);
         }
-      });
+      } catch (e) {
+        console.warn('[MsdControlsRenderer] Failed to remove old container:', e);
+      }
+      this.controlsContainer = null;
     }
 
-    // Direct DOM integration
+    // Create the controls container element
     try {
-      this.renderer.container.appendChild(this.controlsContainer);
+      this.controlsContainer = doc.createElement('div');
+      this.controlsContainer.id = 'msd-controls-container';
+
+      // Set style properties individually for Node.js compatibility
+      const style = this.controlsContainer.style;
+      if (style) {
+        style.position = 'absolute';
+        style.top = '0';
+        style.left = '0';
+        style.right = '0';
+        style.bottom = '0';
+        style.pointerEvents = 'none';
+        style.zIndex = '1000';
+      }
+
+      // Safe event listener attachment
+      if (typeof this.controlsContainer.addEventListener === 'function') {
+        this.controlsContainer.addEventListener('pointerdown', (e) => {
+          if (e.target !== this.controlsContainer) {
+            e.target.style.pointerEvents = 'auto';
+          }
+        });
+      }
+
+    } catch (error) {
+      console.error('[MsdControlsRenderer] Failed to create controls container element:', error);
+      return null;
+    }
+
+    // Direct DOM integration with better error handling
+    try {
+      targetContainer.appendChild(this.controlsContainer);
+      console.log('[MsdControlsRenderer] Controls container created and attached to:', {
+        targetType: targetContainer?.constructor?.name,
+        targetId: targetContainer?.id,
+        isMount: targetContainer === this.renderer.mountEl
+      });
 
       // Store direct reference on container for test access
-      this.renderer.container._msdControlsContainer = this.controlsContainer;
+      targetContainer._msdControlsContainer = this.controlsContainer;
 
-      // Replace querySelector entirely to ensure our container is found
-      const originalQuerySelector = this.renderer.container.querySelector;
-      const controlsContainerRef = this.controlsContainer;
+      // FIXED: Only replace querySelector if it exists
+      if (typeof targetContainer.querySelector === 'function') {
+        const originalQuerySelector = targetContainer.querySelector;
+        const controlsContainerRef = this.controlsContainer;
 
-      // Create new querySelector that ALWAYS finds our container
-      this.renderer.container.querySelector = function(selector) {
-        if (selector === '#msd-controls-container' && controlsContainerRef) {
-          return controlsContainerRef;
-        }
+        // Create new querySelector that ALWAYS finds our container
+        targetContainer.querySelector = function(selector) {
+          if (selector === '#msd-controls-container' && controlsContainerRef) {
+            return controlsContainerRef;
+          }
 
-        if (selector === '#msd-controls-container' && this._msdControlsContainer) {
-          return this._msdControlsContainer;
-        }
+          if (selector === '#msd-controls-container' && this._msdControlsContainer) {
+            return this._msdControlsContainer;
+          }
 
-        // Manual search in mock DOM children
-        if (selector.startsWith('#') && this._children && Array.isArray(this._children)) {
-          const id = selector.substring(1);
-          const found = this._children.find(child => child && child.id === id);
-          if (found) return found;
-        }
+          // Manual search in mock DOM children
+          if (selector.startsWith('#') && this._children && Array.isArray(this._children)) {
+            const id = selector.substring(1);
+            const found = this._children.find(child => child && child.id === id);
+            if (found) return found;
+          }
 
-        // Use original method if available
-        if (originalQuerySelector && typeof originalQuerySelector === 'function') {
-          try {
-            return originalQuerySelector.call(this, selector);
-          } catch (e) {}
-        }
+          // Use original method if available
+          if (originalQuerySelector && typeof originalQuerySelector === 'function') {
+            try {
+              return originalQuerySelector.call(this, selector);
+            } catch (e) {}
+          }
 
-        return null;
-      };
+          return null;
+        };
+      }
 
       // Ensure DOM structure for Node.js testing
-      if (isNode && this.renderer.container._children && Array.isArray(this.renderer.container._children)) {
+      const isNode = typeof window === 'undefined';
+      if (isNode && targetContainer._children && Array.isArray(targetContainer._children)) {
         // Remove any existing controls container
-        this.renderer.container._children = this.renderer.container._children.filter(c => c.id !== 'msd-controls-container');
+        targetContainer._children = targetContainer._children.filter(c => c.id !== 'msd-controls-container');
 
         // Add our container
-        this.renderer.container._children.push(this.controlsContainer);
-        this.controlsContainer.parentNode = this.renderer.container;
+        targetContainer._children.push(this.controlsContainer);
+        this.controlsContainer.parentNode = targetContainer;
       }
 
     } catch (error) {
       console.error('[MsdControlsRenderer] Failed to append controls container:', error);
+      // Clean up the created element if append failed
+      this.controlsContainer = null;
       return null;
     }
 
@@ -389,11 +550,14 @@ export class MsdControlsRenderer {
   }
 
   resolveSize(size, resolvedModel) {
-    // Simple size resolution
+    // FIXED: Handle both array format and object format
     if (Array.isArray(size) && size.length >= 2) {
-      return { w: Number(size[0]), h: Number(size[1]) };
+      return [Number(size[0]), Number(size[1])];
     }
-    return null;
+    if (size && typeof size === 'object' && size.w && size.h) {
+      return [Number(size.w), Number(size.h)];
+    }
+    return [100, 100]; // Default size
   }
 
   relayout() {
@@ -414,5 +578,3 @@ export class MsdControlsRenderer {
     }
   }
 }
-
-

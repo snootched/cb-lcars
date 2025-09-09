@@ -158,10 +158,14 @@ function buildExportPanel(pipeline) {
   btnRow.style.display = 'flex';
   btnRow.style.gap = '6px';
   const taCollapsed = document.createElement('textarea');
+  taCollapsed.id = 'msd-export-collapsed';
+  taCollapsed.name = 'export-collapsed';
   taCollapsed.style.width = '100%';
   taCollapsed.style.height = '120px';
   taCollapsed.readOnly = true;
   const taFull = document.createElement('textarea');
+  taFull.id = 'msd-export-full';
+  taFull.name = 'export-full';
   taFull.style.width = '100%';
   taFull.style.height = '160px';
   taFull.readOnly = true;
@@ -193,10 +197,14 @@ function buildExportPanel(pipeline) {
   diffControls.style.display = 'flex';
   diffControls.style.gap = '4px';
   const selCol = document.createElement('select');
+  selCol.id = 'msd-diff-collection';
+  selCol.name = 'diff-collection';
   ['animations','timelines','rules','profiles','overlays'].forEach(c => {
     const o = document.createElement('option'); o.value = c; o.textContent = c; selCol.appendChild(o);
   });
   const selId = document.createElement('input');
+  selId.id = 'msd-diff-item-id';
+  selId.name = 'diff-item-id';
   selId.placeholder = 'item id';
   selId.style.flex = '1';
   const btnDiff = document.createElement('button');

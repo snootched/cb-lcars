@@ -47,8 +47,10 @@ msd:
       type: line
       anchor: cpu
       attach_to: mem
+      attach_gap: 12                        # Gap from anchor edge
       route: grid                           # Per-overlay routing strategy
       route_mode: grid                      # Explicit routing mode
+      route_mode_last: yx                   # Last segment: vertical last (approach to end)
       route_mode_full: grid                 # Advanced routing mode
       route_channels: [main_bus]            # Channel-aware routing
       channel_mode: force                   # Channel mode: prefer | avoid | force
