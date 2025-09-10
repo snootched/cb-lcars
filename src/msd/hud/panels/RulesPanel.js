@@ -109,7 +109,11 @@ export class RulesPanel {
         const matchStatus = rule.lastMatch ? '✓' : '○';
         const matchColor = rule.lastMatch ? '#66ff99' : '#666';
 
-        html += `<div class="msd-hud-metric" style="margin:2px 0;padding:2px;${rule.lastMatch ? 'background:rgba(102,255,153,0.1);' : ''} border-radius:3px;">
+        html += `<div class="msd-hud-metric"
+          data-select-type="rule"
+          data-select-id="${rule.id}"
+          onclick="__msdHudBus('select:set',{type:'rule',id:'${rule.id}',source:'rules'})"
+          style="margin:2px 0;padding:2px;${rule.lastMatch ? 'background:rgba(102,255,153,0.1);' : ''} border-radius:3px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <span class="msd-hud-metric-name">${shortId}</span>
             <div style="display:flex;gap:8px;align-items:center;">

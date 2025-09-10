@@ -56,7 +56,11 @@ export class ValidationPanel {
     if (errors.length > 0) {
       html += '<div class="msd-hud-section msd-hud-errors"><h4>Errors</h4>';
       errors.slice(0, 6).forEach(error => {
-        html += `<div class="msd-hud-metric msd-hud-error">
+        html += `<div class="msd-hud-metric msd-hud-error"
+          data-select-type="${error.overlay ? 'overlay':'anchor'}"
+          data-select-id="${error.overlay || error.anchor || error.code}"
+          onclick="__msdHudBus('select:set',{type:'${error.overlay ? 'overlay':'anchor'}',id:'${error.overlay || error.anchor || error.code}',source:'validation'})"
+        >
           <span class="msd-hud-metric-name">${error.code}</span>
           <span class="msd-hud-metric-value">${error.message}</span>
         </div>`;
@@ -75,7 +79,11 @@ export class ValidationPanel {
     if (warnings.length > 0) {
       html += '<div class="msd-hud-section msd-hud-warnings"><h4>Warnings</h4>';
       warnings.slice(0, 6).forEach(warning => {
-        html += `<div class="msd-hud-metric msd-hud-warning">
+        html += `<div class="msd-hud-metric msd-hud-warning"
+          data-select-type="${warning.overlay ? 'overlay':'anchor'}"
+          data-select-id="${warning.overlay || warning.anchor || warning.code}"
+          onclick="__msdHudBus('select:set',{type:'${warning.overlay ? 'overlay':'anchor'}',id:'${warning.overlay || warning.anchor || warning.code}',source:'validation'})"
+        >
           <span class="msd-hud-metric-name">${warning.code}</span>
           <span class="msd-hud-metric-value">${warning.message}</span>
         </div>`;

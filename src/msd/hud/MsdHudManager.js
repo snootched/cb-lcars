@@ -13,7 +13,8 @@ import { IssuesPanel } from './panels/IssuesPanel.js';
 import { PacksPanel } from './panels/PacksPanel.js';
 import { RulesPanel } from './panels/RulesPanel.js';
 import { ExportPanel } from './panels/ExportPanel.js';
-import { HudEventBus } from './hudService.js'; // ADDED
+import { HudEventBus } from './hudService.js'; // existing
+import { SelectionManager } from './hudService.js'; // ADDED
 
 // FIXED: Move debug verification to constructor only, not on every import
 console.log('[MsdHudManager] Importing ExportPanel class');
@@ -96,6 +97,8 @@ export class MsdHudManager {
     Object.values(this.panels).forEach(p => { p.bus = this.bus; });
 
     this._registerBusHandlers(); // ADDED
+    this.selection = new SelectionManager(this.bus); // ADDED
+    this._registerSelectionHandlers(); // ADDED
  }
 
   // ADDED: Setup global panel control handlers
@@ -354,6 +357,62 @@ export class MsdHudManager {
     this.bus.on('hud:refresh', () => this.refresh());
   }
 
+  _registerSelectionHandlers() { // ADDED
+    this.bus.on('select:set', ({ type, id, source }) => {
+      this.selection.set(type, id, { source });
+      // Optional contextual highlight actions
+      if (type === 'route') {
+        this.bus.emit('routing:highlight', { id });
+      }
+      this.refresh();
+    });
+    this.bus.on('select:clear', () => {
+      this.selection.clear();
+      this.refresh();
+    });
+    // Passive listener to apply highlight after render
+    this.bus.on('select:changed', () => {
+      // If HUD already rendered, apply highlight without full refresh
+      this._applySelectionHighlight();
+      this._updateSelectionBadge();
+    });
+  }
+
+  _applySelectionHighlight() { // ADDED
+    if (!this.hudElement) return;
+    const sel = this.selection.get();
+    // Clear old
+    this.hudElement.querySelectorAll('.msd-selected').forEach(el => el.classList.remove('msd-selected'));
+    if (!sel) return;
+    // Match any element with matching data-select-type & id
+    const matches = this.hudElement.querySelectorAll(
+      `[data-select-type="${sel.type}"][data-select-id="${CSS.escape(sel.id)}"]`
+    );
+    matches.forEach(el => el.classList.add('msd-selected'));
+  }
+
+  _updateSelectionBadge() { // ADDED
+    if (!this.hudElement) return;
+    const badge = this.hudElement.querySelector('#msd-selection-badge');
+    if (!badge) return;
+    const sel = this.selection.get();
+    if (!sel) {
+      badge.innerHTML = '';
+      return;
+    }
+    badge.innerHTML = `
+      <span style="background:#222;border:1px solid #444;padding:2px 6px;border-radius:4px;font-size:10px;display:inline-flex;gap:6px;align-items:center;">
+        <span style="color:#ffaa00;">${sel.type}</span>
+        <span style="color:#00ffff;max-width:160px;overflow:hidden;text-overflow:ellipsis;">${sel.id}</span>
+        <button data-bus-event="select:clear"
+          onclick="__msdHudBus('select:clear')"
+          style="background:#333;color:#ccc;border:1px solid #555;border-radius:3px;font-size:9px;cursor:pointer;padding:0 4px;">
+          ✕
+        </button>
+      </span>
+    `;
+  }
+
   createHudElement() {
     if (this.hudElement) return;
 
@@ -499,6 +558,9 @@ export class MsdHudManager {
       }
 
       this._attachPanelManagerEventListeners();
+      // ADDED: Apply selection highlight & badge after render
+      this._updateSelectionBadge();
+      this._applySelectionHighlight();
 
       // Restore panel manager state after render
       if (wasManagerOpen) {
@@ -668,12 +730,27 @@ export class MsdHudManager {
           padding: 4px;
           background: rgba(255, 170, 0, 0.2);
         }
+
+        #msd-debug-hud .msd-selected {
+          outline: 2px solid #ffaa00;
+          background: rgba(255,170,0,0.12) !important;
+          position: relative;
+        }
+        #msd-debug-hud .msd-selected::after {
+          content: '●';
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 8px;
+            color: #ffaa00;
+        }
       </style>
     `;
 
     html += `
       <div class="msd-hud-header">
         <span class="msd-hud-title">MSD v1 Debug HUD</span>
+        <div id="msd-selection-badge" style="flex:1;display:flex;justify-content:center;"></div>
         <div class="msd-hud-controls">
           <span class="msd-hud-menu" onclick="window.__msdHudPanelControls?.togglePanelManager?.()" title="Panel Settings">⚙</span>
           <span class="msd-hud-refresh" onclick="window.__msdDebug?.hud?.refresh?.()" title="Refresh">⟳</span>

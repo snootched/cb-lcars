@@ -77,6 +77,17 @@ export class IssuesPanel {
         }
         break;
     }
+
+    // ADDED: Selection heuristics
+    if (this.bus) {
+      if (action === 'overlay' && overlay) {
+        this.bus.emit('select:set', { type: 'overlay', id: overlay, source: 'issues' });
+      } else if (action === 'routing' && id) {
+        this.bus.emit('select:set', { type: 'route', id, source: 'issues' });
+      } else if (action === 'performance' && id) {
+        this.bus.emit('select:set', { type: 'timer', id, source: 'issues' });
+      }
+    }
   }
 
   captureData() {
@@ -242,6 +253,9 @@ export class IssuesPanel {
           data-action="${issue.clickAction}"
           data-id="${issue.id}"
           data-overlay="${issue.overlay || ''}"
+          data-select-type="${issue.clickAction === 'overlay' ? 'overlay' : issue.clickAction === 'routing' ? 'route' : issue.clickAction === 'performance' ? 'timer' : 'issue'}"
+          data-select-id="${issue.overlay || issue.id}"
+          onclick="__msdHudBus('issues:action',{action:'${issue.clickAction}',id:'${issue.id}',overlay:'${issue.overlay || ''}'});__msdHudBus('select:set',{type:'${issue.clickAction === 'overlay' ? 'overlay' : issue.clickAction === 'routing' ? 'route' : issue.clickAction === 'performance' ? 'timer' : 'issue'}',id:'${issue.overlay || issue.id}',source:'issues'})"
           style="cursor:pointer; border-left:3px solid ${severityColor}; padding-left:6px; margin:2px 0;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span class="msd-hud-metric-name">[${issue.code || issue.type}]</span>

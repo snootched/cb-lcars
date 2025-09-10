@@ -33,3 +33,27 @@ export class HudEventBus {
     this._listeners.clear();
   }
 }
+
+export class SelectionManager {
+  constructor(bus) {
+    this.bus = bus;
+    this.current = null;
+  }
+  set(type, id, meta = {}) {
+    if (!type || !id) return;
+    this.current = {
+      type,
+      id,
+      meta,
+      ts: Date.now()
+    };
+    this.bus?.emit('select:changed', this.current);
+  }
+  clear() {
+    this.current = null;
+    this.bus?.emit('select:changed', null);
+  }
+  get() {
+    return this.current;
+  }
+}

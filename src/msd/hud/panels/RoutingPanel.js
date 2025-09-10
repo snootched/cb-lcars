@@ -444,9 +444,12 @@ export class RoutingPanel {
         const costColor = route.cost > 50 ? '#ff6666' : route.cost > 20 ? '#ffaa00' : '#66ff99';
 
         // FIXED: Update data attribute for easier highlighting
-        html += `<div class="msd-hud-metric" data-overlay-id="${route.id}"
+        html += `<div class="msd-hud-metric"
+          data-overlay-id="${route.id}"
+          data-select-type="route"
+          data-select-id="${route.id}"
           style="cursor:pointer;border:1px solid #333;padding:4px;margin:2px 0;border-radius:3px;transition:all 0.3s;"
-          onclick="__msdHudBus('routing:highlight',{id:'${route.id}'})"
+          onclick="__msdHudBus('select:set',{type:'route',id:'${route.id}',source:'routing'});__msdHudBus('routing:highlight',{id:'${route.id}'})"
           onmouseover="this.style.background='rgba(255,0,255,0.1)'"
           onmouseout="this.style.background=''">
           <div style="display:flex;justify-content:space-between;">
@@ -462,7 +465,8 @@ export class RoutingPanel {
 
         // Add analysis button
         html += `<div style="text-align:right;margin-top:2px;">
-          <button data-bus-event="routing:analyze" onclick="__msdHudBus('routing:analyze',{id:'${route.id}'})"
+          <button data-bus-event="routing:analyze"
+            onclick="__msdHudBus('select:set',{type:'route',id:'${route.id}',source:'routing'});__msdHudBus('routing:analyze',{id:'${route.id}'})"
             style="font-size:9px;padding:1px 4px;background:#333;color:#ccc;border:1px solid #555;border-radius:2px;cursor:pointer;">
             Analyze
           </button>
