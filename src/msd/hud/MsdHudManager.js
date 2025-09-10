@@ -13,6 +13,7 @@ import { IssuesPanel } from './panels/IssuesPanel.js';
 import { PacksPanel } from './panels/PacksPanel.js';
 import { RulesPanel } from './panels/RulesPanel.js';
 import { ExportPanel } from './panels/ExportPanel.js';
+import { HudEventBus } from './hudService.js'; // ADDED
 
 // FIXED: Move debug verification to constructor only, not on every import
 console.log('[MsdHudManager] Importing ExportPanel class');
@@ -27,6 +28,9 @@ export class MsdHudManager {
     } catch (e) {
       console.error('[MsdHudManager] ExportPanel instantiation failed:', e);
     }
+
+    this.bus = new HudEventBus(); // ADDED
+    window.__msdHudBus = (evt, payload) => this.bus.emit(evt, payload || {}); // ADDED global helper
 
     this.panels = {
       issues: new IssuesPanel(),
@@ -87,6 +91,11 @@ export class MsdHudManager {
     this._setupGlobalPanelControls();
     this.keyboardEnabled = true;
     this._setupKeyboardShortcuts();
+
+    // ADDED: Provide bus to panels (optional future use)
+    Object.values(this.panels).forEach(p => { p.bus = this.bus; });
+
+    this._registerBusHandlers(); // ADDED
  }
 
   // ADDED: Setup global panel control handlers
@@ -302,46 +311,47 @@ export class MsdHudManager {
     };
   }
 
-  show() {
-    if (this.state.visible) return;
+  _registerBusHandlers() {
+    // Central event -> panel method mapping
+    const { routing, performance, flags, export: exp, dataSources, issues } = this.panels;
 
-    this.state.visible = true;
-    this.createHudElement();
-    this.startRefresh();
+    // Routing
+    this.bus.on('routing:highlight', ({ id }) => routing?.highlightRoute?.(id));
+    this.bus.on('routing:analyze', ({ id }) => routing?.analyzeRoute?.(id));
+    this.bus.on('routing:set-filter', ({ key, value }) => routing?.setFilter?.(key, value));
+    this.bus.on('routing:update-cost', ({ key, value }) => routing?.updateCostFilter?.(key, value));
+    this.bus.on('routing:finalize-cost', () => routing?.finalizeCostFilter?.());
+    this.bus.on('routing:focus-set', ({ field, focus }) => routing?.setInputFocus?.(field, focus));
 
-    // ENHANCED: Setup resize handler and auto-position
-    this._setupResizeHandler();
+    // Performance
+    this.bus.on('performance:clear-all', () => performance?.clearAllTimers?.());
+    this.bus.on('performance:export', () => performance?.exportData?.());
+    this.bus.on('performance:reset-timer', ({ timer }) => performance?.resetTimer?.(timer));
+    this.bus.on('performance:set-threshold', ({ timer, value }) => performance?.setThreshold?.(timer, value));
 
-    // FIXED: Properly expose HUD manager globally
-    if (window.__msdDebug) {
-      window.__msdDebug.hud = {
-        manager: this,
-        refresh: () => this.refresh(),
-        hide: () => this.hide(),
-        show: () => this.show(),
-        toggle: () => this.toggle(),
-        setRefreshRate: (rate) => this.setRefreshRate(rate)
-      };
-    }
+    // Flags
+    this.bus.on('flags:toggle', ({ feature }) => flags?.toggleFeature?.(feature));
+    this.bus.on('flags:scale-adjust', ({ dir }) => flags?.adjustScale?.(dir));
+    this.bus.on('flags:scale-set', ({ scale }) => flags?.setScale?.(scale));
+    this.bus.on('flags:refresh', () => flags?.refreshDebug?.());
 
-    if (this.state.autoPosition) {
-      setTimeout(() => this._autoPositionHud(), 100);
-    }
+    // Export
+    this.bus.on('export:collapsed', () => exp?.exportCollapsed?.());
+    this.bus.on('export:full', () => exp?.exportFull?.(false));
+    this.bus.on('export:full-meta', () => exp?.exportFull?.(true));
+    this.bus.on('export:copy', ({ type }) => exp?.copyToClipboard?.(type));
+    this.bus.on('export:clear', ({ type }) => exp?.clearTextarea?.(type));
 
-    console.log('[MsdHudManager] HUD activated and exposed globally');
-  }
+    // Data sources
+    this.bus.on('datasource:inspect', ({ id }) => dataSources?.inspectEntity?.(id));
+    this.bus.on('datasource:refresh-subs', () => dataSources?.refreshSubscriptions?.());
+    this.bus.on('datasource:clear-history', () => dataSources?.clearHistory?.());
 
-  hide() {
-    if (!this.state.visible) return;
+    // Issues
+    this.bus.on('issues:action', ({ action, id, overlay }) => issues?.handleIssueClick?.(action, id, overlay));
 
-    this.state.visible = false;
-    this.stopRefresh();
-
-    if (this.hudElement) {
-      this.hudElement.remove();
-      this.hudElement = null;
-    }
-    console.log('[MsdHudManager] HUD deactivated');
+    // Generic
+    this.bus.on('hud:refresh', () => this.refresh());
   }
 
   createHudElement() {
@@ -377,6 +387,75 @@ export class MsdHudManager {
     // Mount to document.body for full screen access
     document.body.appendChild(this.hudElement);
     this.updateHudContent();
+
+    this._attachDelegatedEvents(); // ADDED
+  }
+
+  _attachDelegatedEvents() {
+    if (this._delegatedEventsAttached || !this.hudElement) return;
+    this._delegatedEventsAttached = true;
+
+    const mapEvent = (domEvent) => {
+      this.hudElement.addEventListener(domEvent, (e) => {
+        const target = e.target.closest(`[data-bus-event]`);
+        if (!target || !this.hudElement.contains(target)) return;
+        // Build payload from data-* excluding busEvent
+        const { busEvent, ...rest } = Object.fromEntries(
+          Object.entries(target.dataset).map(([k, v]) => [k.replace(/-[a-z]/g, m => m[1].toUpperCase()), v])
+        );
+        // Numeric coercion for simple numbers
+        Object.keys(rest).forEach(k => {
+          if (/^-?\d+(\.\d+)?$/.test(rest[k])) rest[k] = Number(rest[k]);
+        });
+        this.bus.emit(target.dataset.busEvent, rest);
+        if (domEvent === 'click') e.preventDefault();
+      }, true);
+    };
+
+    ['click', 'change', 'input', 'blur', 'focus'].forEach(mapEvent);
+  }
+
+  show() {
+    if (this.state.visible) return;
+
+    this.state.visible = true;
+    this.createHudElement();
+    this.startRefresh();
+
+    // ENHANCED: Setup resize handler and auto-position
+    this._setupResizeHandler();
+
+    // FIXED: Properly expose HUD manager globally
+    if (window.__msdDebug) {
+      window.__msdDebug.hud = {
+        manager: this,
+        refresh: () => this.refresh(),
+        hide: () => this.hide(),
+        show: () => this.show(),
+        toggle: () => this.toggle(),
+        setRefreshRate: (rate) => this.setRefreshRate(rate),
+        bus: this.bus // ADDED
+      };
+    }
+
+    if (this.state.autoPosition) {
+      setTimeout(() => this._autoPositionHud(), 100);
+    }
+
+    console.log('[MsdHudManager] HUD activated and exposed globally');
+  }
+
+  hide() {
+    if (!this.state.visible) return;
+
+    this.state.visible = false;
+    this.stopRefresh();
+
+    if (this.hudElement) {
+      this.hudElement.remove();
+      this.hudElement = null;
+    }
+    console.log('[MsdHudManager] HUD deactivated');
   }
 
   updateHudContent() {

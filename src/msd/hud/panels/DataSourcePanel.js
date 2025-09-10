@@ -7,66 +7,58 @@ export class DataSourcePanel {
   constructor() {
     this.entityChangeHistory = new Map(); // entityId -> recent state changes
     this.maxHistoryLength = 10;
-    this.setupGlobalHandlers();
   }
 
-  setupGlobalHandlers() {
-    if (window.__msdDataSourcePanel) return;
+  inspectEntity(entityId) {
+    try {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const dsManager = pipelineInstance?.dataSourceManager ||
+                       pipelineInstance?.systemsManager?.dataSourceManager ||
+                       window.__msdDebug?.dataSourceManager;
 
-    const self = this;
-    window.__msdDataSourcePanel = {
-      inspectEntity: function(entityId) {
-        try {
-          const pipelineInstance = window.__msdDebug?.pipelineInstance;
-          const dsManager = pipelineInstance?.dataSourceManager ||
-                           pipelineInstance?.systemsManager?.dataSourceManager ||
-                           window.__msdDebug?.dataSourceManager;
-
-          if (dsManager?.getEntity) {
-            const entity = dsManager.getEntity(entityId);
-            console.log(`[DataSourcePanel] Entity ${entityId}:`, entity);
-            console.table([entity]);
-          } else {
-            console.warn('[DataSourcePanel] DataSourceManager not available');
-          }
-        } catch (e) {
-          console.warn('[DataSourcePanel] Entity inspection failed:', e);
-        }
-      },
-
-      refreshSubscriptions: function() {
-        try {
-          const pipelineInstance = window.__msdDebug?.pipelineInstance;
-          const dsManager = pipelineInstance?.dataSourceManager ||
-                           pipelineInstance?.systemsManager?.dataSourceManager ||
-                           window.__msdDebug?.dataSourceManager;
-
-          if (dsManager?.refreshSubscriptions) {
-            dsManager.refreshSubscriptions();
-            console.log('[DataSourcePanel] Subscriptions refreshed');
-          } else {
-            console.warn('[DataSourcePanel] Refresh not available');
-          }
-
-          // Trigger HUD refresh
-          if (window.__msdDebug?.hud?.refresh) {
-            window.__msdDebug.hud.refresh();
-          }
-        } catch (e) {
-          console.warn('[DataSourcePanel] Subscription refresh failed:', e);
-        }
-      },
-
-      clearHistory: function() {
-        self.entityChangeHistory.clear();
-        console.log('[DataSourcePanel] Change history cleared');
-
-        // Trigger refresh
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
-        }
+      if (dsManager?.getEntity) {
+        const entity = dsManager.getEntity(entityId);
+        console.log(`[DataSourcePanel] Entity ${entityId}:`, entity);
+        console.table([entity]);
+      } else {
+        console.warn('[DataSourcePanel] DataSourceManager not available');
       }
-    };
+    } catch (e) {
+      console.warn('[DataSourcePanel] Entity inspection failed:', e);
+    }
+  }
+
+  refreshSubscriptions() {
+    try {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      const dsManager = pipelineInstance?.dataSourceManager ||
+                       pipelineInstance?.systemsManager?.dataSourceManager ||
+                       window.__msdDebug?.dataSourceManager;
+
+      if (dsManager?.refreshSubscriptions) {
+        dsManager.refreshSubscriptions();
+        console.log('[DataSourcePanel] Subscriptions refreshed');
+      } else {
+        console.warn('[DataSourcePanel] Refresh not available');
+      }
+
+      // Trigger HUD refresh
+      if (window.__msdDebug?.hud?.refresh) {
+        window.__msdDebug.hud.refresh();
+      }
+    } catch (e) {
+      console.warn('[DataSourcePanel] Subscription refresh failed:', e);
+    }
+  }
+
+  clearHistory() {
+    this.entityChangeHistory.clear();
+    console.log('[DataSourcePanel] Change history cleared');
+
+    // Trigger refresh
+    if (window.__msdDebug?.hud?.refresh) {
+      window.__msdDebug.hud.refresh();
+    }
   }
 
   captureData() {
@@ -184,12 +176,12 @@ export class DataSourcePanel {
     html += '<div class="msd-hud-section"><h4>Controls</h4>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
 
-    html += `<button onclick="window.__msdDataSourcePanel?.refreshSubscriptions()"
+    html += `<button data-bus-event="datasource:refresh-subs" onclick="__msdHudBus('datasource:refresh-subs')"
       style="font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;cursor:pointer;">
       Refresh Subs
     </button>`;
 
-    html += `<button onclick="window.__msdDataSourcePanel?.clearHistory()"
+    html += `<button data-bus-event="datasource:clear-history" onclick="__msdHudBus('datasource:clear-history')"
       style="font-size:10px;padding:2px 6px;background:#666;color:#fff;border:1px solid #888;border-radius:3px;cursor:pointer;">
       Clear History
     </button>`;
@@ -291,7 +283,7 @@ export class DataSourcePanel {
         const timeAgo = Math.round((Date.now() - change.timestamp) / 1000);
 
         html += `<div class="msd-hud-metric" style="cursor:pointer;"
-          onclick="window.__msdDataSourcePanel?.inspectEntity('${change.id}')">
+          onclick="__msdHudBus('datasource:inspect',{id:'${change.id}'})">
           <div style="display:flex;justify-content:space-between;">
             <span class="msd-hud-metric-name">${shortId}</span>
             <span style="font-size:10px;color:#888;">${timeAgo}s ago</span>
@@ -326,7 +318,7 @@ export class DataSourcePanel {
           const shortState = stateValue.length > 12 ? stateValue.substring(0, 9) + '...' : stateValue;
 
           html += `<div class="msd-hud-metric" style="cursor:pointer;margin-left:10px;"
-            onclick="window.__msdDataSourcePanel?.inspectEntity('${id}')">
+            onclick="__msdHudBus('datasource:inspect',{id:'${id}'})">
             <span class="msd-hud-metric-name">${shortId}</span>
             <span class="msd-hud-metric-value">${shortState}</span>
           </div>`;
@@ -345,3 +337,4 @@ export class DataSourcePanel {
     return html;
   }
 }
+

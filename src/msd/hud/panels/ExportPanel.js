@@ -9,84 +9,56 @@ export class ExportPanel {
     // FIXED: Only log construction once, not on every refresh
     console.log('[ExportPanel] Constructor called');
     this.initialized = false;
-    this.setupGlobalHandlers();
     this.initialized = true;
   }
 
-  setupGlobalHandlers() {
-    if (window.__msdExportPanel) return;
-
-    const self = this;
-    window.__msdExportPanel = {
-      exportCollapsed: function() {
-        try {
-          const pipeline = window.__msdDebug?.pipelineInstance;
-          if (pipeline?.exportCollapsedJson) {
-            const json = pipeline.exportCollapsedJson(true);
-            self.downloadJson(json, 'msd-config-collapsed');
-            self.updateTextarea('collapsed', json);
-          }
-        } catch (e) {
-          console.error('[ExportPanel] Collapsed export failed:', e);
-        }
-      },
-
-      exportFull: function(includeMeta = false) {
-        try {
-          const pipeline = window.__msdDebug?.pipelineInstance;
-          if (pipeline?.exportFullSnapshotJson) {
-            const options = includeMeta ? { include_meta: true } : {};
-            const json = pipeline.exportFullSnapshotJson(options, true);
-            const filename = includeMeta ? 'msd-snapshot-with-meta' : 'msd-snapshot';
-            self.downloadJson(json, filename);
-            self.updateTextarea('full', json);
-          }
-        } catch (e) {
-          console.error('[ExportPanel] Full export failed:', e);
-        }
-      },
-
-      diffItem: function() {
-        try {
-          const collection = document.getElementById('export-diff-collection')?.value;
-          const itemId = document.getElementById('export-diff-id')?.value?.trim();
-
-          if (!collection || !itemId) {
-            alert('Please select collection and enter item ID');
-            return;
-          }
-
-          const pipeline = window.__msdDebug?.pipelineInstance;
-          if (pipeline?.diffItem) {
-            const result = pipeline.diffItem(collection, itemId);
-            const jsonStr = JSON.stringify(result, null, 2);
-            self.updateTextarea('diff', jsonStr);
-          }
-        } catch (e) {
-          console.error('[ExportPanel] Item diff failed:', e);
-        }
-      },
-
-      clearTextarea: function(type) {
-        self.updateTextarea(type, '');
-      },
-
-      copyToClipboard: function(type) {
-        const textarea = document.getElementById(`export-${type}-textarea`);
-        if (textarea && textarea.value) {
-          navigator.clipboard.writeText(textarea.value).then(() => {
-            self.showFeedback('Copied to clipboard!');
-          }).catch(e => {
-            console.warn('Clipboard copy failed:', e);
-            textarea.select();
-            textarea.setSelectionRange(0, 99999);
-          });
-        }
+  exportCollapsed() {
+    try {
+      const pipeline = window.__msdDebug?.pipelineInstance;
+      if (pipeline?.exportCollapsedJson) {
+        const json = pipeline.exportCollapsedJson(true);
+        this.downloadJson(json, 'msd-config-collapsed');
+        this.updateTextarea('collapsed', json);
       }
-    };
+    } catch (e) {
+      console.error('[ExportPanel] Collapsed export failed:', e);
+    }
+  }
 
-    // FIXED: Only log setup once
-    console.log('[ExportPanel] Global handlers setup complete');
+  exportFull(includeMeta = false) {
+    try {
+      const pipeline = window.__msdDebug?.pipelineInstance;
+      if (pipeline?.exportFullSnapshotJson) {
+        const options = includeMeta ? { include_meta: true } : {};
+        const json = pipeline.exportFullSnapshotJson(options, true);
+        const filename = includeMeta ? 'msd-snapshot-with-meta' : 'msd-snapshot';
+        this.downloadJson(json, filename);
+        this.updateTextarea('full', json);
+      }
+    } catch (e) {
+      console.error('[ExportPanel] Full export failed:', e);
+    }
+  }
+
+  diffItem() {
+    // Future implementation
+  }
+
+  clearTextarea(type) {
+    this.updateTextarea(type, '');
+  }
+
+  copyToClipboard(type) {
+    const textarea = document.getElementById(`export-${type}-textarea`);
+    if (textarea && textarea.value) {
+      navigator.clipboard.writeText(textarea.value).then(() => {
+        this.showFeedback('Copied to clipboard!');
+      }).catch(e => {
+        console.warn('Clipboard copy failed:', e);
+        textarea.select();
+        textarea.setSelectionRange(0, 99999);
+      });
+    }
   }
 
   downloadJson(jsonString, filename) {
@@ -182,17 +154,17 @@ export class ExportPanel {
     html += '<div class="msd-hud-section"><h4>Export Configuration</h4>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
 
-    html += `<button onclick="window.__msdExportPanel?.exportCollapsed()"
+    html += `<button data-bus-event="export:collapsed" onclick="__msdHudBus('export:collapsed')"
       style="font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;cursor:pointer;">
       Collapsed JSON
     </button>`;
 
-    html += `<button onclick="window.__msdExportPanel?.exportFull(false)"
+    html += `<button data-bus-event="export:full" onclick="__msdHudBus('export:full')"
       style="font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;cursor:pointer;">
       Full Snapshot
     </button>`;
 
-    html += `<button onclick="window.__msdExportPanel?.exportFull(true)"
+    html += `<button data-bus-event="export:full-meta" onclick="__msdHudBus('export:full-meta')"
       style="font-size:10px;padding:2px 6px;background:#666;color:#fff;border:1px solid #888;border-radius:3px;cursor:pointer;">
       +Metadata
     </button>`;
@@ -204,12 +176,10 @@ export class ExportPanel {
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">';
     html += '<span style="font-size:11px;color:#ffaa00;">Collapsed JSON:</span>';
     html += '<div style="display:flex;gap:2px;">';
-    html += `<button onclick="window.__msdExportPanel?.copyToClipboard('collapsed')"
-      style="font-size:9px;padding:1px 4px;background:#444;color:#fff;border:1px solid #666;border-radius:2px;cursor:pointer;">Copy</button>`;
-    html += `<button onclick="window.__msdExportPanel?.clearTextarea('collapsed')"
-      style="font-size:9px;padding:1px 4px;background:#666;color:#fff;border:1px solid #888;border-radius:2px;cursor:pointer;">Clear</button>`;
+    html += `<button data-bus-event="export:copy" onclick="__msdHudBus('export:copy',{type:'collapsed'})" style="font-size:9px;padding:1px 4px;background:#444;color:#fff;border:1px solid #666;border-radius:2px;cursor:pointer;">Copy</button>`;
+    html += `<button data-bus-event="export:clear" onclick="__msdHudBus('export:clear',{type:'collapsed'})" style="font-size:9px;padding:1px 4px;background:#666;color:#fff;border:1px solid #888;border-radius:2px;cursor:pointer;">Clear</button>`;
     html += '</div></div>';
-    html += `<textarea id="export-collapsed-textarea" readonly
+    html += `<textarea id="export-collapsed-textarea" name="export-collapsed" readonly
       style="width:100%;height:80px;font-size:9px;font-family:monospace;background:#111;color:#ccc;border:1px solid #444;border-radius:3px;padding:4px;resize:vertical;"></textarea>`;
     html += '</div>';
 
@@ -218,12 +188,10 @@ export class ExportPanel {
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">';
     html += '<span style="font-size:11px;color:#ffaa00;">Full Snapshot:</span>';
     html += '<div style="display:flex;gap:2px;">';
-    html += `<button onclick="window.__msdExportPanel?.copyToClipboard('full')"
-      style="font-size:9px;padding:1px 4px;background:#444;color:#fff;border:1px solid #666;border-radius:2px;cursor:pointer;">Copy</button>`;
-    html += `<button onclick="window.__msdExportPanel?.clearTextarea('full')"
-      style="font-size:9px;padding:1px 4px;background:#666;color:#fff;border:1px solid #888;border-radius:2px;cursor:pointer;">Clear</button>`;
+    html += `<button data-bus-event="export:copy" onclick="__msdHudBus('export:copy',{type:'full'})" style="font-size:9px;padding:1px 4px;background:#444;color:#fff;border:1px solid #666;border-radius:2px;cursor:pointer;">Copy</button>`;
+    html += `<button data-bus-event="export:clear" onclick="__msdHudBus('export:clear',{type:'full'})" style="font-size:9px;padding:1px 4px;background:#666;color:#fff;border:1px solid #888;border-radius:2px;cursor:pointer;">Clear</button>`;
     html += '</div></div>';
-    html += `<textarea id="export-full-textarea" readonly
+    html += `<textarea id="export-full-textarea" name="export-full" readonly
       style="width:100%;height:100px;font-size:9px;font-family:monospace;background:#111;color:#ccc;border:1px solid #444;border-radius:3px;padding:4px;resize:vertical;"></textarea>`;
     html += '</div>';
 

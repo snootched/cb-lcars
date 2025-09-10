@@ -18,156 +18,127 @@ export class RoutingPanel {
       minCostFocused: false,
       maxCostFocused: false
     };
-
-    this.setupGlobalHandlers();
   }
 
-  setupGlobalHandlers() {
-    if (window.__msdRoutingPanel) return;
+  // ADDED: Former global handlers as instance methods
+  setFilter(key, value) { this.filters[key] = value; }
+  updateCostFilter(type, value) {
+    const n = parseFloat(value);
+    if (!isNaN(n)) this.filters[type] = n;
+  }
+  finalizeCostFilter() {}
+  setInputFocus(field, focused) { this.inputStates[field] = focused; }
+  highlightRoute(routeId) {
+    console.log('[RoutingPanel] Highlighting route:', routeId);
 
-    const self = this;
-    window.__msdRoutingPanel = {
-      setFilter: function(key, value) {
-        self.filters[key] = value;
-        // Trigger refresh via HUD
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
-        }
-      },
+    // FIXED: Use pipeline mount element instead of document for shadow DOM
+    try {
+      // Get the mount element from the pipeline/debug interface
+      const mountElement = window.__msdDebug?.pipelineInstance?.mountElement ||
+                          window.__msdDebug?.mountElement ||
+                          document.querySelector('cb-lcars-msd-card')?.shadowRoot ||
+                          document;
 
-      // FIXED: Better input handling to avoid refresh conflicts
-      updateCostFilter: function(type, value) {
-        const numValue = parseFloat(value);
-        if (!isNaN(numValue)) {
-          self.filters[type] = numValue;
-        }
-        // Don't trigger immediate refresh - let onblur handle it
-      },
-
-      finalizeCostFilter: function() {
-        // Trigger refresh when user finishes editing
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
-        }
-      },
-
-      setInputFocus: function(inputType, focused) {
-        self.inputStates[inputType] = focused;
-      },
-
-      highlightRoute: function(routeId) {
-        console.log('[RoutingPanel] Highlighting route:', routeId);
-
-        // FIXED: Use pipeline mount element instead of document for shadow DOM
-        try {
-          // Get the mount element from the pipeline/debug interface
-          const mountElement = window.__msdDebug?.pipelineInstance?.mountElement ||
-                              window.__msdDebug?.mountElement ||
-                              document.querySelector('cb-lcars-msd-card')?.shadowRoot ||
-                              document;
-
-          if (!mountElement) {
-            console.warn('[RoutingPanel] No mount element found for route highlighting');
-            return;
-          }
-
-          // Try to find and highlight the actual route element in the mount's scope
-          // Look for g elements with data-overlay-id (container) or path elements
-          const routeElements = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"], path[data-overlay-id="${routeId}"], #${routeId}`);
-          routeElements.forEach(element => {
-            // Add temporary highlight class
-            element.classList.add('msd-route-highlighted');
-            setTimeout(() => {
-              element.classList.remove('msd-route-highlighted');
-            }, 3000);
-          });
-
-          // Also try to highlight any path elements within overlay groups
-          const overlayGroups = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"]`);
-          overlayGroups.forEach(group => {
-            const paths = group.querySelectorAll('path');
-            paths.forEach(path => {
-              const originalStroke = path.style.stroke || path.getAttribute('stroke');
-              const originalWidth = path.style.strokeWidth || path.getAttribute('stroke-width');
-
-              // Highlight the path
-              path.style.stroke = '#ff00ff';
-              path.style.strokeWidth = '4';
-              path.style.filter = 'drop-shadow(0 0 6px #ff00ff)';
-
-              // Restore after 3 seconds
-              setTimeout(() => {
-                path.style.stroke = originalStroke;
-                path.style.strokeWidth = originalWidth;
-                path.style.filter = '';
-              }, 3000);
-            });
-          });
-
-          // Show user feedback
-          self.showRouteHighlightFeedback(routeId);
-
-        } catch (e) {
-          console.warn('[RoutingPanel] Route highlighting failed:', e);
-        }
-
-        // Emit routing focus event for other panels
-        if (window.__msdDebug?.hud?.emit) {
-          window.__msdDebug.hud.emit('routing:focus', { id: routeId });
-        }
-      },
-
-      analyzeRoute: function(routeId) {
-        const routing = window.__msdDebug?.routing;
-        if (routing?.inspect) {
-          const analysis = routing.inspect(routeId);
-
-          // FIXED: Enhanced route analysis display
-          console.group(`🔍 Route Analysis: ${routeId}`);
-
-          // Basic info table
-          if (analysis.meta) {
-            console.table({
-              Strategy: analysis.meta.strategy || 'unknown',
-              Cost: analysis.meta.cost || 0,
-              Segments: analysis.meta.segments || 0,
-              Bends: analysis.meta.bends || 0,
-              'Cache Hit': analysis.meta.cache_hit ? '✅ Yes' : '❌ No'
-            });
-          }
-
-          // Path details
-          if (analysis.pts && analysis.pts.length > 0) {
-            console.log('📍 Path Points:', analysis.pts.length, 'points');
-            console.table(analysis.pts.map((pt, i) => ({
-              Index: i,
-              X: pt[0],
-              Y: pt[1],
-              Type: i === 0 ? 'Start' : i === analysis.pts.length - 1 ? 'End' : 'Waypoint'
-            })));
-          }
-
-          // Hint information
-          if (analysis.meta?.hint) {
-            console.log('💡 Routing Hints:');
-            console.table(analysis.meta.hint);
-          }
-
-          // SVG path data (truncated if long)
-          if (analysis.d) {
-            const pathData = analysis.d.length > 100 ? analysis.d.substring(0, 97) + '...' : analysis.d;
-            console.log('🎨 SVG Path:', pathData);
-          }
-
-          // Raw object for developers who need it
-          console.log('📋 Full Analysis Object:', analysis);
-          console.groupEnd();
-
-          // FIXED: Also show visual feedback in HUD
-          self.showRouteAnalysisFeedback(routeId, analysis);
-        }
+      if (!mountElement) {
+        console.warn('[RoutingPanel] No mount element found for route highlighting');
+        return;
       }
-    };
+
+      // Try to find and highlight the actual route element in the mount's scope
+      // Look for g elements with data-overlay-id (container) or path elements
+      const routeElements = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"], path[data-overlay-id="${routeId}"], #${routeId}`);
+      routeElements.forEach(element => {
+        // Add temporary highlight class
+        element.classList.add('msd-route-highlighted');
+        setTimeout(() => {
+          element.classList.remove('msd-route-highlighted');
+        }, 3000);
+      });
+
+      // Also try to highlight any path elements within overlay groups
+      const overlayGroups = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"]`);
+      overlayGroups.forEach(group => {
+        const paths = group.querySelectorAll('path');
+        paths.forEach(path => {
+          const originalStroke = path.style.stroke || path.getAttribute('stroke');
+          const originalWidth = path.style.strokeWidth || path.getAttribute('stroke-width');
+
+          // Highlight the path
+          path.style.stroke = '#ff00ff';
+          path.style.strokeWidth = '4';
+          path.style.filter = 'drop-shadow(0 0 6px #ff00ff)';
+
+          // Restore after 3 seconds
+          setTimeout(() => {
+            path.style.stroke = originalStroke;
+            path.style.strokeWidth = originalWidth;
+            path.style.filter = '';
+          }, 3000);
+        });
+      });
+
+      // Show user feedback
+      this.showRouteHighlightFeedback(routeId);
+
+    } catch (e) {
+      console.warn('[RoutingPanel] Route highlighting failed:', e);
+    }
+
+    // Emit routing focus event for other panels
+    if (window.__msdDebug?.hud?.emit) {
+      window.__msdDebug.hud.emit('routing:focus', { id: routeId });
+    }
+  }
+
+  analyzeRoute(routeId) {
+    const routing = window.__msdDebug?.routing;
+    if (routing?.inspect) {
+      const analysis = routing.inspect(routeId);
+
+      // FIXED: Enhanced route analysis display
+      console.group(`🔍 Route Analysis: ${routeId}`);
+
+      // Basic info table
+      if (analysis.meta) {
+        console.table({
+          Strategy: analysis.meta.strategy || 'unknown',
+          Cost: analysis.meta.cost || 0,
+          Segments: analysis.meta.segments || 0,
+          Bends: analysis.meta.bends || 0,
+          'Cache Hit': analysis.meta.cache_hit ? '✅ Yes' : '❌ No'
+        });
+      }
+
+      // Path details
+      if (analysis.pts && analysis.pts.length > 0) {
+        console.log('📍 Path Points:', analysis.pts.length, 'points');
+        console.table(analysis.pts.map((pt, i) => ({
+          Index: i,
+          X: pt[0],
+          Y: pt[1],
+          Type: i === 0 ? 'Start' : i === analysis.pts.length - 1 ? 'End' : 'Waypoint'
+        })));
+      }
+
+      // Hint information
+      if (analysis.meta?.hint) {
+        console.log('💡 Routing Hints:');
+        console.table(analysis.meta.hint);
+      }
+
+      // SVG path data (truncated if long)
+      if (analysis.d) {
+        const pathData = analysis.d.length > 100 ? analysis.d.substring(0, 97) + '...' : analysis.d;
+        console.log('🎨 SVG Path:', pathData);
+      }
+
+      // Raw object for developers who need it
+      console.log('📋 Full Analysis Object:', analysis);
+      console.groupEnd();
+
+      // FIXED: Also show visual feedback in HUD
+      this.showRouteAnalysisFeedback(routeId, analysis);
+    }
   }
 
   // FIXED: Add visual feedback method
@@ -394,7 +365,7 @@ export class RoutingPanel {
 
     // Strategy filter
     const strategies = ['all', 'auto', 'manhattan', 'smooth', 'direct'];
-    html += '<select onchange="window.__msdRoutingPanel?.setFilter(\'strategy\', this.value)" style="font-size:10px;">';
+    html += '<select id="hud-routing-strategy" name="hud-routing-strategy" data-bus-event="routing:set-filter" data-key="strategy" onchange="__msdHudBus(\'routing:set-filter\', {key:\'strategy\', value:this.value})" style="font-size:10px;">';
     strategies.forEach(strategy => {
       const selected = this.filters.strategy === strategy ? 'selected' : '';
       html += `<option value="${strategy}" ${selected}>${strategy}</option>`;
@@ -402,20 +373,22 @@ export class RoutingPanel {
     html += '</select>';
 
     // FIXED: Cost range with better input handling
-    html += `<input type="number" placeholder="Min cost" value="${this.filters.minCost}"
-      onfocus="window.__msdRoutingPanel?.setInputFocus('minCostFocused', true)"
-      onblur="window.__msdRoutingPanel?.setInputFocus('minCostFocused', false); window.__msdRoutingPanel?.finalizeCostFilter()"
-      oninput="window.__msdRoutingPanel?.updateCostFilter('minCost', this.value)"
-      style="width:60px;font-size:10px;">`;
+    html += `<input type="number" id="hud-routing-min-cost" name="hud-routing-min-cost"
+      data-bus-event="routing:update-cost" data-key="minCost"
+      onfocus="__msdHudBus('routing:focus-set',{field:'minCostFocused',focus:true})"
+      onblur="__msdHudBus('routing:focus-set',{field:'minCostFocused',focus:false});__msdHudBus('routing:finalize-cost')"
+      oninput="__msdHudBus('routing:update-cost',{key:'minCost',value:this.value})"
+      placeholder="Min cost" value="${this.filters.minCost}" style="width:60px;font-size:10px;">`;
 
-    html += `<input type="number" placeholder="Max cost" value="${this.filters.maxCost}"
-      onfocus="window.__msdRoutingPanel?.setInputFocus('maxCostFocused', true)"
-      onblur="window.__msdRoutingPanel?.setInputFocus('maxCostFocused', false); window.__msdRoutingPanel?.finalizeCostFilter()"
-      oninput="window.__msdRoutingPanel?.updateCostFilter('maxCost', this.value)"
-      style="width:60px;font-size:10px;">`;
+    html += `<input type="number" id="hud-routing-max-cost" name="hud-routing-max-cost"
+      data-bus-event="routing:update-cost" data-key="maxCost"
+      onfocus="__msdHudBus('routing:focus-set',{field:'maxCostFocused',focus:true})"
+      onblur="__msdHudBus('routing:focus-set',{field:'maxCostFocused',focus:false});__msdHudBus('routing:finalize-cost')"
+      oninput="__msdHudBus('routing:update-cost',{key:'maxCost',value:this.value})"
+      placeholder="Max cost" value="${this.filters.maxCost}" style="width:60px;font-size:10px;">`;
 
     // Cache filter
-    html += '<select onchange="window.__msdRoutingPanel?.setFilter(\'cacheHit\', this.value)" style="font-size:10px;">';
+    html += '<select id="hud-routing-cachehit" name="hud-routing-cachehit" data-bus-event="routing:set-filter" data-key="cacheHit" onchange="__msdHudBus(\'routing:set-filter\', {key:\'cacheHit\', value:this.value})" style="font-size:10px;">';
     ['all', 'hit', 'miss'].forEach(cache => {
       const selected = this.filters.cacheHit === cache ? 'selected' : '';
       html += `<option value="${cache}" ${selected}>Cache: ${cache}</option>`;
@@ -473,7 +446,7 @@ export class RoutingPanel {
         // FIXED: Update data attribute for easier highlighting
         html += `<div class="msd-hud-metric" data-overlay-id="${route.id}"
           style="cursor:pointer;border:1px solid #333;padding:4px;margin:2px 0;border-radius:3px;transition:all 0.3s;"
-          onclick="window.__msdRoutingPanel?.highlightRoute('${route.id}')"
+          onclick="__msdHudBus('routing:highlight',{id:'${route.id}'})"
           onmouseover="this.style.background='rgba(255,0,255,0.1)'"
           onmouseout="this.style.background=''">
           <div style="display:flex;justify-content:space-between;">
@@ -489,7 +462,7 @@ export class RoutingPanel {
 
         // Add analysis button
         html += `<div style="text-align:right;margin-top:2px;">
-          <button onclick="window.__msdRoutingPanel?.analyzeRoute('${route.id}')"
+          <button data-bus-event="routing:analyze" onclick="__msdHudBus('routing:analyze',{id:'${route.id}'})"
             style="font-size:9px;padding:1px 4px;background:#333;color:#ccc;border:1px solid #555;border-radius:2px;cursor:pointer;">
             Analyze
           </button>

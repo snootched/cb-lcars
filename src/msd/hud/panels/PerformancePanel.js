@@ -7,90 +7,43 @@ export class PerformancePanel {
   constructor() {
     this.thresholds = new Map(); // timerId -> threshold config
     this.previousSnapshot = {};
-    this.setupGlobalHandlers();
   }
 
-  setupGlobalHandlers() {
-    if (window.__msdPerformancePanel) return;
-
-    const self = this;
-    window.__msdPerformancePanel = {
-      setThreshold: function(timerId, avgMs) {
-        const threshold = parseFloat(avgMs);
-        if (isNaN(threshold)) {
-          self.thresholds.delete(timerId);
-        } else {
-          self.thresholds.set(timerId, { avgMs: threshold });
-        }
-        // Trigger refresh
-        if (window.__msdDebug?.hud?.refresh) {
-          window.__msdDebug.hud.refresh();
-        }
-      },
-
-      resetTimer: function(timerId) {
-        try {
-          const perfData = window.__msdDebug?.getPerf?.();
-          if (perfData?.resetTimer) {
-            perfData.resetTimer(timerId);
-          } else {
-            console.warn('[PerformancePanel] Timer reset not available');
-          }
-
-          // Trigger refresh
-          if (window.__msdDebug?.hud?.refresh) {
-            window.__msdDebug.hud.refresh();
-          }
-        } catch (e) {
-          console.warn('[PerformancePanel] Timer reset failed:', e);
-        }
-      },
-
-      clearAllTimers: function() {
-        try {
-          const perfData = window.__msdDebug?.getPerf?.();
-          if (perfData?.clear) {
-            perfData.clear();
-          } else {
-            console.warn('[PerformancePanel] Clear all not available');
-          }
-
-          // Clear local thresholds
-          self.thresholds.clear();
-
-          // Trigger refresh
-          if (window.__msdDebug?.hud?.refresh) {
-            window.__msdDebug.hud.refresh();
-          }
-        } catch (e) {
-          console.warn('[PerformancePanel] Clear all failed:', e);
-        }
-      },
-
-      exportData: function() {
-        const perfData = window.__msdDebug?.getPerf?.() || {};
-        const data = {
-          timestamp: Date.now(),
-          timers: perfData.timers || {},
-          counters: perfData.counters || {},
-          thresholds: Object.fromEntries(self.thresholds)
-        };
-
-        console.table(data.timers);
-        console.log('[PerformancePanel] Performance data:', data);
-
-        // Create downloadable export
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `msd-performance-${Date.now()}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
+  // Instance methods replacing global panel handlers
+  setThreshold(timerId, avgMs) {
+    const t = parseFloat(avgMs);
+    if (isNaN(t)) this.thresholds.delete(timerId);
+    else this.thresholds.set(timerId, { avgMs: t });
+  }
+  resetTimer(timerId) {
+    try { window.__msdDebug?.getPerf?.()?.resetTimer?.(timerId); } catch {}
+  }
+  clearAllTimers() {
+    try { window.__msdDebug?.getPerf?.()?.clear?.(); } catch {}
+    this.thresholds.clear();
+  }
+  exportData() {
+    const perfData = window.__msdDebug?.getPerf?.() || {};
+    const data = {
+      timestamp: Date.now(),
+      timers: perfData.timers || {},
+      counters: perfData.counters || {},
+      thresholds: Object.fromEntries(this.thresholds)
     };
+
+    console.table(data.timers);
+    console.log('[PerformancePanel] Performance data:', data);
+
+    // Create downloadable export
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `msd-performance-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   captureData() {
@@ -174,12 +127,12 @@ export class PerformancePanel {
     html += '<div class="msd-hud-section"><h4>Controls</h4>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
 
-    html += `<button onclick="window.__msdPerformancePanel?.clearAllTimers()"
+    html += `<button data-bus-event="performance:clear-all" onclick="__msdHudBus('performance:clear-all')"
       style="font-size:10px;padding:2px 6px;background:#666;color:#fff;border:1px solid #888;border-radius:3px;cursor:pointer;">
       Clear All
     </button>`;
 
-    html += `<button onclick="window.__msdPerformancePanel?.exportData()"
+    html += `<button data-bus-event="performance:export" onclick="__msdHudBus('performance:export')"
       style="font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;cursor:pointer;">
       Export
     </button>`;
@@ -238,9 +191,13 @@ export class PerformancePanel {
           </div>
           <div style="display:flex;gap:4px;margin-top:4px;">
             <input type="number" placeholder="Threshold (ms)" value="${hasThreshold ? threshold.avgMs : ''}"
-              onchange="window.__msdPerformancePanel?.setThreshold('${key}', this.value)"
+              id="perf-threshold-${key.replace(/[^a-z0-9_-]/gi,'-')}"
+              name="perf-threshold-${key.replace(/[^a-z0-9_-]/gi,'-')}"
+              data-bus-event="performance:set-threshold" data-timer="${key}"
+              onchange="__msdHudBus('performance:set-threshold',{timer:'${key}',value:this.value})"
               style="width:80px;font-size:9px;padding:1px 3px;">
-            <button onclick="window.__msdPerformancePanel?.resetTimer('${key}')"
+            <button data-bus-event="performance:reset-timer"
+              onclick="__msdHudBus('performance:reset-timer',{timer:'${key}'})"
               style="font-size:9px;padding:1px 4px;background:#555;color:#fff;border:1px solid #777;border-radius:2px;cursor:pointer;">
               Reset
             </button>

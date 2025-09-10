@@ -10,96 +10,81 @@ export class FlagsPanel {
     this.debugFeatures = [
       'anchors', 'bounding_boxes', 'routing', 'performance'
     ];
-
-    // Set up global event handlers once
-    this._setupGlobalHandlers();
   }
 
-  _setupGlobalHandlers() {
-    // Only set up once globally
-    if (window.__msdDebugFlagsPanel) return;
+  toggleFeature(feature) {
+    console.log('[FlagsPanel] toggleFeature called:', feature);
 
-    // Store reference to this instance for the handlers
-    const self = this;
+    if (!window.__msdDebug?.debug) {
+      console.warn('[FlagsPanel] Debug interface not available');
+      return;
+    }
 
-    window.__msdDebugFlagsPanel = {
-      toggleFeature: function(feature) {
-        console.log('[FlagsPanel] toggleFeature called:', feature);
+    // FIXED: Use silent status access instead of status() which dumps to console
+    const debugManager = window.__msdDebug?.debugManager ||
+                         window.__msdDebug?.pipelineInstance?.systemsManager?.debugManager;
 
-        if (!window.__msdDebug?.debug) {
-          console.warn('[FlagsPanel] Debug interface not available');
-          return;
-        }
+    if (!debugManager) {
+      console.warn('[FlagsPanel] DebugManager not available');
+      return;
+    }
 
-        // FIXED: Use silent status access instead of status() which dumps to console
-        const debugManager = window.__msdDebug?.debugManager ||
-                           window.__msdDebug?.pipelineInstance?.systemsManager?.debugManager;
+    const currentStatus = debugManager.getSnapshot();
+    const currentlyEnabled = currentStatus[feature];
 
-        if (!debugManager) {
-          console.warn('[FlagsPanel] DebugManager not available');
-          return;
-        }
+    if (currentlyEnabled) {
+      window.__msdDebug.debug.disable(feature);
+    } else {
+      window.__msdDebug.debug.enable(feature);
+    }
 
-        const currentStatus = debugManager.getSnapshot();
-        const currentlyEnabled = currentStatus[feature];
-
-        if (currentlyEnabled) {
-          window.__msdDebug.debug.disable(feature);
+    // FIXED: Force immediate re-render after state change
+    setTimeout(() => {
+      try {
+        const pipelineInstance = window.__msdDebug?.pipelineInstance;
+        if (pipelineInstance?.reRender) {
+          console.log('[FlagsPanel] Triggering re-render after', feature, currentlyEnabled ? 'disable' : 'enable');
+          pipelineInstance.reRender();
         } else {
-          window.__msdDebug.debug.enable(feature);
+          console.warn('[FlagsPanel] No reRender method available on pipeline instance');
         }
-
-        // FIXED: Force immediate re-render after state change
-        setTimeout(() => {
-          try {
-            const pipelineInstance = window.__msdDebug?.pipelineInstance;
-            if (pipelineInstance?.reRender) {
-              console.log('[FlagsPanel] Triggering re-render after', feature, currentlyEnabled ? 'disable' : 'enable');
-              pipelineInstance.reRender();
-            } else {
-              console.warn('[FlagsPanel] No reRender method available on pipeline instance');
-            }
-          } catch (error) {
-            console.warn('[FlagsPanel] Failed to trigger re-render:', error);
-          }
-        }, 50);
-
-        // Refresh HUD after a delay to show updated state
-        setTimeout(() => {
-          if (window.__msdDebug?.hud?.refresh) {
-            window.__msdDebug.hud.refresh();
-          }
-        }, 100);
-      },
-
-      adjustScale: function(direction) {
-        if (!window.__msdDebug?.debug?.status) return;
-        const currentScale = window.__msdDebug.debug.status().scale || 1.0;
-        const step = 0.1;
-        const newScale = direction > 0 ? currentScale + step : currentScale - step;
-        const clampedScale = Math.max(0.5, Math.min(3.0, newScale));
-
-        if (window.__msdDebug.debug.setScale) {
-          window.__msdDebug.debug.setScale(clampedScale);
-        }
-      },
-
-      setScale: function(scale) {
-        const numScale = parseFloat(scale);
-        if (isNaN(numScale)) return;
-        const clampedScale = Math.max(0.5, Math.min(3.0, numScale));
-
-        if (window.__msdDebug?.debug?.setScale) {
-          window.__msdDebug.debug.setScale(clampedScale);
-        }
-      },
-
-      refreshDebug: function() {
-        if (window.__msdDebug?.debug?.refresh) {
-          window.__msdDebug.debug.refresh();
-        }
+      } catch (error) {
+        console.warn('[FlagsPanel] Failed to trigger re-render:', error);
       }
-    };
+    }, 50);
+
+    // Refresh HUD after a delay to show updated state
+    setTimeout(() => {
+      if (window.__msdDebug?.hud?.refresh) {
+        window.__msdDebug.hud.refresh();
+      }
+    }, 100);
+  }
+
+  adjustScale(direction) {
+    if (!window.__msdDebug?.debug?.status) return;
+    const currentScale = window.__msdDebug.debug.status().scale || 1.0;
+    const step = 0.1;
+    const newScale = direction > 0 ? currentScale + step : currentScale - step;
+    const clampedScale = Math.max(0.5, Math.min(3.0, newScale));
+
+    if (window.__msdDebug.debug.setScale) {
+      window.__msdDebug.debug.setScale(clampedScale);
+    }
+  }
+
+  setScale(scale) {
+    const numScale = parseFloat(scale);
+    if (isNaN(numScale)) return;
+    const clampedScale = Math.max(0.5, Math.min(3.0, numScale));
+
+    if (window.__msdDebug?.debug?.setScale) {
+      window.__msdDebug.debug.setScale(clampedScale);
+    }
+  }
+
+  refreshDebug() {
+    window.__msdDebug?.debug?.refresh?.();
   }
 
   captureData() {
@@ -147,7 +132,7 @@ export class FlagsPanel {
       // FIXED: Check debugFeatures instead of features
       const isEnabled = Boolean(debugFeatures[feature]);
       const displayName = feature.replace('_', ' ');
-      html += `<button onclick="window.__msdDebugFlagsPanel?.toggleFeature('${feature}')"
+      html += `<button data-bus-event="flags:toggle" onclick="__msdHudBus('flags:toggle',{feature:'${feature}'})"
         style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
         background:${isEnabled ? '#ff00ff' : '#333'};color:${isEnabled ? '#000' : '#eee'};">
         ${displayName}
@@ -161,21 +146,16 @@ export class FlagsPanel {
     html += '<div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;">';
 
     // +/- buttons and input
-    html += `<button onclick="window.__msdDebugFlagsPanel?.adjustScale(-1)"
-      style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
+    html += `<button data-bus-event="flags:scale-adjust" onclick="__msdHudBus('flags:scale-adjust',{dir:-1})" style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
       background:#333;color:#eee;">-</button>`;
 
-    html += `<input type="number"
-      value="${scale.toFixed(1)}"
-      min="0.5"
-      max="3.0"
-      step="0.1"
-      onchange="window.__msdDebugFlagsPanel?.setScale(this.value)"
+    html += `<input type="number" id="hud-flags-scale" name="hud-flags-scale"
+      value="${scale.toFixed(1)}" min="0.5" max="3.0" step="0.1" data-bus-event="flags:scale-set"
+      onchange="__msdHudBus('flags:scale-set',{scale:this.value})"
       style="width:60px;font-size:10px;padding:2px 4px;border:1px solid #444;border-radius:3px;
       background:#222;color:#eee;text-align:center;">`;
 
-    html += `<button onclick="window.__msdDebugFlagsPanel?.adjustScale(1)"
-      style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
+    html += `<button data-bus-event="flags:scale-adjust" onclick="__msdHudBus('flags:scale-adjust',{dir:1})" style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
       background:#333;color:#eee;">+</button>`;
 
     html += '</div>';
@@ -184,15 +164,15 @@ export class FlagsPanel {
     html += '<div style="display:flex;gap:4px;align-items:center;">';
     [0.8, 1.0, 1.2, 1.5, 2.0].forEach(scaleValue => {
       const isActive = Math.abs(scale - scaleValue) < 0.05;
-      html += `<button onclick="window.__msdDebugFlagsPanel?.setScale(${scaleValue})"
+      html += `<button data-bus-event="flags:scale-set"
+        onclick="__msdHudBus('flags:scale-set',{scale:${scaleValue}})"
         style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
         background:${isActive ? '#ffaa00' : '#333'};color:${isActive ? '#000' : '#eee'};">
         ${scaleValue}x
       </button>`;
     });
 
-    html += `<button onclick="window.__msdDebugFlagsPanel?.refreshDebug()"
-      style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
+    html += `<button data-bus-event="flags:refresh" onclick="__msdHudBus('flags:refresh')" style="font-size:10px;padding:2px 6px;border:1px solid #444;border-radius:3px;cursor:pointer;
       background:#333;color:#eee;margin-left:8px;">
       Refresh
     </button>`;
@@ -209,4 +189,3 @@ export class FlagsPanel {
     return html;
   }
 }
-

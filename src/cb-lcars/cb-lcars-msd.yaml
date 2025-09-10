@@ -66,7 +66,7 @@ cb-lcars-msd:
         secondary: "var(--lcars-yellow)"
         accent: "var(--lcars-cyan)"
 
-    # FIXED: Test overlays - use valid anchor references only
+    # Test overlays - use valid anchor references only
     overlays:
       # Text overlays
       - id: title_overlay
@@ -161,6 +161,32 @@ cb-lcars-msd:
           value: "75% Anchor (1440,300)"
           color: var(--lcars-purple)
           font_size: 14
+
+      # ADDED: Test control overlay - FIXED type name
+      - id: control1
+        type: control
+        card:
+          type: light
+          config:
+            entity: light.floor_lamp
+            show_name: true
+            show_icon: true
+        position: [1200, 10]
+        size: [200, 100]
+        z_index: 1000
+
+      # ADDED: Additional control test with different card type
+      - id: control2
+        type: control
+        card:
+          type: button
+          config:
+            entity: light.floor_lamp
+            name: "Test Button"
+            show_icon: true
+        position: [1200, 120]
+        size: [200, 80]
+        z_index: 1000
 
     # Test rules system
     rules:
