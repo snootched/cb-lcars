@@ -242,7 +242,7 @@ export class RoutingPanel {
       if (popup.parentElement) {
         popup.remove();
       }
-    }, 10000);
+    }, 25000);
   }
 
   captureData() {

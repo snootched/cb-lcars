@@ -15,6 +15,7 @@ import { RulesPanel } from './panels/RulesPanel.js';
 import { ExportPanel } from './panels/ExportPanel.js';
 import { HudEventBus } from './hudService.js'; // existing
 import { SelectionManager } from './hudService.js'; // ADDED
+import { OverlaysPanel } from './panels/OverlaysPanel.js'; // ADDED
 
 // FIXED: Move debug verification to constructor only, not on every import
 console.log('[MsdHudManager] Importing ExportPanel class');
@@ -40,6 +41,7 @@ export class MsdHudManager {
       export: new ExportPanel(),
       rules: new RulesPanel(),
       packs: new PacksPanel(),
+      overlays: new OverlaysPanel(), // ADDED
       routing: new RoutingPanel(),
       channelTrend: new ChannelTrendPanel(),
       dataSources: new DataSourcePanel(),
@@ -61,12 +63,13 @@ export class MsdHudManager {
         export: true,
         rules: true,
         packs: true,
+        overlays: true, // ADDED (default visible)
         routing: false,
         channelTrend: false,
         dataSources: false,
         validation: false
       },
-      panelOrder: ['issues', 'flags', 'performance', 'export', 'rules', 'packs', 'routing', 'channelTrend', 'dataSources', 'validation'],
+      panelOrder: ['issues','flags','performance','export','rules','packs','overlays','routing','channelTrend','dataSources','validation'], // UPDATED
       compactMode: false,
       autoPosition: true,
       panelManagerOpen: false,
@@ -99,7 +102,14 @@ export class MsdHudManager {
     this._registerBusHandlers(); // ADDED
     this.selection = new SelectionManager(this.bus); // ADDED
     this._registerSelectionHandlers(); // ADDED
- }
+
+    // ADDED: Bind core instance methods to prevent context loss in external handlers
+    this.show = this.show.bind(this);
+    this.hide = this.hide.bind(this);
+    this.toggle = this.toggle.bind(this);
+    this.refresh = this.refresh.bind(this);
+    this.setRefreshRate = this.setRefreshRate.bind(this);
+  }
 
   // ADDED: Setup global panel control handlers
   _setupGlobalPanelControls() {
@@ -315,8 +325,7 @@ export class MsdHudManager {
   }
 
   _registerBusHandlers() {
-    // Central event -> panel method mapping
-    const { routing, performance, flags, export: exp, dataSources, issues } = this.panels;
+    const { routing, performance, flags, export: exp, dataSources, issues, overlays } = this.panels;
 
     // Routing
     this.bus.on('routing:highlight', ({ id }) => routing?.highlightRoute?.(id));
@@ -353,6 +362,11 @@ export class MsdHudManager {
     // Issues
     this.bus.on('issues:action', ({ action, id, overlay }) => issues?.handleIssueClick?.(action, id, overlay));
 
+    // ADDED: Overlay highlight bus
+    this.bus.on('overlay:highlight', ({ id }) => overlays?.highlightOverlay?.(id));
+    // ADDED: overlay analyze
+    this.bus.on('overlay:analyze', ({ id }) => overlays?.analyzeOverlay?.(id));
+
     // Generic
     this.bus.on('hud:refresh', () => this.refresh());
   }
@@ -363,6 +377,8 @@ export class MsdHudManager {
       // Optional contextual highlight actions
       if (type === 'route') {
         this.bus.emit('routing:highlight', { id });
+      } else if (type === 'overlay') {
+        this.bus.emit('overlay:highlight', { id });
       }
       this.refresh();
     });
@@ -413,6 +429,117 @@ export class MsdHudManager {
     `;
   }
 
+  // ADDED: Toggle collapse
+  togglePanelCollapse(panelName) {
+    this.state.collapsedPanels[panelName] = !this.state.collapsedPanels[panelName];
+    // Lightweight re-render (no data recapture)
+    this._applyCollapseState();
+  }
+
+  // ADDED: Toggle focus (exclusive view)
+  toggleFocusPanel(panelName) {
+    if (this.state.focusPanel === panelName) {
+      this.state.focusPanel = null;
+    } else {
+      this.state.focusPanel = panelName;
+    }
+    this.updateHudContent();
+  }
+
+  // ADDED: Apply collapse styling post-render
+  _applyCollapseState() {
+    if (!this.hudElement) return;
+    const wrappers = this.hudElement.querySelectorAll('.msd-hud-panel[data-panel]');
+    wrappers.forEach(w => {
+      const name = w.getAttribute('data-panel');
+      const collapsed = this.state.collapsedPanels[name];
+      if (collapsed) {
+        w.classList.add('collapsed');
+      } else {
+        w.classList.remove('collapsed');
+      }
+      // Update indicator symbol
+      const h3 = w.querySelector(':scope h3');
+      const ind = h3?.querySelector('.msd-collapse-indicator');
+      if (ind) ind.textContent = collapsed ? '+' : '−';
+      // Focus visibility
+      if (this.state.focusPanel && this.state.focusPanel !== name) {
+        w.classList.add('focus-hidden');
+      } else {
+        w.classList.remove('focus-hidden');
+      }
+      // Filter handling
+      if (this.state.filterTerm) {
+        const term = this.state.filterTerm.toLowerCase();
+        const matches = name.toLowerCase().includes(term);
+        if (!matches) {
+          w.classList.add('filter-hidden');
+        } else {
+          w.classList.remove('filter-hidden');
+        }
+      } else {
+        w.classList.remove('filter-hidden');
+      }
+    });
+    this._updateFocusBadgeInFooter();
+  }
+
+  // ADDED: Decorate panel headers after render
+  _decoratePanelHeaders() {
+    if (!this.hudElement) return;
+    const wrappers = this.hudElement.querySelectorAll('.msd-hud-panel[data-panel]');
+    wrappers.forEach(w => {
+      const name = w.getAttribute('data-panel');
+      const h3 = w.querySelector(':scope h3'); // first h3 inside nested structure
+      if (!h3 || h3.dataset.enhanced === '1') return;
+      h3.dataset.enhanced = '1';
+      h3.style.cursor = 'pointer';
+      // Insert collapse indicator
+      const indicator = document.createElement('span');
+      indicator.className = 'msd-collapse-indicator';
+      indicator.style.cssText = 'margin-left:6px;font-weight:bold;color:#ffaa00;';
+      indicator.textContent = this.state.collapsedPanels[name] ? '+' : '−';
+      h3.appendChild(indicator);
+      h3.title = 'Click: Collapse/Expand • Alt+Click: Focus panel';
+      h3.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.altKey) {
+          this.toggleFocusPanel(name);
+        } else {
+          this.togglePanelCollapse(name);
+        }
+      });
+    });
+    this._applyCollapseState();
+  }
+
+  // ADDED: Footer focus badge update
+  _updateFocusBadgeInFooter() {
+    if (!this.hudElement) return;
+    const footerFocus = this.hudElement.querySelector('#msd-focus-footer');
+    if (!footerFocus) return;
+    if (!this.state.focusPanel) {
+      footerFocus.innerHTML = '';
+      return;
+    }
+    footerFocus.innerHTML = `
+      <span style="background:#222;border:1px solid #444;padding:2px 6px;border-radius:4px;font-size:9px;">
+        Focus: <strong style="color:#ffaa00;">${this.state.focusPanel}</strong>
+        <button style="margin-left:6px;font-size:9px;background:#333;color:#ccc;border:1px solid #555;border-radius:3px;cursor:pointer;padding:0 4px;"
+          onclick="__msdHudBus && window.__msdDebug?.hud?.manager?.toggleFocusPanel && window.__msdDebug.hud.manager.toggleFocusPanel('${this.state.focusPanel}')">
+          Exit
+        </button>
+      </span>
+    `;
+  }
+
+  // ADDED: Quick filter apply (called on input)
+  setFilterTerm(term) {
+    this.state.filterTerm = term || '';
+    this._applyCollapseState();
+  }
+
   createHudElement() {
     if (this.hudElement) return;
 
@@ -456,7 +583,7 @@ export class MsdHudManager {
 
     const mapEvent = (domEvent) => {
       this.hudElement.addEventListener(domEvent, (e) => {
-        const target = e.target.closest(`[data-bus-event]`);
+        const target = e.target.closest('[data-bus-event]');
         if (!target || !this.hudElement.contains(target)) return;
         // Build payload from data-* excluding busEvent
         const { busEvent, ...rest } = Object.fromEntries(
@@ -472,49 +599,13 @@ export class MsdHudManager {
     };
 
     ['click', 'change', 'input', 'blur', 'focus'].forEach(mapEvent);
-  }
-
-  show() {
-    if (this.state.visible) return;
-
-    this.state.visible = true;
-    this.createHudElement();
-    this.startRefresh();
-
-    // ENHANCED: Setup resize handler and auto-position
-    this._setupResizeHandler();
-
-    // FIXED: Properly expose HUD manager globally
-    if (window.__msdDebug) {
-      window.__msdDebug.hud = {
-        manager: this,
-        refresh: () => this.refresh(),
-        hide: () => this.hide(),
-        show: () => this.show(),
-        toggle: () => this.toggle(),
-        setRefreshRate: (rate) => this.setRefreshRate(rate),
-        bus: this.bus // ADDED
-      };
-    }
-
-    if (this.state.autoPosition) {
-      setTimeout(() => this._autoPositionHud(), 100);
-    }
-
-    console.log('[MsdHudManager] HUD activated and exposed globally');
-  }
-
-  hide() {
-    if (!this.state.visible) return;
-
-    this.state.visible = false;
-    this.stopRefresh();
-
-    if (this.hudElement) {
-      this.hudElement.remove();
-      this.hudElement = null;
-    }
-    console.log('[MsdHudManager] HUD deactivated');
+    // ADDED: Direct listener for filter input (outside data-bus-event)
+    this.hudElement.addEventListener('input', (e) => {
+      const el = e.target;
+      if (el && el.id === 'msd-hud-filter') {
+        this.setFilterTerm(el.value);
+      }
+    }, true);
   }
 
   updateHudContent() {
@@ -561,6 +652,10 @@ export class MsdHudManager {
       // ADDED: Apply selection highlight & badge after render
       this._updateSelectionBadge();
       this._applySelectionHighlight();
+      // REMOVED: _decoratePanelHeaders(), filter value restore, collapse/focus logic
+      // Reset filter input value after render
+      const f = this.hudElement.querySelector('#msd-hud-filter');
+      if (f && f.value !== this.state.filterTerm) f.value = this.state.filterTerm;
 
       // Restore panel manager state after render
       if (wasManagerOpen) {
@@ -586,167 +681,95 @@ export class MsdHudManager {
 
   renderHudHtml(data) {
     const compactClass = this.state.compactMode ? 'msd-hud-compact' : '';
-
     let html = `
       <style>
         #msd-debug-hud .msd-hud-header {
           padding: 8px;
-          background: rgba(0, 255, 255, 0.2);
+          background: rgba(0,255,255,0.2);
           border-bottom: 1px solid #00ffff;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: grab;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          cursor:grab;
         }
-        #msd-debug-hud .msd-hud-header:active {
-          cursor: grabbing;
+        #msd-debug-hud .msd-hud-title { font-weight:bold; pointer-events:none; }
+        #msd-debug-hud .msd-hud-controls { font-size:10px; display:flex; gap:4px; }
+        #msd-debug-hud .msd-hud-close, #msd-debug-hud .msd-hud-refresh, #msd-debug-hud .msd-hud-menu {
+          cursor:pointer; padding:2px 6px; border-radius:3px;
         }
-        #msd-debug-hud .msd-hud-title {
-          font-weight: bold;
-          pointer-events: none;
-        }
-        #msd-debug-hud .msd-hud-controls {
-          font-size: 10px;
-          display: flex;
-          gap: 4px;
-          pointer-events: auto;
-        }
-        #msd-debug-hud .msd-hud-close, #msd-debug-hud .msd-hud-refresh {
-          cursor: pointer;
-          padding: 2px 6px;
-          border-radius: 3px;
-          pointer-events: auto;
-        }
-        #msd-debug-hud .msd-hud-close {
-          background: rgba(255, 0, 0, 0.7);
-        }
-        #msd-debug-hud .msd-hud-refresh {
-          background: rgba(0, 255, 0, 0.7);
-        }
-        #msd-debug-hud .msd-hud-menu {
-          background: rgba(255, 170, 0, 0.7);
-        }
-
-        /* ADDED: Panel management styles */
-        #msd-debug-hud .msd-panel-controls {
-          padding: 6px;
-          background: rgba(50, 50, 70, 0.8);
-          border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-          font-size: 10px;
-        }
-        #msd-debug-hud .msd-panel-toggles {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px;
-          margin-bottom: 6px;
-        }
-        #msd-debug-hud .msd-panel-toggle {
-          cursor: pointer;
-          padding: 2px 6px;
-          border: 1px solid #444;
-          border-radius: 3px;
-          font-size: 9px;
-          transition: all 0.2s;
-        }
-        #msd-debug-hud .msd-panel-toggle.enabled {
-          background: rgba(0, 255, 255, 0.3);
-          color: #ffffff;
-        }
-        #msd-debug-hud .msd-panel-toggle.disabled {
-          background: rgba(100, 100, 100, 0.3);
-          color: #888888;
-        }
-        #msd-debug-hud .msd-panel-toggle:hover {
-          border-color: #00ffff;
-        }
-
-        #msd-debug-hud .msd-hud-panel {
-          padding: ${this.state.compactMode ? '4px' : '8px'};
-          border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-          transition: all 0.3s ease;
-        }
-        #msd-debug-hud .msd-hud-panel.hidden {
-          display: none;
-        }
+        #msd-debug-hud .msd-hud-close { background:rgba(255,0,0,0.7); }
+        #msd-debug-hud .msd-hud-refresh { background:rgba(0,255,0,0.7); }
+        #msd-debug-hud .msd-hud-menu { background:rgba(255,170,0,0.7); }
+        #msd-debug-hud .msd-hud-panel { padding:${this.state.compactMode ? '4px':'8px'}; border-bottom:1px solid rgba(0,255,255,0.3); }
+        #msd-debug-hud .msd-hud-panel.hidden { display:none; }
         #msd-debug-hud .msd-hud-panel h3 {
-          margin: 0 0 ${this.state.compactMode ? '4px' : '8px'} 0;
-          color: #ffaa00;
-          font-size: ${this.state.compactMode ? '12px' : '14px'};
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          margin:0 0 ${this.state.compactMode ? '4px':'8px'} 0;
+          color:#ffaa00; font-size:${this.state.compactMode ? '12px':'14px'};
         }
-
-        /* ADDED: Compact mode adjustments */
-        #msd-debug-hud.msd-hud-compact .msd-hud-metric {
-          margin: 1px 0;
-          font-size: 10px;
+        #msd-debug-hud .msd-hud-section h4 { margin:6px 0 4px 0; color:#fff; font-size:12px; }
+        #msd-debug-hud .msd-hud-metric { display:flex; justify-content:space-between; margin:2px 0; font-size:11px; }
+        #msd-debug-hud .msd-hud-metric-name { color:#aaa; }
+        #msd-debug-hud .msd-hud-metric-value { color:#0ff; font-weight:bold; }
+        #msd-debug-hud .msd-hud-error { border-left:3px solid #ff0000; padding-left:6px; }
+        #msd-debug-hud .msd-hud-warning { border-left:3px solid #ffaa00; padding-left:6px; }
+        #msd-debug-hud .msd-hud-success { color:#00ff00; font-size:11px; text-align:center; padding:4px; }
+        #msd-debug-hud .msd-hud-summary { text-align:center; font-size:11px; padding:4px; background:rgba(255,170,0,0.2); }
+        #msd-debug-hud .msd-selected { outline:2px solid #ffaa00; background:rgba(255,170,0,0.12)!important; position:relative; }
+        #msd-debug-hud .msd-selected::after { content:'●'; position:absolute; top:2px; right:4px; font-size:8px; color:#ffaa00; }
+        #msd-debug-hud .msd-panel-controls {
+          padding:6px 8px;
+          background:rgba(0,0,0,0.35);
+          border-bottom:1px solid rgba(0,255,255,0.25);
+          font-size:10px;
         }
-        #msd-debug-hud.msd-hud-compact .msd-hud-section h4 {
-          margin: 3px 0 2px 0;
-          font-size: 11px;
+        #msd-debug-hud .msd-panel-controls h4 {
+          margin:4px 0 6px;
+          font-size:11px;
+          color:#ffaa00;
         }
-
-        #msd-debug-hud .msd-hud-section h4 {
-          margin: 6px 0 4px 0;
-          color: #ffffff;
-          font-size: 12px;
+        #msd-debug-hud .msd-panel-toggle-buttons {
+          display:flex;
+          flex-wrap:wrap;
+          gap:6px;
+          margin:4px 0 8px;
         }
-        #msd-debug-hud .msd-hud-metric {
-          display: flex;
-          justify-content: space-between;
-          margin: 2px 0;
-          font-size: 11px;
+        #msd-debug-hud .msd-panel-toggle-btn {
+          cursor:pointer;
+          padding:3px 8px;
+          font-size:10px;
+          border:1px solid #044;
+          background:linear-gradient(#022,#011);
+          color:#0ff;
+          border-radius:14px;
+          line-height:1;
+          letter-spacing:.5px;
+          transition:all .18s;
+          position:relative;
         }
-        #msd-debug-hud .msd-hud-metric-name {
-          color: #aaaaaa;
+        #msd-debug-hud .msd-panel-toggle-btn.active {
+          background:linear-gradient(#0ff,#066);
+          color:#000;
+          font-weight:bold;
+          box-shadow:0 0 6px #0ff;
+          border-color:#0aa;
         }
-        #msd-debug-hud .msd-hud-metric-value {
-          color: #00ffff;
-          font-weight: bold;
+        #msd-debug-hud .msd-panel-toggle-btn.inactive {
+          opacity:.45;
         }
-        #msd-debug-hud .msd-hud-metric-detail {
-          font-size: 10px;
-          color: #888888;
-          margin-left: 10px;
+        #msd-debug-hud .msd-panel-toggle-btn:not(.active):hover {
+          opacity:.8;
+          border-color:#088;
         }
-        #msd-debug-hud .msd-hud-error {
-          border-left: 3px solid #ff0000;
-          padding-left: 6px;
+        #msd-debug-hud .msd-panel-toggle-btn:focus {
+          outline:1px solid #0ff;
         }
-        #msd-debug-hud .msd-hud-warning {
-          border-left: 3px solid #ffaa00;
-          padding-left: 6px;
-        }
-        #msd-debug-hud .msd-hud-success {
-          color: #00ff00;
-          font-size: 11px;
-          text-align: center;
-          padding: 4px;
-        }
-        #msd-debug-hud .msd-hud-summary {
-          text-align: center;
-          font-size: 11px;
-          padding: 4px;
-          background: rgba(255, 170, 0, 0.2);
-        }
-
-        #msd-debug-hud .msd-selected {
-          outline: 2px solid #ffaa00;
-          background: rgba(255,170,0,0.12) !important;
-          position: relative;
-        }
-        #msd-debug-hud .msd-selected::after {
-          content: '●';
-            position: absolute;
-            top: 2px;
-            right: 4px;
-            font-size: 8px;
-            color: #ffaa00;
+        #msd-debug-hud .msd-panel-controls .msd-panel-meta {
+          font-size:9px;
+          opacity:.65;
+          margin-top:2px;
         }
       </style>
     `;
-
     html += `
       <div class="msd-hud-header">
         <span class="msd-hud-title">MSD v1 Debug HUD</span>
@@ -758,8 +781,7 @@ export class MsdHudManager {
         </div>
       </div>
     `;
-
-    // ADDED: Panel management interface (initially hidden)
+    // REMOVED: filter bar / focus exit button
     html += this._renderPanelControls();
 
     // FIXED: Debug panel rendering with detailed logging
@@ -841,10 +863,13 @@ export class MsdHudManager {
 
   // ADDED: Missing toggle method
   toggle() {
-    if (this.state.visible) {
-      this.hide();
+    // FIXED: Harden against lost context (runtime "this.show is not a function")
+    if (!this || !this.state) return;
+    const isVisible = !!this.state.visible;
+    if (isVisible) {
+      if (typeof this.hide === 'function') this.hide();
     } else {
-      this.show();
+      if (typeof this.show === 'function') this.show();
     }
   }
 
@@ -916,61 +941,58 @@ export class MsdHudManager {
 
   // ADDED: Render panel controls interface
   _renderPanelControls() {
-    let html = `<div class="msd-panel-controls" id="msd-panel-manager" style="display: ${this.state.panelManagerOpen ? 'block' : 'none'};">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <strong>Panel Settings</strong>
-        <div style="display: flex; gap: 4px;">
+    let html = `<div class="msd-panel-controls" id="msd-panel-manager" style="display:${this.state.panelManagerOpen ? 'block':'none'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <strong style="letter-spacing:.5px;">Panel Settings</strong>
+        <div style="display:flex;gap:4px;">
           <button data-action="compact"
-            style="font-size: 9px; padding: 1px 4px; background: ${this.state.compactMode ? '#ffaa00' : '#333'}; color: ${this.state.compactMode ? '#000' : '#fff'}; border: 1px solid #555; border-radius: 2px; cursor: pointer;">
+            style="font-size:9px;padding:2px 6px;background:${this.state.compactMode ? '#ffaa00':'#222'};color:${this.state.compactMode ? '#000':'#ccc'};border:1px solid #555;border-radius:4px;cursor:pointer;">
             Compact
           </button>
           <button data-action="reset"
-            style="font-size: 9px; padding: 1px 4px; background: #666; color: #fff; border: 1px solid #888; border-radius: 2px; cursor: pointer;">
+            style="font-size:9px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">
             Reset
           </button>
           <button data-action="close"
-            style="font-size: 9px; padding: 1px 4px; background: #ff4444; color: #fff; border: 1px solid #666; border-radius: 2px; cursor: pointer;">
+            style="font-size:9px;padding:2px 6px;background:#ff4444;color:#fff;border:1px solid #a00;border-radius:4px;cursor:pointer;">
             ✕
           </button>
         </div>
       </div>
-
-      <div class="msd-panel-toggles">`;
+      <div class="msd-panel-toggle-buttons">`;
 
     this.state.panelOrder.forEach(panelName => {
-      const isEnabled = this.state.panelVisibility[panelName];
-      const enabledClass = isEnabled ? 'enabled' : 'disabled';
-
-      html += `<div class="msd-panel-toggle ${enabledClass}"
+      const enabled = !!this.state.panelVisibility[panelName];
+      html += `<button
+        class="msd-panel-toggle-btn ${enabled ? 'active':'inactive'}"
         data-panel-toggle="${panelName}"
-        title="Toggle ${panelName} panel"
-        style="cursor: pointer;">
+        aria-pressed="${enabled}"
+        title="Toggle ${panelName} panel">
         ${panelName}
-      </div>`;
+      </button>`;
     });
 
     html += `</div>
-
-      <div style="margin-top: 6px; font-size: 9px; color: #888;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span>Refresh Rate:</span>
-          <span>HUD Width: ${this.state.hudWidth}px</span>
-        </div>
-        <div style="display: flex; gap: 4px; align-items: center;">
-          <select id="msd-hud-refresh-rate" name="refresh-rate" data-action="refresh-rate" style="font-size: 9px; background: #333; color: #fff; border: 1px solid #555; flex: 1;">
-            <option value="1000" ${this.state.refreshRate === 1000 ? 'selected' : ''}>1s</option>
-            <option value="2000" ${this.state.refreshRate === 2000 ? 'selected' : ''}>2s</option>
-            <option value="5000" ${this.state.refreshRate === 5000 ? 'selected' : ''}>5s</option>
-            <option value="10000" ${this.state.refreshRate === 10000 ? 'selected' : ''}>10s</option>
-          </select>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <label style="font-size:9px;opacity:.75;">Refresh:</label>
+        <select id="msd-hud-refresh-rate" name="refresh-rate" data-action="refresh-rate"
+          style="font-size:9px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;">
+          <option value="1000" ${this.state.refreshRate===1000?'selected':''}>1s</option>
+          <option value="2000" ${this.state.refreshRate===2000?'selected':''}>2s</option>
+          <option value="5000" ${this.state.refreshRate===5000?'selected':''}>5s</option>
+          <option value="10000" ${this.state.refreshRate===10000?'selected':''}>10s</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:4px;">
           <button data-action="width-down" title="Narrower"
-            style="font-size: 9px; padding: 1px 4px; background: #444; color: #fff; border: 1px solid #666; border-radius: 2px; cursor: pointer;">◀</button>
+            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">◀</button>
           <button data-action="width-up" title="Wider"
-            style="font-size: 9px; padding: 1px 4px; background: #444; color: #fff; border: 1px solid #666; border-radius: 2px; cursor: pointer;">▶</button>
+            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">▶</button>
         </div>
       </div>
+      <div class="msd-panel-meta">
+        Click buttons to toggle panels • Order: ${this.state.panelOrder.join(', ')}
+      </div>
     </div>`;
-
     return html;
   }
 
@@ -1128,5 +1150,41 @@ export class MsdHudManager {
         self.toggle();
       }
     });
+  }
+
+  // ADDED: Previously removed show() method (needed before binding in constructor)
+  show() {
+    if (this.state.visible) return;
+    this.state.visible = true;
+    this.createHudElement();
+    this.startRefresh();
+    this._setupResizeHandler();
+    if (window.__msdDebug) {
+      window.__msdDebug.hud = {
+        manager: this,
+        refresh: () => this.refresh(),
+        hide: () => this.hide(),
+        show: () => this.show(),
+        toggle: () => this.toggle(),
+        setRefreshRate: (rate) => this.setRefreshRate(rate),
+        bus: this.bus
+      };
+    }
+    if (this.state.autoPosition) {
+      setTimeout(() => this._autoPositionHud(), 100);
+    }
+    console.log('[MsdHudManager] HUD activated and exposed globally');
+  }
+
+  // ADDED: Previously removed hide() method
+  hide() {
+    if (!this.state.visible) return;
+    this.state.visible = false;
+    this.stopRefresh();
+    if (this.hudElement) {
+      this.hudElement.remove();
+      this.hudElement = null;
+    }
+    console.log('[MsdHudManager] HUD deactivated');
   }
 }
