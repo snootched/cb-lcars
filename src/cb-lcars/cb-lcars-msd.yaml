@@ -319,46 +319,89 @@ cb-lcars-msd:
 
             this._msdV1ComprehensiveBoot = true;
             const msdConfig = this._config?.msd || this.config?.msd;
-            const baseWrapper = this.shadowRoot.getElementById('msd-v1-comprehensive-wrapper');
-            const mount = baseWrapper || this.shadowRoot;
-            const realHass = this.___hass || hass;
 
-            // Use pre-processed anchors for comprehensive test
-            const enhancedConfig = { ...msdConfig };
-            if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
-              console.log('[MSD v1 Comprehensive] Using pre-processed anchors:', Object.keys(window._msdTestAnchors).length);
-              enhancedConfig.anchors = window._msdTestAnchors;
+            // ADDED: deep-clone raw overlays for control recovery
+            if (msdConfig?.overlays) {
+              try {
+                window._msdRawOverlays = msdConfig.overlays.map(o => JSON.parse(JSON.stringify(o)));
+                console.log('[MSD v1 Comprehensive] Cached raw overlays for controls recovery');
+              } catch(e) {
+                console.warn('[MSD v1 Comprehensive] Failed to cache raw overlays', e);
+              }
             }
 
-            console.log('[MSD v1 Comprehensive] Initializing pipeline with debug config:', enhancedConfig.debug);
-
-            window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
-              const resolvedModel = pipeline.getResolvedModel?.();
-              const pipelineAnchors = resolvedModel?.anchors || {};
-
-              const stats = {
-                enabled: pipeline.enabled,
-                overlayCount: resolvedModel?.overlays?.length || 0,
-                anchorCount: Object.keys(pipelineAnchors).length,
-                dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
-                ruleCount: (msdConfig.rules || []).length,
-                errors: pipeline.errors?.length || 0
-              };
-
-              console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
-              console.table(stats);
-
-              if (pipeline.errors?.length) {
-                console.error('Pipeline Errors:', pipeline.errors);
-              } else {
-                console.log('✅ All systems operational');
+            // RESOLVED: define mount properly (wrapper or shadowRoot)
+            const resolveMount = (attempt = 0) => {
+              const baseWrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+              const mount = baseWrapper || this.shadowRoot || this;
+              if (!mount && attempt < 5) {
+                console.warn('[MSD v1 Comprehensive] mount not ready, retrying...', attempt);
+                setTimeout(() => resolveMount(attempt + 1), 30 * (attempt + 1));
+                return;
               }
-              console.groupEnd();
+              if (!mount) {
+                console.error('[MSD v1 Comprehensive] mount could not be resolved');
+                return;
+              }
 
+              // Use pre-processed anchors
+              const enhancedConfig = { ...msdConfig };
+              if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
+                enhancedConfig.anchors = window._msdTestAnchors;
+              }
 
-            }).catch(err => {
-              console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
-            });
+              console.log('[MSD v1 Comprehensive] Initializing pipeline with debug config:', enhancedConfig.debug);
+              const realHass = this.___hass || hass;
+
+              window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+                const resolvedModel = pipeline.getResolvedModel?.();
+                const pipelineAnchors = resolvedModel?.anchors || {};
+
+                const stats = {
+                  enabled: pipeline.enabled,
+                  overlayCount: resolvedModel?.overlays?.length || 0,
+                  anchorCount: Object.keys(pipelineAnchors).length,
+                  dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
+                  ruleCount: (msdConfig.rules || []).length,
+                  errors: pipeline.errors?.length || 0
+                };
+
+                console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
+                console.table(stats);
+
+                if (pipeline.errors?.length) {
+                  console.error('Pipeline Errors:', pipeline.errors);
+                } else {
+                  console.log('✅ All systems operational');
+                }
+                console.groupEnd();
+
+                // ADDED: trigger control overlay rendering
+                try {
+                  const resolvedModel = pipeline.getResolvedModel?.();
+                  const controls = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
+                  if (controls.length) {
+                    console.log('[MSD v1 Comprehensive] Rendering control overlays', controls.map(c=>c.id));
+                    // Prefer pipeline.controlsRenderer if exposed
+                    if (pipeline.controlsRenderer?.renderControls) {
+                      pipeline.controlsRenderer.renderControls(controls, resolvedModel);
+                    } else if (window._msdControlsRenderer?.renderControls) {
+                      window._msdControlsRenderer.renderControls(controls, resolvedModel);
+                    } else {
+                      console.warn('[MSD v1 Comprehensive] No controls renderer available');
+                    }
+                  } else {
+                    console.log('[MSD v1 Comprehensive] No control overlays found to render');
+                  }
+                } catch(e) {
+                  console.warn('[MSD v1 Comprehensive] Control overlay render attempt failed', e);
+                }
+              }).catch(err => {
+                console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
+              });
+            };
+
+            resolveMount(); // CHANGED: invoke resolver instead of using undefined mount
           }
 
         } catch(e) {
@@ -368,5 +411,6 @@ cb-lcars-msd:
 
         const vb = this._msdViewBox || [0,0,1920,1200];
         const aspect = window.cblcars.getSvgAspectRatio(vb);
-        return `<div style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:none;"></div>`;
+        // CHANGED pointer-events to auto so controls receive input
+        return `<div id="msd-controls-host" style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:auto;"></div>`;
       ]]]

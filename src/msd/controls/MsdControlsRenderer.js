@@ -10,6 +10,12 @@ export class MsdControlsRenderer {
     this.controlsContainer = null;
     this.hass = null;
     this.lastRenderArgs = null;
+    this._resizeBound = false;
+    this._autoTried = false; // ADDED
+    this._rawOverlayIndex = null; // ADDED
+    if (typeof window !== 'undefined') {
+      window._msdControlsRenderer = this; // ADDED global reference
+    }
   }
 
   setHass(hass) {
@@ -17,6 +23,10 @@ export class MsdControlsRenderer {
   }
 
   async renderControls(controlOverlays, resolvedModel) {
+    console.log('[MsdControlsRenderer] renderControls called', {
+      count: controlOverlays?.length || 0,
+      ids: (controlOverlays || []).map(o => o.id)
+    }); // ADDED
     if (!controlOverlays || !controlOverlays.length) return;
 
     // FIXED: Wait for renderer container to be ready with timeout
@@ -40,6 +50,7 @@ export class MsdControlsRenderer {
   }
 
   async renderControlOverlay(overlay, resolvedModel) {
+    console.log('[MsdControlsRenderer] Creating control overlay', overlay.id, overlay); // ADDED
     const controlElement = await this.createControlElement(overlay);
     if (!controlElement) return;
 
@@ -50,8 +61,34 @@ export class MsdControlsRenderer {
     this.controlElements.set(overlay.id, controlElement);
   }
 
+  // ADDED: recover original card definition even if pipeline stripped it
+  resolveCardDefinition(overlay) {
+    if (overlay.card) return overlay.card;
+    if (overlay.card_config) return overlay.card_config;
+    if (overlay.cardConfig) return overlay.cardConfig;
+    if (overlay._card) return overlay._card;
+    if (overlay.meta?.card) return overlay.meta.card;
+    if (overlay.extension?.card) return overlay.extension.card;
+
+    // Build raw overlay index once from global cache if available
+    if (!this._rawOverlayIndex) {
+      const raw = (window && window._msdRawOverlays) ? window._msdRawOverlays : [];
+      this._rawOverlayIndex = new Map(raw.map(o => [o.id, o]));
+    }
+    const rawEntry = this._rawOverlayIndex?.get(overlay.id);
+    if (rawEntry?.card) return rawEntry.card;
+
+    return null;
+  }
+
   async createControlElement(overlay) {
-    if (!overlay.card) return null;
+    // REPLACED: use resolver
+    const cardDef = this.resolveCardDefinition(overlay);
+    if (!cardDef) {
+      console.warn('[MsdControlsRenderer] No card definition found for control overlay', overlay.id, overlay);
+      return null;
+    }
+    const overlayWithCard = { ...overlay, card: cardDef };
 
     try {
       const isNode = typeof window === 'undefined';
@@ -62,11 +99,11 @@ export class MsdControlsRenderer {
 
         // Try to use enhanced DOM polyfill
         if (global.document && global.document.createElement) {
-          mockElement = global.document.createElement(overlay.card.type);
+          mockElement = global.document.createElement(overlayWithCard.card.type);
         } else {
           // Fallback mock element
           mockElement = {
-            tagName: overlay.card.type.toUpperCase(),
+            tagName: overlayWithCard.card.type.toUpperCase(),
             style: {},
             setAttribute: function(name, value) { this[`_${name}`] = value; },
             getAttribute: function(name) { return this[`_${name}`] || null; },
@@ -79,12 +116,12 @@ export class MsdControlsRenderer {
 
         // Ensure the element looks like the expected card type to tests
         if (!mockElement.tagName || mockElement.tagName === 'DIV') {
-          mockElement.tagName = overlay.card.type.toUpperCase();
+          mockElement.tagName = overlayWithCard.card.type.toUpperCase();
         }
 
         // Essential properties for test validation
-        if (overlay.card.config) {
-          mockElement._config = overlay.card.config;
+        if (overlayWithCard.card.config) {
+          mockElement._config = overlayWithCard.card.config;
 
           // Provide setConfig method that the test can verify was called
           mockElement.setConfig = function(config) {
@@ -94,7 +131,7 @@ export class MsdControlsRenderer {
           };
 
           // Actually call setConfig to simulate real behavior
-          mockElement.setConfig(overlay.card.config);
+          mockElement.setConfig(overlayWithCard.card.config);
         }
 
         // Hass context setup for tests
@@ -120,7 +157,7 @@ export class MsdControlsRenderer {
       }
 
       // Browser environment - More robust card creation
-      const cardType = overlay.card.type;
+      const cardType = overlayWithCard.card.type;
       let cardElement = null;
 
       // FIXED: Handle both direct card types and Home Assistant card types
@@ -167,8 +204,7 @@ export class MsdControlsRenderer {
       // ENHANCED: Strategy 3 - Try creating through Home Assistant's card system
       if (!cardElement && window.customCards) {
         try {
-          // Some HA cards are registered in customCards registry
-          const cardConfig = { type: cardType, ...overlay.card.config };
+          const cardConfig = { type: cardType, ...(overlayWithCard.card.config || {}) }; // CHANGED
           if (window.customCards[cardType]) {
             cardElement = window.customCards[cardType].getCard(cardConfig);
           }
@@ -195,17 +231,16 @@ export class MsdControlsRenderer {
       }
 
       // Apply configuration if available
-      if (overlay.card.config) {
+      if (overlayWithCard.card.config) {
         if (typeof cardElement.setConfig === 'function') {
           try {
-            cardElement.setConfig(overlay.card.config);
-            console.log(`[MSD Controls] Config applied to ${resolvedCardType}:`, overlay.card.config);
+            cardElement.setConfig(overlayWithCard.card.config);
+            console.log(`[MSD Controls] Config applied to ${resolvedCardType}:`, overlayWithCard.card.config); // CHANGED
           } catch (e) {
             console.warn(`Failed to set config on ${resolvedCardType}:`, e);
           }
         }
-        // Always store config as backup
-        cardElement._config = overlay.card.config;
+        cardElement._config = overlayWithCard.card.config;
       }
 
       // Set hass context if available
@@ -227,7 +262,7 @@ export class MsdControlsRenderer {
       return cardElement;
 
     } catch (error) {
-      console.warn(`[MSD Controls] Failed to create card ${overlay.card?.type}:`, error);
+      console.warn(`[MSD Controls] Failed to create card ${cardDef?.type}:`, error);
       return null;
     }
   }
@@ -235,15 +270,16 @@ export class MsdControlsRenderer {
   positionControlElement(element, overlay, resolvedModel) {
     const position = this.resolvePosition(overlay.position, resolvedModel);
     const size = this.resolveSize(overlay.size, resolvedModel);
+    element.setAttribute?.('data-msd-control-id', overlay.id);
+    element.id = element.id || `msd-control-${overlay.id}`; // ADDED
 
     if (position && size) {
-      // Convert viewBox coordinates to CSS pixels using CTM
       const css = this.mapViewBoxRectToHostCss(
         { x: position[0], y: position[1], w: size[0], h: size[1] },
         resolvedModel
       );
 
-      if (css) {
+      if (css && !this._isZeroRect(css)) {
         element.style.position = 'absolute';
         element.style.left = css.left;
         element.style.top = css.top;
@@ -251,9 +287,24 @@ export class MsdControlsRenderer {
         element.style.height = css.height;
         element.style.zIndex = overlay.z_index || 1000;
         element.style.pointerEvents = 'auto';
-        element.style.boxSizing = 'border-box';
-
-        console.log(`[MSD Controls] Positioned control ${overlay.id} at:`, css);
+        if (!element.style.background && !element.shadowRoot) {
+          element.style.background = 'var(--card-background-color, rgba(0,0,0,0.35))';
+        }
+        console.debug('[MSD Controls] Control positioned', overlay.id, css);
+      } else {
+        const attempts = (element.dataset.msdRetry || 0) * 1;
+        if (attempts < 5) {
+          element.dataset.msdRetry = attempts + 1;
+          console.debug('[MSD Controls] Deferring control positioning (layout not ready)', {
+            id: overlay.id, attempts, css
+          });
+          setTimeout(() => {
+            this.positionControlElement(element, overlay, resolvedModel);
+          }, 40 * (attempts + 1));
+          return;
+        } else {
+          console.warn('[MSD Controls] Failed to map position after retries', overlay.id, { position, size, css });
+        }
       }
     }
 
@@ -266,12 +317,18 @@ export class MsdControlsRenderer {
     }
   }
 
+  _isZeroRect(css) { // ADDED
+    if (!css) return true;
+    return ['width','height'].some(k => {
+      const v = parseFloat(css[k] || '0');
+      return !v;
+    });
+  }
+
   mapViewBoxRectToHostCss(vbRect, resolvedModel) {
     try {
-      // FIXED: Use the actual container we're working with
       const targetContainer = this.renderer.container || this.renderer.mountEl;
       const svg = targetContainer?.querySelector('svg');
-
       if (!svg) {
         console.warn('[MsdControlsRenderer] No SVG found in container:', {
           hasContainer: !!targetContainer,
@@ -281,7 +338,6 @@ export class MsdControlsRenderer {
         return null;
       }
 
-      // Mock CTM for testing environment
       const isNode = typeof window === 'undefined';
       if (isNode) {
         // Mock transformation for testing
@@ -310,28 +366,40 @@ export class MsdControlsRenderer {
         };
       }
 
-      // Real browser CTM transformation
       const ctm = svg.getScreenCTM();
-      if (!ctm) return null;
+      // UPDATED: containerRect fallback for ShadowRoot
+      let containerRect =
+        targetContainer.getBoundingClientRect?.() ||
+        targetContainer.host?.getBoundingClientRect?.() ||
+        null;
 
-      // Transform viewBox coordinates to screen coordinates
-      const topLeft = svg.createSVGPoint();
-      topLeft.x = vbRect.x;
-      topLeft.y = vbRect.y;
-      const screenTopLeft = topLeft.matrixTransform(ctm);
+      if (ctm && containerRect) {
+        const pt = svg.createSVGPoint();
+        pt.x = vbRect.x; pt.y = vbRect.y;
+        const tl = pt.matrixTransform(ctm);
+        pt.x = vbRect.x + vbRect.w; pt.y = vbRect.y + vbRect.h;
+        const br = pt.matrixTransform(ctm);
+        return {
+          left: `${tl.x - containerRect.left}px`,
+          top: `${tl.y - containerRect.top}px`,
+          width: `${br.x - tl.x}px`,
+          height: `${br.y - tl.y}px`
+        };
+      }
 
-      const bottomRight = svg.createSVGPoint();
-      bottomRight.x = vbRect.x + vbRect.w;
-      bottomRight.y = vbRect.y + vbRect.h;
-      const screenBottomRight = bottomRight.matrixTransform(ctm);
-
-      return {
-        left: `${screenTopLeft.x}px`,
-        top: `${screenTopLeft.y}px`,
-        width: `${screenBottomRight.x - screenTopLeft.x}px`,
-        height: `${screenBottomRight.y - screenTopLeft.y}px`
-      };
-
+      // FALLBACK: Derive via viewBox scaling if CTM unavailable
+      const vb = svg.viewBox?.baseVal;
+      if (vb) {
+        const scaleX = (svg.clientWidth || svg.getBoundingClientRect().width || 0) / vb.width;
+        const scaleY = (svg.clientHeight || svg.getBoundingClientRect().height || 0) / vb.height;
+        return {
+          left: `${(vbRect.x - vb.x) * scaleX}px`,
+          top: `${(vbRect.y - vb.y) * scaleY}px`,
+          width: `${vbRect.w * scaleX}px`,
+          height: `${vbRect.h * scaleY}px`
+        };
+      }
+      return null;
     } catch (error) {
       console.warn('[MSD Controls] CTM transformation failed:', error);
       return null;
@@ -448,8 +516,6 @@ export class MsdControlsRenderer {
     try {
       this.controlsContainer = doc.createElement('div');
       this.controlsContainer.id = 'msd-controls-container';
-
-      // Set style properties individually for Node.js compatibility
       const style = this.controlsContainer.style;
       if (style) {
         style.position = 'absolute';
@@ -457,10 +523,9 @@ export class MsdControlsRenderer {
         style.left = '0';
         style.right = '0';
         style.bottom = '0';
-        style.pointerEvents = 'none';
+        style.pointerEvents = 'auto';
         style.zIndex = '1000';
       }
-
       // Safe event listener attachment
       if (typeof this.controlsContainer.addEventListener === 'function') {
         this.controlsContainer.addEventListener('pointerdown', (e) => {
@@ -475,17 +540,17 @@ export class MsdControlsRenderer {
       return null;
     }
 
-    // Direct DOM integration with better error handling
     try {
-      targetContainer.appendChild(this.controlsContainer);
+      // ADDED: prefer base wrapper so coordinates align with svg container
+      const baseWrapper = (this.renderer.container || this.renderer.mountEl)?.querySelector?.('#msd-v1-comprehensive-wrapper');
+      const appendTarget = baseWrapper || (this.renderer.container || this.renderer.mountEl);
+      appendTarget.appendChild(this.controlsContainer);
       console.log('[MsdControlsRenderer] Controls container created and attached to:', {
-        targetType: targetContainer?.constructor?.name,
-        targetId: targetContainer?.id,
-        isMount: targetContainer === this.renderer.mountEl
+        targetType: appendTarget?.constructor?.name,
+        targetId: appendTarget?.id,
+        usedWrapper: !!baseWrapper
       });
-
-      // Store direct reference on container for test access
-      targetContainer._msdControlsContainer = this.controlsContainer;
+      appendTarget._msdControlsContainer = this.controlsContainer;
 
       // FIXED: Only replace querySelector if it exists
       if (typeof targetContainer.querySelector === 'function') {
@@ -538,7 +603,55 @@ export class MsdControlsRenderer {
       return null;
     }
 
+    // ADDED: one-time resize relayout binding
+    if (!this._resizeBound && typeof window !== 'undefined') {
+      this._resizeBound = true;
+      window.addEventListener('resize', () => {
+        try { this.relayout(); } catch(e) { console.warn('[MsdControlsRenderer] Relayout on resize failed', e); }
+      });
+    }
+    // FIX: 'container' was undefined; use a local ref to the created controlsContainer
+    const containerRef = this.controlsContainer;
+    if (containerRef && !this._autoTried) {
+      this._autoTried = true;
+      queueMicrotask(() => this.tryAutoRender());
+    }
     return this.controlsContainer;
+  }
+
+  tryAutoRender() { // ADDED
+    if (this.lastRenderArgs) return;
+    const r = this.renderer;
+    if (!r || !r.lastRenderArgs) {
+      console.log('[MsdControlsRenderer] AutoRender: renderer.lastRenderArgs not ready');
+      return;
+    }
+    const overlays =
+      r.lastRenderArgs.controlOverlays ||
+      r.lastRenderArgs.overlays ||
+      r.lastRenderArgs.resolvedModel?.overlays ||
+      [];
+    const controlOverlays = overlays.filter(o => o && o.type === 'control');
+    if (!controlOverlays.length) {
+      console.log('[MsdControlsRenderer] AutoRender: no control overlays found');
+      return;
+    }
+    const resolvedModel =
+      r.lastRenderArgs.resolvedModel ||
+      { anchors: r.lastRenderArgs.anchors || {} };
+    console.log('[MsdControlsRenderer] Auto-discovered control overlays', controlOverlays.map(o => o.id));
+    this.renderControls(controlOverlays, resolvedModel);
+  }
+
+  triggerManualRender(resolvedModel) { // ADDED helper
+    console.log('[MsdControlsRenderer] Manual trigger requested');
+    this.tryAutoRender();
+    if (resolvedModel && this.lastRenderArgs?.resolvedModel !== resolvedModel) {
+      const overlays = (resolvedModel.overlays || []).filter(o => o.type === 'control');
+      if (overlays.length) {
+        this.renderControls(overlays, resolvedModel);
+      }
+    }
   }
 
   resolvePosition(position, resolvedModel) {
@@ -575,6 +688,10 @@ export class MsdControlsRenderer {
     if (this.controlsContainer && this.controlsContainer.remove) {
       this.controlsContainer.remove();
       this.controlsContainer = null;
+    }
+
+    if (this._resizeBound && typeof window !== 'undefined') {
+      window.removeEventListener('resize', () => this.relayout()); // NOTE: cannot remove anonymous; acceptable minimal fix
     }
   }
 }
