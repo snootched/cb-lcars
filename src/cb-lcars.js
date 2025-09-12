@@ -39,6 +39,159 @@ let stubConfig = {};
 window.cblcars.loadFont = loadFont;
 
 
+// DEBUGGING: Add immediate global debugging when CB-LCARS loads
+console.log('[CB-LCARS] File loaded, setting up debugging');
+
+// Create a global debugging function to manually trigger updates
+window.cbLcarsDebugForceUpdate = function() {
+    console.log('[CB-LCARS Debug] Manually triggering updates');
+
+    // Strategy 1: Find all CB-LCARS cards in the main document
+    const mainDocCards = document.querySelectorAll('cb-lcars-button-card');
+    console.log(`[CB-LCARS Debug] Found ${mainDocCards.length} CB-LCARS cards in main document`);
+
+    // Strategy 2: Find cards in shadow roots by searching all shadow hosts
+    const shadowCards = [];
+    function findInShadowRoots(root = document) {
+        const allElements = root.querySelectorAll('*');
+        allElements.forEach(el => {
+            if (el.shadowRoot) {
+                // Search inside this shadow root
+                const cardsInShadow = el.shadowRoot.querySelectorAll('cb-lcars-button-card, hui-button-card, [data-card-type*="cb-lcars"]');
+                cardsInShadow.forEach(card => shadowCards.push(card));
+
+                // Recursively search nested shadow roots
+                findInShadowRoots(el.shadowRoot);
+            }
+        });
+    }
+
+    findInShadowRoots();
+    console.log(`[CB-LCARS Debug] Found ${shadowCards.length} cards in shadow roots`);
+
+    // Strategy 3: Access MSD-managed cards directly
+    let msdCards = [];
+    if (window._msdControlsRenderer) {
+        const controlsRenderer = window._msdControlsRenderer;
+        console.log(`[CB-LCARS Debug] Found MSD controls renderer with ${controlsRenderer.controlElements.size} managed cards`);
+
+        for (const [id, wrapper] of controlsRenderer.controlElements) {
+            const card = wrapper.querySelector('cb-lcars-button-card, hui-button-card, [data-card-type*="cb-lcars"]') || wrapper.firstElementChild;
+            if (card) {
+                msdCards.push({ id, card, wrapper });
+            }
+        }
+        console.log(`[CB-LCARS Debug] Found ${msdCards.length} MSD-managed cards`);
+    } else {
+        console.log('[CB-LCARS Debug] No MSD controls renderer found');
+    }
+
+    // Combine all found cards but avoid duplicates
+    const cardSet = new Set();
+    const allCardInfo = [];
+
+    // Add main document cards
+    mainDocCards.forEach(card => {
+        if (!cardSet.has(card)) {
+            cardSet.add(card);
+            allCardInfo.push({ card, source: 'main-document', msdInfo: null });
+        }
+    });
+
+    // Add shadow root cards
+    shadowCards.forEach(card => {
+        if (!cardSet.has(card)) {
+            cardSet.add(card);
+            allCardInfo.push({ card, source: 'shadow-root', msdInfo: null });
+        }
+    });
+
+    // Add MSD-managed cards (but check for duplicates)
+    msdCards.forEach(msdInfo => {
+        if (!cardSet.has(msdInfo.card)) {
+            cardSet.add(msdInfo.card);
+            allCardInfo.push({ card: msdInfo.card, source: 'msd-managed', msdInfo });
+        } else {
+            // This card was already found, just update its MSD info
+            const existing = allCardInfo.find(info => info.card === msdInfo.card);
+            if (existing) {
+                existing.msdInfo = msdInfo;
+                existing.source += '+msd-managed';
+            }
+        }
+    });
+
+    console.log(`[CB-LCARS Debug] Total unique cards found: ${allCardInfo.length}`);
+
+    allCardInfo.forEach((cardInfo, index) => {
+        const { card, source, msdInfo } = cardInfo;
+        console.log(`[CB-LCARS Debug] Card ${index}:`, {
+            tagName: card.tagName,
+            hasHass: !!card.hass,
+            hasConfig: !!card._config,
+            entity: card._config?.entity || card.entity,
+            msdId: msdInfo?.id,
+            source: source
+        });
+
+        // Try to get HASS from multiple sources
+        const hass = card.hass || card._hass || window.hass || window._msdControlsRenderer?.hass;
+        if (hass && card.setHass) {
+            console.log(`[CB-LCARS Debug] Forcing setHass on card ${index}`);
+            card.setHass(hass);
+        }
+
+        // Try to manually trigger update
+        if (card.requestUpdate) {
+            console.log(`[CB-LCARS Debug] Forcing requestUpdate on card ${index}`);
+            card.requestUpdate();
+        }
+
+        // For MSD-managed cards, also try the MSD update mechanism
+        if (msdInfo && window._msdControlsRenderer) {
+            console.log(`[CB-LCARS Debug] Forcing MSD update on card ${msdInfo.id}`);
+            try {
+                window._msdControlsRenderer._applyHassToCard(card, hass, msdInfo.id);
+            } catch (e) {
+                console.warn(`[CB-LCARS Debug] MSD update failed for ${msdInfo.id}:`, e);
+            }
+        }
+
+        // ADDED: Try the new forceStateUpdate method for CB-LCARS cards
+        if (card.tagName && card.tagName.toLowerCase().includes('cb-lcars') && typeof card.forceStateUpdate === 'function') {
+            console.log(`[CB-LCARS Debug] Forcing state update on CB-LCARS card ${index}`);
+            try {
+                card.forceStateUpdate();
+            } catch (e) {
+                console.warn(`[CB-LCARS Debug] forceStateUpdate failed for card ${index}:`, e);
+            }
+        }
+    });
+
+    // Also log current HASS state for the entities we care about
+    const mainHass = window.hass;
+    const msdHass = window._msdControlsRenderer?.hass;
+    const systemsManagerHass = window._msdControlsRenderer?.systemsManager?._currentHass;
+
+    console.log(`[CB-LCARS Debug] HASS comparison:`, {
+        'main window.hass light.desk': mainHass?.states?.['light.desk']?.state,
+        'MSD renderer HASS light.desk': msdHass?.states?.['light.desk']?.state,
+        'SystemsManager HASS light.desk': systemsManagerHass?.states?.['light.desk']?.state,
+        'Are they the same object?': {
+            'main === msd': mainHass === msdHass,
+            'main === systems': mainHass === systemsManagerHass,
+            'msd === systems': msdHass === systemsManagerHass
+        }
+    });
+
+    if (mainHass && mainHass.states) {
+        console.log(`[CB-LCARS Debug] Main window HASS entities:`, {
+            'light.desk': mainHass.states['light.desk']?.state,
+            entityCount: Object.keys(mainHass.states).length
+        });
+    }
+};
+
 async function initializeCustomCard() {
 
     // Call log banner function immediately when the script loads
@@ -367,12 +520,19 @@ class CBLCARSBaseCard extends ButtonCard {
             throw new Error("The 'cblcars_card_config' section is required in the configuration.");
         }
 
+        // DEBUGGING: Log the incoming config to see what MSD is passing
+        console.log('[CBLCARSBaseCard.setConfig()] Called with config:', {
+            type: config.type,
+            entity: config.entity,
+            triggersUpdate: config.triggers_update,
+            hasSetConfigFromMSD: config._msdGenerated || false,
+            fullConfig: config
+        });
 
         // Handle merging of templates array
         const defaultTemplates = ['cb-lcars-base'];
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
-
 
         // Set the _logLevel property from the config
         this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
@@ -380,18 +540,32 @@ class CBLCARSBaseCard extends ButtonCard {
         // --- Add all found 'entity' values to triggers_update ---
         const foundEntities = collectEntities(config);
         let triggersUpdate = Array.isArray(config.triggers_update) ? config.triggers_update : [];
-        if (foundEntities.length > 0) {
+
+        // SIMPLIFIED: Just handle triggers_update normally for all cards
+        if (config.triggers_update === 'all') {
+            triggersUpdate = 'all';
+            console.log(`[CBLCARSBaseCard.setConfig()] Preserving triggers_update: 'all' setting`);
+        } else if (foundEntities.length > 0) {
             triggersUpdate = Array.from(new Set([...triggersUpdate, ...foundEntities]));
-            cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] Found entities for triggers_update:`, foundEntities);
-            cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] Updated triggers_update:`, triggersUpdate);
+            console.log(`[CBLCARSBaseCard.setConfig()] Found entities for triggers_update:`, foundEntities);
+            console.log(`[CBLCARSBaseCard.setConfig()] Updated triggers_update:`, triggersUpdate);
+        }
+
+        // SPECIAL HANDLING: For MSD cards, completely disable triggers_update to prevent re-renders
+        if (config.type === 'cb-lcars-msd-card' || this.constructor.cardType === 'cb-lcars-msd-card') {
+            // MSD cards should NOT use triggers_update at all to prevent re-render loops that destroy the MSD system
+            triggersUpdate = [];
+            console.log(`[CBLCARSBaseCard.setConfig()] MSD card: Completely disabling triggers_update to prevent MSD system destruction`);
         }
 
         // Create a new object to avoid modifying the original config
         this._config = {
             ...config,
             template: mergedTemplates,
-            //triggers_update: triggersUpdate
+            triggers_update: triggersUpdate  // FIXED: Re-enabled triggers_update
         };
+
+        console.log('[CBLCARSBaseCard.setConfig()] Final config triggers_update:', this._config.triggers_update);
 
         // Load all fonts from the config (dynamically loads fonts based on the config)
         loadAllFontsFromConfig(this._config);
@@ -429,6 +603,56 @@ class CBLCARSBaseCard extends ButtonCard {
         }
 
         super.setConfig(this._config);
+        console.log('[CBLCARSBaseCard.setConfig()] Called super.setConfig with final config:', {
+            triggersUpdate: this._config.triggers_update,
+            entity: this._config.entity,
+            type: this._config.type
+        });
+
+        // ADDED: Force state re-evaluation for CB-LCARS cards after config change
+        if (this.hass && this._config.entity) {
+            console.log('[CBLCARSBaseCard.setConfig()] Forcing state re-evaluation after setConfig');
+
+            // Force the card to re-evaluate its state-based styling
+            setTimeout(() => {
+                try {
+                    // Try multiple methods to force state update
+
+                    // Method 1: Trigger a HASS update
+                    if (typeof this.setHass === 'function') {
+                        console.log('[CBLCARSBaseCard.setConfig()] Forcing setHass call');
+                        this.setHass(this.hass);
+                    }
+
+                    // Method 2: Force render update
+                    if (typeof this.requestUpdate === 'function') {
+                        console.log('[CBLCARSBaseCard.setConfig()] Forcing requestUpdate');
+                        this.requestUpdate();
+                    }
+
+                    // Method 3: Force property update (LitElement pattern)
+                    if (this.hass && this._config.entity) {
+                        const entity = this._config.entity;
+                        const state = this.hass.states[entity];
+                        if (state) {
+                            console.log('[CBLCARSBaseCard.setConfig()] Triggering state property update for:', entity, state.state);
+
+                            // Force the card to think the state changed
+                            const oldState = this._stateObj;
+                            this._stateObj = state;
+
+                            if (typeof this.updated === 'function') {
+                                this.updated(new Map([['hass', this.hass]]));
+                            }
+                        }
+                    }
+
+                } catch (e) {
+                    console.warn('[CBLCARSBaseCard.setConfig()] Failed to force state re-evaluation:', e);
+                }
+            }, 100);
+        }
+
         cblcarsLog.debug(`[CBLCARSBaseCard.setConfig()] called with:`, this._config, this._logLevel);
     }
 
@@ -871,7 +1095,6 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
         const msdConfig = specialConfig?.msd;
 
-
         // 2. Base card setConfig (will trigger first render later)
         super.setConfig(specialConfig);
 
@@ -886,7 +1109,6 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         } catch (e) {
             console.warn('[CBLCARSMSDCard] Failed to prepare MSD v1 pipeline:', e);
         }
-
 
         console.log('[CBLCARSMSDCard] msdConfig:', msdConfig);
         if (msdConfig && msdConfig.base_svg?.source) {
@@ -912,6 +1134,118 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             grid_rows: 4,
             grid_columns: 4
         };
+    }
+
+    // ADDED: Override setHass to ensure MSD system gets fresh HASS updates
+    setHass(hass) {
+        console.log('[CBLCARSMSDCard.setHass()] Called with HASS:', {
+            hasHass: !!hass,
+            entityCount: hass?.states ? Object.keys(hass.states).length : 0,
+            lightDeskState: hass?.states?.['light.desk']?.state,
+            hasMsdSystem: !!this.msdSystem
+        });
+
+        // Always call parent setHass first
+        super.setHass(hass);
+
+        // CRITICAL: Forward HASS to MSD system immediately when we receive it
+        if (this.msdSystem && hass && typeof this.msdSystem.ingestHass === 'function') {
+            console.log('[CBLCARSMSDCard.setHass()] Forwarding fresh HASS to MSD system');
+            try {
+                this.msdSystem.ingestHass(hass);
+            } catch (e) {
+                console.warn('[CBLCARSMSDCard.setHass()] Failed to forward HASS to MSD system:', e);
+            }
+        } else if (!this.msdSystem) {
+            console.warn('[CBLCARSMSDCard.setHass()] No MSD system to forward HASS to');
+        }
+    }
+
+    /**
+     * Force the card to re-evaluate its state and update styling
+     * Useful for debugging state-based style issues
+     */
+    forceStateUpdate() {
+        console.log('[CBLCARSBaseCard.forceStateUpdate()] Forcing state re-evaluation');
+
+        if (!this.hass || !this._config?.entity) {
+            console.warn('[CBLCARSBaseCard.forceStateUpdate()] No HASS or entity configured');
+            return;
+        }
+
+        const entity = this._config.entity;
+        const state = this.hass.states[entity];
+
+        if (!state) {
+            console.warn('[CBLCARSBaseCard.forceStateUpdate()] Entity not found:', entity);
+            return;
+        }
+
+        console.log('[CBLCARSBaseCard.forceStateUpdate()] Current state:', {
+            entity,
+            state: state.state,
+            attributes: state.attributes
+        });
+
+        try {
+            // Force complete re-evaluation by simulating a HASS change
+            const oldHass = this.hass;
+            this.hass = null;
+            this.hass = oldHass;
+
+            // Force setHass call
+            if (typeof this.setHass === 'function') {
+                this.setHass(this.hass);
+            }
+
+            // Force render
+            if (typeof this.requestUpdate === 'function') {
+                this.requestUpdate('hass', oldHass);
+            }
+
+            console.log('[CBLCARSBaseCard.forceStateUpdate()] ✅ State update forced');
+
+        } catch (e) {
+            console.error('[CBLCARSBaseCard.forceStateUpdate()] ❌ Failed to force update:', e);
+        }
+    }
+
+    // ADDED: Override updated to provide better logging for MSD re-render debugging
+    updated(changedProperties) {
+        console.log('[CBLCARSMSDCard.updated] Called with changed properties:', {
+            changedProps: Array.from(changedProperties.keys()),
+            hasHassChange: changedProperties.has('hass'),
+            hasMsdSystem: !!this.msdSystem,
+            msdSystemType: this.msdSystem ? this.msdSystem.constructor.name : 'none'
+        });
+
+        // Always use normal update cycle for MSD cards
+        // The MSD system should handle HASS updates internally via its own mechanisms
+        super.updated(changedProperties);
+
+        // After update, ensure MSD system gets current HASS if it exists
+        if (this.msdSystem && this.hass && typeof this.msdSystem.ingestHass === 'function') {
+            console.log('[CBLCARSMSDCard.updated] Ensuring MSD system has current HASS after update');
+            try {
+                this.msdSystem.ingestHass(this.hass);
+            } catch (e) {
+                console.warn('[CBLCARSMSDCard.updated] Failed to update MSD system after render:', e);
+            }
+        }
+    }
+
+    connectedCallback() {
+        console.log('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');
+        super.connectedCallback();
+    }
+
+    disconnectedCallback() {
+        console.log('[CBLCARSMSDCard.disconnectedCallback] MSD card disconnected from DOM');
+        if (this.msdSystem) {
+            console.log('[CBLCARSMSDCard.disconnectedCallback] Cleaning up MSD system');
+            // Don't destroy the MSD system here in case it's just a temporary disconnect
+        }
+        super.disconnectedCallback();
     }
 }
 
@@ -1078,7 +1412,6 @@ class CBLCARSButtonCard extends CBLCARSBaseCard {
       }
 }
 
-
 // Helper function to define custom elements and their editors
 function defineCustomElement(cardType, cardClass, editorType, editorClass) {
     customElements.define(cardType, cardClass);
@@ -1088,26 +1421,6 @@ function defineCustomElement(cardType, cardClass, editorType, editorClass) {
         }
     });
 }
-
-// delay registration of custom elements until the templates and stub configuration are loaded
-//Promise.all([window.cblcars.animeReady, templatesPromise, stubConfigPromise, themeColorsPromise])
-/*
-Promise.all([templatesPromise, stubConfigPromise, themeColorsPromise])
-  .then(() => {
-    defineCustomElement('cb-lcars-base-card', CBLCARSBaseCard, 'cb-lcars-base-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-label-card', CBLCARSLabelCard, 'cb-lcars-label-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-elbow-card', CBLCARSElbowCard, 'cb-lcars-elbow-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-double-elbow-card', CBLCARSDoubleElbowCard, 'cb-lcars-double-elbow-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-multimeter-card', CBLCARSMultimeterCard, 'cb-lcars-multimeter-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-dpad-card', CBLCARSDPADCard, 'cb-lcars-dpad-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-button-card', CBLCARSButtonCard, 'cb-lcars-button-card-editor', CBLCARSCardEditor);
-    defineCustomElement('cb-lcars-msd-card', CBLCARSMSDCard, 'cb-lcars-msd-card-editor', CBLCARSCardEditor);
-  })
-  .catch(error => {
-    cblcarsLog.error('Error loading YAML configuration:', error);
-  });
-*/
-
 
 // Register the cards to be available in the GUI editor
 window.customCards = window.customCards || [];

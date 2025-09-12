@@ -18,13 +18,384 @@ export class MsdControlsRenderer {
     if (typeof window !== 'undefined') {
       window._msdControlsRenderer = this; // ADDED global reference
     }
+
+    // DEBUGGING: Log when MsdControlsRenderer is created
+    console.log('[MsdControlsRenderer] Constructor called');
+
+    // DEBUGGING: Set up immediate debugging
+    this._setupDebugging();
+  }
+
+  // DEBUGGING: Add immediate debugging setup
+  _setupDebugging() {
+    console.log('[MsdControlsRenderer] Setting up debugging');
+
+    // Check if we can find any existing CB-LCARS cards in the page
+    setTimeout(() => {
+      const existingCards = document.querySelectorAll('cb-lcars-button-card, [data-card-type*="cb-lcars"], custom-button-card');
+      console.log('[MsdControlsRenderer] Found existing cards on page:', existingCards.length);
+      existingCards.forEach((card, index) => {
+        console.log(`[MsdControlsRenderer] Card ${index}:`, {
+          tagName: card.tagName,
+          hasHass: !!card.hass,
+          hasConfig: !!card._config,
+          entity: card._config?.entity || card.entity,
+          currentState: card.hass?.states?.[card._config?.entity || card.entity]?.state
+        });
+      });
+    }, 1000);
+
+    // Check for HASS availability
+    setTimeout(() => {
+      if (window.hassConnection) {
+        console.log('[MsdControlsRenderer] HASS connection found');
+      } else if (window.hass) {
+        console.log('[MsdControlsRenderer] Global hass found');
+      } else {
+        console.log('[MsdControlsRenderer] No HASS found globally');
+      }
+    }, 2000);
+
+    // Try to find a way to hook into HASS updates
+    this._tryToHookIntoHass();
+  }
+
+  // DEBUGGING: Try to find and hook into HASS
+  _tryToHookIntoHass() {
+    console.log('[MsdControlsRenderer] Attempting to hook into HASS updates');
+
+    // Try multiple strategies to get HASS
+    const strategies = [
+      () => window.hass,
+      () => window.hassConnection?.conn?.hass,
+      () => document.querySelector('home-assistant')?.hass,
+      () => document.querySelector('ha-panel-lovelace')?.hass,
+      () => {
+        // Try to find CB-LCARS card and get its HASS
+        const cbCard = document.querySelector('cb-lcars-button-card');
+        return cbCard?.hass;
+      }
+    ];
+
+    for (const [index, strategy] of strategies.entries()) {
+      try {
+        const hass = strategy();
+        if (hass && hass.states) {
+          console.log(`[MsdControlsRenderer] Found HASS via strategy ${index + 1}:`, {
+            entityCount: Object.keys(hass.states).length,
+            hasLightDesk: !!hass.states['light.desk'],
+            lightDeskState: hass.states['light.desk']?.state
+          });
+
+          // If we found HASS, try to set it immediately
+          this.setHass(hass);
+          break;
+        }
+      } catch (e) {
+        console.log(`[MsdControlsRenderer] Strategy ${index + 1} failed:`, e);
+      }
+    }
   }
 
   setHass(hass) {
+    console.log('[MsdControlsRenderer] setHass called with:', {
+      hasHass: !!hass,
+      entityCount: hass?.states ? Object.keys(hass.states).length : 0,
+      hasLightDesk: !!hass?.states?.['light.desk'],
+      lightDeskState: hass?.states?.['light.desk']?.state,
+      previousHass: !!this.hass,
+      controlElementsCount: this.controlElements.size
+    });
+
     this.hass = hass;
+
+    // ADDED: Immediately update all existing control cards with new HASS context
+    if (this.controlElements.size > 0) {
+      console.log('[MsdControlsRenderer] Updating HASS context for', this.controlElements.size, 'control cards');
+      this._updateAllControlsHass(hass);
+    } else {
+      console.log('[MsdControlsRenderer] No control elements to update');
+
+      // Try to find and update any CB-LCARS cards that might exist but aren't tracked
+      this._updateUnmanagedCards(hass);
+    }
+
+    // ADDED: Monitor for entity state changes to trigger immediate updates
+    this._monitorEntityChanges(hass);
   }
 
-  async renderControls(controlOverlays, resolvedModel) {
+  // DEBUGGING: Try to update cards that exist but aren't managed by us
+  _updateUnmanagedCards(hass) {
+    console.log('[MsdControlsRenderer] Looking for unmanaged CB-LCARS cards to update');
+
+    const unmanagedCards = document.querySelectorAll('cb-lcars-button-card, [data-card-type*="cb-lcars"]');
+    console.log(`[MsdControlsRenderer] Found ${unmanagedCards.length} unmanaged cards`);
+
+    unmanagedCards.forEach((card, index) => {
+      try {
+        const entity = card._config?.entity || card.entity;
+        const currentState = card.hass?.states?.[entity]?.state;
+        const newState = hass?.states?.[entity]?.state;
+
+        console.log(`[MsdControlsRenderer] Unmanaged card ${index}:`, {
+          entity,
+          currentState,
+          newState,
+          stateChanged: currentState !== newState
+        });
+
+        this._applyHassToCard(card, hass, `unmanaged-${index}`);
+      } catch (e) {
+        console.warn(`[MsdControlsRenderer] Failed to update unmanaged card ${index}:`, e);
+      }
+    });
+  }
+
+  // ADDED: Monitor entity state changes for immediate card updates
+  _monitorEntityChanges(hass) {
+    if (!hass || !hass.states) return;
+
+    // Store previous states for comparison
+    if (!this._previousStates) {
+      this._previousStates = { ...hass.states };
+      return;
+    }
+
+    // Check for changed entities
+    const changedEntities = [];
+    for (const [entityId, state] of Object.entries(hass.states)) {
+      const previousState = this._previousStates[entityId];
+      if (!previousState ||
+          previousState.state !== state.state ||
+          JSON.stringify(previousState.attributes) !== JSON.stringify(state.attributes)) {
+        changedEntities.push(entityId);
+      }
+    }
+
+    // Update stored states
+    this._previousStates = { ...hass.states };
+
+    // If entities changed, force update CB-LCARS cards immediately
+    if (changedEntities.length > 0) {
+      console.debug('[MsdControls] Entity changes detected:', changedEntities);
+      this._forceUpdateCustomButtonCards(changedEntities);
+    }
+  }
+
+  // ADDED: Force immediate updates for custom-button-card based cards when entities change
+  _forceUpdateCustomButtonCards(changedEntities) {
+    for (const [overlayId, wrapperElement] of this.controlElements) {
+      try {
+        const cardElement = wrapperElement.querySelector('[class*="card"], [data-card-type], cb-lcars-button-card, hui-light-card') ||
+                           wrapperElement.firstElementChild;
+
+        if (!cardElement) continue;
+
+        const tagName = cardElement.tagName ? cardElement.tagName.toLowerCase() : '';
+        const isCustomButtonCard = tagName.includes('cb-lcars') ||
+                                   tagName.includes('button-card') ||
+                                   cardElement._isCustomButtonCard ||
+                                   cardElement.constructor?.name?.includes('Button');
+
+        if (isCustomButtonCard && cardElement._config) {
+          // Check if this card is using any of the changed entities
+          const cardEntities = this._extractEntitiesFromConfig(cardElement._config);
+          const hasChangedEntity = cardEntities.some(entity => changedEntities.includes(entity));
+
+          if (hasChangedEntity) {
+            console.log(`[MsdControls] Forcing immediate update for custom-button-card:`, overlayId, {
+              changedEntities: changedEntities.filter(e => cardEntities.includes(e)),
+              cardEntities
+            });
+
+            // Multiple aggressive update strategies
+            this._applyHassToCard(cardElement, this.hass, overlayId);
+
+            // Additional nuclear option: try to access internal methods
+            setTimeout(() => {
+              try {
+                // Try to trigger internal state evaluation
+                if (cardElement._stateObj !== this.hass.states[cardEntities[0]]) {
+                  cardElement._stateObj = this.hass.states[cardEntities[0]];
+                }
+
+                // Try to trigger internal update methods
+                if (typeof cardElement._updateElement === 'function') {
+                  cardElement._updateElement();
+                }
+
+                if (typeof cardElement.performUpdate === 'function') {
+                  cardElement.performUpdate();
+                }
+
+                // Force DOM update
+                if (typeof cardElement.requestUpdate === 'function') {
+                  cardElement.requestUpdate();
+
+                  // Chain another update after render
+                  cardElement.updateComplete?.then?.(() => {
+                    if (typeof cardElement.requestUpdate === 'function') {
+                      cardElement.requestUpdate();
+                    }
+                  });
+                }
+
+                console.log(`[MsdControls] ✅ Nuclear update completed for:`, overlayId);
+
+              } catch (e) {
+                console.warn(`[MsdControls] Nuclear update failed for ${overlayId}:`, e);
+              }
+            }, 100);
+          }
+        }
+      } catch (error) {
+        console.warn('[MsdControls] Failed to force update for control:', overlayId, error);
+      }
+    }
+  }
+
+  // ADDED: Extract entity IDs from card config
+  _extractEntitiesFromConfig(config) {
+    const entities = [];
+
+    const extractFromObject = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+
+      if (Array.isArray(obj)) {
+        obj.forEach(extractFromObject);
+        return;
+      }
+
+      for (const [key, value] of Object.entries(obj)) {
+        if ((key === 'entity' || key === 'entity_id') && typeof value === 'string') {
+          entities.push(value);
+        } else if (typeof value === 'object') {
+          extractFromObject(value);
+        }
+      }
+    };
+
+    extractFromObject(config);
+    return [...new Set(entities)]; // Remove duplicates
+  }
+
+  // ADDED: Update HASS context for all existing control cards
+  _updateAllControlsHass(hass) {
+    for (const [overlayId, wrapperElement] of this.controlElements) {
+      try {
+        // Find the actual card element inside the wrapper
+        const cardElement = wrapperElement.querySelector('[class*="card"], [data-card-type], cb-lcars-button-card, hui-light-card') ||
+                           wrapperElement.firstElementChild;
+
+        if (cardElement) {
+          this._applyHassToCard(cardElement, hass, overlayId);
+        }
+      } catch (error) {
+        console.warn('[MsdControlsRenderer] Failed to update HASS for control:', overlayId, error);
+      }
+    }
+  }
+
+  // ADDED: Apply HASS context to a specific card with multiple strategies
+  _applyHassToCard(cardElement, hass, overlayId) {
+    const tagName = cardElement.tagName ? cardElement.tagName.toLowerCase() : '';
+    const isCustomButtonCard = tagName.includes('cb-lcars') ||
+                               tagName.includes('button-card') ||
+                               cardElement._isCustomButtonCard ||
+                               cardElement.constructor?.name?.includes('Button');
+
+    console.log(`[MsdControlsRenderer] Updating HASS for ${overlayId}:`, {
+      tagName,
+      isCustomButtonCard,
+      hasConfig: !!cardElement._config,
+      hasSetConfig: typeof cardElement.setConfig === 'function',
+      currentHass: !!cardElement.hass,
+      newHass: !!hass,
+      hassChanged: cardElement.hass !== hass
+    });
+
+    // Strategy 1: For custom-button-card based cards (like CB-LCARS), use the property setter approach
+    if (isCustomButtonCard) {
+      console.log(`[MsdControlsRenderer] Using custom-button-card strategy for:`, overlayId);
+
+      try {
+        // Method 1: Use the property setter to trigger internal updates
+        const oldHass = cardElement.hass;
+
+        // Check if the card has property descriptors (LitElement style)
+        const hassDescriptor = Object.getOwnPropertyDescriptor(cardElement.constructor.prototype, 'hass') ||
+                              Object.getOwnPropertyDescriptor(cardElement, 'hass');
+
+        if (hassDescriptor && hassDescriptor.set) {
+          console.log(`[MsdControlsRenderer] Using property setter for ${overlayId}`);
+          cardElement.hass = hass;
+        } else {
+          // Fallback: Direct assignment
+          console.log(`[MsdControlsRenderer] Using direct assignment for ${overlayId}`);
+          cardElement.hass = hass;
+          cardElement._hass = hass;
+        }
+
+        // Method 2: Trigger the card's update lifecycle manually
+        if (typeof cardElement.updated === 'function') {
+          console.log(`[MsdControlsRenderer] Calling updated() for ${overlayId}`);
+          const changedProperties = new Map([['hass', oldHass]]);
+          cardElement.updated(changedProperties);
+        }
+
+        // Method 3: Force render cycle if available
+        if (typeof cardElement.requestUpdate === 'function') {
+          console.log(`[MsdControlsRenderer] Calling requestUpdate() for ${overlayId}`);
+          cardElement.requestUpdate('hass', oldHass);
+        }
+
+        // Method 4: Try to trigger the internal _evaluateCondition or similar methods
+        if (typeof cardElement._evaluateCondition === 'function') {
+          console.log(`[MsdControlsRenderer] Calling _evaluateCondition() for ${overlayId}`);
+          cardElement._evaluateCondition();
+        }
+
+        // Method 5: Dispatch property change event that LitElement cards listen for
+        if (typeof cardElement.dispatchEvent === 'function') {
+          cardElement.dispatchEvent(new CustomEvent('property-changed', {
+            detail: { property: 'hass', value: hass, oldValue: oldHass },
+            bubbles: false
+          }));
+        }
+
+        console.log(`[MsdControlsRenderer] ✅ Custom-button-card HASS update completed for:`, overlayId);
+        return true;
+
+      } catch (e) {
+        console.warn(`[MsdControlsRenderer] Custom-button-card HASS update failed for ${overlayId}:`, e);
+      }
+    }
+
+    // Strategy 2: For standard HA cards and other LitElement cards
+    if (typeof cardElement.requestUpdate === 'function') {
+      console.log(`[MsdControlsRenderer] Using LitElement strategy for:`, overlayId);
+      const oldHass = cardElement.hass;
+      cardElement.hass = hass;
+      cardElement.requestUpdate('hass', oldHass);
+      return true;
+    }
+
+    // Strategy 3: Dispatch HASS change events for other cards
+    if (typeof cardElement.dispatchEvent === 'function') {
+      console.log(`[MsdControlsRenderer] Using event dispatch strategy for:`, overlayId);
+      cardElement.hass = hass;
+      cardElement.dispatchEvent(new CustomEvent('hass-changed', {
+        detail: { hass },
+        bubbles: false
+      }));
+      return true;
+    }
+
+    // Strategy 4: Basic fallback
+    cardElement.hass = hass;
+    console.log(`[MsdControlsRenderer] Applied basic HASS update for:`, overlayId);
+    return true;
+  }  async renderControls(controlOverlays, resolvedModel) {
     // ADDED: prevent re-entrant or duplicate identical renders
     if (this._isRendering) {
       console.log('[MsdControlsRenderer] renderControls skipped (in progress)');
@@ -123,6 +494,40 @@ export class MsdControlsRenderer {
     const { type, config, ...rest } = cardObj;
     // Include type too (some built-in cards ignore, harmless if present)
     return { type, ...rest };
+  }
+
+  // ADDED: Normalize card type to handle HA built-in cards
+  _normalizeCardType(cardType) {
+    if (!cardType) return null;
+
+    // Handle custom cards
+    if (cardType.startsWith('custom:')) {
+      return cardType.slice(7); // Remove 'custom:' prefix
+    }
+
+    // ADDED: Map HA built-in card types to their actual element names
+    const builtInCardMap = {
+      'button': 'hui-button-card',
+      'light': 'hui-light-card',
+      'switch': 'hui-switch-card',
+      'sensor': 'hui-sensor-card',
+      'binary-sensor': 'hui-binary-sensor-card',
+      'cover': 'hui-cover-card',
+      'fan': 'hui-fan-card',
+      'climate': 'hui-climate-card',
+      'thermostat': 'hui-thermostat-card',
+      'media-player': 'hui-media-control-card',
+      'alarm-panel': 'hui-alarm-panel-card',
+      'input-number': 'hui-input-number-card',
+      'input-select': 'hui-input-select-card',
+      'input-text': 'hui-input-text-card',
+      'lock': 'hui-lock-card',
+      'vacuum': 'hui-vacuum-card',
+      'water-heater': 'hui-water-heater-card',
+      'weather': 'hui-weather-forecast-card'
+    };
+
+    return builtInCardMap[cardType] || cardType;
   }
 
   // ADDED: normalize card type to an actual custom element tag name
@@ -234,8 +639,8 @@ export class MsdControlsRenderer {
       const cardType = cardDef.type;
       let cardElement = null;
 
-      // FIXED: Handle custom: prefix properly
-      const normalizedCardType = cardType.startsWith('custom:') ? cardType.slice(7) : cardType;
+      // FIXED: Use the new normalization method
+      const normalizedCardType = this._normalizeCardType(cardType);
 
       console.log('[MsdControls] Creating card element:', {
         originalType: cardType,
@@ -243,64 +648,12 @@ export class MsdControlsRenderer {
         overlayId: overlay.id
       });
 
-      // Strategy 1: Try direct custom element creation
-      if (window.customElements && typeof window.customElements.get === 'function') {
-        try {
-          const CardClass = window.customElements.get(normalizedCardType);
-          if (CardClass) {
-            cardElement = new CardClass();
-            console.log('[MsdControls] Created via constructor:', normalizedCardType);
-          }
-        } catch (e) {
-          console.debug(`Custom element constructor failed for ${normalizedCardType}:`, e);
-        }
-      }
-
-      // Strategy 2: Try document.createElement with normalized type
-      if (!cardElement) {
-        try {
-          cardElement = document.createElement(normalizedCardType);
-
-          // Check if this is actually a custom element (not a generic div)
-          if (cardElement.tagName.toLowerCase() === normalizedCardType.toLowerCase()) {
-            console.log('[MsdControls] Created via createElement:', normalizedCardType);
-            // Wait for potential custom element upgrade
-            await this._waitForElementUpgrade(cardElement);
-          } else {
-            // Generic element created, not the custom card
-            cardElement = null;
-          }
-        } catch (e) {
-          console.debug(`Document.createElement failed for ${normalizedCardType}:`, e);
-        }
-      }
-
-      // Strategy 3: Try creating in document body first (some cards need to be in DOM)
-      if (!cardElement) {
-        try {
-          cardElement = document.createElement(normalizedCardType);
-          // Temporarily attach to body to trigger upgrade
-          const tempParent = document.createElement('div');
-          tempParent.style.position = 'absolute';
-          tempParent.style.left = '-10000px';
-          document.body.appendChild(tempParent);
-          tempParent.appendChild(cardElement);
-
-          // Wait for upgrade
-          await this._waitForElementUpgrade(cardElement, 5000);
-
-          // Remove from temp parent
-          cardElement.remove();
-          tempParent.remove();
-
-          if (typeof cardElement.setConfig === 'function') {
-            console.log('[MsdControls] Created via body attachment:', normalizedCardType);
-          } else {
-            cardElement = null;
-          }
-        } catch (e) {
-          console.debug(`Body attachment strategy failed for ${normalizedCardType}:`, e);
-        }
+      // ADDED: Special handling for HA built-in cards
+      if (normalizedCardType.startsWith('hui-')) {
+        cardElement = await this._createHomeAssistantCard(normalizedCardType, cardDef, overlay);
+      } else {
+        // Handle custom cards with existing logic
+        cardElement = await this._createCustomCard(normalizedCardType, cardDef, overlay);
       }
 
       // Fallback: Create a placeholder
@@ -342,6 +695,119 @@ export class MsdControlsRenderer {
       console.error(`[MSD Controls] Failed to create card ${cardDef?.type}:`, error);
       return this._createFallbackCard(cardDef?.type || 'unknown', cardDef);
     }
+  }
+
+  // ADDED: Create Home Assistant built-in cards
+  async _createHomeAssistantCard(normalizedCardType, cardDef, overlay) {
+    console.log('[MsdControls] Creating HA built-in card:', normalizedCardType);
+
+    try {
+      // Wait for Home Assistant's card registry to be available
+      if (!window.customCards && !document.querySelector('home-assistant')) {
+        console.warn('[MsdControls] Home Assistant not fully loaded yet');
+        return null;
+      }
+
+      // Try to get the card constructor from HA's registry
+      let cardElement = null;
+
+      // Strategy 1: Use HA's card creation helper if available
+      if (window.customElements && window.customElements.get(normalizedCardType)) {
+        const CardClass = window.customElements.get(normalizedCardType);
+        cardElement = new CardClass();
+      } else {
+        // Strategy 2: Create via document and wait for upgrade
+        cardElement = document.createElement(normalizedCardType);
+        await this._waitForElementUpgrade(cardElement, 3000);
+      }
+
+      // ADDED: HA cards need different configuration approach
+      if (cardElement && typeof cardElement.setConfig !== 'function') {
+        // Some HA cards expose setConfig later or via different mechanism
+        console.log('[MsdControls] HA card created but setConfig not available, trying alternative approach');
+
+        // Wait a bit more for HA card to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        if (typeof cardElement.setConfig !== 'function') {
+          console.warn('[MsdControls] HA card does not have setConfig method:', normalizedCardType);
+          return null;
+        }
+      }
+
+      return cardElement;
+
+    } catch (error) {
+      console.warn('[MsdControls] HA card creation failed:', error);
+      return null;
+    }
+  }
+
+  // ADDED: Create custom cards (extracted from existing logic)
+  async _createCustomCard(normalizedCardType, cardDef, overlay) {
+    let cardElement = null;
+
+    // Strategy 1: Try direct custom element creation
+    if (window.customElements && typeof window.customElements.get === 'function') {
+      try {
+        const CardClass = window.customElements.get(normalizedCardType);
+        if (CardClass) {
+          cardElement = new CardClass();
+          console.log('[MsdControls] Created via constructor:', normalizedCardType);
+        }
+      } catch (e) {
+        console.debug(`Custom element constructor failed for ${normalizedCardType}:`, e);
+      }
+    }
+
+    // Strategy 2: Try document.createElement with normalized type
+    if (!cardElement) {
+      try {
+        cardElement = document.createElement(normalizedCardType);
+
+        // Check if this is actually a custom element (not a generic div)
+        if (cardElement.tagName.toLowerCase() === normalizedCardType.toLowerCase()) {
+          console.log('[MsdControls] Created via createElement:', normalizedCardType);
+          // Wait for potential custom element upgrade
+          await this._waitForElementUpgrade(cardElement);
+        } else {
+          // Generic element created, not the custom card
+          cardElement = null;
+        }
+      } catch (e) {
+        console.debug(`Document.createElement failed for ${normalizedCardType}:`, e);
+      }
+    }
+
+    // Strategy 3: Try creating in document body first (some cards need to be in DOM)
+    if (!cardElement) {
+      try {
+        cardElement = document.createElement(normalizedCardType);
+        // Temporarily attach to body to trigger upgrade
+        const tempParent = document.createElement('div');
+        tempParent.style.position = 'absolute';
+        tempParent.style.left = '-10000px';
+        document.body.appendChild(tempParent);
+        tempParent.appendChild(cardElement);
+
+        // Wait for upgrade
+        await this._waitForElementUpgrade(cardElement, 5000);
+
+        // Remove from temp parent
+        cardElement.remove();
+        tempParent.remove();
+
+        if (typeof cardElement.setConfig === 'function') {
+          console.log('[MsdControls] Created via body attachment:', normalizedCardType);
+        } else {
+          cardElement = null;
+        }
+      } catch (e) {
+        console.debug(`Body attachment strategy failed for ${normalizedCardType}:`, e);
+      }
+    }
+
+    return cardElement;
   }
 
   /**
@@ -434,23 +900,112 @@ export class MsdControlsRenderer {
       }
     }
 
-    // Additional update strategies for cb-lcars cards
-    if (cardElement.tagName && cardElement.tagName.toLowerCase().includes('cb-lcars')) {
-      setTimeout(() => {
-        try {
-          if (typeof cardElement.requestUpdate === 'function') {
-            cardElement.requestUpdate();
+    // ENHANCED: Additional update strategies for different card types
+    if (cardElement.tagName) {
+      const tagName = cardElement.tagName.toLowerCase();
+      const isCustomButtonCard = tagName.includes('cb-lcars') ||
+                                 tagName.includes('button-card') ||
+                                 cardElement._isCustomButtonCard ||
+                                 cardElement.constructor?.name?.includes('Button');
+
+      if (isCustomButtonCard) {
+        // CB-LCARS and custom-button-card specific updates
+        console.log(`[MsdControls] Setting up custom-button-card updates for:`, overlay.id);
+
+        setTimeout(() => {
+          try {
+            // Ensure HASS is set
+            if (this.hass) {
+              cardElement.hass = this.hass;
+              cardElement._hass = this.hass;
+            }
+
+            // Force full re-evaluation to trigger state-based styling
+            if (cardElement._config && typeof cardElement.setConfig === 'function') {
+              const currentConfig = { ...cardElement._config };
+              cardElement.setConfig(currentConfig);
+
+              // Re-apply HASS after config
+              if (this.hass) {
+                cardElement.hass = this.hass;
+              }
+            }
+
+            // LitElement update if available
+            if (typeof cardElement.requestUpdate === 'function') {
+              cardElement.requestUpdate();
+            }
+
+            console.debug('[MsdControls] ✅ Custom-button-card initial update completed for:', overlay.id);
+
+          } catch (e) {
+            console.debug('[MsdControls] Custom-button-card specific update failed:', e);
           }
-          // Force re-render by toggling a property
-          if (cardElement._config) {
-            const currentConfig = cardElement._config;
-            cardElement.setConfig && cardElement.setConfig({...currentConfig});
+        }, 100);
+
+        // Set up periodic HASS updates for responsive state changes
+        this._setupPeriodicHassUpdates(cardElement, overlay.id);
+
+      } else if (tagName.startsWith('hui-')) {
+        // Home Assistant built-in card updates
+        setTimeout(() => {
+          try {
+            if (typeof cardElement.requestUpdate === 'function') {
+              cardElement.requestUpdate();
+            }
+            // Force state update
+            if (this.hass) {
+              cardElement.hass = this.hass;
+            }
+          } catch (e) {
+            console.debug('[MsdControls] HA card specific update failed:', e);
           }
-        } catch (e) {
-          console.debug('[MsdControls] CB-LCARS specific update failed:', e);
-        }
-      }, 500);
+        }, 200);
+      }
     }
+  }
+
+  // ADDED: Set up periodic HASS updates for cards that need them
+  _setupPeriodicHassUpdates(cardElement, overlayId) {
+    // Clear any existing interval
+    if (cardElement._msdHassInterval) {
+      clearInterval(cardElement._msdHassInterval);
+    }
+
+    const tagName = cardElement.tagName ? cardElement.tagName.toLowerCase() : '';
+    const isCustomButtonCard = tagName.includes('cb-lcars') ||
+                               tagName.includes('button-card') ||
+                               cardElement._isCustomButtonCard ||
+                               cardElement.constructor?.name?.includes('Button');
+
+    // Set up different update intervals based on card type
+    if (isCustomButtonCard) {
+      // CB-LCARS and custom-button-card need more frequent updates for state changes
+      cardElement._msdHassInterval = setInterval(() => {
+        if (this.hass && cardElement.hass !== this.hass) {
+          console.debug('[MsdControls] Periodic HASS update (custom-button-card) for:', overlayId);
+          this._applyHassToCard(cardElement, this.hass, overlayId);
+        }
+      }, 2000); // Every 2 seconds for responsive state updates
+    } else {
+      // Standard HA cards can use longer intervals
+      cardElement._msdHassInterval = setInterval(() => {
+        if (this.hass && cardElement.hass !== this.hass) {
+          console.debug('[MsdControls] Periodic HASS update (standard) for:', overlayId);
+          this._applyHassToCard(cardElement, this.hass, overlayId);
+        }
+      }, 5000); // Every 5 seconds
+    }
+
+    // Clean up interval when card is removed
+    const originalRemove = cardElement.remove;
+    cardElement.remove = function() {
+      if (this._msdHassInterval) {
+        clearInterval(this._msdHassInterval);
+        this._msdHassInterval = null;
+      }
+      if (originalRemove) originalRemove.call(this);
+    };
   }
 
   /**
@@ -459,21 +1014,50 @@ export class MsdControlsRenderer {
   _buildCardConfig(cardDef) {
     if (!cardDef) return null;
 
+    let finalConfig;
+
     // Handle nested config structure: { type: "light", config: { entity: "light.example" } }
     if (cardDef.config && typeof cardDef.config === 'object') {
-      return {
+      finalConfig = {
         type: cardDef.type,
         ...cardDef.config
       };
+    } else {
+      // Handle flat structure: { type: "light", entity: "light.example", name: "My Light" }
+      const { type, config, card, card_config, cardConfig, ...otherProps } = cardDef;
+      finalConfig = {
+        type,
+        ...otherProps
+      };
     }
 
-    // Handle flat structure: { type: "light", entity: "light.example", name: "My Light" }
-    const { type, config, card, card_config, cardConfig, ...otherProps } = cardDef;
-    return {
-      type,
-      ...otherProps
-    };
+    // FIXED: Automatically add triggers_update for CB-LCARS and custom-button-card based cards
+    const cardType = finalConfig.type;
+    const isCustomButtonCard = cardType === 'custom:cb-lcars-button-card' ||
+                               cardType === 'cb-lcars-button-card' ||
+                               cardType.includes('button-card');
+
+    if (isCustomButtonCard) {
+      // Ensure the card will update when ANY entity changes, not just its own
+      finalConfig.triggers_update = finalConfig.triggers_update || 'all';
+
+      // CRITICAL: Mark this config as MSD-generated so the main card knows not to apply triggers_update to itself
+      finalConfig._msdGenerated = true;
+
+      console.log('[MsdControls] Added triggers_update:all to custom-button-card:', {
+        type: cardType,
+        entity: finalConfig.entity,
+        triggersUpdate: finalConfig.triggers_update,
+        msdGenerated: true
+      });
+    }
+
+// Remove any problematic code that references config before definition
+
+    return finalConfig;
   }
+
+// Cleaned up - removed broken enhancement method
 
   /**
    * Apply HASS context to card element with multiple strategies
@@ -541,6 +1125,9 @@ export class MsdControlsRenderer {
     console.log('[MsdControls] Applying config:', {
       overlayId: overlayId,
       hasSetConfig: typeof cardElement.setConfig === 'function',
+      cardType: config.type,
+      entity: config.entity,
+      triggersUpdate: config.triggers_update,
       config: config
     });
 
@@ -551,6 +1138,14 @@ export class MsdControlsRenderer {
         if (typeof cardElement.setConfig === 'function') {
           cardElement.setConfig(config);
           cardElement._config = config;
+
+          // ADDED: Verify the config was applied correctly
+          if (cardElement._config && cardElement._config.triggers_update) {
+            console.log(`[MsdControls] ✅ Config applied with triggers_update:${cardElement._config.triggers_update} for:`, overlayId);
+          } else {
+            console.warn(`[MsdControls] ⚠️ Config applied but no triggers_update found for:`, overlayId);
+          }
+
           console.log(`[MsdControls] ✅ Config applied on attempt ${attempt + 1} for:`, overlayId);
           return true;
         }
@@ -986,148 +1581,65 @@ export class MsdControlsRenderer {
           if (selector === '#msd-controls-container' && controlsContainerRef) {
             return controlsContainerRef;
           }
-
-          if (selector === '#msd-controls-container' && this._msdControlsContainer) {
-            return this._msdControlsContainer;
-          }
-
-          // Manual search in mock DOM children
-          if (selector.startsWith('#') && this._children && Array.isArray(this._children)) {
-            const id = selector.substring(1);
-            const found = this._children.find(child => child && child.id === id);
-            if (found) return found;
-          }
-
-          // Use original method if available
-          if (originalQuerySelector && typeof originalQuerySelector === 'function') {
-            try {
-              return originalQuerySelector.call(this, selector);
-            } catch (e) {}
-          }
-
-          return null;
+          return originalQuerySelector.call(this, selector);
         };
       }
 
-      // Ensure DOM structure for Node.js testing
-      const isNode = typeof window === 'undefined';
-      if (isNode && targetContainer._children && Array.isArray(targetContainer._children)) {
-        // Remove any existing controls container
-        targetContainer._children = targetContainer._children.filter(c => c.id !== 'msd-controls-container');
-
-        // Add our container
-        targetContainer._children.push(this.controlsContainer);
-        this.controlsContainer.parentNode = targetContainer;
-      }
+      return this.controlsContainer;
 
     } catch (error) {
-      console.error('[MsdControlsRenderer] Failed to append controls container:', error);
-      // Clean up the created element if append failed
+      console.error('[MsdControlsRenderer] Failed to attach controls container:', error);
       this.controlsContainer = null;
       return null;
     }
-
-    // ADDED: one-time resize relayout binding
-    if (!this._resizeBound && typeof window !== 'undefined') {
-      this._resizeBound = true;
-      window.addEventListener('resize', () => {
-        try { this.relayout(); } catch(e) { console.warn('[MsdControlsRenderer] Relayout on resize failed', e); }
-      });
-    }
-    // FIX: 'container' was undefined; use a local ref to the created controlsContainer
-    const containerRef = this.controlsContainer;
-    if (containerRef && !this._autoTried) {
-      this._autoTried = true;
-      queueMicrotask(() => this.tryAutoRender());
-    }
-    return this.controlsContainer;
   }
 
-  tryAutoRender() {
-    if (this.lastRenderArgs || this._isRendering) {
-      return;
-    }
-    if (this.controlElements.size || (this.controlsContainer && this.controlsContainer.childElementCount)) {
-      // Something already rendered; avoid duplicate
-      return;
-    }
-    const r = this.renderer;
-    if (!r || !r.lastRenderArgs) return;
-    const overlays =
-      r.lastRenderArgs.controlOverlays ||
-      r.lastRenderArgs.overlays ||
-      r.lastRenderArgs.resolvedModel?.overlays ||
-      [];
-    const controlOverlays = overlays.filter(o => o && o.type === 'control');
-    if (!controlOverlays.length) return;
-    const resolvedModel =
-      r.lastRenderArgs.resolvedModel ||
-      { anchors: r.lastRenderArgs.anchors || {} };
-    console.log('[MsdControlsRenderer] AutoRender executing for controls:', controlOverlays.map(o => o.id));
-    this.renderControls(controlOverlays, resolvedModel);
-  }
-
-  triggerManualRender(resolvedModel) {
-    // Prevent duplicate call if we already rendered identical signature
-    if (resolvedModel?.overlays) {
-      const controls = resolvedModel.overlays.filter(o => o.type === 'control');
-      const signature = controls.map(o => o.id).sort().join('|');
-      if (this._lastSignature === signature) {
-        console.log('[MsdControlsRenderer] triggerManualRender skipped (same signature)');
-        return;
-      }
-    }
-    console.log('[MsdControlsRenderer] Manual trigger requested');
-    this.tryAutoRender();
-    if (resolvedModel && this.lastRenderArgs?.resolvedModel !== resolvedModel) {
-      const overlays = (resolvedModel.overlays || []).filter(o => o.type === 'control');
-      if (overlays.length) {
-        this.renderControls(overlays, resolvedModel);
-      }
-    }
-  }
-
+  // Helper methods for position and size resolution
   resolvePosition(position, resolvedModel) {
-    // Simple position resolution
-    if (Array.isArray(position) && position.length >= 2) {
-      return [Number(position[0]), Number(position[1])];
+    if (!position || !Array.isArray(position) || position.length < 2) {
+      return [0, 0];
     }
-    return null;
+    return [position[0], position[1]];
   }
 
   resolveSize(size, resolvedModel) {
-    // FIXED: Handle both array format and object format
-    if (Array.isArray(size) && size.length >= 2) {
-      return [Number(size[0]), Number(size[1])];
+    if (!size || !Array.isArray(size) || size.length < 2) {
+      return [100, 100];
     }
-    if (size && typeof size === 'object' && size.w && size.h) {
-      return [Number(size.w), Number(size.h)];
-    }
-    return [100, 100]; // Default size
+    return [size[0], size[1]];
   }
 
-  relayout() {
-    if (this.lastRenderArgs) {
-      this.renderControls(this.lastRenderArgs.controlOverlays, this.lastRenderArgs.resolvedModel);
-    }
-  }
+  // Cleanup method
+  cleanup() {
+    console.log('[MsdControlsRenderer] Cleaning up controls renderer');
 
-  destroy() {
-    // Clear signature so a future fresh init can re-render
-    this._lastSignature = null;
+    // Clear control elements
     for (const [id, element] of this.controlElements) {
-      if (element.remove) element.remove();
+      try {
+        if (element && element.remove) {
+          element.remove();
+        }
+      } catch (e) {
+        console.warn(`Failed to remove control element ${id}:`, e);
+      }
     }
     this.controlElements.clear();
 
-    if (this.controlsContainer && this.controlsContainer.remove) {
-      this.controlsContainer.remove();
+    // Remove controls container
+    if (this.controlsContainer) {
+      try {
+        if (this.controlsContainer.remove) {
+          this.controlsContainer.remove();
+        }
+      } catch (e) {
+        console.warn('Failed to remove controls container:', e);
+      }
       this.controlsContainer = null;
     }
 
-    if (this._resizeBound && typeof window !== 'undefined') {
-      window.removeEventListener('resize', () => this.relayout()); // NOTE: cannot remove anonymous; acceptable minimal fix
-    }
+    // Clear HASS reference
+    this.hass = null;
+    this._previousStates = null;
   }
 }
 

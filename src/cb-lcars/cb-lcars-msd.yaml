@@ -184,17 +184,24 @@ cb-lcars-msd:
         size: [200, 180]
         z_index: 1000
 
-      # Test standard HA card type
+      # Test standard HA card type - FIXED configuration
       - id: control2
         type: control
         card:
-          type: light  # Test short form mapping to hui-light-card
+          type: button  # This will be mapped to hui-button-card internally
           config:
-            # This is exactly what you would put in a light card
-            entity: light.floor_lamp
-            name: Light Control
-        position: [1200, 320]
-        size: [200, 100]
+            entity: light.desk
+            name: "Desk Light"
+            show_name: true
+            show_icon: true
+            show_state: true
+            tap_action:
+              action: toggle
+            hold_action:
+              action: more-info
+        position: [1400, 120]
+        size: [200, 180]
+        z_index: 1000
 
       # Test another custom card type
       - id: control3
@@ -328,6 +335,9 @@ cb-lcars-msd:
               const realHass = this.___hass || hass;
 
               window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+                // Store pipeline reference for HASS updates
+                this._msdPipeline = pipeline;
+
                 const resolvedModel = pipeline.getResolvedModel?.();
                 const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
 
