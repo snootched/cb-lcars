@@ -13,6 +13,8 @@ export class MsdControlsRenderer {
     this._resizeBound = false;
     this._autoTried = false; // ADDED
     this._rawOverlayIndex = null; // ADDED
+    this._isRendering = false;            // ADDED
+    this._lastSignature = null;           // ADDED
     if (typeof window !== 'undefined') {
       window._msdControlsRenderer = this; // ADDED global reference
     }
@@ -23,41 +25,70 @@ export class MsdControlsRenderer {
   }
 
   async renderControls(controlOverlays, resolvedModel) {
-    console.log('[MsdControlsRenderer] renderControls called', {
-      count: controlOverlays?.length || 0,
-      ids: (controlOverlays || []).map(o => o.id)
-    }); // ADDED
-    if (!controlOverlays || !controlOverlays.length) return;
+    // ADDED: prevent re-entrant or duplicate identical renders
+    if (this._isRendering) {
+      console.log('[MsdControlsRenderer] renderControls skipped (in progress)');
+      return;
+    }
+    if (!controlOverlays?.length) return;
 
-    // FIXED: Wait for renderer container to be ready with timeout
-    const container = await this.ensureControlsContainerAsync();
-    if (!container) {
-      console.warn('[MsdControlsRenderer] Failed to create controls container - skipping render');
+    const signature = controlOverlays.map(o => o.id).sort().join('|');
+    if (
+      this._lastSignature === signature &&
+      this.controlsContainer &&
+      this.controlsContainer.childElementCount === controlOverlays.length &&
+      this.controlElements.size === controlOverlays.length
+    ) {
+      console.log('[MsdControlsRenderer] renderControls skipped (unchanged signature)', signature);
       return;
     }
 
-    // Clear existing controls
-    container.innerHTML = '';
-    this.controlElements.clear();
+    this._isRendering = true;
+    try {
+      console.log('[MsdControlsRenderer] renderControls called', {
+        count: controlOverlays.length,
+        ids: controlOverlays.map(o => o.id),
+        signature
+      });
 
-    // Render each control overlay
-    for (const overlay of controlOverlays) {
-      await this.renderControlOverlay(overlay, resolvedModel);
+      const container = await this.ensureControlsContainerAsync();
+      if (!container) {
+        console.warn('[MsdControlsRenderer] No container; abort render');
+        return;
+      }
+
+      // Simple strategy: clear then rebuild (still fast for small counts)
+      container.innerHTML = '';
+      this.controlElements.clear();
+
+      for (const overlay of controlOverlays) {
+        await this.renderControlOverlay(overlay, resolvedModel);
+      }
+
+      this.lastRenderArgs = { controlOverlays, resolvedModel };
+      this._lastSignature = signature;
+    } finally {
+      this._isRendering = false;
     }
-
-    // Store for potential relayout
-    this.lastRenderArgs = { controlOverlays, resolvedModel };
   }
 
   async renderControlOverlay(overlay, resolvedModel) {
-    console.log('[MsdControlsRenderer] Creating control overlay', overlay.id, overlay); // ADDED
+    // ADDED: reuse / remove stale DOM element if duplicated
+    const existingDom = this.controlsContainer?.querySelector?.(`#msd-control-${overlay.id}`);
+    if (existingDom) {
+      console.log('[MsdControlsRenderer] Existing DOM element found for', overlay.id, '- removing to avoid duplicates');
+      try { existingDom.remove(); } catch(_) {}
+    }
+    // If we somehow already have a control element instance registered, drop it (fresh rebuild model)
+    if (this.controlElements.has(overlay.id)) {
+      this.controlElements.delete(overlay.id);
+    }
+
+    console.log('[MsdControlsRenderer] Creating control overlay', overlay.id);
     const controlElement = await this.createControlElement(overlay);
     if (!controlElement) return;
 
-    // Position the element
     this.positionControlElement(controlElement, overlay, resolvedModel);
-
-    // Store reference
     this.controlElements.set(overlay.id, controlElement);
   }
 
@@ -79,6 +110,51 @@ export class MsdControlsRenderer {
     if (rawEntry?.card) return rawEntry.card;
 
     return null;
+  }
+
+  // ADDED: Build the final config object passed to setConfig
+  buildCardConfig(cardObj) {
+    if (!cardObj) return null;
+    // If nested config key provided, that is authoritative
+    if (cardObj.config && typeof cardObj.config === 'object') {
+      return { ...cardObj.config }; // shallow clone
+    }
+    // Otherwise treat the card object (minus wrapper-only keys) as config
+    const { type, config, ...rest } = cardObj;
+    // Include type too (some built-in cards ignore, harmless if present)
+    return { type, ...rest };
+  }
+
+  // ADDED: normalize card type to an actual custom element tag name
+  normalizeCardTag(cardType) {
+    if (!cardType) return null;
+    if (cardType.startsWith('custom:')) return cardType.slice(7); // HA style -> real tag
+    return cardType;
+  }
+
+  // ADDED: schedule retries for setConfig / hass once element upgrades
+  _scheduleDeferredConfig(cardElement, finalConfig, overlayId, attempt = 0) {
+    if (!finalConfig) return;
+    const maxAttempts = 8;
+    if (typeof cardElement.setConfig === 'function') {
+      try {
+        cardElement.setConfig(finalConfig);
+        cardElement._config = finalConfig;
+        if (this.hass) {
+          try { cardElement.hass = this.hass; } catch { cardElement._hass = this.hass; }
+        }
+        console.debug('[MSD Controls] Deferred setConfig applied', overlayId, { attempt });
+      } catch (e) {
+        console.warn('[MSD Controls] Deferred setConfig failed', overlayId, e);
+      }
+      return;
+    }
+    if (attempt >= maxAttempts) {
+      console.warn('[MSD Controls] Gave up waiting for setConfig', overlayId);
+      return;
+    }
+    const delay = 150 * (attempt + 1);
+    setTimeout(() => this._scheduleDeferredConfig(cardElement, finalConfig, overlayId, attempt + 1), delay);
   }
 
   async createControlElement(overlay) {
@@ -221,46 +297,70 @@ export class MsdControlsRenderer {
         cardElement.style.padding = '8px';
         cardElement.style.background = 'var(--card-background-color, #1f1f1f)';
         cardElement.style.borderRadius = '4px';
-        cardElement.innerHTML = `<div style="color: var(--primary-text-color);">Card: ${cardType}</div>`;
-
-        // Make it look like the expected card type for compatibility
-        Object.defineProperty(cardElement, 'tagName', {
-          value: resolvedCardType.toUpperCase(),
-          writable: false
-        });
+        cardElement.innerHTML = `<div style="color: var(--primary-text-color);">Card (fallback): ${cardType}</div>`;
       }
 
-      // Apply configuration if available
-      if (overlayWithCard.card.config) {
-        if (typeof cardElement.setConfig === 'function') {
-          try {
-            cardElement.setConfig(overlayWithCard.card.config);
-            console.log(`[MSD Controls] Config applied to ${resolvedCardType}:`, overlayWithCard.card.config); // CHANGED
-          } catch (e) {
-            console.warn(`Failed to set config on ${resolvedCardType}:`, e);
-          }
-        }
-        cardElement._config = overlayWithCard.card.config;
-      }
+      // ADDED: wrap cardElement so we manage absolute positioning on wrapper
+      const wrapper = document.createElement('div');
+      wrapper.className = 'msd-control-wrapper';
+      wrapper.dataset.msdControlId = overlay.id;
+      wrapper.style.position = 'absolute';
+      wrapper.style.pointerEvents = 'auto';
+      wrapper.style.overflow = 'hidden';
+      wrapper.appendChild(cardElement);
 
-      // Set hass context if available
+      // ADDED: attach early to temp DOM before hass/config
+      const tempHost = document.createElement('div');
+      Object.assign(tempHost.style, {
+        position: 'absolute',
+        left: '-10000px',
+        top: '-10000px',
+        width: '0',
+        height: '0',
+        overflow: 'hidden'
+      });
+      document.body.appendChild(tempHost);
+      tempHost.appendChild(wrapper);
+
+      // Build final config (full object)
+      const finalConfig = this.buildCardConfig(overlayWithCard.card);
+      console.debug('[MSD Controls] Final card config built for', overlay.id, finalConfig);
+
+      // Set hass FIRST (many cards expect hass when setConfig runs)
       if (this.hass) {
-        try {
-          if ('hass' in cardElement || cardElement.hass !== undefined) {
-            cardElement.hass = this.hass;
-            console.log(`[MSD Controls] HASS context applied to ${resolvedCardType}`);
-          } else {
-            // Store as private property if hass setter not available
-            cardElement._hass = this.hass;
-          }
-        } catch (e) {
-          console.warn(`Failed to set hass on ${resolvedCardType}:`, e);
-          cardElement._hass = this.hass;
-        }
+        try { cardElement.hass = this.hass; } catch { cardElement._hass = this.hass; }
       }
 
-      return cardElement;
+      // Immediate config attempt
+      if (finalConfig && typeof cardElement.setConfig === 'function') {
+        try {
+            cardElement.setConfig(finalConfig);
+            cardElement._config = finalConfig;
+        } catch (e) {
+          console.warn('[MSD Controls] setConfig error (immediate)', overlay.id, e);
+        }
+      } else if (finalConfig) {
+        // schedule retries until upgrade occurs
+        this._scheduleDeferredConfig(cardElement, finalConfig, overlay.id, 0);
+      }
 
+      // Lit / update flush microtask
+      await new Promise(r => setTimeout(r, 0));
+      if (typeof cardElement.requestUpdate === 'function') {
+        try { cardElement.requestUpdate(); } catch {}
+      }
+
+      // Special handling: second pass for cb-lcars-button-card
+      if (cardElement.tagName?.toLowerCase() === 'cb-lcars-button-card') {
+        setTimeout(() => { try { cardElement.requestUpdate?.(); } catch {} }, 40);
+      }
+
+      // Detach temp host (wrapper will be re-appended by positionControlElement)
+      tempHost.remove();
+
+      // Event suppression on wrapper (card remains interactive)
+      this.addEventSuppression?.(wrapper);
+      return wrapper;
     } catch (error) {
       console.warn(`[MSD Controls] Failed to create card ${cardDef?.type}:`, error);
       return null;
@@ -310,10 +410,9 @@ export class MsdControlsRenderer {
 
     // FIXED: Use the container we determined is valid
     const targetContainer = this.controlsContainer;
-    if (targetContainer) {
+    // Append only if not already attached (PREVENT DUPLICATES)
+    if (targetContainer && element.parentNode !== targetContainer) {
       targetContainer.appendChild(element);
-    } else {
-      console.error('[MSD Controls] No valid controls container to append to');
     }
   }
 
@@ -619,31 +718,40 @@ export class MsdControlsRenderer {
     return this.controlsContainer;
   }
 
-  tryAutoRender() { // ADDED
-    if (this.lastRenderArgs) return;
-    const r = this.renderer;
-    if (!r || !r.lastRenderArgs) {
-      console.log('[MsdControlsRenderer] AutoRender: renderer.lastRenderArgs not ready');
+  tryAutoRender() { // ADDED / MODIFIED
+    if (this.lastRenderArgs || this._isRendering) {
       return;
     }
+    if (this.controlElements.size || (this.controlsContainer && this.controlsContainer.childElementCount)) {
+      // Something already rendered; avoid duplicate
+      return;
+    }
+    const r = this.renderer;
+    if (!r || !r.lastRenderArgs) return;
     const overlays =
       r.lastRenderArgs.controlOverlays ||
       r.lastRenderArgs.overlays ||
       r.lastRenderArgs.resolvedModel?.overlays ||
       [];
     const controlOverlays = overlays.filter(o => o && o.type === 'control');
-    if (!controlOverlays.length) {
-      console.log('[MsdControlsRenderer] AutoRender: no control overlays found');
-      return;
-    }
+    if (!controlOverlays.length) return;
     const resolvedModel =
       r.lastRenderArgs.resolvedModel ||
       { anchors: r.lastRenderArgs.anchors || {} };
-    console.log('[MsdControlsRenderer] Auto-discovered control overlays', controlOverlays.map(o => o.id));
+    console.log('[MsdControlsRenderer] AutoRender executing for controls:', controlOverlays.map(o => o.id));
     this.renderControls(controlOverlays, resolvedModel);
   }
 
-  triggerManualRender(resolvedModel) { // ADDED helper
+  triggerManualRender(resolvedModel) {
+    // Prevent duplicate call if we already rendered identical signature
+    if (resolvedModel?.overlays) {
+      const controls = resolvedModel.overlays.filter(o => o.type === 'control');
+      const signature = controls.map(o => o.id).sort().join('|');
+      if (this._lastSignature === signature) {
+        console.log('[MsdControlsRenderer] triggerManualRender skipped (same signature)');
+        return;
+      }
+    }
     console.log('[MsdControlsRenderer] Manual trigger requested');
     this.tryAutoRender();
     if (resolvedModel && this.lastRenderArgs?.resolvedModel !== resolvedModel) {
@@ -680,6 +788,8 @@ export class MsdControlsRenderer {
   }
 
   destroy() {
+    // Clear signature so a future fresh init can re-render
+    this._lastSignature = null;
     for (const [id, element] of this.controlElements) {
       if (element.remove) element.remove();
     }

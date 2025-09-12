@@ -405,6 +405,10 @@ export class AdvancedRenderer {
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':
         return this.lineRenderer.render(overlay, anchors, viewBox);
+      case 'control':
+        // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
+        console.log('[AdvancedRenderer] Control overlay detected, skipping SVG rendering:', overlay.id);
+        return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
       default:
         console.warn(`[AdvancedRenderer] Unknown overlay type: ${overlay.type}`);
         return '';

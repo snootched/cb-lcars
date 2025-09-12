@@ -166,27 +166,49 @@ cb-lcars-msd:
       - id: control1
         type: control
         card:
-          type: light
+          type: custom:cb-lcars-button-card
           config:
-            entity: light.floor_lamp
-            show_name: true
-            show_icon: true
-        position: [1200, 10]
-        size: [200, 100]
+            # This is exactly what you would put in a standalone cb-lcars-button-card
+            cblcars_card_type: cb-lcars-button-lozenge
+            show_label: true
+            variables:
+              label: LCARS Button
+              entity: light.floor_lamp
+            tap_action:
+              action: toggle
+            double_tap_action:
+              action: none
+            hold_action:
+              action: more-info
+        position: [1200, 120]
+        size: [200, 180]
         z_index: 1000
 
-      # ADDED: Additional control test with different card type
+      # Test standard HA card type
       - id: control2
         type: control
         card:
-          type: button
+          type: light  # Test short form mapping to hui-light-card
           config:
+            # This is exactly what you would put in a light card
             entity: light.floor_lamp
-            name: "Test Button"
-            show_icon: true
-        position: [1200, 120]
-        size: [200, 80]
-        z_index: 1000
+            name: Light Control
+        position: [1200, 320]
+        size: [200, 100]
+
+      # Test another custom card type
+      - id: control3
+        type: control
+        card:
+          type: custom:mini-graph-card  # Test deferred loading
+          config:
+            entity: sensor.bathroom_dial_battery
+            name: Mini Graph
+            show:
+              name: true
+              icon: true
+        position: [1420, 120]
+        size: [180, 120]
 
     # Test rules system
     rules:
@@ -320,11 +342,14 @@ cb-lcars-msd:
             this._msdV1ComprehensiveBoot = true;
             const msdConfig = this._config?.msd || this.config?.msd;
 
+            // ADDED: Log raw overlays before pipeline processing
+            console.log('[MSD v1 Comprehensive] Raw overlays before pipeline:', msdConfig.overlays?.map(o => ({ id: o.id, type: o.type })));
+
             // ADDED: deep-clone raw overlays for control recovery
             if (msdConfig?.overlays) {
               try {
                 window._msdRawOverlays = msdConfig.overlays.map(o => JSON.parse(JSON.stringify(o)));
-                console.log('[MSD v1 Comprehensive] Cached raw overlays for controls recovery');
+                console.log('[MSD v1 Comprehensive] Cached raw overlays for controls recovery:', window._msdRawOverlays.filter(o => o.type === 'control').map(o => o.id));
               } catch(e) {
                 console.warn('[MSD v1 Comprehensive] Failed to cache raw overlays', e);
               }
@@ -357,13 +382,19 @@ cb-lcars-msd:
                 const resolvedModel = pipeline.getResolvedModel?.();
                 const pipelineAnchors = resolvedModel?.anchors || {};
 
+                // ADDED: Debug resolved model overlays
+                console.log('[MSD v1 Comprehensive] Resolved model overlays:', resolvedModel?.overlays?.map(o => ({ id: o.id, type: o.type })));
+                const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
+                console.log('[MSD v1 Comprehensive] Control overlays found in resolved model:', controlOverlays.map(o => o.id));
+
                 const stats = {
                   enabled: pipeline.enabled,
                   overlayCount: resolvedModel?.overlays?.length || 0,
                   anchorCount: Object.keys(pipelineAnchors).length,
                   dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
                   ruleCount: (msdConfig.rules || []).length,
-                  errors: pipeline.errors?.length || 0
+                  errors: pipeline.errors?.length || 0,
+                  controlOverlayCount: controlOverlays.length
                 };
 
                 console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
@@ -376,32 +407,35 @@ cb-lcars-msd:
                 }
                 console.groupEnd();
 
-                // ADDED: trigger control overlay rendering
+                // ENHANCED: trigger control overlay rendering with better debugging
                 try {
-                  const resolvedModel = pipeline.getResolvedModel?.();
-                  const controls = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
-                  if (controls.length) {
-                    console.log('[MSD v1 Comprehensive] Rendering control overlays', controls.map(c=>c.id));
-                    // Prefer pipeline.controlsRenderer if exposed
-                    if (pipeline.controlsRenderer?.renderControls) {
-                      pipeline.controlsRenderer.renderControls(controls, resolvedModel);
-                    } else if (window._msdControlsRenderer?.renderControls) {
-                      window._msdControlsRenderer.renderControls(controls, resolvedModel);
+                  if (controlOverlays.length) {
+                    console.group('[MSD v1 Comprehensive] Control Overlay Rendering');
+                    console.log('Control overlays to render:', controlOverlays.map(c => ({ id: c.id, hasCard: !!c.card })));
+
+                    // Check for controls renderer
+                    const renderer = pipeline.controlsRenderer || window._msdControlsRenderer;
+                    console.log('Controls renderer available:', !!renderer, renderer?.constructor?.name);
+
+                    if (renderer?.renderControls) {
+                      console.log('Calling renderControls with:', { controlCount: controlOverlays.length, hasResolvedModel: !!resolvedModel });
+                      renderer.renderControls(controlOverlays, resolvedModel);
                     } else {
-                      console.warn('[MSD v1 Comprehensive] No controls renderer available');
+                      console.error('No controls renderer available or missing renderControls method');
                     }
+                    console.groupEnd();
                   } else {
-                    console.log('[MSD v1 Comprehensive] No control overlays found to render');
+                    console.warn('[MSD v1 Comprehensive] No control overlays found to render - check if they were filtered out');
                   }
                 } catch(e) {
-                  console.warn('[MSD v1 Comprehensive] Control overlay render attempt failed', e);
+                  console.error('[MSD v1 Comprehensive] Control overlay render attempt failed', e);
                 }
               }).catch(err => {
                 console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
               });
             };
 
-            resolveMount(); // CHANGED: invoke resolver instead of using undefined mount
+            resolveMount();
           }
 
         } catch(e) {
@@ -411,6 +445,5 @@ cb-lcars-msd:
 
         const vb = this._msdViewBox || [0,0,1920,1200];
         const aspect = window.cblcars.getSvgAspectRatio(vb);
-        // CHANGED pointer-events to auto so controls receive input
         return `<div id="msd-controls-host" style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:auto;"></div>`;
       ]]]
