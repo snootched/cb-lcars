@@ -158,13 +158,11 @@ export class MsdControlsRenderer {
   }
 
   async createControlElement(overlay) {
-    // REPLACED: use resolver
     const cardDef = this.resolveCardDefinition(overlay);
     if (!cardDef) {
-      console.warn('[MsdControlsRenderer] No card definition found for control overlay', overlay.id, overlay);
+      console.warn('[MsdControlsRenderer] No card definition found for control overlay', overlay.id);
       return null;
     }
-    const overlayWithCard = { ...overlay, card: cardDef };
 
     try {
       const isNode = typeof window === 'undefined';
@@ -232,138 +230,470 @@ export class MsdControlsRenderer {
         return mockElement;
       }
 
-      // Browser environment - More robust card creation
-      const cardType = overlayWithCard.card.type;
+      // Browser environment - Fixed card creation and configuration
+      const cardType = cardDef.type;
       let cardElement = null;
 
-      // FIXED: Handle both direct card types and Home Assistant card types
-      const haCardTypes = {
-        'light': 'hui-light-card',
-        'switch': 'hui-switch-card',
-        'sensor': 'hui-sensor-card',
-        'gauge': 'hui-gauge-card',
-        'button': 'hui-button-card',
-        'entities': 'hui-entities-card',
-        'glance': 'hui-glance-card'
-      };
+      // FIXED: Handle custom: prefix properly
+      const normalizedCardType = cardType.startsWith('custom:') ? cardType.slice(7) : cardType;
 
-      const resolvedCardType = haCardTypes[cardType] || cardType;
+      console.log('[MsdControls] Creating card element:', {
+        originalType: cardType,
+        normalizedType: normalizedCardType,
+        overlayId: overlay.id
+      });
 
-      // Strategy 1: Try customElements.get and new constructor
+      // Strategy 1: Try direct custom element creation
       if (window.customElements && typeof window.customElements.get === 'function') {
         try {
-          const CardClass = window.customElements.get(resolvedCardType);
+          const CardClass = window.customElements.get(normalizedCardType);
           if (CardClass) {
             cardElement = new CardClass();
+            console.log('[MsdControls] Created via constructor:', normalizedCardType);
           }
         } catch (e) {
-          console.warn(`Failed to instantiate ${resolvedCardType} via constructor:`, e);
+          console.debug(`Custom element constructor failed for ${normalizedCardType}:`, e);
         }
       }
 
-      // Strategy 2: Try document.createElement with resolved type
+      // Strategy 2: Try document.createElement with normalized type
       if (!cardElement) {
         try {
-          cardElement = document.createElement(resolvedCardType);
-          // Verify it's actually a custom element, not just a generic element
-          if (cardElement.tagName.toLowerCase() === resolvedCardType && cardElement.setConfig) {
-            // Good - it's a real custom card element
-          } else if (cardElement.tagName.toLowerCase() !== resolvedCardType) {
-            // Generic element created - try upgrading
-            window.customElements?.upgrade?.(cardElement);
+          cardElement = document.createElement(normalizedCardType);
+
+          // Check if this is actually a custom element (not a generic div)
+          if (cardElement.tagName.toLowerCase() === normalizedCardType.toLowerCase()) {
+            console.log('[MsdControls] Created via createElement:', normalizedCardType);
+            // Wait for potential custom element upgrade
+            await this._waitForElementUpgrade(cardElement);
+          } else {
+            // Generic element created, not the custom card
+            cardElement = null;
           }
         } catch (e) {
-          console.warn(`Failed to create element ${resolvedCardType}:`, e);
+          console.debug(`Document.createElement failed for ${normalizedCardType}:`, e);
         }
       }
 
-      // ENHANCED: Strategy 3 - Try creating through Home Assistant's card system
-      if (!cardElement && window.customCards) {
-        try {
-          const cardConfig = { type: cardType, ...(overlayWithCard.card.config || {}) }; // CHANGED
-          if (window.customCards[cardType]) {
-            cardElement = window.customCards[cardType].getCard(cardConfig);
-          }
-        } catch (e) {
-          console.warn(`Failed to create via customCards ${cardType}:`, e);
-        }
-      }
-
-      // Strategy 4: Fallback div with card type
+      // Strategy 3: Try creating in document body first (some cards need to be in DOM)
       if (!cardElement) {
-        cardElement = document.createElement('div');
-        cardElement.setAttribute('data-card-type', resolvedCardType);
-        cardElement.style.border = '2px solid var(--primary-color)';
-        cardElement.style.padding = '8px';
-        cardElement.style.background = 'var(--card-background-color, #1f1f1f)';
-        cardElement.style.borderRadius = '4px';
-        cardElement.innerHTML = `<div style="color: var(--primary-text-color);">Card (fallback): ${cardType}</div>`;
+        try {
+          cardElement = document.createElement(normalizedCardType);
+          // Temporarily attach to body to trigger upgrade
+          const tempParent = document.createElement('div');
+          tempParent.style.position = 'absolute';
+          tempParent.style.left = '-10000px';
+          document.body.appendChild(tempParent);
+          tempParent.appendChild(cardElement);
+
+          // Wait for upgrade
+          await this._waitForElementUpgrade(cardElement, 5000);
+
+          // Remove from temp parent
+          cardElement.remove();
+          tempParent.remove();
+
+          if (typeof cardElement.setConfig === 'function') {
+            console.log('[MsdControls] Created via body attachment:', normalizedCardType);
+          } else {
+            cardElement = null;
+          }
+        } catch (e) {
+          console.debug(`Body attachment strategy failed for ${normalizedCardType}:`, e);
+        }
       }
 
-      // ADDED: wrap cardElement so we manage absolute positioning on wrapper
+      // Fallback: Create a placeholder
+      if (!cardElement) {
+        console.warn(`Could not create card element for type: ${cardType}, creating fallback`);
+        cardElement = this._createFallbackCard(cardType, cardDef);
+      }
+
+      // FIXED: Apply HASS context BEFORE configuration
+      console.log('[MsdControls] Applying HASS and config:', {
+        overlayId: overlay.id,
+        hasHass: !!this.hass,
+        hasSetConfig: typeof cardElement.setConfig === 'function'
+      });
+
+      // Apply HASS context first
+      if (this.hass) {
+        await this._applyHassContext(cardElement, overlay.id);
+      }
+
+      // Then apply configuration
+      await this._configureCard(cardElement, cardDef, overlay);
+
+      // Create wrapper for positioning
       const wrapper = document.createElement('div');
       wrapper.className = 'msd-control-wrapper';
       wrapper.dataset.msdControlId = overlay.id;
       wrapper.style.position = 'absolute';
       wrapper.style.pointerEvents = 'auto';
-      wrapper.style.overflow = 'hidden';
+      wrapper.style.touchAction = 'manipulation'; // ADDED: Better touch handling
       wrapper.appendChild(cardElement);
 
-      // ADDED: attach early to temp DOM before hass/config
-      const tempHost = document.createElement('div');
-      Object.assign(tempHost.style, {
-        position: 'absolute',
-        left: '-10000px',
-        top: '-10000px',
-        width: '0',
-        height: '0',
-        overflow: 'hidden'
-      });
-      document.body.appendChild(tempHost);
-      tempHost.appendChild(wrapper);
+      // Event isolation
+      this._setupEventIsolation(wrapper, cardElement, overlay);
 
-      // Build final config (full object)
-      const finalConfig = this.buildCardConfig(overlayWithCard.card);
-      console.debug('[MSD Controls] Final card config built for', overlay.id, finalConfig);
-
-      // Set hass FIRST (many cards expect hass when setConfig runs)
-      if (this.hass) {
-        try { cardElement.hass = this.hass; } catch { cardElement._hass = this.hass; }
-      }
-
-      // Immediate config attempt
-      if (finalConfig && typeof cardElement.setConfig === 'function') {
-        try {
-            cardElement.setConfig(finalConfig);
-            cardElement._config = finalConfig;
-        } catch (e) {
-          console.warn('[MSD Controls] setConfig error (immediate)', overlay.id, e);
-        }
-      } else if (finalConfig) {
-        // schedule retries until upgrade occurs
-        this._scheduleDeferredConfig(cardElement, finalConfig, overlay.id, 0);
-      }
-
-      // Lit / update flush microtask
-      await new Promise(r => setTimeout(r, 0));
-      if (typeof cardElement.requestUpdate === 'function') {
-        try { cardElement.requestUpdate(); } catch {}
-      }
-
-      // Special handling: second pass for cb-lcars-button-card
-      if (cardElement.tagName?.toLowerCase() === 'cb-lcars-button-card') {
-        setTimeout(() => { try { cardElement.requestUpdate?.(); } catch {} }, 40);
-      }
-
-      // Detach temp host (wrapper will be re-appended by positionControlElement)
-      tempHost.remove();
-
-      // Event suppression on wrapper (card remains interactive)
-      this.addEventSuppression?.(wrapper);
       return wrapper;
+
     } catch (error) {
-      console.warn(`[MSD Controls] Failed to create card ${cardDef?.type}:`, error);
-      return null;
+      console.error(`[MSD Controls] Failed to create card ${cardDef?.type}:`, error);
+      return this._createFallbackCard(cardDef?.type || 'unknown', cardDef);
+    }
+  }
+
+  /**
+   * Wait for custom element to be fully upgraded
+   */
+  async _waitForElementUpgrade(element, maxWait = 5000) {
+    const startTime = Date.now();
+
+    console.log('[MsdControls] Waiting for element upgrade:', {
+      tagName: element.tagName,
+      hasSetConfig: typeof element.setConfig === 'function'
+    });
+
+    while (Date.now() - startTime < maxWait) {
+      // Check if element has been upgraded (has setConfig method)
+      if (typeof element.setConfig === 'function') {
+        console.log('[MsdControls] Element upgraded successfully:', element.tagName);
+        return element;
+      }
+
+      // Check if element has upgrade promise
+      if (element.updateComplete) {
+        try {
+          await element.updateComplete;
+          if (typeof element.setConfig === 'function') {
+            console.log('[MsdControls] Element upgraded via updateComplete:', element.tagName);
+            return element;
+          }
+        } catch (e) {
+          // Ignore update errors
+        }
+      }
+
+      // Force upgrade attempt
+      if (window.customElements && window.customElements.upgrade) {
+        try {
+          window.customElements.upgrade(element);
+        } catch (e) {
+          // Ignore upgrade errors
+        }
+      }
+
+      // Short wait before next check
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    console.warn('[MsdControls] Element upgrade timeout:', {
+      tagName: element.tagName,
+      hasSetConfig: typeof element.setConfig === 'function',
+      waitTime: Date.now() - startTime
+    });
+
+    return element;
+  }
+
+  /**
+   * Configure the card with config and HASS context
+   */
+  async _configureCard(cardElement, cardDef, overlay) {
+    // Build the final configuration
+    const config = this._buildCardConfig(cardDef);
+
+    console.log('[MsdControls] Configuring card:', {
+      overlayId: overlay.id,
+      cardType: cardDef.type,
+      hasSetConfig: typeof cardElement.setConfig === 'function',
+      hasHass: !!this.hass,
+      config: config
+    });
+
+    // Apply configuration with retries
+    if (config) {
+      const success = await this._applyCardConfig(cardElement, config, overlay.id);
+      if (!success) {
+        // Try one more time after a longer delay
+        setTimeout(async () => {
+          console.log('[MsdControls] Retrying config application after delay:', overlay.id);
+          await this._applyCardConfig(cardElement, config, overlay.id);
+        }, 1000);
+      }
+    }
+
+    // Force update if possible
+    if (typeof cardElement.requestUpdate === 'function') {
+      try {
+        await cardElement.requestUpdate();
+        console.log('[MsdControls] Requested update for:', overlay.id);
+      } catch (e) {
+        console.debug('[MsdControls] requestUpdate failed:', e);
+      }
+    }
+
+    // Additional update strategies for cb-lcars cards
+    if (cardElement.tagName && cardElement.tagName.toLowerCase().includes('cb-lcars')) {
+      setTimeout(() => {
+        try {
+          if (typeof cardElement.requestUpdate === 'function') {
+            cardElement.requestUpdate();
+          }
+          // Force re-render by toggling a property
+          if (cardElement._config) {
+            const currentConfig = cardElement._config;
+            cardElement.setConfig && cardElement.setConfig({...currentConfig});
+          }
+        } catch (e) {
+          console.debug('[MsdControls] CB-LCARS specific update failed:', e);
+        }
+      }, 500);
+    }
+  }
+
+  /**
+   * Build card configuration from card definition
+   */
+  _buildCardConfig(cardDef) {
+    if (!cardDef) return null;
+
+    // Handle nested config structure: { type: "light", config: { entity: "light.example" } }
+    if (cardDef.config && typeof cardDef.config === 'object') {
+      return {
+        type: cardDef.type,
+        ...cardDef.config
+      };
+    }
+
+    // Handle flat structure: { type: "light", entity: "light.example", name: "My Light" }
+    const { type, config, card, card_config, cardConfig, ...otherProps } = cardDef;
+    return {
+      type,
+      ...otherProps
+    };
+  }
+
+  /**
+   * Apply HASS context to card element with multiple strategies
+   */
+  async _applyHassContext(cardElement, overlayId) {
+    if (!this.hass) {
+      console.warn('[MsdControls] No HASS context available for:', overlayId);
+      return false;
+    }
+
+    console.log('[MsdControls] Applying HASS context:', {
+      overlayId: overlayId,
+      hassKeys: Object.keys(this.hass)
+    });
+
+    const strategies = [
+      // Strategy 1: Direct property assignment
+      () => {
+        cardElement.hass = this.hass;
+        return cardElement.hass === this.hass;
+      },
+
+      // Strategy 2: Use property descriptor
+      () => {
+        Object.defineProperty(cardElement, 'hass', {
+          value: this.hass,
+          writable: true,
+          configurable: true
+        });
+        return true;
+      },
+
+      // Strategy 3: Store in private property for later access
+      () => {
+        cardElement._hass = this.hass;
+        // Also try setting via property if it exists
+        if ('hass' in cardElement) {
+          cardElement.hass = this.hass;
+        }
+        return true;
+      }
+    ];
+
+    for (const [index, strategy] of strategies.entries()) {
+      try {
+        if (strategy()) {
+          console.log(`[MsdControls] HASS applied via strategy ${index + 1} for:`, overlayId);
+          return true;
+        }
+      } catch (e) {
+        console.debug(`[MsdControls] HASS strategy ${index + 1} failed:`, e);
+      }
+    }
+
+    console.warn('[MsdControls] All HASS application strategies failed for:', overlayId);
+    return false;
+  }
+
+  /**
+   * Apply card configuration with retry logic
+   */
+  async _applyCardConfig(cardElement, config, overlayId) {
+    if (!config) return false;
+
+    console.log('[MsdControls] Applying config:', {
+      overlayId: overlayId,
+      hasSetConfig: typeof cardElement.setConfig === 'function',
+      config: config
+    });
+
+    const maxRetries = 8; // Increased retries
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (typeof cardElement.setConfig === 'function') {
+          cardElement.setConfig(config);
+          cardElement._config = config;
+          console.log(`[MsdControls] ✅ Config applied on attempt ${attempt + 1} for:`, overlayId);
+          return true;
+        }
+
+        // If setConfig not available yet, wait and retry
+        if (attempt < maxRetries - 1) {
+          const delay = 200 * (attempt + 1); // Increased delay
+          console.log(`[MsdControls] Retrying config in ${delay}ms for:`, overlayId);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+      } catch (e) {
+        console.warn(`[MsdControls] setConfig attempt ${attempt + 1} failed for ${overlayId}:`, e);
+
+        if (attempt < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+        }
+      }
+    }
+
+    // Store config for later application
+    cardElement._pendingConfig = config;
+    console.warn('[MsdControls] ❌ Config stored for deferred application:', overlayId);
+
+    // Set up a periodic retry
+    const retryInterval = setInterval(() => {
+      if (typeof cardElement.setConfig === 'function') {
+        try {
+          cardElement.setConfig(config);
+          cardElement._config = config;
+          console.log('[MsdControls] ✅ Deferred config finally applied:', overlayId);
+          clearInterval(retryInterval);
+        } catch (e) {
+          console.warn('[MsdControls] Deferred config retry failed:', overlayId, e);
+        }
+      }
+    }, 1000);
+
+    // Clear interval after 10 seconds
+    setTimeout(() => clearInterval(retryInterval), 10000);
+
+    return false;
+  }
+
+  /**
+   * Create fallback card when creation fails
+   */
+  _createFallbackCard(cardType, cardDef) {
+    const fallback = document.createElement('div');
+    fallback.className = 'msd-control-fallback';
+
+    Object.assign(fallback.style, {
+      border: '2px dashed var(--primary-color, #ffa500)',
+      borderRadius: '8px',
+      padding: '16px',
+      background: 'var(--card-background-color, rgba(0,0,0,0.8))',
+      color: 'var(--primary-text-color, #ffffff)',
+      fontSize: '14px',
+      textAlign: 'center',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '80px'
+    });
+
+    const title = document.createElement('div');
+    title.textContent = `Card: ${cardType}`;
+    title.style.fontWeight = 'bold';
+    title.style.marginBottom = '8px';
+
+    const subtitle = document.createElement('div');
+    subtitle.textContent = '(Card failed to load)';
+    subtitle.style.fontSize = '12px';
+    subtitle.style.opacity = '0.7';
+
+    fallback.appendChild(title);
+    fallback.appendChild(subtitle);
+
+    // Make it interactive for debugging
+    fallback.addEventListener('click', () => {
+      console.log('[MsdControls] Fallback card clicked:', { cardType, cardDef });
+    });
+
+    return fallback;
+  }
+
+  /**
+   * Setup event isolation for control interactions
+   */
+  _setupEventIsolation(wrapper, cardElement, overlay) {
+    // FIXED: Less aggressive event isolation - allow events to reach card, but prevent bubbling to MSD
+    const events = [
+      'click', 'dblclick', 'contextmenu',
+      'pointerdown', 'pointerup', 'pointermove', 'pointercancel',
+      'touchstart', 'touchend', 'touchmove', 'touchcancel',
+      'mousedown', 'mouseup', 'mousemove', 'mouseenter', 'mouseleave',
+      'focus', 'blur', 'focusin', 'focusout',
+      'keydown', 'keyup', 'keypress'
+    ];
+
+    events.forEach(eventType => {
+      wrapper.addEventListener(eventType, (event) => {
+        // FIXED: Only stop propagation if the event originated from our card
+        // This prevents MSD from handling card events, but allows the card to work
+        if (event.target === cardElement || cardElement.contains(event.target)) {
+          // Allow the event to proceed to the card normally
+          // Only stop it from bubbling further up to MSD
+          event.stopPropagation();
+
+          console.debug('[MsdControls] Event allowed to card but prevented from bubbling:', {
+            type: event.type,
+            overlayId: overlay.id,
+            target: event.target.tagName,
+            cardType: cardElement?.tagName
+          });
+        }
+      }, {
+        capture: false,  // CHANGED: Use bubble phase so card gets events first
+        passive: false   // Allow preventDefault if needed
+      });
+    });
+
+    // ADDED: Set higher z-index and pointer events
+    wrapper.style.pointerEvents = 'auto';
+    wrapper.style.position = 'absolute';
+    wrapper.style.zIndex = '1000'; // Ensure it's above other layers
+    wrapper.setAttribute('tabindex', '0');
+
+    // ADDED: Ensure the card element itself can receive events
+    if (cardElement) {
+      cardElement.style.pointerEvents = 'auto';
+      cardElement.style.position = 'relative';
+      cardElement.style.zIndex = '1';
+
+      // ADDED: Ensure card can receive all necessary events for hold actions
+      cardElement.style.touchAction = 'manipulation'; // Improves touch responsiveness
+    }
+
+    // ADDED: Visual debugging (optional - can be removed)
+    if (window.location.search.includes('debug=controls')) {
+      wrapper.style.outline = '2px solid rgba(255, 0, 0, 0.5)';
+      wrapper.title = `Control: ${overlay.id}`;
     }
   }
 
@@ -622,17 +952,12 @@ export class MsdControlsRenderer {
         style.left = '0';
         style.right = '0';
         style.bottom = '0';
-        style.pointerEvents = 'auto';
+        style.pointerEvents = 'none'; // CRITICAL: Container should NOT intercept events
         style.zIndex = '1000';
+        style.touchAction = 'auto'; // ADDED: Allow touch events to pass through
       }
-      // Safe event listener attachment
-      if (typeof this.controlsContainer.addEventListener === 'function') {
-        this.controlsContainer.addEventListener('pointerdown', (e) => {
-          if (e.target !== this.controlsContainer) {
-            e.target.style.pointerEvents = 'auto';
-          }
-        });
-      }
+
+      // REMOVED: All event listeners on the container itself
 
     } catch (error) {
       console.error('[MsdControlsRenderer] Failed to create controls container element:', error);
@@ -718,7 +1043,7 @@ export class MsdControlsRenderer {
     return this.controlsContainer;
   }
 
-  tryAutoRender() { // ADDED / MODIFIED
+  tryAutoRender() {
     if (this.lastRenderArgs || this._isRendering) {
       return;
     }
@@ -805,3 +1130,4 @@ export class MsdControlsRenderer {
     }
   }
 }
+

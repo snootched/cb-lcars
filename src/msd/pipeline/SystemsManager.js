@@ -30,6 +30,9 @@ export class SystemsManager {
     // Store config for later use
     this.mergedConfig = mergedConfig;
 
+    // ADDED: Store HASS context immediately
+    this._currentHass = hass;
+
     // ENHANCED: Initialize debug manager early with config and better logging
     const debugConfig = mergedConfig.debug || {};
     console.log('[MSD v1] Raw debug config from mergedConfig:', debugConfig);
@@ -61,6 +64,12 @@ export class SystemsManager {
     this.renderer = new AdvancedRenderer(mountEl, this.router);
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
+
+    // ADDED: Set HASS context on controls renderer immediately if available
+    if (this._currentHass && this.controlsRenderer) {
+      console.log('[MSD v1] Setting initial HASS context on controls renderer');
+      this.controlsRenderer.setHass(this._currentHass);
+    }
 
     // REPLACED: Initialize unified HUD manager with document.body mounting
     this.hudManager = new MsdHudManager();
@@ -218,94 +227,61 @@ export class SystemsManager {
    * @param {Element} mountEl - The shadowRoot/mount element
    */
   async renderDebugAndControls(resolvedModel, mountEl = null) {
-    // Enhanced debugging to trace the issue
     const debugState = this.debugManager.getSnapshot();
+
     console.log('[SystemsManager] renderDebugAndControls called:', {
       anyEnabled: this.debugManager.isAnyEnabled(),
-      debugState: debugState,
-      mountEl: !!mountEl,
-      mountElType: mountEl?.constructor?.name,
-      resolvedModel: !!resolvedModel,
-      anchorsCount: Object.keys(resolvedModel?.anchors || {}).length,
-      overlaysCount: (resolvedModel?.overlays || []).length,
-      rendererContainer: !!this.renderer?.container
+      controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
+      hasHass: !!this._currentHass
     });
 
-    // Use existing MSD perf counter system
-    const W = typeof window !== 'undefined' ? window : {};
-    const perfStore = W.__msdDebug?.__perfStore;
-    function perfCount(k, inc = 1) {
-      if (perfStore?.counters) {
-        perfStore.counters[k] = (perfStore.counters[k] || 0) + inc;
-      }
-    }
-
-    // Count debug render attempt
-    perfCount('debug.render.attempts');
-
-    // Use DebugManager to determine what to render
+    // Render debug visualizations
     if (this.debugManager.isAnyEnabled()) {
-      console.log('[MSD v1] Rendering debug visualization via DebugManager');
-      perfCount('debug.render.active');
-
-      const debugOptions = {
-        anchors: resolvedModel.anchors,
-        overlays: resolvedModel.overlays,
-        showAnchors: debugState.anchors,
-        showBoundingBoxes: debugState.bounding_boxes,
-        showRouting: this.debugManager.canRenderRouting(),
-        showPerformance: debugState.performance,
-        scale: debugState.scale
-      };
-
-      console.log('[SystemsManager] Debug options:', debugOptions);
-
-      // ENHANCED: Ensure debug renderer gets called with proper error handling
       try {
-        if (!this.debugRenderer) {
-          console.error('[SystemsManager] ❌ Debug renderer not initialized');
-          perfCount('debug.render.errors');
-          return;
-        }
+        const debugOptions = {
+          anchors: resolvedModel.anchors,
+          overlays: resolvedModel.overlays,
+          showAnchors: debugState.anchors,
+          showBoundingBoxes: debugState.bounding_boxes,
+          showRouting: this.debugManager.canRenderRouting(),
+          showPerformance: debugState.performance,
+          scale: debugState.scale
+        };
 
-        if (!mountEl) {
-          console.warn('[SystemsManager] ⚠️ No mount element provided, using renderer mount');
-          mountEl = this.renderer?.mountEl;
-        }
-
-        this.debugRenderer.render(mountEl, resolvedModel.viewBox, debugOptions);
-        console.log('[SystemsManager] ✅ Debug renderer called successfully');
-        perfCount('debug.render.success');
-
+        this.debugRenderer.render(mountEl || this.renderer?.mountEl, resolvedModel.viewBox, debugOptions);
+        console.log('[SystemsManager] ✅ Debug renderer completed');
       } catch (error) {
         console.error('[SystemsManager] ❌ Debug renderer failed:', error);
-        console.error('[SystemsManager] Error stack:', error.stack);
-        perfCount('debug.render.errors');
       }
-    } else {
-      console.log('[MSD v1] No debug features enabled, skipping debug render');
-      perfCount('debug.render.skipped');
     }
 
-    // FIXED: Render controls asynchronously to ensure renderer container is ready
-    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control' || o.type === 'controls');
+    // FIXED: Render control overlays with proper HASS context and error handling
+    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
     if (controlOverlays.length > 0) {
-      console.log('[MSD v1] Rendering control overlays:', controlOverlays.length);
+      console.log('[SystemsManager] Rendering control overlays:', controlOverlays.map(c => c.id));
 
-      // Ensure controls renderer has HASS context
-      if (this._currentHass) {
-        this.controlsRenderer.setHass(this._currentHass);
-      }
-
-      perfCount('debug.controls.rendered', controlOverlays.length);
-
-      // CHANGED: Use async renderControls to wait for container
       try {
+        // Ensure controls renderer has current HASS context
+        if (this._currentHass && this.controlsRenderer) {
+          this.controlsRenderer.setHass(this._currentHass);
+          console.log('[SystemsManager] HASS context applied to controls renderer');
+        } else {
+          console.warn('[SystemsManager] No HASS context available for controls');
+        }
+
+        // Wait for controls container to be ready
+        const container = await this.controlsRenderer.ensureControlsContainerAsync();
+        if (!container) {
+          throw new Error('Controls container could not be created');
+        }
+
+        // Render controls
         await this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
         console.log('[SystemsManager] ✅ Controls rendered successfully');
+
       } catch (error) {
         console.error('[SystemsManager] ❌ Controls rendering failed:', error);
-        perfCount('debug.controls.errors');
+        console.error('[SystemsManager] Error details:', error.stack);
       }
     }
   }
@@ -350,6 +326,12 @@ export class SystemsManager {
 
     // Store HASS context for controls renderer
     this._currentHass = hass;
+
+    // ADDED: Immediately pass HASS to controls renderer if it exists
+    if (this.controlsRenderer) {
+      console.log('[SystemsManager] Passing HASS context to controls renderer');
+      this.controlsRenderer.setHass(hass);
+    }
 
     // DataSources handle HASS updates automatically via their subscriptions
     // No manual ingestion needed - handled by individual data sources

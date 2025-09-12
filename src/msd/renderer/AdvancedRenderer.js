@@ -395,6 +395,12 @@ export class AdvancedRenderer {
       console.warn('[AdvancedRenderer] SVG element not found in container for overlay:', overlay.id);
     }
 
+    // ADDED: Ensure SVG doesn't interfere with control events
+    if (svg) {
+      svg.style.pointerEvents = 'auto';
+      svg.style.zIndex = '0'; // Keep SVG in background
+    }
+
     switch (overlay.type) {
       case 'text':
         // Update (in case dynamic overlays later): recompute & refresh map

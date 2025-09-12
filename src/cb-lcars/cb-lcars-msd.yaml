@@ -230,101 +230,16 @@ cb-lcars-msd:
 
   styles:
     custom_fields:
-      msd_svg_base:
+      msd_comprehensive:
         - width: 100%
         - height: 100%
         - position: absolute
         - top: 0
         - left: 0
         - z-index: 0
-      msd_svg_overlays:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 1
-      msd_controls:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 2
-      msd_debug:
-        - width: 100%
-        - height: 100%
-        - position: absolute
-        - top: 0
-        - left: 0
-        - z-index: 100
-
 
   custom_fields:
-    msd_svg_base: |
-      [[[
-        // Access MSD config from root level
-        const msdConfig = this._config?.msd || this.config?.msd;
-
-        console.group('[MSD v1 Comprehensive Test Debug]');
-        console.log('Raw config anchors:', msdConfig.anchors);
-        console.log('Debug config:', msdConfig.debug);
-
-        let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
-        if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
-
-        const viewBox = window.cblcars.getSvgViewBox(svgContent);
-        const aspect = window.cblcars.getSvgAspectRatio(viewBox);
-
-        // Process anchors with better SVG extraction and logging
-        const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
-        const userAnchors = msdConfig.anchors || {};
-
-        console.log('Raw SVG anchors found:', Object.keys(svgAnchors).length);
-        console.log('User config anchors:', Object.keys(userAnchors));
-
-        const resolvedAnchors = {};
-        const [minX, minY, vw, vh] = viewBox;
-
-        // First, add all SVG anchors
-        for (const [name, pos] of Object.entries(svgAnchors)) {
-          resolvedAnchors[name] = pos;
-        }
-
-        // Then process and add user anchors (with percentage resolution)
-        for (const [name, pos] of Object.entries(userAnchors)) {
-          if (Array.isArray(pos) && pos.length === 2) {
-            let [x, y] = pos;
-            if (typeof x === 'string' && x.endsWith('%')) {
-              x = minX + (parseFloat(x) / 100) * vw;
-            }
-            if (typeof y === 'string' && y.endsWith('%')) {
-              y = minY + (parseFloat(y) / 100) * vh;
-            }
-            resolvedAnchors[name] = [Number(x), Number(y)];
-          } else {
-            resolvedAnchors[name] = pos;
-          }
-        }
-
-        // Store resolved anchors globally so pipeline can access them
-        this._msdViewBox = viewBox;
-        this._msdAnchors = resolvedAnchors;
-        window._msdTestAnchors = resolvedAnchors;
-
-        console.log('Final resolved anchors:', Object.keys(resolvedAnchors).length);
-        console.groupEnd();
-
-        return `<div id="msd-v1-comprehensive-wrapper" style="width:100%;height:100%;border:2px solid cyan;position:relative;aspect-ratio:${aspect};">${svgContent}</div>`;
-      ]]]
-
-    msd_svg_overlays: |
-      [[[
-        console.log('[MSD v1 Comprehensive] Overlay field evaluated - letting pipeline handle rendering');
-        return '<!-- MSD v1 Pipeline Will Handle Overlay Rendering -->';
-      ]]]
-
-    msd_controls: |
+    msd_comprehensive: |
       [[[
         try {
           if (!this._msdV1ComprehensiveBoot) {
@@ -342,10 +257,46 @@ cb-lcars-msd:
             this._msdV1ComprehensiveBoot = true;
             const msdConfig = this._config?.msd || this.config?.msd;
 
-            // ADDED: Log raw overlays before pipeline processing
-            console.log('[MSD v1 Comprehensive] Raw overlays before pipeline:', msdConfig.overlays?.map(o => ({ id: o.id, type: o.type })));
+            // Process SVG and anchors (use let instead of const to avoid conflicts)
+            let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
+            if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
 
-            // ADDED: deep-clone raw overlays for control recovery
+            const viewBox = window.cblcars.getSvgViewBox(svgContent);
+            const aspect = window.cblcars.getSvgAspectRatio(viewBox);
+
+            // Process anchors
+            const svgAnchors = window.cblcars.findSvgAnchors(svgContent) || {};
+            const userAnchors = msdConfig.anchors || {};
+            const resolvedAnchors = {};
+            const [minX, minY, vw, vh] = viewBox;
+
+            // Add SVG anchors
+            for (const [name, pos] of Object.entries(svgAnchors)) {
+              resolvedAnchors[name] = pos;
+            }
+
+            // Add user anchors with percentage resolution
+            for (const [name, pos] of Object.entries(userAnchors)) {
+              if (Array.isArray(pos) && pos.length === 2) {
+                let [x, y] = pos;
+                if (typeof x === 'string' && x.endsWith('%')) {
+                  x = minX + (parseFloat(x) / 100) * vw;
+                }
+                if (typeof y === 'string' && y.endsWith('%')) {
+                  y = minY + (parseFloat(y) / 100) * vh;
+                }
+                resolvedAnchors[name] = [Number(x), Number(y)];
+              } else {
+                resolvedAnchors[name] = pos;
+              }
+            }
+
+            // Store anchors globally
+            this._msdViewBox = viewBox;
+            this._msdAnchors = resolvedAnchors;
+            window._msdTestAnchors = resolvedAnchors;
+
+            // Cache raw overlays for control recovery
             if (msdConfig?.overlays) {
               try {
                 window._msdRawOverlays = msdConfig.overlays.map(o => JSON.parse(JSON.stringify(o)));
@@ -355,7 +306,7 @@ cb-lcars-msd:
               }
             }
 
-            // RESOLVED: define mount properly (wrapper or shadowRoot)
+            // Initialize pipeline
             const resolveMount = (attempt = 0) => {
               const baseWrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
               const mount = baseWrapper || this.shadowRoot || this;
@@ -369,81 +320,74 @@ cb-lcars-msd:
                 return;
               }
 
-              // Use pre-processed anchors
               const enhancedConfig = { ...msdConfig };
               if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
                 enhancedConfig.anchors = window._msdTestAnchors;
               }
 
-              console.log('[MSD v1 Comprehensive] Initializing pipeline with debug config:', enhancedConfig.debug);
               const realHass = this.___hass || hass;
 
               window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
                 const resolvedModel = pipeline.getResolvedModel?.();
-                const pipelineAnchors = resolvedModel?.anchors || {};
-
-                // ADDED: Debug resolved model overlays
-                console.log('[MSD v1 Comprehensive] Resolved model overlays:', resolvedModel?.overlays?.map(o => ({ id: o.id, type: o.type })));
                 const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
-                console.log('[MSD v1 Comprehensive] Control overlays found in resolved model:', controlOverlays.map(o => o.id));
 
-                const stats = {
-                  enabled: pipeline.enabled,
-                  overlayCount: resolvedModel?.overlays?.length || 0,
-                  anchorCount: Object.keys(pipelineAnchors).length,
-                  dataSourceCount: Object.keys(msdConfig.data_sources || {}).length,
-                  ruleCount: (msdConfig.rules || []).length,
-                  errors: pipeline.errors?.length || 0,
-                  controlOverlayCount: controlOverlays.length
-                };
+                console.log('[MSD v1 Comprehensive] Pipeline initialized successfully');
+                console.log('[MSD v1 Comprehensive] Control overlays found:', controlOverlays.map(o => o.id));
 
-                console.group('[MSD v1 Comprehensive] Pipeline Started Successfully');
-                console.table(stats);
-
-                if (pipeline.errors?.length) {
-                  console.error('Pipeline Errors:', pipeline.errors);
-                } else {
-                  console.log('✅ All systems operational');
-                }
-                console.groupEnd();
-
-                // ENHANCED: trigger control overlay rendering with better debugging
-                try {
-                  if (controlOverlays.length) {
-                    console.group('[MSD v1 Comprehensive] Control Overlay Rendering');
-                    console.log('Control overlays to render:', controlOverlays.map(c => ({ id: c.id, hasCard: !!c.card })));
-
-                    // Check for controls renderer
-                    const renderer = pipeline.controlsRenderer || window._msdControlsRenderer;
-                    console.log('Controls renderer available:', !!renderer, renderer?.constructor?.name);
-
-                    if (renderer?.renderControls) {
-                      console.log('Calling renderControls with:', { controlCount: controlOverlays.length, hasResolvedModel: !!resolvedModel });
-                      renderer.renderControls(controlOverlays, resolvedModel);
-                    } else {
-                      console.error('No controls renderer available or missing renderControls method');
-                    }
-                    console.groupEnd();
-                  } else {
-                    console.warn('[MSD v1 Comprehensive] No control overlays found to render - check if they were filtered out');
+                // Trigger control overlay rendering
+                if (controlOverlays.length) {
+                  const renderer = pipeline.controlsRenderer || window._msdControlsRenderer;
+                  if (renderer?.renderControls) {
+                    renderer.renderControls(controlOverlays, resolvedModel);
                   }
-                } catch(e) {
-                  console.error('[MSD v1 Comprehensive] Control overlay render attempt failed', e);
                 }
               }).catch(err => {
                 console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
               });
             };
 
-            resolveMount();
+            // Start pipeline initialization
+            setTimeout(() => resolveMount(), 100);
+
+            // SIMPLIFIED: Return single wrapper with layered structure
+            return `
+              <div id="msd-v1-comprehensive-wrapper" style="
+                width: 100%;
+                height: 100%;
+                position: relative;
+                aspect-ratio: ${aspect};
+                pointer-events: none;
+              ">
+                <!-- SVG Base Layer (z-index: 0) -->
+                <div style="
+                  position: absolute;
+                  top: 0; left: 0;
+                  width: 100%; height: 100%;
+                  z-index: 0;
+                  pointer-events: auto;
+                ">
+                  ${svgContent}
+                </div>
+
+                <!-- Controls Layer (z-index: 1000) - managed by MsdControlsRenderer -->
+                <div id="msd-controls-host" style="
+                  position: absolute;
+                  top: 0; left: 0;
+                  width: 100%; height: 100%;
+                  z-index: 1000;
+                  pointer-events: none;
+                "></div>
+              </div>
+            `;
           }
+
+          // Return placeholder if not booted yet
+          const vb = this._msdViewBox || [0,0,1920,1200];
+          const aspect = window.cblcars.getSvgAspectRatio(vb);
+          return `<div style="width:100%;height:100%;aspect-ratio:${aspect};"></div>`;
 
         } catch(e) {
           console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
           return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
         }
-
-        const vb = this._msdViewBox || [0,0,1920,1200];
-        const aspect = window.cblcars.getSvgAspectRatio(vb);
-        return `<div id="msd-controls-host" style="width:100%;height:100%;aspect-ratio:${aspect};pointer-events:auto;"></div>`;
       ]]]
