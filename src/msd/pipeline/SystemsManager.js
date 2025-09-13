@@ -21,6 +21,8 @@ export class SystemsManager {
     this.debugManager = new DebugManager();
     this._renderTimeout = null;
     this._reRenderCallback = null;
+    this._renderInProgress = false;
+    this._debugControlsRendering = false;
     this.mergedConfig = null; // Store for entity change handler
   }
 
@@ -62,35 +64,7 @@ export class SystemsManager {
         console.log('[MSD v1] Setting up console.log interception for control entities:', controlEntities);
 
         const originalConsoleLog = console.log;
-        /* DISABLED: This causes MSD to disappear
-      const originalConsoleLog = console.log;
-      console.log = function(...args) {
-        // Check if this is an MSD data source event for our control entities
-        if (args[0] && typeof args[0] === 'string') {
-          for (const entity of controlEntities) {
-            // Match the exact pattern: [MsdDataSource] 📊 HA event received for light.desk: on
-            if (args[0].includes(`[MsdDataSource] 📊 HA event received for ${entity}:`)) {
-              console.log(`[MSD v1] 🎯 Intercepted data source event for ${entity}`);
-
-              // Trigger our entity change handler
-              setTimeout(() => {
-                try {
-                  entityChangeHandler([entity]);
-                } catch (e) {
-                  originalConsoleLog.call(console, '[MSD v1] ❌ Entity change handler failed:', e);
-                }
-              }, 50);
-              break;
-            }
-          }
-        }
-
-        return originalConsoleLog.apply(console, args);
-      };
-      */
-
-      console.log('[MSD v1] Console.log interception DISABLED to prevent MSD disappearing');
-
+        console.log('[MSD v1] Console.log interception DISABLED to prevent MSD disappearing');
         console.log('[MSD v1] ✅ Console.log interception re-established for debugging');
       }      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
     } else {
@@ -149,31 +123,74 @@ export class SystemsManager {
 
   _createEntityChangeHandler() {
     return (changedIds) => {
-      console.log('[MSD v1] Entity changes detected:', changedIds);
+      console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
+        timestamp: new Date().toISOString(),
+        changedIds,
+        stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
+        renderTimeout: !!this._renderTimeout,
+        renderInProgress: !!this._renderInProgress
+      });
 
       // Update HASS context with current state (simplified)
       if (this._currentHass) {
-        console.log('[MSD v1] Updating HASS context from entity changes');
+        console.log('[MSD DEBUG] 📤 Updating HASS context from entity changes');
 
         // Forward fresh HASS to controls renderer
         if (this.controlsRenderer) {
-          console.log('[MSD v1] Forwarding HASS to controls renderer');
+          console.log('[MSD DEBUG] 📤 Forwarding HASS to controls renderer');
           this.controlsRenderer.setHass(this._currentHass);
         }
       }
 
-      // Mark rules dirty and trigger re-render
+      // Mark rules dirty for future renders
       this.rulesEngine.markEntitiesDirty(changedIds);
 
-      if (this._renderTimeout) clearTimeout(this._renderTimeout);
-      this._renderTimeout = setTimeout(() => {
-        if (this._reRenderCallback) {
-          this._reRenderCallback();
-        }
-        this._renderTimeout = null;
-      }, 300);
+      // FIXED: Skip automatic re-render on entity changes from controls
+      // Controls should update independently via their own HASS context
+      // Only trigger re-render for rule-based changes, not control interactions
+
+      if (this._renderTimeout) {
+        console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+        clearTimeout(this._renderTimeout);
+      }
+
+      const controlEntities = this._extractControlEntities(this.mergedConfig);
+      const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+
+      console.log('[MSD DEBUG] 🎯 Entity change analysis:', {
+        isControlTriggered,
+        changedIds,
+        controlEntities,
+        matchingEntities: changedIds.filter(id => controlEntities.includes(id))
+      });
+
+      if (!isControlTriggered) {
+        console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+
+        // Safe re-render for non-control changes
+        this._renderTimeout = setTimeout(() => {
+          if (this._reRenderCallback && !this._renderInProgress) {
+            try {
+              this._renderInProgress = true;
+              console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+              this._reRenderCallback();
+            } catch (error) {
+                console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+                console.error('[MSD DEBUG] ❌ Entity change re-render stack:', error.stack);
+              } finally {
+              this._renderInProgress = false;
+            }
+          }
+          this._renderTimeout = null;
+        }, 100); // Reduced timeout for better responsiveness
+      } else {
+        console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+      }
     };
-  }  _instrumentRulesEngine(mergedConfig) {
+  }
+
+
+  _instrumentRulesEngine(mergedConfig) {
     try {
       const depIndex = new Map();
       (mergedConfig.rules||[]).forEach(r=>{
@@ -326,62 +343,116 @@ export class SystemsManager {
    * @param {Element} mountEl - The shadowRoot/mount element
    */
   async renderDebugAndControls(resolvedModel, mountEl = null) {
-    const debugState = this.debugManager.getSnapshot();
-
-    console.log('[SystemsManager] renderDebugAndControls called:', {
-      anyEnabled: this.debugManager.isAnyEnabled(),
-      controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
-      hasHass: !!this._currentHass
-    });
-
-    // Render debug visualizations
-    if (this.debugManager.isAnyEnabled()) {
-      try {
-        const debugOptions = {
-          anchors: resolvedModel.anchors,
-          overlays: resolvedModel.overlays,
-          showAnchors: debugState.anchors,
-          showBoundingBoxes: debugState.bounding_boxes,
-          showRouting: this.debugManager.canRenderRouting(),
-          showPerformance: debugState.performance,
-          scale: debugState.scale
-        };
-
-        this.debugRenderer.render(mountEl || this.renderer?.mountEl, resolvedModel.viewBox, debugOptions);
-        console.log('[SystemsManager] ✅ Debug renderer completed');
-      } catch (error) {
-        console.error('[SystemsManager] ❌ Debug renderer failed:', error);
-      }
+    // ADDED: Early exit if already rendering
+    if (this._debugControlsRendering) {
+      console.log('[SystemsManager] renderDebugAndControls already in progress, skipping');
+      return;
     }
 
-    // FIXED: Render control overlays with proper HASS context and error handling
-    const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
-    if (controlOverlays.length > 0) {
-      console.log('[SystemsManager] Rendering control overlays:', controlOverlays.map(c => c.id));
+    this._debugControlsRendering = true;
 
-      try {
-        // Ensure controls renderer has current HASS context
-        if (this._currentHass && this.controlsRenderer) {
-          this.controlsRenderer.setHass(this._currentHass);
-          console.log('[SystemsManager] HASS context applied to controls renderer');
-        } else {
-          console.warn('[SystemsManager] No HASS context available for controls');
-        }
+    try {
+      const debugState = this.debugManager.getSnapshot();
 
-        // Wait for controls container to be ready
-        const container = await this.controlsRenderer.ensureControlsContainerAsync();
-        if (!container) {
-          throw new Error('Controls container could not be created');
-        }
+      console.log('[SystemsManager] renderDebugAndControls called:', {
+        anyEnabled: this.debugManager.isAnyEnabled(),
+        controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
+        hasHass: !!this._currentHass,
+        hasResolvedModel: !!resolvedModel,
+        hasOverlays: !!resolvedModel?.overlays
+      });
 
-        // Render controls
-        await this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
-        console.log('[SystemsManager] ✅ Controls rendered successfully');
-
-      } catch (error) {
-        console.error('[SystemsManager] ❌ Controls rendering failed:', error);
-        console.error('[SystemsManager] Error details:', error.stack);
+      // ADDED: Validate resolved model
+      if (!resolvedModel || !resolvedModel.overlays) {
+        console.warn('[SystemsManager] Invalid resolved model for renderDebugAndControls');
+        return;
       }
+
+      // Render debug visualizations with error boundary
+      if (this.debugManager.isAnyEnabled()) {
+        try {
+          const debugOptions = {
+            anchors: resolvedModel.anchors || {},
+            overlays: resolvedModel.overlays || [],
+            showAnchors: debugState.anchors,
+            showBoundingBoxes: debugState.bounding_boxes,
+            showRouting: this.debugManager.canRenderRouting(),
+            showPerformance: debugState.performance,
+            scale: debugState.scale
+          };
+
+          this.debugRenderer.render(mountEl || this.renderer?.mountEl, resolvedModel.viewBox, debugOptions);
+          console.log('[SystemsManager] ✅ Debug renderer completed');
+        } catch (error) {
+          console.error('[SystemsManager] ❌ Debug renderer failed:', error);
+          // Continue execution - don't fail the entire render
+        }
+      }
+
+      // FIXED: Render control overlays with comprehensive error handling
+      const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
+      if (controlOverlays.length > 0) {
+        console.log('[SystemsManager] Rendering control overlays:', controlOverlays.map(c => c.id));
+
+        try {
+          // ADDED: Validate controls renderer exists
+          if (!this.controlsRenderer) {
+            console.error('[SystemsManager] No controls renderer available');
+            return;
+          }
+
+          // Ensure controls renderer has current HASS context
+          if (this._currentHass && this.controlsRenderer) {
+            this.controlsRenderer.setHass(this._currentHass);
+            console.log('[SystemsManager] HASS context applied to controls renderer');
+          } else {
+            console.warn('[SystemsManager] No HASS context available for controls');
+          }
+
+          // ADDED: Defensive container creation
+          let container;
+          try {
+            container = await this.controlsRenderer.ensureControlsContainerAsync();
+          } catch (containerError) {
+            console.error('[SystemsManager] Controls container creation failed:', containerError);
+            return;
+          }
+
+          if (!container) {
+            console.error('[SystemsManager] Controls container could not be created');
+            return;
+          }
+
+          // ADDED: Defensive controls rendering with timeout
+          const renderPromise = this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Controls render timeout')), 5000)
+          );
+
+          await Promise.race([renderPromise, timeoutPromise]);
+          console.log('[SystemsManager] ✅ Controls rendered successfully');
+
+        } catch (error) {
+          console.error('[SystemsManager] ❌ Controls rendering failed:', error);
+          console.error('[SystemsManager] Error stack:', error.stack);
+
+          // ADDED: Try to recover by clearing problematic controls
+          try {
+            if (this.controlsRenderer && this.controlsRenderer.controlsContainer) {
+              console.log('[SystemsManager] Attempting to clear problematic controls container');
+              this.controlsRenderer.controlsContainer.innerHTML = '';
+            }
+          } catch (recoveryError) {
+            console.warn('[SystemsManager] Recovery attempt failed:', recoveryError);
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('[SystemsManager] renderDebugAndControls failed completely:', error);
+      console.error('[SystemsManager] Error stack:', error.stack);
+    } finally {
+      this._debugControlsRendering = false;
     }
   }
 

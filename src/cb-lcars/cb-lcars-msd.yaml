@@ -248,21 +248,35 @@ cb-lcars-msd:
   custom_fields:
     msd_comprehensive: |
       [[[
+
+        console.log('[MSD DEBUG] 🏗️ Custom field ENTRY:', {
+          timestamp: new Date().toISOString(),
+          hasBootFlag: !!this._msdV1ComprehensiveBoot,
+          hasMsdDebug: !!window.__msdDebug,
+          hasInitPipeline: !!window.__msdDebug?.initMsdPipeline,
+          cardId: this.id || 'no-id',
+          stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
+        });
+
+
         try {
           if (!this._msdV1ComprehensiveBoot) {
+            console.log('[MSD DEBUG] 🚀 First boot - initializing MSD system');
+
             // Check if MSD v1 system is loaded
             if (typeof window.__msdDebug === 'undefined') {
-              console.error('[MSD v1 Comprehensive] window.__msdDebug not found');
+              console.error('[MSD DEBUG] ❌ window.__msdDebug not found');
               return `<div style="color:red;padding:10px;">MSD v1 system not loaded</div>`;
             }
 
             if (!window.__msdDebug.initMsdPipeline) {
-              console.error('[MSD v1 Comprehensive] initMsdPipeline not found');
+              console.error('[MSD DEBUG] ❌ initMsdPipeline not found');
               return `<div style="color:red;padding:10px;">initMsdPipeline not available</div>`;
             }
 
             this._msdV1ComprehensiveBoot = true;
             const msdConfig = this._config?.msd || this.config?.msd;
+            console.log('[MSD DEBUG] 📋 MSD config:', msdConfig);
 
             // Process SVG and anchors (use let instead of const to avoid conflicts)
             let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
@@ -315,17 +329,29 @@ cb-lcars-msd:
 
             // Initialize pipeline
             const resolveMount = (attempt = 0) => {
+              console.log('[MSD DEBUG] 🎯 Attempting to resolve mount element, attempt:', attempt);
+
               const baseWrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
               const mount = baseWrapper || this.shadowRoot || this;
+
+              console.log('[MSD DEBUG] 🎯 Mount resolution:', {
+                attempt,
+                baseWrapper: !!baseWrapper,
+                shadowRoot: !!this.shadowRoot,
+                mount: !!mount,
+                mountTagName: mount?.tagName
+              });
               if (!mount && attempt < 5) {
-                console.warn('[MSD v1 Comprehensive] mount not ready, retrying...', attempt);
+                console.warn('[MSD DEBUG] ⚠️ mount not ready, retrying...', attempt);
                 setTimeout(() => resolveMount(attempt + 1), 30 * (attempt + 1));
                 return;
               }
               if (!mount) {
-                console.error('[MSD v1 Comprehensive] mount could not be resolved');
+                console.error('[MSD DEBUG] ❌ mount could not be resolved after 5 attempts');
                 return;
               }
+
+              console.log('[MSD DEBUG] 🚀 CALLING initMsdPipeline...');
 
               const enhancedConfig = { ...msdConfig };
               if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
@@ -335,24 +361,34 @@ cb-lcars-msd:
               const realHass = this.___hass || hass;
 
               window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+
+                console.log('[MSD DEBUG] ✅ Pipeline initialized successfully:', pipeline);
+
                 // Store pipeline reference for HASS updates
                 this._msdPipeline = pipeline;
 
                 const resolvedModel = pipeline.getResolvedModel?.();
                 const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
 
-                console.log('[MSD v1 Comprehensive] Pipeline initialized successfully');
-                console.log('[MSD v1 Comprehensive] Control overlays found:', controlOverlays.map(o => o.id));
+                console.log('[MSD DEBUG] 📊 Pipeline status:', {
+                  hasResolvedModel: !!resolvedModel,
+                  totalOverlays: resolvedModel?.overlays?.length || 0,
+                  controlOverlaysCount: controlOverlays.length,
+                  controlOverlayIds: controlOverlays.map(o => o.id)
+                });
 
                 // Trigger control overlay rendering
+                /*
                 if (controlOverlays.length) {
                   const renderer = pipeline.controlsRenderer || window._msdControlsRenderer;
                   if (renderer?.renderControls) {
                     renderer.renderControls(controlOverlays, resolvedModel);
                   }
                 }
+                */
               }).catch(err => {
-                console.error('[MSD v1 Comprehensive] Pipeline init failed:', err);
+                console.error('[MSD DEBUG] ❌ Pipeline init FAILED:', err);
+                console.error('[MSD DEBUG] ❌ Pipeline error stack:', err.stack);
               });
             };
 
@@ -391,13 +427,15 @@ cb-lcars-msd:
             `;
           }
 
-          // Return placeholder if not booted yet
+          // Existing MSD case
+          console.log('[MSD DEBUG] 🔄 Subsequent render - MSD already booted');
           const vb = this._msdViewBox || [0,0,1920,1200];
           const aspect = window.cblcars.getSvgAspectRatio(vb);
           return `<div style="width:100%;height:100%;aspect-ratio:${aspect};"></div>`;
 
         } catch(e) {
-          console.error('[MSD v1 Comprehensive] Bootstrap failed:', e);
+          console.error('[MSD DEBUG] ❌ Custom field CRASHED:', e);
+          console.error('[MSD DEBUG] ❌ Custom field error stack:', e.stack);
           return `<div style="color:red;padding:10px;">Bootstrap failed: ${e.message}</div>`;
         }
       ]]]

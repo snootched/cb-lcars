@@ -404,7 +404,21 @@ export class MsdDataSource {
    * @param {Object} eventData - State change event data
    */
   _handleStateChange(eventData) {
-    if (!eventData?.new_state || this._destroyed) return;
+
+    console.log('[MSD DEBUG] 📊 MsdDataSource._handleStateChange() ENTRY:', {
+      entity: this.cfg.entity,
+      timestamp: new Date().toISOString(),
+      hasEventData: !!eventData,
+      hasNewState: !!eventData?.new_state,
+      newStateValue: eventData?.new_state?.state,
+      subscriberCount: this.subscribers.size,
+      stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
+    });
+
+    if (!eventData?.new_state || this._destroyed) {
+      console.log('[MSD DEBUG] ⏭️ Skipping state change - no new state or destroyed');
+      return;
+    }
 
     // FIXED: Use current timestamp instead of state timestamp
     const timestamp = Date.now();
@@ -415,7 +429,11 @@ export class MsdDataSource {
     const value = this._toNumber(rawValue);
 
     if (value !== null) {
-      console.log(`[MsdDataSource] 📊 State change for ${this.cfg.entity}: ${value} at ${timestamp}`);
+      console.log(`[MSD DEBUG] 📊 Processing state change for ${this.cfg.entity}:`, {
+        value,
+        timestamp,
+        subscriberCount: this.subscribers.size
+      });
 
       // Add to buffer with proper timestamp
       this.buffer.push(timestamp, value);
@@ -423,7 +441,7 @@ export class MsdDataSource {
       this._stats.currentValue = value;
 
       // Emit to subscribers
-      console.log(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers: ${value}`);
+      console.log(`[MSD DEBUG] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
 
       const emitData = {
         t: timestamp,
@@ -434,13 +452,18 @@ export class MsdDataSource {
         historyReady: this._stats.historyLoaded > 0
       };
 
-      this.subscribers.forEach(callback => {
+      this.subscribers.forEach((callback, index) => {
         try {
+          console.log(`[MSD DEBUG] 📞 Calling subscriber ${index} for ${this.cfg.entity}`);
           callback(emitData);
+          console.log(`[MSD DEBUG] ✅ Subscriber ${index} completed successfully`);
         } catch (error) {
-          console.error(`[MsdDataSource] Callback error for ${this.cfg.entity}:`, error);
+          console.error(`[MSD DEBUG] ❌ Subscriber ${index} callback FAILED for ${this.cfg.entity}:`, error);
+          console.error(`[MSD DEBUG] ❌ Subscriber error stack:`, error.stack);
         }
       });
+    } else {
+      console.log(`[MSD DEBUG] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
     }
   }
 
@@ -694,15 +717,69 @@ export class MsdDataSource {
   }
 
 
-  _toNumber(rawValue) {
-    if (rawValue === null || rawValue === undefined) return null;
-    if (typeof rawValue === 'number') {
-      return Number.isFinite(rawValue) ? rawValue : null;
+  /**
+   * Convert raw value to number with support for boolean states
+   * @param {*} raw - Raw value from HA state
+   * @returns {number|null} Converted number or null if invalid
+   */
+  _toNumber(raw) {
+    console.log('[MSD DEBUG] 📊 _toNumber() converting:', {
+      raw,
+      type: typeof raw,
+      entity: this.cfg.entity
+    });
+
+    if (raw === null || raw === undefined) {
+      console.log('[MSD DEBUG] ⚠️ _toNumber() - null/undefined value');
+      return null;
     }
-    if (typeof rawValue === 'string') {
-      const parsed = parseFloat(rawValue);
-      return Number.isFinite(parsed) ? parsed : null;
+
+    // Handle numeric values
+    if (typeof raw === 'number') {
+      const result = isNaN(raw) ? null : raw;
+      console.log('[MSD DEBUG] 📊 _toNumber() - numeric:', { raw, result });
+      return result;
     }
+
+    // Handle string values
+    if (typeof raw === 'string') {
+      // Try direct numeric conversion first
+      const num = parseFloat(raw);
+      if (!isNaN(num) && isFinite(num)) {
+        console.log('[MSD DEBUG] 📊 _toNumber() - string numeric:', { raw, num });
+        return num;
+      }
+
+      // ADDED: Handle boolean-like string states
+      const lowerRaw = raw.toLowerCase().trim();
+      if (lowerRaw === 'on' || lowerRaw === 'true' || lowerRaw === 'active' || lowerRaw === 'open') {
+        console.log('[MSD DEBUG] 📊 _toNumber() - boolean TRUE:', { raw, converted: 1 });
+        return 1;
+      }
+
+      if (lowerRaw === 'off' || lowerRaw === 'false' || lowerRaw === 'inactive' || lowerRaw === 'closed') {
+        console.log('[MSD DEBUG] 📊 _toNumber() - boolean FALSE:', { raw, converted: 0 });
+        return 0;
+      }
+
+      // Handle unavailable/unknown states
+      if (lowerRaw === 'unavailable' || lowerRaw === 'unknown') {
+        console.log('[MSD DEBUG] 📊 _toNumber() - unavailable state:', { raw, converted: null });
+        return null;
+      }
+
+      console.log('[MSD DEBUG] ⚠️ _toNumber() - unhandled string:', { raw });
+      return null;
+    }
+
+    // Handle boolean values
+    if (typeof raw === 'boolean') {
+      const result = raw ? 1 : 0;
+      console.log('[MSD DEBUG] 📊 _toNumber() - boolean:', { raw, result });
+      return result;
+    }
+
+    console.log('[MSD DEBUG] ⚠️ _toNumber() - unsupported type:', { raw, type: typeof raw });
     return null;
   }
 

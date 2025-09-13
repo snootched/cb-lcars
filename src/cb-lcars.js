@@ -537,26 +537,29 @@ class CBLCARSBaseCard extends ButtonCard {
         // Set the _logLevel property from the config
         this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
 
-        // --- Add all found 'entity' values to triggers_update ---
-        const foundEntities = collectEntities(config);
-        let triggersUpdate = Array.isArray(config.triggers_update) ? config.triggers_update : [];
+        // ENHANCED: Skip entity collection entirely for MSD cards
+        let triggersUpdate = [];
+        const isMSDCard = config.type === 'cb-lcars-msd-card' ||
+                        this.constructor.cardType === 'cb-lcars-msd-card' ||
+                        mergedTemplates.includes('cb-lcars-msd');
 
-        // SIMPLIFIED: Just handle triggers_update normally for all cards
-        if (config.triggers_update === 'all') {
-            triggersUpdate = 'all';
-            console.log(`[CBLCARSBaseCard.setConfig()] Preserving triggers_update: 'all' setting`);
-        } else if (foundEntities.length > 0) {
-            triggersUpdate = Array.from(new Set([...triggersUpdate, ...foundEntities]));
-            console.log(`[CBLCARSBaseCard.setConfig()] Found entities for triggers_update:`, foundEntities);
-            console.log(`[CBLCARSBaseCard.setConfig()] Updated triggers_update:`, triggersUpdate);
-        }
-
-        // SPECIAL HANDLING: For MSD cards, completely disable triggers_update to prevent re-renders
-        if (config.type === 'cb-lcars-msd-card' || this.constructor.cardType === 'cb-lcars-msd-card') {
-            // MSD cards should NOT use triggers_update at all to prevent re-render loops that destroy the MSD system
+        if (isMSDCard) {
+            // MSD cards: NO entity tracking at all
             triggersUpdate = [];
-            console.log(`[CBLCARSBaseCard.setConfig()] MSD card: Completely disabling triggers_update to prevent MSD system destruction`);
+            console.log(`[CBLCARSBaseCard.setConfig()] MSD card detected: Completely disabling triggers_update`);
+        } else {
+            // Non-MSD cards: Normal entity collection
+            const foundEntities = collectEntities(config);
+            triggersUpdate = Array.isArray(config.triggers_update) ? config.triggers_update : [];
+
+            if (config.triggers_update === 'all') {
+                triggersUpdate = 'all';
+            } else if (foundEntities.length > 0) {
+                triggersUpdate = Array.from(new Set([...triggersUpdate, ...foundEntities]));
+                console.log(`[CBLCARSBaseCard.setConfig()] Found entities for triggers_update:`, foundEntities);
+            }
         }
+
 
         // Create a new object to avoid modifying the original config
         this._config = {
@@ -1087,18 +1090,46 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
     }
 
     setConfig(config) {
+
+        console.log('[MSD DEBUG] 🔧 CBLCARSMSDCard.setConfig() CALLED:', {
+            timestamp: new Date().toISOString(),
+            hasExistingConfig: !!this._config,
+            configType: config.type,
+            configEntity: config.entity,
+            msdAlreadyBooted: !!this._msdV1ComprehensiveBoot,
+            stackTrace: new Error().stack.split('\n').slice(1, 6).map(line => line.trim()).join(' → ')
+        });
+
         const defaultTemplates = ['cb-lcars-msd'];
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
-        const specialConfig = { ...config, template: mergedTemplates };
+        // ENHANCED: Completely prevent any entity tracking for MSD cards
+        const specialConfig = {
+            ...config,
+            template: mergedTemplates,
+            // CRITICAL: Remove all entity references to prevent HA from tracking changes
+            entity: undefined,
+            entities: undefined,
+            triggers_update: [], // Force empty array
+            // Disable all button-card entity behaviors
+            show_state: false,
+            show_icon: false,
+            show_name: false,
+            show_label: true, // Keep label for display
+            // Prevent any state-based interactions
+            state: undefined,
+            tap_action: { action: 'none' },
+            hold_action: { action: 'none' },
+            double_tap_action: { action: 'none' }
+        };
 
         const msdConfig = specialConfig?.msd;
 
-        // 2. Base card setConfig (will trigger first render later)
+        // Call parent setConfig with sanitized config
         super.setConfig(specialConfig);
 
-        // 4. ENHANCED: Initialize MSD v1 pipeline for this card instance
+        // ENHANCED: Initialize MSD v1 pipeline for this card instance
         // This ensures the pipeline is ready when the card renders
         try {
             if (msdConfig && window.__msdDebug?.initMsdPipeline) {
@@ -1110,23 +1141,42 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             console.warn('[CBLCARSMSDCard] Failed to prepare MSD v1 pipeline:', e);
         }
 
+        // PRESERVED: SVG handling logic for proper MSD initialization
         console.log('[CBLCARSMSDCard] msdConfig:', msdConfig);
         if (msdConfig && msdConfig.base_svg?.source) {
             console.log('[CBLCARSMSDCard] Found base SVG:', msdConfig.base_svg.source);
             let svgKey = null, svgUrl = null;
+
             if (msdConfig.base_svg.source.startsWith('builtin:')) {
                 svgKey = msdConfig.base_svg.source.replace('builtin:', '');
             } else if (msdConfig.base_svg.source.startsWith('/local/')) {
                 svgKey = msdConfig.base_svg.source.split('/').pop().replace('.svg','');
                 svgUrl = msdConfig.base_svg.source;
+
+                // Load user SVG if not already cached
                 if (!window.cblcars.getSVGFromCache(svgKey)) {
                     window.cblcars.loadUserSVG(svgKey, svgUrl)
-                        .then(() => this.requestUpdate && this.requestUpdate())
-                        .catch(() => {});
+                        .then(() => {
+                            // MODIFIED: Only request update if not blocked by our overrides
+                            console.log('[CBLCARSMSDCard] SVG loaded, scheduling safe update');
+                            // Use setTimeout to avoid immediate re-render during setConfig
+                            setTimeout(() => {
+                                if (this.requestUpdate && !this._blockUpdates) {
+                                    this.requestUpdate();
+                                }
+                            }, 100);
+                        })
+                        .catch((error) => {
+                            console.warn('[CBLCARSMSDCard] Failed to load user SVG:', error);
+                        });
                 }
             }
+
             this._svgKey = svgKey;
+            console.log('[CBLCARSMSDCard] SVG key stored:', svgKey);
         }
+
+        console.log('[CBLCARSMSDCard] Config set with disabled entity tracking and SVG handling preserved');
     }
 
     getLayoutOptions() {
@@ -1136,29 +1186,28 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         };
     }
 
-    // ADDED: Override setHass to ensure MSD system gets fresh HASS updates
+   /**
+     * Override setHass to prevent MSD system re-renders that cause disappearing
+     * MSD system manages its own HASS updates internally
+     */
     setHass(hass) {
-        console.log('[CBLCARSMSDCard.setHass()] Called with HASS:', {
+        console.log('[MSD DEBUG] 🏠 CBLCARSMSDCard.setHass() CALLED:', {
+            timestamp: new Date().toISOString(),
             hasHass: !!hass,
-            entityCount: hass?.states ? Object.keys(hass.states).length : 0,
-            lightDeskState: hass?.states?.['light.desk']?.state,
-            hasMsdSystem: !!this.msdSystem
+            stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
-        // Always call parent setHass first
-        super.setHass(hass);
+        // Store HASS reference but don't call parent setHass which triggers re-renders
+        this.hass = hass;
 
-        // CRITICAL: Forward HASS to MSD system immediately when we receive it
-        if (this.msdSystem && hass && typeof this.msdSystem.ingestHass === 'function') {
-            console.log('[CBLCARSMSDCard.setHass()] Forwarding fresh HASS to MSD system');
-            try {
-                this.msdSystem.ingestHass(hass);
-            } catch (e) {
-                console.warn('[CBLCARSMSDCard.setHass()] Failed to forward HASS to MSD system:', e);
-            }
-        } else if (!this.msdSystem) {
-            console.warn('[CBLCARSMSDCard.setHass()] No MSD system to forward HASS to');
+        // Forward HASS to the MSD system directly instead of re-rendering the card
+        if (this._msdPipeline && typeof this._msdPipeline.ingestHass === 'function') {
+            console.log('[MSD DEBUG] 📤 Forwarding HASS to MSD pipeline');
+            this._msdPipeline.ingestHass(hass);
         }
+
+        // DO NOT call super.setHass(hass) - this is what causes the re-render problem
+        console.log('[MSD DEBUG] ✅ CBLCARSMSDCard.setHass() COMPLETED - prevented super.setHass()');
     }
 
     /**
@@ -1210,29 +1259,46 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         }
     }
 
-    // ADDED: Override updated to provide better logging for MSD re-render debugging
+    /**
+     * Override updated to prevent re-renders
+     */
     updated(changedProperties) {
-        console.log('[CBLCARSMSDCard.updated] Called with changed properties:', {
-            changedProps: Array.from(changedProperties.keys()),
-            hasHassChange: changedProperties.has('hass'),
-            hasMsdSystem: !!this.msdSystem,
-            msdSystemType: this.msdSystem ? this.msdSystem.constructor.name : 'none'
+        console.log('[MSD DEBUG] 🔄 CBLCARSMSDCard.updated() CALLED:', {
+            timestamp: new Date().toISOString(),
+            changedProperties: Array.from(changedProperties.keys()),
+            stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
-        // Always use normal update cycle for MSD cards
-        // The MSD system should handle HASS updates internally via its own mechanisms
-        super.updated(changedProperties);
-
-        // After update, ensure MSD system gets current HASS if it exists
-        if (this.msdSystem && this.hass && typeof this.msdSystem.ingestHass === 'function') {
-            console.log('[CBLCARSMSDCard.updated] Ensuring MSD system has current HASS after update');
-            try {
-                this.msdSystem.ingestHass(this.hass);
-            } catch (e) {
-                console.warn('[CBLCARSMSDCard.updated] Failed to update MSD system after render:', e);
-            }
+        // Only call super.updated for non-HASS changes (check both 'hass' and '_hass')
+        if (!changedProperties.has('hass') && !changedProperties.has('_hass')) {
+            console.log('[MSD DEBUG] 🔄 Calling super.updated() for non-HASS changes');
+            super.updated(changedProperties);
+        } else {
+            console.log('[MSD DEBUG] ⏭️ BLOCKED super.updated() for HASS change to prevent re-render');
         }
     }
+
+    /**
+     * Override requestUpdate to be more selective
+     */
+    requestUpdate(name, oldValue, options) {
+        console.log('[MSD DEBUG] 🔃 CBLCARSMSDCard.requestUpdate() CALLED:', {
+            timestamp: new Date().toISOString(),
+            name,
+            hasOldValue: oldValue !== undefined,
+            stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
+        });
+
+        // Prevent updates triggered by HASS changes (both 'hass' and '_hass' properties)
+        if (name === 'hass' || name === '_hass') {
+            console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for HASS change:', name);
+            return Promise.resolve();
+        }
+
+        console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for:', name);
+        return super.requestUpdate(name, oldValue, options);
+    }
+
 
     connectedCallback() {
         console.log('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');

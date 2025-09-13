@@ -360,13 +360,31 @@ export class MsdControlsRenderer {
     cardElement.hass = hass;
     console.log(`[MsdControlsRenderer] Applied basic HASS update for:`, overlayId);
     return true;
-  }  async renderControls(controlOverlays, resolvedModel) {
-    // ADDED: prevent re-entrant or duplicate identical renders
+  }
+
+  async renderControls(controlOverlays, resolvedModel) {
+    // ADDED: More comprehensive safety checks
     if (this._isRendering) {
       console.log('[MsdControlsRenderer] renderControls skipped (in progress)');
       return;
     }
-    if (!controlOverlays?.length) return;
+
+    if (!controlOverlays?.length) {
+      console.log('[MsdControlsRenderer] No control overlays to render');
+      return;
+    }
+
+    // ADDED: Validate resolved model
+    if (!resolvedModel) {
+      console.error('[MsdControlsRenderer] No resolved model provided');
+      return;
+    }
+
+    // ADDED: Validate DOM environment
+    if (typeof document === 'undefined') {
+      console.error('[MsdControlsRenderer] Document not available');
+      return;
+    }
 
     const signature = controlOverlays.map(o => o.id).sort().join('|');
     if (
@@ -384,12 +402,13 @@ export class MsdControlsRenderer {
       console.log('[MsdControlsRenderer] renderControls called', {
         count: controlOverlays.length,
         ids: controlOverlays.map(o => o.id),
-        signature
+        signature,
+        hasHass: !!this.hass
       });
 
       const container = await this.ensureControlsContainerAsync();
       if (!container) {
-        console.warn('[MsdControlsRenderer] No container; abort render');
+        console.error('[MsdControlsRenderer] No container; abort render');
         return;
       }
 
@@ -397,12 +416,24 @@ export class MsdControlsRenderer {
       container.innerHTML = '';
       this.controlElements.clear();
 
+      // ADDED: Render controls with individual error handling
       for (const overlay of controlOverlays) {
-        await this.renderControlOverlay(overlay, resolvedModel);
+        try {
+          await this.renderControlOverlay(overlay, resolvedModel);
+        } catch (overlayError) {
+          console.error(`[MsdControlsRenderer] Failed to render control overlay ${overlay.id}:`, overlayError);
+          // Continue with other overlays
+        }
       }
 
       this.lastRenderArgs = { controlOverlays, resolvedModel };
       this._lastSignature = signature;
+
+      console.log('[MsdControlsRenderer] renderControls completed successfully');
+
+    } catch (error) {
+      console.error('[MsdControlsRenderer] renderControls failed:', error);
+      throw error; // Re-throw so caller knows it failed
     } finally {
       this._isRendering = false;
     }

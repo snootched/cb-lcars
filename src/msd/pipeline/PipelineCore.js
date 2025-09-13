@@ -84,19 +84,70 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
    * @returns {Object|undefined} Renderer result object
    */
   async function reRender() {
-    const startTime = performance.now();
-    const resolvedModel = modelBuilder.computeResolvedModel();
+    console.log('[MSD DEBUG] 🔄 reRender() ENTRY', {
+      timestamp: new Date().toISOString(),
+      renderInProgress: systemsManager._renderInProgress,
+      stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
+    });
 
-    console.log(`[MSD v1] Re-rendering with AdvancedRenderer - overlays: ${resolvedModel.overlays.length}`);
-    const renderResult = systemsManager.renderer.render(resolvedModel);
+    // ADDED: Prevent re-entrant renders
+    if (systemsManager._renderInProgress) {
+      console.log('[MSD DEBUG] ⚠️ reRender() SKIPPED - already in progress');
+      return { success: false, reason: 'render_in_progress' };
+    }
 
-    // CHANGED: Await debug and controls rendering to ensure proper sequencing
-    await systemsManager.renderDebugAndControls(resolvedModel, mountEl);
+    systemsManager._renderInProgress = true;
 
-    const renderTime = performance.now() - startTime;
-    console.log(`[MSD v1] Render completed in ${renderTime.toFixed(2)}ms`);
+    try {
+      console.log('[MSD DEBUG] 📊 Computing resolved model...');
+      const startTime = performance.now();
+      const resolvedModel = modelBuilder.computeResolvedModel();
 
-    return renderResult;
+      console.log('[MSD DEBUG] ✅ Resolved model computed:', {
+        overlayCount: resolvedModel.overlays.length,
+        controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
+        hasAnchors: !!resolvedModel.anchors,
+        hasViewBox: !!resolvedModel.viewBox
+      });
+
+      console.log(`[MSD DEBUG] 🎨 Starting AdvancedRenderer.render() - overlays: ${resolvedModel.overlays.length}`);
+
+      // ADDED: Defensive rendering with error boundary
+      let renderResult;
+      try {
+        renderResult = systemsManager.renderer.render(resolvedModel);
+        console.log('[MSD DEBUG] ✅ AdvancedRenderer.render() completed successfully:', renderResult);
+      } catch (renderError) {
+        console.error('[MSD DEBUG] ❌ AdvancedRenderer.render() FAILED:', renderError);
+        console.error('[MSD DEBUG] ❌ Render error stack:', renderError.stack);
+        return { success: false, error: renderError.message, phase: 'advanced_renderer' };
+      }
+
+      console.log('[MSD DEBUG] 🎮 Starting renderDebugAndControls()...');
+      // CHANGED: Make debug and controls rendering more defensive
+      try {
+        await systemsManager.renderDebugAndControls(resolvedModel, mountEl);
+        console.log('[MSD DEBUG] ✅ renderDebugAndControls() completed successfully');
+      } catch (debugControlsError) {
+        console.error('[MSD DEBUG] ❌ renderDebugAndControls() FAILED:', debugControlsError);
+        console.error('[MSD DEBUG] ❌ Debug/Controls error stack:', debugControlsError.stack);
+        // Don't fail the entire render - just log the error
+        console.warn('[MSD DEBUG] ⚠️ Continuing without debug/controls rendering due to error');
+      }
+
+      const renderTime = performance.now() - startTime;
+      console.log(`[MSD DEBUG] ✅ reRender() COMPLETED in ${renderTime.toFixed(2)}ms`);
+
+      return renderResult || { success: true };
+
+    } catch (error) {
+      console.error('[MSD DEBUG] ❌ reRender() COMPLETELY FAILED:', error);
+      console.error('[MSD DEBUG] ❌ Complete failure stack:', error.stack);
+      return { success: false, error: error.message };
+    } finally {
+      systemsManager._renderInProgress = false;
+      console.log('[MSD DEBUG] 🏁 reRender() FINALLY block - _renderInProgress reset to false');
+    }
   }
 
   // Connect reRender callback to systems

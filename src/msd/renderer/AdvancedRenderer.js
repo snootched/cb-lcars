@@ -23,20 +23,41 @@ export class AdvancedRenderer {
   }
 
   render(resolvedModel) {
+
+    console.log('[MSD DEBUG] 🎨 AdvancedRenderer.render() ENTRY:', {
+      timestamp: new Date().toISOString(),
+      hasResolvedModel: !!resolvedModel,
+      overlayCount: resolvedModel?.overlays?.length || 0,
+      anchorCount: resolvedModel?.anchors ? Object.keys(resolvedModel.anchors).length : 0,
+      hasViewBox: !!resolvedModel?.viewBox,
+      mountElExists: !!this.mountEl,
+      stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
+    });
+
     if (!resolvedModel) {
-      console.warn('[AdvancedRenderer] No resolved model provided');
+      console.error('[MSD DEBUG] ❌ AdvancedRenderer.render() - No resolved model provided');
       return { svgMarkup: '', overlayCount: 0 };
     }
     const { overlays = [], anchors = {}, viewBox } = resolvedModel;
-    console.log(`[AdvancedRenderer] Rendering ${overlays.length} overlays with ${Object.keys(anchors).length} anchors`);
-
+    console.log(`[MSD DEBUG] 🎨 AdvancedRenderer processing:`, {
+      overlayCount: overlays.length,
+      overlayTypes: overlays.map(o => o.type),
+      anchorCount: Object.keys(anchors).length,
+      viewBox
+    });
     this.overlayElements.clear();
     // Phase rendering requires live SVG early
     const svg = this.mountEl?.querySelector('svg');
     if (!svg) {
-      console.warn('[AdvancedRenderer] SVG element not found in container');
+      console.error('[MSD DEBUG] ❌ AdvancedRenderer.render() - SVG element not found in container:', {
+        mountEl: this.mountEl,
+        mountElTagName: this.mountEl?.tagName,
+        mountElChildren: this.mountEl?.children?.length || 0
+      });
       return { svgMarkup: '', overlayCount: 0 };
     }
+
+    console.log('[MSD DEBUG] ✅ SVG element found, proceeding with overlay rendering');
 
     // Prepare / clear overlay group
     const overlayGroup = this._ensureOverlayGroup(svg);
