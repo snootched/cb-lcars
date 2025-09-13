@@ -120,8 +120,9 @@ export class MsdControlsRenderer {
       this._updateUnmanagedCards(hass);
     }
 
+    // OLD SHIT REMOVE
     // ADDED: Monitor for entity state changes to trigger immediate updates
-    this._monitorEntityChanges(hass);
+    //this._monitorEntityChanges(hass);
   }
 
   // DEBUGGING: Try to update cards that exist but aren't managed by us
@@ -152,6 +153,7 @@ export class MsdControlsRenderer {
   }
 
   // ADDED: Monitor entity state changes for immediate card updates
+  /*
   _monitorEntityChanges(hass) {
     if (!hass || !hass.states) return;
 
@@ -181,8 +183,10 @@ export class MsdControlsRenderer {
       this._forceUpdateCustomButtonCards(changedEntities);
     }
   }
+  */
 
   // ADDED: Force immediate updates for custom-button-card based cards when entities change
+  /*
   _forceUpdateCustomButtonCards(changedEntities) {
     for (const [overlayId, wrapperElement] of this.controlElements) {
       try {
@@ -253,8 +257,10 @@ export class MsdControlsRenderer {
       }
     }
   }
+  */
 
   // ADDED: Extract entity IDs from card config
+  /*
   _extractEntitiesFromConfig(config) {
     const entities = [];
 
@@ -278,6 +284,7 @@ export class MsdControlsRenderer {
     extractFromObject(config);
     return [...new Set(entities)]; // Remove duplicates
   }
+  */
 
   // ADDED: Update HASS context for all existing control cards
   _updateAllControlsHass(hass) {
@@ -296,71 +303,183 @@ export class MsdControlsRenderer {
     }
   }
 
-  // ADDED: Apply HASS context to a specific card with multiple strategies
-  _applyHassToCard(cardElement, hass, overlayId) {
-    const tagName = cardElement.tagName ? cardElement.tagName.toLowerCase() : '';
-    const isCustomButtonCard = tagName.includes('cb-lcars') ||
-                               tagName.includes('button-card') ||
-                               cardElement._isCustomButtonCard ||
-                               cardElement.constructor?.name?.includes('Button');
 
-    console.log(`[MsdControlsRenderer] Updating HASS for ${overlayId}:`, {
-      tagName,
-      isCustomButtonCard,
-      hasConfig: !!cardElement._config,
-      hasSetConfig: typeof cardElement.setConfig === 'function',
-      currentHass: !!cardElement.hass,
-      newHass: !!hass,
-      hassChanged: cardElement.hass !== hass
-    });
-
-    // Strategy 1: For custom-button-card based cards (like CB-LCARS), use the property setter approach
-    if (isCustomButtonCard) {
-      console.log(`[MsdControlsRenderer] Using custom-button-card strategy for:`, overlayId);
+  /**
+   * Apply HASS context to a specific control card
+   * @private
+   * @param {Element} card - The card element
+   * @param {Object} hass - Home Assistant object
+   * @param {string} controlId - Control identifier for logging
+   */
+  _applyHassToCard(card, hass, controlId) {
+      console.log(`[MsdControlsRenderer] Updating HASS for ${controlId}:`, {
+          tagName: card.tagName,
+          isCustomButtonCard: card.tagName.toLowerCase().includes('button-card'),
+          hasConfig: !!card._config,
+          hasSetConfig: typeof card.setConfig === 'function',
+          currentHass: !!card.hass,
+          hasSetHass: typeof card.setHass === 'function',
+          entity: card._config?.entity || 'none'
+      });
 
       try {
-        // Method 1: Update HASS first
-        const oldHass = cardElement.hass;
-        cardElement.hass = hass;
-        cardElement._hass = hass;
+          // ENHANCED: Handle cards without setHass method
+          if (card.setHass && typeof card.setHass === 'function') {
+              console.log(`[MsdControlsRenderer] Calling setHass() for ${controlId}`);
+              card.setHass(hass);
+          } else {
+              console.log(`[MsdControlsRenderer] No setHass method - using property assignment for ${controlId}`);
 
-        // Method 2: Force LitElement update cycle
-        if (typeof cardElement.requestUpdate === 'function') {
-          console.log(`[MsdControlsRenderer] Calling requestUpdate() for ${overlayId}`);
-          cardElement.requestUpdate('hass', oldHass);
-        }
+              // FALLBACK: Direct property assignment when setHass is not available
+              const oldHass = card.hass;
+              card.hass = hass;
+              card._hass = hass;
 
-        console.log(`[MsdControlsRenderer] ✅ Custom-button-card HASS update completed for:`, overlayId);
-        return true;
+              // Try to trigger update cycle manually
+              if (typeof card.requestUpdate === 'function') {
+                  card.requestUpdate('hass', oldHass);
+              }
+          }
 
-      } catch (e) {
-        console.warn(`[MsdControlsRenderer] Custom-button-card HASS update failed for ${overlayId}:`, e);
+          // Strategy for custom-button-card based cards (including cb-lcars-button-card)
+          if (card.tagName.toLowerCase().includes('button-card')) {
+              console.log(`[MsdControlsRenderer] Using custom-button-card strategy for: ${controlId}`);
+
+              // ENHANCED: Force state object update for state-based styling
+              if (card._config?.entity && hass.states[card._config.entity]) {
+                  const newStateObj = hass.states[card._config.entity];
+                  const oldStateObj = card._stateObj;
+
+                  console.log(`[MsdControlsRenderer] Updating _stateObj for ${controlId} entity: ${card._config.entity}`, {
+                      oldState: oldStateObj?.state,
+                      newState: newStateObj?.state,
+                      stateChanged: oldStateObj?.state !== newStateObj?.state
+                  });
+
+                  card._stateObj = newStateObj;
+
+                  // Trigger update for state object change
+                  if (typeof card.requestUpdate === 'function') {
+                      card.requestUpdate('_stateObj', oldStateObj);
+                  }
+              }
+
+              // ENHANCED: Multiple HASS property updates to ensure compatibility
+              const oldHass = card.hass;
+              card.hass = hass;
+              card._hass = hass;
+
+              // Force requestUpdate with multiple strategies
+              if (card.requestUpdate && typeof card.requestUpdate === 'function') {
+                  console.log(`[MsdControlsRenderer] Calling multiple requestUpdate() calls for ${controlId}`);
+
+                  // Request updates for all HASS-related properties
+                  card.requestUpdate('hass', oldHass);
+                  card.requestUpdate('_hass', oldHass);
+
+                  // Force a general update as well
+                  card.requestUpdate();
+
+                  // ADDED: Schedule another update after a short delay to ensure rendering
+                  setTimeout(() => {
+                      if (typeof card.requestUpdate === 'function') {
+                          console.log(`[MsdControlsRenderer] Delayed requestUpdate() for ${controlId}`);
+                          card.requestUpdate();
+                      }
+                  }, 100);
+              }
+
+              // BETTER APPROACH: CB-LCARS specific updates WITHOUT destroying config
+              if (card.tagName.toLowerCase().includes('cb-lcars')) {
+                  console.log(`[MsdControlsRenderer] Applying CB-LCARS specific updates for ${controlId}`);
+
+                  // Try the forceStateUpdate method if available
+                  if (typeof card.forceStateUpdate === 'function') {
+                      setTimeout(() => {
+                          try {
+                              console.log(`[MsdControlsRenderer] Calling forceStateUpdate() for ${controlId}`);
+                              card.forceStateUpdate();
+                          } catch (e) {
+                              console.warn(`[MsdControlsRenderer] forceStateUpdate failed for ${controlId}:`, e);
+                          }
+                      }, 150);
+                  }
+
+                  // BETTER APPROACH: Force HASS updates without destroying config
+                  setTimeout(() => {
+                      try {
+                          console.log(`[MsdControlsRenderer] Force HASS refresh for CB-LCARS ${controlId}`);
+
+                          // Ensure fresh HASS context
+                          card.hass = hass;
+                          card._hass = hass;
+
+                          // Update state object if entity exists
+                          if (card._config?.entity && hass.states[card._config.entity]) {
+                              card._stateObj = hass.states[card._config.entity];
+                              console.log(`[MsdControlsRenderer] Updated _stateObj to:`, card._stateObj.state);
+                          }
+
+                          // Multiple update strategies
+                          if (typeof card.requestUpdate === 'function') {
+                              card.requestUpdate('hass');
+                              card.requestUpdate('_hass');
+                              card.requestUpdate('_stateObj');
+
+                              // Force one more update after a brief delay
+                              setTimeout(() => card.requestUpdate(), 50);
+                          }
+
+                          // Try to trigger internal update methods if available
+                          if (typeof card.performUpdate === 'function') {
+                              card.performUpdate();
+                          }
+
+                          console.log(`[MsdControlsRenderer] ✅ CB-LCARS HASS refresh completed for ${controlId}`);
+
+                      } catch (e) {
+                          console.warn(`[MsdControlsRenderer] CB-LCARS HASS refresh failed for ${controlId}:`, e);
+                      }
+                  }, 100);
+
+                  // REMOVED: Nuclear option (setConfig re-call) to preserve configuration
+              }
+
+              console.log(`[MsdControlsRenderer] ✅ Custom-button-card HASS update completed for: ${controlId}`);
+          }
+          // Strategy for standard HA cards
+          else {
+              console.log(`[MsdControlsRenderer] Using standard HA card strategy for: ${controlId}`);
+
+              // FIXED: Small delay for HA cards to prevent "entity not found" flicker
+              setTimeout(() => {
+                  try {
+                      // Apply HASS context
+                      const oldHass = card.hass;
+                      card.hass = hass;
+                      card._hass = hass;
+
+                      // Force render update
+                      if (card.requestUpdate && typeof card.requestUpdate === 'function') {
+                          card.requestUpdate('hass', oldHass);
+                          card.requestUpdate();
+                      }
+
+                      console.log(`[MsdControlsRenderer] ✅ Standard HA card HASS update completed for: ${controlId}`);
+                  } catch (e) {
+                      console.warn(`[MsdControlsRenderer] Standard HA card update failed for ${controlId}:`, e);
+                  }
+              }, 50); // Small delay to ensure HASS states are fully updated
+          }
+
+          return true;
+
+      } catch (error) {
+          console.error(`[MsdControlsRenderer] ❌ Failed to update HASS for ${controlId}:`, error);
+          return false;
       }
-    }    // Strategy 2: For standard HA cards and other LitElement cards
-    if (typeof cardElement.requestUpdate === 'function') {
-      console.log(`[MsdControlsRenderer] Using LitElement strategy for:`, overlayId);
-      const oldHass = cardElement.hass;
-      cardElement.hass = hass;
-      cardElement.requestUpdate('hass', oldHass);
-      return true;
-    }
-
-    // Strategy 3: Dispatch HASS change events for other cards
-    if (typeof cardElement.dispatchEvent === 'function') {
-      console.log(`[MsdControlsRenderer] Using event dispatch strategy for:`, overlayId);
-      cardElement.hass = hass;
-      cardElement.dispatchEvent(new CustomEvent('hass-changed', {
-        detail: { hass },
-        bubbles: false
-      }));
-      return true;
-    }
-
-    // Strategy 4: Basic fallback
-    cardElement.hass = hass;
-    console.log(`[MsdControlsRenderer] Applied basic HASS update for:`, overlayId);
-    return true;
   }
+
 
   async renderControls(controlOverlays, resolvedModel) {
     // ADDED: More comprehensive safety checks
@@ -1042,13 +1161,13 @@ export class MsdControlsRenderer {
       console.log(`[MsdControlsRenderer] Adding triggers_update for CB-LCARS card with entity: ${finalConfig.entity}`);
 
       // Ensure triggers_update includes the entity
-      if (!finalConfig.triggers_update) {
-        finalConfig.triggers_update = [finalConfig.entity];
-      } else if (Array.isArray(finalConfig.triggers_update) && !finalConfig.triggers_update.includes(finalConfig.entity)) {
-        finalConfig.triggers_update.push(finalConfig.entity);
-      } else if (finalConfig.triggers_update !== 'all') {
-        // If not 'all' and not an array, convert to array
-        finalConfig.triggers_update = [finalConfig.entity];
+      if (isCustomButtonCard && !isBuiltInCard) {
+        console.log(`[MsdControlsRenderer] Setting triggers_update to 'all' for CB-LCARS card: ${finalConfig.entity}`);
+
+        // FIXED: Use 'all' so the card sees ALL HASS updates, not just specific entities
+        finalConfig.triggers_update = 'all';
+
+        console.log(`[MsdControlsRenderer] CB-LCARS card configured with triggers_update: 'all'`);
       }
 
       console.log(`[MsdControlsRenderer] CB-LCARS card configured with triggers_update:`, finalConfig.triggers_update);

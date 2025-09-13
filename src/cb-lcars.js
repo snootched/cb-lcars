@@ -1200,6 +1200,12 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         // Store HASS reference but don't call parent setHass which triggers re-renders
         this.hass = hass;
 
+        // ADDED: Forward original HASS to MSD pipeline for clean controls separation
+        if (this._msdPipeline && this._msdPipeline.systemsManager) {
+            console.log('[MSD DEBUG] 📤 Setting original HASS in SystemsManager for controls');
+            this._msdPipeline.systemsManager.setOriginalHass(hass);
+        }
+
         // Forward HASS to the MSD system directly instead of re-rendering the card
         if (this._msdPipeline && typeof this._msdPipeline.ingestHass === 'function') {
             console.log('[MSD DEBUG] 📤 Forwarding HASS to MSD pipeline');
@@ -1269,18 +1275,24 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
-        // Only call super.updated for non-HASS changes (check both 'hass' and '_hass')
-        if (!changedProperties.has('hass') && !changedProperties.has('_hass')) {
-            console.log('[MSD DEBUG] 🔄 Calling super.updated() for non-HASS changes');
-            super.updated(changedProperties);
-        } else {
-            console.log('[MSD DEBUG] ⏭️ BLOCKED super.updated() for HASS change to prevent re-render');
+        // Check if this is a control-triggered HASS change
+        if (changedProperties.has('hass') || changedProperties.has('_hass')) {
+            const isControlTriggered = this._isControlTriggeredUpdate();
+
+            if (isControlTriggered) {
+                console.log('[MSD DEBUG] ⏭️ BLOCKED super.updated() for control-triggered HASS change');
+                return;
+            } else {
+                console.log('[MSD DEBUG] 🔄 Allowing super.updated() for non-control HASS change');
+            }
         }
+
+        console.log('[MSD DEBUG] 🔄 Calling super.updated() for changes:', Array.from(changedProperties.keys()));
+        super.updated(changedProperties);
     }
 
-    /**
-     * Override requestUpdate to be more selective
-     */
+
+
     requestUpdate(name, oldValue, options) {
         console.log('[MSD DEBUG] 🔃 CBLCARSMSDCard.requestUpdate() CALLED:', {
             timestamp: new Date().toISOString(),
@@ -1289,16 +1301,95 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
-        // Prevent updates triggered by HASS changes (both 'hass' and '_hass' properties)
+        // FIXED: Only block MSD card updates, not control card updates
         if (name === 'hass' || name === '_hass') {
-            console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for HASS change:', name);
-            return Promise.resolve();
+            const isControlTriggered = this._isControlTriggeredUpdate();
+
+            if (isControlTriggered) {
+                console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for control-triggered HASS change:', name);
+
+                // REMOVED: Don't call _propagateHassToChildren here
+                // The controls should get normal HASS updates through HA's normal channels
+
+                return Promise.resolve(); // Block only the MSD card from re-rendering
+            } else {
+                console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for non-control HASS change:', name);
+            }
         }
 
         console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for:', name);
         return super.requestUpdate(name, oldValue, options);
     }
 
+
+
+    /**
+     * Override requestUpdate to be more selective
+     */
+    requestUpdateOld(name, oldValue, options) {
+        console.log('[MSD DEBUG] 🔃 CBLCARSMSDCard.requestUpdate() CALLED:', {
+            timestamp: new Date().toISOString(),
+            name,
+            hasOldValue: oldValue !== undefined,
+            stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
+        });
+
+        // ENHANCED: Only block HASS updates that would trigger MSD custom field re-execution
+        if (name === 'hass' || name === '_hass') {
+            // Check if this HASS update is from a control-triggered entity change
+            const isControlTriggered = this._isControlTriggeredUpdate();
+
+            if (isControlTriggered) {
+                console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for control-triggered HASS change:', name);
+
+                // Allow HASS to propagate to child elements without triggering MSD re-render
+                this._propagateHassToChildren(this.hass);
+                return Promise.resolve();
+            } else {
+                console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for non-control HASS change:', name);
+            }
+        }
+
+        console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for:', name);
+        return super.requestUpdate(name, oldValue, options);
+    }
+
+    /**
+     * Check if the current HASS update is from a control-triggered entity change
+     * @private
+     * @returns {boolean} True if this is a control-triggered update
+     */
+    _isControlTriggeredUpdate() {
+        // Access the MSD system's entity change analysis
+        if (window.__msdDebug?.systemsManager) {
+            const lastAnalysis = window.__msdDebug.systemsManager._lastEntityAnalysis;
+            if (lastAnalysis && lastAnalysis.isControlTriggered) {
+                const timeSinceAnalysis = Date.now() - lastAnalysis.timestamp;
+                // If analysis was recent (within 100ms), consider this a control-triggered update
+                return timeSinceAnalysis < 100;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Propagate HASS updates to child elements without triggering parent re-render
+     * @private
+     * @param {Object} hass - Home Assistant object
+     */
+    /*
+    _propagateHassToChildren(hass) {
+        try {
+            // Let the existing controls renderer handle this properly
+            if (window.__msdDebug?.controlsRenderer) {
+                console.log('[MSD DEBUG] 📤 Using existing controls renderer for HASS propagation');
+                window.__msdDebug.controlsRenderer.setHass(hass);
+            }
+        } catch (error) {
+            console.error('[MSD DEBUG] ❌ Error propagating HASS to children:', error);
+        }
+    }
+    */
 
     connectedCallback() {
         console.log('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');

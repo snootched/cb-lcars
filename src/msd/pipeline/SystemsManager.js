@@ -24,6 +24,8 @@ export class SystemsManager {
     this._renderInProgress = false;
     this._debugControlsRendering = false;
     this.mergedConfig = null; // Store for entity change handler
+    this._originalHass = null;  // Pristine copy for controls
+    this._currentHass = null;   // Working copy for MSD internal processing
   }
 
   async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
@@ -121,7 +123,441 @@ export class SystemsManager {
     this._reRenderCallback = callback;
   }
 
+
+
   _createEntityChangeHandler() {
+      return (changedIds) => {
+          const timestamp = Date.now();
+
+          console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
+              timestamp: new Date().toISOString(),
+              changedIds,
+              stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
+              renderTimeout: !!this._renderTimeout,
+              renderInProgress: !!this._renderInProgress
+          });
+
+          // REMOVED: STEP 1 - All the controls handling code
+
+          // STEP 2: Update MSD internal HASS with converted data (existing logic)
+          const workingHass = this.getCurrentHass();
+          if (workingHass && this.dataSourceManager) {
+              console.log('[MSD DEBUG] 📤 Refreshing MSD internal HASS context with converted entity states');
+
+              // Get converted state from data source manager for MSD internal use
+              const freshStates = {};
+              changedIds.forEach(entityId => {
+                  const entity = this.dataSourceManager.getEntity(entityId);
+                  if (entity && entity.state !== undefined) {
+                      // For MSD internal processing, use converted numeric values
+                      freshStates[entityId] = {
+                          state: entity.state.toString(), // MSD converted state
+                          last_changed: new Date().toISOString(),
+                          last_updated: new Date().toISOString(),
+                          attributes: entity.attributes || workingHass.states[entityId]?.attributes || {},
+                          entity_id: entityId,
+                          context: {
+                              id: Date.now().toString(),
+                              user_id: null
+                          }
+                      };
+
+                      console.log('[MSD DEBUG] 🔄 Updated MSD internal state for', entityId, {
+                          originalState: this._originalHass?.states[entityId]?.state,
+                          convertedState: freshStates[entityId].state,
+                          rawValue: entity.state
+                      });
+                  }
+              });
+
+              // Update the working HASS states object with converted data
+              this._currentHass = {
+                  ...workingHass,
+                  states: {
+                      ...workingHass.states,
+                      ...freshStates
+                  }
+              };
+
+              console.log('[MSD DEBUG] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
+          }
+
+
+
+          // Mark rules dirty for future renders (uses MSD converted data)
+          this.rulesEngine.markEntitiesDirty(changedIds);
+
+          if (this._renderTimeout) {
+              console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+              clearTimeout(this._renderTimeout);
+          }
+
+          // SIMPLIFIED: No more control-triggered logic
+          const controlEntities = this._extractControlEntities(this.mergedConfig);
+          const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+
+          // Store analysis results
+          this._lastEntityAnalysis = {
+              isControlTriggered,
+              timestamp,
+              changedIds,
+              controlEntities,
+              matchingEntities: changedIds.filter(id => controlEntities.includes(id))
+          };
+
+          console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
+
+          if (!isControlTriggered) {
+              console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+
+              // Safe re-render for non-control changes
+              this._renderTimeout = setTimeout(() => {
+                  if (this._reRenderCallback && !this._renderInProgress) {
+                      try {
+                          this._renderInProgress = true;
+                          console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+                          this._reRenderCallback();
+                      } catch (error) {
+                          console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+                      } finally {
+                          this._renderInProgress = false;
+                      }
+                  }
+                  this._renderTimeout = null;
+              }, 100);
+          } else {
+              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+          }
+      };
+  }
+
+
+
+  _createEntityChangeHandlerOld3() {
+      return (changedIds) => {
+          const timestamp = Date.now();
+
+          console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
+              timestamp: new Date().toISOString(),
+              changedIds,
+              stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
+              renderTimeout: !!this._renderTimeout,
+              renderInProgress: !!this._renderInProgress
+          });
+
+          // STEP 1: Handle controls with FRESH CURRENT HASS (not stale original)
+          const controlEntities = this._extractControlEntities(this.mergedConfig);
+          const controlChangedIds = changedIds.filter(id => controlEntities.includes(id));
+
+          if (controlChangedIds.length > 0 && this.controlsRenderer) {
+              console.log('[SystemsManager] 📡 Forwarding FRESH CURRENT HASS to controls for entities:', controlChangedIds);
+
+              // FIXED: Get the current HASS from multiple possible sources
+              let freshHass = null;
+
+              // Try to get the most current HASS
+              if (window.hass) {
+                  freshHass = window.hass;
+                  console.log('[SystemsManager] 📊 Using window.hass for fresh state');
+              } else if (this._originalHass) {
+                  freshHass = this._originalHass;
+                  console.log('[SystemsManager] 📊 Falling back to _originalHass');
+              }
+
+              if (freshHass) {
+                  console.log('[SystemsManager] 📊 Fresh HASS light.desk state:', freshHass.states?.['light.desk']?.state);
+
+                  // Update our original HASS reference to keep it fresh
+                  this._originalHass = freshHass;
+
+                  // Forward the fresh HASS to controls
+                  this.controlsRenderer.setHass(freshHass);
+              } else {
+                  console.warn('[SystemsManager] ❌ No fresh HASS available for controls');
+              }
+          }
+
+          // STEP 2: Update MSD internal HASS with converted data (existing logic)
+          const workingHass = this.getCurrentHass();
+          if (workingHass && this.dataSourceManager) {
+              console.log('[MSD DEBUG] 📤 Refreshing MSD internal HASS context with converted entity states');
+
+              // Get converted state from data source manager for MSD internal use
+              const freshStates = {};
+              changedIds.forEach(entityId => {
+                  const entity = this.dataSourceManager.getEntity(entityId);
+                  if (entity && entity.state !== undefined) {
+                      // For MSD internal processing, use converted numeric values
+                      freshStates[entityId] = {
+                          state: entity.state.toString(), // MSD converted state
+                          last_changed: new Date().toISOString(),
+                          last_updated: new Date().toISOString(),
+                          attributes: entity.attributes || workingHass.states[entityId]?.attributes || {},
+                          entity_id: entityId,
+                          context: {
+                              id: Date.now().toString(),
+                              user_id: null
+                          }
+                      };
+
+                      console.log('[MSD DEBUG] 🔄 Updated MSD internal state for', entityId, {
+                          originalState: this._originalHass.states[entityId]?.state,
+                          convertedState: freshStates[entityId].state,
+                          rawValue: entity.state
+                      });
+                  }
+              });
+
+              // Update the working HASS states object with converted data
+              this._currentHass = {
+                  ...workingHass,
+                  states: {
+                      ...workingHass.states,
+                      ...freshStates
+                  }
+              };
+
+              console.log('[MSD DEBUG] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
+          }
+
+          // Mark rules dirty for future renders (uses MSD converted data)
+          this.rulesEngine.markEntitiesDirty(changedIds);
+
+          if (this._renderTimeout) {
+              console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+              clearTimeout(this._renderTimeout);
+          }
+
+          const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+
+          // Store analysis results
+          this._lastEntityAnalysis = {
+              isControlTriggered,
+              timestamp,
+              changedIds,
+              controlEntities,
+              matchingEntities: controlChangedIds
+          };
+
+          console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
+
+          if (!isControlTriggered) {
+              console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+
+              // Safe re-render for non-control changes
+              this._renderTimeout = setTimeout(() => {
+                  if (this._reRenderCallback && !this._renderInProgress) {
+                      try {
+                          this._renderInProgress = true;
+                          console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+                          this._reRenderCallback();
+                      } catch (error) {
+                          console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+                      } finally {
+                          this._renderInProgress = false;
+                      }
+                  }
+                  this._renderTimeout = null;
+              }, 100);
+          } else {
+              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+          }
+      };
+  }
+
+
+  _createEntityChangeHandlerOld2() {
+    return (changedIds) => {
+      const timestamp = Date.now();
+
+      console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
+        timestamp: new Date().toISOString(),
+        changedIds,
+        stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
+        renderTimeout: !!this._renderTimeout,
+        renderInProgress: !!this._renderInProgress
+      });
+
+      // FIXED: Update HASS context with FRESH state data before forwarding
+      if (this._currentHass && this.dataSourceManager) {
+        console.log('[MSD DEBUG] 📤 Refreshing HASS context with latest entity states');
+
+        // Get fresh state from data source manager
+        const freshStates = {};
+        changedIds.forEach(entityId => {
+          const entity = this.dataSourceManager.getEntity(entityId);
+          if (entity && entity.state !== undefined) {
+            // Create a fresh state object that matches HA format
+            freshStates[entityId] = {
+              state: entity.state.toString(),
+              last_changed: new Date().toISOString(),
+              last_updated: new Date().toISOString(),
+              attributes: entity.attributes || {},
+              entity_id: entityId,
+              context: {
+                id: Date.now().toString(),
+                user_id: null
+              }
+            };
+
+            console.log('[MSD DEBUG] 🔄 Updated state for', entityId, {
+              oldState: this._currentHass.states[entityId]?.state,
+              newState: freshStates[entityId].state,
+              rawValue: entity.state
+            });
+          }
+        });
+
+        // Update the HASS states object with fresh data
+        this._currentHass = {
+          ...this._currentHass,
+          states: {
+            ...this._currentHass.states,
+            ...freshStates
+          }
+        };
+
+        console.log('[MSD DEBUG] ✅ HASS context refreshed with', Object.keys(freshStates).length, 'updated entities');
+      }
+
+      // Forward FRESH HASS to controls renderer
+      if (this.controlsRenderer && this._currentHass) {
+        console.log('[MSD DEBUG] 📤 Forwarding FRESH HASS to controls renderer');
+        this.controlsRenderer.setHass(this._currentHass);
+      }
+
+      // Mark rules dirty for future renders
+      this.rulesEngine.markEntitiesDirty(changedIds);
+
+      if (this._renderTimeout) {
+        console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+        clearTimeout(this._renderTimeout);
+      }
+
+      const controlEntities = this._extractControlEntities(this.mergedConfig);
+      const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+
+      // ADDED: Store analysis results for CB-LCARS card to access
+      this._lastEntityAnalysis = {
+        isControlTriggered,
+        timestamp,
+        changedIds,
+        controlEntities,
+        matchingEntities: changedIds.filter(id => controlEntities.includes(id))
+      };
+
+      // Also make it available globally for debugging
+      if (window.__msdDebug) {
+        window.__msdDebug.systemsManager = window.__msdDebug.systemsManager || {};
+        window.__msdDebug.systemsManager._lastEntityAnalysis = this._lastEntityAnalysis;
+      }
+
+      console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
+
+      if (!isControlTriggered) {
+        console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+
+        // Safe re-render for non-control changes
+        this._renderTimeout = setTimeout(() => {
+          if (this._reRenderCallback && !this._renderInProgress) {
+            try {
+              this._renderInProgress = true;
+              console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+              this._reRenderCallback();
+            } catch (error) {
+              console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+              console.error('[MSD DEBUG] ❌ Entity change re-render stack:', error.stack);
+            } finally {
+              this._renderInProgress = false;
+            }
+          }
+          this._renderTimeout = null;
+        }, 100); // Reduced timeout for better responsiveness
+      } else {
+        console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+      }
+    };
+  }
+
+  _createEntityChangeHandlerOld1() {
+    return (changedIds) => {
+      const timestamp = Date.now();
+
+      console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
+        timestamp: new Date().toISOString(),
+        changedIds,
+        stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
+        renderTimeout: !!this._renderTimeout,
+        renderInProgress: !!this._renderInProgress
+      });
+
+      // Update HASS context with current state (simplified)
+      if (this._currentHass) {
+        console.log('[MSD DEBUG] 📤 Updating HASS context from entity changes');
+
+        // Forward fresh HASS to controls renderer
+        if (this.controlsRenderer) {
+          console.log('[MSD DEBUG] 📤 Forwarding HASS to controls renderer');
+          this.controlsRenderer.setHass(this._currentHass);
+        }
+      }
+
+      // Mark rules dirty for future renders
+      this.rulesEngine.markEntitiesDirty(changedIds);
+
+      if (this._renderTimeout) {
+        console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+        clearTimeout(this._renderTimeout);
+      }
+
+      const controlEntities = this._extractControlEntities(this.mergedConfig);
+      const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+
+      // ADDED: Store analysis results for CB-LCARS card to access
+      this._lastEntityAnalysis = {
+        isControlTriggered,
+        timestamp,
+        changedIds,
+        controlEntities,
+        matchingEntities: changedIds.filter(id => controlEntities.includes(id))
+      };
+
+      // Also make it available globally for debugging
+      if (window.__msdDebug) {
+        window.__msdDebug.systemsManager = window.__msdDebug.systemsManager || {};
+        window.__msdDebug.systemsManager._lastEntityAnalysis = this._lastEntityAnalysis;
+      }
+
+      console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
+
+      if (!isControlTriggered) {
+        console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+
+        // Safe re-render for non-control changes
+        this._renderTimeout = setTimeout(() => {
+          if (this._reRenderCallback && !this._renderInProgress) {
+            try {
+              this._renderInProgress = true;
+              console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+              this._reRenderCallback();
+            } catch (error) {
+              console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+              console.error('[MSD DEBUG] ❌ Entity change re-render stack:', error.stack);
+            } finally {
+              this._renderInProgress = false;
+            }
+          }
+          this._renderTimeout = null;
+        }, 100); // Reduced timeout for better responsiveness
+      } else {
+        console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+      }
+    };
+  }
+
+
+
+  _createEntityChangeHandlerOrig() {
     return (changedIds) => {
       console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
         timestamp: new Date().toISOString(),
@@ -190,6 +626,46 @@ export class SystemsManager {
   }
 
 
+
+  /**
+   * Set the original HASS object and keep a pristine reference for controls
+   * @param {Object} hass - Original Home Assistant object
+   */
+  setOriginalHass(hass) {
+      console.log('[SystemsManager] 📚 Setting original HASS reference:', {
+          hasStates: !!hass?.states,
+          entityCount: hass?.states ? Object.keys(hass.states).length : 0,
+          hasAuth: !!hass?.auth,
+          hasConnection: !!hass?.connection,
+          lightDeskState: hass?.states?.['light.desk']?.state
+      });
+
+      // FIXED: Always update original HASS to keep it fresh
+      // The "pristine" copy should actually be the most current original state
+      this._originalHass = hass;
+
+      // If this is the first time setting HASS, also set working copy
+      if (!this._currentHass) {
+          this._currentHass = hass;
+      }
+      // Note: _currentHass will be modified separately in entity change handler
+  }
+
+  /**
+   * Get the current working HASS (for MSD internal use)
+   */
+  getCurrentHass() {
+      return this._currentHass;
+  }
+
+  /**
+   * Get the original pristine HASS (for controls)
+   */
+  getOriginalHass() {
+      return this._originalHass;
+  }
+
+
   _instrumentRulesEngine(mergedConfig) {
     try {
       const depIndex = new Map();
@@ -242,6 +718,7 @@ export class SystemsManager {
     // ENHANCED: Auto-create data sources for control overlay entities
     const configuredDataSources = mergedConfig.data_sources || {};
     const autoDataSources = this._extractControlEntities(mergedConfig);
+    //const autoDataSources = [];
 
     // Merge configured and auto-discovered data sources
     const allDataSources = { ...configuredDataSources };

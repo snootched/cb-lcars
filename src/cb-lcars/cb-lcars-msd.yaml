@@ -367,6 +367,11 @@ cb-lcars-msd:
                 // Store pipeline reference for HASS updates
                 this._msdPipeline = pipeline;
 
+                // ADDED: Set original HASS for controls
+                if (realHass && pipeline.systemsManager) {
+                    pipeline.systemsManager.setOriginalHass(realHass);
+                }
+
                 const resolvedModel = pipeline.getResolvedModel?.();
                 const controlOverlays = (resolvedModel?.overlays || []).filter(o => o.type === 'control');
 

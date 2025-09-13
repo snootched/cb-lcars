@@ -45,6 +45,11 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   const systemsManager = new SystemsManager();
   await systemsManager.initializeSystems(mergedConfig, cardModel, mountEl, hass);
 
+  // ADDED: Set original HASS for clean controls separation
+  if (hass) {
+      systemsManager.setOriginalHass(hass);
+  }
+
   // Connect DebugManager to window.__msdDebug early for console access
   if (typeof window !== 'undefined') {
     window.__msdDebug = window.__msdDebug || {};
