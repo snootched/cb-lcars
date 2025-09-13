@@ -319,48 +319,15 @@ export class MsdControlsRenderer {
       console.log(`[MsdControlsRenderer] Using custom-button-card strategy for:`, overlayId);
 
       try {
-        // Method 1: Use the property setter to trigger internal updates
+        // Method 1: Update HASS first
         const oldHass = cardElement.hass;
+        cardElement.hass = hass;
+        cardElement._hass = hass;
 
-        // Check if the card has property descriptors (LitElement style)
-        const hassDescriptor = Object.getOwnPropertyDescriptor(cardElement.constructor.prototype, 'hass') ||
-                              Object.getOwnPropertyDescriptor(cardElement, 'hass');
-
-        if (hassDescriptor && hassDescriptor.set) {
-          console.log(`[MsdControlsRenderer] Using property setter for ${overlayId}`);
-          cardElement.hass = hass;
-        } else {
-          // Fallback: Direct assignment
-          console.log(`[MsdControlsRenderer] Using direct assignment for ${overlayId}`);
-          cardElement.hass = hass;
-          cardElement._hass = hass;
-        }
-
-        // Method 2: Trigger the card's update lifecycle manually
-        if (typeof cardElement.updated === 'function') {
-          console.log(`[MsdControlsRenderer] Calling updated() for ${overlayId}`);
-          const changedProperties = new Map([['hass', oldHass]]);
-          cardElement.updated(changedProperties);
-        }
-
-        // Method 3: Force render cycle if available
+        // Method 2: Force LitElement update cycle
         if (typeof cardElement.requestUpdate === 'function') {
           console.log(`[MsdControlsRenderer] Calling requestUpdate() for ${overlayId}`);
           cardElement.requestUpdate('hass', oldHass);
-        }
-
-        // Method 4: Try to trigger the internal _evaluateCondition or similar methods
-        if (typeof cardElement._evaluateCondition === 'function') {
-          console.log(`[MsdControlsRenderer] Calling _evaluateCondition() for ${overlayId}`);
-          cardElement._evaluateCondition();
-        }
-
-        // Method 5: Dispatch property change event that LitElement cards listen for
-        if (typeof cardElement.dispatchEvent === 'function') {
-          cardElement.dispatchEvent(new CustomEvent('property-changed', {
-            detail: { property: 'hass', value: hass, oldValue: oldHass },
-            bubbles: false
-          }));
         }
 
         console.log(`[MsdControlsRenderer] ✅ Custom-button-card HASS update completed for:`, overlayId);
@@ -369,9 +336,7 @@ export class MsdControlsRenderer {
       } catch (e) {
         console.warn(`[MsdControlsRenderer] Custom-button-card HASS update failed for ${overlayId}:`, e);
       }
-    }
-
-    // Strategy 2: For standard HA cards and other LitElement cards
+    }    // Strategy 2: For standard HA cards and other LitElement cards
     if (typeof cardElement.requestUpdate === 'function') {
       console.log(`[MsdControlsRenderer] Using LitElement strategy for:`, overlayId);
       const oldHass = cardElement.hass;
@@ -1031,33 +996,38 @@ export class MsdControlsRenderer {
       };
     }
 
-    // FIXED: Automatically add triggers_update for CB-LCARS and custom-button-card based cards
+    // FIXED: More precise detection for CB-LCARS and custom-button-card based cards
     const cardType = finalConfig.type;
     const isCustomButtonCard = cardType === 'custom:cb-lcars-button-card' ||
                                cardType === 'cb-lcars-button-card' ||
-                               cardType.includes('button-card');
+                               cardType === 'custom:button-card' ||
+                               cardType === 'button-card';
 
-    if (isCustomButtonCard) {
-      // Ensure the card will update when ANY entity changes, not just its own
-      finalConfig.triggers_update = finalConfig.triggers_update || 'all';
+    // Do NOT treat regular HA built-in cards as custom-button-cards
+    const isBuiltInCard = cardType === 'button' || cardType === 'light' || cardType === 'switch' ||
+                          cardType.startsWith('hui-');
 
-      // CRITICAL: Mark this config as MSD-generated so the main card knows not to apply triggers_update to itself
-      finalConfig._msdGenerated = true;
+    if (isCustomButtonCard && !isBuiltInCard && finalConfig.entity) {
+      console.log(`[MsdControlsRenderer] Adding triggers_update for CB-LCARS card with entity: ${finalConfig.entity}`);
 
-      console.log('[MsdControls] Added triggers_update:all to custom-button-card:', {
-        type: cardType,
-        entity: finalConfig.entity,
-        triggersUpdate: finalConfig.triggers_update,
-        msdGenerated: true
-      });
-    }
+      // Ensure triggers_update includes the entity
+      if (!finalConfig.triggers_update) {
+        finalConfig.triggers_update = [finalConfig.entity];
+      } else if (Array.isArray(finalConfig.triggers_update) && !finalConfig.triggers_update.includes(finalConfig.entity)) {
+        finalConfig.triggers_update.push(finalConfig.entity);
+      } else if (finalConfig.triggers_update !== 'all') {
+        // If not 'all' and not an array, convert to array
+        finalConfig.triggers_update = [finalConfig.entity];
+      }
 
-// Remove any problematic code that references config before definition
+      console.log(`[MsdControlsRenderer] CB-LCARS card configured with triggers_update:`, finalConfig.triggers_update);
+    } else if (isBuiltInCard) {
+      console.log(`[MsdControlsRenderer] Skipping triggers_update for built-in HA card: ${cardType}`);
+    }    // Mark as MSD-generated
+    finalConfig._msdGenerated = true;
 
     return finalConfig;
   }
-
-// Cleaned up - removed broken enhancement method
 
   /**
    * Apply HASS context to card element with multiple strategies

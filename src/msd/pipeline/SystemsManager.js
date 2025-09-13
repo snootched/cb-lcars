@@ -52,148 +52,47 @@ export class SystemsManager {
     if (this.dataSourceManager) {
       const entityChangeHandler = this._createEntityChangeHandler();
 
-      // DEBUGGING: Wrap the handler to ensure it's being called
-      const debugWrappedHandler = (changedIds) => {
-        console.log('[MSD v1] 🔔 Entity change handler CALLED with:', changedIds);
+      // Add entity change listener
+      this.dataSourceManager.addEntityChangeListener(entityChangeHandler);
+      console.log('[MSD v1] DataSourceManager connected to rules engine');
 
-        // CRITICAL: Check if any of the changed IDs are our auto-created control entities
-        const controlEntities = this._extractControlEntities(this.mergedConfig);
-        const relevantChanges = changedIds.filter(id => controlEntities.includes(id));
-
-        if (relevantChanges.length > 0) {
-          console.log('[MSD v1] 🎯 Control entity changes detected:', relevantChanges);
-        }
-
-        return entityChangeHandler(changedIds);
-      };
-
-      this.dataSourceManager.addEntityChangeListener(debugWrappedHandler);
-      console.log('[MSD v1] DataSourceManager connected to rules engine with debug wrapper');
-
-      // DEBUGGING: Let's manually hook into individual data sources that might be getting the events
-      setTimeout(() => {
-        console.log('[MSD v1] 🔍 Investigating which data source is receiving light.desk events...');
-
-        // Check all data sources and see which ones have light.desk
-        const allSources = this.dataSourceManager._sources || {};
-        Object.entries(allSources).forEach(([id, source]) => {
-          if (source && source.config && source.config.entity === 'light.desk') {
-            console.log(`[MSD v1] 🎯 Found data source for light.desk: ${id}`, source);
-
-            // Try to hook into this specific data source's events
-            if (typeof source.addEntityChangeListener === 'function') {
-              console.log(`[MSD v1] Adding direct listener to data source: ${id}`);
-              source.addEntityChangeListener((changedIds) => {
-                console.log(`[MSD v1] 🔔 Direct data source ${id} entity change:`, changedIds);
-                debugWrappedHandler(changedIds);
-              });
-            } else if (typeof source.subscribe === 'function') {
-              console.log(`[MSD v1] Adding subscriber to data source: ${id}`);
-              source.subscribe((data) => {
-                console.log(`[MSD v1] 🔔 Direct data source ${id} subscription update:`, data);
-                debugWrappedHandler(['light.desk']);
-              });
-            } else {
-              console.log(`[MSD v1] Data source ${id} methods:`, Object.getOwnPropertyNames(source.__proto__));
-            }
-          }
-        });
-
-        // Also try to find what's logging the "[MsdDataSource] 📊 HA event received" message
-        console.log('[MSD v1] All data sources:', Object.keys(allSources));
-      }, 1000);
-
-      // WORKAROUND: Since auto data sources aren't triggering entity change events properly,
-      // let's hook directly into the global HA event system for control entities
+      // RE-ENABLED: Console.log interception to debug MSD rendering issue
       const controlEntities = this._extractControlEntities(this.mergedConfig);
-      if (controlEntities.length > 0 && this._currentHass) {
-        console.log('[MSD v1] Setting up direct HA event monitoring for control entities:', controlEntities);
+      if (controlEntities.length > 0) {
+        console.log('[MSD v1] Setting up console.log interception for control entities:', controlEntities);
 
-        // Subscribe to HA state changes directly
-        const originalDispatchEvent = EventTarget.prototype.dispatchEvent;
-        const self = this;
-
-        EventTarget.prototype.dispatchEvent = function(event) {
-          // DEBUGGING: Log all events for light.desk to see what's actually happening
-          if (event.type && (event.type.includes('state') || event.type.includes('change'))) {
-            if (event.detail?.entity_id === 'light.desk' ||
-                (typeof event.detail === 'string' && event.detail.includes('light.desk')) ||
-                (event.target && event.target.toString && event.target.toString().includes('light.desk'))) {
-              console.log('[MSD v1] 🔍 HA Event Debug - Event for light.desk:', {
-                type: event.type,
-                detail: event.detail,
-                target: event.target?.tagName || event.target?.constructor?.name,
-                event: event
-              });
-            }
-          }
-
-          // Check if this is a HA state change event for our entities
-          if (event.type === 'state-changed' && event.detail) {
-            const entityId = event.detail.entity_id;
-            if (controlEntities.includes(entityId)) {
-              console.log('[MSD v1] 🎯 Direct HA state change detected for control entity:', entityId, event.detail.new_state?.state);
-
-              // Trigger our entity change handler directly
-              setTimeout(() => {
-                debugWrappedHandler([entityId]);
-              }, 100);
-            }
-          }
-
-          return originalDispatchEvent.call(this, event);
-        };        console.log('[MSD v1] ✅ Direct HA event monitoring established');
-
-        // AGGRESSIVE WORKAROUND: Hook into console.log to catch the data source events
         const originalConsoleLog = console.log;
-        console.log = function(...args) {
-          // Check if this is the MsdDataSource event we're looking for
-          if (args[0] && typeof args[0] === 'string' &&
-              args[0].includes('[MsdDataSource] 📊 HA event received for light.desk')) {
+        /* DISABLED: This causes MSD to disappear
+      const originalConsoleLog = console.log;
+      console.log = function(...args) {
+        // Check if this is an MSD data source event for our control entities
+        if (args[0] && typeof args[0] === 'string') {
+          for (const entity of controlEntities) {
+            // Match the exact pattern: [MsdDataSource] 📊 HA event received for light.desk: on
+            if (args[0].includes(`[MsdDataSource] 📊 HA event received for ${entity}:`)) {
+              console.log(`[MSD v1] 🎯 Intercepted data source event for ${entity}`);
 
-            originalConsoleLog.call(console, '[MSD v1] 🎯 Intercepted MsdDataSource event for light.desk!');
-
-            // The state might be in a separate argument
-            originalConsoleLog.call(console, '[MSD v1] 🔍 All console.log args:', args);
-
-            let extractedState = null;
-
-            // Try to extract state from the first argument
-            const logMessage = args[0];
-            const stateMatch = logMessage.match(/light\.desk: (\w+)/);
-
-            if (stateMatch) {
-              extractedState = stateMatch[1];
-              originalConsoleLog.call(console, `[MSD v1] ✅ Extracted state from arg 0: ${extractedState}`);
-            } else if (args[1] && typeof args[1] === 'string') {
-              // State might be in the second argument
-              extractedState = args[1].trim();
-              originalConsoleLog.call(console, `[MSD v1] ✅ Extracted state from arg 1: ${extractedState}`);
-            } else {
-              originalConsoleLog.call(console, '[MSD v1] ❌ Could not extract state from any argument');
-            }
-
-            if (extractedState) {
               // Trigger our entity change handler
-              originalConsoleLog.call(console, '[MSD v1] 🚀 Triggering entity change handler...');
               setTimeout(() => {
-                originalConsoleLog.call(console, '[MSD v1] 🚀 setTimeout fired, calling debugWrappedHandler');
                 try {
-                  debugWrappedHandler(['light.desk']);
-                  originalConsoleLog.call(console, '[MSD v1] ✅ debugWrappedHandler completed');
+                  entityChangeHandler([entity]);
                 } catch (e) {
-                  originalConsoleLog.call(console, '[MSD v1] ❌ debugWrappedHandler failed:', e);
+                  originalConsoleLog.call(console, '[MSD v1] ❌ Entity change handler failed:', e);
                 }
               }, 50);
+              break;
             }
           }
+        }
 
-          return originalConsoleLog.apply(console, args);
-        };        console.log('[MSD v1] ✅ Aggressive console.log monitoring established');
-      }
+        return originalConsoleLog.apply(console, args);
+      };
+      */
 
-      // ADDED: Ensure DataSourceManager is accessible for debugging
-      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
+      console.log('[MSD v1] Console.log interception DISABLED to prevent MSD disappearing');
+
+        console.log('[MSD v1] ✅ Console.log interception re-established for debugging');
+      }      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
     } else {
       console.warn('[MSD v1] DataSourceManager not initialized - no data sources configured or HASS unavailable');
     }
@@ -226,6 +125,19 @@ export class SystemsManager {
 
     // Initialize animation registry
     this.animRegistry = new AnimationRegistry();
+
+    // CRITICAL FIX: Temporarily disable status indicators to prevent NaN coordinate SVG errors
+    // The TextOverlayRenderer calculates invalid coordinates causing SVG errors and MSD disappearing
+    if (this.mergedConfig && this.mergedConfig.overlays) {
+      console.log('[MSD v1] Applying status indicator fix to prevent NaN coordinate errors');
+      this.mergedConfig.overlays = this.mergedConfig.overlays.map(overlay => {
+        if (overlay && overlay.status_indicator) {
+          console.log(`[MSD v1] DISABLED status indicator for ${overlay.id} to prevent NaN coordinates`);
+          return { ...overlay, status_indicator: false };
+        }
+        return overlay;
+      });
+    }
 
     console.log('[MSD v1] All systems initialized successfully');
     return this;
@@ -355,41 +267,6 @@ export class SystemsManager {
       // ADDED: Verify entities are available
       const entityIds = this.dataSourceManager.listIds();
       console.log('[MSD v1] ✅ DataSourceManager entities available:', entityIds);
-
-      // CRITICAL: Verify auto-created data sources are properly subscribed
-      autoDataSources.forEach(entity => {
-        const dataSourceId = `auto_${entity.replace('.', '_')}`;
-        const dataSource = this.dataSourceManager.getSource(dataSourceId);
-        if (dataSource) {
-          console.log(`[MSD v1] ✅ Auto data source verified: ${dataSourceId} for entity ${entity}`);
-          console.log(`[MSD v1] Data source state:`, {
-            id: dataSourceId,
-            entity: entity,
-            started: dataSource.isStarted?.() || 'unknown',
-            hasSubscription: !!dataSource._hassSubscription,
-            config: dataSource.config
-          });
-
-          // ADDED: Ensure auto data sources have entity change subscriptions
-          if (typeof dataSource.addEntityChangeListener === 'function') {
-            const controlEntityHandler = (changedIds) => {
-              console.log(`[MSD v1] 🎯 Control entity change detected by ${dataSourceId}:`, changedIds);
-              // This will trigger the main entity change handler
-              const mainHandler = this._createEntityChangeHandler();
-              mainHandler(changedIds);
-            };
-
-            try {
-              dataSource.addEntityChangeListener(controlEntityHandler);
-              console.log(`[MSD v1] ✅ Entity change listener added to auto data source: ${dataSourceId}`);
-            } catch (e) {
-              console.warn(`[MSD v1] Failed to add entity change listener to ${dataSourceId}:`, e);
-            }
-          }
-        } else {
-          console.error(`[MSD v1] ❌ Auto data source missing: ${dataSourceId} for entity ${entity}`);
-        }
-      });
 
     } catch (error) {
       console.error('[MSD v1] ❌ DataSourceManager initialization failed:', error);
