@@ -1107,14 +1107,6 @@ export class MsdControlsRenderer {
     }
   }
 
-  // DEPRECATED: No longer needed with SVG foreignObject approach
-  // Kept for backward compatibility if needed
-  mapViewBoxRectToHostCss(vbRect, resolvedModel) {
-    console.warn('[MSD Controls] mapViewBoxRectToHostCss is deprecated - controls now use SVG foreignObject');
-    return null;
-  }
-
-
   /**
    * Create an SVG foreignObject element to embed HTML controls in viewBox space
    */

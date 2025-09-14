@@ -535,16 +535,6 @@ export class SystemsManager {
         } catch (error) {
           console.error('[SystemsManager] ❌ Controls rendering failed:', error);
           console.error('[SystemsManager] Error stack:', error.stack);
-
-          // ADDED: Try to recover by clearing problematic controls
-          try {
-            if (this.controlsRenderer && this.controlsRenderer.controlsContainer) {
-              console.log('[SystemsManager] Attempting to clear problematic controls container');
-              this.controlsRenderer.controlsContainer.innerHTML = '';
-            }
-          } catch (recoveryError) {
-            console.warn('[SystemsManager] Recovery attempt failed:', recoveryError);
-          }
         }
       }
 

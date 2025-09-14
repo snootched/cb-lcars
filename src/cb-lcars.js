@@ -934,7 +934,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             show_state: false,
             show_icon: false,
             show_name: false,
-            show_label: true, // Keep label for display
+            show_label: false,
             // Prevent any state-based interactions
             state: undefined,
             tap_action: { action: 'none' },
