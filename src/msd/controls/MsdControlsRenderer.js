@@ -1,7 +1,9 @@
 /**
  * Phase 4: Home Assistant card controls renderer
- * Handles HA card embedding with CTM positioning
+ * Handles HA card embedding with SVG foreignObject positioning for proper scaling
  */
+
+import { PositionResolver } from '../renderer/PositionResolver.js';
 
 export class MsdControlsRenderer {
   constructor(renderer) {
@@ -1079,139 +1081,38 @@ export class MsdControlsRenderer {
   positionControlElement(element, overlay, resolvedModel) {
     const position = this.resolvePosition(overlay.position, resolvedModel);
     const size = this.resolveSize(overlay.size, resolvedModel);
-    element.setAttribute?.('data-msd-control-id', overlay.id);
-    element.id = element.id || `msd-control-${overlay.id}`; // ADDED
 
-    if (position && size) {
-      const css = this.mapViewBoxRectToHostCss(
-        { x: position[0], y: position[1], w: size[0], h: size[1] },
-        resolvedModel
-      );
-
-      if (css && !this._isZeroRect(css)) {
-        element.style.position = 'absolute';
-        element.style.left = css.left;
-        element.style.top = css.top;
-        element.style.width = css.width;
-        element.style.height = css.height;
-        element.style.zIndex = overlay.z_index || 1000;
-        element.style.pointerEvents = 'auto';
-        if (!element.style.background && !element.shadowRoot) {
-          element.style.background = 'none';
-        }
-        console.debug('[MSD Controls] Control positioned', overlay.id, css);
-      } else {
-        const attempts = (element.dataset.msdRetry || 0) * 1;
-        if (attempts < 5) {
-          element.dataset.msdRetry = attempts + 1;
-          console.debug('[MSD Controls] Deferring control positioning (layout not ready)', {
-            id: overlay.id, attempts, css
-          });
-          setTimeout(() => {
-            this.positionControlElement(element, overlay, resolvedModel);
-          }, 40 * (attempts + 1));
-          return;
-        } else {
-          console.warn('[MSD Controls] Failed to map position after retries', overlay.id, { position, size, css });
-        }
-      }
+    if (!position || !size) {
+      console.warn('[MSD Controls] Invalid position or size for control:', overlay.id);
+      return;
     }
 
-    // FIXED: Use the container we determined is valid
-    const targetContainer = this.controlsContainer;
-    // Append only if not already attached (PREVENT DUPLICATES)
-    if (targetContainer && element.parentNode !== targetContainer) {
-      targetContainer.appendChild(element);
+    // Create SVG foreignObject wrapper to live in viewBox coordinate space
+    const foreignObject = this.createSvgForeignObject(overlay.id, position, size);
+    if (!foreignObject) {
+      console.error('[MSD Controls] Failed to create SVG foreignObject for:', overlay.id);
+      return;
+    }
+
+    // Configure the control element for SVG embedding
+    this.configureControlForSvg(element, overlay, size);
+
+    // Insert control into foreignObject
+    foreignObject.appendChild(element);
+
+    // Add to SVG container (this will scale automatically with viewBox)
+    const svgContainer = this.getSvgControlsContainer();
+    if (svgContainer && foreignObject.parentNode !== svgContainer) {
+      svgContainer.appendChild(foreignObject);
+      console.debug('[MSD Controls] Control positioned in SVG coordinates:', overlay.id, { position, size });
     }
   }
 
-  _isZeroRect(css) { // ADDED
-    if (!css) return true;
-    return ['width','height'].some(k => {
-      const v = parseFloat(css[k] || '0');
-      return !v;
-    });
-  }
-
+  // DEPRECATED: No longer needed with SVG foreignObject approach
+  // Kept for backward compatibility if needed
   mapViewBoxRectToHostCss(vbRect, resolvedModel) {
-    try {
-      const targetContainer = this.renderer.container || this.renderer.mountEl;
-      const svg = targetContainer?.querySelector('svg');
-      if (!svg) {
-        console.warn('[MsdControlsRenderer] No SVG found in container:', {
-          hasContainer: !!targetContainer,
-          containerType: targetContainer?.constructor?.name,
-          svgFound: !!svg
-        });
-        return null;
-      }
-
-      const isNode = typeof window === 'undefined';
-      if (isNode) {
-        // Mock transformation for testing
-        const mockCTM = { a: 2, b: 0, c: 0, d: 2, e: 100, f: 50 };
-        const mockPoint = (x, y) => ({
-          x, y,
-          matrixTransform(matrix) {
-            return {
-              x: x * matrix.a + y * matrix.c + matrix.e,
-              y: x * matrix.b + y * matrix.d + matrix.f
-            };
-          }
-        });
-
-        const topLeft = mockPoint(vbRect.x, vbRect.y);
-        const bottomRight = mockPoint(vbRect.x + vbRect.w, vbRect.y + vbRect.h);
-
-        const screenTopLeft = topLeft.matrixTransform(mockCTM);
-        const screenBottomRight = bottomRight.matrixTransform(mockCTM);
-
-        return {
-          left: `${screenTopLeft.x}px`,
-          top: `${screenTopLeft.y}px`,
-          width: `${screenBottomRight.x - screenTopLeft.x}px`,
-          height: `${screenBottomRight.y - screenTopLeft.y}px`
-        };
-      }
-
-      const ctm = svg.getScreenCTM();
-      // UPDATED: containerRect fallback for ShadowRoot
-      let containerRect =
-        targetContainer.getBoundingClientRect?.() ||
-        targetContainer.host?.getBoundingClientRect?.() ||
-        null;
-
-      if (ctm && containerRect) {
-        const pt = svg.createSVGPoint();
-        pt.x = vbRect.x; pt.y = vbRect.y;
-        const tl = pt.matrixTransform(ctm);
-        pt.x = vbRect.x + vbRect.w; pt.y = vbRect.y + vbRect.h;
-        const br = pt.matrixTransform(ctm);
-        return {
-          left: `${tl.x - containerRect.left}px`,
-          top: `${tl.y - containerRect.top}px`,
-          width: `${br.x - tl.x}px`,
-          height: `${br.y - tl.y}px`
-        };
-      }
-
-      // FALLBACK: Derive via viewBox scaling if CTM unavailable
-      const vb = svg.viewBox?.baseVal;
-      if (vb) {
-        const scaleX = (svg.clientWidth || svg.getBoundingClientRect().width || 0) / vb.width;
-        const scaleY = (svg.clientHeight || svg.getBoundingClientRect().height || 0) / vb.height;
-        return {
-          left: `${(vbRect.x - vb.x) * scaleX}px`,
-          top: `${(vbRect.y - vb.y) * scaleY}px`,
-          width: `${vbRect.w * scaleX}px`,
-          height: `${vbRect.h * scaleY}px`
-        };
-      }
-      return null;
-    } catch (error) {
-      console.warn('[MSD Controls] CTM transformation failed:', error);
-      return null;
-    }
+    console.warn('[MSD Controls] mapViewBoxRectToHostCss is deprecated - controls now use SVG foreignObject');
+    return null;
   }
 
   // ADDED: Async version that waits for renderer container
@@ -1378,12 +1279,119 @@ export class MsdControlsRenderer {
     }
   }
 
+  /**
+   * Create an SVG foreignObject element to embed HTML controls in viewBox space
+   */
+  createSvgForeignObject(overlayId, position, size) {
+    const targetContainer = this.renderer.container || this.renderer.mountEl;
+    const svg = targetContainer?.querySelector('svg');
+
+    if (!svg) {
+      console.warn('[MSD Controls] No SVG element found for foreignObject creation');
+      return null;
+    }
+
+    try {
+      const foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+
+      // Position in viewBox coordinates
+      foreignObject.setAttribute('x', position[0]);
+      foreignObject.setAttribute('y', position[1]);
+      foreignObject.setAttribute('width', size[0]);
+      foreignObject.setAttribute('height', size[1]);
+
+      // Add identification attributes
+      foreignObject.setAttribute('data-msd-control-id', overlayId);
+      foreignObject.setAttribute('id', `msd-control-foreign-${overlayId}`);
+
+      // Ensure proper event handling
+      foreignObject.style.pointerEvents = 'auto';
+      foreignObject.style.overflow = 'visible';
+
+      return foreignObject;
+
+    } catch (error) {
+      console.error('[MSD Controls] Failed to create foreignObject:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Configure control element for SVG embedding
+   */
+  configureControlForSvg(element, overlay, size) {
+    // Remove any absolute positioning that would interfere with foreignObject
+    element.style.position = 'relative';
+    element.style.left = 'auto';
+    element.style.top = 'auto';
+
+    // Size the element to fill the foreignObject
+    element.style.width = '100%';
+    element.style.height = '100%';
+    element.style.boxSizing = 'border-box';
+
+    // Ensure proper event handling
+    element.style.pointerEvents = 'auto';
+    element.style.zIndex = overlay.z_index || 'auto';
+
+    // Maintain background if needed
+    if (!element.style.background && !element.shadowRoot) {
+      element.style.background = 'none';
+    }
+
+    console.debug('[MSD Controls] Configured element for SVG embedding:', overlay.id);
+  }
+
+  /**
+   * Get or create the SVG controls container group
+   */
+  getSvgControlsContainer() {
+    const targetContainer = this.renderer.container || this.renderer.mountEl;
+    const svg = targetContainer?.querySelector('svg');
+
+    if (!svg) {
+      console.warn('[MSD Controls] No SVG element found for controls container');
+      return null;
+    }
+
+    // Look for existing controls group
+    let controlsGroup = svg.querySelector('#msd-controls-container');
+
+    if (!controlsGroup) {
+      // Create new controls group
+      controlsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      controlsGroup.setAttribute('id', 'msd-controls-container');
+      controlsGroup.style.pointerEvents = 'none'; // Group itself doesn't capture events
+
+      // Insert after overlay container but before debug layer
+      const overlayContainer = svg.querySelector('#msd-overlay-container');
+      const debugLayer = svg.querySelector('#msd-debug-layer');
+
+      if (debugLayer) {
+        svg.insertBefore(controlsGroup, debugLayer);
+      } else if (overlayContainer) {
+        svg.insertBefore(controlsGroup, overlayContainer.nextSibling);
+      } else {
+        svg.appendChild(controlsGroup);
+      }
+
+      console.log('[MSD Controls] Created SVG controls container group');
+    }
+
+    return controlsGroup;
+  }
+
   // Helper methods for position and size resolution
   resolvePosition(position, resolvedModel) {
-    if (!position || !Array.isArray(position) || position.length < 2) {
-      return [0, 0];
+    // Use the PositionResolver for consistency with other overlays
+    const resolved = PositionResolver.resolvePosition(position, resolvedModel.anchors || {});
+    if (resolved) {
+      return resolved;
     }
-    return [position[0], position[1]];
+
+    // Fallback: Return default position if resolution fails
+    console.warn('[MSD Controls] Position resolution failed, using default [0, 0]');
+    return [0, 0];
   }
 
   resolveSize(size, resolvedModel) {
@@ -1397,10 +1405,15 @@ export class MsdControlsRenderer {
   cleanup() {
     console.log('[MsdControlsRenderer] Cleaning up controls renderer');
 
-    // Clear control elements
+    // Clear control elements (now foreignObjects in SVG)
     for (const [id, element] of this.controlElements) {
       try {
-        if (element && element.remove) {
+        // Remove foreignObject wrapper from SVG
+        const foreignObject = element.closest('foreignObject') ||
+                             document.querySelector(`#msd-control-foreign-${id}`);
+        if (foreignObject && foreignObject.remove) {
+          foreignObject.remove();
+        } else if (element && element.remove) {
           element.remove();
         }
       } catch (e) {
@@ -1409,7 +1422,19 @@ export class MsdControlsRenderer {
     }
     this.controlElements.clear();
 
-    // Remove controls container
+    // Remove SVG controls container
+    const targetContainer = this.renderer?.container || this.renderer?.mountEl;
+    const svg = targetContainer?.querySelector('svg');
+    const svgControlsContainer = svg?.querySelector('#msd-controls-container');
+    if (svgControlsContainer) {
+      try {
+        svgControlsContainer.remove();
+      } catch (e) {
+        console.warn('Failed to remove SVG controls container:', e);
+      }
+    }
+
+    // Remove DOM controls container (fallback/legacy)
     if (this.controlsContainer) {
       try {
         if (this.controlsContainer.remove) {
