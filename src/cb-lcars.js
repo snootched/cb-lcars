@@ -1184,7 +1184,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         };
     }
 
-   /**
+    /**
      * Override setHass to prevent MSD system re-renders that cause disappearing
      * MSD system manages its own HASS updates internally
      */
@@ -1393,33 +1393,6 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             // Don't destroy the MSD system here in case it's just a temporary disconnect
         }
         super.disconnectedCallback();
-    }
-
-    /**
-     * ADDED: Manual HASS subscription to ensure MSD card gets updates
-     */
-    _setupManualHassSubscription(hass) {
-        if (hass && hass.connection && !this._hassSubscription) {
-            console.log('[MSD DEBUG] 🔗 Setting up manual HASS subscription for MSD card');
-
-            this._hassSubscription = hass.connection.subscribeEvents((event) => {
-                if (event.event_type === 'state_changed') {
-                    console.log('[MSD DEBUG] 📡 Manual HASS update received for:', event.data?.entity_id);
-
-                    // Get fresh HASS from window or use the current hass
-                    const freshHass = window.hass || this.hass || hass;
-                    if (freshHass && this._msdPipeline && this._msdPipeline.systemsManager) {
-                        console.log('[MSD DEBUG] 📤 Manually updating SystemsManager with fresh HASS');
-                        console.log('[MSD DEBUG] 📊 Fresh HASS light.desk state:', freshHass.states?.['light.desk']?.state);
-
-                        this._msdPipeline.systemsManager.setOriginalHass(freshHass);
-                        this._msdPipeline.systemsManager.ingestHass(freshHass);
-                    }
-                }
-            }, 'state_changed');
-
-            console.log('[MSD DEBUG] ✅ Manual HASS subscription established');
-        }
     }
 }
 
