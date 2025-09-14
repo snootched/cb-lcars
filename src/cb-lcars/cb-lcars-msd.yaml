@@ -419,15 +419,6 @@ cb-lcars-msd:
                 ">
                   ${svgContent}
                 </div>
-
-                <!-- Controls Layer (z-index: 1000) - managed by MsdControlsRenderer -->
-                <div id="msd-controls-host" style="
-                  position: absolute;
-                  top: 0; left: 0;
-                  width: 100%; height: 100%;
-                  z-index: 1000;
-                  pointer-events: none;
-                "></div>
               </div>
             `;
           }
