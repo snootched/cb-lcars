@@ -9,7 +9,6 @@ export class MsdControlsRenderer {
   constructor(renderer) {
     this.renderer = renderer;
     this.controlElements = new Map();
-    this.controlsContainer = null;
     this.hass = null;
     this.lastRenderArgs = null;
     this._isRendering = false;
@@ -219,8 +218,6 @@ export class MsdControlsRenderer {
     const signature = controlOverlays.map(o => o.id).sort().join('|');
     if (
       this._lastSignature === signature &&
-      this.controlsContainer &&
-      this.controlsContainer.childElementCount === controlOverlays.length &&
       this.controlElements.size === controlOverlays.length
     ) {
       console.log('[MsdControlsRenderer] renderControls skipped (unchanged signature)', signature);
@@ -236,14 +233,15 @@ export class MsdControlsRenderer {
         hasHass: !!this.hass
       });
 
-      const container = await this.ensureControlsContainerAsync();
-      if (!container) {
-        console.error('[MsdControlsRenderer] No container; abort render');
+      // STEP 1: Ensure SVG container exists and clear existing controls
+      const svgContainer = this.getSvgControlsContainer();
+      if (!svgContainer) {
+        console.error('[MsdControlsRenderer] No SVG container available; abort render');
         return;
       }
 
-      // Simple strategy: clear then rebuild (still fast for small counts)
-      container.innerHTML = '';
+      console.log('[MsdControlsRenderer] SVG container found, clearing existing controls');
+      svgContainer.innerHTML = '';
       this.controlElements.clear();
 
       // ADDED: Render controls with individual error handling
@@ -270,12 +268,13 @@ export class MsdControlsRenderer {
   }
 
   async renderControlOverlay(overlay, resolvedModel) {
-    // ADDED: reuse / remove stale DOM element if duplicated
-    const existingDom = this.controlsContainer?.querySelector?.(`#msd-control-${overlay.id}`);
-    if (existingDom) {
-      console.log('[MsdControlsRenderer] Existing DOM element found for', overlay.id, '- removing to avoid duplicates');
-      try { existingDom.remove(); } catch(_) {}
+    // Remove any existing foreignObject for this overlay
+    const existingForeignObject = document.querySelector(`#msd-control-foreign-${overlay.id}`);
+    if (existingForeignObject) {
+      console.log('[MsdControlsRenderer] Existing foreignObject found for', overlay.id, '- removing to avoid duplicates');
+      try { existingForeignObject.remove(); } catch(_) {}
     }
+
     // If we somehow already have a control element instance registered, drop it (fresh rebuild model)
     if (this.controlElements.has(overlay.id)) {
       this.controlElements.delete(overlay.id);
@@ -1115,169 +1114,6 @@ export class MsdControlsRenderer {
     return null;
   }
 
-  // ADDED: Async version that waits for renderer container
-  async ensureControlsContainerAsync() {
-    // Try immediate creation first
-    let container = this.ensureControlsContainer();
-    if (container) return container;
-
-    // If failed, wait for renderer container with timeout
-    const maxAttempts = 10;
-    const delayMs = 50;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      // Wait a bit for renderer to complete
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-
-      // Try again
-      container = this.ensureControlsContainer();
-      if (container) {
-        console.log(`[MsdControlsRenderer] Container ready after ${attempt + 1} attempts`);
-        return container;
-      }
-
-      console.log(`[MsdControlsRenderer] Attempt ${attempt + 1}/${maxAttempts} - renderer container not ready`);
-    }
-
-    console.error('[MsdControlsRenderer] Renderer container never became ready');
-    return null;
-  }
-
-  ensureControlsContainer() {
-    // ENHANCED: Add comprehensive debugging of the renderer state
-    console.log('[MsdControlsRenderer] Debugging renderer state:', {
-      hasRenderer: !!this.renderer,
-      rendererType: this.renderer?.constructor?.name,
-      hasContainer: !!this.renderer?.container,
-      containerType: this.renderer?.container?.constructor?.name,
-      rendererProps: this.renderer ? Object.keys(this.renderer) : [],
-      mountEl: this.renderer?.mountEl,
-      mountElType: this.renderer?.mountEl?.constructor?.name
-    });
-
-    // FIXED: Add better validation of renderer and container
-    if (!this.renderer) {
-      console.warn('[MsdControlsRenderer] No renderer available');
-      return null;
-    }
-
-    // FIXED: Check if renderer has mountEl instead of container
-    const targetContainer = this.renderer.container || this.renderer.mountEl;
-
-    if (!targetContainer) {
-      console.warn('[MsdControlsRenderer] Neither renderer.container nor renderer.mountEl available');
-      console.log('[MsdControlsRenderer] Available renderer properties:', Object.keys(this.renderer));
-      return null;
-    }
-
-    // ADDED: Verify target container is actually a DOM element
-    if (!targetContainer.appendChild || typeof targetContainer.appendChild !== 'function') {
-      console.warn('[MsdControlsRenderer] Target container is not a valid DOM element:', {
-        container: targetContainer,
-        type: targetContainer?.constructor?.name,
-        hasAppendChild: !!targetContainer.appendChild
-      });
-      return null;
-    }
-
-    // Update our container reference to use the correct target
-    if (!this.renderer.container) {
-      console.log('[MsdControlsRenderer] Using mountEl as container since renderer.container is not set');
-      this.renderer.container = targetContainer;
-    }
-
-    // Check if existing container is still valid and attached
-    if (this.controlsContainer &&
-        this.controlsContainer.parentNode === targetContainer &&
-        this.controlsContainer.isConnected !== false) {
-      return this.controlsContainer;
-    }
-
-    // Better environment detection and document access
-    const isNode = typeof window === 'undefined';
-    const doc = isNode ? global.document : document;
-
-    if (!doc || typeof doc.createElement !== 'function') {
-      console.warn('[MsdControlsRenderer] Document createElement not available');
-      return null;
-    }
-
-    if (typeof targetContainer.appendChild !== 'function') {
-      console.warn('[MsdControlsRenderer] Container appendChild not available');
-      return null;
-    }
-
-    // FIXED: Clean up any existing container first
-    if (this.controlsContainer) {
-      try {
-        if (this.controlsContainer.remove) {
-          this.controlsContainer.remove();
-        } else if (this.controlsContainer.parentNode) {
-          this.controlsContainer.parentNode.removeChild(this.controlsContainer);
-        }
-      } catch (e) {
-        console.warn('[MsdControlsRenderer] Failed to remove old container:', e);
-      }
-      this.controlsContainer = null;
-    }
-
-    // Create the controls container element
-    try {
-      this.controlsContainer = doc.createElement('div');
-      this.controlsContainer.id = 'msd-controls-container';
-      const style = this.controlsContainer.style;
-      if (style) {
-        style.position = 'absolute';
-        style.top = '0';
-        style.left = '0';
-        style.right = '0';
-        style.bottom = '0';
-        style.pointerEvents = 'none'; // CRITICAL: Container should NOT intercept events
-        style.zIndex = '1000';
-        style.touchAction = 'auto'; // ADDED: Allow touch events to pass through
-      }
-
-      // REMOVED: All event listeners on the container itself
-
-    } catch (error) {
-      console.error('[MsdControlsRenderer] Failed to create controls container element:', error);
-      return null;
-    }
-
-    try {
-      // ADDED: prefer base wrapper so coordinates align with svg container
-      const baseWrapper = (this.renderer.container || this.renderer.mountEl)?.querySelector?.('#msd-v1-comprehensive-wrapper');
-      const appendTarget = baseWrapper || (this.renderer.container || this.renderer.mountEl);
-      appendTarget.appendChild(this.controlsContainer);
-      console.log('[MsdControlsRenderer] Controls container created and attached to:', {
-        targetType: appendTarget?.constructor?.name,
-        targetId: appendTarget?.id,
-        usedWrapper: !!baseWrapper
-      });
-      appendTarget._msdControlsContainer = this.controlsContainer;
-
-      // FIXED: Only replace querySelector if it exists
-      if (typeof targetContainer.querySelector === 'function') {
-        const originalQuerySelector = targetContainer.querySelector;
-        const controlsContainerRef = this.controlsContainer;
-
-        // Create new querySelector that ALWAYS finds our container
-        targetContainer.querySelector = function(selector) {
-          if (selector === '#msd-controls-container' && controlsContainerRef) {
-            return controlsContainerRef;
-          }
-          return originalQuerySelector.call(this, selector);
-        };
-      }
-
-      return this.controlsContainer;
-
-    } catch (error) {
-      console.error('[MsdControlsRenderer] Failed to attach controls container:', error);
-      this.controlsContainer = null;
-      return null;
-    }
-  }
 
   /**
    * Create an SVG foreignObject element to embed HTML controls in viewBox space
@@ -1434,16 +1270,15 @@ export class MsdControlsRenderer {
       }
     }
 
-    // Remove DOM controls container (fallback/legacy)
-    if (this.controlsContainer) {
+    // Clean up any legacy DOM container if it exists
+    const legacyContainer = targetContainer?.querySelector('#msd-controls-container');
+    if (legacyContainer && legacyContainer.tagName === 'DIV') {
       try {
-        if (this.controlsContainer.remove) {
-          this.controlsContainer.remove();
-        }
+        legacyContainer.remove();
+        console.log('[MsdControlsRenderer] Removed legacy DOM controls container');
       } catch (e) {
-        console.warn('Failed to remove controls container:', e);
+        console.warn('Failed to remove legacy controls container:', e);
       }
-      this.controlsContainer = null;
     }
 
     // Clear HASS reference

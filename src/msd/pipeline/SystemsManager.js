@@ -520,19 +520,8 @@ export class SystemsManager {
             console.warn('[SystemsManager] No HASS context available for controls');
           }
 
-          // ADDED: Defensive container creation
-          let container;
-          try {
-            container = await this.controlsRenderer.ensureControlsContainerAsync();
-          } catch (containerError) {
-            console.error('[SystemsManager] Controls container creation failed:', containerError);
-            return;
-          }
-
-          if (!container) {
-            console.error('[SystemsManager] Controls container could not be created');
-            return;
-          }
+          // REMOVED: Defensive container creation - not needed with SVG foreignObject approach
+          // The renderControls() method handles all necessary container creation internally
 
           // ADDED: Defensive controls rendering with timeout
           const renderPromise = this.controlsRenderer.renderControls(controlOverlays, resolvedModel);
