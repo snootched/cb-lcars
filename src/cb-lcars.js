@@ -514,6 +514,35 @@ class CBLCARSBaseCard extends ButtonCard {
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
     }
 
+    setHass(hass) {
+        // TEMPORARY DEBUG: Log ALL setHass calls to see if they're being received
+        console.log('[CBLCARSBaseCard.setHass()] 🎯 RECEIVED setHass call:', {
+            cardType: this.constructor.cardType,
+            entity: this._config?.entity,
+            oldState: this.hass?.states?.[this._config?.entity]?.state,
+            newState: hass?.states?.[this._config?.entity]?.state,
+            stateChanged: this.hass?.states?.[this._config?.entity]?.state !== hass?.states?.[this._config?.entity]?.state,
+            timestamp: new Date().toISOString(),
+            callerStack: new Error().stack.split('\n').slice(1, 3).map(line => line.trim()).join(' → ')
+        });
+
+        // Check if super has setHass before calling it
+        if (super.setHass && typeof super.setHass === 'function') {
+            console.log('[CBLCARSBaseCard.setHass()] Calling super.setHass');
+            super.setHass(hass);
+        } else {
+            console.log('[CBLCARSBaseCard.setHass()] super.setHass not available, storing hass directly');
+            // Store hass directly since parent doesn't have setHass
+            this.hass = hass;
+
+            // Trigger update manually
+            if (this.requestUpdate && typeof this.requestUpdate === 'function') {
+                this.requestUpdate('hass');
+            }
+        }
+
+        console.log('[CBLCARSBaseCard.setHass()] Completed');
+    }
 
     setConfig(config) {
         if (!config) {
@@ -607,7 +636,7 @@ class CBLCARSBaseCard extends ButtonCard {
 
         super.setConfig(this._config);
         console.log('[CBLCARSBaseCard.setConfig()] Called super.setConfig with final config:', {
-            triggersUpdate: this._config.triggers_update,
+            triggers_update: this._config.triggers_update,
             entity: this._config.entity,
             type: this._config.type
         });
@@ -619,36 +648,15 @@ class CBLCARSBaseCard extends ButtonCard {
             // Force the card to re-evaluate its state-based styling
             setTimeout(() => {
                 try {
-                    // Try multiple methods to force state update
+                    console.log('[CBLCARSBaseCard.setConfig()] Skipping forced setHass - will rely on normal HA update cycle');
 
-                    // Method 1: Trigger a HASS update
-                    if (typeof this.setHass === 'function') {
-                        console.log('[CBLCARSBaseCard.setConfig()] Forcing setHass call');
-                        this.setHass(this.hass);
-                    }
-
-                    // Method 2: Force render update
+                    // Method 2: Force render update (SAFE)
                     if (typeof this.requestUpdate === 'function') {
                         console.log('[CBLCARSBaseCard.setConfig()] Forcing requestUpdate');
                         this.requestUpdate();
                     }
 
-                    // Method 3: Force property update (LitElement pattern)
-                    if (this.hass && this._config.entity) {
-                        const entity = this._config.entity;
-                        const state = this.hass.states[entity];
-                        if (state) {
-                            console.log('[CBLCARSBaseCard.setConfig()] Triggering state property update for:', entity, state.state);
-
-                            // Force the card to think the state changed
-                            const oldState = this._stateObj;
-                            this._stateObj = state;
-
-                            if (typeof this.updated === 'function') {
-                                this.updated(new Map([['hass', this.hass]]));
-                            }
-                        }
-                    }
+                    // Method 3: REMOVED - manual state manipulation can cause issues
 
                 } catch (e) {
                     console.warn('[CBLCARSBaseCard.setConfig()] Failed to force state re-evaluation:', e);
@@ -769,62 +777,6 @@ class CBLCARSBaseCard extends ButtonCard {
             if (this._isResizeObserverEnabled) {
             this.enableResizeObserver();
             window.addEventListener('resize', this._debouncedResizeHandler);
-            }
-        }
-    }
-
-    connectedCallback2() {
-        super.connectedCallback();
-        // --- Anime.js Scope creation ---
-        this._animationScopeId = `card-${this.id || this.cardType || Math.random().toString(36).slice(2)}`;
-        this._animationScope = new CBLCARSAnimationScope(this._animationScopeId);
-        window.cblcars.anim.scopes.set(this._animationScopeId, this._animationScope);
-
-        // CLEANUP: Stop previous timelines if any
-        if (this._timelines && Array.isArray(this._timelines)) {
-            this._timelines.forEach(tl => tl && typeof tl.pause === 'function' && tl.pause());
-            this._timelines = null;
-        }
-
-        // NEW: Timelines now live under this._config.variables.msd.timelines
-        // Build overlay config map from variables.msd.overlays for element-level merge
-        const msdVars = this._config?.variables?.msd || {};
-        const timelinesCfg = msdVars.timelines || null;
-        cblcarsLog.debug('connectedCallback timelines:', timelinesCfg);
-        const overlaysArr = Array.isArray(msdVars.overlays) ? msdVars.overlays : [];
-        const overlayConfigsById = overlaysArr.reduce((acc, o) => {
-            if (o && o.id) acc[o.id] = o;
-            return acc;
-        }, {});
-
-        if (timelinesCfg) {
-            (async () => {
-                try {
-                    this._timelines = await animHelpers.createTimelines(
-                        timelinesCfg,
-                        this._animationScopeId,
-                        this.shadowRoot,
-                        overlayConfigsById,
-                        this.hass || null
-                    );
-                } catch (e) {
-                    cblcarsLog.error('[CBLCARSBaseCard.connectedCallback] Error creating timelines:', e);
-                }
-            })();
-        }
-
-        // Check if the parent element has the class 'preview'
-        if (this.parentElement && this.parentElement.classList.contains('preview')) {
-            this.style.height = '60px';
-            this.style.minHeight = '60px';
-        } else {
-            this.style.height = '100%';
-
-            // Enable the resize observer when the card is connected to the DOM
-            // but only if not in preview mode
-            if (this._isResizeObserverEnabled) {
-                this.enableResizeObserver();
-                window.addEventListener('resize', this._debouncedResizeHandler);
             }
         }
     }
@@ -1371,25 +1323,6 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         }
         return false;
     }
-
-    /**
-     * Propagate HASS updates to child elements without triggering parent re-render
-     * @private
-     * @param {Object} hass - Home Assistant object
-     */
-    /*
-    _propagateHassToChildren(hass) {
-        try {
-            // Let the existing controls renderer handle this properly
-            if (window.__msdDebug?.controlsRenderer) {
-                console.log('[MSD DEBUG] 📤 Using existing controls renderer for HASS propagation');
-                window.__msdDebug.controlsRenderer.setHass(hass);
-            }
-        } catch (error) {
-            console.error('[MSD DEBUG] ❌ Error propagating HASS to children:', error);
-        }
-    }
-    */
 
     connectedCallback() {
         console.log('[CBLCARSMSDCard.connectedCallback] MSD card connected to DOM');

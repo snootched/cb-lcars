@@ -1375,13 +1375,14 @@ export class MsdControlsRenderer {
           // Allow the event to proceed to the card normally
           // Only stop it from bubbling further up to MSD
           event.stopPropagation();
-
+          /*
           console.debug('[MsdControls] Event allowed to card but prevented from bubbling:', {
             type: event.type,
             overlayId: overlay.id,
             target: event.target.tagName,
             cardType: cardElement?.tagName
           });
+          */
         }
       }, {
         capture: false,  // CHANGED: Use bubble phase so card gets events first
