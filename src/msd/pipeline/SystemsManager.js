@@ -170,35 +170,66 @@ export class SystemsManager {
                           convertedState: freshStates[entityId].state,
                           rawValue: entity.state
                       });
+                  } else {
+                      console.log('[MSD DEBUG] ⚠️ No data source found for entity:', entityId, '(entity will not be updated in MSD internal HASS)');
                   }
               });
 
-              // Update the working HASS states object with converted data
-              this._currentHass = {
-                  ...workingHass,
-                  states: {
-                      ...workingHass.states,
-                      ...freshStates
-                  }
-              };
+              // Only update HASS if we have fresh states from data sources
+              if (Object.keys(freshStates).length > 0) {
+                  // Update the working HASS states object with converted data
+                  this._currentHass = {
+                      ...workingHass,
+                      states: {
+                          ...workingHass.states,
+                          ...freshStates
+                      }
+                  };
 
-              console.log('[MSD DEBUG] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
+                  console.log('[MSD DEBUG] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
+              } else {
+                  console.log('[MSD DEBUG] ℹ️ No data source entities changed - MSD internal HASS unchanged');
+              }
+          } else {
+              console.log('[MSD DEBUG] ⚠️ Skipping MSD internal HASS update:', {
+                  hasWorkingHass: !!workingHass,
+                  hasDataSourceManager: !!this.dataSourceManager,
+                  dataSourceManagerIsNull: this.dataSourceManager === null
+              });
           }
 
-          // Mark rules dirty for future renders (uses MSD converted data)
-          this.rulesEngine.markEntitiesDirty(changedIds);
+          // Mark rules dirty for future renders (only for entities with data sources)
+          if (this.rulesEngine) {
+              // Filter to only entities that have data sources
+              const dataSourceEntities = changedIds.filter(entityId => {
+                  return this.dataSourceManager && this.dataSourceManager.getEntity(entityId);
+              });
+
+              if (dataSourceEntities.length > 0) {
+                  this.rulesEngine.markEntitiesDirty(dataSourceEntities);
+                  console.log('[MSD DEBUG] 📏 Marked rules dirty for data source entities:', dataSourceEntities);
+              } else {
+                  console.log('[MSD DEBUG] 📏 No data source entities to mark dirty in rules engine');
+              }
+          } else {
+              console.log('[MSD DEBUG] ⚠️ No rules engine available to mark dirty');
+          }
 
           if (this._renderTimeout) {
               console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
               clearTimeout(this._renderTimeout);
           }
 
-          // SIMPLIFIED: No more control-triggered logic
+          // SIMPLIFIED: Check if this is ONLY a control-triggered change with no data source implications
           const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
+          const hasDataSourceChanges = changedIds.some(entityId => {
+              return this.dataSourceManager && this.dataSourceManager.getEntity(entityId);
+          });
 
           // Store analysis results
           this._lastEntityAnalysis = {
               isControlTriggered,
+              hasDataSourceChanges,
               timestamp,
               changedIds,
               controlEntities,
@@ -207,15 +238,18 @@ export class SystemsManager {
 
           console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
 
-          if (!isControlTriggered) {
-              console.log('[MSD DEBUG] 🔄 Scheduling re-render for non-control entity change');
+          // Only skip re-render if it's ONLY controls AND no data source changes
+          if (isControlTriggered && !hasDataSourceChanges) {
+              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render - only control entities changed (no data sources affected)');
+          } else if (hasDataSourceChanges) {
+              console.log('[MSD DEBUG] 🔄 Scheduling re-render for data source entity changes');
 
-              // Safe re-render for non-control changes
+              // Safe re-render for data source changes
               this._renderTimeout = setTimeout(() => {
                   if (this._reRenderCallback && !this._renderInProgress) {
                       try {
                           this._renderInProgress = true;
-                          console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from entity change timeout');
+                          console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from data source entity change timeout');
                           this._reRenderCallback();
                       } catch (error) {
                           console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
@@ -226,7 +260,7 @@ export class SystemsManager {
                   this._renderTimeout = null;
               }, 100);
           } else {
-              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render for control-triggered entity change');
+              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render - no relevant entity changes for MSD');
           }
       };
   }
@@ -326,43 +360,32 @@ export class SystemsManager {
       return;
     }
 
-    // ENHANCED: Auto-create data sources for control overlay entities
+    // ENHANCED: Explicit-only data sources - no auto-creation
     const configuredDataSources = mergedConfig.data_sources || {};
-    const autoDataSources = this._extractControlEntities(mergedConfig);
-    //const autoDataSources = [];
 
-    // Merge configured and auto-discovered data sources
+    console.log('[MSD v1] 🔍 Using explicit-only data sources mode');
+    console.log('[MSD v1] 🔍 Configured data sources:', Object.keys(configuredDataSources));
+
+    // Controls use direct HASS - no data sources needed
+    const controlEntities = this._extractControlEntities(mergedConfig);
+    console.log('[MSD v1] 🔍 Control entities (using direct HASS):', controlEntities);
+
+    // Use only explicitly configured data sources
     const allDataSources = { ...configuredDataSources };
-
-    // Add auto data sources for control entities (if not already configured)
-    autoDataSources.forEach(entity => {
-      const dataSourceId = `auto_${entity.replace('.', '_')}`;
-      if (!allDataSources[dataSourceId]) {
-        allDataSources[dataSourceId] = {
-          type: 'entity',
-          entity: entity,
-          _autoCreated: true
-        };
-        console.log(`[MSD v1] ✅ Auto-created data source for control entity: ${entity} -> ${dataSourceId}`);
-      } else {
-        console.log(`[MSD v1] ℹ️ Data source already configured for entity: ${entity}`);
-      }
-    });
 
     console.log('[MSD v1] 📊 Data source summary:', {
       configured: Object.keys(configuredDataSources).length,
-      autoCreated: autoDataSources.length,
       total: Object.keys(allDataSources).length,
-      autoEntities: autoDataSources,
       allDataSourceIds: Object.keys(allDataSources)
     });
 
     if (Object.keys(allDataSources).length === 0) {
-      console.log('[MSD v1] No data sources (configured or auto-discovered) - DataSourceManager will not be initialized');
+      console.log('[MSD v1] No explicit data sources configured - DataSourceManager will not be initialized');
+      console.log('[MSD v1] Note: Control overlays will use direct HASS (no data sources needed)');
       return;
     }
 
-    console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'sources (', Object.keys(configuredDataSources).length, 'configured +', autoDataSources.length, 'auto)');
+    console.log('[MSD v1] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'explicit data sources');
 
     try {
       this.dataSourceManager = new DataSourceManager(hass);

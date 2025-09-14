@@ -1083,20 +1083,11 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
-        // FIXED: Only block MSD card updates, not control card updates
+        // ENHANCED: Block ALL HASS-related updates for MSD cards to prevent re-renders
         if (name === 'hass' || name === '_hass') {
-            const isControlTriggered = this._isControlTriggeredUpdate();
-
-            if (isControlTriggered) {
-                console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for control-triggered HASS change:', name);
-
-                // REMOVED: Don't call _propagateHassToChildren here
-                // The controls should get normal HASS updates through HA's normal channels
-
-                return Promise.resolve(); // Block only the MSD card from re-rendering
-            } else {
-                console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for non-control HASS change:', name);
-            }
+            console.log('[MSD DEBUG] 🚫 BLOCKED requestUpdate() for HASS change:', name);
+            console.log('[MSD DEBUG] ⏭️ MSD system manages its own HASS updates internally');
+            return Promise.resolve(); // Block the MSD card from re-rendering
         }
 
         console.log('[MSD DEBUG] ✅ Allowing requestUpdate() for:', name);
