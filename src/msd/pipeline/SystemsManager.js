@@ -126,18 +126,144 @@ export class SystemsManager {
 
 
   _createEntityChangeHandler() {
-      return (changedIds) => {
+      return (changedIds, enhancedData = null) => {
           const timestamp = Date.now();
 
           console.log('[MSD DEBUG] 🔔 Entity change handler TRIGGERED:', {
               timestamp: new Date().toISOString(),
               changedIds,
+              hasEnhancedData: !!enhancedData,
               stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
               renderTimeout: !!this._renderTimeout,
               renderInProgress: !!this._renderInProgress
           });
 
-          // REMOVED: STEP 1 - All the controls handling code
+          // STEP 1: Handle controls with FRESH CURRENT HASS (restored logic)
+          const controlEntities = this._extractControlEntities(this.mergedConfig);
+          const controlChangedIds = changedIds.filter(id => controlEntities.includes(id));
+
+          if (controlChangedIds.length > 0 && this.controlsRenderer) {
+              console.log('[SystemsManager] 📡 Forwarding FRESH CURRENT HASS to controls for entities:', controlChangedIds);
+
+              // SIMPLIFIED: Just use the most current HASS we have
+              // The CB-LCARS card should have updated _originalHass with fresh HASS
+              let freshHass = this._originalHass;
+
+              if (freshHass && freshHass.states) {
+                  // Verify we have the expected entity states
+                  const controlStates = {};
+                  controlChangedIds.forEach(entityId => {
+                      controlStates[entityId] = freshHass.states[entityId]?.state;
+                  });
+
+                  console.log('[SystemsManager] 📊 Forwarding HASS with states:', {
+                      controlStates,
+                      hasStates: !!freshHass.states,
+                      stateCount: Object.keys(freshHass.states).length,
+                      timestamp: new Date().toISOString()
+                  });
+
+                  // Forward the HASS directly to controls
+                  console.log('[SystemsManager] 📤 Calling controlsRenderer.setHass() with current HASS');
+                  this.controlsRenderer.setHass(freshHass);
+              } else {
+                  console.error('[SystemsManager] ❌ NO VALID HASS AVAILABLE FOR CONTROLS');
+                  console.error('[SystemsManager] ❌ HASS debug:', {
+                      '_originalHass': !!this._originalHass,
+                      '_originalHass.states': !!this._originalHass?.states,
+                      '_currentHass': !!this._currentHass,
+                      '_currentHass.states': !!this._currentHass?.states
+                  });
+              }
+
+              // Strategy: Take the most recent HASS and manually update the changed entity states
+              let baseHass = null;
+              if (this._originalHass && this._originalHass.states) {
+                  baseHass = this._originalHass;
+                  console.log('[SystemsManager] 📊 Using _originalHass as base');
+              } else if (this.controlsRenderer.hass && this.controlsRenderer.hass.states) {
+                  baseHass = this.controlsRenderer.hass;
+                  console.log('[SystemsManager] 📊 Using controlsRenderer.hass as base');
+              }
+
+              if (baseHass) {
+                  // Create fresh HASS by updating specific entity states from enhanced data
+                  const freshStates = { ...baseHass.states };
+
+                  controlChangedIds.forEach(entityId => {
+                      // FIXED: Use enhanced data if available, otherwise try data source access
+                      let freshOriginalState = null;
+
+                      if (enhancedData) {
+                          const entityData = enhancedData.find(item => item.entity === entityId);
+                          freshOriginalState = entityData?.freshState;
+                          console.log(`[SystemsManager] 📊 Using enhanced data for ${entityId}:`, freshOriginalState?.state);
+                      }
+
+                      if (!freshOriginalState) {
+                          // Fallback: access data source directly
+                          const dataSourceId = `auto_${entityId.replace('.', '_')}`;
+                          console.log(`[SystemsManager] 📊 Attempting to access data source: ${dataSourceId}`);
+
+                          if (this.dataSourceManager && this.dataSourceManager._dataSources) {
+                              const dataSource = this.dataSourceManager._dataSources.get(dataSourceId);
+                              freshOriginalState = dataSource?._lastOriginalState;
+                              console.log(`[SystemsManager] 📊 Data source access result:`, {
+                                  hasDataSource: !!dataSource,
+                                  hasLastOriginalState: !!freshOriginalState,
+                                  state: freshOriginalState?.state
+                              });
+                          }
+                      }
+
+                      if (freshOriginalState) {
+                          freshStates[entityId] = {
+                              ...freshOriginalState,
+                              last_changed: new Date().toISOString(),
+                              last_updated: new Date().toISOString()
+                          };
+                          console.log(`[SystemsManager] 📊 Updated ${entityId} with FRESH original state: ${freshOriginalState.state}`);
+                      } else {
+                          console.warn(`[SystemsManager] ⚠️ No fresh original state available for ${entityId}`);
+                      }
+                  });
+
+                  freshHass = {
+                      ...baseHass,
+                      states: freshStates
+                  };
+
+                  console.log('[SystemsManager] 📊 Built fresh HASS - light.desk state:', freshHass.states['light.desk']?.state);
+              }              if (freshHass) {
+                  // CRITICAL: Verify that the HASS has the expected fresh state
+                  const expectedChangedStates = {};
+                  controlChangedIds.forEach(entityId => {
+                      expectedChangedStates[entityId] = freshHass.states[entityId]?.state;
+                  });
+
+                  console.log('[SystemsManager] 📊 Final HASS verification before sending to controls:', {
+                      expectedChangedStates,
+                      hasStates: !!freshHass.states,
+                      stateCount: Object.keys(freshHass.states).length,
+                      timestamp: new Date().toISOString()
+                  });
+
+                  // Update our stored references with the fresh HASS
+                  this._originalHass = freshHass;
+
+                  // Forward the fresh HASS to controls
+                  console.log('[SystemsManager] 📤 Calling controlsRenderer.setHass() with verified fresh HASS');
+                  this.controlsRenderer.setHass(freshHass);
+              } else {
+                  console.error('[SystemsManager] ❌ NO BASE HASS AVAILABLE FOR CONTROLS');
+                  console.error('[SystemsManager] ❌ HASS sources debug:', {
+                      '_originalHass': !!this._originalHass,
+                      '_originalHass.states': !!this._originalHass?.states,
+                      'controlsRenderer.hass': !!this.controlsRenderer?.hass,
+                      'controlsRenderer.hass.states': !!this.controlsRenderer?.hass?.states
+                  });
+              }
+          }
 
           // STEP 2: Update MSD internal HASS with converted data (existing logic)
           const workingHass = this.getCurrentHass();
@@ -182,8 +308,6 @@ export class SystemsManager {
               console.log('[MSD DEBUG] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
           }
 
-
-
           // Mark rules dirty for future renders (uses MSD converted data)
           this.rulesEngine.markEntitiesDirty(changedIds);
 
@@ -193,7 +317,6 @@ export class SystemsManager {
           }
 
           // SIMPLIFIED: No more control-triggered logic
-          const controlEntities = this._extractControlEntities(this.mergedConfig);
           const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
 
           // Store analysis results
@@ -637,18 +760,23 @@ export class SystemsManager {
           entityCount: hass?.states ? Object.keys(hass.states).length : 0,
           hasAuth: !!hass?.auth,
           hasConnection: !!hass?.connection,
-          lightDeskState: hass?.states?.['light.desk']?.state
+          lightDeskState: hass?.states?.['light.desk']?.state,
+          timestamp: new Date().toISOString()
       });
 
-      // FIXED: Always update original HASS to keep it fresh
-      // The "pristine" copy should actually be the most current original state
+      // ALWAYS update original HASS to keep it fresh - this should be the most current
       this._originalHass = hass;
 
       // If this is the first time setting HASS, also set working copy
       if (!this._currentHass) {
           this._currentHass = hass;
+          console.log('[SystemsManager] 📚 Also setting _currentHass (first time)');
       }
-      // Note: _currentHass will be modified separately in entity change handler
+
+      // ADDED: Set up direct subscription to ensure fresh HASS for controls
+      this.setupDirectHassSubscription(hass);
+
+      // Note: _currentHass will be modified separately in entity change handler with converted data
   }
 
   /**
@@ -971,7 +1099,8 @@ export class SystemsManager {
       hasStates: !!hass?.states,
       entityCount: hass?.states ? Object.keys(hass.states).length : 0,
       hasLightDesk: !!hass?.states?.['light.desk'],
-      lightDeskState: hass?.states?.['light.desk']?.state
+      lightDeskState: hass?.states?.['light.desk']?.state,
+      timestamp: new Date().toISOString()
     });
 
     if (!hass || !hass.states) {
@@ -979,12 +1108,15 @@ export class SystemsManager {
       return;
     }
 
-    // Store HASS context for controls renderer
+    // CRITICAL: Update BOTH working copy AND original copy to keep them fresh
     this._currentHass = hass;
+    this._originalHass = hass;  // ADDED: Keep original fresh too
+
+    console.log('[SystemsManager] Updated both _currentHass and _originalHass with fresh data');
 
     // ENHANCED: Pass HASS to controls renderer EVERY time to ensure cards get updates
     if (this.controlsRenderer) {
-      console.log('[SystemsManager] Updating HASS context in controls renderer');
+      console.log('[SystemsManager] Updating HASS context in controls renderer immediately');
       this.controlsRenderer.setHass(hass);
     } else {
       console.warn('[SystemsManager] No controls renderer available for HASS update');
@@ -1011,40 +1143,50 @@ export class SystemsManager {
     return this.dataSourceManager ? this.dataSourceManager.getEntity(id) : null;
   }
 
-  // ADDED: Setup global HUD interface for unified access
-  _setupGlobalHudInterface() {
-    const W = typeof window !== 'undefined' ? window : {};
-    W.__msdDebug = W.__msdDebug || {};
+  /**
+   * Set up direct HASS subscription to ensure fresh HASS for controls
+   * @param {Object} hass - Home Assistant object with connection
+   */
+  setupDirectHassSubscription(hass) {
+    if (hass && hass.connection && !this._directHassSubscription) {
+      console.log('[SystemsManager] 🔗 Setting up direct HASS subscription for fresh control updates');
 
-    // Replace any legacy HUD interface with unified manager
-    W.__msdDebug.hud = {
-      show: () => this.hudManager?.show(),
-      hide: () => this.hudManager?.hide(),
-      toggle: () => this.hudManager?.toggle(),
-      refresh: () => this.hudManager?.refresh(),
-      setRefreshRate: (ms) => this.hudManager?.setRefreshRate(ms),
+      this._directHassSubscription = hass.connection.subscribeEvents((event) => {
+        if (event.event_type === 'state_changed' && event.data && event.data.entity_id) {
+          const entityId = event.data.entity_id;
+          const newState = event.data.new_state;
 
-      // Legacy compatibility methods (no-op for smooth transition)
-      registerPanel: () => console.warn('[HUD] Legacy registerPanel deprecated - use class-based panels'),
-      publishIssue: () => console.warn('[HUD] Legacy publishIssue deprecated - panels auto-capture'),
-      publishRouting: () => console.warn('[HUD] Legacy publishRouting deprecated - panels auto-capture'),
-      publishRules: () => console.warn('[HUD] Legacy publishRules deprecated - panels auto-capture'),
-      publishPacks: () => console.warn('[HUD] Legacy publishPacks deprecated - panels auto-capture'),
-      publishPerf: () => console.warn('[HUD] Legacy publishPerf deprecated - panels auto-capture'),
+          // Check if this is a control entity
+          const controlEntities = this._extractControlEntities(this.mergedConfig);
+          if (controlEntities.includes(entityId) && newState) {
+            console.log('[SystemsManager] 📡 Direct HASS update for control entity:', entityId, 'new state:', newState.state);
 
-      // Expose manager for advanced usage
-      manager: this.hudManager
-    };
+            // Update our HASS with the fresh state
+            if (this._originalHass && this._originalHass.states) {
+              const freshHass = {
+                ...this._originalHass,
+                states: {
+                  ...this._originalHass.states,
+                  [entityId]: newState
+                }
+              };
 
-    // ADDED: Auto-show if debug flags present
-    try {
-      if (W.cblcars?._debugFlags?.hud_auto || W.location?.search?.includes('hud=1')) {
-        this.hudManager.show();
-      }
-    } catch (e) {
-      console.warn('[SystemsManager] Auto-show HUD failed:', e);
+              console.log('[SystemsManager] 📊 Updated HASS with fresh state for', entityId, ':', newState.state);
+              this._originalHass = freshHass;
+              this._currentHass = freshHass;
+
+              // Forward fresh HASS to controls immediately
+              if (this.controlsRenderer) {
+                console.log('[SystemsManager] 📤 Immediately forwarding fresh HASS to controls');
+                this.controlsRenderer.setHass(freshHass);
+              }
+            }
+          }
+        }
+      }, 'state_changed');
+
+            console.log('[SystemsManager] ✅ Direct HASS subscription established');
     }
-
-    console.log('[SystemsManager] Global HUD interface established');
   }
 }
+

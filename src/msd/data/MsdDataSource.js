@@ -420,6 +420,9 @@ export class MsdDataSource {
       return;
     }
 
+    // CRITICAL: Store the original state object before any conversion
+    this._lastOriginalState = eventData.new_state;
+
     // FIXED: Use current timestamp instead of state timestamp
     const timestamp = Date.now();
     const rawValue = this.cfg.attribute
@@ -432,7 +435,8 @@ export class MsdDataSource {
       console.log(`[MSD DEBUG] 📊 Processing state change for ${this.cfg.entity}:`, {
         value,
         timestamp,
-        subscriberCount: this.subscribers.size
+        subscriberCount: this.subscribers.size,
+        originalState: this._lastOriginalState.state
       });
 
       // Add to buffer with proper timestamp

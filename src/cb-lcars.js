@@ -514,7 +514,53 @@ class CBLCARSBaseCard extends ButtonCard {
         this._debouncedResizeHandler = this._debounce(() => this._updateCardSize(), this._debounceWait);
     }
 
+
     setHass(hass) {
+        console.log('[CBLCARSBaseCard.setHass()] 🎯 RECEIVED setHass call:', {
+            cardType: this.constructor.cardType,
+            entity: this._config?.entity,
+            oldState: this.hass?.states?.[this._config?.entity]?.state,
+            newState: hass?.states?.[this._config?.entity]?.state,
+            stateChanged: this.hass?.states?.[this._config?.entity]?.state !== hass?.states?.[this._config?.entity]?.state,
+            timestamp: new Date().toISOString(),
+            callerStack: new Error().stack.split('\n').slice(1, 3).map(line => line.trim()).join(' → ')
+        });
+
+        // Store the old HASS for LitElement change detection
+        const oldHass = this.hass;
+
+        // CRITICAL: Update _stateObj BEFORE setting HASS property to maintain sync with custom-button-card
+        if (this._config?.entity && hass?.states?.[this._config.entity]) {
+            const newStateObj = hass.states[this._config.entity];
+            if (this._stateObj !== newStateObj) {
+                console.log('[CBLCARSBaseCard.setHass()] Updating _stateObj for entity:', this._config.entity, {
+                    oldState: this._stateObj?.state,
+                    newState: newStateObj?.state
+                });
+                this._stateObj = newStateObj;
+            }
+        }
+
+        // Use property assignment to trigger LitElement's reactive system
+        this.hass = hass;
+        this._hass = hass; // Also set internal property for compatibility
+
+        // Trigger LitElement's requestUpdate for proper change detection
+        if (typeof this.requestUpdate === 'function') {
+            this.requestUpdate('hass', oldHass);
+            this.requestUpdate('_hass', oldHass);
+
+            // Also trigger update for state object if it changed
+            if (this._config?.entity && this._stateObj) {
+                this.requestUpdate('_stateObj');
+            }
+        }
+
+        console.log('[CBLCARSBaseCard.setHass()] Completed with property assignment approach');
+    }
+
+
+    setHassOld(hass) {
         // TEMPORARY DEBUG: Log ALL setHass calls to see if they're being received
         console.log('[CBLCARSBaseCard.setHass()] 🎯 RECEIVED setHass call:', {
             cardType: this.constructor.cardType,
@@ -1146,29 +1192,37 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         console.log('[MSD DEBUG] 🏠 CBLCARSMSDCard.setHass() CALLED:', {
             timestamp: new Date().toISOString(),
             hasHass: !!hass,
-            stackTrace: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
+            lightDeskState: hass?.states?.['light.desk']?.state,
+            callerStack: new Error().stack.split('\n').slice(1, 4).map(line => line.trim()).join(' → ')
         });
 
         // Store HASS reference but don't call parent setHass which triggers re-renders
         this.hass = hass;
 
-        // ADDED: Forward original HASS to MSD pipeline for clean controls separation
+        // CRITICAL: ALWAYS update SystemsManager with the FRESHEST HASS immediately
+        // This ensures _originalHass is never stale
         if (this._msdPipeline && this._msdPipeline.systemsManager) {
-            console.log('[MSD DEBUG] 📤 Setting original HASS in SystemsManager for controls');
+            console.log('[MSD DEBUG] 📤 IMMEDIATELY updating SystemsManager with FRESH HASS');
+            console.log('[MSD DEBUG] 📊 Fresh HASS light.desk state being sent:', hass?.states?.['light.desk']?.state);
+
+            // Update both original and current HASS references
             this._msdPipeline.systemsManager.setOriginalHass(hass);
+            this._msdPipeline.systemsManager.ingestHass(hass);
         }
 
         // Forward HASS to the MSD system directly instead of re-rendering the card
         if (this._msdPipeline && typeof this._msdPipeline.ingestHass === 'function') {
-            console.log('[MSD DEBUG] 📤 Forwarding HASS to MSD pipeline');
+            console.log('[MSD DEBUG] 📤 Forwarding HASS to MSD pipeline via ingestHass');
             this._msdPipeline.ingestHass(hass);
         }
 
-        // DO NOT call super.setHass(hass) - this is what causes the re-render problem
-        console.log('[MSD DEBUG] ✅ CBLCARSMSDCard.setHass() COMPLETED - prevented super.setHass()');
-    }
+        // CRITICAL: Call parent setHass to ensure Home Assistant's normal HASS flow continues
+        // This ensures the card gets updated when entities change outside of MSD system
+        console.log('[MSD DEBUG] 📤 Calling super.setHass() to maintain HA compatibility');
+        super.setHass(hass);
 
-    /**
+        console.log('[MSD DEBUG] ✅ CBLCARSMSDCard.setHass() COMPLETED - SystemsManager should now have fresh HASS');
+    }    /**
      * Force the card to re-evaluate its state and update styling
      * Useful for debugging state-based style issues
      */
@@ -1336,6 +1390,33 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             // Don't destroy the MSD system here in case it's just a temporary disconnect
         }
         super.disconnectedCallback();
+    }
+
+    /**
+     * ADDED: Manual HASS subscription to ensure MSD card gets updates
+     */
+    _setupManualHassSubscription(hass) {
+        if (hass && hass.connection && !this._hassSubscription) {
+            console.log('[MSD DEBUG] 🔗 Setting up manual HASS subscription for MSD card');
+
+            this._hassSubscription = hass.connection.subscribeEvents((event) => {
+                if (event.event_type === 'state_changed') {
+                    console.log('[MSD DEBUG] 📡 Manual HASS update received for:', event.data?.entity_id);
+
+                    // Get fresh HASS from window or use the current hass
+                    const freshHass = window.hass || this.hass || hass;
+                    if (freshHass && this._msdPipeline && this._msdPipeline.systemsManager) {
+                        console.log('[MSD DEBUG] 📤 Manually updating SystemsManager with fresh HASS');
+                        console.log('[MSD DEBUG] 📊 Fresh HASS light.desk state:', freshHass.states?.['light.desk']?.state);
+
+                        this._msdPipeline.systemsManager.setOriginalHass(freshHass);
+                        this._msdPipeline.systemsManager.ingestHass(freshHass);
+                    }
+                }
+            }, 'state_changed');
+
+            console.log('[MSD DEBUG] ✅ Manual HASS subscription established');
+        }
     }
 }
 

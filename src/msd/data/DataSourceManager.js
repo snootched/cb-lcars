@@ -353,6 +353,15 @@ export class DataSourceManager {
     return Array.from(this.sources.values());
   }
 
+  /**
+   * Get a specific data source by ID
+   * @param {string} id - Data source ID
+   * @returns {MsdDataSource|null} The data source or null if not found
+   */
+  getDataSource(id) {
+    return this._dataSources.get(id) || null;
+  }
+
   getStats() {
     const sourceStats = {};
     for (const [name, source] of this.sources) {
