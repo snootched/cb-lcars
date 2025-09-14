@@ -1045,53 +1045,6 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         super.setHass(hass);
 
         console.log('[MSD DEBUG] ✅ CBLCARSMSDCard.setHass() COMPLETED - SystemsManager should now have fresh HASS');
-    }    /**
-     * Force the card to re-evaluate its state and update styling
-     * Useful for debugging state-based style issues
-     */
-    forceStateUpdate() {
-        console.log('[CBLCARSBaseCard.forceStateUpdate()] Forcing state re-evaluation');
-
-        if (!this.hass || !this._config?.entity) {
-            console.warn('[CBLCARSBaseCard.forceStateUpdate()] No HASS or entity configured');
-            return;
-        }
-
-        const entity = this._config.entity;
-        const state = this.hass.states[entity];
-
-        if (!state) {
-            console.warn('[CBLCARSBaseCard.forceStateUpdate()] Entity not found:', entity);
-            return;
-        }
-
-        console.log('[CBLCARSBaseCard.forceStateUpdate()] Current state:', {
-            entity,
-            state: state.state,
-            attributes: state.attributes
-        });
-
-        try {
-            // Force complete re-evaluation by simulating a HASS change
-            const oldHass = this.hass;
-            this.hass = null;
-            this.hass = oldHass;
-
-            // Force setHass call
-            if (typeof this.setHass === 'function') {
-                this.setHass(this.hass);
-            }
-
-            // Force render
-            if (typeof this.requestUpdate === 'function') {
-                this.requestUpdate('hass', oldHass);
-            }
-
-            console.log('[CBLCARSBaseCard.forceStateUpdate()] ✅ State update forced');
-
-        } catch (e) {
-            console.error('[CBLCARSBaseCard.forceStateUpdate()] ❌ Failed to force update:', e);
-        }
     }
 
     /**

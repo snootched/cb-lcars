@@ -10,91 +10,14 @@ export class MsdControlsRenderer {
     this.controlsContainer = null;
     this.hass = null;
     this.lastRenderArgs = null;
-    this._resizeBound = false;
-    this._autoTried = false; // ADDED
-    this._rawOverlayIndex = null; // ADDED
-    this._isRendering = false;            // ADDED
-    this._lastSignature = null;           // ADDED
+    this._isRendering = false;
+    this._lastSignature = null;
     if (typeof window !== 'undefined') {
-      window._msdControlsRenderer = this; // ADDED global reference
+      window._msdControlsRenderer = this;
     }
 
     // DEBUGGING: Log when MsdControlsRenderer is created
     console.log('[MsdControlsRenderer] Constructor called');
-
-    // DEBUGGING: Set up immediate debugging
-    this._setupDebugging();
-  }
-
-  // DEBUGGING: Add immediate debugging setup
-  _setupDebugging() {
-    console.log('[MsdControlsRenderer] Setting up debugging');
-
-    // Check if we can find any existing CB-LCARS cards in the page
-    setTimeout(() => {
-      const existingCards = document.querySelectorAll('cb-lcars-button-card, [data-card-type*="cb-lcars"], custom-button-card');
-      console.log('[MsdControlsRenderer] Found existing cards on page:', existingCards.length);
-      existingCards.forEach((card, index) => {
-        console.log(`[MsdControlsRenderer] Card ${index}:`, {
-          tagName: card.tagName,
-          hasHass: !!card.hass,
-          hasConfig: !!card._config,
-          entity: card._config?.entity || card.entity,
-          currentState: card.hass?.states?.[card._config?.entity || card.entity]?.state
-        });
-      });
-    }, 1000);
-
-    // Check for HASS availability
-    setTimeout(() => {
-      if (window.hassConnection) {
-        console.log('[MsdControlsRenderer] HASS connection found');
-      } else if (window.hass) {
-        console.log('[MsdControlsRenderer] Global hass found');
-      } else {
-        console.log('[MsdControlsRenderer] No HASS found globally');
-      }
-    }, 2000);
-
-    // Try to find a way to hook into HASS updates
-    this._tryToHookIntoHass();
-  }
-
-  // DEBUGGING: Try to find and hook into HASS
-  _tryToHookIntoHass() {
-    console.log('[MsdControlsRenderer] Attempting to hook into HASS updates');
-
-    // Try multiple strategies to get HASS
-    const strategies = [
-      () => window.hass,
-      () => window.hassConnection?.conn?.hass,
-      () => document.querySelector('home-assistant')?.hass,
-      () => document.querySelector('ha-panel-lovelace')?.hass,
-      () => {
-        // Try to find CB-LCARS card and get its HASS
-        const cbCard = document.querySelector('cb-lcars-button-card');
-        return cbCard?.hass;
-      }
-    ];
-
-    for (const [index, strategy] of strategies.entries()) {
-      try {
-        const hass = strategy();
-        if (hass && hass.states) {
-          console.log(`[MsdControlsRenderer] Found HASS via strategy ${index + 1}:`, {
-            entityCount: Object.keys(hass.states).length,
-            hasLightDesk: !!hass.states['light.desk'],
-            lightDeskState: hass.states['light.desk']?.state
-          });
-
-          // If we found HASS, try to set it immediately
-          this.setHass(hass);
-          break;
-        }
-      } catch (e) {
-        console.log(`[MsdControlsRenderer] Strategy ${index + 1} failed:`, e);
-      }
-    }
   }
 
   setHass(hass) {
@@ -844,9 +767,6 @@ export class MsdControlsRenderer {
           }
         }, 100);
 
-        // Set up periodic HASS updates for responsive state changes
-        this._setupPeriodicHassUpdates(cardElement, overlay.id);
-
       } else if (tagName.startsWith('hui-')) {
         // Home Assistant built-in card updates
         setTimeout(() => {
@@ -864,49 +784,6 @@ export class MsdControlsRenderer {
         }, 200);
       }
     }
-  }
-
-  // ADDED: Set up periodic HASS updates for cards that need them
-  _setupPeriodicHassUpdates(cardElement, overlayId) {
-    // Clear any existing interval
-    if (cardElement._msdHassInterval) {
-      clearInterval(cardElement._msdHassInterval);
-    }
-
-    const tagName = cardElement.tagName ? cardElement.tagName.toLowerCase() : '';
-    const isCustomButtonCard = tagName.includes('cb-lcars') ||
-                               tagName.includes('button-card') ||
-                               cardElement._isCustomButtonCard ||
-                               cardElement.constructor?.name?.includes('Button');
-
-    // Set up different update intervals based on card type
-    if (isCustomButtonCard) {
-      // CB-LCARS and custom-button-card need more frequent updates for state changes
-      cardElement._msdHassInterval = setInterval(() => {
-        if (this.hass && cardElement.hass !== this.hass) {
-          console.debug('[MsdControls] Periodic HASS update (custom-button-card) for:', overlayId);
-          this._applyHassToCard(cardElement, this.hass, overlayId);
-        }
-      }, 2000); // Every 2 seconds for responsive state updates
-    } else {
-      // Standard HA cards can use longer intervals
-      cardElement._msdHassInterval = setInterval(() => {
-        if (this.hass && cardElement.hass !== this.hass) {
-          console.debug('[MsdControls] Periodic HASS update (standard) for:', overlayId);
-          this._applyHassToCard(cardElement, this.hass, overlayId);
-        }
-      }, 5000); // Every 5 seconds
-    }
-
-    // Clean up interval when card is removed
-    const originalRemove = cardElement.remove;
-    cardElement.remove = function() {
-      if (this._msdHassInterval) {
-        clearInterval(this._msdHassInterval);
-        this._msdHassInterval = null;
-      }
-      if (originalRemove) originalRemove.call(this);
-    };
   }
 
   /**
@@ -1546,7 +1423,6 @@ export class MsdControlsRenderer {
 
     // Clear HASS reference
     this.hass = null;
-    this._previousStates = null;
   }
 }
 

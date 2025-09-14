@@ -60,15 +60,7 @@ export class SystemsManager {
       this.dataSourceManager.addEntityChangeListener(entityChangeHandler);
       console.log('[MSD v1] DataSourceManager connected to rules engine');
 
-      // RE-ENABLED: Console.log interception to debug MSD rendering issue
-      const controlEntities = this._extractControlEntities(this.mergedConfig);
-      if (controlEntities.length > 0) {
-        console.log('[MSD v1] Setting up console.log interception for control entities:', controlEntities);
-
-        const originalConsoleLog = console.log;
-        console.log('[MSD v1] Console.log interception DISABLED to prevent MSD disappearing');
-        console.log('[MSD v1] ✅ Console.log interception re-established for debugging');
-      }      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
+      console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
     } else {
       console.warn('[MSD v1] DataSourceManager not initialized - no data sources configured or HASS unavailable');
     }
