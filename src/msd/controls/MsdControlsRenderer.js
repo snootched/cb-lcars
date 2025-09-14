@@ -1097,7 +1097,7 @@ export class MsdControlsRenderer {
         element.style.zIndex = overlay.z_index || 1000;
         element.style.pointerEvents = 'auto';
         if (!element.style.background && !element.shadowRoot) {
-          element.style.background = 'var(--card-background-color, rgba(0,0,0,0.35))';
+          element.style.background = 'none';
         }
         console.debug('[MSD Controls] Control positioned', overlay.id, css);
       } else {
