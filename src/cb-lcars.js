@@ -1205,9 +1205,12 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             console.log('[MSD DEBUG] 📤 IMMEDIATELY updating SystemsManager with FRESH HASS');
             console.log('[MSD DEBUG] 📊 Fresh HASS light.desk state being sent:', hass?.states?.['light.desk']?.state);
 
-            // Update both original and current HASS references
-            this._msdPipeline.systemsManager.setOriginalHass(hass);
-            this._msdPipeline.systemsManager.ingestHass(hass);
+            // ALSO: Forward fresh HASS directly to controls immediately
+            // This bypasses the entity change detection delay
+            if (this._msdPipeline.systemsManager.controlsRenderer) {
+                console.log('[MSD DEBUG] 📤 Immediately forwarding fresh HASS to controls');
+                this._msdPipeline.systemsManager.controlsRenderer.setHass(hass);
+            }
         }
 
         // Forward HASS to the MSD system directly instead of re-rendering the card

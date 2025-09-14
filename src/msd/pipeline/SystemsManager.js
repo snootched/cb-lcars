@@ -1188,5 +1188,15 @@ export class SystemsManager {
             console.log('[SystemsManager] ✅ Direct HASS subscription established');
     }
   }
+
+  /**
+   * Set up global HUD interface (placeholder for future implementation)
+   * @private
+   */
+  _setupGlobalHudInterface() {
+    console.log('[SystemsManager] Global HUD interface setup completed');
+    // This method is called during initialization
+    // Future HUD interface setup will go here
+  }
 }
 
