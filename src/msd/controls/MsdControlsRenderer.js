@@ -403,74 +403,6 @@ export class MsdControlsRenderer {
     }
 
     try {
-      const isNode = typeof window === 'undefined';
-
-      /* TO BE REMOVED - no longer needed
-      if (isNode) {
-        // Enhanced Node.js testing environment card creation
-        let mockElement;
-
-        // Try to use enhanced DOM polyfill
-        if (global.document && global.document.createElement) {
-          mockElement = global.document.createElement(overlayWithCard.card.type);
-        } else {
-          // Fallback mock element
-          mockElement = {
-            tagName: overlayWithCard.card.type.toUpperCase(),
-            style: {},
-            setAttribute: function(name, value) { this[`_${name}`] = value; },
-            getAttribute: function(name) { return this[`_${name}`] || null; },
-            appendChild: function(child) { return child; },
-            remove: function() { this._removed = true; },
-            _config: null,
-            _hass: null
-          };
-        }
-
-        // Ensure the element looks like the expected card type to tests
-        if (!mockElement.tagName || mockElement.tagName === 'DIV') {
-          mockElement.tagName = overlayWithCard.card.type.toUpperCase();
-        }
-
-        // Essential properties for test validation
-        if (overlayWithCard.card.config) {
-          mockElement._config = overlayWithCard.card.config;
-
-          // Provide setConfig method that the test can verify was called
-          mockElement.setConfig = function(config) {
-            this._config = config;
-            this._setConfigCalled = true;
-            return this;
-          };
-
-          // Actually call setConfig to simulate real behavior
-          mockElement.setConfig(overlayWithCard.card.config);
-        }
-
-        // Hass context setup for tests
-        if (this.hass) {
-          mockElement._hass = this.hass;
-
-          // Create hass property with getter/setter for tests
-          Object.defineProperty(mockElement, 'hass', {
-            get() { return this._hass; },
-            set(value) {
-              this._hass = value;
-              this._hassSet = true;
-            },
-            enumerable: true,
-            configurable: true
-          });
-
-          // Set the hass context
-          mockElement.hass = this.hass;
-        }
-
-        return mockElement;
-      }
-      */
-
-
       // Browser environment - Fixed card creation and configuration
       const cardType = cardDef.type;
       let cardElement = null;
@@ -887,51 +819,71 @@ export class MsdControlsRenderer {
       return false;
     }
 
-    console.log('[MsdControls] Applying HASS context:', {
-      overlayId: overlayId,
-      hassKeys: Object.keys(this.hass)
-    });
+    console.log('[MsdControls] Starting HASS application strategies for:', overlayId);
 
     const strategies = [
       // Strategy 1: Direct property assignment
       () => {
-        cardElement.hass = this.hass;
-        return cardElement.hass === this.hass;
+        console.log('[MsdControls] HASS Strategy 1: Attempting direct property assignment for:', overlayId);
+        try {
+          cardElement.hass = this.hass;
+          const success = cardElement.hass === this.hass;
+          if (success) {
+            console.log('[MsdControls] ✅ HASS Strategy 1 SUCCESS: Direct property assignment for:', overlayId);
+          } else {
+            console.log('[MsdControls] ❌ HASS Strategy 1 FAILED: Property assignment did not stick for:', overlayId);
+          }
+          return success;
+        } catch (e) {
+          console.log('[MsdControls] ❌ HASS Strategy 1 FAILED: Property assignment error for', overlayId, ':', e.message);
+          return false;
+        }
       },
 
       // Strategy 2: Use property descriptor
       () => {
-        Object.defineProperty(cardElement, 'hass', {
-          value: this.hass,
-          writable: true,
-          configurable: true
-        });
-        return true;
+        console.log('[MsdControls] HASS Strategy 2: Attempting property descriptor for:', overlayId);
+        try {
+          Object.defineProperty(cardElement, 'hass', {
+            value: this.hass,
+            writable: true,
+            configurable: true
+          });
+          console.log('[MsdControls] ✅ HASS Strategy 2 SUCCESS: Property descriptor applied for:', overlayId);
+          return true;
+        } catch (e) {
+          console.log('[MsdControls] ❌ HASS Strategy 2 FAILED: Property descriptor error for', overlayId, ':', e.message);
+          return false;
+        }
       },
 
       // Strategy 3: Store in private property for later access
       () => {
-        cardElement._hass = this.hass;
-        // Also try setting via property if it exists
-        if ('hass' in cardElement) {
-          cardElement.hass = this.hass;
+        console.log('[MsdControls] HASS Strategy 3: Attempting private property fallback for:', overlayId);
+        try {
+          cardElement._hass = this.hass;
+          // Also try setting via property if it exists
+          if ('hass' in cardElement) {
+            cardElement.hass = this.hass;
+            console.log('[MsdControls] HASS Strategy 3: Also set public hass property for:', overlayId);
+          }
+          console.log('[MsdControls] ✅ HASS Strategy 3 SUCCESS: Private property fallback for:', overlayId);
+          return true;
+        } catch (e) {
+          console.log('[MsdControls] ❌ HASS Strategy 3 FAILED: Private property error for', overlayId, ':', e.message);
+          return false;
         }
-        return true;
       }
     ];
 
     for (const [index, strategy] of strategies.entries()) {
-      try {
-        if (strategy()) {
-          console.log(`[MsdControls] HASS applied via strategy ${index + 1} for:`, overlayId);
-          return true;
-        }
-      } catch (e) {
-        console.debug(`[MsdControls] HASS strategy ${index + 1} failed:`, e);
+      if (strategy()) {
+        console.log(`[MsdControls] 🎉 HASS application SUCCESSFUL via strategy ${index + 1} for:`, overlayId);
+        return true;
       }
     }
 
-    console.warn('[MsdControls] All HASS application strategies failed for:', overlayId);
+    console.log('[MsdControls] 💥 ALL HASS STRATEGIES FAILED for:', overlayId);
     return false;
   }
 
@@ -1103,12 +1055,6 @@ export class MsdControlsRenderer {
 
       // ADDED: Ensure card can receive all necessary events for hold actions
       cardElement.style.touchAction = 'manipulation'; // Improves touch responsiveness
-    }
-
-    // ADDED: Visual debugging (optional - can be removed)
-    if (window.location.search.includes('debug=controls')) {
-      wrapper.style.outline = '2px solid rgba(255, 0, 0, 0.5)';
-      wrapper.title = `Control: ${overlay.id}`;
     }
   }
 

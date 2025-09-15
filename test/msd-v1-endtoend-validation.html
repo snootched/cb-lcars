@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSD v1 End-to-End Validation</title>
+    <style>
+        body {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            background: #000;
+            color: #ff9900;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #111;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success { background: #1a4a1a; color: #66ff66; border: 1px solid #4a4; }
+        .error { background: #4a1a1a; color: #ff6666; border: 1px solid #a44; }
+        .warning { background: #4a4a1a; color: #ffff66; border: 1px solid #aa4; }
+        .info { background: #1a1a4a; color: #6666ff; border: 1px solid #44a; }
+        h1, h2, h3 { color: #00ffff; }
+        .stats-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .stats-table th, .stats-table td {
+            border: 1px solid #444;
+            padding: 8px;
+            text-align: left;
+        }
+        .stats-table th { background: #222; color: #fff; }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #ff9900, #00ff99);
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        .command-box {
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 MSD v1 End-to-End Validation Suite</h1>
+    <div id="overall-progress">
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="progress-text">Starting validation...</div>
+    </div>
+
+    <div id="results-container"></div>
+
+    <script>
+        // Load the MSD bundle (replace with your actual bundle path)
+        const script = document.createElement('script');
+        script.src = '../dist/cb-lcars.js';
+        script.onload = startValidation;
+        script.onerror = () => {
+            showError('Bundle Loading', 'Failed to load cb-lcars.js bundle. Run `npm run build` first.');
+        };
+        document.head.appendChild(script);
+
+        let currentTest = 0;
+        let totalTests = 0;
+        let results = [];
+
+        function updateProgress() {
+            const percentage = totalTests > 0 ? (currentTest / totalTests) * 100 : 0;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+            document.getElementById('progress-text').textContent =
+                `Test ${currentTest}/${totalTests} (${Math.round(percentage)}%) - ${results.filter(r => r.success).length} passed, ${results.filter(r => !r.success).length} failed`;
+        }
+
+        function addResult(section, test, success, message, details = null) {
+            results.push({ section, test, success, message, details });
+
+            const container = document.getElementById('results-container');
+            let sectionDiv = document.getElementById(`section-${section.replace(/\s+/g, '-')}`);
+
+            if (!sectionDiv) {
+                sectionDiv = document.createElement('div');
+                sectionDiv.className = 'test-section';
+                sectionDiv.id = `section-${section.replace(/\s+/g, '-')}`;
+                sectionDiv.innerHTML = `<h2>${section}</h2>`;
+                container.appendChild(sectionDiv);
+            }
+
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <strong>${success ? '✅' : '❌'} ${test}</strong><br>
+                ${message}
+                ${details ? `<br><small style="opacity: 0.8;">${details}</small>` : ''}
+            `;
+            sectionDiv.appendChild(resultDiv);
+
+            currentTest++;
+            updateProgress();
+        }
+
+        function showError(section, message) {
+            addResult(section, 'Critical Error', false, message);
+        }
+
+        function showSuccess(section, test, message, details = null) {
+            addResult(section, test, true, message, details);
+        }
+
+        function showFailure(section, test, message, details = null) {
+            addResult(section, test, false, message, details);
+        }
+
+        async function startValidation() {
+            totalTests = 15; // Update this as you add more tests
+            currentTest = 0;
+            updateProgress();
+
+            console.log('🚀 Starting MSD v1 End-to-End Validation');
+
+            try {
+                // Test 1: Bundle Loading
+                await testBundleLoading();
+
+                // Test 2: Feature Flags
+                await testFeatureFlags();
+
+                // Test 3: MSD Debug Interface
+                await testMsdDebugInterface();
+
+                // Test 4: Pipeline Initialization
+                await testPipelineInitialization();
+
+                // Test 5: EntityRuntime
+                await testEntityRuntime();
+
+                // Test 6: DataSourceManager
+                await testDataSourceManager();
+
+                // Test 7: AdvancedRenderer
+                await testAdvancedRenderer();
+
+                // Test 8: Real-time Data Flow
+                await testRealTimeDataFlow();
+
+                // Test 9: Sparkline Rendering
+                await testSparklineRendering();
+
+                // Test 10: Line Routing
+                await testLineRouting();
+
+                // Test 11: Debug Visualization
+                await testDebugVisualization();
+
+                // Test 12: HUD System
+                await testHudSystem();
+
+                // Test 13: Performance Metrics
+                await testPerformanceMetrics();
+
+                // Test 14: Error Handling
+                await testErrorHandling();
+
+                // Test 15: Integration Summary
+                await testIntegrationSummary();
+
+                // Final Summary
+                await showFinalSummary();
+
+            } catch (error) {
+                showError('Validation Suite', `Validation failed: ${error.message}`);
+                console.error('Validation error:', error);
+            }
+        }
+
+        async function testBundleLoading() {
+            if (typeof window.cblcars !== 'undefined') {
+                showSuccess('Bundle Loading', 'Core Bundle', 'cb-lcars.js loaded successfully');
+            } else {
+                showFailure('Bundle Loading', 'Core Bundle', 'cb-lcars.js not loaded or not available');
+                return;
+            }
+
+            // Check for MSD v1 components
+            const hasIndex = typeof window.__msdDebug?.initMsdPipeline === 'function';
+            if (hasIndex) {
+                showSuccess('Bundle Loading', 'MSD v1 Pipeline', 'initMsdPipeline function available');
+            } else {
+                showFailure('Bundle Loading', 'MSD v1 Pipeline', 'initMsdPipeline not found - MSD v1 not loaded');
+            }
+        }
+
+        async function testFeatureFlags() {
+            // Force enable MSD v1
+            window.CBLCARS_MSD_V1_ENABLE = true;
+
+            if (window.__msdDebug?.featureFlags?.MSD_V1_ENABLE === true) {
+                showSuccess('Feature Flags', 'MSD v1 Enabled', 'Feature flag correctly set to true');
+            } else {
+                showFailure('Feature Flags', 'MSD v1 Enabled', `Feature flag value: ${window.__msdDebug?.featureFlags?.MSD_V1_ENABLE}`);
+            }
+
+            // Set debug flags
+            window.cblcars = window.cblcars || {};
+            window.cblcars._debugFlags = {
+                overlay: true,
+                connectors: true,
+                geometry: true,
+                perf: true,
+                validation: true
+            };
+
+            showSuccess('Feature Flags', 'Debug Flags', 'All debug flags enabled');
+        }
+
+        async function testMsdDebugInterface() {
+            const expectedMethods = [
+                'initMsdPipeline', 'entities', 'dataSources', 'validation',
+                'routing', 'debug', 'hud', 'renderAdvanced'
+            ];
+
+            let foundMethods = 0;
+            const missingMethods = [];
+
+            expectedMethods.forEach(method => {
+                if (window.__msdDebug?.[method]) {
+                    foundMethods++;
+                } else {
+                    missingMethods.push(method);
+                }
+            });
+
+            if (missingMethods.length === 0) {
+                showSuccess('Debug Interface', 'API Methods', `All ${foundMethods} expected methods available`);
+            } else {
+                showFailure('Debug Interface', 'API Methods',
+                    `Missing methods: ${missingMethods.join(', ')}`,
+                    `Found: ${foundMethods}/${expectedMethods.length}`);
+            }
+        }
+
+        async function testPipelineInitialization() {
+            const testConfig = {
+                version: 1,
+                base_svg: { source: 'builtin:ncc-1701-a-blue' },
+                anchors: {
+                    test_anchor_1: [300, 200],
+                    test_anchor_2: [600, 300]
+                },
+                data_sources: {
+                    test_cpu: {
+                        entity: 'sensor.test_cpu',
+                        window_seconds: 3600,
+                        minEmitMs: 200
+                    }
+                },
+                overlays: [
+                    {
+                        id: 'test_text',
+                        type: 'text',
+                        position: [50, 50],
+                        style: { value: 'Test Text', color: 'orange' }
+                    },
+                    {
+                        id: 'test_sparkline',
+                        type: 'sparkline',
+                        position: [100, 150],
+                        size: [400, 80],
+                        source: 'test_cpu',
+                        style: { color: 'yellow', width: 2 }
+                    }
+                ]
+            };
+
+            // Create mock HASS
+            const mockHass = {
+                states: {
+                    'sensor.test_cpu': {
+                        state: '45.2',
+                        attributes: { unit_of_measurement: '°C' },
+                        last_changed: new Date().toISOString(),
+                        last_updated: new Date().toISOString()
+                    },
+                    'sensor.test_memory': {
+                        state: '67.8',
+                        attributes: { unit_of_measurement: '%' },
+                        last_changed: new Date().toISOString(),
+                        last_updated: new Date().toISOString()
+                    }
+                },
+                connection: {
+                    subscribeEvents: async (callback, eventType) => {
+                        // Mock subscription that returns a promise resolving to unsubscribe function
+                        return Promise.resolve(() => {
+                            console.log('Mock unsubscribe called');
+                        });
+                    }
+                }
+            };
+
+            try {
+                const mountEl = document.createElement('div');
+                mountEl.id = 'test-mount';
+                document.body.appendChild(mountEl);
+
+                const pipeline = await window.__msdDebug.initMsdPipeline(testConfig, mountEl, mockHass);
+
+                if (pipeline?.enabled) {
+                    showSuccess('Pipeline Initialization', 'Pipeline Created',
+                        `Pipeline initialized successfully`,
+                        `Overlays: ${pipeline.getResolvedModel?.()?.overlays?.length || 0}, Anchors: ${Object.keys(pipeline.getResolvedModel?.()?.anchors || {}).length}`);
+
+                    window._testPipeline = pipeline; // Store for other tests
+                } else {
+                    showFailure('Pipeline Initialization', 'Pipeline Created',
+                        `Pipeline failed to initialize`,
+                        `Errors: ${pipeline?.errors?.length || 0}`);
+                }
+
+                document.body.removeChild(mountEl);
+            } catch (error) {
+                showFailure('Pipeline Initialization', 'Pipeline Created',
+                    `Exception during initialization: ${error.message}`);
+            }
+        }
+
+        async function testEntityRuntime() {
+            const entityStats = window.__msdDebug?.entities?.stats?.() || {};
+
+            if (entityStats.count > 0) {
+                showSuccess('EntityRuntime', 'Entity Loading',
+                    `${entityStats.count} entities loaded successfully`);
+            } else {
+                showFailure('EntityRuntime', 'Entity Loading',
+                    `No entities loaded`,
+                    `Stats: ${JSON.stringify(entityStats)}`);
+            }
+
+            // Test specific entity
+            const testEntity = window.__msdDebug?.entities?.get?.('sensor.test_cpu');
+            if (testEntity) {
+                showSuccess('EntityRuntime', 'Entity Retrieval',
+                    `Test entity retrieved: state=${testEntity.state}`);
+            } else {
+                showFailure('EntityRuntime', 'Entity Retrieval',
+                    `Test entity 'sensor.test_cpu' not found`);
+            }
+        }
+
+        async function testDataSourceManager() {
+            const dsStats = window.__msdDebug?.dataSources?.stats?.() || {};
+
+            if (dsStats.manager?.sourcesCreated > 0) {
+                showSuccess('DataSourceManager', 'Source Creation',
+                    `${dsStats.manager.sourcesCreated} data sources created`);
+            } else {
+                showFailure('DataSourceManager', 'Source Creation',
+                    `No data sources created`,
+                    `Stats: ${JSON.stringify(dsStats.manager)}`);
+            }
+
+            // Test manager instance
+            const manager = window.__msdDebug?.dataSources?.manager?.();
+            if (manager) {
+                showSuccess('DataSourceManager', 'Manager Access',
+                    `DataSourceManager instance accessible`);
+
+                // Test source retrieval
+                const testSource = manager.sources?.get?.('test_cpu');
+                if (testSource) {
+                    const sourceStats = testSource.getStats?.() || testSource._stats || {};
+                    showSuccess('DataSourceManager', 'Source Access',
+                        `Test source accessible`,
+                        `Subscribers: ${sourceStats.subscribers || 0}, Started: ${sourceStats.state?.started || false}`);
+                } else {
+                    showFailure('DataSourceManager', 'Source Access',
+                        `Test source 'test_cpu' not accessible`);
+                }
+            } else {
+                showFailure('DataSourceManager', 'Manager Access',
+                    `DataSourceManager instance not accessible`);
+            }
+        }
+
+        async function testAdvancedRenderer() {
+            if (window._testPipeline?.renderer) {
+                const renderer = window._testPipeline.renderer;
+                showSuccess('AdvancedRenderer', 'Renderer Instance',
+                    `AdvancedRenderer instance available`,
+                    `Type: ${renderer.constructor.name}`);
+
+                // Test render method
+                if (typeof renderer.render === 'function') {
+                    showSuccess('AdvancedRenderer', 'Render Method',
+                        `render() method available`);
+                } else {
+                    showFailure('AdvancedRenderer', 'Render Method',
+                        `render() method not found`);
+                }
+
+                // Test RouterCore integration
+                if (renderer.routerCore) {
+                    showSuccess('AdvancedRenderer', 'RouterCore Integration',
+                        `RouterCore properly integrated`);
+                } else {
+                    showFailure('AdvancedRenderer', 'RouterCore Integration',
+                        `RouterCore not available`);
+                }
+            } else {
+                showFailure('AdvancedRenderer', 'Renderer Instance',
+                    `AdvancedRenderer not found in pipeline`);
+            }
+        }
+
+        async function testRealTimeDataFlow() {
+            try {
+                // Simulate entity state change
+                const testUpdate = {
+                    'sensor.test_cpu': {
+                        state: '48.7',
+                        attributes: { unit_of_measurement: '°C' },
+                        last_changed: new Date().toISOString(),
+                        last_updated: new Date().toISOString()
+                    }
+                };
+
+                console.log('Testing real-time data flow...');
+                window.__msdDebug?.entities?.ingest?.(testUpdate);
+
+                // Allow time for processing
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                const updatedEntity = window.__msdDebug?.entities?.get?.('sensor.test_cpu');
+                if (updatedEntity?.state === '48.7') {
+                    showSuccess('Real-time Data', 'Entity Update',
+                        `Entity state updated successfully`,
+                        `New state: ${updatedEntity.state}`);
+                } else {
+                    showFailure('Real-time Data', 'Entity Update',
+                        `Entity state not updated`,
+                        `Expected: 48.7, Got: ${updatedEntity?.state}`);
+                }
+
+            } catch (error) {
+                showFailure('Real-time Data', 'Data Flow Test',
+                    `Exception during data flow test: ${error.message}`);
+            }
+        }
+
+        async function testSparklineRendering() {
+            // Check for sparkline elements in DOM
+            const sparklineElements = document.querySelectorAll('[data-overlay-type="sparkline"]');
+
+            if (sparklineElements.length > 0) {
+                showSuccess('Sparkline Rendering', 'DOM Elements',
+                    `${sparklineElements.length} sparkline elements found in DOM`);
+
+                // Check for paths within sparklines
+                let pathsFound = 0;
+                sparklineElements.forEach(el => {
+                    const paths = el.querySelectorAll('path');
+                    pathsFound += paths.length;
+                });
+
+                if (pathsFound > 0) {
+                    showSuccess('Sparkline Rendering', 'SVG Paths',
+                        `${pathsFound} SVG paths found in sparklines`);
+                } else {
+                    showFailure('Sparkline Rendering', 'SVG Paths',
+                        `No SVG paths found in sparklines`);
+                }
+            } else {
+                showFailure('Sparkline Rendering', 'DOM Elements',
+                    `No sparkline elements found in DOM`);
+            }
+        }
+
+        async function testLineRouting() {
+            // Check for line elements in DOM
+            const lineElements = document.querySelectorAll('[data-overlay-type="line"]');
+
+            if (lineElements.length > 0) {
+                showSuccess('Line Routing', 'DOM Elements',
+                    `${lineElements.length} line elements found in DOM`);
+
+                // Check routing functionality
+                const routingStats = window.__msdDebug?.routing?.stats?.() || {};
+                showSuccess('Line Routing', 'Routing Stats',
+                    `Routing system operational`,
+                    `Paths computed: ${routingStats.pathsComputed || 0}, Cache hits: ${routingStats.cacheHits || 0}`);
+            } else {
+                showFailure('Line Routing', 'DOM Elements',
+                    `No line elements found in DOM`);
+            }
+        }
+
+        async function testDebugVisualization() {
+            if (window.__msdDebug?.debug?.render) {
+                showSuccess('Debug Visualization', 'Render Function',
+                    `Debug render function available`);
+
+                // Test debug rendering
+                try {
+                    const testContainer = document.createElement('div');
+                    document.body.appendChild(testContainer);
+
+                    window.__msdDebug.debug.render(testContainer, [0, 0, 1920, 1200], {
+                        anchors: { test: [100, 100] }
+                    });
+
+                    showSuccess('Debug Visualization', 'Render Execution',
+                        `Debug rendering executed without errors`);
+
+                    document.body.removeChild(testContainer);
+                } catch (error) {
+                    showFailure('Debug Visualization', 'Render Execution',
+                        `Debug rendering failed: ${error.message}`);
+                }
+            } else {
+                showFailure('Debug Visualization', 'Render Function',
+                    `Debug render function not available`);
+            }
+        }
+
+        async function testHudSystem() {
+            if (window.__msdDebug?.hud) {
+                const hudMethods = ['show', 'hide', 'toggle', 'state'];
+                const availableMethods = hudMethods.filter(method =>
+                    typeof window.__msdDebug.hud[method] === 'function'
+                );
+
+                if (availableMethods.length === hudMethods.length) {
+                    showSuccess('HUD System', 'API Methods',
+                        `All HUD methods available`,
+                        `Methods: ${availableMethods.join(', ')}`);
+                } else {
+                    showFailure('HUD System', 'API Methods',
+                        `Missing HUD methods`,
+                        `Available: ${availableMethods.join(', ')}`);
+                }
+            } else {
+                showFailure('HUD System', 'HUD Instance',
+                    `HUD system not available`);
+            }
+        }
+
+        async function testPerformanceMetrics() {
+            const perfData = window.__msdDebug?.getPerf?.() || {};
+
+            if (Object.keys(perfData).length > 0) {
+                showSuccess('Performance Metrics', 'Data Collection',
+                    `Performance metrics available`,
+                    `Timers: ${Object.keys(perfData.timers || {}).length}, Counters: ${Object.keys(perfData.counters || {}).length}`);
+            } else {
+                showFailure('Performance Metrics', 'Data Collection',
+                    `No performance metrics available`);
+            }
+        }
+
+        async function testErrorHandling() {
+            try {
+                // Test pipeline with invalid config
+                const invalidConfig = {
+                    version: 1,
+                    overlays: [
+                        {
+                            id: 'invalid_overlay',
+                            type: 'invalid_type',
+                            position: 'invalid_position'
+                        }
+                    ]
+                };
+
+                const testMount = document.createElement('div');
+                document.body.appendChild(testMount);
+
+                const result = await window.__msdDebug.initMsdPipeline(invalidConfig, testMount);
+
+                if (result?.enabled === false && result?.errors?.length > 0) {
+                    showSuccess('Error Handling', 'Invalid Config',
+                        `Invalid configuration properly rejected`,
+                        `Errors detected: ${result.errors.length}`);
+                } else {
+                    showFailure('Error Handling', 'Invalid Config',
+                        `Invalid configuration not properly handled`);
+                }
+
+                document.body.removeChild(testMount);
+            } catch (error) {
+                showSuccess('Error Handling', 'Exception Handling',
+                    `Exceptions properly caught and handled`,
+                    `Error: ${error.message}`);
+            }
+        }
+
+        async function testIntegrationSummary() {
+            const summary = {
+                pipeline: !!window._testPipeline?.enabled,
+                entities: (window.__msdDebug?.entities?.stats?.()?.count || 0) > 0,
+                dataSources: (window.__msdDebug?.dataSources?.stats?.()?.manager?.sourcesCreated || 0) > 0,
+                renderer: !!window._testPipeline?.renderer,
+                debug: !!window.__msdDebug?.debug?.render,
+                hud: !!window.__msdDebug?.hud?.show,
+                routing: !!window.__msdDebug?.routing?.stats
+            };
+
+            const workingComponents = Object.values(summary).filter(Boolean).length;
+            const totalComponents = Object.keys(summary).length;
+            const percentage = Math.round((workingComponents / totalComponents) * 100);
+
+            if (percentage >= 85) {
+                showSuccess('Integration Summary', 'System Health',
+                    `${percentage}% of components working (${workingComponents}/${totalComponents})`,
+                    `Components: ${Object.entries(summary).map(([k,v]) => `${k}:${v?'✅':'❌'}`).join(', ')}`);
+            } else {
+                showFailure('Integration Summary', 'System Health',
+                    `Only ${percentage}% of components working (${workingComponents}/${totalComponents})`,
+                    `Failed: ${Object.entries(summary).filter(([k,v]) => !v).map(([k,v]) => k).join(', ')}`);
+            }
+        }
+
+        async function showFinalSummary() {
+            const passed = results.filter(r => r.success).length;
+            const failed = results.filter(r => !r.success).length;
+            const total = results.length;
+            const percentage = Math.round((passed / total) * 100);
+
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'test-section';
+            summaryDiv.innerHTML = `
+                <h2>🏆 Final Validation Summary</h2>
+                <div class="test-result ${percentage >= 85 ? 'success' : (percentage >= 70 ? 'warning' : 'error')}">
+                    <strong>${percentage >= 85 ? '✅ VALIDATION PASSED' : (percentage >= 70 ? '⚠️ PARTIAL SUCCESS' : '❌ VALIDATION FAILED')}</strong><br>
+                    ${passed}/${total} tests passed (${percentage}%)<br>
+                    ${failed > 0 ? `<br><strong>Failed tests:</strong><br>${results.filter(r => !r.success).map(r => `• ${r.section}: ${r.test}`).join('<br>')}` : ''}
+                </div>
+
+                <h3>🎯 Console Commands for Manual Testing:</h3>
+                <div class="command-box">
+// Check overall system status<br>
+window.__msdDebug.dataSources.stats()<br>
+window.__msdDebug.entities.stats()<br>
+<br>
+// Test real-time data updates<br>
+window.__msdDebug.entities.ingest({<br>
+&nbsp;&nbsp;'sensor.test_cpu': { state: '52.3', attributes: { unit_of_measurement: '°C' } }<br>
+})<br>
+<br>
+// Show/hide development HUD<br>
+window.__msdDebug.hud.show()<br>
+window.__msdDebug.hud.hide()<br>
+<br>
+// Check performance metrics<br>
+window.__msdDebug.getPerf()
+                </div>
+            `;
+
+            document.getElementById('results-container').appendChild(summaryDiv);
+
+            console.log(`🏆 MSD v1 End-to-End Validation Complete: ${passed}/${total} tests passed (${percentage}%)`);
+        }
+    </script>
+</body>
+</html>

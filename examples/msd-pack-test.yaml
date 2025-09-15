@@ -1,0 +1,102 @@
+# External MSD Pack (Test)
+# Copy this file to your HA www directory as: /config/www/msd-pack-test.yaml
+# Then reference it in your card:
+# msd:
+#   use_packs:
+#     builtin: [core]
+#     external: [/local/msd-pack-test.yaml]
+
+version: 1
+pack_name: test_pack
+pack_version: 0.1.0
+
+anchors:
+  test_anchor: [260, 140]
+
+profiles:
+  - id: test_theme
+    defaults:
+      text: { color: var(--lcars-teal), font_size: 16 }
+      line: { color: var(--lcars-teal), width: 3, corner_style: round, corner_radius: 20 }
+
+animations:
+  - id: pulse_teal
+    preset: pulse
+    params:
+      duration: 1400
+      loop: true
+      alternate: true
+      max_scale: 1.12
+      min_opacity: 0.55
+
+overlays:
+  - id: test_panel
+    type: text
+    position: [60, 120]
+    style:
+      value: "EXT PACK"
+      color: var(--lcars-teal)
+      font_size: 22
+    animation_ref: pulse_teal
+
+  - id: test_link
+    type: line
+    anchor: test_anchor
+    attach_to: test_panel
+    route: auto
+    style:
+      color: var(--lcars-teal)
+      width: 3
+      corner_style: round
+      corner_radius: 24
+
+  - id: test_meter
+    type: line
+    anchor: test_anchor
+    attach_to: test_panel
+    route: auto
+    style:
+      color: var(--lcars-orange)
+      width:
+        value_map:
+          entity: sensor.cpu_temp
+          input: [20, 90]
+          output: [2, 14]
+          clamp: true
+          round: 0
+          default: 4
+      corner_style: round
+      corner_radius: 18
+
+  # Inline removal example (uncomment to test removal handling & warning if id absent)
+  # - id: line_manhattan_baseline
+  #   remove: true
+
+rules:
+  - id: test_hot_flash
+    priority: 5
+    when:
+      all:
+        - entity: sensor.cpu_temp
+          above: 70
+    apply:
+      overlays:
+        - id: test_panel
+          style: { color: var(--lcars-red) }
+        - id: test_link
+          style: { color: var(--lcars-red), width: 4 }
+      profiles_add: [test_theme]
+      animations:
+        - ref: pulse_teal
+          override:
+            params: { duration: 900 }
+
+timelines: []
+
+hud: {}
+
+# (Optional) global removal list example:
+# remove:
+#   overlays: [unused_overlay_id]
+
+# End of external test pack

@@ -17,3 +17,12 @@
  * Copyright 2022 Google LLC
  * SPDX-License-Identifier: BSD-3-Clause
  */
+
+/**
+ * anime.js - ESM
+ * @version v4.0.2
+ * @author Julian Garnier
+ * @license MIT
+ * @copyright (c) 2025 Julian Garnier
+ * @see https://animejs.com
+ */
