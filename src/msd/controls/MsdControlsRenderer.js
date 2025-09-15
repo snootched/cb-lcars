@@ -41,11 +41,12 @@ export class MsdControlsRenderer {
       console.log('[MsdControlsRenderer] No control elements to update');
 
       // Try to find and update any CB-LCARS cards that might exist but aren't tracked
-      this._updateUnmanagedCards(hass);
+      //this._updateUnmanagedCards(hass);
     }
   }
 
   // DEBUGGING: Try to update cards that exist but aren't managed by us
+  /*
   _updateUnmanagedCards(hass) {
     console.log('[MsdControlsRenderer] Looking for unmanaged CB-LCARS cards to update');
 
@@ -71,6 +72,7 @@ export class MsdControlsRenderer {
       }
     });
   }
+  */
 
   // ADDED: Update HASS context for all existing control cards
   _updateAllControlsHass(hass) {
@@ -309,6 +311,7 @@ export class MsdControlsRenderer {
   }
 
   // ADDED: Build the final config object passed to setConfig
+  /* TO BE REMOVED - no longer needed
   buildCardConfig(cardObj) {
     if (!cardObj) return null;
     // If nested config key provided, that is authoritative
@@ -320,6 +323,7 @@ export class MsdControlsRenderer {
     // Include type too (some built-in cards ignore, harmless if present)
     return { type, ...rest };
   }
+  */
 
   // ADDED: Normalize card type to handle HA built-in cards
   _normalizeCardType(cardType) {
@@ -356,13 +360,16 @@ export class MsdControlsRenderer {
   }
 
   // ADDED: normalize card type to an actual custom element tag name
+  /* TO BE REMOVED - no longer needed
   normalizeCardTag(cardType) {
     if (!cardType) return null;
     if (cardType.startsWith('custom:')) return cardType.slice(7); // HA style -> real tag
     return cardType;
   }
+  */
 
   // ADDED: schedule retries for setConfig / hass once element upgrades
+  /* TO BE REMOVED - no longer needed
   _scheduleDeferredConfig(cardElement, finalConfig, overlayId, attempt = 0) {
     if (!finalConfig) return;
     const maxAttempts = 8;
@@ -386,6 +393,7 @@ export class MsdControlsRenderer {
     const delay = 150 * (attempt + 1);
     setTimeout(() => this._scheduleDeferredConfig(cardElement, finalConfig, overlayId, attempt + 1), delay);
   }
+    */
 
   async createControlElement(overlay) {
     const cardDef = this.resolveCardDefinition(overlay);
@@ -397,6 +405,7 @@ export class MsdControlsRenderer {
     try {
       const isNode = typeof window === 'undefined';
 
+      /* TO BE REMOVED - no longer needed
       if (isNode) {
         // Enhanced Node.js testing environment card creation
         let mockElement;
@@ -459,6 +468,8 @@ export class MsdControlsRenderer {
 
         return mockElement;
       }
+      */
+
 
       // Browser environment - Fixed card creation and configuration
       const cardType = cardDef.type;
@@ -570,42 +581,58 @@ export class MsdControlsRenderer {
 
   // ADDED: Create custom cards (extracted from existing logic)
   async _createCustomCard(normalizedCardType, cardDef, overlay) {
+    console.log('[MsdControls] Starting custom card creation strategies for:', normalizedCardType);
     let cardElement = null;
 
     // Strategy 1: Try direct custom element creation
+    console.log('[MsdControls] Strategy 1: Attempting direct custom element creation for:', normalizedCardType);
     if (window.customElements && typeof window.customElements.get === 'function') {
       try {
         const CardClass = window.customElements.get(normalizedCardType);
         if (CardClass) {
           cardElement = new CardClass();
-          console.log('[MsdControls] Created via constructor:', normalizedCardType);
+          console.log('[MsdControls] ✅ Strategy 1 SUCCESS: Created via constructor:', normalizedCardType);
+        } else {
+          console.log('[MsdControls] ❌ Strategy 1 FAILED: No custom element found for:', normalizedCardType);
         }
       } catch (e) {
-        console.debug(`Custom element constructor failed for ${normalizedCardType}:`, e);
+        console.log('[MsdControls] ❌ Strategy 1 FAILED: Constructor error for', normalizedCardType, ':', e.message);
       }
+    } else {
+      console.log('[MsdControls] ❌ Strategy 1 SKIPPED: customElements not available');
     }
 
     // Strategy 2: Try document.createElement with normalized type
     if (!cardElement) {
+      console.log('[MsdControls] Strategy 2: Attempting createElement with upgrade for:', normalizedCardType);
       try {
         cardElement = document.createElement(normalizedCardType);
 
         // Check if this is actually a custom element (not a generic div)
         if (cardElement.tagName.toLowerCase() === normalizedCardType.toLowerCase()) {
-          console.log('[MsdControls] Created via createElement:', normalizedCardType);
+          console.log('[MsdControls] Strategy 2: Created element, waiting for upgrade:', normalizedCardType);
           // Wait for potential custom element upgrade
           await this._waitForElementUpgrade(cardElement);
+
+          if (typeof cardElement.setConfig === 'function') {
+            console.log('[MsdControls] ✅ Strategy 2 SUCCESS: Created via createElement with upgrade:', normalizedCardType);
+          } else {
+            console.log('[MsdControls] ❌ Strategy 2 FAILED: Element created but no setConfig after upgrade:', normalizedCardType);
+            cardElement = null;
+          }
         } else {
+          console.log('[MsdControls] ❌ Strategy 2 FAILED: Generic element created, not custom card:', normalizedCardType);
           // Generic element created, not the custom card
           cardElement = null;
         }
       } catch (e) {
-        console.debug(`Document.createElement failed for ${normalizedCardType}:`, e);
+        console.log('[MsdControls] ❌ Strategy 2 FAILED: createElement error for', normalizedCardType, ':', e.message);
       }
     }
 
     // Strategy 3: Try creating in document body first (some cards need to be in DOM)
     if (!cardElement) {
+      console.log('[MsdControls] Strategy 3: Attempting body attachment technique for:', normalizedCardType);
       try {
         cardElement = document.createElement(normalizedCardType);
         // Temporarily attach to body to trigger upgrade
@@ -615,6 +642,7 @@ export class MsdControlsRenderer {
         document.body.appendChild(tempParent);
         tempParent.appendChild(cardElement);
 
+        console.log('[MsdControls] Strategy 3: Element attached to body, waiting for upgrade:', normalizedCardType);
         // Wait for upgrade
         await this._waitForElementUpgrade(cardElement, 5000);
 
@@ -623,13 +651,20 @@ export class MsdControlsRenderer {
         tempParent.remove();
 
         if (typeof cardElement.setConfig === 'function') {
-          console.log('[MsdControls] Created via body attachment:', normalizedCardType);
+          console.log('[MsdControls] ✅ Strategy 3 SUCCESS: Created via body attachment:', normalizedCardType);
         } else {
+          console.log('[MsdControls] ❌ Strategy 3 FAILED: Body attachment did not result in working card:', normalizedCardType);
           cardElement = null;
         }
       } catch (e) {
-        console.debug(`Body attachment strategy failed for ${normalizedCardType}:`, e);
+        console.log('[MsdControls] ❌ Strategy 3 FAILED: Body attachment error for', normalizedCardType, ':', e.message);
       }
+    }
+
+    if (cardElement) {
+      console.log('[MsdControls] 🎉 Custom card creation SUCCESSFUL for:', normalizedCardType);
+    } else {
+      console.log('[MsdControls] 💥 ALL STRATEGIES FAILED for:', normalizedCardType);
     }
 
     return cardElement;
