@@ -192,11 +192,254 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Resolve text content from various sources
+   * Resolve text content from various sources including DataSource integration
    * @private
    */
   _resolveTextContent(overlay, style) {
-    return style.value || overlay.text || overlay.content || '';
+    let content = style.value || overlay.text || overlay.content || '';
+
+    // NEW: Direct DataSource integration for dynamic content
+    if (overlay.data_source || style.data_source) {
+      const dataSourceContent = this._resolveDataSourceContent(overlay.data_source || style.data_source, style);
+      if (dataSourceContent !== null) {
+        content = dataSourceContent;
+      }
+    }
+
+    // NEW: Enhanced template string processing for DataSource references
+    if (content && typeof content === 'string' && content.includes('{')) {
+      content = this._processEnhancedTemplateStrings(content);
+    }
+
+    return content;
+  }
+
+  /**
+   * Resolve content directly from DataSource references
+   * @private
+   */
+  _resolveDataSourceContent(dataSourceRef, style) {
+    try {
+      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      if (!dataSourceManager) {
+        console.warn('[TextOverlayRenderer] DataSourceManager not available for data_source content');
+        return null;
+      }
+
+      // Parse DataSource reference (support dot notation)
+      const { sourceName, dataKey, isTransformation, isAggregation } = this._parseDataSourceReference(dataSourceRef);
+      const dataSource = dataSourceManager.getSource(sourceName);
+
+      if (!dataSource) {
+        console.warn(`[TextOverlayRenderer] DataSource '${sourceName}' not found`);
+        return `[Source: ${sourceName} not found]`;
+      }
+
+      const currentData = dataSource.getCurrentData();
+      let value = currentData?.v;
+
+      // Access enhanced data if specified
+      if (dataKey && isTransformation && currentData?.transformations) {
+        value = currentData.transformations[dataKey];
+      } else if (dataKey && isAggregation && currentData?.aggregations) {
+        const aggData = currentData.aggregations[dataKey];
+        // Handle complex aggregation objects
+        if (typeof aggData === 'object' && aggData !== null) {
+          if (aggData.avg !== undefined) value = aggData.avg;
+          else if (aggData.value !== undefined) value = aggData.value;
+          else if (aggData.last !== undefined) value = aggData.last;
+          else value = JSON.stringify(aggData);
+        } else {
+          value = aggData;
+        }
+      }
+
+      // Format the value
+      if (value !== null && value !== undefined) {
+        return this._formatDataSourceValue(value, style);
+      }
+
+      return `[${dataSourceRef}: no data]`;
+
+    } catch (error) {
+      console.error('[TextOverlayRenderer] Error resolving DataSource content:', error);
+      return `[DataSource Error: ${error.message}]`;
+    }
+  }
+
+  /**
+   * Parse DataSource reference to support dot notation
+   * @private
+   */
+  _parseDataSourceReference(dataSourceRef) {
+    const parts = dataSourceRef.split('.');
+    const sourceName = parts[0];
+
+    if (parts.length === 1) {
+      return { sourceName, dataKey: null, isTransformation: false, isAggregation: false };
+    }
+
+    if (parts.length >= 3) {
+      const dataType = parts[1];
+      const dataKey = parts.slice(2).join('.');
+      return {
+        sourceName,
+        dataKey,
+        isTransformation: dataType === 'transformations',
+        isAggregation: dataType === 'aggregations'
+      };
+    }
+
+    return { sourceName, dataKey: null, isTransformation: false, isAggregation: false };
+  }
+
+  /**
+   * Format DataSource values with optional formatting
+   * @private
+   */
+  _formatDataSourceValue(value, style) {
+    const format = style.value_format || style.format;
+
+    if (typeof format === 'function') {
+      return format(value);
+    }
+
+    if (typeof format === 'string') {
+      if (format.includes('{value')) {
+        return format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
+          if (formatSpec) {
+            return this._applyNumberFormat(value, formatSpec);
+          }
+          return String(value);
+        });
+      }
+      return format.replace('{value}', String(value));
+    }
+
+    // Default formatting based on value type
+    if (typeof value === 'number') {
+      if (Number.isInteger(value)) {
+        return String(value);
+      } else {
+        return value.toFixed(1);
+      }
+    }
+
+    return String(value);
+  }
+
+  /**
+   * Apply number formatting specifications
+   * @private
+   */
+  _applyNumberFormat(value, formatSpec) {
+    if (typeof value !== 'number') return String(value);
+
+    // Parse format specifications like ".1f", ".2%", "d", etc.
+    if (formatSpec.endsWith('f')) {
+      const precision = parseInt(formatSpec.slice(1, -1)) || 1;
+      return value.toFixed(precision);
+    }
+
+    if (formatSpec.endsWith('%')) {
+      const precision = parseInt(formatSpec.slice(1, -1)) || 0;
+      return (value * 100).toFixed(precision) + '%';
+    }
+
+    if (formatSpec === 'd') {
+      return Math.round(value).toString();
+    }
+
+    // Fallback
+    return String(value);
+  }
+
+  /**
+   * Enhanced template string processing with better DataSource support
+   * @private
+   */
+  _processEnhancedTemplateStrings(content) {
+    try {
+      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+      if (!dataSourceManager) {
+        return content; // Fallback to original content if no DataSourceManager
+      }
+
+      // Enhanced template pattern to capture DataSource references and formatting
+      return content.replace(/\{([^}]+)\}/g, (match, reference) => {
+        try {
+          // Parse reference and optional formatting: {source.transformations.key:.2f}
+          const [dataSourceRef, formatSpec] = reference.split(':');
+
+          const { sourceName, dataKey, isTransformation, isAggregation } = this._parseDataSourceReference(dataSourceRef.trim());
+          const dataSource = dataSourceManager.getSource(sourceName);
+
+          if (!dataSource) {
+            return `[${sourceName}?]`;
+          }
+
+          const currentData = dataSource.getCurrentData();
+          let value = currentData?.v;
+
+          // Access enhanced data
+          if (dataKey && isTransformation && currentData?.transformations) {
+            value = currentData.transformations[dataKey];
+          } else if (dataKey && isAggregation && currentData?.aggregations) {
+            const aggData = currentData.aggregations[dataKey];
+            if (typeof aggData === 'object' && aggData !== null) {
+              // Handle nested object access like trend.direction
+              const nestedKeys = dataKey.split('.');
+              if (nestedKeys.length > 1) {
+                const baseKey = nestedKeys[0];
+                const nestedKey = nestedKeys.slice(1).join('.');
+                const baseData = currentData.aggregations[baseKey];
+                if (baseData && typeof baseData === 'object') {
+                  value = this._getNestedValue(baseData, nestedKey);
+                }
+              } else {
+                // Standard aggregation object handling
+                if (aggData.avg !== undefined) value = aggData.avg;
+                else if (aggData.value !== undefined) value = aggData.value;
+                else if (aggData.last !== undefined) value = aggData.last;
+                else if (aggData.direction !== undefined) value = aggData.direction;
+                else value = JSON.stringify(aggData);
+              }
+            } else {
+              value = aggData;
+            }
+          }
+
+          if (value === null || value === undefined) {
+            return `[${reference}?]`;
+          }
+
+          // Apply formatting if specified
+          if (formatSpec) {
+            return this._applyNumberFormat(value, formatSpec.trim());
+          }
+
+          return String(value);
+
+        } catch (error) {
+          console.warn(`[TextOverlayRenderer] Template processing error for '${reference}':`, error);
+          return match; // Return original on error
+        }
+      });
+
+    } catch (error) {
+      console.error('[TextOverlayRenderer] Enhanced template processing failed:', error);
+      return content; // Fallback to original content
+    }
+  }
+
+  /**
+   * Get nested value from object using dot notation
+   * @private
+   */
+  _getNestedValue(obj, path) {
+    return path.split('.').reduce((current, key) => {
+      return current && current[key] !== undefined ? current[key] : undefined;
+    }, obj);
   }
 
   /**
