@@ -2,7 +2,7 @@ import { perfTime, perfCount } from '../util/performance.js';
 import { globalTraceBuffer } from './RuleTraceBuffer.js';
 
 export class RulesEngine {
-  constructor(rules = []) {
+  constructor(rules = [], dataSourceManager = null) {
     this.rules = Array.isArray(rules) ? rules : [];
     this.rulesById = new Map();
     this.dependencyIndex = null;
@@ -10,6 +10,9 @@ export class RulesEngine {
     this.lastEvaluation = new Map(); // ruleId -> evaluation result
     this.traceBuffer = globalTraceBuffer;
     this.stopProcessing = new Map(); // overlayId -> Set of stopped rule priorities
+
+    // NEW: DataSource integration
+    this.dataSourceManager = dataSourceManager;
 
     // Performance tracking
     this.evalCounts = {
@@ -80,6 +83,15 @@ export class RulesEngine {
       // Direct entity reference
       if (condition.entity) {
         entities.add(condition.entity);
+
+        // NEW: Check if this is a datasource reference
+        if (condition.entity.includes('.') && this.dataSourceManager) {
+          const sourceId = condition.entity.split('.')[0];
+          if (this.dataSourceManager.getSource(sourceId)) {
+            // Add the source itself to dependencies
+            entities.add(sourceId);
+          }
+        }
       }
 
       // Entity attribute reference (e.g., "sensor.temp.state")
@@ -139,7 +151,12 @@ export class RulesEngine {
 
   evaluateDirty(context = {}) {
     return perfTime('rules.evaluate', () => {
-      const { getEntity } = context;
+      let { getEntity } = context;
+
+      // NEW: Use DataSourceManager's enhanced getEntity if available
+      if (!getEntity && this.dataSourceManager) {
+        getEntity = (entityId) => this.dataSourceManager.getEntity(entityId);
+      }
 
       if (!getEntity || typeof getEntity !== 'function') {
         console.warn('[RulesEngine] evaluateDirty called without getEntity function');

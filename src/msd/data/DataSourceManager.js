@@ -157,34 +157,94 @@ export class DataSourceManager {
 
   // NEW: EntityRuntime compatibility methods
   getEntity(entityId) {
-    const source = this.entityIndex.get(entityId);
-    if (!source) {
-      // Fallback: try to get from HASS states directly
-      if (this.hass.states && this.hass.states[entityId]) {
-        const hassState = this.hass.states[entityId];
+    // NEW: Support dot notation for datasource aggregations/transformations
+    if (entityId.includes('.')) {
+      const [sourceId, path] = entityId.split('.', 2);
+      const source = this.sources.get(sourceId);
+
+      if (source) {
+        const currentData = source.getCurrentData();
+
+        // Support dot notation: "temp_source.aggregations.avg_5m"
+        if (path === 'aggregations' || path.startsWith('aggregations.')) {
+          return this._resolveDataPath(currentData.aggregations, path);
+        }
+
+        if (path === 'transformations' || path.startsWith('transformations.')) {
+          return this._resolveDataPath(currentData.transformations, path);
+        }
+
+        // Default to current value
         return {
-          state: hassState.state,
-          attributes: hassState.attributes || {}
+          state: currentData.v?.toString() || 'unavailable',
+          attributes: {
+            timestamp: currentData.t,
+            source_type: 'datasource',
+            ...currentData.stats
+          }
         };
       }
-      return null;
     }
 
-    // Try to get current data from data source
-    const currentData = source.getCurrentData();
-    if (currentData) {
-      return {
-        state: currentData.v.toString(),
-        attributes: {}
-      };
+    // Check entity index for direct entity mappings
+    const source = this.entityIndex.get(entityId);
+    if (source) {
+      const currentData = source.getCurrentData();
+      if (currentData) {
+        return {
+          state: currentData.v?.toString() || 'unavailable',
+          attributes: {
+            timestamp: currentData.t,
+            source_type: 'datasource'
+          }
+        };
+      }
     }
 
-    // Fallback to HASS states
+    // Fallback to HASS states directly
     if (this.hass.states && this.hass.states[entityId]) {
       const hassState = this.hass.states[entityId];
       return {
         state: hassState.state,
         attributes: hassState.attributes || {}
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolve dot notation paths in aggregation/transformation data
+   * @private
+   * @param {Object} data - Data object to traverse
+   * @param {string} path - Dot notation path
+   * @returns {Object|null} Entity-like object or null
+   */
+  _resolveDataPath(data, path) {
+    if (!data || typeof data !== 'object') return null;
+
+    const pathParts = path.split('.');
+    let current = data;
+
+    // Skip first part if it's the category (aggregations/transformations)
+    const startIndex = (pathParts[0] === 'aggregations' || pathParts[0] === 'transformations') ? 1 : 0;
+
+    for (let i = startIndex; i < pathParts.length; i++) {
+      if (current && typeof current === 'object') {
+        current = current[pathParts[i]];
+      } else {
+        return null;
+      }
+    }
+
+    // If we found a value, wrap it in entity-like format
+    if (current !== undefined && current !== null) {
+      return {
+        state: current.toString(),
+        attributes: {
+          data_path: path,
+          source_type: 'datasource_processed'
+        }
       };
     }
 

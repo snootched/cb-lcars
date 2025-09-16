@@ -9,6 +9,8 @@
  */
 
 import { RollingBuffer } from './RollingBuffer.js';
+import { createTransformationProcessor } from './transformations/TransformationProcessor.js';
+import { createAggregationProcessor } from './aggregations/AggregationProcessor.js';
 
 // Node.js polyfills for test environment
 const isNode = typeof window === 'undefined';
@@ -66,6 +68,12 @@ export class MsdDataSource {
     this.subscribers = new Set();
     this.haUnsubscribe = null;
 
+    // NEW: Transformation and aggregation processors
+    this.transformations = new Map();
+    this.aggregations = new Map();
+    this._transformationData = new Map();
+    this._aggregationData = new Map();
+
     // PORT: Complete internal timing state from original
     this._lastEmitTime = 0;
     this._lastEmittedValue = null;
@@ -87,6 +95,46 @@ export class MsdDataSource {
     // Lifecycle state
     this._started = false;
     this._destroyed = false;
+
+    // Initialize processors from configuration
+    this._initializeProcessors(cfg);
+  }
+
+  /**
+   * Initialize transformation and aggregation processors from configuration
+   * @private
+   * @param {Object} cfg - Data source configuration
+   */
+  _initializeProcessors(cfg) {
+    // Initialize transformations
+    if (cfg.transformations && Array.isArray(cfg.transformations)) {
+      cfg.transformations.forEach((transform, index) => {
+        try {
+          const key = transform.key || `transform_${index}`;
+          const processor = createTransformationProcessor(transform);
+          this.transformations.set(key, processor);
+          console.log(`[MsdDataSource] Initialized transformation: ${key} (${transform.type})`);
+        } catch (error) {
+          console.warn(`[MsdDataSource] Failed to create transformation ${index}:`, error);
+        }
+      });
+    }
+
+    // Initialize aggregations
+    if (cfg.aggregations && typeof cfg.aggregations === 'object') {
+      Object.entries(cfg.aggregations).forEach(([type, config]) => {
+        try {
+          const key = config.key || type;
+          const processor = createAggregationProcessor(type, config);
+          this.aggregations.set(key, processor);
+          console.log(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
+        } catch (error) {
+          console.warn(`[MsdDataSource] Failed to create aggregation ${type}:`, error);
+        }
+      });
+    }
+
+    console.log(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
   }
 
   /**
@@ -253,6 +301,8 @@ export class MsdDataSource {
           v: lastPoint.v,
           buffer: this.buffer,
           stats: { ...this._stats },
+          transformations: this._getTransformationData(), // Convert Map to Object
+          aggregations: this._getAggregationData(),       // Convert Map to Object
           entity: this.cfg.entity,
           historyReady: this._stats.historyLoaded > 0
         };
@@ -444,6 +494,12 @@ export class MsdDataSource {
       this._stats.updates++;
       this._stats.currentValue = value;
 
+      // NEW: Apply transformations
+      const transformedData = this._applyTransformations(timestamp, value);
+
+      // NEW: Update aggregations
+      this._updateAggregations(timestamp, value, transformedData);
+
       // Emit to subscribers
       console.log(`[MSD DEBUG] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
 
@@ -452,6 +508,8 @@ export class MsdDataSource {
         v: value,
         buffer: this.buffer,
         stats: { ...this._stats },
+        transformations: this._getTransformationData(), // NEW
+        aggregations: this._getAggregationData(),       // NEW
         entity: this.cfg.entity,
         historyReady: this._stats.historyLoaded > 0
       };
@@ -688,7 +746,11 @@ export class MsdDataSource {
           t: lastPoint.t,
           v: lastPoint.v,
           buffer: this.buffer,
-          stats: { ...this._stats }
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(), // Convert Map to Object
+          aggregations: this._getAggregationData(),       // Convert Map to Object
+          entity: this.cfg.entity,
+          historyReady: this._stats.historyLoaded > 0
         };
 
         console.log(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
@@ -868,6 +930,8 @@ export class MsdDataSource {
         v: null,
         buffer: this.buffer,
         stats: { ...this._stats },
+        transformations: this._getTransformationData(), // Convert Map to Object
+        aggregations: this._getAggregationData(),       // Convert Map to Object
         entity: this.cfg.entity,
         historyReady: this._stats.historyLoaded > 0,
         bufferSize: 0,
@@ -880,6 +944,8 @@ export class MsdDataSource {
       v: lastPoint.v,
       buffer: this.buffer,
       stats: { ...this._stats },
+      transformations: this._getTransformationData(), // Convert Map to Object
+      aggregations: this._getAggregationData(),       // Convert Map to Object
       entity: this.cfg.entity,
       historyReady: this._stats.historyLoaded > 0,
       bufferSize: this.buffer.size(),
@@ -933,5 +999,74 @@ export class MsdDataSource {
     if (Number.isFinite(stat.max)) return stat.max;
     if (Number.isFinite(stat.min)) return stat.min;
     return null;
+  }
+
+  /**
+   * Apply all configured transformations to a value
+   * @private
+   * @param {number} timestamp - Current timestamp
+   * @param {number} value - Raw value to transform
+   * @returns {Object} Map of transformation keys to results
+   */
+  _applyTransformations(timestamp, value) {
+    const results = { original: value };
+
+    this.transformations.forEach((processor, key) => {
+      try {
+        results[key] = processor.transform(value, timestamp, this.buffer);
+        this._transformationData.set(key, results[key]);
+      } catch (error) {
+        console.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
+        results[key] = null;
+        this._transformationData.set(key, null);
+      }
+    });
+
+    return results;
+  }
+
+  /**
+   * Update all configured aggregations with new data
+   * @private
+   * @param {number} timestamp - Current timestamp
+   * @param {number} value - Raw value
+   * @param {Object} transformedData - Transformed values from this update
+   */
+  _updateAggregations(timestamp, value, transformedData) {
+    this.aggregations.forEach((processor, key) => {
+      try {
+        processor.update(timestamp, value, transformedData);
+        this._aggregationData.set(key, processor.getValue());
+      } catch (error) {
+        console.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
+        this._aggregationData.set(key, null);
+      }
+    });
+  }
+
+  /**
+   * Get current transformation data for emission
+   * @private
+   * @returns {Object} Current transformation results
+   */
+  _getTransformationData() {
+    const data = {};
+    this._transformationData.forEach((value, key) => {
+      data[key] = value;
+    });
+    return data;
+  }
+
+  /**
+   * Get current aggregation data for emission
+   * @private
+   * @returns {Object} Current aggregation results
+   */
+  _getAggregationData() {
+    const data = {};
+    this._aggregationData.forEach((value, key) => {
+      data[key] = value;
+    });
+    return data;
   }
 }

@@ -186,7 +186,6 @@ rules:
 - Ensure all new config keys are documented and parsed
 - Favor extensibility, performance, and clarity
 - Document all new functions with JSDoc
-- Use anime.js v4 only for all animation logic
 
 ---
 
