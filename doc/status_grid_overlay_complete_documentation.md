@@ -100,11 +100,13 @@ overlays:
         position: [0, 0]           # [row, col]
         source: temperature.living_room
         label: "LR Temp"
+        content: "{temperature.living_room:.1f}°C"  # Template string support
 
       - id: kitchen_temp
         position: [0, 1]
         source: temperature.kitchen
         label: "Kitchen"
+        content: "{temperature.kitchen.transformations.celsius:.1f}°C"
 
       - id: bedroom_temp
         position: [0, 2]
@@ -113,7 +115,7 @@ overlays:
 
       - id: system_status
         position: [1, 0]
-        source: system.status
+        data_source: system.status  # Direct DataSource reference
         label: "System"
 
     style:
@@ -161,18 +163,22 @@ overlays:
       - position: [0, 0]
         source: power_meter.transformations.kilowatts
         label: "Power"
+        content: "{power_meter.transformations.kilowatts:.2f} kW"  # Template string with formatting
 
       - position: [0, 1]
         source: temperature.aggregations.avg_1h
         label: "Temp Avg"
+        content: "{temperature.aggregations.avg_1h:.1f}°C"
 
       - position: [1, 0]
         source: network.transformations.mbps
         label: "Network"
+        content: "{network.transformations.mbps:.0f} Mbps"
 
       - position: [1, 1]
         source: cpu.aggregations.max_5m
         label: "CPU Peak"
+        content: "{cpu.aggregations.max_5m:.0f}%"
 ```
 
 ---
@@ -521,6 +527,7 @@ status_ranges:
 - Check that DataSources are started and have data
 - Test individual DataSource access in console
 - Ensure proper cell position syntax: `[row, col]`
+- **Note**: Content may need to be in `_raw.content` due to overlay processing pipeline
 
 ```javascript
 // Debug cell data resolution

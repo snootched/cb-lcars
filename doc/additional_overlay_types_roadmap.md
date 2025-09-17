@@ -218,8 +218,28 @@ overlays:
 
 ## ✅ Recently Completed Implementations
 
+### 🎨 **NEW: Unified Styling System - COMPLETE**
+**Status**: ✅ **FULLY IMPLEMENTED** with comprehensive standardization
+**Features Delivered**:
+- ✅ **Standardized property naming** across all overlay types
+- ✅ **Multiple naming convention support** (snake_case, camelCase)
+- ✅ **Consistent fallback chains** for property resolution
+- ✅ **DRY utilities** in RendererUtils for shared functionality
+- ✅ **Type-safe parsing** with automatic conversion
+- ✅ **Comprehensive documentation** with examples
+- ✅ **Future-proof architecture** for new overlay types
+
+**Implementation Location**: `/src/msd/renderer/RendererUtils.js` (unified utilities)
+**Documentation**: `/doc/unified_styling_system_reference.md`
+
+**Benefits**:
+- 🔥 **Consistent UX** - Same properties work across all overlay types
+- 🔧 **Easy maintenance** - Single source of truth for styling logic
+- 📝 **Better DX** - Clear, predictable configuration patterns
+- 🚀 **Faster development** - Reusable styling utilities
+
 ### ✅ History Bar Overlay - COMPLETE
-**Status**: ✅ **FULLY IMPLEMENTED** with comprehensive documentation
+**Status**: ✅ **FULLY IMPLEMENTED** with comprehensive documentation + **unified styling**
 **Features Delivered**:
 - ✅ Advanced temporal visualization with horizontal/vertical orientations
 - ✅ Flexible time windows (1h to 30d) with auto-bucketing
@@ -230,13 +250,14 @@ overlays:
 - ✅ LCARS styling with brackets, status indicators, grid lines
 - ✅ Performance optimized with configurable bar limits
 - ✅ Animation ready for anime.js integration
+- ✅ **Now uses unified styling system** for consistency
 - ✅ Complete documentation with examples and troubleshooting
 
 **Implementation Location**: `/src/msd/renderer/HistoryBarRenderer.js`
 **Documentation**: `/doc/history_bar_overlay_complete_documentation.md`
 
 ### ✅ Status Grid Overlay - COMPLETE
-**Status**: ✅ **FULLY IMPLEMENTED** with comprehensive documentation
+**Status**: ✅ **FULLY IMPLEMENTED** with comprehensive documentation + **unified styling**
 **Features Delivered**:
 - ✅ Multi-entity grid layout with configurable rows/columns
 - ✅ Comprehensive DataSource support for each cell
@@ -247,12 +268,24 @@ overlays:
 - ✅ Real-time data updates with pulse animations
 - ✅ **Perfect for anime.js cascade effects** - ready for implementation
 - ✅ LCARS corner cuts and styling features
+- ✅ **Now uses unified styling system** for consistency
 - ✅ Complete documentation with animation examples
 
 **Implementation Location**: `/src/msd/renderer/StatusGridRenderer.js`
 **Documentation**: `/doc/status_grid_overlay_complete_documentation.md`
 
-**🎬 Animation Integration Ready**: Both overlays include comprehensive anime.js integration points with data attributes for cascade effects, pulse animations, and reveal transitions.
+### ✅ Text Overlay - ENHANCED
+**Status**: ✅ **ENHANCED** with unified styling system integration
+**Features Delivered**:
+- ✅ **Updated to use unified styling system** for consistency
+- ✅ **Standardized property names** matching other overlays
+- ✅ **Multiple naming convention support**
+- ✅ **Enhanced error handling** and debugging
+- ✅ **Future-ready** for advanced text features
+
+**🎬 Animation Integration Ready**: All overlays now include comprehensive anime.js integration points with data attributes for cascade effects, pulse animations, and reveal transitions.
+
+**🎨 Styling Consistency Achieved**: All overlays now use the same property names and support the same styling features!
 
 ---
 

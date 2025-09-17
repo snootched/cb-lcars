@@ -493,32 +493,362 @@ export class RendererUtils {
     return null;
   }
 
-  /**
+    /**
    * Parse glow effect configuration
-   * @param {string|object|boolean} glowConfig - Glow configuration
-   * @returns {object|null} Parsed glow configuration
+   * @param {Object} glowConfig - Glow configuration object
+   * @returns {Object|null} Normalized glow configuration
    */
   static parseGlowConfig(glowConfig) {
     if (!glowConfig) return null;
 
-    if (glowConfig === true) {
-      return { color: 'currentColor', size: 4, opacity: 0.6 };
+    return {
+      color: glowConfig.color || 'var(--lcars-blue)',
+      blur: Number(glowConfig.blur || 3),
+      intensity: Number(glowConfig.intensity || 0.8)
+    };
+  }
+
+  // ========================
+  // UNIFIED STYLING SYSTEM
+  // ========================
+
+  /**
+   * Parse standardized text styling properties
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized text style configuration
+   */
+  static parseStandardTextStyles(style) {
+    return {
+      // Core text properties
+      fontSize: Number(style.font_size || style.fontSize || 12),
+      fontFamily: style.font_family || style.fontFamily || 'monospace',
+      fontWeight: style.font_weight || style.fontWeight || 'normal',
+      fontStyle: style.font_style || style.fontStyle || 'normal',
+
+      // Text colors (with fallback chain)
+      textColor: style.text_color || style.textColor || style.color || 'var(--lcars-white)',
+      labelColor: style.label_color || style.labelColor || style.text_color || style.textColor || 'var(--lcars-white)',
+      valueColor: style.value_color || style.valueColor || style.text_color || style.textColor || 'var(--lcars-white)',
+
+      // Text alignment and positioning
+      textAlign: style.text_align || style.textAlign || 'left',
+      verticalAlign: style.vertical_align || style.verticalAlign || 'middle',
+
+      // Text effects
+      textShadow: this.parseTextShadowConfig(style.text_shadow || style.textShadow),
+      textStroke: this.parseTextStrokeConfig(style.text_stroke || style.textStroke),
+
+      // Line height and spacing
+      lineHeight: Number(style.line_height || style.lineHeight || 1.2),
+      letterSpacing: style.letter_spacing || style.letterSpacing || 'normal'
+    };
+  }
+
+  /**
+   * Parse standardized color properties
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized color configuration
+   */
+  static parseStandardColorStyles(style) {
+    return {
+      // Primary colors
+      primaryColor: style.color || style.primary_color || style.primaryColor || 'var(--lcars-blue)',
+      backgroundColor: style.background_color || style.backgroundColor || 'transparent',
+      borderColor: style.border_color || style.borderColor || 'var(--lcars-gray)',
+
+      // Interactive states
+      hoverColor: style.hover_color || style.hoverColor || 'var(--lcars-yellow)',
+      activeColor: style.active_color || style.activeColor || 'var(--lcars-cyan)',
+      focusColor: style.focus_color || style.focusColor || 'var(--lcars-white)',
+      disabledColor: style.disabled_color || style.disabledColor || 'var(--lcars-gray)',
+
+      // Status colors
+      successColor: style.success_color || style.successColor || 'var(--lcars-green)',
+      warningColor: style.warning_color || style.warningColor || 'var(--lcars-yellow)',
+      errorColor: style.error_color || style.errorColor || 'var(--lcars-red)',
+      infoColor: style.info_color || style.infoColor || 'var(--lcars-cyan)'
+    };
+  }
+
+  /**
+   * Parse standardized layout and spacing properties
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized layout configuration
+   */
+  static parseStandardLayoutStyles(style) {
+    return {
+      // Border properties
+      borderWidth: Number(style.border_width || style.borderWidth || 1),
+      borderRadius: Number(style.border_radius || style.borderRadius || 0),
+      borderStyle: style.border_style || style.borderStyle || 'solid',
+
+      // Spacing (supports both number and object formats)
+      padding: this.parsePaddingConfig(style.padding),
+      margin: this.parseMarginConfig(style.margin),
+
+      // Opacity and visibility
+      opacity: Number(style.opacity || 1),
+      visible: style.visible !== false,
+
+      // Size constraints
+      minWidth: style.min_width || style.minWidth || null,
+      maxWidth: style.max_width || style.maxWidth || null,
+      minHeight: style.min_height || style.minHeight || null,
+      maxHeight: style.max_height || style.maxHeight || null
+    };
+  }
+
+  /**
+   * Parse standardized interaction properties
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized interaction configuration
+   */
+  static parseStandardInteractionStyles(style) {
+    return {
+      // Hover effects
+      hoverEnabled: style.hover_enabled !== false,
+      hoverScale: Number(style.hover_scale || style.hoverScale || 1.05),
+      hoverOpacity: Number(style.hover_opacity || style.hoverOpacity || 1),
+      hoverTransition: style.hover_transition || style.hoverTransition || 'all 0.2s ease',
+
+      // Click/touch effects
+      clickable: style.clickable !== false,
+      activeScale: Number(style.active_scale || style.activeScale || 0.95),
+
+      // Focus styles
+      focusEnabled: style.focus_enabled !== false,
+      focusOutline: style.focus_outline || style.focusOutline || true,
+
+      // Cursor
+      cursor: style.cursor || 'default'
+    };
+  }
+
+  /**
+   * Parse standardized animation properties
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Normalized animation configuration
+   */
+  static parseStandardAnimationStyles(style) {
+    return {
+      // Animation enablement
+      animatable: style.animatable !== false,
+
+      // Transition properties
+      transition: style.transition || 'all 0.3s ease',
+      transitionDelay: style.transition_delay || style.transitionDelay || '0s',
+      transitionDuration: style.transition_duration || style.transitionDuration || '0.3s',
+      transitionTimingFunction: style.transition_timing_function || style.transitionTimingFunction || 'ease',
+
+      // Animation properties
+      animationDuration: style.animation_duration || style.animationDuration || '1s',
+      animationTimingFunction: style.animation_timing_function || style.animationTimingFunction || 'ease',
+      animationDelay: style.animation_delay || style.animationDelay || '0s',
+      animationIterationCount: style.animation_iteration_count || style.animationIterationCount || '1',
+      animationDirection: style.animation_direction || style.animationDirection || 'normal',
+      animationFillMode: style.animation_fill_mode || style.animationFillMode || 'both',
+
+      // Custom animation properties
+      cascadeSpeed: Number(style.cascade_speed || style.cascadeSpeed || 0),
+      cascadeDirection: style.cascade_direction || style.cascadeDirection || 'row',
+      revealAnimation: style.reveal_animation || style.revealAnimation || false,
+      pulseOnChange: style.pulse_on_change || style.pulseOnChange || false
+    };
+  }
+
+  /**
+   * Parse all standard styles in one call
+   * @param {Object} style - Style configuration object
+   * @returns {Object} Complete normalized style configuration
+   */
+  static parseAllStandardStyles(style) {
+    return {
+      text: this.parseStandardTextStyles(style),
+      colors: this.parseStandardColorStyles(style),
+      layout: this.parseStandardLayoutStyles(style),
+      interaction: this.parseStandardInteractionStyles(style),
+      animation: this.parseStandardAnimationStyles(style),
+
+      // Effects (existing methods)
+      gradient: this.parseGradientConfig(style.gradient),
+      pattern: this.parsePatternConfig(style.pattern),
+      glow: this.parseGlowConfig(style.glow),
+      shadow: this.parseShadowConfig(style.shadow),
+      blur: this.parseBlurConfig(style.blur)
+    };
+  }
+
+  // ========================
+  // HELPER PARSING METHODS
+  // ========================
+
+  /**
+   * Parse text shadow configuration
+   * @param {Object} shadowConfig - Text shadow configuration
+   * @returns {Object|null} Normalized text shadow configuration
+   */
+  static parseTextShadowConfig(shadowConfig) {
+    if (!shadowConfig) return null;
+
+    return {
+      offsetX: Number(shadowConfig.offset_x || shadowConfig.offsetX || 1),
+      offsetY: Number(shadowConfig.offset_y || shadowConfig.offsetY || 1),
+      blur: Number(shadowConfig.blur || 2),
+      color: shadowConfig.color || 'rgba(0,0,0,0.5)'
+    };
+  }
+
+  /**
+   * Parse text stroke configuration
+   * @param {Object} strokeConfig - Text stroke configuration
+   * @returns {Object|null} Normalized text stroke configuration
+   */
+  static parseTextStrokeConfig(strokeConfig) {
+    if (!strokeConfig) return null;
+
+    return {
+      width: Number(strokeConfig.width || 1),
+      color: strokeConfig.color || 'var(--lcars-gray)',
+      opacity: Number(strokeConfig.opacity || 1)
+    };
+  }
+
+  /**
+   * Parse padding configuration (supports number or object)
+   * @param {number|Object} padding - Padding configuration
+   * @returns {Object} Normalized padding configuration
+   */
+  static parsePaddingConfig(padding) {
+    if (typeof padding === 'number') {
+      return { top: padding, right: padding, bottom: padding, left: padding };
     }
 
-    if (typeof glowConfig === 'string') {
-      return { color: glowConfig, size: 4, opacity: 0.6 };
-    }
-
-    if (typeof glowConfig === 'object') {
+    if (typeof padding === 'object' && padding !== null) {
       return {
-        color: glowConfig.color || 'currentColor',
-        size: Number(glowConfig.size || 4),
-        opacity: Number(glowConfig.opacity || 0.6),
-        intensity: Number(glowConfig.intensity || 1)
+        top: Number(padding.top || padding.vertical || 0),
+        right: Number(padding.right || padding.horizontal || 0),
+        bottom: Number(padding.bottom || padding.vertical || 0),
+        left: Number(padding.left || padding.horizontal || 0)
       };
     }
 
-    return null;
+    return { top: 0, right: 0, bottom: 0, left: 0 };
+  }
+
+  /**
+   * Parse margin configuration (supports number or object)
+   * @param {number|Object} margin - Margin configuration
+   * @returns {Object} Normalized margin configuration
+   */
+  static parseMarginConfig(margin) {
+    if (typeof margin === 'number') {
+      return { top: margin, right: margin, bottom: margin, left: margin };
+    }
+
+    if (typeof margin === 'object' && margin !== null) {
+      return {
+        top: Number(margin.top || margin.vertical || 0),
+        right: Number(margin.right || margin.horizontal || 0),
+        bottom: Number(margin.bottom || margin.vertical || 0),
+        left: Number(margin.left || margin.horizontal || 0)
+      };
+    }
+
+    return { top: 0, right: 0, bottom: 0, left: 0 };
+  }
+
+  // ========================
+  // STYLE APPLICATION HELPERS
+  // ========================
+
+  /**
+   * Apply standard text styles to an SVG text element
+   * @param {Object} textStyles - Parsed text styles
+   * @returns {string} SVG text attributes string
+   */
+  static applyStandardTextStyles(textStyles) {
+    const attributes = [];
+
+    attributes.push(`font-family="${textStyles.fontFamily}"`);
+    attributes.push(`font-size="${textStyles.fontSize}"`);
+    attributes.push(`font-weight="${textStyles.fontWeight}"`);
+    attributes.push(`font-style="${textStyles.fontStyle}"`);
+    attributes.push(`fill="${textStyles.textColor}"`);
+    attributes.push(`text-anchor="${textStyles.textAlign}"`);
+    attributes.push(`dominant-baseline="${textStyles.verticalAlign}"`);
+    attributes.push(`letter-spacing="${textStyles.letterSpacing}"`);
+
+    if (textStyles.textStroke) {
+      attributes.push(`stroke="${textStyles.textStroke.color}"`);
+      attributes.push(`stroke-width="${textStyles.textStroke.width}"`);
+      attributes.push(`stroke-opacity="${textStyles.textStroke.opacity}"`);
+    }
+
+    return attributes.join(' ');
+  }
+
+  /**
+   * Apply standard layout styles to an SVG element
+   * @param {Object} layoutStyles - Parsed layout styles
+   * @returns {string} SVG element attributes string
+   */
+  static applyStandardLayoutStyles(layoutStyles) {
+    const attributes = [];
+
+    if (layoutStyles.borderWidth > 0) {
+      attributes.push(`stroke-width="${layoutStyles.borderWidth}"`);
+    }
+
+    if (layoutStyles.borderRadius > 0) {
+      attributes.push(`rx="${layoutStyles.borderRadius}"`);
+      attributes.push(`ry="${layoutStyles.borderRadius}"`);
+    }
+
+    attributes.push(`opacity="${layoutStyles.opacity}"`);
+
+    if (!layoutStyles.visible) {
+      attributes.push(`style="display: none"`);
+    }
+
+    return attributes.join(' ');
+  }
+
+  /**
+   * Create CSS text-shadow value from parsed config
+   * @param {Object} textShadow - Parsed text shadow configuration
+   * @returns {string} CSS text-shadow value
+   */
+  static createTextShadowCSS(textShadow) {
+    if (!textShadow) return '';
+    return `${textShadow.offsetX}px ${textShadow.offsetY}px ${textShadow.blur}px ${textShadow.color}`;
+  }
+
+  /**
+   * Generate data attributes for animation integration
+   * @param {Object} animationStyles - Parsed animation styles
+   * @returns {string} Data attributes string
+   */
+  static createAnimationDataAttributes(animationStyles) {
+    const attributes = [];
+
+    if (animationStyles.animatable) {
+      attributes.push(`data-animatable="true"`);
+    }
+
+    if (animationStyles.cascadeSpeed > 0) {
+      attributes.push(`data-cascade-speed="${animationStyles.cascadeSpeed}"`);
+      attributes.push(`data-cascade-direction="${animationStyles.cascadeDirection}"`);
+    }
+
+    if (animationStyles.revealAnimation) {
+      attributes.push(`data-reveal-animation="true"`);
+    }
+
+    if (animationStyles.pulseOnChange) {
+      attributes.push(`data-pulse-on-change="true"`);
+    }
+
+    return attributes.join(' ');
   }
 
   /**

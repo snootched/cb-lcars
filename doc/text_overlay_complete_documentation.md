@@ -73,19 +73,19 @@ overlays:
 ## DataSource Integration
 
 ### Direct DataSource Content
-Use DataSource values directly as text content:
+Use DataSource values directly as text content (currently supported through `_raw` configuration fallback):
 
 ```yaml
 overlays:
-  # Direct DataSource value
+  # Direct DataSource value (Note: content from _raw.data_source)
   - id: temperature_value
     type: text
     position: [100, 50]
-    data_source: temperature_sensor  # Use DataSource value as content
+    data_source: temperature_sensor  # Referenced via _raw configuration
     style:
       value_format: "{value:.1f}°C"  # Format the value
 
-  # Enhanced DataSource references
+  # Enhanced DataSource references (Note: content from _raw.data_source)
   - id: celsius_display
     type: text
     position: [100, 80]
@@ -93,7 +93,7 @@ overlays:
     style:
       value_format: "Temperature: {value:.1f}°C"
 
-  # Aggregation data display
+  # Aggregation data display (Note: content from _raw.data_source)
   - id: average_display
     type: text
     position: [100, 110]
@@ -103,7 +103,7 @@ overlays:
 ```
 
 ### Template String Interpolation
-Use template strings to combine multiple DataSource values:
+Use template strings to combine multiple DataSource values (current primary method):
 
 ```yaml
 overlays:
@@ -428,9 +428,10 @@ pattern:
 **Symptoms**: Template strings showing as literal text
 **Solutions**:
 - Verify DataSource name and configuration
-- Check template syntax: `{source_name.transformations.key}`
+- Check template syntax: `{source_name.transformations.key:.1f}`
 - Ensure DataSource is initialized and has data
 - Test DataSource access in console
+- **Note**: Content may need to be in `_raw.content` due to overlay processing pipeline
 
 ```javascript
 // Debug DataSource template

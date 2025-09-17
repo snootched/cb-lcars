@@ -5,6 +5,7 @@
 
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
+import { DataSourceMixin } from './DataSourceMixin.js';
 
 export class StatusGridRenderer {
   constructor() {
@@ -72,6 +73,9 @@ export class StatusGridRenderer {
    * @private
    */
   _resolveStatusGridStyles(style, overlayId) {
+    // Parse all standard styles using unified system
+    const standardStyles = RendererUtils.parseAllStandardStyles(style);
+
     const gridStyle = {
       // Grid layout
       rows: Number(style.rows || 3),
@@ -80,66 +84,68 @@ export class StatusGridRenderer {
       cell_height: Number(style.cell_height || style.cellHeight || 0), // 0 = auto
       cell_gap: Number(style.cell_gap || style.cellGap || 2),
 
-      // Cell appearance
-      cell_color: style.cell_color || style.cellColor || 'var(--lcars-blue)',
-      cell_opacity: Number(style.cell_opacity || style.cellOpacity || 1),
-      cell_radius: Number(style.cell_radius || style.cellRadius || 2),
+      // Cell appearance (using standardized colors)
+      cell_color: standardStyles.colors.primaryColor,
+      cell_opacity: standardStyles.layout.opacity,
+      cell_radius: standardStyles.layout.borderRadius || 2,
 
-      // Border and outline
-      cell_border: style.cell_border || style.cellBorder || true,
-      border_color: style.border_color || style.borderColor || 'var(--lcars-gray)',
-      border_width: Number(style.border_width || style.borderWidth || 1),
+      // Border (using standardized layout)
+      cell_border: style.cell_border || style.cellBorder !== false,
+      border_color: standardStyles.colors.borderColor,
+      border_width: standardStyles.layout.borderWidth,
 
-      // Text appearance
+      // Text (using standardized text styles)
       show_labels: style.show_labels !== false,
       show_values: style.show_values || false,
-      label_color: style.label_color || style.labelColor || 'var(--lcars-white)',
-      value_color: style.value_color || style.valueColor || 'var(--lcars-white)',
-      font_size: Number(style.font_size || style.fontSize || 10),
-      font_family: style.font_family || style.fontFamily || 'monospace',
+      label_color: standardStyles.text.labelColor,
+      value_color: standardStyles.text.valueColor,
+      font_size: standardStyles.text.fontSize,
+      font_family: standardStyles.text.fontFamily,
+      font_weight: standardStyles.text.fontWeight,
 
       // Status coloring
       status_mode: (style.status_mode || style.statusMode || 'auto').toLowerCase(),
       status_ranges: this._parseStatusRanges(style.status_ranges || style.statusRanges),
-      unknown_color: style.unknown_color || style.unknownColor || 'var(--lcars-gray)',
+      unknown_color: standardStyles.colors.disabledColor,
 
       // Grid features
       show_grid_lines: style.show_grid_lines || style.showGridLines || false,
-      grid_line_color: style.grid_line_color || style.gridLineColor || 'var(--lcars-gray)',
+      grid_line_color: style.grid_line_color || style.gridLineColor || standardStyles.colors.borderColor,
       grid_line_opacity: Number(style.grid_line_opacity || style.gridLineOpacity || 0.3),
 
-      // Advanced styling
-      gradient: this._parseGradientConfig(style.gradient),
-      pattern: this._parsePatternConfig(style.pattern),
-
-      // Effects
-      glow: this._parseGlowConfig(style.glow),
-      shadow: this._parseShadowConfig(style.shadow),
-      blur: this._parseBlurConfig(style.blur),
+      // Effects (using standardized effect parsing)
+      gradient: standardStyles.gradient,
+      pattern: standardStyles.pattern,
+      glow: standardStyles.glow,
+      shadow: standardStyles.shadow,
+      blur: standardStyles.blur,
 
       // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
-      bracket_color: style.bracket_color || style.bracketColor || null,
+      bracket_color: style.bracket_color || style.bracketColor || standardStyles.colors.primaryColor,
       status_indicator: style.status_indicator || style.statusIndicator || false,
       lcars_corners: style.lcars_corners || style.lcarsCorners || false,
 
-      // Hover and interaction
-      hover_enabled: style.hover_enabled !== false,
-      hover_color: style.hover_color || style.hoverColor || 'var(--lcars-yellow)',
-      hover_scale: Number(style.hover_scale || style.hoverScale || 1.05),
+      // Interaction (using standardized interaction styles)
+      hover_enabled: standardStyles.interaction.hoverEnabled,
+      hover_color: standardStyles.colors.hoverColor,
+      hover_scale: standardStyles.interaction.hoverScale,
 
-      // Animation states (for anime.js integration)
-      animatable: style.animatable !== false,
-      cascade_speed: Number(style.cascade_speed || style.cascadeSpeed || 0),
-      cascade_direction: (style.cascade_direction || style.cascadeDirection || 'row').toLowerCase(),
-      reveal_animation: style.reveal_animation || style.revealAnimation || false,
-      pulse_on_change: style.pulse_on_change || style.pulseOnChange || false,
+      // Animation (using standardized animation styles)
+      animatable: standardStyles.animation.animatable,
+      cascade_speed: standardStyles.animation.cascadeSpeed,
+      cascade_direction: standardStyles.animation.cascadeDirection,
+      reveal_animation: standardStyles.animation.revealAnimation,
+      pulse_on_change: standardStyles.animation.pulseOnChange,
 
       // Performance options
       update_throttle: Number(style.update_throttle || style.updateThrottle || 100),
 
       // Track enabled features for optimization
-      features: []
+      features: [],
+
+      // Store parsed standard styles for reference
+      standardStyles
     };
 
     // Build feature list for conditional rendering
@@ -161,9 +167,7 @@ export class StatusGridRenderer {
     if (gridStyle.pulse_on_change) gridStyle.features.push('pulse');
 
     return gridStyle;
-  }
-
-  /**
+  }  /**
    * Parse status ranges configuration
    * @private
    */
@@ -182,58 +186,22 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Parse various configuration formats (reuse from other renderers)
-   * @private
-   */
-  _parseGradientConfig(gradientConfig) {
-    return RendererUtils.parseGradientConfig(gradientConfig);
-  }
-
-  _parsePatternConfig(patternConfig) {
-    return RendererUtils.parsePatternConfig(patternConfig);
-  }
-
-  _parseGlowConfig(glowConfig) {
-    return RendererUtils.parseGlowConfig(glowConfig);
-  }
-
-  _parseShadowConfig(shadowConfig) {
-    return RendererUtils.parseShadowConfig(shadowConfig);
-  }
-
-  _parseBlurConfig(blurConfig) {
-    return RendererUtils.parseBlurConfig(blurConfig);
-  }
-
-  /**
    * Prepare animation attributes for anime.js integration
    * @private
    */
   _prepareAnimationAttributes(overlay, style) {
+    const animationStyles = RendererUtils.parseStandardAnimationStyles(style);
+
     const animationAttributes = {
       gridAttributes: [],
       cellAttributes: [],
       hasAnimations: false
     };
 
-    // Animation hooks for anime.js
-    if (style.animatable !== false) {
-      animationAttributes.gridAttributes.push(`data-animatable="true"`);
-    }
-
-    if (style.cascade_speed > 0) {
-      animationAttributes.gridAttributes.push(`data-cascade-speed="${style.cascade_speed}"`);
-      animationAttributes.gridAttributes.push(`data-cascade-direction="${style.cascade_direction || 'row'}"`);
-      animationAttributes.hasAnimations = true;
-    }
-
-    if (style.reveal_animation) {
-      animationAttributes.gridAttributes.push(`data-reveal-animation="true"`);
-      animationAttributes.hasAnimations = true;
-    }
-
-    if (style.pulse_on_change) {
-      animationAttributes.cellAttributes.push(`data-pulse-on-change="true"`);
+    // Use standardized animation data attributes
+    const animationDataAttrs = RendererUtils.createAnimationDataAttributes(animationStyles);
+    if (animationDataAttrs) {
+      animationAttributes.gridAttributes.push(animationDataAttrs);
       animationAttributes.hasAnimations = true;
     }
 
@@ -281,31 +249,64 @@ export class StatusGridRenderer {
             </g>`;
   }
 
-  // Placeholder methods for cell handling - to be implemented
+  /**
+   * Resolve cell content from various sources including DataSource integration
+   * @private
+   */
+  _resolveCellContent(cell, style) {
+    return DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
+  }
+
+  // Cell configuration resolution with DataSource integration
   _resolveCellConfigurations(overlay, gridStyle) {
-    // Generate demo cells for now
     const cells = [];
-    const totalCells = gridStyle.rows * gridStyle.columns;
 
-    for (let i = 0; i < totalCells; i++) {
-      const row = Math.floor(i / gridStyle.columns);
-      const col = i % gridStyle.columns;
-
-      cells.push({
-        id: `cell-${row}-${col}`,
-        row,
-        col,
-        index: i,
-        source: null,
-        label: `${String.fromCharCode(65 + row)}${col + 1}`,
-        data: {
-          value: Math.random() > 0.5 ? 'ONLINE' : 'OFFLINE',
-          state: Math.random() > 0.5 ? 'good' : 'bad',
-          timestamp: Date.now()
-        },
-        lastUpdate: Date.now(),
-        animationDelay: i * 50
+    // Use explicit cell definitions if provided
+    if (overlay.cells && Array.isArray(overlay.cells)) {
+      overlay.cells.forEach((cellConfig, index) => {
+        const cell = {
+          id: cellConfig.id || `cell-${index}`,
+          row: cellConfig.position ? cellConfig.position[0] : Math.floor(index / gridStyle.columns),
+          col: cellConfig.position ? cellConfig.position[1] : index % gridStyle.columns,
+          index,
+          source: cellConfig.source || cellConfig.data_source,
+          label: cellConfig.label || `Cell ${index + 1}`,
+          content: this._resolveCellContent(cellConfig, gridStyle),
+          data: {
+            value: cellConfig.value || null,
+            state: cellConfig.state || 'unknown',
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now(),
+          animationDelay: index * (gridStyle.cascade_speed || 50),
+          _raw: cellConfig._raw || cellConfig
+        };
+        cells.push(cell);
       });
+    } else {
+      // Generate grid cells based on rows/columns
+      const totalCells = gridStyle.rows * gridStyle.columns;
+      for (let i = 0; i < totalCells; i++) {
+        const row = Math.floor(i / gridStyle.columns);
+        const col = i % gridStyle.columns;
+
+        cells.push({
+          id: `cell-${row}-${col}`,
+          row,
+          col,
+          index: i,
+          source: null,
+          label: `${String.fromCharCode(65 + row)}${col + 1}`,
+          content: null,
+          data: {
+            value: Math.random() > 0.5 ? 'ONLINE' : 'OFFLINE',
+            state: Math.random() > 0.5 ? 'good' : 'bad',
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now(),
+          animationDelay: i * (gridStyle.cascade_speed || 50)
+        });
+      }
     }
 
     return cells;

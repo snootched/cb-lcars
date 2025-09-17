@@ -3,6 +3,8 @@
  * Provides rich text styling features similar to LineOverlayRenderer
  */
 
+import { DataSourceMixin } from './DataSourceMixin.js';
+
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
 
@@ -37,15 +39,26 @@ export class TextOverlayRenderer {
    * @returns {string} Complete SVG markup for the styled text
    */
   renderText(overlay, anchors, viewBox) {
+    console.log(`[TextOverlayRenderer] DEBUG: renderText called for overlay "${overlay.id}"`);
+    console.log(`[TextOverlayRenderer] DEBUG: Full overlay object:`, overlay);
+    console.log(`[TextOverlayRenderer] DEBUG: Anchors:`, anchors);
+
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
       console.warn('[TextOverlayRenderer] Text overlay position could not be resolved:', overlay.id);
+      console.log(`[TextOverlayRenderer] DEBUG: Position resolution failed for:`, {
+        overlayId: overlay.id,
+        position: overlay.position,
+        anchors: anchors
+      });
       return '';
     }
     const [x, y] = position;
 
     try {
       const style = overlay.finalStyle || overlay.style || {};
+      console.log(`[TextOverlayRenderer] DEBUG: Style object for "${overlay.id}":`, style);
+
       const textStyle = this._resolveTextStyles(style, overlay.id);
 
       // NEW: adopt computed font when 'inherit' (prevents initial fallback mismatch)
@@ -68,8 +81,12 @@ export class TextOverlayRenderer {
 
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
       const textContent = this._resolveTextContent(overlay, style);
+
+      console.log(`[TextOverlayRenderer] DEBUG: Final text content for "${overlay.id}": "${textContent}"`);
+
       if (!textContent) {
         console.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
+        console.log(`[TextOverlayRenderer] DEBUG: Content resolution chain failed - check the debug logs above`);
         return '';
       }
       textStyle._cachedContent = textContent;
@@ -104,36 +121,45 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Resolve comprehensive text styling from configuration
+   * Resolve comprehensive text styling from configuration using unified styling system
    * @private
    * @param {Object} style - Final resolved style object
    * @param {string} overlayId - Overlay ID for unique identifiers
    * @returns {Object} Complete text style configuration
    */
   _resolveTextStyles(style, overlayId) {
-    const textStyle = {
-      // Core text properties
-      color: style.color || style.fill || 'var(--lcars-orange)',
-      fontSize: Number(style.font_size || style.fontSize || 16),
-      fontFamily: style.font_family || style.fontFamily || 'inherit',
-      fontWeight: style.font_weight || style.fontWeight || 'normal',
-      fontStyle: style.font_style || style.fontStyle || 'normal',
+    // Parse all standard styles using unified system
+    const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
-      // Text positioning and alignment
-      textAnchor: (style.text_anchor || style.textAnchor || 'start').toLowerCase(),
-      dominantBaseline: (style.dominant_baseline || style.dominantBaseline || 'auto').toLowerCase(),
+    const textStyle = {
+      // Core text properties (enhanced with unified styling)
+      color: standardStyles.text.textColor || style.fill || 'var(--lcars-orange)',
+      fontSize: standardStyles.text.fontSize,
+      fontFamily: standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily || 'inherit'),
+      fontWeight: standardStyles.text.fontWeight,
+      fontStyle: standardStyles.text.fontStyle,
+
+      // Text positioning and alignment (enhanced with unified styling)
+      textAnchor: (standardStyles.text.textAlign === 'left' ? 'start' :
+                   standardStyles.text.textAlign === 'right' ? 'end' :
+                   standardStyles.text.textAlign === 'center' ? 'middle' :
+                   style.text_anchor || style.textAnchor || 'start').toLowerCase(),
+      dominantBaseline: (standardStyles.text.verticalAlign === 'top' ? 'hanging' :
+                        standardStyles.text.verticalAlign === 'bottom' ? 'text-after-edge' :
+                        standardStyles.text.verticalAlign === 'middle' ? 'central' :
+                        style.dominant_baseline || style.dominantBaseline || 'auto').toLowerCase(),
       alignmentBaseline: (style.alignment_baseline || style.alignmentBaseline || 'auto').toLowerCase(),
 
-      // Advanced text styling
-      letterSpacing: style.letter_spacing || style.letterSpacing || 'normal',
+      // Advanced text styling (enhanced with unified styling)
+      letterSpacing: standardStyles.text.letterSpacing,
       wordSpacing: style.word_spacing || style.wordSpacing || 'normal',
       textDecoration: style.text_decoration || style.textDecoration || 'none',
 
-      // Opacity and visibility
-      opacity: Number(style.opacity || 1),
-      visibility: style.visibility || 'visible',
+      // Opacity and visibility (using unified layout)
+      opacity: standardStyles.layout.opacity,
+      visibility: standardStyles.layout.visible ? 'visible' : 'hidden',
 
-      // Stroke properties for outlined text
+      // Stroke properties for outlined text (enhanced with unified colors)
       stroke: style.stroke || null,
       strokeWidth: Number(style.stroke_width || style.strokeWidth || 0),
       strokeOpacity: Number(style.stroke_opacity || style.strokeOpacity || 1),
@@ -142,32 +168,35 @@ export class TextOverlayRenderer {
       strokeDasharray: style.stroke_dasharray || style.strokeDasharray || null,
       strokeDashoffset: Number(style.stroke_dashoffset || style.strokeDashoffset || 0),
 
-      // Advanced fill properties
-      gradient: this._parseGradientConfig(style.gradient),
-      pattern: this._parsePatternConfig(style.pattern),
+      // Advanced fill properties (using unified effects)
+      gradient: standardStyles.gradient,
+      pattern: standardStyles.pattern,
 
-      // Effects
-      glow: this._parseGlowConfig(style.glow),
-      shadow: this._parseShadowConfig(style.shadow),
-      blur: this._parseBlurConfig(style.blur),
+      // Effects (using unified effects)
+      glow: standardStyles.glow,
+      shadow: standardStyles.shadow,
+      blur: standardStyles.blur,
 
-      // Multi-line text support
+      // Multi-line text support (enhanced with unified styling)
       multiline: style.multiline || false,
-      lineHeight: Number(style.line_height || style.lineHeight || 1.2),
-      maxWidth: Number(style.max_width || style.maxWidth || 0),
+      lineHeight: standardStyles.text.lineHeight,
+      maxWidth: standardStyles.layout.maxWidth || Number(style.max_width || style.maxWidth || 0),
       textWrapping: style.text_wrapping || style.textWrapping || 'none',
 
-      // Animation states (for future anime.js integration)
-      animatable: style.animatable !== false,
-      pulseSpeed: Number(style.pulse_speed || 0),
+      // Animation states (using unified animation system)
+      animatable: standardStyles.animation.animatable,
+      pulseSpeed: Number(style.pulse_speed || standardStyles.animation.pulseOnChange ? 1 : 0),
       fadeSpeed: Number(style.fade_speed || 0),
       typewriterSpeed: Number(style.typewriter_speed || 0),
 
-      // LCARS-specific features
+      // LCARS-specific features (enhanced with unified colors)
       status_indicator: style.status_indicator || null,
       status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
       bracket_style: style.bracket_style || null,
       highlight: style.highlight || false,
+
+      // Store reference to standard styles for access to additional features
+      standardStyles,
 
       // Track enabled features for optimization
       features: []
@@ -196,139 +225,81 @@ export class TextOverlayRenderer {
    * @private
    */
   _resolveTextContent(overlay, style) {
+    // Start with basic content resolution
     let content = style.value || overlay.text || overlay.content || '';
 
-    // NEW: Direct DataSource integration for dynamic content
-    if (overlay.data_source || style.data_source) {
-      const dataSourceContent = this._resolveDataSourceContent(overlay.data_source || style.data_source, style);
+    // Check raw overlay configuration if content not found in standard properties
+    if (!content && overlay._raw?.content) {
+      content = overlay._raw.content;
+    }
+    if (!content && overlay._raw?.text) {
+      content = overlay._raw.text;
+    }
+
+    // Check if we have a value_format and a DataSource reference
+    let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
+    if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
+      // Try to resolve the DataSource value
+      const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
       if (dataSourceContent !== null) {
-        content = dataSourceContent;
+        // Check if the DataSource content is already formatted or if it's a raw value
+        const numericValue = parseFloat(dataSourceContent);
+        if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
+          // DataSource returned a raw numeric value, apply formatting
+          if (style.value_format.includes('{value')) {
+            content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
+              if (formatSpec) {
+                return this._applyNumberFormat(numericValue, formatSpec);
+              }
+              return String(numericValue);
+            });
+          } else {
+            content = style.value_format.replace('{value}', String(numericValue));
+          }
+        } else {
+          // DataSource returned already formatted content, use it directly
+          content = dataSourceContent;
+        }
+        return content;
+      } else {
+        // DataSource not available, show loading state with format context
+        content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
+        return content;
       }
     }
 
-    // NEW: Enhanced template string processing for DataSource references
+    // Fallback: if we have a value_format but no DataSource, treat it as a template string
+    if (!content && style.value_format && typeof style.value_format === 'string') {
+      content = style.value_format;
+    }
+
+    // If we have basic content and it contains template strings, process them
     if (content && typeof content === 'string' && content.includes('{')) {
       content = this._processEnhancedTemplateStrings(content);
+      return content;
     }
 
-    return content;
-  }
-
-  /**
-   * Resolve content directly from DataSource references
-   * @private
-   */
-  _resolveDataSourceContent(dataSourceRef, style) {
-    try {
-      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
-      if (!dataSourceManager) {
-        console.warn('[TextOverlayRenderer] DataSourceManager not available for data_source content');
-        return null;
-      }
-
-      // Parse DataSource reference (support dot notation)
-      const { sourceName, dataKey, isTransformation, isAggregation } = this._parseDataSourceReference(dataSourceRef);
-      const dataSource = dataSourceManager.getSource(sourceName);
-
-      if (!dataSource) {
-        console.warn(`[TextOverlayRenderer] DataSource '${sourceName}' not found`);
-        return `[Source: ${sourceName} not found]`;
-      }
-
-      const currentData = dataSource.getCurrentData();
-      let value = currentData?.v;
-
-      // Access enhanced data if specified
-      if (dataKey && isTransformation && currentData?.transformations) {
-        value = currentData.transformations[dataKey];
-      } else if (dataKey && isAggregation && currentData?.aggregations) {
-        const aggData = currentData.aggregations[dataKey];
-        // Handle complex aggregation objects
-        if (typeof aggData === 'object' && aggData !== null) {
-          if (aggData.avg !== undefined) value = aggData.avg;
-          else if (aggData.value !== undefined) value = aggData.value;
-          else if (aggData.last !== undefined) value = aggData.last;
-          else value = JSON.stringify(aggData);
-        } else {
-          value = aggData;
-        }
-      }
-
-      // Format the value
-      if (value !== null && value !== undefined) {
-        return this._formatDataSourceValue(value, style);
-      }
-
-      return `[${dataSourceRef}: no data]`;
-
-    } catch (error) {
-      console.error('[TextOverlayRenderer] Error resolving DataSource content:', error);
-      return `[DataSource Error: ${error.message}]`;
-    }
-  }
-
-  /**
-   * Parse DataSource reference to support dot notation
-   * @private
-   */
-  _parseDataSourceReference(dataSourceRef) {
-    const parts = dataSourceRef.split('.');
-    const sourceName = parts[0];
-
-    if (parts.length === 1) {
-      return { sourceName, dataKey: null, isTransformation: false, isAggregation: false };
+    // If we have basic content without templates, return it
+    if (content) {
+      return content;
     }
 
-    if (parts.length >= 3) {
-      const dataType = parts[1];
-      const dataKey = parts.slice(2).join('.');
-      return {
-        sourceName,
-        dataKey,
-        isTransformation: dataType === 'transformations',
-        isAggregation: dataType === 'aggregations'
-      };
+    // No basic content found, try DataSource integration as fallback
+    if (!dataSourceRef) {
+      dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
     }
-
-    return { sourceName, dataKey: null, isTransformation: false, isAggregation: false };
-  }
-
-  /**
-   * Format DataSource values with optional formatting
-   * @private
-   */
-  _formatDataSourceValue(value, style) {
-    const format = style.value_format || style.format;
-
-    if (typeof format === 'function') {
-      return format(value);
-    }
-
-    if (typeof format === 'string') {
-      if (format.includes('{value')) {
-        return format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
-          if (formatSpec) {
-            return this._applyNumberFormat(value, formatSpec);
-          }
-          return String(value);
-        });
-      }
-      return format.replace('{value}', String(value));
-    }
-
-    // Default formatting based on value type
-    if (typeof value === 'number') {
-      if (Number.isInteger(value)) {
-        return String(value);
+    if (dataSourceRef) {
+      const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
+      if (dataSourceContent !== null) {
+        return dataSourceContent;
       } else {
-        return value.toFixed(1);
+        // If we have a DataSource reference but it's not available, show loading state
+        return `[Loading: ${dataSourceRef}]`;
       }
     }
 
-    return String(value);
-  }
-
-  /**
+    return content; // Return whatever we found (might be empty string)
+  }  /**
    * Apply number formatting specifications
    * @private
    */
@@ -359,87 +330,7 @@ export class TextOverlayRenderer {
    * @private
    */
   _processEnhancedTemplateStrings(content) {
-    try {
-      const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
-      if (!dataSourceManager) {
-        return content; // Fallback to original content if no DataSourceManager
-      }
-
-      // Enhanced template pattern to capture DataSource references and formatting
-      return content.replace(/\{([^}]+)\}/g, (match, reference) => {
-        try {
-          // Parse reference and optional formatting: {source.transformations.key:.2f}
-          const [dataSourceRef, formatSpec] = reference.split(':');
-
-          const { sourceName, dataKey, isTransformation, isAggregation } = this._parseDataSourceReference(dataSourceRef.trim());
-          const dataSource = dataSourceManager.getSource(sourceName);
-
-          if (!dataSource) {
-            return `[${sourceName}?]`;
-          }
-
-          const currentData = dataSource.getCurrentData();
-          let value = currentData?.v;
-
-          // Access enhanced data
-          if (dataKey && isTransformation && currentData?.transformations) {
-            value = currentData.transformations[dataKey];
-          } else if (dataKey && isAggregation && currentData?.aggregations) {
-            const aggData = currentData.aggregations[dataKey];
-            if (typeof aggData === 'object' && aggData !== null) {
-              // Handle nested object access like trend.direction
-              const nestedKeys = dataKey.split('.');
-              if (nestedKeys.length > 1) {
-                const baseKey = nestedKeys[0];
-                const nestedKey = nestedKeys.slice(1).join('.');
-                const baseData = currentData.aggregations[baseKey];
-                if (baseData && typeof baseData === 'object') {
-                  value = this._getNestedValue(baseData, nestedKey);
-                }
-              } else {
-                // Standard aggregation object handling
-                if (aggData.avg !== undefined) value = aggData.avg;
-                else if (aggData.value !== undefined) value = aggData.value;
-                else if (aggData.last !== undefined) value = aggData.last;
-                else if (aggData.direction !== undefined) value = aggData.direction;
-                else value = JSON.stringify(aggData);
-              }
-            } else {
-              value = aggData;
-            }
-          }
-
-          if (value === null || value === undefined) {
-            return `[${reference}?]`;
-          }
-
-          // Apply formatting if specified
-          if (formatSpec) {
-            return this._applyNumberFormat(value, formatSpec.trim());
-          }
-
-          return String(value);
-
-        } catch (error) {
-          console.warn(`[TextOverlayRenderer] Template processing error for '${reference}':`, error);
-          return match; // Return original on error
-        }
-      });
-
-    } catch (error) {
-      console.error('[TextOverlayRenderer] Enhanced template processing failed:', error);
-      return content; // Fallback to original content
-    }
-  }
-
-  /**
-   * Get nested value from object using dot notation
-   * @private
-   */
-  _getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => {
-      return current && current[key] !== undefined ? current[key] : undefined;
-    }, obj);
+    return DataSourceMixin.processEnhancedTemplateStrings(content, 'TextOverlayRenderer');
   }
 
   /**
@@ -1148,76 +1039,26 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Parse gradient configuration
-   * @private
-   */
-  _parseGradientConfig(gradientConfig) {
-    if (!gradientConfig) return null;
-
-    if (typeof gradientConfig === 'string') {
-      return gradientConfig;
-    }
-
-    return {
-      type: gradientConfig.type || 'linear',
-      x1: gradientConfig.x1 || '0%',
-      y1: gradientConfig.y1 || '0%',
-      x2: gradientConfig.x2 || '100%',
-      y2: gradientConfig.y2 || '0%',
-      cx: gradientConfig.cx || '50%',
-      cy: gradientConfig.cy || '50%',
-      r: gradientConfig.r || '50%',
-      stops: gradientConfig.stops || []
-    };
-  }
-
-  /**
-   * Parse pattern configuration
-   * @private
-   */
-  _parsePatternConfig(patternConfig) {
-    if (!patternConfig) return null;
-    return patternConfig;
-  }
-
-  /**
-   * Parse glow configuration
-   * @private
-   */
-  _parseGlowConfig(glowConfig) {
-    if (!glowConfig) return null;
-    return glowConfig;
-  }
-
-  /**
-   * Parse shadow configuration
-   * @private
-   */
-  _parseShadowConfig(shadowConfig) {
-    if (!shadowConfig) return null;
-    return shadowConfig;
-  }
-
-  /**
-   * Parse blur configuration
-   * @private
-   */
-  _parseBlurConfig(blurConfig) {
-    if (!blurConfig) return null;
-    return blurConfig;
-  }
-
-  /**
    * Prepare animation attributes for future anime.js integration
    * @private
    */
   _prepareAnimationAttributes(overlay, style) {
+    // Use unified animation system
+    const standardStyles = RendererUtils.parseStandardAnimationStyles(style);
+
     const animationAttributes = {
       textAttributes: [],
       hasAnimations: false
     };
 
-    // Future: Add animation data attributes for anime.js
+    // Use standardized animation data attributes
+    const animationDataAttrs = RendererUtils.createAnimationDataAttributes(standardStyles);
+    if (animationDataAttrs) {
+      animationAttributes.textAttributes.push(animationDataAttrs);
+      animationAttributes.hasAnimations = true;
+    }
+
+    // Legacy support for existing animation properties
     if (style.pulse_speed || style.pulseSpeed) {
       animationAttributes.textAttributes.push(`data-pulse-speed="${style.pulse_speed || style.pulseSpeed}"`);
       animationAttributes.hasAnimations = true;
@@ -1231,11 +1072,6 @@ export class TextOverlayRenderer {
     if (style.typewriter_speed || style.typewriterSpeed) {
       animationAttributes.textAttributes.push(`data-typewriter-speed="${style.typewriter_speed || style.typewriterSpeed}"`);
       animationAttributes.hasAnimations = true;
-    }
-
-    // Add data attributes for anime.js targeting
-    if (animationAttributes.hasAnimations) {
-      animationAttributes.textAttributes.push('data-animatable="true"');
     }
 
     return animationAttributes;
