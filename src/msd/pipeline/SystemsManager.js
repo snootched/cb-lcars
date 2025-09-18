@@ -7,6 +7,7 @@ import { RouterCore } from '../routing/RouterCore.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
 import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
+import { BaseOverlayUpdater } from '../renderer/BaseOverlayUpdater.js';
 
 export class SystemsManager {
   constructor() {
@@ -19,6 +20,7 @@ export class SystemsManager {
     this.animRegistry = null;
     this.rulesEngine = null;
     this.debugManager = new DebugManager();
+    this.overlayUpdater = null; // ADDED: Unified overlay update system
     this._renderTimeout = null;
     this._reRenderCallback = null;
     this._queuedReRender = false; // ADDED: Flag for queued renders
@@ -124,6 +126,10 @@ export class SystemsManager {
     // Initialize animation registry
     this.animRegistry = new AnimationRegistry();
 
+    // ADDED: Initialize unified overlay update system
+    this.overlayUpdater = new BaseOverlayUpdater(this);
+    console.log('[MSD v1] BaseOverlayUpdater initialized for unified overlay updates');
+
     // CRITICAL FIX: Temporarily disable status indicators to prevent NaN coordinate SVG errors
     // The TextOverlayRenderer calculates invalid coordinates causing SVG errors and MSD disappearing
     if (this.mergedConfig && this.mergedConfig.overlays) {
@@ -228,8 +234,13 @@ export class SystemsManager {
               });
           }
 
-          // STEP 2.5: ENHANCED - Update text overlays with DataSource changes
-          this._updateTextOverlaysForDataSourceChanges(changedIds);
+          // STEP 2.5: ENHANCED - Update overlays with DataSource changes using unified system
+          if (this.overlayUpdater) {
+              console.log('[MSD DEBUG] 🔄 Using BaseOverlayUpdater for overlay updates');
+              this.overlayUpdater.updateOverlaysForDataSourceChanges(changedIds);
+          } else {
+              console.log('[MSD DEBUG] ⚠️ BaseOverlayUpdater not available, skipping overlay updates');
+          }
 
           // Mark rules dirty for future renders
           if (this.rulesEngine) {
@@ -965,4 +976,8 @@ export class SystemsManager {
     return null;
   }
 }
+
+// CLEANUP NOTE: The old text-specific overlay update methods have been removed
+  // and replaced with the unified BaseOverlayUpdater system in BaseOverlayUpdater.js
+  // This provides consistent template processing across all overlay types.
 

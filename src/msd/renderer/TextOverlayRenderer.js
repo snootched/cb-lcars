@@ -1256,15 +1256,14 @@ export class TextOverlayRenderer {
 
   /**
    * Resolve text content with updated DataSource data (for dynamic updates)
-   * @private
+   * @public - Used by AdvancedRenderer for real-time text overlay updates
    * @param {Object} overlay - Overlay configuration
    * @param {Object} style - Style configuration
    * @param {Object} newDataSourceData - Updated DataSource data
    * @returns {string} Resolved text content with new data
    */
   _resolveTextContentWithData(overlay, style, newDataSourceData) {
-    console.log(`[TextOverlayRenderer] DEBUG: Resolving text content with updated data for ${overlay.id}`);
-    console.log(`[TextOverlayRenderer] DEBUG: New DataSource data:`, newDataSourceData);
+    console.log(`[TextOverlayRenderer] Resolving text content with updated data for ${overlay.id}`);
 
     // Start with basic content resolution (same as original method)
     let content = style.value || overlay.text || overlay.content || '';
@@ -1272,18 +1271,14 @@ export class TextOverlayRenderer {
     // Check raw overlay configuration if content not found in standard properties
     if (!content && overlay._raw?.content) {
       content = overlay._raw.content;
-      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.content: "${content}"`);
     }
     if (!content && overlay._raw?.text) {
       content = overlay._raw.text;
-      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.text: "${content}"`);
     }
 
     // ENHANCED: If we have template content and new DataSource data, process with new data
     if (content && typeof content === 'string' && content.includes('{') && newDataSourceData) {
-      console.log(`[TextOverlayRenderer] DEBUG: Processing template with new DataSource data`);
       content = this._processTemplateWithData(content, newDataSourceData);
-      console.log(`[TextOverlayRenderer] DEBUG: Template processing result: "${content}"`);
       return content;
     }
 
