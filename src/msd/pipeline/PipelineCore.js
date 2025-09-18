@@ -83,6 +83,9 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // Initialize model builder
   const modelBuilder = new ModelBuilder(mergedConfig, cardModel, systemsManager);
 
+  // ADDED: Store ModelBuilder reference in SystemsManager for accessibility
+  systemsManager.modelBuilder = modelBuilder;
+
   /**
    * Internal re-render function that recomputes the model
    * and triggers the AdvancedRenderer + debug visualization pipeline.
@@ -95,13 +98,15 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
     });
 
-    // ADDED: Prevent re-entrant renders
+    // IMPROVED: Queue renders instead of blocking them
     if (systemsManager._renderInProgress) {
-      console.log('[MSD DEBUG] ⚠️ reRender() SKIPPED - already in progress');
-      return { success: false, reason: 'render_in_progress' };
+      console.log('[MSD DEBUG] 🕐 Render in progress, queueing re-render');
+      systemsManager._queuedReRender = true;
+      return { success: false, reason: 'render_in_progress', queued: true };
     }
 
     systemsManager._renderInProgress = true;
+    systemsManager._queuedReRender = false;
 
     try {
       console.log('[MSD DEBUG] 📊 Computing resolved model...');
@@ -152,6 +157,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     } finally {
       systemsManager._renderInProgress = false;
       console.log('[MSD DEBUG] 🏁 reRender() FINALLY block - _renderInProgress reset to false');
+
+      // IMPROVED: Execute queued re-render if one was requested
+      if (systemsManager._queuedReRender) {
+        console.log('[MSD DEBUG] 🔄 Executing queued re-render');
+        systemsManager._queuedReRender = false;
+        // Use setTimeout to avoid immediate recursion and allow stack to clear
+        setTimeout(() => reRender(), 50);
+      }
     }
   }
 

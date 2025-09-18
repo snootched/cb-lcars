@@ -21,11 +21,41 @@ export class SystemsManager {
     this.debugManager = new DebugManager();
     this._renderTimeout = null;
     this._reRenderCallback = null;
-    this._renderInProgress = false;
+    this._queuedReRender = false; // ADDED: Flag for queued renders
     this._debugControlsRendering = false;
     this.mergedConfig = null; // Store for entity change handler
     this._originalHass = null;  // Pristine copy for controls
     this._currentHass = null;   // Working copy for MSD internal processing
+    this._previousRuleStates = new Map(); // ADDED: Track rule states for threshold crossing detection
+
+    // ADDED: Render progress tracking with automatic queue execution
+    this._internalRenderInProgress = false;
+    Object.defineProperty(this, '_renderInProgress', {
+      get() {
+        return this._internalRenderInProgress;
+      },
+      set(value) {
+        const oldValue = this._internalRenderInProgress;
+        this._internalRenderInProgress = value;
+
+        // CRITICAL FIX: Execute queued render when render completes (true → false)
+        if (oldValue === true && value === false && this._queuedReRender) {
+          console.log('[MSD DEBUG] 🔄 Executing queued re-render (render completed)');
+          this._queuedReRender = false;
+
+          setTimeout(() => {
+            if (!this._internalRenderInProgress && this._reRenderCallback) {
+              console.log('[MSD DEBUG] 🚀 Executing queued re-render callback');
+              try {
+                this._reRenderCallback();
+              } catch (error) {
+                console.error('[MSD DEBUG] ❌ Queued re-render failed:', error);
+              }
+            }
+          }, 50);
+        }
+      }
+    });
   }
 
   async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
@@ -44,21 +74,21 @@ export class SystemsManager {
     this.debugManager.init(debugConfig);
     console.log('[MSD v1] DebugManager initialized with config:', debugConfig);
 
-    // Initialize rules engine
-    this.rulesEngine = new RulesEngine(mergedConfig.rules);
-    this.rulesEngine.markAllDirty();
-    this._instrumentRulesEngine(mergedConfig);
-
     // Initialize data source manager FIRST
     await this._initializeDataSources(hass, mergedConfig);
 
-    // Connect data source manager to rules engine
+    // Initialize rules engine AFTER DataSourceManager with proper connection
+    this.rulesEngine = new RulesEngine(mergedConfig.rules, this.dataSourceManager);
+    this.rulesEngine.markAllDirty();
+    this._instrumentRulesEngine(mergedConfig);
+
+    // Connect data source manager to rules engine for entity changes
     if (this.dataSourceManager) {
       const entityChangeHandler = this._createEntityChangeHandler();
 
       // Add entity change listener
       this.dataSourceManager.addEntityChangeListener(entityChangeHandler);
-      console.log('[MSD v1] DataSourceManager connected to rules engine');
+      console.log('[MSD v1] DataSourceManager connected to rules engine with entity change handler');
 
       console.log('[MSD v1] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
     } else {
@@ -67,7 +97,7 @@ export class SystemsManager {
 
     // Initialize rendering systems
     this.router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
-    this.renderer = new AdvancedRenderer(mountEl, this.router);
+    this.renderer = new AdvancedRenderer(mountEl, this.router, this); // ADDED: Pass 'this' as systemsManager
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
 
@@ -198,19 +228,34 @@ export class SystemsManager {
               });
           }
 
-          // Mark rules dirty for future renders (only for entities with data sources)
+          // STEP 2.5: ENHANCED - Update text overlays with DataSource changes
+          this._updateTextOverlaysForDataSourceChanges(changedIds);
+
+          // Mark rules dirty for future renders
           if (this.rulesEngine) {
-              // Filter to only entities that have data sources
-              const dataSourceEntities = changedIds.filter(entityId => {
-                  return this.dataSourceManager && this.dataSourceManager.getEntity(entityId);
+              // Enhanced: Map entity IDs to DataSource IDs for rules
+              const entitiesToMarkDirty = new Set();
+
+              changedIds.forEach(entityId => {
+                  // Add the original entity ID
+                  entitiesToMarkDirty.add(entityId);
+
+                  // Check if this entity ID corresponds to any DataSources
+                  if (this.dataSourceManager) {
+                      // Find DataSources that use this entity
+                      for (const [sourceId, source] of this.dataSourceManager.sources) {
+                          if (source.cfg && source.cfg.entity === entityId) {
+                              // Add the DataSource ID so rules can be triggered
+                              entitiesToMarkDirty.add(sourceId);
+                              console.log(`[MSD DEBUG] 📏 Mapped entity "${entityId}" to DataSource "${sourceId}"`);
+                          }
+                      }
+                  }
               });
 
-              if (dataSourceEntities.length > 0) {
-                  this.rulesEngine.markEntitiesDirty(dataSourceEntities);
-                  console.log('[MSD DEBUG] 📏 Marked rules dirty for data source entities:', dataSourceEntities);
-              } else {
-                  console.log('[MSD DEBUG] 📏 No data source entities to mark dirty in rules engine');
-              }
+              const finalEntityList = Array.from(entitiesToMarkDirty);
+              this.rulesEngine.markEntitiesDirty(finalEntityList);
+              console.log('[MSD DEBUG] 📏 Marked rules dirty for entities:', finalEntityList);
           } else {
               console.log('[MSD DEBUG] ⚠️ No rules engine available to mark dirty');
           }
@@ -238,27 +283,21 @@ export class SystemsManager {
 
           console.log('[MSD DEBUG] 🎯 Entity change analysis:', this._lastEntityAnalysis);
 
-          // Only skip re-render if it's ONLY controls AND no data source changes
-          if (isControlTriggered && !hasDataSourceChanges) {
-              console.log('[MSD DEBUG] ⏭️ SKIPPING re-render - only control entities changed (no data sources affected)');
-          } else if (hasDataSourceChanges) {
-              console.log('[MSD DEBUG] 🔄 Scheduling re-render for data source entity changes');
+          // IMPROVED: Only trigger re-render if rules might have actually changed
+          if (hasDataSourceChanges) {
+              console.log('[MSD DEBUG] 🔄 Checking if rules need re-evaluation for data source changes');
 
-              // Safe re-render for data source changes
-              this._renderTimeout = setTimeout(() => {
-                  if (this._reRenderCallback && !this._renderInProgress) {
-                      try {
-                          this._renderInProgress = true;
-                          console.log('[MSD DEBUG] 🚀 TRIGGERING re-render from data source entity change timeout');
-                          this._reRenderCallback();
-                      } catch (error) {
-                          console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
-                      } finally {
-                          this._renderInProgress = false;
-                      }
-                  }
-                  this._renderTimeout = null;
-              }, 100);
+              // Check if rule conditions might have changed
+              const needsRuleReRender = this._checkIfRulesNeedReRender(changedIds);
+
+              if (needsRuleReRender) {
+                  console.log('[MSD DEBUG] 🎨 Rule conditions may have changed - scheduling full re-render');
+                  this._scheduleFullReRender();
+              } else {
+                  console.log('[MSD DEBUG] 📊 Only content changed - rules unchanged, skipping full re-render');
+                  // Content updates happen automatically via DataSource subscriptions
+                  // No full re-render needed for content-only changes
+              }
           } else {
               console.log('[MSD DEBUG] ⏭️ SKIPPING re-render - no relevant entity changes for MSD');
           }
@@ -682,6 +721,248 @@ export class SystemsManager {
     console.log('[SystemsManager] Global HUD interface setup completed');
     // This method is called during initialization
     // Future HUD interface setup will go here
+  }
+
+  /**
+   * Check if entity changes might affect rule conditions (requiring full re-render)
+   * @param {Array} changedIds - Entity IDs that changed
+   * @returns {boolean} True if rules might need re-evaluation
+   * @private
+   */
+  _checkIfRulesNeedReRender(changedIds) {
+    if (!this.rulesEngine || !this.mergedConfig?.rules) {
+      return false; // No rules to evaluate
+    }
+
+    // For now, be conservative and assume any DataSource change might affect rules
+    // TODO: In the future, we could be more sophisticated and check specific rule conditions
+    const affectedDataSources = changedIds.filter(id => {
+      // Check if this entity maps to a DataSource used in rules
+      return this.dataSourceManager?.getEntity(id) ||
+             changedIds.some(entityId => this.dataSourceManager?.getSource(entityId));
+    });
+
+    if (affectedDataSources.length > 0) {
+      console.log('[MSD DEBUG] 🎯 DataSource entities affected by changes:', affectedDataSources);
+
+      // ADVANCED: Check if the specific rule thresholds might be crossed
+      // This is where we could add more sophisticated logic to detect actual rule changes
+      const mightCrossThresholds = this._checkThresholdCrossing(changedIds);
+
+      console.log('[MSD DEBUG] 🌡️ Threshold crossing check:', mightCrossThresholds);
+      return mightCrossThresholds;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if entity changes might cross rule thresholds
+   * @param {Array} changedIds - Entity IDs that changed
+   * @returns {boolean} True if thresholds might be crossed
+   * @private
+   */
+  _checkThresholdCrossing(changedIds) {
+    // For temperature example: check if we're crossing the 70°F threshold
+    const rules = this.mergedConfig.rules || [];
+
+    for (const rule of rules) {
+      const conditions = rule.when?.any || rule.when?.all || [];
+
+      for (const condition of conditions) {
+        if (condition.entity && (condition.above !== undefined || condition.below !== undefined)) {
+          // Check if this entity or its DataSource is in changedIds
+          const entityInRule = condition.entity;
+          const isDataSourceAffected = changedIds.some(id => {
+            // Check if changed entity maps to the DataSource used in the rule
+            const dataSourceId = entityInRule.split('.')[0]; // e.g., "temperature_enhanced"
+            const source = this.dataSourceManager?.getSource(dataSourceId);
+            return source && source.cfg?.entity === id;
+          });
+
+          if (isDataSourceAffected) {
+            console.log('[MSD DEBUG] 🎯 Rule condition potentially affected:', {
+              rule: rule.id,
+              entity: entityInRule,
+              threshold: condition.above || condition.below,
+              operator: condition.above ? 'above' : 'below'
+            });
+
+            // IMPROVED: Check actual threshold crossing instead of always returning true
+            const currentEntity = this.dataSourceManager?.getEntity(entityInRule);
+            if (currentEntity && currentEntity.state !== undefined) {
+              const currentValue = parseFloat(currentEntity.state);
+              const threshold = condition.above || condition.below;
+              const isAboveThreshold = currentValue > threshold;
+              const isBelowThreshold = currentValue < threshold;
+
+              // Check if current value satisfies the condition
+              const currentlyMatches = condition.above ? isAboveThreshold : isBelowThreshold;
+
+              console.log('[MSD DEBUG] 🌡️ Detailed threshold analysis:', {
+                currentValue,
+                threshold,
+                operator: condition.above ? 'above' : 'below',
+                isAboveThreshold,
+                isBelowThreshold,
+                currentlyMatches,
+                ruleId: rule.id
+              });
+
+              // Store the current rule state for next comparison
+              if (!this._previousRuleStates) {
+                this._previousRuleStates = new Map();
+              }
+
+              const ruleKey = `${rule.id}_${condition.entity}`;
+              const previouslyMatched = this._previousRuleStates.get(ruleKey);
+
+              console.log('[MSD DEBUG] 📊 Rule state comparison:', {
+                ruleKey,
+                previouslyMatched,
+                currentlyMatches,
+                stateChanged: previouslyMatched !== currentlyMatches
+              });
+
+              // Update the stored state
+              this._previousRuleStates.set(ruleKey, currentlyMatches);
+
+              // Only trigger re-render if the rule state actually changed
+              if (previouslyMatched !== undefined && previouslyMatched !== currentlyMatches) {
+                console.log('[MSD DEBUG] 🔄 Rule state CHANGED - threshold crossing detected!');
+                return true;
+              } else if (previouslyMatched === undefined) {
+                console.log('[MSD DEBUG] 🆕 First rule evaluation - storing state');
+                // First time seeing this rule, don't trigger re-render
+                return false;
+              } else {
+                console.log('[MSD DEBUG] 📌 Rule state UNCHANGED - no threshold crossing');
+                return false;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log('[MSD DEBUG] 📊 No threshold crossings detected');
+    return false;
+  }  /**
+   * Schedule a full re-render with proper queuing
+   * @private
+   */
+  _scheduleFullReRender() {
+    if (this._renderTimeout) {
+      console.log('[MSD DEBUG] ⏰ Clearing existing render timeout');
+      clearTimeout(this._renderTimeout);
+    }
+
+    // Safe re-render for data source changes
+    this._renderTimeout = setTimeout(() => {
+      if (this._reRenderCallback && !this._renderInProgress) {
+        try {
+          this._renderInProgress = true;
+          console.log('[MSD DEBUG] 🚀 TRIGGERING full re-render from rule change timeout');
+          this._reRenderCallback();
+        } catch (error) {
+          console.error('[MSD DEBUG] ❌ Re-render FAILED in entity change handler:', error);
+        } finally {
+          this._renderInProgress = false;
+        }
+      }
+      this._renderTimeout = null;
+    }, 100);
+  }
+
+  /**
+   * Update text overlays when DataSource entities change
+   * @param {Array} changedIds - Entity IDs that changed
+   * @private
+   */
+  _updateTextOverlaysForDataSourceChanges(changedIds) {
+    console.log('[MSD DEBUG] 🔤 Checking for text overlays affected by DataSource changes:', changedIds);
+
+    // Get current resolved model to find text overlays
+    const resolvedModel = this.modelBuilder?.getResolvedModel?.();
+    if (!resolvedModel || !resolvedModel.overlays) {
+      console.log('[MSD DEBUG] ⚠️ No resolved model available for text overlay updates');
+      return;
+    }
+
+    // Find text overlays that might be affected
+    const textOverlays = resolvedModel.overlays.filter(overlay => overlay.type === 'text');
+    console.log('[MSD DEBUG] 🔤 Found', textOverlays.length, 'text overlays to check');
+
+    textOverlays.forEach(overlay => {
+      // Check if this text overlay uses template strings that reference the changed DataSources
+      const content = overlay._raw?.content || overlay.content || overlay.text || '';
+
+      if (content && typeof content === 'string' && content.includes('{')) {
+        console.log(`[MSD DEBUG] 🔤 Checking text overlay ${overlay.id} with content: "${content}"`);
+
+        // Check if any of the changed entities map to DataSources referenced in the template
+        const needsUpdate = changedIds.some(entityId => {
+          // Find DataSources that use this entity
+          if (this.dataSourceManager) {
+            for (const [sourceId, source] of this.dataSourceManager.sources || new Map()) {
+              if (source.cfg && source.cfg.entity === entityId) {
+                console.log(`[MSD DEBUG] 🔗 Entity ${entityId} maps to DataSource ${sourceId}`);
+
+                // Check if the template content references this DataSource
+                if (content.includes(sourceId)) {
+                  console.log(`[MSD DEBUG] ✅ Text overlay ${overlay.id} references DataSource ${sourceId} - needs update`);
+                  return true;
+                }
+              }
+            }
+          }
+          return false;
+        });
+
+        if (needsUpdate) {
+          console.log(`[MSD DEBUG] 🚀 Updating text overlay ${overlay.id} for DataSource changes`);
+
+          // Get the updated DataSource data for the first changed DataSource
+          const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
+          if (updatedDataSourceId) {
+            const dataSource = this.dataSourceManager.getSource(updatedDataSourceId);
+            if (dataSource) {
+              const currentData = dataSource.getCurrentData();
+              console.log(`[MSD DEBUG] 📊 Using DataSource ${updatedDataSourceId} data:`, currentData);
+
+              // Update the text overlay with new data
+              if (this.renderer && this.renderer.updateTextOverlay) {
+                try {
+                  this.renderer.updateTextOverlay(overlay.id, currentData);
+                  console.log(`[MSD DEBUG] ✅ Text overlay ${overlay.id} updated successfully`);
+                } catch (error) {
+                  console.error(`[MSD DEBUG] ❌ Failed to update text overlay ${overlay.id}:`, error);
+                }
+              }
+            }
+          }
+        } else {
+          console.log(`[MSD DEBUG] ⏭️ Text overlay ${overlay.id} not affected by these changes`);
+        }
+      }
+    });
+  }
+
+  /**
+   * Find DataSource ID for a given entity ID
+   * @param {string} entityId - Entity ID
+   * @returns {string|null} DataSource ID
+   * @private
+   */
+  _findDataSourceForEntity(entityId) {
+    if (this.dataSourceManager) {
+      for (const [sourceId, source] of this.dataSourceManager.sources || new Map()) {
+        if (source.cfg && source.cfg.entity === entityId) {
+          return sourceId;
+        }
+      }
+    }
+    return null;
   }
 }
 

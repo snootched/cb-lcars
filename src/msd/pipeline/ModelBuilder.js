@@ -58,6 +58,17 @@ export class ModelBuilder {
       active_profiles: this.runtimeActiveProfiles.slice()
     };
 
+    // DEBUG: Check final overlay state before rendering
+    const titleOverlay = resolved.overlays.find(o => o.id === 'title_overlay');
+    if (titleOverlay) {
+      console.log('[ModelBuilder] 🏁 Final title_overlay state before rendering:', {
+        id: titleOverlay.id,
+        color: titleOverlay.style?.color,
+        status_indicator: titleOverlay.style?.status_indicator,
+        finalStyle: titleOverlay.finalStyle
+      });
+    }
+
     // Update router
     try {
       this.systems.router.setOverlays && this.systems.router.setOverlays(resolved.overlays);
@@ -242,6 +253,9 @@ export class ModelBuilder {
     if (pendingSubscriptions > 0) {
       this._monitorPendingSubscriptions(baseOverlays, pendingSubscriptions);
     }
+
+    // Subscribe to text overlays data sources
+    this._subscribeTextOverlaysToDataSources(baseOverlays);
   }
 
 
@@ -291,12 +305,43 @@ export class ModelBuilder {
 
 
   _applyRules() {
-    return this.systems.rulesEngine.evaluateDirty({
-      getEntity: id => this.systems.entityRuntime.getEntity(id)
-    });
-  }
+    console.log('[ModelBuilder] 🔍 _applyRules() called');
 
-  _updateActiveProfiles(ruleResult) {
+    // FIXED: Always evaluate rules during render, not just when dirty
+    // This ensures rule patches are generated even if rules weren't marked dirty externally
+    this.systems.rulesEngine.markAllDirty();
+    console.log('[ModelBuilder] 📏 Marked all rules dirty');
+
+    // Use DataSourceManager's getEntity for comprehensive entity resolution
+    const getEntity = (entityId) => {
+      // Use DataSourceManager's getEntity which handles:
+      // - DataSource references with dot notation (temperature_enhanced.transformations.celsius)
+      // - Regular Home Assistant entities
+      // - Fallback to HASS states
+      if (this.systems.dataSourceManager && this.systems.dataSourceManager.getEntity) {
+        return this.systems.dataSourceManager.getEntity(entityId);
+      }
+
+      // Fallback to direct HASS access if no DataSourceManager
+      if (this.systems._currentHass?.states?.[entityId]) {
+        const hassState = this.systems._currentHass.states[entityId];
+        return {
+          state: hassState.state,
+          attributes: hassState.attributes || {}
+        };
+      }
+
+      return null;
+    };
+
+    const ruleResult = this.systems.rulesEngine.evaluateDirty({ getEntity });
+    console.log('[ModelBuilder] 📏 Rule evaluation result:', {
+      overlayPatches: ruleResult.overlayPatches.length,
+      patches: ruleResult.overlayPatches
+    });
+
+    return ruleResult;
+  }  _updateActiveProfiles(ruleResult) {
     if (ruleResult.profilesAdd?.length || ruleResult.profilesRemove?.length) {
       const set = new Set(this.runtimeActiveProfiles);
       ruleResult.profilesAdd.forEach(p => set.add(p));
@@ -309,9 +354,27 @@ export class ModelBuilder {
   }
 
   _applyOverlayPatches(baseOverlays, ruleResult) {
-    return perfTime('styles.patch', () =>
+    console.log('[ModelBuilder] 🎨 _applyOverlayPatches() called with:', {
+      overlayCount: baseOverlays.length,
+      patchCount: ruleResult.overlayPatches.length,
+      patches: ruleResult.overlayPatches
+    });
+
+    const result = perfTime('styles.patch', () =>
       applyOverlayPatches(baseOverlays, ruleResult.overlayPatches)
     );
+
+    console.log('[ModelBuilder] 🎨 Overlay patches applied. Checking title_overlay:');
+    const titleOverlay = result.find(o => o.id === 'title_overlay');
+    if (titleOverlay) {
+      console.log('[ModelBuilder] 🎯 Title overlay after patching:', {
+        id: titleOverlay.id,
+        color: titleOverlay.style?.color,
+        status_indicator: titleOverlay.style?.status_indicator
+      });
+    }
+
+    return result;
   }
 
   _resolveValueMaps(overlaysWithPatches) {
@@ -377,4 +440,104 @@ export class ModelBuilder {
     }
   }
 
+  /**
+   * Set up DataSource subscriptions for text overlays that use template strings
+   * @param {Array} overlays - Array of overlay configurations
+   * @private
+   */
+  _subscribeTextOverlaysToDataSources(overlays) {
+    overlays.forEach(overlay => {
+      if (overlay.type === 'text') {
+        // Check if text content contains DataSource references
+        const textContent = overlay.text || overlay.content || overlay.finalStyle?.value || '';
+        const dataSourceRef = overlay.data_source || overlay._raw?.data_source || overlay.finalStyle?.data_source;
+
+        // Extract DataSource references from template strings like {temperature_enhanced.transformations.celsius}
+        const templateRefs = this._extractDataSourceReferences(textContent);
+
+        // Subscribe to direct DataSource references
+        if (dataSourceRef) {
+          this._subscribeTextOverlayToDataSource(overlay.id, dataSourceRef);
+        }
+
+        // Subscribe to template string DataSource references
+        templateRefs.forEach(ref => {
+          this._subscribeTextOverlayToDataSource(overlay.id, ref);
+        });
+      }
+    });
+  }
+
+  /**
+   * Subscribe a text overlay to a specific DataSource
+   * @param {string} overlayId - ID of the text overlay
+   * @param {string} dataSourceRef - DataSource reference (e.g., 'temperature_enhanced')
+   * @private
+   */
+  _subscribeTextOverlayToDataSource(overlayId, dataSourceRef) {
+    try {
+      const dataSourceManager = this.systems?.dataSourceManager;
+      if (!dataSourceManager) {
+        console.warn(`[ModelBuilder] DataSourceManager not available for text overlay subscription: ${overlayId}`);
+        return;
+      }
+
+      // Parse DataSource reference to get source name
+      const sourceName = dataSourceRef.split('.')[0];
+      const dataSource = dataSourceManager.getSource(sourceName);
+
+      if (!dataSource) {
+        console.warn(`[ModelBuilder] DataSource '${sourceName}' not found for text overlay: ${overlayId}`);
+        return;
+      }
+
+      // Create subscription callback
+      const callback = (data) => {
+        console.log(`[ModelBuilder] 📊 Text overlay ${overlayId} received DataSource update from ${sourceName}`);
+
+        // Notify AdvancedRenderer to update the text overlay
+        if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
+          this.systems.renderer.updateOverlayData(overlayId, data);
+        }
+      };
+
+      // Subscribe to the DataSource
+      dataSource.subscribe(overlayId, callback);
+
+      console.log(`[ModelBuilder] ✅ Subscribed text overlay ${overlayId} to DataSource ${sourceName}`);
+
+    } catch (error) {
+      console.error(`[ModelBuilder] Failed to subscribe text overlay ${overlayId} to DataSource ${dataSourceRef}:`, error);
+    }
+  }
+
+  /**
+   * Extract DataSource references from template strings
+   * @param {string} content - Text content that may contain template strings
+   * @returns {Array<string>} Array of DataSource references
+   * @private
+   */
+  _extractDataSourceReferences(content) {
+    if (!content || typeof content !== 'string') {
+      return [];
+    }
+
+    const references = [];
+    const templatePattern = /\{([^}]+)\}/g;
+    let match;
+
+    while ((match = templatePattern.exec(content)) !== null) {
+      const reference = match[1].split(':')[0].trim(); // Remove formatting specs
+
+      // Only include if it looks like a DataSource reference (contains dots or is a simple identifier)
+      if (reference.includes('.') || /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(reference)) {
+        const sourceName = reference.split('.')[0];
+        if (!references.includes(sourceName)) {
+          references.push(sourceName);
+        }
+      }
+    }
+
+    return references;
+  }
 }

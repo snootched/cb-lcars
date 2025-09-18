@@ -159,22 +159,62 @@ export class DataSourceManager {
   getEntity(entityId) {
     // NEW: Support dot notation for datasource aggregations/transformations
     if (entityId.includes('.')) {
-      const [sourceId, path] = entityId.split('.', 2);
+      const [sourceId, ...pathParts] = entityId.split('.');
       const source = this.sources.get(sourceId);
 
       if (source) {
         const currentData = source.getCurrentData();
+        if (!currentData) return null;
 
-        // Support dot notation: "temp_source.aggregations.avg_5m"
-        if (path === 'aggregations' || path.startsWith('aggregations.')) {
-          return this._resolveDataPath(currentData.aggregations, path);
+        // Handle dot notation paths
+        if (pathParts.length >= 2) {
+          const dataType = pathParts[0]; // 'aggregations' or 'transformations'
+          const dataKey = pathParts.slice(1).join('.'); // Support nested keys
+
+          if (dataType === 'transformations' && currentData.transformations) {
+            const value = currentData.transformations[dataKey];
+            if (value !== undefined && value !== null) {
+              return {
+                state: String(value), // Convert to string properly
+                attributes: {
+                  data_path: entityId,
+                  source_type: 'datasource_transformation',
+                  raw_value: value
+                }
+              };
+            }
+          } else if (dataType === 'aggregations' && currentData.aggregations) {
+            const aggData = currentData.aggregations[dataKey];
+
+            // Handle aggregation objects with multiple properties
+            if (typeof aggData === 'object' && aggData !== null) {
+              // Return the most relevant value from aggregation
+              let value = aggData.avg ?? aggData.value ?? aggData.last ?? aggData.current;
+              if (value !== undefined && value !== null) {
+                return {
+                  state: String(value),
+                  attributes: {
+                    data_path: entityId,
+                    source_type: 'datasource_aggregation',
+                    raw_value: value,
+                    aggregation_data: aggData
+                  }
+                };
+              }
+            } else if (aggData !== undefined && aggData !== null) {
+              return {
+                state: String(aggData),
+                attributes: {
+                  data_path: entityId,
+                  source_type: 'datasource_aggregation',
+                  raw_value: aggData
+                }
+              };
+            }
+          }
         }
 
-        if (path === 'transformations' || path.startsWith('transformations.')) {
-          return this._resolveDataPath(currentData.transformations, path);
-        }
-
-        // Default to current value
+        // Default to current value if no specific path found
         return {
           state: currentData.v?.toString() || 'unavailable',
           attributes: {

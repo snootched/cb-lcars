@@ -82,15 +82,22 @@ export class RulesEngine {
     conditions.forEach(condition => {
       // Direct entity reference
       if (condition.entity) {
-        entities.add(condition.entity);
-
-        // NEW: Check if this is a datasource reference
+        // Check if this is a DataSource reference
         if (condition.entity.includes('.') && this.dataSourceManager) {
-          const sourceId = condition.entity.split('.')[0];
-          if (this.dataSourceManager.getSource(sourceId)) {
-            // Add the source itself to dependencies
-            entities.add(sourceId);
+          const sourceName = condition.entity.split('.')[0];
+          const dataSource = this.dataSourceManager.getSource(sourceName);
+          if (dataSource) {
+            // Add the DataSource itself to dependencies
+            entities.add(sourceName);
+            // Also add the full reference for more granular tracking
+            entities.add(condition.entity);
+          } else {
+            // Treat as regular entity if DataSource not found
+            entities.add(condition.entity);
           }
+        } else {
+          // Regular Home Assistant entity
+          entities.add(condition.entity);
         }
       }
 
@@ -122,6 +129,7 @@ export class RulesEngine {
     let affectedRules = 0;
 
     changedEntityIds.forEach(entityId => {
+      // Direct entity/DataSource rule matches
       const rules = this.dependencyIndex.entityToRules.get(entityId);
       if (rules) {
         rules.forEach(ruleId => {
@@ -130,6 +138,22 @@ export class RulesEngine {
             affectedRules++;
           }
         });
+      }
+
+      // Handle DataSource change propagation
+      // If a DataSource changes, mark rules that depend on its transformations/aggregations
+      if (this.dataSourceManager?.getSource(entityId)) {
+        // Find rules that depend on this DataSource's transformations/aggregations
+        for (const [fullRef, ruleSet] of this.dependencyIndex.entityToRules) {
+          if (fullRef.startsWith(`${entityId}.`)) {
+            ruleSet.forEach(ruleId => {
+              if (!this.dirtyRules.has(ruleId)) {
+                this.dirtyRules.add(ruleId);
+                affectedRules++;
+              }
+            });
+          }
+        }
       }
     });
 
@@ -155,11 +179,38 @@ export class RulesEngine {
 
       // NEW: Use DataSourceManager's enhanced getEntity if available
       if (!getEntity && this.dataSourceManager) {
-        getEntity = (entityId) => this.dataSourceManager.getEntity(entityId);
+        getEntity = (entityId) => {
+          // Check if this is a DataSource reference
+          if (entityId.includes('.') && this.dataSourceManager) {
+            const value = this.resolveDataSourceValue(entityId);
+            if (value !== null) {
+              // Return entity-like object for DataSource values
+              return {
+                entity_id: entityId,
+                state: String(value),
+                attributes: {}
+              };
+            }
+          }
+
+          // Try DataSourceManager's getEntity method
+          if (this.dataSourceManager.getEntity) {
+            const entity = this.dataSourceManager.getEntity(entityId);
+            if (entity) return entity;
+          }
+
+          // Fallback: try entity index directly
+          if (this.dataSourceManager.entityIndex) {
+            const entity = this.dataSourceManager.entityIndex.get(entityId);
+            if (entity) return entity;
+          }
+
+          return null;
+        };
       }
 
       if (!getEntity || typeof getEntity !== 'function') {
-        console.warn('[RulesEngine] evaluateDirty called without getEntity function');
+        console.warn('[RulesEngine] evaluateDirty called without getEntity function and no DataSourceManager available');
         return this.createEmptyResult();
       }
 
@@ -297,27 +348,54 @@ export class RulesEngine {
     };
 
     try {
-      // Entity state condition
+      // Entity state condition (supports both HA entities and DataSource references)
       if (condition.entity) {
-        const entity = getEntity(condition.entity);
-        if (!entity) {
-          result.error = `Entity ${condition.entity} not found`;
-          return result;
-        }
+        // Check if this is a DataSource reference (contains dots) - handle it directly
+        if (condition.entity.includes('.') && this.dataSourceManager) {
+          const dataSourceValue = this.resolveDataSourceValue(condition.entity);
+          if (dataSourceValue === null) {
+            result.error = `DataSource ${condition.entity} not found or no data`;
+            return result;
+          }
 
-        result.value = entity.state;
+          result.value = dataSourceValue;
 
-        // Numeric comparisons
-        if (condition.above !== undefined) {
-          const numValue = parseFloat(entity.state);
-          result.matched = !isNaN(numValue) && numValue > condition.above;
-        } else if (condition.below !== undefined) {
-          const numValue = parseFloat(entity.state);
-          result.matched = !isNaN(numValue) && numValue < condition.below;
-        } else if (condition.equals !== undefined) {
-          result.matched = entity.state == condition.equals;
+          // Numeric comparisons for DataSource values
+          if (condition.above !== undefined) {
+            const numValue = parseFloat(dataSourceValue);
+            result.matched = !isNaN(numValue) && numValue > condition.above;
+          } else if (condition.below !== undefined) {
+            const numValue = parseFloat(dataSourceValue);
+            result.matched = !isNaN(numValue) && numValue < condition.below;
+          } else if (condition.equals !== undefined) {
+            result.matched = dataSourceValue == condition.equals;
+          } else {
+            result.matched = true; // DataSource exists and has data
+          }
+
+          return result; // Return immediately for DataSource conditions
         } else {
-          result.matched = true; // Entity exists
+          // Standard Home Assistant entity
+          const entity = getEntity(condition.entity);
+          if (!entity) {
+            result.error = `Entity ${condition.entity} not found`;
+            return result;
+          }
+
+          result.value = entity.state;
+
+          // Numeric comparisons for entity state
+          if (condition.above !== undefined) {
+            const numValue = parseFloat(entity.state);
+            result.matched = !isNaN(numValue) && numValue > condition.above;
+          } else if (condition.below !== undefined) {
+            const numValue = parseFloat(entity.state);
+            result.matched = !isNaN(numValue) && numValue < condition.below;
+          } else if (condition.equals !== undefined) {
+            result.matched = entity.state == condition.equals;
+          } else {
+            result.matched = true; // Entity exists
+          }
         }
       }
 
@@ -390,7 +468,63 @@ export class RulesEngine {
     return outMin + ratio * (outMax - outMin);
   }
 
-  determineMatch(when, conditions) {
+  /**
+   * Resolve a DataSource reference to its current value
+   * @param {string} dataSourceRef - Reference like 'source.transformations.key' or 'source.aggregations.key'
+   * @returns {any|null} Resolved value or null if not found
+   */
+  resolveDataSourceValue(dataSourceRef) {
+    try {
+      // Parse the DataSource reference
+      const parts = dataSourceRef.split('.');
+      const sourceName = parts[0];
+
+      // Get the DataSource
+      const dataSource = this.dataSourceManager.getSource(sourceName);
+      if (!dataSource) {
+        return null;
+      }
+
+      const currentData = dataSource.getCurrentData();
+      if (!currentData) {
+        return null;
+      }
+
+      // Handle simple DataSource reference (just the source name)
+      if (parts.length === 1) {
+        return currentData.v;
+      }
+
+      // Handle enhanced DataSource references
+      if (parts.length >= 3) {
+        const dataType = parts[1]; // 'transformations' or 'aggregations'
+        const dataKey = parts.slice(2).join('.'); // Support nested keys
+
+        if (dataType === 'transformations' && currentData.transformations) {
+          return currentData.transformations[dataKey];
+        } else if (dataType === 'aggregations' && currentData.aggregations) {
+          const aggData = currentData.aggregations[dataKey];
+
+          // Handle aggregation objects with multiple properties
+          if (typeof aggData === 'object' && aggData !== null) {
+            // Return the most relevant value from aggregation
+            if (aggData.avg !== undefined) return aggData.avg;
+            if (aggData.value !== undefined) return aggData.value;
+            if (aggData.last !== undefined) return aggData.last;
+            if (aggData.current !== undefined) return aggData.current;
+            return aggData; // Return the object itself if no standard property
+          }
+
+          return aggData;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`[RulesEngine] Error resolving DataSource reference '${dataSourceRef}':`, error);
+      return null;
+    }
+  }  determineMatch(when, conditions) {
     if (!when) return false;
 
     let allMatch = true;
@@ -568,6 +702,23 @@ export class RulesEngine {
     perfCount('rules.trace.cleared', 1);
   }
 
+  /**
+   * Set the DataSourceManager reference (for cases where it wasn't available during construction)
+   * @param {Object} dataSourceManager - DataSourceManager instance
+   */
+  setDataSourceManager(dataSourceManager) {
+    console.log(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
+    this.dataSourceManager = dataSourceManager;
+
+    // Rebuild dependency index to include DataSource references
+    this.buildDependencyIndex();
+
+    // Mark all rules dirty since DataSource conditions might now be evaluable
+    this.markAllDirty();
+
+    console.log(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
+  }
+
   getRuleDependencies(ruleId) {
     return this.dependencyIndex?.ruleToEntities.get(ruleId) || [];
   }
@@ -579,23 +730,50 @@ export class RulesEngine {
 
 // Helper function for applying overlay patches from rule results
 export function applyOverlayPatches(overlays, patches) {
-  if (!Array.isArray(patches) || patches.length === 0) {
+  if (!patches || patches.length === 0) {
     return overlays;
   }
 
-  const result = overlays.map(overlay => ({ ...overlay }));
-  const overlayMap = new Map(result.map(o => [o.id, o]));
-
-  patches.forEach(patch => {
-    const overlay = overlayMap.get(patch.id);
-    if (overlay && patch.style) {
-      // Shallow merge the style patch
-      overlay.style = {
-        ...overlay.style,
-        ...patch.style
-      };
-    }
+  console.log('[RulesEngine] 🎨 Applying overlay patches:', {
+    overlayCount: overlays.length,
+    patchCount: patches.length,
+    patches: patches.map(p => ({ id: p.id, styleKeys: Object.keys(p.style || {}) }))
   });
 
-  return result;
+  const patchMap = new Map(patches.map(patch => [patch.id, patch]));
+
+  return overlays.map(overlay => {
+    const patch = patchMap.get(overlay.id);
+    if (!patch) {
+      return overlay;
+    }
+
+    console.log('[RulesEngine] 🎯 Applying patch to overlay:', {
+      id: overlay.id,
+      originalStyle: overlay.style,
+      originalFinalStyle: overlay.finalStyle,
+      patch: patch.style
+    });
+
+    // FIXED: Apply patches to BOTH style and finalStyle
+    const patchedOverlay = {
+      ...overlay,
+      style: {
+        ...overlay.style,
+        ...patch.style
+      },
+      finalStyle: {
+        ...(overlay.finalStyle || overlay.style || {}),
+        ...patch.style
+      }
+    };
+
+    console.log('[RulesEngine] ✅ Patched overlay result:', {
+      id: patchedOverlay.id,
+      newStyle: patchedOverlay.style,
+      newFinalStyle: patchedOverlay.finalStyle
+    });
+
+    return patchedOverlay;
+  });
 }

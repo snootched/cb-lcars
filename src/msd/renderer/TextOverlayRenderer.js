@@ -225,15 +225,26 @@ export class TextOverlayRenderer {
    * @private
    */
   _resolveTextContent(overlay, style) {
+    console.log(`[TextOverlayRenderer] DEBUG: Resolving text content for ${overlay.id}`);
+    console.log(`[TextOverlayRenderer] DEBUG: Available sources:`, {
+      'style.value': style.value,
+      'overlay.text': overlay.text,
+      'overlay.content': overlay.content,
+      '_raw.content': overlay._raw?.content,
+      '_raw.text': overlay._raw?.text
+    });
+
     // Start with basic content resolution
     let content = style.value || overlay.text || overlay.content || '';
 
     // Check raw overlay configuration if content not found in standard properties
     if (!content && overlay._raw?.content) {
       content = overlay._raw.content;
+      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.content: "${content}"`);
     }
     if (!content && overlay._raw?.text) {
       content = overlay._raw.text;
+      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.text: "${content}"`);
     }
 
     // Check if we have a value_format and a DataSource reference
@@ -1241,5 +1252,88 @@ export class TextOverlayRenderer {
     } catch (_) {
       return { width: 0, height: 0 };
     }
+  }
+
+  /**
+   * Resolve text content with updated DataSource data (for dynamic updates)
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @param {Object} newDataSourceData - Updated DataSource data
+   * @returns {string} Resolved text content with new data
+   */
+  _resolveTextContentWithData(overlay, style, newDataSourceData) {
+    console.log(`[TextOverlayRenderer] DEBUG: Resolving text content with updated data for ${overlay.id}`);
+    console.log(`[TextOverlayRenderer] DEBUG: New DataSource data:`, newDataSourceData);
+
+    // Start with basic content resolution (same as original method)
+    let content = style.value || overlay.text || overlay.content || '';
+
+    // Check raw overlay configuration if content not found in standard properties
+    if (!content && overlay._raw?.content) {
+      content = overlay._raw.content;
+      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.content: "${content}"`);
+    }
+    if (!content && overlay._raw?.text) {
+      content = overlay._raw.text;
+      console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.text: "${content}"`);
+    }
+
+    // ENHANCED: If we have template content and new DataSource data, process with new data
+    if (content && typeof content === 'string' && content.includes('{') && newDataSourceData) {
+      console.log(`[TextOverlayRenderer] DEBUG: Processing template with new DataSource data`);
+      content = this._processTemplateWithData(content, newDataSourceData);
+      console.log(`[TextOverlayRenderer] DEBUG: Template processing result: "${content}"`);
+      return content;
+    }
+
+    // Fallback to original logic for other cases
+    return this._resolveTextContent(overlay, style);
+  }
+
+  /**
+   * Process template strings with specific DataSource data
+   * @private
+   * @param {string} templateString - Template string with placeholders
+   * @param {Object} dataSourceData - DataSource data to use for resolution
+   * @returns {string} Processed template string
+   */
+  _processTemplateWithData(templateString, dataSourceData) {
+    console.log(`[TextOverlayRenderer] DEBUG: Processing template: "${templateString}"`);
+    console.log(`[TextOverlayRenderer] DEBUG: With data:`, dataSourceData);
+
+    return templateString.replace(/\{([^}]+)\}/g, (match, reference) => {
+      console.log(`[TextOverlayRenderer] DEBUG: Processing reference: "${reference}"`);
+
+      // Parse the reference (e.g., "temperature_enhanced.transformations.celsius:.1f")
+      const [fullPath, formatSpec] = reference.split(':');
+      const pathParts = fullPath.split('.');
+
+      console.log(`[TextOverlayRenderer] DEBUG: Path parts:`, pathParts);
+      console.log(`[TextOverlayRenderer] DEBUG: Format spec:`, formatSpec);
+
+      // Navigate the data structure
+      let value = dataSourceData;
+      for (const part of pathParts.slice(1)) { // Skip the first part (source name)
+        if (value && typeof value === 'object' && part in value) {
+          value = value[part];
+        } else {
+          console.log(`[TextOverlayRenderer] DEBUG: Path navigation failed at "${part}"`);
+          return match; // Return original if path doesn't exist
+        }
+      }
+
+      console.log(`[TextOverlayRenderer] DEBUG: Resolved value:`, value);
+
+      // Apply formatting if specified
+      if (formatSpec && value !== undefined && value !== null) {
+        console.log(`[TextOverlayRenderer] DEBUG: Applying format spec: "${formatSpec}"`);
+        const formattedValue = this._applyNumberFormat(value, formatSpec);
+        console.log(`[TextOverlayRenderer] DEBUG: Formatted value: "${formattedValue}"`);
+        return formattedValue;
+      }
+
+      return String(value);
+    });
   }
 }

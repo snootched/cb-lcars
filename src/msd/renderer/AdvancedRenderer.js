@@ -9,9 +9,10 @@ import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { RendererUtils } from './RendererUtils.js';
 
 export class AdvancedRenderer {
-  constructor(mountEl, routerCore) {
+  constructor(mountEl, routerCore, systemsManager = null) {
     this.mountEl = mountEl;
     this.routerCore = routerCore;
+    this.systemsManager = systemsManager; // ADDED: Store reference to systems manager
     this.overlayElements = new Map();
     this.lastRenderArgs = null;
     this.lineRenderer = new LineOverlayRenderer(routerCore);
@@ -424,6 +425,17 @@ export class AdvancedRenderer {
 
     switch (overlay.type) {
       case 'text':
+        // DEBUG: Check what overlay object is being passed to TextOverlayRenderer
+        if (overlay.id === 'title_overlay') {
+          console.log('[AdvancedRenderer] 🔍 Passing title_overlay to TextOverlayRenderer:', {
+            id: overlay.id,
+            color: overlay.style?.color,
+            status_indicator: overlay.style?.status_indicator,
+            finalStyleColor: overlay.finalStyle?.color,
+            finalStyleStatusIndicator: overlay.finalStyle?.status_indicator
+          });
+        }
+
         // Update (in case dynamic overlays later): recompute & refresh map
         const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
         if (ap) this.textAttachmentPoints.set(overlay.id, ap);
@@ -527,10 +539,16 @@ export class AdvancedRenderer {
     }
 
     // Delegate to type-specific renderer
-    if (overlay.type === 'sparkline') {
-      SparklineRenderer.updateSparklineData(overlayElement, overlay, sourceData);
-    } else {
-      console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
+    switch (overlay.type) {
+      case 'sparkline':
+        SparklineRenderer.updateSparklineData(overlayElement, overlay, sourceData);
+        break;
+      case 'text':
+        console.log(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
+        this.updateTextOverlay(overlayId, sourceData);
+        break;
+      default:
+        console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
     }
   }
 
@@ -680,6 +698,80 @@ export class AdvancedRenderer {
       circle.setAttribute('r', indicatorSize);
     } catch(_) {
       // silent
+    }
+  }
+
+  /**
+   * Update text overlay content dynamically without full re-render
+   * @param {string} overlayId - ID of the text overlay to update
+   * @param {Object} sourceData - New DataSource data
+   */
+  updateTextOverlay(overlayId, sourceData) {
+    try {
+      // Find the text element in the DOM
+      const textElement = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"] text`);
+      if (!textElement) {
+        console.warn(`[AdvancedRenderer] Text element not found for overlay: ${overlayId}`);
+        return;
+      }
+
+      // Get the overlay configuration to resolve new content
+      const resolvedModel = this.systemsManager?.rulesEngine?.getResolvedModel?.() ||
+                           this.systemsManager?.getResolvedModel?.() ||
+                           window.__msdDebug?.pipelineInstance?.getResolvedModel?.();
+
+      const overlay = resolvedModel?.overlays?.find(o => o.id === overlayId);
+      if (!overlay) {
+        console.warn(`[AdvancedRenderer] Overlay configuration not found: ${overlayId}`);
+        return;
+      }
+
+      // Import the TextOverlayRenderer for content resolution
+      import('./TextOverlayRenderer.js').then(({ TextOverlayRenderer }) => {
+        const renderer = new TextOverlayRenderer();
+
+        // Resolve new text content using the same logic as initial rendering
+        const newContent = renderer._resolveTextContentWithData(overlay, overlay.finalStyle || {}, sourceData);
+
+        if (newContent && newContent !== textElement.textContent) {
+          console.log(`[AdvancedRenderer] Updating text overlay ${overlayId}: "${textElement.textContent}" → "${newContent}"`);
+
+          // Update the text content
+          textElement.textContent = TextOverlayRenderer.escapeXml(newContent);
+
+          // Update any status indicators that might depend on the content
+          this.updateTextDecorations(overlayId, newContent, overlay);
+
+          console.log(`[AdvancedRenderer] ✅ Text overlay ${overlayId} updated successfully`);
+        } else {
+          console.log(`[AdvancedRenderer] Text overlay ${overlayId} content unchanged`);
+        }
+      }).catch(error => {
+        console.error(`[AdvancedRenderer] Failed to update text overlay ${overlayId}:`, error);
+      });
+
+    } catch (error) {
+      console.error(`[AdvancedRenderer] Error updating text overlay ${overlayId}:`, error);
+    }
+  }
+
+  /**
+   * Update text decorations (status indicators, etc.) when content changes
+   * @param {string} overlayId - ID of the text overlay
+   * @param {string} newContent - New text content
+   * @param {Object} overlay - Overlay configuration
+   */
+  updateTextDecorations(overlayId, newContent, overlay) {
+    try {
+      // Update status indicator position if needed (since text width may have changed)
+      const statusIndicator = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"] [data-decoration="status-indicator"]`);
+      if (statusIndicator && overlay.finalStyle?.status_indicator) {
+        // Recalculate status indicator position
+        // This could be enhanced to recalculate based on new text metrics
+        console.log(`[AdvancedRenderer] Status indicator position may need updating for ${overlayId}`);
+      }
+    } catch (error) {
+      console.error(`[AdvancedRenderer] Error updating text decorations for ${overlayId}:`, error);
     }
   }
 }
