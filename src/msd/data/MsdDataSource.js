@@ -254,6 +254,12 @@ export class MsdDataSource {
         const currentState = this.hass.states[this.cfg.entity];
         console.log(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
 
+        // ENHANCED: Capture unit_of_measurement from initial state
+        if (currentState.attributes?.unit_of_measurement) {
+          this.cfg.unit_of_measurement = currentState.attributes.unit_of_measurement;
+          console.log(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+        }
+
         // FIXED: Use current timestamp for initial state
         const currentTimestamp = Date.now();
         const rawValue = this.cfg.attribute ? currentState.attributes?.[this.cfg.attribute] : currentState.state;
@@ -473,6 +479,12 @@ export class MsdDataSource {
     // CRITICAL: Store the original state object before any conversion
     this._lastOriginalState = eventData.new_state;
 
+    // ENHANCED: Capture and store unit_of_measurement from the entity
+    if (eventData.new_state.attributes?.unit_of_measurement) {
+      this.cfg.unit_of_measurement = eventData.new_state.attributes.unit_of_measurement;
+      console.log(`[MSD DEBUG] 📊 Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+    }
+
     // FIXED: Use current timestamp instead of state timestamp
     const timestamp = Date.now();
     const rawValue = this.cfg.attribute
@@ -486,7 +498,8 @@ export class MsdDataSource {
         value,
         timestamp,
         subscriberCount: this.subscribers.size,
-        originalState: this._lastOriginalState.state
+        originalState: this._lastOriginalState.state,
+        unit_of_measurement: this.cfg.unit_of_measurement
       });
 
       // Add to buffer with proper timestamp
@@ -511,6 +524,7 @@ export class MsdDataSource {
         transformations: this._getTransformationData(), // NEW
         aggregations: this._getAggregationData(),       // NEW
         entity: this.cfg.entity,
+        unit_of_measurement: this.cfg.unit_of_measurement, // NEW: Include unit info
         historyReady: this._stats.historyLoaded > 0
       };
 
@@ -933,6 +947,7 @@ export class MsdDataSource {
         transformations: this._getTransformationData(), // Convert Map to Object
         aggregations: this._getAggregationData(),       // Convert Map to Object
         entity: this.cfg.entity,
+        unit_of_measurement: this.cfg.unit_of_measurement, // NEW: Include unit info
         historyReady: this._stats.historyLoaded > 0,
         bufferSize: 0,
         started: this._started
@@ -947,6 +962,7 @@ export class MsdDataSource {
       transformations: this._getTransformationData(), // Convert Map to Object
       aggregations: this._getAggregationData(),       // Convert Map to Object
       entity: this.cfg.entity,
+      unit_of_measurement: this.cfg.unit_of_measurement, // NEW: Include unit info
       historyReady: this._stats.historyLoaded > 0,
       bufferSize: this.buffer.size(),
       started: this._started

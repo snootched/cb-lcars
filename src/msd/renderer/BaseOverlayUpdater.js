@@ -87,9 +87,26 @@ export class BaseOverlayUpdater {
    * @private
    */
   _hasTemplateContent(overlay) {
-    const content = overlay._raw?.content || overlay.content || overlay.text ||
-                   overlay._raw?.value_format || overlay.value_format || '';
-    return content && typeof content === 'string' && content.includes('{');
+    // Check main overlay content
+    const mainContent = overlay._raw?.content || overlay.content || overlay.text ||
+                       overlay._raw?.value_format || overlay.value_format || '';
+
+    if (mainContent && typeof mainContent === 'string' && mainContent.includes('{')) {
+      return true;
+    }
+
+    // For status grids, also check cell configurations - ENHANCED to check multiple sources
+    if (overlay.type === 'status_grid') {
+      const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+      if (cellsConfig && Array.isArray(cellsConfig)) {
+        return cellsConfig.some(cell => {
+          const cellContent = cell.content || cell.label || cell.value_format || '';
+          return cellContent && typeof cellContent === 'string' && cellContent.includes('{');
+        });
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -97,7 +114,36 @@ export class BaseOverlayUpdater {
    * @private
    */
   _overlayReferencesChangedDataSources(overlay, changedIds) {
-    const content = overlay._raw?.content || overlay.content || overlay.text || '';
+    // Check main overlay content
+    const mainContent = overlay._raw?.content || overlay.content || overlay.text || '';
+
+    let hasReference = false;
+
+    // Check main content
+    if (mainContent && this._contentReferencesChangedDataSources(mainContent, changedIds)) {
+      hasReference = true;
+    }
+
+    // For status grids, also check cell configurations - ENHANCED to check multiple sources
+    if (overlay.type === 'status_grid') {
+      const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+      if (cellsConfig && Array.isArray(cellsConfig)) {
+        hasReference = hasReference || cellsConfig.some(cell => {
+          const cellContent = cell.content || cell.label || cell.value_format || '';
+          return this._contentReferencesChangedDataSources(cellContent, changedIds);
+        });
+      }
+    }
+
+    return hasReference;
+  }
+
+  /**
+   * Check if content string references any of the changed DataSources
+   * @private
+   */
+  _contentReferencesChangedDataSources(content, changedIds) {
+    if (!content || typeof content !== 'string') return false;
 
     return changedIds.some(entityId => {
       if (this.systemsManager.dataSourceManager) {
@@ -109,9 +155,7 @@ export class BaseOverlayUpdater {
       }
       return false;
     });
-  }
-
-  /**
+  }  /**
    * Text overlay specific update logic
    * @private
    */
@@ -122,12 +166,36 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Status grid update logic (future implementation)
+   * Status grid update logic with template processing
    * @private
    */
   _updateStatusGrid(overlayId, overlay, sourceData) {
-    // TODO: Implement status grid template processing
-    console.log(`[BaseOverlayUpdater] Status grid update not yet implemented: ${overlayId}`);
+    console.log(`[BaseOverlayUpdater] Updating status grid ${overlayId} with template processing`);
+
+    // Import StatusGridRenderer for template processing
+    import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
+      const renderer = new StatusGridRenderer();
+
+      // Process cell templates with new DataSource data
+      const updatedCells = renderer.updateCellsWithData(overlay, overlay.finalStyle || {}, sourceData);
+
+      console.log(`[BaseOverlayUpdater] Processed ${updatedCells.length} cells for status grid ${overlayId}`);
+
+      // Update the status grid in the renderer
+      if (this.systemsManager.renderer && this.systemsManager.renderer.updateStatusGridWithTemplates) {
+        this.systemsManager.renderer.updateStatusGridWithTemplates(overlayId, sourceData);
+      } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateStatusGrid) {
+        this.systemsManager.renderer.updateStatusGrid(overlayId, updatedCells);
+      } else {
+        console.log(`[BaseOverlayUpdater] Status grid update method not yet implemented in AdvancedRenderer`);
+        // For now, trigger a general overlay update
+        if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+          this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+        }
+      }
+    }).catch(error => {
+      console.error(`[BaseOverlayUpdater] Failed to import StatusGridRenderer:`, error);
+    });
   }
 
   /**

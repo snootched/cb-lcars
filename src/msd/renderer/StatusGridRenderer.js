@@ -49,7 +49,7 @@ export class StatusGridRenderer {
     try {
       // Extract comprehensive styling
       const style = overlay.finalStyle || overlay.style || {};
-      const gridStyle = this._resolveStatusGridStyles(style, overlay.id);
+      const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
       // Get cell configurations
@@ -72,12 +72,12 @@ export class StatusGridRenderer {
    * Resolve comprehensive status grid styling from configuration
    * @private
    */
-  _resolveStatusGridStyles(style, overlayId) {
+  _resolveStatusGridStyles(style, overlayId, overlay = null) {
     // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
     const gridStyle = {
-      // Grid layout
+      // Grid layout - Following documentation schema: rows/columns are in style
       rows: Number(style.rows || 3),
       columns: Number(style.columns || 4),
       cell_width: Number(style.cell_width || style.cellWidth || 0), // 0 = auto
@@ -213,22 +213,126 @@ export class StatusGridRenderer {
    * @private
    */
   _renderEnhancedStatusGrid(overlay, x, y, width, height, cells, gridStyle, animationAttributes) {
-    return `<g data-overlay-id="${overlay.id}"
+    // Calculate cell dimensions
+    const cellWidth = gridStyle.cell_width || (width / gridStyle.columns);
+    const cellHeight = gridStyle.cell_height || (height / gridStyle.rows);
+    const gap = gridStyle.cell_gap;
+
+    // Start building the grid SVG
+    let gridMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="status_grid"
                 data-grid-rows="${gridStyle.rows}"
                 data-grid-columns="${gridStyle.columns}"
                 data-grid-features="${gridStyle.features.join(',')}"
                 data-animation-ready="${!!animationAttributes.hasAnimations}"
                 data-cascade-direction="${gridStyle.cascade_direction}"
-                transform="translate(${x}, ${y})">
-              <!-- Status Grid implementation placeholder -->
-              <rect width="${width}" height="${height}"
-                    fill="none" stroke="var(--lcars-blue)" stroke-dasharray="2,2" opacity="0.5"/>
-              <text x="${width / 2}" y="${height / 2}" text-anchor="middle"
-                    fill="var(--lcars-blue)" font-size="10" dominant-baseline="middle">
-                Status Grid (${cells.length} cells)
-              </text>
-            </g>`;
+                transform="translate(${x}, ${y})">`;
+
+    // Render grid background if enabled
+    if (gridStyle.show_grid_lines) {
+      gridMarkup += `<rect width="${width}" height="${height}"
+                     fill="none" stroke="${gridStyle.grid_line_color}"
+                     stroke-width="1" opacity="${gridStyle.grid_line_opacity}"/>`;
+    }
+
+    // Render each cell
+    cells.forEach(cell => {
+      const cellX = cell.col * (cellWidth + gap);
+      const cellY = cell.row * (cellHeight + gap);
+
+      // Determine cell color based on status
+      const cellColor = this._determineCellColor(cell, gridStyle);
+
+      // Render cell rectangle
+      gridMarkup += `<rect x="${cellX}" y="${cellY}"
+                     width="${cellWidth - gap}" height="${cellHeight - gap}"
+                     fill="${cellColor}"
+                     stroke="${gridStyle.border_color}"
+                     stroke-width="${gridStyle.border_width}"
+                     rx="${gridStyle.cell_radius}"
+                     data-cell-id="${cell.id}"
+                     data-cell-row="${cell.row}"
+                     data-cell-col="${cell.col}"/>`;
+
+      // Render cell label if enabled
+      if (gridStyle.show_labels && cell.label) {
+        const labelX = cellX + (cellWidth - gap) / 2;
+        const labelY = cellY + (cellHeight - gap) / 2 - (gridStyle.font_size / 4);
+
+        gridMarkup += `<text x="${labelX}" y="${labelY}"
+                       text-anchor="middle" dominant-baseline="middle"
+                       fill="${gridStyle.label_color}"
+                       font-size="${gridStyle.font_size * 0.7}"
+                       font-family="${gridStyle.font_family}"
+                       data-cell-label="${cell.id}">
+                       ${this._escapeXml(cell.label)}
+                     </text>`;
+      }
+
+      // Render cell content/value if enabled
+      if (gridStyle.show_values && cell.content) {
+        const valueX = cellX + (cellWidth - gap) / 2;
+        const valueY = cellY + (cellHeight - gap) / 2 + (gridStyle.font_size / 4);
+
+        gridMarkup += `<text x="${valueX}" y="${valueY}"
+                       text-anchor="middle" dominant-baseline="middle"
+                       fill="${gridStyle.value_color}"
+                       font-size="${gridStyle.font_size * 0.6}"
+                       font-family="${gridStyle.font_family}"
+                       data-cell-content="${cell.id}">
+                       ${this._escapeXml(cell.content || String(cell.data.value))}
+                     </text>`;
+      }
+    });
+
+    gridMarkup += '</g>';
+    return gridMarkup;
+  }
+
+  /**
+   * Determine cell color based on status and configuration
+   * @private
+   */
+  _determineCellColor(cell, gridStyle) {
+    // Check status ranges first
+    if (gridStyle.status_ranges && gridStyle.status_ranges.length > 0) {
+      const value = typeof cell.data.value === 'number' ? cell.data.value : parseFloat(cell.data.value);
+
+      if (!isNaN(value)) {
+        for (const range of gridStyle.status_ranges) {
+          if (value >= range.min && value <= range.max) {
+            return range.color;
+          }
+        }
+      }
+
+      // Check string/state matching
+      for (const range of gridStyle.status_ranges) {
+        if (range.value && cell.data.value === range.value) {
+          return range.color;
+        }
+        if (range.state && cell.data.state === range.state) {
+          return range.color;
+        }
+      }
+    }
+
+    // Fallback to default cell color
+    return gridStyle.cell_color;
+  }
+
+  /**
+   * Escape XML special characters
+   * @private
+   */
+  _escapeXml(text) {
+    if (typeof text !== 'string') return String(text);
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   _renderFallbackStatusGrid(overlay, x, y, width, height) {
@@ -261,9 +365,25 @@ export class StatusGridRenderer {
   _resolveCellConfigurations(overlay, gridStyle) {
     const cells = [];
 
+    // ENHANCED: Check multiple sources for cells configuration
+    const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+
+    console.log(`[StatusGridRenderer] Resolving cells for ${overlay.id}:`, {
+      hasCells: !!(cellsConfig && Array.isArray(cellsConfig)),
+      cellCount: cellsConfig?.length || 0,
+      cellsData: cellsConfig,
+      checkedSources: {
+        'overlay.cells': !!overlay.cells,
+        'overlay._raw?.cells': !!(overlay._raw?.cells),
+        'overlay.raw?.cells': !!(overlay.raw?.cells)
+      }
+    });
+
     // Use explicit cell definitions if provided
-    if (overlay.cells && Array.isArray(overlay.cells)) {
-      overlay.cells.forEach((cellConfig, index) => {
+    if (cellsConfig && Array.isArray(cellsConfig)) {
+      cellsConfig.forEach((cellConfig, index) => {
+        console.log(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
+
         const cell = {
           id: cellConfig.id || `cell-${index}`,
           row: cellConfig.position ? cellConfig.position[0] : Math.floor(index / gridStyle.columns),
@@ -271,9 +391,9 @@ export class StatusGridRenderer {
           index,
           source: cellConfig.source || cellConfig.data_source,
           label: cellConfig.label || `Cell ${index + 1}`,
-          content: this._resolveCellContent(cellConfig, gridStyle),
+          content: cellConfig.content || this._resolveCellContent(cellConfig, gridStyle),
           data: {
-            value: cellConfig.value || null,
+            value: cellConfig.value || cellConfig.content || null,
             state: cellConfig.state || 'unknown',
             timestamp: Date.now()
           },
@@ -281,9 +401,13 @@ export class StatusGridRenderer {
           animationDelay: index * (gridStyle.cascade_speed || 50),
           _raw: cellConfig._raw || cellConfig
         };
+
+        console.log(`[StatusGridRenderer] Created cell:`, cell);
         cells.push(cell);
       });
     } else {
+      console.log(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
+
       // Generate grid cells based on rows/columns
       const totalCells = gridStyle.rows * gridStyle.columns;
       for (let i = 0; i < totalCells; i++) {
@@ -309,7 +433,390 @@ export class StatusGridRenderer {
       }
     }
 
+    // Determine if we should process cell content based on availability of DataSources
+    // This is done only if cell content contains templates and we have active DataSources
+    const shouldProcessTemplates = cells.some(cell => {
+      const content = cell._raw?.content || cell.content || '';
+      return content.includes('{') && content.includes('}');
+    });
+
+    if (shouldProcessTemplates) {
+      console.log(`[StatusGridRenderer] Templates detected, processing initial content...`);
+
+      // Process each cell for initial template resolution
+      cells.forEach((cell, index) => {
+        const cellContent = cell._raw?.content || cell.content || '';
+
+        if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
+          // Try to process template immediately for initial render
+          const processedContent = this._processInitialTemplate(cellContent, gridStyle);
+
+          if (processedContent !== cellContent) {
+            console.log(`[StatusGridRenderer] Initial template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
+            cells[index] = {
+              ...cell,
+              content: processedContent,
+              _originalContent: cellContent // Store original for future updates
+            };
+          } else {
+            console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, keeping original`);
+          }
+        }
+      });
+    }
+
+    console.log(`[StatusGridRenderer] Final cells array:`, cells);
     return cells;
+  }
+
+  /**
+   * Resolve cell content with updated DataSource data (for dynamic updates)
+   * @public - Used by BaseOverlayUpdater for real-time status grid updates
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @param {Object} newDataSourceData - Updated DataSource data
+   * @returns {Array} Updated cell configurations with new data
+   */
+  updateCellsWithData(overlay, style, newDataSourceData) {
+    console.log(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
+
+    const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
+    const cells = this._resolveCellConfigurations(overlay, gridStyle);
+
+    // Update cells that have template content
+    const updatedCells = cells.map(cell => {
+      const cellContent = cell._raw?.content || cell._raw?.label || cell.label || '';
+
+        if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
+        console.log(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${cellContent}"`);
+
+        // ENHANCED: Get the correct DataSource for this specific cell
+        const cellDataSource = this._getDataSourceForCell(cellContent, newDataSourceData);
+        const processedContent = this._processTemplateWithData(cellContent, cellDataSource);          // Ensure we don't return [object Object]
+          const safeContent = (typeof processedContent === 'object') ?
+            JSON.stringify(processedContent) : String(processedContent);
+
+          return {
+            ...cell,
+            label: processedContent === cellContent ? cell.label : safeContent, // Only update label if content changed
+            content: safeContent,
+            data: {
+              ...cell.data,
+              value: this._extractValueFromTemplate(safeContent, newDataSourceData),
+              timestamp: Date.now()
+            },
+            lastUpdate: Date.now()
+          };
+        }      return cell;
+    });
+
+    return updatedCells;
+  }
+
+  /**
+   * Get the appropriate DataSource data for a specific cell template
+   * @private
+   * @param {string} cellContent - Cell template content
+   * @param {Object} changedDataSourceData - The DataSource data that changed
+   * @returns {Object} Appropriate DataSource data for this cell
+   */
+  _getDataSourceForCell(cellContent, changedDataSourceData) {
+    // Extract DataSource reference from template (e.g., "test_cpu_temp" from "{test_cpu_temp:.1%}")
+    const templateMatch = cellContent.match(/\{([^}]+)\}/);
+    if (!templateMatch) return changedDataSourceData;
+
+    const reference = templateMatch[1];
+    // Split by colon first to handle format specs, then by dot to get DataSource name
+    const [pathPart] = reference.split(':');
+    const dataSourceName = pathPart.split('.')[0]; // Get first part before dot
+
+    console.log(`[StatusGridRenderer] Cell needs DataSource: ${dataSourceName}`);
+
+    // If this cell references the changed DataSource, use the provided data
+    if (changedDataSourceData && dataSourceName === 'temperature_enhanced') {
+      return changedDataSourceData;
+    }
+
+    // Otherwise, try to get the correct DataSource from the manager
+    if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
+      const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
+      const source = dataSourceManager.getSource(dataSourceName);
+
+      if (source) {
+        const sourceData = source.getCurrentData();
+        console.log(`[StatusGridRenderer] Found DataSource ${dataSourceName}: value=${sourceData?.v}, unit="${sourceData?.unit_of_measurement || 'none'}"`);
+        return sourceData;
+      } else {
+        console.warn(`[StatusGridRenderer] DataSource ${dataSourceName} not found`);
+      }
+    }
+
+    // Fallback: return the changed data (might not work for this cell)
+    return changedDataSourceData;
+  }  /**
+   * Process template strings with specific DataSource data (similar to TextOverlayRenderer)
+   * @private
+   * @param {string} templateString - Template string with placeholders
+   * @param {Object} dataSourceData - DataSource data to use for resolution
+   * @returns {string} Processed template string
+   */
+  _processTemplateWithData(templateString, dataSourceData) {
+    console.log(`[StatusGridRenderer] Processing template: "${templateString}"`);
+    console.log(`[StatusGridRenderer] With DataSource data:`, dataSourceData);
+
+    return templateString.replace(/\{([^}]+)\}/g, (match, reference) => {
+      console.log(`[StatusGridRenderer] Processing reference: "${reference}"`);
+
+      // Handle conditional expressions (e.g., "value > 70 ? 'HOT' : 'OK'")
+      if (reference.includes('?') && reference.includes(':')) {
+        return this._processConditionalExpression(reference, dataSourceData);
+      }
+
+      // Parse the reference (e.g., "temperature_enhanced.transformations.celsius:.1f")
+      const [fullPath, formatSpec] = reference.split(':');
+      const pathParts = fullPath.split('.');
+
+      console.log(`[StatusGridRenderer] Path parts:`, pathParts);
+      console.log(`[StatusGridRenderer] Format spec:`, formatSpec);
+
+      // Navigate the data structure
+      let value = dataSourceData;
+
+      // For simple DataSources (like test_cpu_temp), use the raw value directly
+      if (pathParts.length === 1) {
+        // Simple DataSource reference like {test_cpu_temp}
+        value = dataSourceData?.v || dataSourceData?.value || dataSourceData;
+      } else {
+        // Complex path like {temperature_enhanced.transformations.celsius}
+        for (const part of pathParts.slice(1)) { // Skip the first part (source name)
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            console.warn(`[StatusGridRenderer] Path not found: ${fullPath}, returning original template`);
+            return match; // Return original template if path doesn't exist
+          }
+        }
+      }
+
+      console.log(`[StatusGridRenderer] Resolved value:`, value);
+
+      // Apply formatting if specified
+      if (formatSpec && value !== undefined && value !== null) {
+        // ENHANCED: Pass unit_of_measurement for intelligent formatting
+        const formattedValue = this._applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
+        console.log(`[StatusGridRenderer] Formatted value: "${formattedValue}"`);
+        return formattedValue;
+      }
+
+      return String(value);
+    });
+  }
+
+  /**
+   * Process conditional expressions like "temperature > 70 ? 'HOT' : 'OK'"
+   * @private
+   */
+  _processConditionalExpression(expression, dataSourceData) {
+    try {
+      // Simple regex to parse conditional: "path operator value ? trueValue : falseValue"
+      const conditionMatch = expression.match(/^(.+?)\s*([><=!]+)\s*(.+?)\s*\?\s*'(.+?)'\s*:\s*'(.+?)'$/);
+
+      if (!conditionMatch) {
+        console.warn(`[StatusGridRenderer] Could not parse conditional: ${expression}`);
+        return expression;
+      }
+
+      const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
+
+      // Get the left side value from data
+      const pathParts = leftPath.trim().split('.');
+      let leftVal = dataSourceData;
+      for (const part of pathParts.slice(1)) { // Skip source name
+        if (leftVal && typeof leftVal === 'object' && part in leftVal) {
+          leftVal = leftVal[part];
+        } else {
+          console.warn(`[StatusGridRenderer] Conditional path not found: ${leftPath}`);
+          return expression;
+        }
+      }
+
+      // Parse right side value
+      const rightVal = parseFloat(rightValue.trim()) || 0;
+
+      // Evaluate condition
+      let result = false;
+      switch (operator.trim()) {
+        case '>': result = leftVal > rightVal; break;
+        case '<': result = leftVal < rightVal; break;
+        case '>=': result = leftVal >= rightVal; break;
+        case '<=': result = leftVal <= rightVal; break;
+        case '==': result = leftVal == rightVal; break;
+        case '!=': result = leftVal != rightVal; break;
+        default:
+          console.warn(`[StatusGridRenderer] Unknown operator: ${operator}`);
+          return expression;
+      }
+
+      const finalValue = result ? trueValue : falseValue;
+      console.log(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
+      return finalValue;
+
+    } catch (error) {
+      console.error(`[StatusGridRenderer] Error in conditional expression:`, error);
+      return expression;
+    }
+  }
+
+  /**
+   * Apply number formatting to a value with unit-aware intelligence
+   * @private
+   * @param {number} value - Value to format
+   * @param {string} formatSpec - Format specification like ".1f" or ".1%"
+   * @param {string} [unitOfMeasurement] - Original entity's unit_of_measurement
+   * @returns {string} Formatted value
+   */
+  _applyNumberFormat(value, formatSpec, unitOfMeasurement) {
+    const num = Number(value);
+    if (isNaN(num)) return String(value);
+
+    if (formatSpec.endsWith('%')) {
+      const digits = parseInt(formatSpec.match(/\.(\d+)%/)?.[1] || '0');
+
+      // INTELLIGENT: Check if the source entity already has % units
+      if (unitOfMeasurement === '%') {
+        // Already a percentage (0-100), don't multiply by 100
+        console.log(`[StatusGridRenderer] Unit-aware formatting: ${num} with unit="${unitOfMeasurement}" → ${num.toFixed(digits)}% (no conversion)`);
+        return `${num.toFixed(digits)}%`;
+      } else {
+        // Decimal value (0.0-1.0) or other unit, multiply by 100
+        console.log(`[StatusGridRenderer] Unit-aware formatting: ${num} with unit="${unitOfMeasurement || 'none'}" → ${(num * 100).toFixed(digits)}% (×100 conversion)`);
+        return `${(num * 100).toFixed(digits)}%`;
+      }
+    } else if (formatSpec.endsWith('f')) {
+      const digits = parseInt(formatSpec.match(/\.(\d+)f/)?.[1] || '0');
+      return num.toFixed(digits);
+    }
+
+    return String(value);
+  }
+
+  /**
+   * Extract numeric value from processed template for status calculations
+   * @private
+   */
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
+    }
+
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
+    }
+
+    // Fallback to processed content as string
+    return processedContent;
+  }
+
+  /**
+   * Resolve cell content with template processing for initial render
+   * @private
+   * @param {Object} cell - Cell configuration
+   * @param {Object} style - Style configuration
+   * @returns {Object} Cell with processed content if templates are present
+   */
+  _resolveCellContent(cell, style) {
+    const cellContent = cell._raw?.content || cell._raw?.label || cell.label || '';
+
+    // If content contains templates, try to process them immediately
+    if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
+      console.log(`[StatusGridRenderer] Processing initial template for cell ${cell.id}: "${cellContent}"`);
+
+      // Try to get DataSource data for initial processing
+      const cellDataSource = this._getDataSourceForInitialRender(cellContent);
+
+      if (cellDataSource) {
+        const processedContent = this._processTemplateWithData(cellContent, cellDataSource);
+
+        // Check if processing actually resolved the template
+        if (processedContent !== cellContent) {
+          console.log(`[StatusGridRenderer] Initial template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
+          return {
+            ...cell,
+            content: processedContent,
+            _originalContent: cellContent // Store original for future updates
+          };
+        } else {
+          console.log(`[StatusGridRenderer] Initial template not resolved for ${cell.id}, keeping original`);
+        }
+      } else {
+        console.log(`[StatusGridRenderer] No DataSource available for initial processing of ${cell.id}`);
+      }
+    }
+
+    return cell;
+  }
+
+  /**
+   * Get DataSource data for initial render (non-blocking)
+   * @private
+   * @param {string} cellContent - Cell template content
+   * @returns {Object|null} DataSource data if available, null otherwise
+   */
+  _getDataSourceForInitialRender(cellContent) {
+    try {
+      const templateMatch = cellContent.match(/\{([^}]+)\}/);
+      if (!templateMatch) return null;
+
+      const reference = templateMatch[1];
+      const [pathPart] = reference.split(':');
+      const dataSourceName = pathPart.split('.')[0];
+
+      if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
+        const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
+        const source = dataSourceManager.getSource(dataSourceName);
+
+        if (source) {
+          const sourceData = source.getCurrentData();
+          // Only return data if we have a valid value (not null/undefined)
+          if (sourceData?.v !== null && sourceData?.v !== undefined) {
+            console.log(`[StatusGridRenderer] Initial DataSource ${dataSourceName} available: value=${sourceData.v}, unit="${sourceData.unit_of_measurement || 'none'}"`);
+            return sourceData;
+          }
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`[StatusGridRenderer] Error getting initial DataSource:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Process template for initial render (similar to TextOverlayRenderer approach)
+   * @private
+   * @param {string} cellContent - Cell template content
+   * @param {Object} gridStyle - Grid style configuration
+   * @returns {string} Processed content or original if not resolvable
+   */
+  _processInitialTemplate(cellContent, gridStyle) {
+    try {
+      // Try to get DataSource data for initial processing
+      const cellDataSource = this._getDataSourceForInitialRender(cellContent);
+
+      if (cellDataSource && cellDataSource.v !== null && cellDataSource.v !== undefined) {
+        const processedContent = this._processTemplateWithData(cellContent, cellDataSource);
+        return processedContent;
+      }
+
+      return cellContent; // Return original if DataSource not available
+    } catch (error) {
+      console.warn(`[StatusGridRenderer] Error processing initial template:`, error);
+      return cellContent;
+    }
   }
 }
 

@@ -6,6 +6,7 @@
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
 import { SparklineRenderer } from './SparklineRenderer.js';
 import { LineOverlayRenderer } from './LineOverlayRenderer.js';
+import { StatusGridRenderer } from './StatusGridRenderer.js';
 import { RendererUtils } from './RendererUtils.js';
 
 export class AdvancedRenderer {
@@ -448,13 +449,15 @@ export class AdvancedRenderer {
         // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
         console.log('[AdvancedRenderer] Control overlay detected, skipping SVG rendering:', overlay.id);
         return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
+      case 'status_grid':
+        return StatusGridRenderer.render(overlay, anchors, viewBox);
       default:
         console.warn(`[AdvancedRenderer] Unknown overlay type: ${overlay.type}`);
         return '';
     }
   }
 
-  injectSvgContent(svgContent) {
+    injectSvgContent(svgContent) {
     const svg = this.mountEl.querySelector('svg');
     if (!svg) {
       console.warn('[AdvancedRenderer] No SVG element found for overlay injection');
@@ -546,6 +549,10 @@ export class AdvancedRenderer {
       case 'text':
         console.log(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
         this.updateTextOverlay(overlayId, sourceData);
+        break;
+      case 'status_grid':
+        console.log(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);
+        this.updateStatusGridWithTemplates(overlayId, sourceData);
         break;
       default:
         console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
@@ -772,6 +779,161 @@ export class AdvancedRenderer {
       }
     } catch (error) {
       console.error(`[AdvancedRenderer] Error updating text decorations for ${overlayId}:`, error);
+    }
+  }
+
+  /**
+   * Update status grid cells with new data (similar to updateTextOverlay)
+   * @param {string} overlayId - Status grid overlay ID
+   * @param {Array} updatedCells - Updated cell configurations
+   * @public
+   */
+  updateStatusGrid(overlayId, updatedCells) {
+    console.log(`[AdvancedRenderer] Updating status grid ${overlayId} with ${updatedCells.length} cells`);
+
+    // Find the status grid element in the DOM
+    const gridElement = this.mountEl?.querySelector(`[data-overlay-id="${overlayId}"]`);
+    if (!gridElement) {
+      console.warn(`[AdvancedRenderer] Status grid element not found: ${overlayId}`);
+      return;
+    }
+
+    // For now, log the update and add a simple visual indication
+    console.log(`[AdvancedRenderer] Status grid ${overlayId} cells updated:`, updatedCells);
+
+    // Add visual indication that the grid was updated
+    const timestamp = new Date().toISOString();
+    gridElement.setAttribute('data-last-update', timestamp);
+
+    // Future: Implement proper cell-by-cell updates
+    // This would involve updating individual cell elements within the grid
+    // For now, we'll trigger a re-render of the entire overlay if needed
+
+    console.log(`[AdvancedRenderer] ✅ Status grid ${overlayId} update placeholder completed`);
+  }
+
+  /**
+   * Enhanced status grid update method with template processing
+   * @param {string} overlayId - Status grid overlay ID
+   * @param {Object} sourceData - New DataSource data
+   * @public
+   */
+  updateStatusGridWithTemplates(overlayId, sourceData) {
+    console.log(`[AdvancedRenderer] Updating status grid ${overlayId} with DataSource data`);
+
+    try {
+      // Get the overlay configuration to resolve new content
+      const resolvedModel = this.systemsManager?.rulesEngine?.getResolvedModel?.() ||
+                           this.systemsManager?.getResolvedModel?.() ||
+                           window.__msdDebug?.pipelineInstance?.getResolvedModel?.();
+
+      const overlay = resolvedModel?.overlays?.find(o => o.id === overlayId);
+      if (!overlay) {
+        console.warn(`[AdvancedRenderer] Status grid overlay configuration not found: ${overlayId}`);
+        return;
+      }
+
+      // Import the StatusGridRenderer for content resolution
+      import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
+        const renderer = new StatusGridRenderer();
+
+        // Get updated cells with processed template content
+        const style = overlay.finalStyle || overlay.style || {};
+        const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
+
+        console.log(`[AdvancedRenderer] Processing ${updatedCells.length} updated cells for grid ${overlayId}`);
+
+        // Update each cell's content in the DOM
+        updatedCells.forEach(cell => {
+          const cellContentElement = this.mountEl?.querySelector(`[data-cell-content="${cell.id}"]`);
+
+          if (cellContentElement && cell.content !== undefined) {
+            const oldContent = cellContentElement.textContent?.trim();
+            let newContent = cell.content;
+
+            // Handle [object Object] issue - ensure content is always a string
+            if (typeof newContent === 'object') {
+              console.warn(`[AdvancedRenderer] Cell ${cell.id} has object content, converting to string`);
+              newContent = newContent !== null ? String(newContent) : 'N/A';
+            }
+
+            // Ensure newContent is a string
+            newContent = String(newContent);
+
+            if (newContent !== oldContent) {
+              console.log(`[AdvancedRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
+              cellContentElement.textContent = newContent;
+            }
+          }
+        });
+
+        console.log(`[AdvancedRenderer] ✅ Status grid ${overlayId} updated successfully`);
+
+      }).catch(error => {
+        console.error(`[AdvancedRenderer] Failed to update status grid ${overlayId}:`, error);
+      });
+
+    } catch (error) {
+      console.error(`[AdvancedRenderer] Error updating status grid ${overlayId}:`, error);
+    }
+  }
+
+  /**
+   * Enhanced template detection that supports multiple overlay types
+   * @param {Object} overlay - Overlay configuration
+   * @returns {boolean} True if overlay contains template content
+   * @private
+   */
+  _hasTemplateContentEnhanced(overlay) {
+    if (!overlay) return false;
+
+    // Handle different overlay types
+    switch (overlay.type) {
+      case 'text':
+        // Text overlays: check content property
+        const textContent = overlay.content || overlay._raw?.content || overlay.raw?.content;
+        return textContent && typeof textContent === 'string' && textContent.includes('{');
+
+      case 'status_grid':
+        // Status grids: check cells for template content
+        const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+        if (cellsConfig && Array.isArray(cellsConfig)) {
+          return cellsConfig.some(cell =>
+            (cell.content && typeof cell.content === 'string' && cell.content.includes('{')) ||
+            (cell.label && typeof cell.label === 'string' && cell.label.includes('{'))
+          );
+        }
+        return false;
+
+      default:
+        // Fallback: check common content properties
+        const content = overlay.content || overlay._raw?.content || overlay.raw?.content;
+        return content && typeof content === 'string' && content.includes('{');
+    }
+  }
+
+  /**
+   * Initialize enhanced template detection for status grids
+   * Called during renderer initialization
+   * @private
+   */
+  _initializeEnhancedTemplateDetection() {
+    // Monkey-patch BaseOverlayUpdater to support status grid template detection
+    const overlayUpdater = this.systemsManager?.overlayUpdater;
+
+    if (overlayUpdater && overlayUpdater._hasTemplateContent) {
+      console.log('[AdvancedRenderer] Enhancing BaseOverlayUpdater template detection for status grids');
+
+      // Store original method
+      const originalHasTemplateContent = overlayUpdater._hasTemplateContent.bind(overlayUpdater);
+
+      // Replace with enhanced version
+      overlayUpdater._hasTemplateContent = (overlay) => {
+        // Use our enhanced detection method
+        return this._hasTemplateContentEnhanced(overlay);
+      };
+
+      console.log('[AdvancedRenderer] ✅ Enhanced template detection activated');
     }
   }
 }
