@@ -7,17 +7,23 @@ export async function computeCanonicalChecksum(obj) {
   const cleaned = stripMetaFields(obj);
   const stable = stableStringify(cleaned);
 
-  // Use Web Crypto API (available in browsers and Node 16+)
-  const encoder = new TextEncoder();
-  const data = encoder.encode(stable);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = new Uint8Array(hashBuffer);
-  const hashHex = Array.from(hashArray)
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  // Check if we're in a secure context (HTTPS or localhost)
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    // Use Web Crypto API (available in browsers and Node 16+)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(stable);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = new Uint8Array(hashBuffer);
+    const hashHex = Array.from(hashArray)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
 
-  // Return first 10 characters for readability
-  return hashHex.substring(0, 10);
+    // Return first 10 characters for readability
+    return hashHex.substring(0, 10);
+  } else {
+    // Fallback for non-secure contexts (HTTP)
+    return simpleHash(stable).substring(0, 10);
+  }
 }
 
 function stripMetaFields(obj) {
@@ -64,6 +70,17 @@ function stableStringify(obj) {
   });
 
   return `{${pairs.join(',')}}`;
+}
+
+// Simple hash function for non-secure contexts
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(16);
 }
 
 /**
