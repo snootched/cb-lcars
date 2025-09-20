@@ -286,7 +286,7 @@ export class TextOverlayRenderer {
 
     // If we have basic content and it contains template strings, process them
     if (content && typeof content === 'string' && content.includes('{')) {
-      content = this._processEnhancedTemplateStrings(content);
+      content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');
       return content;
     }
 

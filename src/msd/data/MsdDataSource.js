@@ -310,7 +310,32 @@ export class MsdDataSource {
           transformations: this._getTransformationData(), // Convert Map to Object
           aggregations: this._getAggregationData(),       // Convert Map to Object
           entity: this.cfg.entity,
-          historyReady: this._stats.historyLoaded > 0
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isInitialEmission: true // NEW: Flag to indicate this is initial data
+        };
+
+        this.subscribers.forEach(callback => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            console.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+          }
+        });
+      } else {
+        // Even if no buffer data, emit initial structure for consistency
+        console.log(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        const emitData = {
+          t: null,
+          v: null,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(),
+          aggregations: this._getAggregationData(),
+          entity: this.cfg.entity,
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isInitialEmission: true
         };
 
         this.subscribers.forEach(callback => {
@@ -910,26 +935,6 @@ export class MsdDataSource {
       }
     };
   }
-
-  /**
-   * Get current data with enhanced metadata
-   * @returns {Object|null} Current data object or null
-   */
-  /* OLD
-  getCurrentData() {
-    const lastPoint = this.buffer.last();
-    return {
-      t: lastPoint?.t,
-      v: lastPoint?.v,
-      buffer: this.buffer,
-      stats: { ...this._stats },
-      entity: this.cfg.entity,
-      historyReady: this._stats.historyLoaded > 0,
-      bufferSize: this.buffer.size(),
-      started: this._started
-    };
-  }
-  */
 
   /**
    * Get current data with enhanced metadata

@@ -218,6 +218,54 @@ export class BaseOverlayUpdater {
   }
 
   /**
+   * Enhanced overlay update with initial data handling for Status Grid
+   * @private
+   * @param {Object} overlay - Overlay to update
+   * @param {Object} data - Data from DataSource
+   */
+  static _updateOverlayWithData(overlay, data) {
+    const currentTimestamp = Date.now();
+
+    // ENHANCED: Handle initial data differently than ongoing updates
+    const isInitialData = data.historyReady && (!overlay.lastUpdate || overlay.lastUpdate === 0);
+
+    if (isInitialData) {
+      console.log(`[BaseOverlayUpdater] 🚀 Processing INITIAL data for ${overlay.type} overlay ${overlay.id}`);
+    }
+
+    // ENHANCED: Update based on overlay type with initial data consideration
+    if (overlay.type === 'text') {
+      TextOverlayRenderer.updateTextOverlay(overlay, data.entity, data.v, currentTimestamp, data.unit_of_measurement);
+      console.log(`[BaseOverlayUpdater] ✅ Updated TEXT overlay ${overlay.id} with value: ${data.v}`);
+
+    } else if (overlay.type === 'status_grid') {
+      // For Status Grid, ensure initial data triggers proper rendering
+      StatusGridRenderer.updateCellsWithData(overlay, data);
+
+      if (isInitialData) {
+        console.log(`[BaseOverlayUpdater] 🎯 STATUS GRID ${overlay.id} received initial data - forcing re-render if needed`);
+        // Trigger a re-render to ensure templates are processed with new data
+        overlay._needsRerender = true;
+      }
+
+      console.log(`[BaseOverlayUpdater] ✅ Updated STATUS GRID overlay ${overlay.id} with data from entity: ${data.entity}`);
+
+    } else if (overlay.type === 'sparkline') {
+      SparklineRenderer.updateSparklineData(overlay, data);
+      console.log(`[BaseOverlayUpdater] ✅ Updated SPARKLINE overlay ${overlay.id} with buffer data`);
+
+    } else {
+      // Fallback for other overlay types
+      overlay.data = data;
+      overlay.lastUpdate = currentTimestamp;
+      console.log(`[BaseOverlayUpdater] ✅ Updated ${overlay.type} overlay ${overlay.id} with generic data`);
+    }
+
+    // Set lastUpdate timestamp
+    overlay.lastUpdate = currentTimestamp;
+  }
+
+  /**
    * Helper methods
    * @private
    */

@@ -208,15 +208,53 @@ export class DataSourceMixin {
    * @returns {string} Processed content with resolved references
    */
   static processEnhancedTemplateStrings(content, rendererName = 'Renderer') {
+    // Use the new unified method with fallback to original content for backwards compatibility
+    return this.processEnhancedTemplateStringsWithFallback(content, rendererName, true);
+  }
+
+  /**
+   * Process template for initial render with unified strategy
+   * @param {string} content - Template string with {references}
+   * @param {string} rendererName - Name of the renderer for logging
+   * @returns {string} Processed content, gracefully handling unavailable DataSources
+   */
+  static processTemplateForInitialRender(content, rendererName = 'Renderer') {
+    if (!content || typeof content !== 'string' || !content.includes('{')) {
+      return content;
+    }
+
+    console.log(`[${rendererName}] Processing template for initial render: "${content}"`);
+
+    // Try to process templates, but gracefully fall back to original content
+    const processed = this.processEnhancedTemplateStringsWithFallback(content, rendererName, true);
+
+    // If processing didn't change the content, DataSources might not be ready
+    if (processed === content) {
+      console.log(`[${rendererName}] Templates not resolved during initial render, will update when DataSources become available`);
+    }
+
+    return processed;
+  }
+
+  /**
+   * Enhanced template string processing with better fallback handling
+   * @param {string} content - Template string with {references}
+   * @param {string} rendererName - Name of the renderer for logging
+   * @param {boolean} fallbackToOriginal - Whether to return original content if DataSources unavailable
+   * @returns {string} Processed content with resolved references
+   */
+  static processEnhancedTemplateStringsWithFallback(content, rendererName = 'Renderer', fallbackToOriginal = true) {
     try {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
         // DataSourceManager not available - this is normal during initial rendering
-        return content; // Return original content
+        console.log(`[${rendererName}] DataSourceManager not available, ${fallbackToOriginal ? 'returning original content' : 'returning null'}`);
+        return fallbackToOriginal ? content : null;
       }
 
       // Enhanced template pattern to capture DataSource references and formatting
-      return content.replace(/\{([^}]+)\}/g, (match, reference) => {
+      let hasUnresolvedTemplates = false;
+      const processedContent = content.replace(/\{([^}]+)\}/g, (match, reference) => {
         try {
           // Parse reference and optional formatting: {source.transformations.key:.2f}
           const [dataSourceRef, formatSpec] = reference.split(':');
@@ -226,8 +264,9 @@ export class DataSourceMixin {
           const dataSource = dataSourceManager.getSource(sourceName);
 
           if (!dataSource) {
-            console.warn(`[${rendererName}] DataSource '${sourceName}' not found - showing loading state`);
-            return `[Loading: ${sourceName}]`;
+            console.warn(`[${rendererName}] DataSource '${sourceName}' not found`);
+            hasUnresolvedTemplates = true;
+            return fallbackToOriginal ? match : `[Source: ${sourceName} not found]`;
           }
 
           const currentData = dataSource.getCurrentData();
@@ -262,8 +301,9 @@ export class DataSourceMixin {
           }
 
           if (value === null || value === undefined) {
-            console.warn(`[${rendererName}] No value found for reference '${reference}' - showing loading state`);
-            return `[Loading...]`;
+            console.warn(`[${rendererName}] No value found for reference '${reference}'`);
+            hasUnresolvedTemplates = true;
+            return fallbackToOriginal ? match : `[No data: ${reference}]`;
           }
 
           // Apply formatting if specified
@@ -275,11 +315,21 @@ export class DataSourceMixin {
 
         } catch (error) {
           console.error(`[${rendererName}] Template processing error for '${reference}':`, error);
-          return match; // Return original on error
+          hasUnresolvedTemplates = true;
+          return fallbackToOriginal ? match : `[Error: ${reference}]`;
         }
-      });    } catch (error) {
+      });
+
+      // Log whether templates were successfully resolved
+      if (!hasUnresolvedTemplates && processedContent !== content) {
+        console.log(`[${rendererName}] Successfully resolved all templates in: "${content}" → "${processedContent}"`);
+      }
+
+      return processedContent;
+
+    } catch (error) {
       console.error(`[${rendererName}] Enhanced template processing failed:`, error);
-      return content; // Fallback to original content
+      return fallbackToOriginal ? content : null;
     }
   }
 

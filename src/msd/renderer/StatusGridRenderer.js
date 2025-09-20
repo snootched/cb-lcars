@@ -358,7 +358,23 @@ export class StatusGridRenderer {
    * @private
    */
   _resolveCellContent(cell, style) {
-    return DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
+    // UNIFIED: Use DataSourceMixin for consistent content resolution following Text Overlay pattern
+    console.log(`[StatusGridRenderer] Resolving content for cell:`, {
+      cellId: cell.id || 'unknown',
+      hasContent: !!cell.content,
+      hasRawContent: !!cell._raw?.content,
+      hasLabel: !!cell.label,
+      content: cell.content,
+      rawContent: cell._raw?.content,
+      label: cell.label
+    });
+
+    // Use DataSourceMixin's unified content resolution with template processing
+    const resolvedContent = DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
+
+    console.log(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
+
+    return resolvedContent;
   }
 
   // Cell configuration resolution with DataSource integration
@@ -384,6 +400,9 @@ export class StatusGridRenderer {
       cellsConfig.forEach((cellConfig, index) => {
         console.log(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
 
+        // UNIFIED: Use standardized content resolution following Text Overlay pattern
+        const cellContent = this._resolveCellContent(cellConfig, gridStyle);
+
         const cell = {
           id: cellConfig.id || `cell-${index}`,
           row: cellConfig.position ? cellConfig.position[0] : Math.floor(index / gridStyle.columns),
@@ -391,9 +410,9 @@ export class StatusGridRenderer {
           index,
           source: cellConfig.source || cellConfig.data_source,
           label: cellConfig.label || `Cell ${index + 1}`,
-          content: cellConfig.content || this._resolveCellContent(cellConfig, gridStyle),
+          content: cellContent, // Use unified content resolution
           data: {
-            value: cellConfig.value || cellConfig.content || null,
+            value: cellConfig.value || cellContent || null,
             state: cellConfig.state || 'unknown',
             timestamp: Date.now()
           },
@@ -402,8 +421,11 @@ export class StatusGridRenderer {
           _raw: cellConfig._raw || cellConfig
         };
 
-        console.log(`[StatusGridRenderer] Created cell:`, cell);
-        cells.push(cell);
+        // ENHANCED: Apply template processing for initial render if needed
+        const processedCell = this._resolveCellContentForInitialRender(cell, gridStyle);
+
+        console.log(`[StatusGridRenderer] Created cell:`, processedCell);
+        cells.push(processedCell);
       });
     } else {
       console.log(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
@@ -431,38 +453,6 @@ export class StatusGridRenderer {
           animationDelay: i * (gridStyle.cascade_speed || 50)
         });
       }
-    }
-
-    // Determine if we should process cell content based on availability of DataSources
-    // This is done only if cell content contains templates and we have active DataSources
-    const shouldProcessTemplates = cells.some(cell => {
-      const content = cell._raw?.content || cell.content || '';
-      return content.includes('{') && content.includes('}');
-    });
-
-    if (shouldProcessTemplates) {
-      console.log(`[StatusGridRenderer] Templates detected, processing initial content...`);
-
-      // Process each cell for initial template resolution
-      cells.forEach((cell, index) => {
-        const cellContent = cell._raw?.content || cell.content || '';
-
-        if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-          // Try to process template immediately for initial render
-          const processedContent = this._processInitialTemplate(cellContent, gridStyle);
-
-          if (processedContent !== cellContent) {
-            console.log(`[StatusGridRenderer] Initial template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
-            cells[index] = {
-              ...cell,
-              content: processedContent,
-              _originalContent: cellContent // Store original for future updates
-            };
-          } else {
-            console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, keeping original`);
-          }
-        }
-      });
     }
 
     console.log(`[StatusGridRenderer] Final cells array:`, cells);
@@ -727,32 +717,26 @@ export class StatusGridRenderer {
    * @param {Object} style - Style configuration
    * @returns {Object} Cell with processed content if templates are present
    */
-  _resolveCellContent(cell, style) {
-    const cellContent = cell._raw?.content || cell._raw?.label || cell.label || '';
+  _resolveCellContentForInitialRender(cell, style) {
+    // UNIFIED: Use DataSourceMixin for consistent template processing
+    const cellContent = cell._raw?.content || cell._raw?.label || cell.label || cell.content || '';
 
-    // If content contains templates, try to process them immediately
+    // If content contains templates, process them using unified method
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-      console.log(`[StatusGridRenderer] Processing initial template for cell ${cell.id}: "${cellContent}"`);
+      console.log(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
 
-      // Try to get DataSource data for initial processing
-      const cellDataSource = this._getDataSourceForInitialRender(cellContent);
+      // Use unified template processing for initial render
+      const processedContent = DataSourceMixin.processTemplateForInitialRender(cellContent, 'StatusGridRenderer');
 
-      if (cellDataSource) {
-        const processedContent = this._processTemplateWithData(cellContent, cellDataSource);
-
-        // Check if processing actually resolved the template
-        if (processedContent !== cellContent) {
-          console.log(`[StatusGridRenderer] Initial template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
-          return {
-            ...cell,
-            content: processedContent,
-            _originalContent: cellContent // Store original for future updates
-          };
-        } else {
-          console.log(`[StatusGridRenderer] Initial template not resolved for ${cell.id}, keeping original`);
-        }
+      if (processedContent !== cellContent) {
+        console.log(`[StatusGridRenderer] Template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
+        return {
+          ...cell,
+          content: processedContent,
+          _originalContent: cellContent // Store original for future updates
+        };
       } else {
-        console.log(`[StatusGridRenderer] No DataSource available for initial processing of ${cell.id}`);
+        console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, will update when DataSources become available`);
       }
     }
 
@@ -760,39 +744,23 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Get DataSource data for initial render (non-blocking)
+   * Extract numeric value from processed template for status calculations
    * @private
-   * @param {string} cellContent - Cell template content
-   * @returns {Object|null} DataSource data if available, null otherwise
    */
-  _getDataSourceForInitialRender(cellContent) {
-    try {
-      const templateMatch = cellContent.match(/\{([^}]+)\}/);
-      if (!templateMatch) return null;
-
-      const reference = templateMatch[1];
-      const [pathPart] = reference.split(':');
-      const dataSourceName = pathPart.split('.')[0];
-
-      if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
-        const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
-        const source = dataSourceManager.getSource(dataSourceName);
-
-        if (source) {
-          const sourceData = source.getCurrentData();
-          // Only return data if we have a valid value (not null/undefined)
-          if (sourceData?.v !== null && sourceData?.v !== undefined) {
-            console.log(`[StatusGridRenderer] Initial DataSource ${dataSourceName} available: value=${sourceData.v}, unit="${sourceData.unit_of_measurement || 'none'}"`);
-            return sourceData;
-          }
-        }
-      }
-
-      return null;
-    } catch (error) {
-      console.warn(`[StatusGridRenderer] Error getting initial DataSource:`, error);
-      return null;
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
     }
+
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
+    }
+
+    // Fallback to processed content as string
+    return processedContent;
   }
 
   /**
