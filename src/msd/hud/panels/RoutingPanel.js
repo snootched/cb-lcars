@@ -18,6 +18,233 @@ export class RoutingPanel {
       minCostFocused: false,
       maxCostFocused: false
     };
+
+    // ADDED: Set up global helper function for route analysis
+    this._setupGlobalHelpers();
+  }
+
+  // ADDED: Setup global helper functions
+  _setupGlobalHelpers() {
+    // Global route analysis function that includes both console and popup
+    window.__msdAnalyzeRoute = (routeId) => {
+      console.log('[RoutingPanel] Global analyze for:', routeId);
+
+      const routing = window.__msdDebug?.routing;
+      if (!routing?.inspect) {
+        console.warn('[RoutingPanel] No routing inspector available');
+        return;
+      }
+
+      const analysis = routing.inspect(routeId);
+
+      // Console logging (same as before)
+      console.group(`🔍 Route Analysis: ${routeId}`);
+
+      if (analysis.meta) {
+        console.table({
+          Strategy: analysis.meta.strategy || 'unknown',
+          Cost: analysis.meta.cost || 0,
+          Segments: analysis.meta.segments || 0,
+          Bends: analysis.meta.bends || 0,
+          'Cache Hit': analysis.meta.cache_hit ? '✅ Yes' : '❌ No'
+        });
+      }
+
+      if (analysis.pts && analysis.pts.length > 0) {
+        console.log('📍 Path Points:', analysis.pts.length, 'points');
+        console.table(analysis.pts.map((pt, i) => ({
+          Index: i,
+          X: pt[0],
+          Y: pt[1],
+          Type: i === 0 ? 'Start' : i === analysis.pts.length - 1 ? 'End' : 'Waypoint'
+        })));
+      }
+
+      if (analysis.meta?.hint) {
+        console.log('💡 Routing Hints:');
+        console.table(analysis.meta.hint);
+      }
+
+      if (analysis.d) {
+        const pathData = analysis.d.length > 100 ? analysis.d.substring(0, 97) + '...' : analysis.d;
+        console.log('🎨 SVG Path:', pathData);
+      }
+
+      console.log('📋 Full Analysis Object:', analysis);
+      console.groupEnd();
+
+      // Show popup (same as showRouteAnalysisFeedback)
+      this._showRouteAnalysisPopup(routeId, analysis);
+    };
+  }
+
+  // ADDED: Show route analysis popup (extracted from showRouteAnalysisFeedback)
+  _showRouteAnalysisPopup(routeId, analysis) {
+    // Remove any existing popup
+    const existing = document.getElementById('msd-route-analysis-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'msd-route-analysis-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      color: #00ffff;
+      padding: 20px;
+      border: 2px solid #00ffff;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000002;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
+    `;
+
+    let content = `<h3 style="margin:0 0 16px;color:#ffaa00;">🔍 Route Analysis: ${routeId}</h3>`;
+
+    // Basic routing information
+    if (analysis.meta) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">📊 Routing Metrics</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+            <div><strong>Strategy:</strong> ${analysis.meta.strategy || 'unknown'}</div>
+            <div><strong>Cost:</strong> <span style="color:#ffcc88;">${analysis.meta.cost || 0}</span></div>
+            <div><strong>Segments:</strong> ${analysis.meta.segments || 0}</div>
+            <div><strong>Bends:</strong> <span style="color:#ff99cc;">${analysis.meta.bends || 0}</span></div>
+            <div><strong>Cache Hit:</strong> ${analysis.meta.cache_hit ? '<span style="color:#66ff99;">✅ Yes</span>' : '<span style="color:#ff6666;">❌ No</span>'}</div>
+            <div><strong>Smooth:</strong> ${analysis.meta.smooth ? '✅ Yes' : '❌ No'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Path points detail
+    if (analysis.pts && analysis.pts.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">📍 Path Points (${analysis.pts.length} total)</h4>
+          <div style="font-size:10px;margin-bottom:8px;">
+            <strong>Start:</strong> (${analysis.pts[0][0]}, ${analysis.pts[0][1]})<br>
+            <strong>End:</strong> (${analysis.pts[analysis.pts.length-1][0]}, ${analysis.pts[analysis.pts.length-1][1]})
+          </div>
+      `;
+
+      // Show all points if not too many, otherwise show first few and last few
+      if (analysis.pts.length <= 8) {
+        content += `<div style="font-size:10px;color:#ccc;">`;
+        analysis.pts.forEach((pt, i) => {
+          const type = i === 0 ? 'Start' : i === analysis.pts.length - 1 ? 'End' : 'Waypoint';
+          content += `<div>${i}: (${pt[0]}, ${pt[1]}) - ${type}</div>`;
+        });
+        content += `</div>`;
+      } else {
+        content += `<div style="font-size:10px;color:#ccc;">`;
+        // Show first 3 points
+        for (let i = 0; i < 3; i++) {
+          const pt = analysis.pts[i];
+          const type = i === 0 ? 'Start' : 'Waypoint';
+          content += `<div>${i}: (${pt[0]}, ${pt[1]}) - ${type}</div>`;
+        }
+        content += `<div style="color:#888;">... ${analysis.pts.length - 5} intermediate points ...</div>`;
+        // Show last 2 points
+        for (let i = analysis.pts.length - 2; i < analysis.pts.length; i++) {
+          const pt = analysis.pts[i];
+          const type = i === analysis.pts.length - 1 ? 'End' : 'Waypoint';
+          content += `<div>${i}: (${pt[0]}, ${pt[1]}) - ${type}</div>`;
+        }
+        content += `</div>`;
+      }
+      content += `</div>`;
+    }
+
+    // Routing hints
+    if (analysis.meta?.hint) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">💡 Routing Hints</h4>
+          <div style="font-size:11px;color:#ccc;">
+            <div><strong>First:</strong> ${analysis.meta.hint.first || 'n/a'}
+                 <span style="color:#888;">(${analysis.meta.hint.sourceFirst || 'n/a'})</span></div>
+            <div><strong>Last:</strong> ${analysis.meta.hint.last || 'n/a'}
+                 <span style="color:#888;">(${analysis.meta.hint.sourceLast || 'n/a'})</span></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // SVG path data
+    if (analysis.d) {
+      const pathData = analysis.d;
+      const isLong = pathData.length > 200;
+      const displayPath = isLong ? pathData.substring(0, 197) + '...' : pathData;
+
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">🎨 SVG Path Data</h4>
+          <div style="font-size:10px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;word-break:break-all;color:#ccc;font-family:monospace;">
+            ${displayPath}
+          </div>
+          ${isLong ? '<div style="font-size:9px;color:#888;margin-top:4px;">Path truncated for display</div>' : ''}
+        </div>
+      `;
+    }
+
+    // Performance metrics (if available)
+    if (analysis.meta?.compute_time_ms || analysis.meta?.cache_time_ms) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">⚡ Performance</h4>
+          <div style="font-size:11px;color:#ccc;">
+            ${analysis.meta.compute_time_ms ? `<div><strong>Compute Time:</strong> ${analysis.meta.compute_time_ms}ms</div>` : ''}
+            ${analysis.meta.cache_time_ms ? `<div><strong>Cache Time:</strong> ${analysis.meta.cache_time_ms}ms</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // Additional metadata
+    const additionalMeta = Object.keys(analysis.meta || {}).filter(key =>
+      !['strategy', 'cost', 'segments', 'bends', 'cache_hit', 'smooth', 'hint', 'compute_time_ms', 'cache_time_ms'].includes(key)
+    );
+
+    if (additionalMeta.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ccff;">🔧 Additional Metadata</h4>
+          <div style="font-size:10px;color:#ccc;">
+      `;
+      additionalMeta.forEach(key => {
+        const value = analysis.meta[key];
+        const displayValue = typeof value === 'object' ? JSON.stringify(value) : value;
+        content += `<div><strong>${key}:</strong> ${displayValue}</div>`;
+      });
+      content += `</div></div>`;
+    }
+
+    // Action buttons
+    content += `
+      <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(analysis)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Analysis', 2000);"
+          style="background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Copy Analysis
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()"
+          style="background:#333;color:#fff;border:1px solid #555;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">
+          Close
+        </button>
+      </div>
+    `;
+
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
+
+    // REMOVED: Auto-close timeout - user must click close button
   }
 
   // ADDED: Former global handlers as instance methods
@@ -490,10 +717,10 @@ export class RoutingPanel {
           </div>
         </div>`;
 
-        // Add analysis button - Direct method call approach
+        // Add analysis button - Simplified approach with global helper
         html += `<div style="text-align:right;margin-top:2px;">
           <button
-            onclick="event.stopPropagation();console.log('Direct analyze for:', '${route.id}');(function(){const routing=window.__msdDebug?.routing;if(routing?.inspect){const analysis=routing.inspect('${route.id}');console.group('🔍 Route Analysis: ${route.id}');if(analysis.meta){console.table({Strategy:analysis.meta.strategy||'unknown',Cost:analysis.meta.cost||0,Segments:analysis.meta.segments||0,Bends:analysis.meta.bends||0,'Cache Hit':analysis.meta.cache_hit?'✅ Yes':'❌ No'});}if(analysis.pts && analysis.pts.length>0){console.log('📍 Path Points:',analysis.pts.length,'points');console.table(analysis.pts.map((pt,i)=>({Index:i,X:pt[0],Y:pt[1],Type:i===0?'Start':i===analysis.pts.length-1?'End':'Waypoint'})));}if(analysis.meta?.hint){console.log('💡 Routing Hints:');console.table(analysis.meta.hint);}if(analysis.d){const pathData=analysis.d.length>100?analysis.d.substring(0,97)+'...':analysis.d;console.log('🎨 SVG Path:',pathData);}console.log('📋 Full Analysis Object:',analysis);console.groupEnd();}else{console.warn('No routing inspector available');}})();"
+            onclick="event.stopPropagation();window.__msdAnalyzeRoute('${route.id}');"
             style="font-size:9px;padding:1px 4px;background:#333;color:#ccc;border:1px solid #555;border-radius:2px;cursor:pointer;">
             Analyze
           </button>
