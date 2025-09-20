@@ -31,7 +31,6 @@ export class RoutingPanel {
   highlightRoute(routeId) {
     console.log('[RoutingPanel] Highlighting route:', routeId);
 
-    // FIXED: Use pipeline mount element instead of document for shadow DOM
     try {
       // Get the mount element from the pipeline/debug interface
       const mountElement = window.__msdDebug?.pipelineInstance?.mountElement ||
@@ -44,38 +43,57 @@ export class RoutingPanel {
         return;
       }
 
-      // Try to find and highlight the actual route element in the mount's scope
-      // Look for g elements with data-overlay-id (container) or path elements
+      // FIXED: Simpler, smaller glow effect with better cleanup
       const routeElements = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"], path[data-overlay-id="${routeId}"], #${routeId}`);
-      routeElements.forEach(element => {
-        // Add temporary highlight class
-        element.classList.add('msd-route-highlighted');
-        setTimeout(() => {
-          element.classList.remove('msd-route-highlighted');
-        }, 3000);
+      const overlayGroups = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"]`);
+
+      // Clear any existing highlights for this route first
+      const existingHighlights = mountElement.querySelectorAll(`.msd-route-highlight-${routeId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+      existingHighlights.forEach(el => {
+        el.style.filter = el.dataset.originalFilter || '';
+        el.style.outline = el.dataset.originalOutline || '';
+        el.style.removeProperty('outline-offset');
+        el.classList.remove(`msd-route-highlight-${routeId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        delete el.dataset.originalFilter;
+        delete el.dataset.originalOutline;
       });
 
-      // Also try to highlight any path elements within overlay groups
-      const overlayGroups = mountElement.querySelectorAll(`g[data-overlay-id="${routeId}"]`);
+      // Apply highlight to route containers
+      routeElements.forEach(element => {
+        const safeId = routeId.replace(/[^a-zA-Z0-9]/g, '_');
+        element.dataset.originalOutline = element.style.outline || '';
+
+        // FIXED: Much smaller, subtler glow
+        element.style.outline = '2px solid #ff00ff';
+        element.style.outlineOffset = '1px';
+        element.classList.add(`msd-route-highlight-${safeId}`);
+      });
+
+      // Apply highlight to paths within groups
       overlayGroups.forEach(group => {
         const paths = group.querySelectorAll('path');
         paths.forEach(path => {
-          const originalStroke = path.style.stroke || path.getAttribute('stroke');
-          const originalWidth = path.style.strokeWidth || path.getAttribute('stroke-width');
+          const safeId = routeId.replace(/[^a-zA-Z0-9]/g, '_');
+          path.dataset.originalFilter = path.style.filter || '';
 
-          // Highlight the path
-          path.style.stroke = '#ff00ff';
-          path.style.strokeWidth = '4';
-          path.style.filter = 'drop-shadow(0 0 6px #ff00ff)';
-
-          // Restore after 3 seconds
-          setTimeout(() => {
-            path.style.stroke = originalStroke;
-            path.style.strokeWidth = originalWidth;
-            path.style.filter = '';
-          }, 3000);
+          // FIXED: Single, subtle glow instead of multiple layers
+          path.style.filter = `drop-shadow(0 0 4px #ff00ff) ${path.dataset.originalFilter}`.trim();
+          path.classList.add(`msd-route-highlight-${safeId}`);
         });
       });
+
+      // Clean up after 3 seconds
+      setTimeout(() => {
+        const highlightedElements = mountElement.querySelectorAll(`.msd-route-highlight-${routeId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        highlightedElements.forEach(element => {
+          element.style.filter = element.dataset.originalFilter || '';
+          element.style.outline = element.dataset.originalOutline || '';
+          element.style.removeProperty('outline-offset');
+          element.classList.remove(`msd-route-highlight-${routeId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+          delete element.dataset.originalFilter;
+          delete element.dataset.originalOutline;
+        });
+      }, 3000);
 
       // Show user feedback
       this.showRouteHighlightFeedback(routeId);
@@ -88,9 +106,14 @@ export class RoutingPanel {
     if (window.__msdDebug?.hud?.emit) {
       window.__msdDebug.hud.emit('routing:focus', { id: routeId });
     }
-  }
+  }  analyzeRoute(routeId) {
+    console.log('[RoutingPanel] analyzeRoute called with:', routeId);
 
-  analyzeRoute(routeId) {
+    if (!routeId) {
+      console.warn('[RoutingPanel] No route ID provided for analysis');
+      return;
+    }
+
     const routing = window.__msdDebug?.routing;
     if (routing?.inspect) {
       const analysis = routing.inspect(routeId);
@@ -138,6 +161,8 @@ export class RoutingPanel {
 
       // FIXED: Also show visual feedback in HUD
       this.showRouteAnalysisFeedback(routeId, analysis);
+    } else {
+      console.warn('[RoutingPanel] No routing inspector available');
     }
   }
 
@@ -456,17 +481,19 @@ export class RoutingPanel {
             <span class="msd-hud-metric-name">${shortId}</span>
             <span class="msd-hud-metric-value" style="color:${costColor};">${route.cost.toFixed(1)}</span>
           </div>
-          <div style="font-size:10px;color:#888;margin-top:2px;">
-            ${route.strategy} • ${route.pathLength}pts • ${route.bends}↻
-            ${route.cached ? ' • 📋' : ''}
-            ${route.arcCount > 0 ? ` • 🔄${route.arcCount}` : ''}
+          <div style="font-size:11px;color:#aaa;margin-top:3px;line-height:1.3;">
+            <span style="color:#88ccff;">${route.strategy}</span> •
+            <span style="color:#99dd99;" title="Path points">${route.pathLength} pts</span> •
+            <span style="color:#ffcc88;" title="Direction changes">${route.bends} turns</span>
+            ${route.cached ? ' • <span style="color:#66ddff;" title="Cached result">� cached</span>' : ''}
+            ${route.arcCount > 0 ? ` • <span style="color:#ff99cc;" title="Arc segments">${route.arcCount} arcs</span>` : ''}
           </div>
         </div>`;
 
-        // Add analysis button
+        // Add analysis button - Direct method call approach
         html += `<div style="text-align:right;margin-top:2px;">
-          <button data-bus-event="routing:analyze"
-            onclick="__msdHudBus('select:set',{type:'route',id:'${route.id}',source:'routing'});__msdHudBus('routing:analyze',{id:'${route.id}'})"
+          <button
+            onclick="event.stopPropagation();console.log('Direct analyze for:', '${route.id}');(function(){const routing=window.__msdDebug?.routing;if(routing?.inspect){const analysis=routing.inspect('${route.id}');console.group('🔍 Route Analysis: ${route.id}');if(analysis.meta){console.table({Strategy:analysis.meta.strategy||'unknown',Cost:analysis.meta.cost||0,Segments:analysis.meta.segments||0,Bends:analysis.meta.bends||0,'Cache Hit':analysis.meta.cache_hit?'✅ Yes':'❌ No'});}if(analysis.pts && analysis.pts.length>0){console.log('📍 Path Points:',analysis.pts.length,'points');console.table(analysis.pts.map((pt,i)=>({Index:i,X:pt[0],Y:pt[1],Type:i===0?'Start':i===analysis.pts.length-1?'End':'Waypoint'})));}if(analysis.meta?.hint){console.log('💡 Routing Hints:');console.table(analysis.meta.hint);}if(analysis.d){const pathData=analysis.d.length>100?analysis.d.substring(0,97)+'...':analysis.d;console.log('🎨 SVG Path:',pathData);}console.log('📋 Full Analysis Object:',analysis);console.groupEnd();}else{console.warn('No routing inspector available');}})();"
             style="font-size:9px;padding:1px 4px;background:#333;color:#ccc;border:1px solid #555;border-radius:2px;cursor:pointer;">
             Analyze
           </button>

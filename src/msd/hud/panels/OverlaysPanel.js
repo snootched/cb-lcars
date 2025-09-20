@@ -52,6 +52,13 @@ export class OverlaysPanel {
 
       this._ensureHighlightStyles();
 
+      // ADDED: Get overlay type to handle controls differently
+      const overlay = this._findOverlayModel(id);
+      const isControlsType = overlay?.type === 'control'; // FIXED: singular 'control' not 'controls'
+
+      console.log(`[OverlaysPanel] Overlay "${id}":`, overlay);
+      console.log(`[OverlaysPanel] Overlay type: "${overlay?.type}", isControlsType: ${isControlsType}`);
+
       // Search only inside mount (and shadow root if present)
       const roots = [mount];
       if (mount.shadowRoot) roots.push(mount.shadowRoot);
@@ -60,11 +67,50 @@ export class OverlaysPanel {
       const selectorExact = `[data-overlay-id="${CSS.escape(id)}"]`;
       const selectorId = `#${CSS.escape(id)}`;
 
+      // ADDED: For controls type, search for the control containers (much simpler!)
+      const controlsSelectors = isControlsType ? [
+        `foreignObject[data-msd-control-id="${CSS.escape(id)}"]`,
+        `div[data-msd-control-id="${CSS.escape(id)}"]`,
+        `#msd-control-foreign-${CSS.escape(id)}`
+      ] : [];
+
       roots.forEach(root => {
-        root.querySelectorAll(selectorExact).forEach(el => matches.push(el));
-        const byId = root.querySelector(selectorId);
-        if (byId && !matches.includes(byId)) matches.push(byId);
+        console.log(`[OverlaysPanel] Searching in root:`, root);
+
+        // Try standard selectors first
+        const exactMatches = root.querySelectorAll(selectorExact);
+        const byIdMatch = root.querySelector(selectorId);
+        console.log(`[OverlaysPanel] Standard selectors for "${id}":`, {
+          selectorExact: selectorExact,
+          exactMatches: exactMatches.length,
+          selectorId: selectorId,
+          byIdMatch: !!byIdMatch
+        });
+
+        exactMatches.forEach(el => matches.push(el));
+        if (byIdMatch && !matches.includes(byIdMatch)) matches.push(byIdMatch);
+
+        // ADDED: Search for controls-specific elements
+        if (isControlsType) {
+          console.log(`[OverlaysPanel] Searching for controls overlay: ${id}`);
+          console.log(`[OverlaysPanel] Controls selectors:`, controlsSelectors);
+          controlsSelectors.forEach(selector => {
+            try {
+              const found = root.querySelectorAll(selector);
+              console.log(`[OverlaysPanel] Selector "${selector}" found ${found.length} elements:`, found);
+              found.forEach(el => {
+                if (!matches.includes(el)) matches.push(el);
+              });
+            } catch (e) {
+              console.warn(`[OverlaysPanel] Invalid selector: ${selector}`, e);
+            }
+          });
+        } else {
+          console.log(`[OverlaysPanel] Not a controls type overlay, skipping controls selectors`);
+        }
       });
+
+      console.log(`[OverlaysPanel] Total matches found: ${matches.length}`, matches);
 
       if (matches.length === 0) {
         console.warn('[OverlaysPanel] No nodes found for overlay', id);
@@ -74,19 +120,92 @@ export class OverlaysPanel {
 
       // Apply highlight to each match
       matches.forEach(node => {
-        this._applyElementHighlight(node, '#ff66ff');
-        // If group/container, highlight child paths too
-        if (node.tagName && node.tagName.toLowerCase() === 'g') {
-          node.querySelectorAll('path, line, polyline, polygon, rect, circle, ellipse').forEach(child => {
-            this._applyElementHighlight(child, '#ff66ff', true);
-          });
+        if (isControlsType) {
+          // ADDED: Special highlighting for controls type
+          this._applyControlsHighlight(node, '#ff66ff');
+        } else {
+          this._applyElementHighlight(node, '#ff66ff');
+          // If group/container, highlight child paths too
+          if (node.tagName && node.tagName.toLowerCase() === 'g') {
+            node.querySelectorAll('path, line, polyline, polygon, rect, circle, ellipse').forEach(child => {
+              this._applyElementHighlight(child, '#ff66ff', true);
+            });
+          }
         }
       });
 
-      this._toast(`Overlay: ${id}`, '#ff66ff');
+      this._toast(`Overlay: ${id} (${overlay?.type || 'unknown'})`, '#ff66ff');
     } catch (e) {
       console.warn('[OverlaysPanel] highlightOverlay failed:', e);
     }
+  }
+
+  // NEW: Special highlighting for controls type overlays (HA cards)
+  _applyControlsHighlight(node, color) {
+    const DURATION = 3000;
+
+    // Store originals for restoration
+    if (!node.dataset._msdCtrlHl) {
+      node.dataset._msdCtrlHl = '1';
+      node.dataset._msdPrevBoxShadow = node.style.boxShadow || '';
+      node.dataset._msdPrevZIndex = node.style.zIndex || '';
+      node.dataset._msdPrevOutline = node.style.outline || '';
+      node.dataset._msdPrevFilter = node.style.filter || '';
+    }
+
+    // FIXED: Apply glow/pulse highlighting without scaling to avoid position shifts
+    node.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}, inset 0 0 15px rgba(255,102,255,0.2)`;
+    node.style.zIndex = '999999';
+    node.style.outline = `2px solid ${color}`;
+    node.style.outlineOffset = '2px';
+    node.style.filter = `drop-shadow(0 0 8px ${color}) brightness(1.1)`;
+    node.classList.add('msd-overlay-highlighted', 'msd-controls-highlighted');
+
+    // Enhanced pulsing animation without transform scaling
+    const pulseStyle = document.createElement('style');
+    pulseStyle.id = `msd-pulse-${node.dataset._msdCtrlHl}`;
+    pulseStyle.textContent = `
+      .msd-controls-highlighted {
+        animation: msdControlsPulse 1.2s ease-in-out infinite alternate;
+      }
+      @keyframes msdControlsPulse {
+        0% {
+          filter: drop-shadow(0 0 8px ${color}) brightness(1.1) saturate(1);
+          box-shadow: 0 0 15px ${color}, 0 0 30px ${color}, inset 0 0 15px rgba(255,102,255,0.2);
+        }
+        100% {
+          filter: drop-shadow(0 0 12px ${color}) brightness(1.3) saturate(1.2);
+          box-shadow: 0 0 20px ${color}, 0 0 40px ${color}, inset 0 0 20px rgba(255,102,255,0.3);
+        }
+      }
+    `;
+    document.head.appendChild(pulseStyle);
+
+    setTimeout(() => {
+      // Restore original styles
+      if (node.dataset._msdPrevBoxShadow !== undefined) {
+        if (node.dataset._msdPrevBoxShadow) node.style.boxShadow = node.dataset._msdPrevBoxShadow;
+        else node.style.removeProperty('box-shadow');
+      }
+      if (node.dataset._msdPrevZIndex !== undefined) {
+        if (node.dataset._msdPrevZIndex) node.style.zIndex = node.dataset._msdPrevZIndex;
+        else node.style.removeProperty('z-index');
+      }
+      if (node.dataset._msdPrevOutline !== undefined) {
+        if (node.dataset._msdPrevOutline) node.style.outline = node.dataset._msdPrevOutline;
+        else node.style.removeProperty('outline');
+      }
+      if (node.dataset._msdPrevFilter !== undefined) {
+        if (node.dataset._msdPrevFilter) node.style.filter = node.dataset._msdPrevFilter;
+        else node.style.removeProperty('filter');
+      }
+      node.style.removeProperty('outline-offset');
+      node.classList.remove('msd-overlay-highlighted', 'msd-controls-highlighted');
+
+      // Remove pulse animation
+      const pulse = document.getElementById(`msd-pulse-${node.dataset._msdCtrlHl}`);
+      if (pulse) pulse.remove();
+    }, DURATION);
   }
 
   // NEW: Apply highlight with restoration
@@ -203,7 +322,11 @@ export class OverlaysPanel {
         console.log('Final Style:', overlay.finalStyle || overlay.style);
       }
       if (overlay._styleSources) {
-        console.log('Style Sources:', overlay._styleSources);
+        console.log('Style Sources (detailed):', overlay._styleSources);
+        // ADDED: Log each source individually for debugging
+        overlay._styleSources.forEach((source, i) => {
+          console.log(`Source ${i}:`, source);
+        });
       }
       if (overlay._patches) {
         console.log('Rule Patches:', overlay._patches);
@@ -211,6 +334,8 @@ export class OverlaysPanel {
       if (overlay.__meta) {
         console.log('Metadata:', overlay.__meta);
       }
+      // ADDED: Log full overlay object for debugging
+      console.log('Full Overlay Object:', overlay);
       console.groupEnd();
 
       // Popup
@@ -230,6 +355,7 @@ export class OverlaysPanel {
     const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
     const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
     const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px
+    const tinyFontSize = Math.round(baseFontSize * 0.67); // 8px when base is 12px
 
     const popup = document.createElement('div');
     popup.id = 'msd-overlay-popup';
@@ -250,11 +376,49 @@ export class OverlaysPanel {
       } catch { return '{}'; }
     })();
 
-    const sources = (overlay._styleSources || []).map(s => `${s.kind}:${s.id}`).join(', ') || '—';
-    const patches = (overlay._patches || []).map(p => p.ruleId || p.id).join(', ') || '—';
-    const profiles = (overlay._profiles || []).map(p => p.id || p).join(', ') || '—';
+    const sources = (overlay._styleSources || []).map(s => `${s.kind}:${s.id}`).join(', ') || 'none';
+    const patches = (overlay._patches || []).map(p => p.ruleId || p.id).join(', ') || 'none';
+    const profiles = (overlay._profiles || []).map(p => p.id || p).join(', ') || 'none';
 
-    popup.innerHTML = `
+    // ADDED: Enhanced sources breakdown showing properties from each source
+    const sourcesDetail = (() => {
+      if (!overlay._styleSources || overlay._styleSources.length === 0) return 'none';
+
+      try {
+        const finalStyleProps = overlay.finalStyle ? Object.keys(overlay.finalStyle) : [];
+        console.log('[OverlaysPanel] Final style properties:', finalStyleProps);
+        console.log('[OverlaysPanel] Number of sources:', overlay._styleSources.length);
+
+        // FIXED: Show each property individually with its source
+        const propertyMappings = [];
+
+        overlay._styleSources.forEach((source, index) => {
+          const sourceLabel = `${source.kind || 'unknown'}:${source.id || `source-${index}`}`;
+
+          // Match source index to property index
+          if (index < finalStyleProps.length) {
+            const property = finalStyleProps[index];
+            propertyMappings.push(`${property} <span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.3)}px;"> ◀ </span> ${sourceLabel}`);
+            console.log(`[OverlaysPanel] Source ${index} (${sourceLabel}) → ${property}`);
+          }
+        });
+
+        // If we have more properties than sources, the remaining might be from defaults
+        if (finalStyleProps.length > overlay._styleSources.length) {
+          const remainingProps = finalStyleProps.slice(overlay._styleSources.length);
+          remainingProps.forEach(prop => {
+            propertyMappings.push(`${prop} <span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.3)}px;"> ◀ </span> default:computed`);
+          });
+        }
+
+        // Format as individual property lines
+        return propertyMappings.join('<br>') || 'none';
+      } catch (e) {
+        console.warn('[OverlaysPanel] Error processing sources:', e);
+        // Fallback to simple list
+        return overlay._styleSources.map((s, i) => `property${i} <span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.3)}px;"> ◀ </span> ${s.kind || 'unknown'}:${s.id || 'unnamed'}`).join('<br>');
+      }
+    })();    popup.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <h3 style="margin:0;color:#ffaaee;">Overlay: ${overlay.id}</h3>
         <button style="background:#331133;color:#fff;border:1px solid #553366;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:${metricFontSize}px;"
@@ -264,12 +428,15 @@ export class OverlaysPanel {
       </div>
       <div style="font-size:${metricFontSize}px;line-height:1.4;color:#ddd;">
         <strong>Type:</strong> ${overlay.type || 'n/a'}<br>
-        <strong>Anchor:</strong> ${overlay.anchor || '—'} → <strong>Attach:</strong> ${overlay.attach_to || '—'}<br>
-        <strong>Channel:</strong> ${overlay.channel || '—'} • <strong>Smooth:</strong> ${overlay.smooth ? 'yes':'no'}<br>
+        <strong>Anchor:</strong> ${overlay.anchor || 'none'} → <strong>Attach:</strong> ${overlay.attach_to || 'none'}<br>
+        <strong>Channel:</strong> ${overlay.channel || 'none'} | <strong>Smooth:</strong> ${overlay.smooth ? 'yes':'no'}<br>
         <strong>Profiles:</strong> ${profiles}<br>
-        <strong>Sources:</strong> ${sources}<br>
+        <strong>Sources:</strong><br>
+        <div style="margin-left:12px;font-size:${controlsFontSize}px;color:#bbb;line-height:1.3;">
+          ${sourcesDetail}
+        </div>
         <strong>Patches:</strong> ${patches}<br>
-        <strong>Meta:</strong> ${overlay.__meta ? Object.keys(overlay.__meta).join(', ') : '—'}
+        <strong>Meta:</strong> ${overlay.__meta ? Object.keys(overlay.__meta).join(', ') : 'none'}
       </div>
       <div style="margin-top:8px;">
         <div style="color:#ffaaee;font-size:${metricFontSize}px;margin-bottom:4px;">Final Style</div>
@@ -294,8 +461,8 @@ export class OverlaysPanel {
       if (popup.parentElement) popup.style.opacity = '1';
     }, 10);
 
-    // Auto-remove after 15s if untouched
-    setTimeout(() => popup.parentElement && popup.remove(), 25000);
+    // REMOVED: Auto-close timeout - let users close manually
+    // setTimeout(() => popup.parentElement && popup.remove(), 25000);
   }
 
   // NEW: analyzeOverlay remains (unchanged) above/below if already present
@@ -446,10 +613,10 @@ export class OverlaysPanel {
           <span style="color:#ff66ff;font-size:${metricFontSize}px;">${o.type}</span>
         </div>
         <div style="font-size:${controlsFontSize}px;color:#888;margin-top:2px;">
-          A:${o.anchor || '-'} → ${o.attach_to || '-'} ${o.channel ? '• ch:'+o.channel : ''} ${o.smooth ? '• smooth':''}
+          ${o.anchor ? `Anchor: ${o.anchor}` : 'No anchor'} ${o.attach_to ? `<span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.2)}px;"> ➤ </span>${o.attach_to}` : ''} ${o.channel ? `• Channel: ${o.channel}` : ''} ${o.smooth ? '• Smooth' : ''}
         </div>
-        <div style="font-size:${smallFontSize}px;color:#666;margin-top:2px;">
-          src: p${o.profileCount} / s${o.styleSourceCount} / r${o.patchCount}
+        <div style="font-size:${controlsFontSize}px;color:#666;margin-top:2px;">
+          Sources: ${o.styleSourceCount} • Profiles: ${o.profileCount} • Patches: ${o.patchCount}
         </div>
         <div style="font-size:${smallFontSize}px;color:#555;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
           ${stylePreview}
