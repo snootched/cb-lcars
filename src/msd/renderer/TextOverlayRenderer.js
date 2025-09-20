@@ -111,6 +111,8 @@ export class TextOverlayRenderer {
                   data-text-height="${measure.height || 0}"
                   data-font-family="${textStyle.fontFamily}"
                   data-font-size="${textStyle.fontSize}"
+                  data-dominant-baseline="${textStyle.dominantBaseline}"
+                  data-text-anchor="${textStyle.textAnchor}"
                   data-font-stabilized="0">
                 ${svgParts.join('\n')}
               </g>`;

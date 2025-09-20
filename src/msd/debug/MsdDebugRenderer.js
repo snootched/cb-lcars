@@ -323,10 +323,12 @@ export class MsdDebugRenderer {
     overlays.forEach(overlay => {
       if (overlay.position && Array.isArray(overlay.position)) {
         const [x, y] = overlay.position;
-        const width = overlay.size ? overlay.size[0] : 100;
-        const height = overlay.size ? overlay.size[1] : 20;
 
-        const bboxObj = this.createBoundingBox(overlay.id, x, y, width, height);
+        // Get actual dimensions based on overlay type
+        const dimensions = this._getOverlayDimensions(overlay, x, y);
+        if (!dimensions) return;
+
+        const bboxObj = this.createBoundingBox(overlay.id, dimensions.x, dimensions.y, dimensions.width, dimensions.height);
         this.debugLayer.appendChild(bboxObj.rect);
         this.debugLayer.appendChild(bboxObj.label);
         this.boundingBoxes.set(overlay.id, bboxObj);
@@ -557,6 +559,268 @@ export class MsdDebugRenderer {
       routingOverlayCount: this.routingOverlays.size,
       performanceOverlayCount: this.performanceOverlays.size
     };
+  }
+
+  /**
+   * Get overlay dimensions based on overlay type and rendered content - ENHANCED for baseline accuracy
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @returns {Object|null} Dimensions object with x, y, width, height
+   */
+  _getOverlayDimensions(overlay, x, y) {
+    // First, check if the overlay has been rendered and has dimension data attributes
+    if (this.debugLayer) {
+      const svgElement = this.debugLayer.closest('svg');
+      if (svgElement) {
+        const renderedOverlay = svgElement.querySelector(`[data-overlay-id="${overlay.id}"]`);
+        if (renderedOverlay) {
+          // Try to get dimensions from data attributes (set by TextOverlayRenderer)
+          const width = renderedOverlay.getAttribute('data-text-width');
+          const height = renderedOverlay.getAttribute('data-text-height');
+          const fontSize = renderedOverlay.getAttribute('data-font-size');
+          const dominantBaseline = renderedOverlay.getAttribute('data-dominant-baseline');
+          const textAnchor = renderedOverlay.getAttribute('data-text-anchor');
+
+          if (width && height && width !== '0' && height !== '0') {
+            console.log(`[MsdDebugRenderer] Using rendered dimensions for ${overlay.id}: ${width}x${height}, baseline: ${dominantBaseline}, anchor: ${textAnchor}`);
+
+            // Calculate proper positions based on actual rendered attributes
+            const textHeight = parseFloat(height);
+            const textWidth = parseFloat(width);
+            const textFontSize = parseFloat(fontSize) || 16;
+
+            // Y position calculation based on actual dominant baseline
+            let adjustedY = y;
+            const actualBaseline = dominantBaseline || 'auto';
+
+            if (actualBaseline === 'hanging') {
+              // Text starts at y, so bounding box starts at y
+              adjustedY = y;
+            } else if (actualBaseline === 'middle' || actualBaseline === 'central') {
+              // Text is centered on y, so bounding box starts at y - height/2
+              adjustedY = y - textHeight / 2;
+            } else if (actualBaseline === 'text-after-edge') {
+              // Text ends at y, so bounding box starts at y - height
+              adjustedY = y - textHeight;
+            } else {
+              // Default/auto baseline - estimate ascent position
+              const ascent = textFontSize * 0.7;
+              adjustedY = y - ascent;
+            }
+
+            // X position calculation based on actual text anchor
+            let adjustedX = x;
+            const actualTextAnchor = textAnchor || 'start';
+
+            if (actualTextAnchor === 'middle') {
+              adjustedX = x - textWidth / 2;
+            } else if (actualTextAnchor === 'end') {
+              adjustedX = x - textWidth;
+            }
+            // 'start' anchor keeps x as-is
+
+            console.log(`[MsdDebugRenderer] Calculated bbox for ${overlay.id}: x=${adjustedX}, y=${adjustedY}, baseline=${actualBaseline}, anchor=${actualTextAnchor}`);
+
+            return {
+              x: adjustedX,
+              y: adjustedY,
+              width: textWidth,
+              height: textHeight
+            };
+          }
+        }
+      }
+    }
+
+    // Fallback to overlay-specific dimension calculation
+    switch (overlay.type) {
+      case 'text':
+        return this._calculateTextOverlayDimensions(overlay, x, y);
+
+      case 'line':
+        return this._calculateLineOverlayDimensions(overlay, x, y);
+
+      case 'image':
+        return this._calculateImageOverlayDimensions(overlay, x, y);
+
+      case 'rect':
+      case 'rectangle':
+        return this._calculateRectOverlayDimensions(overlay, x, y);
+
+      default:
+        // Generic fallback using size property or default
+        const width = overlay.size ? overlay.size[0] : 100;
+        const height = overlay.size ? overlay.size[1] : 20;
+        return { x, y, width, height };
+    }
+  }
+
+  /**
+   * Calculate text overlay dimensions using similar logic to TextOverlayRenderer
+   * @private
+   */
+  _calculateTextOverlayDimensions(overlay, x, y) {
+    try {
+      // Get the SVG container for proper measurement context
+      const svgElement = this.debugLayer?.closest('svg');
+      const container = svgElement?.parentElement || this.debugLayer;
+
+      // Try to use TextOverlayRenderer's attachment point calculation
+      if (window.cblcars?.TextOverlayRenderer?.computeAttachmentPoints) {
+        const attachmentData = window.cblcars.TextOverlayRenderer.computeAttachmentPoints(
+          overlay,
+          this.anchors || {},
+          container
+        );
+
+        if (attachmentData && attachmentData.bbox) {
+          console.log(`[MsdDebugRenderer] Using TextOverlayRenderer bbox for ${overlay.id}`);
+          return {
+            x: attachmentData.bbox.left,
+            y: attachmentData.bbox.top,
+            width: attachmentData.bbox.width,
+            height: attachmentData.bbox.height
+          };
+        }
+      }
+
+      // Alternative: Try to get dimensions from already rendered overlay
+      if (svgElement) {
+        const renderedElement = svgElement.querySelector(`[data-overlay-id="${overlay.id}"]`);
+        if (renderedElement) {
+          try {
+            const bbox = renderedElement.getBBox();
+            if (bbox.width > 0 && bbox.height > 0) {
+              console.log(`[MsdDebugRenderer] Using getBBox for ${overlay.id}: ${bbox.width}x${bbox.height}`);
+              return {
+                x: bbox.x,
+                y: bbox.y,
+                width: bbox.width,
+                height: bbox.height
+              };
+            }
+          } catch (bboxError) {
+            console.warn(`[MsdDebugRenderer] getBBox failed for ${overlay.id}:`, bboxError);
+          }
+        }
+      }
+
+      // Fallback to manual text measurement
+      const style = overlay.finalStyle || overlay.style || {};
+      const textContent = style.value || overlay.text || overlay.content ||
+                         overlay._raw?.content || overlay._raw?.text || '';
+
+      if (!textContent) {
+        return { x, y, width: 0, height: 0 };
+      }
+
+      // Basic text measurement fallback
+      const fontSize = style.font_size || style.fontSize || 16;
+      const fontFamily = style.font_family || style.fontFamily || 'monospace';
+
+      // Estimate dimensions (this is a rough approximation)
+      const charWidth = fontSize * 0.6; // Rough estimate for monospace
+      const lineHeight = fontSize * 1.2;
+
+      const lines = textContent.split('\n');
+      const maxLineLength = Math.max(...lines.map(line => line.length));
+
+      const width = maxLineLength * charWidth;
+      const height = lines.length * lineHeight;
+
+      // Adjust position based on text anchor and baseline
+      const textAnchor = style.text_anchor || style.textAnchor || 'start';
+      const dominantBaseline = style.dominant_baseline || style.dominantBaseline || 'auto';
+
+      let adjustedX = x;
+      if (textAnchor === 'middle') {
+        adjustedX = x - width / 2;
+      } else if (textAnchor === 'end') {
+        adjustedX = x - width;
+      }
+
+      // Calculate proper Y position based on dominant baseline
+      let adjustedY = y;
+      const ascent = fontSize * 0.7; // Estimate ascent
+
+      if (dominantBaseline === 'hanging') {
+        // Text starts at y, so bounding box starts at y
+        adjustedY = y;
+      } else if (dominantBaseline === 'middle' || dominantBaseline === 'central') {
+        // Text is centered on y, so bounding box starts at y - height/2
+        adjustedY = y - height / 2;
+      } else if (dominantBaseline === 'text-after-edge') {
+        // Text ends at y, so bounding box starts at y - height
+        adjustedY = y - height;
+      } else {
+        // Default/auto baseline - text baseline is at y, so bounding box starts at y - ascent
+        adjustedY = y - ascent;
+      }
+
+      return {
+        x: adjustedX,
+        y: adjustedY,
+        width,
+        height
+      };    } catch (error) {
+      console.warn(`[MsdDebugRenderer] Failed to calculate text dimensions for ${overlay.id}:`, error);
+      return { x, y, width: 100, height: 20 };
+    }
+  }
+
+  /**
+   * Calculate line overlay dimensions
+   * @private
+   */
+  _calculateLineOverlayDimensions(overlay, x, y) {
+    const endpoints = overlay.endpoints || overlay.end_points;
+    if (!endpoints || !Array.isArray(endpoints) || endpoints.length < 2) {
+      return { x, y, width: 50, height: 2 };
+    }
+
+    const [start, end] = endpoints;
+    const startX = Array.isArray(start) ? start[0] : start.x || x;
+    const startY = Array.isArray(start) ? start[1] : start.y || y;
+    const endX = Array.isArray(end) ? end[0] : end.x || x + 50;
+    const endY = Array.isArray(end) ? end[1] : end.y || y;
+
+    const minX = Math.min(startX, endX);
+    const minY = Math.min(startY, endY);
+    const width = Math.abs(endX - startX);
+    const height = Math.abs(endY - startY);
+
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(width, 2), // Minimum width for visibility
+      height: Math.max(height, 2) // Minimum height for visibility
+    };
+  }
+
+  /**
+   * Calculate image overlay dimensions
+   * @private
+   */
+  _calculateImageOverlayDimensions(overlay, x, y) {
+    const style = overlay.finalStyle || overlay.style || {};
+    const width = style.width || overlay.width || overlay.size?.[0] || 64;
+    const height = style.height || overlay.height || overlay.size?.[1] || 64;
+
+    return { x, y, width: parseFloat(width), height: parseFloat(height) };
+  }
+
+  /**
+   * Calculate rectangle overlay dimensions
+   * @private
+   */
+  _calculateRectOverlayDimensions(overlay, x, y) {
+    const style = overlay.finalStyle || overlay.style || {};
+    const width = style.width || overlay.width || overlay.size?.[0] || 100;
+    const height = style.height || overlay.height || overlay.size?.[1] || 50;
+
+    return { x, y, width: parseFloat(width), height: parseFloat(height) };
   }
 
   /**

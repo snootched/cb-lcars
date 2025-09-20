@@ -276,7 +276,191 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     bounding: {
       show: () => debugManager.enable('bounding_boxes'),
       hide: () => debugManager.disable('bounding_boxes'),
-      toggle: () => debugManager.toggle('bounding_boxes')
+      toggle: () => debugManager.toggle('bounding_boxes'),
+      // ADDED: Test bounding box accuracy for specific overlay
+      test: (overlayId) => {
+        const pipelineInstance = window.__msdDebug?.pipelineInstance;
+        if (!pipelineInstance) {
+          console.warn('[MSD Debug] No pipeline instance available');
+          return null;
+        }
+
+        const model = pipelineInstance.getResolvedModel?.();
+        if (!model) {
+          console.warn('[MSD Debug] No resolved model available');
+          return null;
+        }
+
+        const overlay = model.overlays.find(o => o.id === overlayId);
+        if (!overlay) {
+          console.warn(`[MSD Debug] Overlay "${overlayId}" not found`);
+          return null;
+        }
+
+        // Get the debug renderer from systems manager
+        const debugRenderer = systemsManager.debugRenderer;
+        if (!debugRenderer) {
+          console.warn('[MSD Debug] Debug renderer not available');
+          return null;
+        }
+
+        const position = overlay.position;
+        if (!position || !Array.isArray(position)) {
+          console.warn(`[MSD Debug] Invalid position for overlay "${overlayId}"`);
+          return null;
+        }
+
+        const [x, y] = position;
+        const dimensions = debugRenderer._getOverlayDimensions(overlay, x, y);
+
+        console.log(`[MSD Debug] Bounding box test for "${overlayId}":`, {
+          overlay: {
+            id: overlay.id,
+            type: overlay.type,
+            position: [x, y]
+          },
+          calculatedDimensions: dimensions,
+          overlayConfig: {
+            text: overlay.text || overlay.content || overlay._raw?.content,
+            style: overlay.finalStyle || overlay.style
+          }
+        });
+
+        return dimensions;
+      },
+      // ADDED: Compare bounding box calculation methods
+      compare: (overlayId) => {
+        const pipelineInstance = window.__msdDebug?.pipelineInstance;
+        if (!pipelineInstance) {
+          console.warn('[MSD Debug] No pipeline instance available');
+          return null;
+        }
+
+        const model = pipelineInstance.getResolvedModel?.();
+        if (!model) {
+          console.warn('[MSD Debug] No resolved model available');
+          return null;
+        }
+
+        const overlay = model.overlays.find(o => o.id === overlayId);
+        if (!overlay || overlay.type !== 'text') {
+          console.warn(`[MSD Debug] Text overlay "${overlayId}" not found`);
+          return null;
+        }
+
+        const [x, y] = overlay.position || [0, 0];
+        const debugRenderer = systemsManager.debugRenderer;
+
+        const results = {
+          overlayId,
+          position: [x, y],
+          methods: {}
+        };
+
+        // Method 1: Debug renderer calculation
+        if (debugRenderer) {
+          try {
+            const debugDims = debugRenderer._getOverlayDimensions(overlay, x, y);
+            results.methods.debugRenderer = debugDims;
+          } catch (error) {
+            results.methods.debugRenderer = { error: error.message };
+          }
+        }
+
+        // Method 2: TextOverlayRenderer computation
+        try {
+          const container = systemsManager.renderer?.mountEl;
+          const attachmentData = window.cblcars?.TextOverlayRenderer?.computeAttachmentPoints?.(
+            overlay,
+            model.anchors || {},
+            container
+          );
+          if (attachmentData?.bbox) {
+            results.methods.textOverlayRenderer = {
+              x: attachmentData.bbox.left,
+              y: attachmentData.bbox.top,
+              width: attachmentData.bbox.width,
+              height: attachmentData.bbox.height
+            };
+          }
+        } catch (error) {
+          results.methods.textOverlayRenderer = { error: error.message };
+        }
+
+        // Method 3: DOM getBBox (if rendered)
+        try {
+          const container = systemsManager.renderer?.mountEl;
+          const svgElement = container?.querySelector('svg');
+          const renderedElement = svgElement?.querySelector(`[data-overlay-id="${overlayId}"]`);
+          if (renderedElement) {
+            const bbox = renderedElement.getBBox();
+            results.methods.domGetBBox = {
+              x: bbox.x,
+              y: bbox.y,
+              width: bbox.width,
+              height: bbox.height
+            };
+          }
+        } catch (error) {
+          results.methods.domGetBBox = { error: error.message };
+        }
+
+        // Method 4: Data attributes (if set by TextOverlayRenderer)
+        try {
+          const container = systemsManager.renderer?.mountEl;
+          const svgElement = container?.querySelector('svg');
+          const renderedElement = svgElement?.querySelector(`[data-overlay-id="${overlayId}"]`);
+          if (renderedElement) {
+            const width = renderedElement.getAttribute('data-text-width');
+            const height = renderedElement.getAttribute('data-text-height');
+            const fontSize = renderedElement.getAttribute('data-font-size');
+            const dominantBaseline = renderedElement.getAttribute('data-dominant-baseline');
+            const textAnchor = renderedElement.getAttribute('data-text-anchor');
+
+            if (width && height) {
+              // Use proper baseline calculation like the debug renderer
+              let adjustedY = y;
+              const textHeight = parseFloat(height);
+              const textFontSize = parseFloat(fontSize) || 16;
+              const actualBaseline = dominantBaseline || 'auto';
+
+              if (actualBaseline === 'hanging') {
+                adjustedY = y;
+              } else if (actualBaseline === 'middle' || actualBaseline === 'central') {
+                adjustedY = y - textHeight / 2;
+              } else if (actualBaseline === 'text-after-edge') {
+                adjustedY = y - textHeight;
+              } else {
+                const ascent = textFontSize * 0.7;
+                adjustedY = y - ascent;
+              }
+
+              // Also calculate X position based on text anchor
+              let adjustedX = x;
+              const textWidth = parseFloat(width);
+              const actualTextAnchor = textAnchor || 'start';
+
+              if (actualTextAnchor === 'middle') {
+                adjustedX = x - textWidth / 2;
+              } else if (actualTextAnchor === 'end') {
+                adjustedX = x - textWidth;
+              }
+
+              results.methods.dataAttributes = {
+                x: adjustedX,
+                y: adjustedY,
+                width: textWidth,
+                height: textHeight,
+                baseline: actualBaseline,
+                anchor: actualTextAnchor
+              };
+            }
+          }
+        } catch (error) {
+          results.methods.dataAttributes = { error: error.message };
+        }        console.table(results.methods);
+        return results;
+      }
     },
 
     routing: {
@@ -418,6 +602,8 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 ║ Quick Access:                                                                ║
 ║   __msdDebug.debug.anchors.toggle()        - Toggle anchor markers          ║
 ║   __msdDebug.debug.bounding.toggle()       - Toggle bounding boxes          ║
+║   __msdDebug.debug.bounding.test('id')     - Test bounding box accuracy     ║
+║   __msdDebug.debug.bounding.compare('id')  - Compare measurement methods    ║
 ║   __msdDebug.debug.routing.toggle()        - Toggle routing guides          ║
 ║   __msdDebug.debug.performance.toggle()    - Toggle performance overlay     ║
 ║                                                                              ║
@@ -464,6 +650,8 @@ Check status:
 
 Quick toggles:
   __msdDebug.debug.anchors.toggle()       # Toggle anchors
+  __msdDebug.debug.bounding.toggle()      # Toggle bounding boxes
+  __msdDebug.debug.bounding.test('id')    # Test bounding accuracy
   __msdDebug.debug.routing.toggle()       # Toggle routing guides
 
 For full help: __msdDebug.help()
