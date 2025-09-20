@@ -358,24 +358,3 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
   return api;
 }
 
-/**
- * Initialize Heads-Up Display (HUD) controller.
- * @param {Object} pipeline
- * @param {HTMLElement|ShadowRoot} mountEl
- * @returns {Promise<void>|null}
- */
-export function initMsdHud(pipeline, mountEl) {
-  if (!pipeline?.enabled) return null;
-  import('../hud/HudController.js').then(mod => {
-    const hud = new mod.HudController(pipeline, mountEl);
-    hud.refresh();
-    if (window.__msdDebug) {
-      window.__msdDebug.hud = {
-        refresh: () => hud.refresh(),
-        hud
-      };
-    }
-  }).catch(err => {
-    console.warn('[MSD v1] HudController import failed:', err);
-  });
-}

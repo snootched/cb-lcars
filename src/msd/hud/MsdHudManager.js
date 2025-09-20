@@ -74,7 +74,11 @@ export class MsdHudManager {
       autoPosition: true,
       panelManagerOpen: false,
       hudWidth: 420,
-      resizable: false
+      resizable: false,
+      // ADDED: Font and scaling options
+      fontSize: 12, // Base font size in pixels (default 12px)
+      hudScale: 1.0, // Overall HUD scale factor (0.8 - 1.5)
+      fontFamily: 'monospace' // Font family
     };
 
     // FIXED: Only log state once during construction
@@ -194,8 +198,112 @@ export class MsdHudManager {
         }
 
         console.log('[MsdHudManager] Panel manager closed');
+      },
+
+      // ADDED: Font size controls
+      adjustFontSize: function(delta) {
+        const newSize = Math.max(8, Math.min(20, self.state.fontSize + delta));
+        if (newSize !== self.state.fontSize) {
+          self.state.fontSize = newSize;
+          self._applyFontAndScale();
+          console.log(`[MsdHudManager] Font size adjusted to ${newSize}px`);
+        }
+      },
+
+      setFontSize: function(size) {
+        const newSize = Math.max(8, Math.min(20, parseInt(size) || 12));
+        if (newSize !== self.state.fontSize) {
+          self.state.fontSize = newSize;
+          self._applyFontAndScale();
+          console.log(`[MsdHudManager] Font size set to ${newSize}px`);
+        }
+      },
+
+      // ADDED: HUD scale controls
+      adjustHudScale: function(delta) {
+        const newScale = Math.max(0.7, Math.min(2.0, self.state.hudScale + delta));
+        if (Math.abs(newScale - self.state.hudScale) > 0.05) {
+          self.state.hudScale = newScale;
+          self._applyFontAndScale();
+          console.log(`[MsdHudManager] HUD scale adjusted to ${newScale.toFixed(2)}x`);
+        }
+      },
+
+      setHudScale: function(scale) {
+        const newScale = Math.max(0.7, Math.min(2.0, parseFloat(scale) || 1.0));
+        if (Math.abs(newScale - self.state.hudScale) > 0.05) {
+          self.state.hudScale = newScale;
+          self._applyFontAndScale();
+          console.log(`[MsdHudManager] HUD scale set to ${newScale.toFixed(2)}x`);
+        }
+      },
+
+      // ADDED: Font family controls
+      setFontFamily: function(family) {
+        console.log(`[MsdHudManager] setFontFamily called with: "${family}"`);
+        const validFamilies = ['monospace', 'sans-serif', 'serif', '"Courier New"', '"Roboto Mono"'];
+
+        // Handle HTML-encoded quotes and normalize
+        let normalizedFamily = family;
+        if (family.includes('&quot;')) {
+          normalizedFamily = family.replace(/&quot;/g, '"');
+        }
+
+        console.log(`[MsdHudManager] Normalized font family: "${normalizedFamily}"`);
+
+        if (validFamilies.includes(normalizedFamily)) {
+          self.state.fontFamily = normalizedFamily;
+          self._applyFontAndScale();
+          // FIXED: Don't force a content update that might close dropdowns
+          // setTimeout(() => self.updateHudContent(), 50);
+          console.log(`[MsdHudManager] Font family successfully set to: ${normalizedFamily}`);
+        } else {
+          console.warn(`[MsdHudManager] Invalid font family: "${family}" (normalized: "${normalizedFamily}")`, {
+            validFamilies,
+            received: family,
+            normalized: normalizedFamily
+          });
+        }
       }
     };
+  }
+
+  // ADDED: Apply font size and scale changes
+  _applyFontAndScale() {
+    if (!this.hudElement) return;
+
+    const baseFontSize = this.state.fontSize;
+    const scale = this.state.hudScale;
+    const family = this.state.fontFamily;
+
+    // Apply transform and font changes to the main HUD element
+    this.hudElement.style.transform = `scale(${scale})`;
+    this.hudElement.style.transformOrigin = 'top left';
+    this.hudElement.style.fontFamily = family;
+    this.hudElement.style.fontSize = `${baseFontSize}px`;
+
+    // Adjust positioning if scaled to prevent clipping
+    if (scale !== 1.0) {
+      const rect = this.hudElement.getBoundingClientRect();
+      const scaledWidth = this.state.hudWidth * scale;
+      const scaledHeight = rect.height * scale;
+
+      // Ensure HUD doesn't go off-screen when scaled
+      const currentLeft = parseInt(this.hudElement.style.left) || 0;
+      const currentTop = parseInt(this.hudElement.style.top) || 0;
+
+      const maxLeft = window.innerWidth - scaledWidth - 10;
+      const maxTop = window.innerHeight - scaledHeight - 10;
+
+      if (currentLeft > maxLeft) {
+        this.hudElement.style.left = Math.max(10, maxLeft) + 'px';
+      }
+      if (currentTop > maxTop) {
+        this.hudElement.style.top = Math.max(10, maxTop) + 'px';
+      }
+    }
+
+    console.log(`[MsdHudManager] Applied font: ${baseFontSize}px ${family}, scale: ${scale}x`);
   }
 
   // ADDED: Auto-positioning logic
@@ -369,6 +477,49 @@ export class MsdHudManager {
 
     // Generic
     this.bus.on('hud:refresh', () => this.refresh());
+
+    // ADDED: HUD settings controls
+    this.bus.on('refresh-rate:change', ({ value }) => {
+      console.log('[MsdHudManager] Refresh rate change event:', value);
+      const rate = parseInt(value);
+      if (!isNaN(rate) && rate > 0) {
+        this.setRefreshRate(rate);
+        console.log('[MsdHudManager] Refresh rate set to:', rate);
+      }
+    });
+
+    this.bus.on('width:adjust', ({ delta }) => {
+      console.log('[MsdHudManager] Width adjust event:', delta);
+      this.adjustWidth(parseInt(delta));
+    });
+
+    this.bus.on('font:adjust', ({ delta }) => {
+      console.log('[MsdHudManager] Font adjust event:', delta);
+      window.__msdHudPanelControls?.adjustFontSize(parseInt(delta));
+    });
+
+    this.bus.on('scale:adjust', ({ delta }) => {
+      console.log('[MsdHudManager] Scale adjust event:', delta);
+      window.__msdHudPanelControls?.adjustHudScale(parseFloat(delta));
+    });
+
+    this.bus.on('font-family:change', ({ value }) => {
+      console.log('[MsdHudManager] Font family change event:', value);
+      // FIXED: Add small delay to prevent event conflicts
+      setTimeout(() => {
+        window.__msdHudPanelControls?.setFontFamily(value);
+      }, 10);
+    });
+
+    this.bus.on('font:reset', () => {
+      console.log('[MsdHudManager] Font reset event');
+      this.state.fontSize = 12;
+      this.state.hudScale = 1.0;
+      this.state.fontFamily = 'monospace';
+      this._applyFontAndScale();
+      this.updateHudContent();
+      console.log('[MsdHudManager] Font settings reset to defaults');
+    });
   }
 
   _registerSelectionHandlers() { // ADDED
@@ -567,7 +718,7 @@ export class MsdHudManager {
       ${this.state.resizable ? 'resize: horizontal; min-width: 300px; max-width: 600px;' : ''}
     `;
 
-    // ADDED: Dragging functionality
+    // ADDED: Dragging functionality - only allow dragging from header
     this.setupDragging();
 
     // Mount to document.body for full screen access
@@ -585,16 +736,34 @@ export class MsdHudManager {
       this.hudElement.addEventListener(domEvent, (e) => {
         const target = e.target.closest('[data-bus-event]');
         if (!target || !this.hudElement.contains(target)) return;
+
+        // FIXED: For select elements, only handle 'change' events, not 'click' or 'input'
+        if (target.tagName === 'SELECT' && domEvent !== 'change') {
+          return; // Don't handle click/input events on select elements
+        }
+
         // Build payload from data-* excluding busEvent
         const { busEvent, ...rest } = Object.fromEntries(
           Object.entries(target.dataset).map(([k, v]) => [k.replace(/-[a-z]/g, m => m[1].toUpperCase()), v])
         );
+
+        // For select elements, add the selected value
+        if (target.tagName === 'SELECT') {
+          rest.value = target.value;
+        }
+
         // Numeric coercion for simple numbers
         Object.keys(rest).forEach(k => {
           if (/^-?\d+(\.\d+)?$/.test(rest[k])) rest[k] = Number(rest[k]);
         });
+
+        console.log(`[MsdHudManager] Bus event: ${target.dataset.busEvent}`, rest);
         this.bus.emit(target.dataset.busEvent, rest);
-        if (domEvent === 'click') e.preventDefault();
+
+        // FIXED: Don't prevent default on select change events
+        if (domEvent === 'click' && target.tagName !== 'SELECT') {
+          e.preventDefault();
+        }
       }, true);
     };
 
@@ -613,6 +782,13 @@ export class MsdHudManager {
 
     // Skip update if routing panel inputs are focused to prevent refresh interference
     if (this.panels.routing?.shouldSkipRefresh?.()) {
+      return;
+    }
+
+    // FIXED: Skip update if any dropdown is currently open
+    const openDropdowns = this.hudElement.querySelectorAll('select:focus, select:focus-within');
+    if (openDropdowns.length > 0) {
+      console.log('[MsdHudManager] Skipping refresh - dropdown is open');
       return;
     }
 
@@ -695,7 +871,7 @@ export class MsdHudManager {
         #msd-debug-hud .msd-hud-title { font-weight:bold; pointer-events:none; }
         #msd-debug-hud .msd-hud-controls { font-size:10px; display:flex; gap:4px; }
         #msd-debug-hud .msd-hud-close, #msd-debug-hud .msd-hud-refresh, #msd-debug-hud .msd-hud-menu {
-          cursor:pointer; padding:2px 6px; border-radius:3px;
+          cursor:pointer; padding:2px 6px; border-radius:3px; pointer-events:auto;
         }
         #msd-debug-hud .msd-hud-close { background:rgba(255,0,0,0.7); }
         #msd-debug-hud .msd-hud-refresh { background:rgba(0,255,0,0.7); }
@@ -745,6 +921,7 @@ export class MsdHudManager {
           letter-spacing:.5px;
           transition:all .18s;
           position:relative;
+          pointer-events:auto;
         }
         #msd-debug-hud .msd-panel-toggle-btn.active {
           background:linear-gradient(#0ff,#066);
@@ -767,6 +944,13 @@ export class MsdHudManager {
           font-size:9px;
           opacity:.65;
           margin-top:2px;
+        }
+        #msd-debug-hud select, #msd-debug-hud button, #msd-debug-hud input {
+          pointer-events: auto !important;
+          cursor: pointer !important;
+        }
+        #msd-debug-hud select:hover, #msd-debug-hud button:hover {
+          opacity: 0.9;
         }
       </style>
     `;
@@ -888,7 +1072,22 @@ export class MsdHudManager {
   // ADDED: Dragging implementation
   setupDragging() {
     const startDrag = (e) => {
+      // FIXED: Be very specific about dragging - only from header title area
+      const isValidDragArea = e.target.classList.contains('msd-hud-title') ||
+                             (e.target.closest('.msd-hud-header') &&
+                              !e.target.closest('.msd-hud-controls') &&
+                              !e.target.closest('select') &&
+                              !e.target.closest('button') &&
+                              !e.target.tagName === 'SELECT' &&
+                              !e.target.tagName === 'BUTTON');
+
+      if (!isValidDragArea) {
+        return; // Only allow dragging from the title or safe header areas
+      }
+
       e.preventDefault();
+      e.stopPropagation(); // Prevent other event handlers
+
       this.dragState.isDragging = true;
       this.dragState.startX = e.clientX;
       this.dragState.startY = e.clientY;
@@ -975,7 +1174,7 @@ export class MsdHudManager {
     html += `</div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
         <label style="font-size:9px;opacity:.75;">Refresh:</label>
-        <select id="msd-hud-refresh-rate" name="refresh-rate" data-action="refresh-rate"
+        <select id="msd-hud-refresh-rate" name="refresh-rate" data-bus-event="refresh-rate:change"
           style="font-size:9px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;">
           <option value="1000" ${this.state.refreshRate===1000?'selected':''}>1s</option>
           <option value="2000" ${this.state.refreshRate===2000?'selected':''}>2s</option>
@@ -983,13 +1182,44 @@ export class MsdHudManager {
           <option value="10000" ${this.state.refreshRate===10000?'selected':''}>10s</option>
         </select>
         <div style="margin-left:auto;display:flex;gap:4px;">
-          <button data-action="width-down" title="Narrower"
+          <button data-bus-event="width:adjust" data-delta="-20" title="Narrower"
             style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">◀</button>
-          <button data-action="width-up" title="Wider"
+          <button data-bus-event="width:adjust" data-delta="20" title="Wider"
             style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">▶</button>
         </div>
       </div>
-      <div class="msd-panel-meta">
+
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:4px;border-top:1px solid rgba(0,255,255,0.2);">
+        <label style="font-size:9px;opacity:.75;">Font Size:</label>
+        <button data-bus-event="font:adjust" data-delta="-1" title="Smaller Font"
+          style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A-</button>
+        <span style="font-size:9px;color:#ffaa00;min-width:28px;text-align:center;">${this.state.fontSize}px</span>
+        <button data-bus-event="font:adjust" data-delta="1" title="Larger Font"
+          style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A+</button>
+
+        <div style="margin-left:8px;display:flex;align-items:center;gap:4px;">
+          <label style="font-size:9px;opacity:.75;">Scale:</label>
+          <button data-bus-event="scale:adjust" data-delta="-0.1" title="Scale Down"
+            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">-</button>
+          <span style="font-size:9px;color:#ffaa00;min-width:32px;text-align:center;">${this.state.hudScale.toFixed(1)}x</span>
+          <button data-bus-event="scale:adjust" data-delta="0.1" title="Scale Up"
+            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">+</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <label style="font-size:9px;opacity:.75;">Font:</label>
+        <select id="msd-hud-font-family" name="font-family" data-bus-event="font-family:change"
+          style="font-size:9px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;flex:1;">
+          <option value="monospace" ${this.state.fontFamily==='monospace'?'selected':''}>Monospace</option>
+          <option value="sans-serif" ${this.state.fontFamily==='sans-serif'?'selected':''}>Sans-serif</option>
+          <option value="serif" ${this.state.fontFamily==='serif'?'selected':''}>Serif</option>
+          <option value="&quot;Courier New&quot;" ${this.state.fontFamily==='"Courier New"'?'selected':''}>Courier</option>
+          <option value="&quot;Roboto Mono&quot;" ${this.state.fontFamily==='"Roboto Mono"'?'selected':''}>Roboto Mono</option>
+        </select>
+        <button data-bus-event="font:reset" title="Reset Font Settings"
+          style="font-size:9px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">Reset</button>
+      </div>      <div class="msd-panel-meta">
         Click buttons to toggle panels • Order: ${this.state.panelOrder.join(', ')}
       </div>
     </div>`;
@@ -1040,32 +1270,8 @@ export class MsdHudManager {
         }
       });
 
-      const refreshSelect = manager.querySelector('[data-action="refresh-rate"]');
-      if (refreshSelect) {
-        refreshSelect.onchange = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          window.__msdDebug?.hud?.setRefreshRate?.(parseInt(refreshSelect.value));
-        };
-      }
-
-      const widthDownBtn = manager.querySelector('[data-action="width-down"]');
-      if (widthDownBtn) {
-        widthDownBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.adjustWidth(-20);
-        };
-      }
-
-      const widthUpBtn = manager.querySelector('[data-action="width-up"]');
-      if (widthUpBtn) {
-        widthUpBtn.onclick = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.adjustWidth(20);
-        };
-      }
+      // NOTE: Refresh rate, font controls, and width controls now use the event bus system
+      // No manual event listeners needed for dropdowns and buttons with data-bus-event
     } catch (e) {
       console.warn('[MsdHudManager] Failed to attach panel manager event listeners:', e);
     }
@@ -1159,6 +1365,10 @@ export class MsdHudManager {
     this.createHudElement();
     this.startRefresh();
     this._setupResizeHandler();
+
+    // ADDED: Apply font and scale settings after creating HUD element
+    this._applyFontAndScale();
+
     if (window.__msdDebug) {
       window.__msdDebug.hud = {
         manager: this,

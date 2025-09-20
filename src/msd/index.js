@@ -12,7 +12,7 @@ import "./tests/smoothingRoutingScenarios.js";
 import "./hud/hudService.js";
 
 // Main exports
-export { initMsdPipeline, initMsdHud, processMsdConfig };
+export { initMsdPipeline, processMsdConfig };
 
 // Utility exports
 export { mergePacks, validateMerged };
@@ -25,8 +25,7 @@ export { mergePacks, validateMerged };
   Object.assign(window.__msdDebug, {
     mergePacks,
     buildCardModel,
-    initMsdPipeline,
-    initMsdHud
+    initMsdPipeline
   });
 
   // Enhanced debug interface
