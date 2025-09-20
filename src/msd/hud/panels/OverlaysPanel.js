@@ -224,6 +224,13 @@ export class OverlaysPanel {
     const existing = document.getElementById('msd-overlay-popup');
     if (existing) existing.remove();
 
+    // ADDED: Get proportional font sizes for popup
+    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const sectionFontSize = Math.round(baseFontSize * 1.0); // 12px when base is 12px
+    const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
+    const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
+    const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px
+
     const popup = document.createElement('div');
     popup.id = 'msd-overlay-popup';
     popup.style.cssText = `
@@ -231,7 +238,7 @@ export class OverlaysPanel {
       background:rgba(0,0,0,0.95);color:#ff66ff;
       border:2px solid #ff66ff;border-radius:8px;
       padding:14px 16px;z-index:1000003;
-      font-family:monospace;font-size:12px;
+      font-family:monospace;font-size:${sectionFontSize}px;
       max-width:480px;max-height:70vh;overflow:auto;
       box-shadow:0 4px 18px rgba(255,102,255,0.4);
     `;
@@ -250,12 +257,12 @@ export class OverlaysPanel {
     popup.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <h3 style="margin:0;color:#ffaaee;">Overlay: ${overlay.id}</h3>
-        <button style="background:#331133;color:#fff;border:1px solid #553366;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:11px;"
+        <button style="background:#331133;color:#fff;border:1px solid #553366;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:${metricFontSize}px;"
           onclick="document.getElementById('msd-overlay-popup')?.remove()">
           Close
         </button>
       </div>
-      <div style="font-size:11px;line-height:1.4;color:#ddd;">
+      <div style="font-size:${metricFontSize}px;line-height:1.4;color:#ddd;">
         <strong>Type:</strong> ${overlay.type || 'n/a'}<br>
         <strong>Anchor:</strong> ${overlay.anchor || '—'} → <strong>Attach:</strong> ${overlay.attach_to || '—'}<br>
         <strong>Channel:</strong> ${overlay.channel || '—'} • <strong>Smooth:</strong> ${overlay.smooth ? 'yes':'no'}<br>
@@ -265,17 +272,17 @@ export class OverlaysPanel {
         <strong>Meta:</strong> ${overlay.__meta ? Object.keys(overlay.__meta).join(', ') : '—'}
       </div>
       <div style="margin-top:8px;">
-        <div style="color:#ffaaee;font-size:11px;margin-bottom:4px;">Final Style</div>
-        <pre style="margin:0;background:#111;color:#ccc;padding:8px;border:1px solid #552255;border-radius:4px;font-size:10px;max-height:200px;overflow:auto;">${stylePreview}</pre>
+        <div style="color:#ffaaee;font-size:${metricFontSize}px;margin-bottom:4px;">Final Style</div>
+        <pre style="margin:0;background:#111;color:#ccc;padding:8px;border:1px solid #552255;border-radius:4px;font-size:${controlsFontSize}px;max-height:200px;overflow:auto;">${stylePreview}</pre>
       </div>
       <div style="margin-top:8px;text-align:right;">
         <button
-          style="background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;"
+          style="background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:${metricFontSize}px;"
           onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(overlay.finalStyle || overlay.style || {})},null,2))">
           Copy Style
         </button>
         <button
-          style="background:#331133;color:#fff;border:1px solid #553366;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:11px;margin-left:6px;"
+          style="background:#331133;color:#fff;border:1px solid #553366;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:${metricFontSize}px;margin-left:6px;"
           onclick="document.getElementById('msd-overlay-popup')?.remove()">
           Done
         </button>
@@ -372,12 +379,16 @@ export class OverlaysPanel {
   }
 
   _toast(msg, color = '#ff66ff') {
+    // ADDED: Get proportional font size for toast
+    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
+
     const el = document.createElement('div');
     el.style.cssText = `
       position:fixed;top:18px;right:18px;
       background:#000;padding:4px 10px;
       border:1px solid ${color};color:${color};
-      font:10px monospace;z-index:1000002;
+      font:${controlsFontSize}px monospace;z-index:1000002;
       border-radius:4px;opacity:.95;
     `;
     el.textContent = msg;
@@ -387,6 +398,14 @@ export class OverlaysPanel {
 
   renderHtml(data) {
     const { overlays = [], stats = {} } = data;
+
+    // ADDED: Get font size from HUD manager context for proportional scaling
+    const baseFontSize = window.__msdDebug?.hud?.manager?.state?.fontSize || 14;
+    const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
+    const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
+    const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px
+    const tinyFontSize = Math.round(baseFontSize * 0.67); // 8px when base is 12px
+
     let html = '<div class="msd-hud-panel"><h3>Overlays</h3>';
     html += `<style>
       .msd-overlay-highlighted { outline:3px solid #ff66ff !important; }
@@ -394,7 +413,7 @@ export class OverlaysPanel {
     html += '<div class="msd-hud-section"><h4>Stats</h4>';
     html += `<div class="msd-hud-metric"><span class="msd-hud-metric-name">Total</span><span class="msd-hud-metric-value">${stats.total || 0}</span></div>`;
     Object.entries(stats.byType || {}).slice(0,6).forEach(([type,count]) => {
-      html += `<div class="msd-hud-metric" style="font-size:10px;">
+      html += `<div class="msd-hud-metric" style="font-size:${controlsFontSize}px;">
         <span class="msd-hud-metric-name">${type}</span>
         <span class="msd-hud-metric-value">${count}</span>
       </div>`;
@@ -424,28 +443,28 @@ export class OverlaysPanel {
       >
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span style="color:#aaa;">${shortId}${badge}</span>
-          <span style="color:#ff66ff;font-size:11px;">${o.type}</span>
+          <span style="color:#ff66ff;font-size:${metricFontSize}px;">${o.type}</span>
         </div>
-        <div style="font-size:10px;color:#888;margin-top:2px;">
+        <div style="font-size:${controlsFontSize}px;color:#888;margin-top:2px;">
           A:${o.anchor || '-'} → ${o.attach_to || '-'} ${o.channel ? '• ch:'+o.channel : ''} ${o.smooth ? '• smooth':''}
         </div>
-        <div style="font-size:9px;color:#666;margin-top:2px;">
+        <div style="font-size:${smallFontSize}px;color:#666;margin-top:2px;">
           src: p${o.profileCount} / s${o.styleSourceCount} / r${o.patchCount}
         </div>
-        <div style="font-size:9px;color:#555;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
+        <div style="font-size:${smallFontSize}px;color:#555;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">
           ${stylePreview}
         </div>
         <div style="margin-top:4px;text-align:right;">
           <button
             onclick="event.stopPropagation();__msdHudBus('overlay:highlight',{id:'${o.id}'});__msdHudBus('overlay:analyze',{id:'${o.id}'})"
-            style="font-size:9px;padding:2px 6px;background:#331133;color:#ffccff;border:1px solid #553355;border-radius:3px;cursor:pointer;">
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#331133;color:#ffccff;border:1px solid #553355;border-radius:3px;cursor:pointer;">
             Analyze
           </button>
         </div>
       </div>`;
     });
     if (overlays.length > 25) {
-      html += `<div style="font-size:9px;opacity:.6;text-align:center;margin-top:4px;">... ${overlays.length - 25} more</div>`;
+      html += `<div style="font-size:${smallFontSize}px;opacity:.6;text-align:center;margin-top:4px;">... ${overlays.length - 25} more</div>`;
     }
     html += '</div></div>';
     return html;

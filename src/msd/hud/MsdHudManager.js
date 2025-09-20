@@ -76,9 +76,9 @@ export class MsdHudManager {
       hudWidth: 420,
       resizable: false,
       // ADDED: Font and scaling options
-      fontSize: 12, // Base font size in pixels (default 12px)
+      fontSize: 14, // Base font size in pixels (default 14px)
       hudScale: 1.0, // Overall HUD scale factor (0.8 - 1.5)
-      fontFamily: 'monospace' // Font family
+      fontFamily: '"Antonio", monospace' // Font family with LCARS default + fallback
     };
 
     // FIXED: Only log state once during construction
@@ -202,6 +202,14 @@ export class MsdHudManager {
 
       // ADDED: Font size controls
       adjustFontSize: function(delta) {
+        // FIXED: Add throttling to prevent rapid multiple calls
+        if (self._fontSizeThrottle) return;
+        self._fontSizeThrottle = true;
+
+        setTimeout(() => {
+          self._fontSizeThrottle = false;
+        }, 200); // 200ms throttle
+
         const newSize = Math.max(8, Math.min(20, self.state.fontSize + delta));
         if (newSize !== self.state.fontSize) {
           self.state.fontSize = newSize;
@@ -211,7 +219,7 @@ export class MsdHudManager {
       },
 
       setFontSize: function(size) {
-        const newSize = Math.max(8, Math.min(20, parseInt(size) || 12));
+        const newSize = Math.max(8, Math.min(20, parseInt(size) || 14));
         if (newSize !== self.state.fontSize) {
           self.state.fontSize = newSize;
           self._applyFontAndScale();
@@ -221,6 +229,14 @@ export class MsdHudManager {
 
       // ADDED: HUD scale controls
       adjustHudScale: function(delta) {
+        // FIXED: Add throttling to prevent rapid multiple calls
+        if (self._scaleThrottle) return;
+        self._scaleThrottle = true;
+
+        setTimeout(() => {
+          self._scaleThrottle = false;
+        }, 200); // 200ms throttle
+
         const newScale = Math.max(0.7, Math.min(2.0, self.state.hudScale + delta));
         if (Math.abs(newScale - self.state.hudScale) > 0.05) {
           self.state.hudScale = newScale;
@@ -241,7 +257,14 @@ export class MsdHudManager {
       // ADDED: Font family controls
       setFontFamily: function(family) {
         console.log(`[MsdHudManager] setFontFamily called with: "${family}"`);
-        const validFamilies = ['monospace', 'sans-serif', 'serif', '"Courier New"', '"Roboto Mono"'];
+        const validFamilies = [
+          '"Antonio", monospace',
+          'monospace',
+          'sans-serif',
+          'serif',
+          '"Courier New", monospace',
+          '"Roboto Mono", monospace'
+        ];
 
         // Handle HTML-encoded quotes and normalize
         let normalizedFamily = family;
@@ -494,12 +517,12 @@ export class MsdHudManager {
     });
 
     this.bus.on('font:adjust', ({ delta }) => {
-      console.log('[MsdHudManager] Font adjust event:', delta);
+      console.log('[MsdHudManager] Font adjust event:', delta, 'throttled:', !!this._fontSizeThrottle);
       window.__msdHudPanelControls?.adjustFontSize(parseInt(delta));
     });
 
     this.bus.on('scale:adjust', ({ delta }) => {
-      console.log('[MsdHudManager] Scale adjust event:', delta);
+      console.log('[MsdHudManager] Scale adjust event:', delta, 'throttled:', !!this._scaleThrottle);
       window.__msdHudPanelControls?.adjustHudScale(parseFloat(delta));
     });
 
@@ -513,9 +536,9 @@ export class MsdHudManager {
 
     this.bus.on('font:reset', () => {
       console.log('[MsdHudManager] Font reset event');
-      this.state.fontSize = 12;
+      this.state.fontSize = 14;
       this.state.hudScale = 1.0;
-      this.state.fontFamily = 'monospace';
+      this.state.fontFamily = '"Antonio", monospace';
       this._applyFontAndScale();
       this.updateHudContent();
       console.log('[MsdHudManager] Font settings reset to defaults');
@@ -742,6 +765,15 @@ export class MsdHudManager {
           return; // Don't handle click/input events on select elements
         }
 
+        // FIXED: For buttons, only handle 'click' events to prevent multiple firing
+        if (target.tagName === 'BUTTON' && domEvent !== 'click') {
+          return; // Don't handle other events on buttons
+        }
+
+        // FIXED: Prevent multiple event handling
+        e.preventDefault();
+        e.stopPropagation();
+
         // Build payload from data-* excluding busEvent
         const { busEvent, ...rest } = Object.fromEntries(
           Object.entries(target.dataset).map(([k, v]) => [k.replace(/-[a-z]/g, m => m[1].toUpperCase()), v])
@@ -759,11 +791,6 @@ export class MsdHudManager {
 
         console.log(`[MsdHudManager] Bus event: ${target.dataset.busEvent}`, rest);
         this.bus.emit(target.dataset.busEvent, rest);
-
-        // FIXED: Don't prevent default on select change events
-        if (domEvent === 'click' && target.tagName !== 'SELECT') {
-          e.preventDefault();
-        }
       }, true);
     };
 
@@ -857,6 +884,17 @@ export class MsdHudManager {
 
   renderHudHtml(data) {
     const compactClass = this.state.compactMode ? 'msd-hud-compact' : '';
+
+    // ADDED: Calculate proportional font sizes based on base font size
+    const baseFontSize = this.state.fontSize;
+    const titleFontSize = Math.round(baseFontSize * 1.17); // 14px when base is 12px
+    const compactTitleFontSize = Math.round(baseFontSize * 1.0); // 12px when base is 12px
+    const sectionFontSize = Math.round(baseFontSize * 1.0); // 12px when base is 12px
+    const metricFontSize = Math.round(baseFontSize * 0.92); // 11px when base is 12px
+    const controlsFontSize = Math.round(baseFontSize * 0.83); // 10px when base is 12px
+    const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px
+    const tinyFontSize = Math.round(baseFontSize * 0.67); // 8px when base is 12px
+
     let html = `
       <style>
         #msd-debug-hud .msd-hud-header {
@@ -869,7 +907,7 @@ export class MsdHudManager {
           cursor:grab;
         }
         #msd-debug-hud .msd-hud-title { font-weight:bold; pointer-events:none; }
-        #msd-debug-hud .msd-hud-controls { font-size:10px; display:flex; gap:4px; }
+        #msd-debug-hud .msd-hud-controls { font-size:${controlsFontSize}px; display:flex; gap:4px; }
         #msd-debug-hud .msd-hud-close, #msd-debug-hud .msd-hud-refresh, #msd-debug-hud .msd-hud-menu {
           cursor:pointer; padding:2px 6px; border-radius:3px; pointer-events:auto;
         }
@@ -880,27 +918,27 @@ export class MsdHudManager {
         #msd-debug-hud .msd-hud-panel.hidden { display:none; }
         #msd-debug-hud .msd-hud-panel h3 {
           margin:0 0 ${this.state.compactMode ? '4px':'8px'} 0;
-          color:#ffaa00; font-size:${this.state.compactMode ? '12px':'14px'};
+          color:#ffaa00; font-size:${this.state.compactMode ? compactTitleFontSize : titleFontSize}px;
         }
-        #msd-debug-hud .msd-hud-section h4 { margin:6px 0 4px 0; color:#fff; font-size:12px; }
-        #msd-debug-hud .msd-hud-metric { display:flex; justify-content:space-between; margin:2px 0; font-size:11px; }
+        #msd-debug-hud .msd-hud-section h4 { margin:6px 0 4px 0; color:#fff; font-size:${sectionFontSize}px; }
+        #msd-debug-hud .msd-hud-metric { display:flex; justify-content:space-between; margin:2px 0; font-size:${metricFontSize}px; }
         #msd-debug-hud .msd-hud-metric-name { color:#aaa; }
         #msd-debug-hud .msd-hud-metric-value { color:#0ff; font-weight:bold; }
         #msd-debug-hud .msd-hud-error { border-left:3px solid #ff0000; padding-left:6px; }
         #msd-debug-hud .msd-hud-warning { border-left:3px solid #ffaa00; padding-left:6px; }
-        #msd-debug-hud .msd-hud-success { color:#00ff00; font-size:11px; text-align:center; padding:4px; }
-        #msd-debug-hud .msd-hud-summary { text-align:center; font-size:11px; padding:4px; background:rgba(255,170,0,0.2); }
+        #msd-debug-hud .msd-hud-success { color:#00ff00; font-size:${metricFontSize}px; text-align:center; padding:4px; }
+        #msd-debug-hud .msd-hud-summary { text-align:center; font-size:${metricFontSize}px; padding:4px; background:rgba(255,170,0,0.2); }
         #msd-debug-hud .msd-selected { outline:2px solid #ffaa00; background:rgba(255,170,0,0.12)!important; position:relative; }
-        #msd-debug-hud .msd-selected::after { content:'●'; position:absolute; top:2px; right:4px; font-size:8px; color:#ffaa00; }
+        #msd-debug-hud .msd-selected::after { content:'●'; position:absolute; top:2px; right:4px; font-size:${tinyFontSize}px; color:#ffaa00; }
         #msd-debug-hud .msd-panel-controls {
           padding:6px 8px;
           background:rgba(0,0,0,0.35);
           border-bottom:1px solid rgba(0,255,255,0.25);
-          font-size:10px;
+          font-size:${controlsFontSize}px;
         }
         #msd-debug-hud .msd-panel-controls h4 {
           margin:4px 0 6px;
-          font-size:11px;
+          font-size:${metricFontSize}px;
           color:#ffaa00;
         }
         #msd-debug-hud .msd-panel-toggle-buttons {
@@ -912,7 +950,7 @@ export class MsdHudManager {
         #msd-debug-hud .msd-panel-toggle-btn {
           cursor:pointer;
           padding:3px 8px;
-          font-size:10px;
+          font-size:${controlsFontSize}px;
           border:1px solid #044;
           background:linear-gradient(#022,#011);
           color:#0ff;
@@ -941,7 +979,7 @@ export class MsdHudManager {
           outline:1px solid #0ff;
         }
         #msd-debug-hud .msd-panel-controls .msd-panel-meta {
-          font-size:9px;
+          font-size:${smallFontSize}px;
           opacity:.65;
           margin-top:2px;
         }
@@ -951,6 +989,23 @@ export class MsdHudManager {
         }
         #msd-debug-hud select:hover, #msd-debug-hud button:hover {
           opacity: 0.9;
+        }
+        /* ADDED: Scale form elements proportionally */
+        #msd-debug-hud select, #msd-debug-hud input {
+          font-size: ${smallFontSize}px !important;
+        }
+        #msd-debug-hud button {
+          font-size: ${smallFontSize}px !important;
+        }
+        /* ADDED: Scale footer text */
+        #msd-debug-hud .msd-footer {
+          font-size: ${controlsFontSize}px;
+        }
+        #msd-debug-hud .msd-footer-shortcuts {
+          font-size: ${smallFontSize}px;
+        }
+        #msd-debug-hud .msd-footer-debug {
+          font-size: ${tinyFontSize}px;
         }
       </style>
     `;
@@ -1010,13 +1065,13 @@ export class MsdHudManager {
 
     const refreshAge = Math.round((Date.now() - this.state.lastRefresh) / 1000);
 
-    // FIXED: Correct panel counting in footer
-    html += `<div style="padding: 4px; font-size: 10px; text-align: center; color: #666;">
+    // FIXED: Correct panel counting in footer with scaled font sizes
+    html += `<div class="msd-footer" style="padding: 4px; text-align: center; color: #666; font-size: ${controlsFontSize}px;">
       ${visiblePanelCount}/${renderedPanelCount} panels visible • Updated ${refreshAge}s ago • ${this.state.refreshRate / 1000}s
-      <div style="font-size: 9px; margin-top: 2px; opacity: 0.7;">
+      <div class="msd-footer-shortcuts" style="margin-top: 2px; opacity: 0.7; font-size: ${smallFontSize}px;">
         Shortcuts: Ctrl+H toggle • Ctrl+R refresh • Ctrl+P panels • Ctrl+K compact • 1-9 toggle panels
       </div>
-      <div style="font-size: 8px; margin-top: 1px; opacity: 0.5;">
+      <div class="msd-footer-debug" style="margin-top: 1px; opacity: 0.5; font-size: ${tinyFontSize}px;">
         Panels: [${this.state.panelOrder.join(', ')}] | Available: [${Object.keys(this.panels).join(', ')}]
       </div>
     </div>`;
@@ -1140,20 +1195,24 @@ export class MsdHudManager {
 
   // ADDED: Render panel controls interface
   _renderPanelControls() {
+    // ADDED: Calculate proportional font sizes for panel controls
+    const baseFontSize = this.state.fontSize;
+    const smallFontSize = Math.round(baseFontSize * 0.75); // 9px when base is 12px
+
     let html = `<div class="msd-panel-controls" id="msd-panel-manager" style="display:${this.state.panelManagerOpen ? 'block':'none'};">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <strong style="letter-spacing:.5px;">Panel Settings</strong>
         <div style="display:flex;gap:4px;">
           <button data-action="compact"
-            style="font-size:9px;padding:2px 6px;background:${this.state.compactMode ? '#ffaa00':'#222'};color:${this.state.compactMode ? '#000':'#ccc'};border:1px solid #555;border-radius:4px;cursor:pointer;">
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:${this.state.compactMode ? '#ffaa00':'#222'};color:${this.state.compactMode ? '#000':'#ccc'};border:1px solid #555;border-radius:4px;cursor:pointer;">
             Compact
           </button>
           <button data-action="reset"
-            style="font-size:9px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">
             Reset
           </button>
           <button data-action="close"
-            style="font-size:9px;padding:2px 6px;background:#ff4444;color:#fff;border:1px solid #a00;border-radius:4px;cursor:pointer;">
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#ff4444;color:#fff;border:1px solid #a00;border-radius:4px;cursor:pointer;">
             ✕
           </button>
         </div>
@@ -1173,9 +1232,9 @@ export class MsdHudManager {
 
     html += `</div>
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-        <label style="font-size:9px;opacity:.75;">Refresh:</label>
+        <label style="font-size:${smallFontSize}px;opacity:.75;">Refresh:</label>
         <select id="msd-hud-refresh-rate" name="refresh-rate" data-bus-event="refresh-rate:change"
-          style="font-size:9px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;">
+          style="font-size:${smallFontSize}px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;">
           <option value="1000" ${this.state.refreshRate===1000?'selected':''}>1s</option>
           <option value="2000" ${this.state.refreshRate===2000?'selected':''}>2s</option>
           <option value="5000" ${this.state.refreshRate===5000?'selected':''}>5s</option>
@@ -1183,42 +1242,43 @@ export class MsdHudManager {
         </select>
         <div style="margin-left:auto;display:flex;gap:4px;">
           <button data-bus-event="width:adjust" data-delta="-20" title="Narrower"
-            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">◀</button>
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">◀</button>
           <button data-bus-event="width:adjust" data-delta="20" title="Wider"
-            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">▶</button>
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">▶</button>
         </div>
       </div>
 
       <div style="display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:4px;border-top:1px solid rgba(0,255,255,0.2);">
-        <label style="font-size:9px;opacity:.75;">Font Size:</label>
+        <label style="font-size:${smallFontSize}px;opacity:.75;">Font Size:</label>
         <button data-bus-event="font:adjust" data-delta="-1" title="Smaller Font"
-          style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A-</button>
-        <span style="font-size:9px;color:#ffaa00;min-width:28px;text-align:center;">${this.state.fontSize}px</span>
+          style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A-</button>
+        <span style="font-size:${smallFontSize}px;color:#ffaa00;min-width:28px;text-align:center;">${this.state.fontSize}px</span>
         <button data-bus-event="font:adjust" data-delta="1" title="Larger Font"
-          style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A+</button>
+          style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">A+</button>
 
         <div style="margin-left:8px;display:flex;align-items:center;gap:4px;">
-          <label style="font-size:9px;opacity:.75;">Scale:</label>
+          <label style="font-size:${smallFontSize}px;opacity:.75;">Scale:</label>
           <button data-bus-event="scale:adjust" data-delta="-0.1" title="Scale Down"
-            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">-</button>
-          <span style="font-size:9px;color:#ffaa00;min-width:32px;text-align:center;">${this.state.hudScale.toFixed(1)}x</span>
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">-</button>
+          <span style="font-size:${smallFontSize}px;color:#ffaa00;min-width:32px;text-align:center;">${this.state.hudScale.toFixed(1)}x</span>
           <button data-bus-event="scale:adjust" data-delta="0.1" title="Scale Up"
-            style="font-size:9px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">+</button>
+            style="font-size:${smallFontSize}px;padding:2px 6px;background:#222;color:#0ff;border:1px solid #044;border-radius:4px;cursor:pointer;">+</button>
         </div>
       </div>
 
       <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-        <label style="font-size:9px;opacity:.75;">Font:</label>
+        <label style="font-size:${smallFontSize}px;opacity:.75;">Font:</label>
         <select id="msd-hud-font-family" name="font-family" data-bus-event="font-family:change"
-          style="font-size:9px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;flex:1;">
+          style="font-size:${smallFontSize}px;background:#111;color:#0ff;border:1px solid #044;padding:2px 4px;border-radius:4px;flex:1;">
+          <option value="&quot;Antonio&quot;, monospace" ${this.state.fontFamily==='"Antonio", monospace'?'selected':''}>Antonio (LCARS)</option>
           <option value="monospace" ${this.state.fontFamily==='monospace'?'selected':''}>Monospace</option>
           <option value="sans-serif" ${this.state.fontFamily==='sans-serif'?'selected':''}>Sans-serif</option>
           <option value="serif" ${this.state.fontFamily==='serif'?'selected':''}>Serif</option>
-          <option value="&quot;Courier New&quot;" ${this.state.fontFamily==='"Courier New"'?'selected':''}>Courier</option>
-          <option value="&quot;Roboto Mono&quot;" ${this.state.fontFamily==='"Roboto Mono"'?'selected':''}>Roboto Mono</option>
+          <option value="&quot;Courier New&quot;, monospace" ${this.state.fontFamily==='"Courier New", monospace'?'selected':''}>Courier New</option>
+          <option value="&quot;Roboto Mono&quot;, monospace" ${this.state.fontFamily==='"Roboto Mono", monospace'?'selected':''}>Roboto Mono</option>
         </select>
         <button data-bus-event="font:reset" title="Reset Font Settings"
-          style="font-size:9px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">Reset</button>
+          style="font-size:${smallFontSize}px;padding:2px 6px;background:#333;color:#ccc;border:1px solid #555;border-radius:4px;cursor:pointer;">Reset</button>
       </div>      <div class="msd-panel-meta">
         Click buttons to toggle panels • Order: ${this.state.panelOrder.join(', ')}
       </div>
