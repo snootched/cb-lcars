@@ -727,10 +727,17 @@ export class AdvancedRenderer {
    */
   updateTextOverlay(overlayId, sourceData) {
     try {
-      // Find the text element in the DOM
-      const textElement = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"] text`);
+      // Use cached overlay element instead of DOM query
+      const overlayGroup = this.overlayElementCache.get(overlayId);
+      if (!overlayGroup) {
+        console.warn(`[AdvancedRenderer] Cached overlay element not found for: ${overlayId}`);
+        return;
+      }
+
+      // Find the text element within the cached group
+      const textElement = overlayGroup.querySelector('text');
       if (!textElement) {
-        console.warn(`[AdvancedRenderer] Text element not found for overlay: ${overlayId}`);
+        console.warn(`[AdvancedRenderer] Text element not found within cached overlay: ${overlayId}`);
         return;
       }
 
@@ -776,8 +783,15 @@ export class AdvancedRenderer {
    */
   updateTextDecorations(overlayId, newContent, overlay) {
     try {
+      // Use cached overlay element instead of DOM query
+      const overlayGroup = this.overlayElementCache.get(overlayId);
+      if (!overlayGroup) {
+        console.warn(`[AdvancedRenderer] Cached overlay element not found for decorations: ${overlayId}`);
+        return;
+      }
+
       // Update status indicator position if needed (since text width may have changed)
-      const statusIndicator = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"] [data-decoration="status-indicator"]`);
+      const statusIndicator = overlayGroup.querySelector('[data-decoration="status-indicator"]');
       if (statusIndicator && overlay.finalStyle?.status_indicator) {
         // Recalculate status indicator position
         // This could be enhanced to recalculate based on new text metrics
@@ -797,10 +811,10 @@ export class AdvancedRenderer {
   updateStatusGrid(overlayId, updatedCells) {
     console.log(`[AdvancedRenderer] Updating status grid ${overlayId} with ${updatedCells.length} cells`);
 
-    // Find the status grid element in the DOM
-    const gridElement = this.mountEl?.querySelector(`[data-overlay-id="${overlayId}"]`);
+    // Use cached overlay element instead of DOM query
+    const gridElement = this.overlayElementCache.get(overlayId);
     if (!gridElement) {
-      console.warn(`[AdvancedRenderer] Status grid element not found: ${overlayId}`);
+      console.warn(`[AdvancedRenderer] Cached status grid element not found: ${overlayId}`);
       return;
     }
 
@@ -846,9 +860,22 @@ export class AdvancedRenderer {
 
       console.log(`[AdvancedRenderer] Processing ${updatedCells.length} updated cells for grid ${overlayId}`);
 
+      // Get cached overlay element for more efficient cell updates
+      const gridElement = this.overlayElementCache.get(overlayId);
+      if (!gridElement) {
+        console.warn(`[AdvancedRenderer] Cached grid element not found for ${overlayId}, falling back to DOM query`);
+      }
+
       // Update each cell's content in the DOM
       updatedCells.forEach(cell => {
-        const cellContentElement = this.mountEl?.querySelector(`[data-cell-content="${cell.id}"]`);
+        // Try cache-based lookup first, fallback to DOM query
+        let cellContentElement;
+        if (gridElement) {
+          cellContentElement = gridElement.querySelector(`[data-cell-content="${cell.id}"]`);
+        }
+        if (!cellContentElement) {
+          cellContentElement = this.mountEl?.querySelector(`[data-cell-content="${cell.id}"]`);
+        }
 
         if (cellContentElement && cell.content !== undefined) {
           const oldContent = cellContentElement.textContent?.trim();
@@ -874,40 +901,6 @@ export class AdvancedRenderer {
 
     } catch (error) {
       console.error(`[AdvancedRenderer] Error updating status grid ${overlayId}:`, error);
-    }
-  }
-
-  /**
-   * Enhanced template detection that supports multiple overlay types
-   * @param {Object} overlay - Overlay configuration
-   * @returns {boolean} True if overlay contains template content
-   * @private
-   */
-  _hasTemplateContentEnhanced(overlay) {
-    if (!overlay) return false;
-
-    // Handle different overlay types
-    switch (overlay.type) {
-      case 'text':
-        // Text overlays: check content property
-        const textContent = overlay.content || overlay._raw?.content || overlay.raw?.content;
-        return textContent && typeof textContent === 'string' && textContent.includes('{');
-
-      case 'status_grid':
-        // Status grids: check cells for template content
-        const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
-        if (cellsConfig && Array.isArray(cellsConfig)) {
-          return cellsConfig.some(cell =>
-            (cell.content && typeof cell.content === 'string' && cell.content.includes('{')) ||
-            (cell.label && typeof cell.label === 'string' && cell.label.includes('{'))
-          );
-        }
-        return false;
-
-      default:
-        // Fallback: check common content properties
-        const content = overlay.content || overlay._raw?.content || overlay.raw?.content;
-        return content && typeof content === 'string' && content.includes('{');
     }
   }
 }
