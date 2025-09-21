@@ -588,36 +588,15 @@ export class DataSourcePanel {
   }
 
   refreshSubscriptions() {
-    try {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
-      const dsManager = pipelineInstance?.dataSourceManager ||
-                       pipelineInstance?.systemsManager?.dataSourceManager ||
-                       window.__msdDebug?.dataSourceManager;
-
-      if (dsManager?.refreshSubscriptions) {
-        dsManager.refreshSubscriptions();
-        console.log('[DataSourcePanel] Subscriptions refreshed');
-      } else {
-        console.warn('[DataSourcePanel] Refresh not available');
-      }
-
-      // Trigger HUD refresh
-      if (window.__msdDebug?.hud?.refresh) {
-        window.__msdDebug.hud.refresh();
-      }
-    } catch (e) {
-      console.warn('[DataSourcePanel] Subscription refresh failed:', e);
-    }
+    // REMOVED: Not useful - DataSourceManager doesn't have refreshSubscriptions method
+    // and HUD auto-refreshes anyway
+    console.log('[DataSourcePanel] Refresh functionality removed - HUD auto-refreshes');
   }
 
   clearHistory() {
-    this.entityChangeHistory.clear();
-    console.log('[DataSourcePanel] Change history cleared');
-
-    // Trigger refresh
-    if (window.__msdDebug?.hud?.refresh) {
-      window.__msdDebug.hud.refresh();
-    }
+    // REMOVED: Only clears internal panel history, rebuilds automatically
+    // this.entityChangeHistory.clear();
+    console.log('[DataSourcePanel] Clear history functionality removed - limited utility');
   }
 
   captureData() {
@@ -733,22 +712,6 @@ export class DataSourcePanel {
       html += '</div>';
       return html;
     }
-
-    // Controls section
-    html += '<div class="msd-hud-section"><h4>Controls</h4>';
-    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
-
-    html += `<button onclick="window.__msdRefreshDataSources();"
-      style="font-size:10px;padding:2px 6px;background:#225522;color:#fff;border:1px solid #55aa55;border-radius:3px;cursor:pointer;">
-      Refresh Subs
-    </button>`;
-
-    html += `<button onclick="(function(){const panel=window.__msdDebug?.hud?.manager?.dataSourcePanel;if(panel?.clearHistory){panel.clearHistory();}else{console.warn('Clear history not available');}})();"
-      style="font-size:10px;padding:2px 6px;background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:3px;cursor:pointer;">
-      Clear History
-    </button>`;
-
-    html += '</div></div>';
 
     // Health section
     if (health && health.status) {
