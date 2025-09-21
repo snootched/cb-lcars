@@ -6,6 +6,7 @@
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
+import { BracketRenderer } from './BracketRenderer.js';
 
 export class StatusGridRenderer {
   constructor() {
@@ -120,6 +121,16 @@ export class StatusGridRenderer {
       // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
       bracket_color: style.bracket_color || style.bracketColor || standardStyles.colors.primaryColor,
+      bracket_width: Number(style.bracket_width || style.bracketWidth || 2),
+      bracket_gap: Number(style.bracket_gap || style.bracketGap || 4),
+      bracket_extension: Number(style.bracket_extension || style.bracketExtension || 8),
+      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || 1),
+      bracket_corners: style.bracket_corners || style.bracketCorners || 'both',
+      bracket_sides: style.bracket_sides || style.bracketSides || 'both',
+      // Enhanced bg-grid style bracket options
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || 8),
+      bracket_height: style.bracket_height || style.bracketHeight || '100%',
+      bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
       status_indicator: style.status_indicator || style.statusIndicator || false,
       lcars_corners: style.lcars_corners || style.lcarsCorners || false,
 
@@ -283,6 +294,15 @@ export class StatusGridRenderer {
     });
 
     gridMarkup += '</g>';
+
+    // Add brackets around the entire grid if enabled
+    if (gridStyle.bracket_style) {
+      const bracketSvg = this._buildBrackets(width, height, gridStyle, overlay.id);
+      if (bracketSvg) {
+        gridMarkup = gridMarkup.slice(0, -4) + bracketSvg + '</g>'; // Insert before closing </g>
+      }
+    }
+
     return gridMarkup;
   }
 
@@ -330,6 +350,39 @@ export class StatusGridRenderer {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Build LCARS-style brackets using the generalized BracketRenderer
+   * @private
+   */
+  _buildBrackets(width, height, gridStyle, overlayId) {
+    if (!gridStyle.bracket_style) {
+      return '';
+    }
+
+    console.log(`[StatusGridRenderer] Building brackets for ${overlayId}: style=${gridStyle.bracket_style}`);
+
+    // Convert grid style properties to BracketRenderer format
+    const bracketConfig = {
+      enabled: true,
+      style: typeof gridStyle.bracket_style === 'string' ? gridStyle.bracket_style : 'lcars',
+      color: gridStyle.bracket_color,
+      width: gridStyle.bracket_width,
+      gap: gridStyle.bracket_gap,
+      extension: gridStyle.bracket_extension,
+      opacity: gridStyle.bracket_opacity,
+      corners: gridStyle.bracket_corners,
+      sides: gridStyle.bracket_sides,
+      // Enhanced bg-grid style options
+      bracket_width: gridStyle.bracket_physical_width,
+      bracket_height: gridStyle.bracket_height,
+      bracket_radius: gridStyle.bracket_radius
+    };
+
+    console.log(`[StatusGridRenderer] Bracket config:`, bracketConfig);
+
+    return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
 
   _renderFallbackStatusGrid(overlay, x, y, width, height) {

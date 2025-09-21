@@ -465,6 +465,8 @@ style:
 | `minimal` | Corner-only brackets | Subtle accents |
 | `bg-grid` | Sophisticated rounded brackets | High-end interfaces |
 
+> **Note**: These bracket styles are available across **all overlay types** that support brackets: History Bar, Sparkline, Status Grid, and Text overlays all use the same unified bracket system.
+
 **BG-Grid Style Brackets (Sophisticated):**
 ```yaml
 style:

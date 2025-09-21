@@ -4,7 +4,7 @@
  */
 
 import { DataSourceMixin } from './DataSourceMixin.js';
-
+import { BracketRenderer } from './BracketRenderer.js';
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
 
@@ -195,6 +195,17 @@ export class TextOverlayRenderer {
       status_indicator: style.status_indicator || null,
       status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
       bracket_style: style.bracket_style || null,
+      bracket_color: style.bracket_color || null,
+      bracket_width: Number(style.bracket_width || 2),
+      bracket_gap: Number(style.bracket_gap || 4),
+      bracket_extension: Number(style.bracket_extension || 8),
+      bracket_opacity: Number(style.bracket_opacity || 1),
+      bracket_corners: style.bracket_corners || 'both',
+      bracket_sides: style.bracket_sides || 'both',
+      // Enhanced bg-grid style bracket options
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || 8),
+      bracket_height: style.bracket_height || '70%',
+      bracket_radius: Number(style.bracket_radius || 4),
       highlight: style.highlight || false,
 
       // Store reference to standard styles for access to additional features
@@ -560,7 +571,7 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Build LCARS-style brackets with precise measurements
+   * Build LCARS-style brackets using the generalized BracketRenderer
    * @private
    * @param {string} textContent - Text content for measurement
    * @param {number} x - Text x position
@@ -570,7 +581,13 @@ export class TextOverlayRenderer {
    * @returns {string} SVG markup for LCARS brackets
    */
   _buildBrackets(textContent, x, y, textStyle, overlayId) {
-    // Use measurement-adjusted font (prevents width overestimation)
+    if (!textStyle.bracket_style) {
+      return '';
+    }
+
+    console.log(`[TextOverlayRenderer] Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
+
+    // Measure text to get accurate dimensions
     const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
     let bbox;
 
@@ -612,24 +629,27 @@ export class TextOverlayRenderer {
       );
     }
 
-    const bracketWidth = 8;
-    const padding = 4;
-    const extraHeight = 4; // Additional height for visual appeal
+    // Convert text style properties to BracketRenderer format
+    const bracketConfig = {
+      enabled: true,
+      style: typeof textStyle.bracket_style === 'string' ? textStyle.bracket_style : 'lcars',
+      color: textStyle.bracket_color || textStyle.color,
+      width: textStyle.bracket_width,
+      gap: textStyle.bracket_gap,
+      extension: textStyle.bracket_extension,
+      opacity: textStyle.bracket_opacity,
+      corners: textStyle.bracket_corners,
+      sides: textStyle.bracket_sides,
+      // Enhanced bg-grid style options
+      bracket_width: textStyle.bracket_physical_width,
+      bracket_height: textStyle.bracket_height,
+      bracket_radius: textStyle.bracket_radius
+    };
 
-    const leftX = bbox.left - bracketWidth - padding;
-    const rightX = bbox.right + padding;
-    const topY = bbox.top - extraHeight;
-    const bottomY = bbox.bottom + extraHeight;
+    console.log(`[TextOverlayRenderer] Bracket config:`, bracketConfig);
 
-    const bracketColor = textStyle.color;
-    const strokeWidth = Math.max(1, textStyle.fontSize / 16);
-
-    return `<g data-decoration="brackets">
-              <path d="M ${leftX + bracketWidth} ${topY} L ${leftX} ${topY} L ${leftX} ${bottomY} L ${leftX + bracketWidth} ${bottomY}"
-                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-              <path d="M ${rightX - bracketWidth} ${topY} L ${rightX} ${topY} L ${rightX} ${bottomY} L ${rightX - bracketWidth} ${bottomY}"
-                    stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-            </g>`;
+    // Use BracketRenderer with measured text dimensions
+    return BracketRenderer.render(bbox.width, bbox.height, bracketConfig, overlayId);
   }
 
   /**
