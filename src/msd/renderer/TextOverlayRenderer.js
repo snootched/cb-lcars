@@ -317,11 +317,24 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Enhanced template string processing with better DataSource support
+   * Escape XML special characters
    * @private
    */
-  _processEnhancedTemplateStrings(content) {
-    return DataSourceMixin.processEnhancedTemplateStrings(content, 'TextOverlayRenderer');
+  static escapeXml(text) {
+    return String(text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Instance method for XML escaping
+   * @private
+   */
+  escapeXml(text) {
+    return TextOverlayRenderer.escapeXml(text);
   }
 
   /**
@@ -1120,19 +1133,6 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Escape XML special characters
-   * @private
-   */
-  static escapeXml(text) {
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-  }
-
-  /**
    * Instance method for XML escaping
    * @private
    */
@@ -1232,55 +1232,5 @@ export class TextOverlayRenderer {
     } catch (_) {
       return { width: 0, height: 0 };
     }
-  }
-
-  /**
-   * Resolve text content with updated DataSource data (for dynamic updates)
-   * @public - Used by AdvancedRenderer for real-time text overlay updates
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} style - Style configuration
-   * @param {Object} newDataSourceData - Updated DataSource data
-   * @returns {string} Resolved text content with new data
-   */
-  _resolveTextContentWithData(overlay, style, newDataSourceData) {
-    console.log(`[TextOverlayRenderer] Resolving text content with updated data for ${overlay.id}`);
-
-    // Start with basic content resolution (same as original method)
-    let content = style.value || overlay.text || overlay.content || '';
-
-    // Check raw overlay configuration if content not found in standard properties
-    if (!content && overlay._raw?.content) {
-      content = overlay._raw.content;
-    }
-    if (!content && overlay._raw?.text) {
-      content = overlay._raw.text;
-    }
-
-    // ENHANCED: If we have template content and new DataSource data, process with new data
-    if (content && typeof content === 'string' && content.includes('{') && newDataSourceData) {
-      // CRITICAL FIX: The newDataSourceData might be for a specific source, not all sources
-      // We need to delegate to DataSourceMixin for proper template processing
-      console.log(`[TextOverlayRenderer] DEBUG: Processing template with DataSourceMixin for unified handling`);
-      content = DataSourceMixin.processEnhancedTemplateStringsWithFallback(content, 'TextOverlayRenderer');
-      return content;
-    }
-
-    // Fallback to original logic for other cases
-    return this._resolveTextContent(overlay, style);
-  }
-
-  /**
-   * Process template strings with specific DataSource data - SIMPLIFIED
-   * @private
-   * @param {string} templateString - Template string with placeholders
-   * @param {Object} dataSourceData - DataSource data to use for resolution
-   * @returns {string} Processed template string
-   */
-  _processTemplateWithData(templateString, dataSourceData) {
-    console.log(`[TextOverlayRenderer] DEBUG: Processing template with DataSourceMixin: "${templateString}"`);
-    console.log(`[TextOverlayRenderer] DEBUG: With data:`, dataSourceData);
-
-    // SIMPLIFIED: Just use DataSourceMixin which handles all the complexity
-    return DataSourceMixin.processEnhancedTemplateStringsWithFallback(templateString, 'TextOverlayRenderer');
   }
 }
