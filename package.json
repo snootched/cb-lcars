@@ -1,6 +1,6 @@
 {
   "name": "cb-lcars",
-  "version": "2025.08.1-fuk.18-69",
+  "version": "2025.08.1-fuk.83-69",
   "description": "Home Assistant LCARS libary built on custom-button-card",
   "main": "index.js",
   "author": "Jason Weyermars",
@@ -74,6 +74,9 @@
     "test:msd:debug-enhancements": "node scripts/msd/test-debug-enhancements.js",
 
     "test:msd:export-panel": "node scripts/msd/test-export-panel.js",
+    "test:msd:status-grid-debug": "node scripts/msd/test-status-grid-debug-fixed.js",
+    "test:msd:status-grid-initial": "node scripts/msd/test-status-grid-initial-render.js",
+    "test:msd:bounding-boxes": "node scripts/msd/test-bounding-box-accuracy.js",
 
     "test:all": "npm run test:msd",
     "audit:form-ids": "node scripts/audit-form-ids.js"

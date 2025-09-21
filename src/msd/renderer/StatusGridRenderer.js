@@ -531,12 +531,7 @@ export class StatusGridRenderer {
 
     console.log(`[StatusGridRenderer] Cell needs DataSource: ${dataSourceName}`);
 
-    // If this cell references the changed DataSource, use the provided data
-    if (changedDataSourceData && dataSourceName === 'temperature_enhanced') {
-      return changedDataSourceData;
-    }
-
-    // Otherwise, try to get the correct DataSource from the manager
+    // Try to get the correct DataSource from the manager
     if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
       const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
       const source = dataSourceManager.getSource(dataSourceName);
@@ -550,7 +545,7 @@ export class StatusGridRenderer {
       }
     }
 
-    // Fallback: return the changed data (might not work for this cell)
+    // Fallback: return the changed data (might not work for this cell, but better than nothing)
     return changedDataSourceData;
   }  /**
    * Resolve cell content with template processing for initial render
