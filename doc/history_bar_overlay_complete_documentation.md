@@ -385,7 +385,165 @@ style:
   grid_width: 1
 ```
 
-### Advanced Effects
+#### 💡 Recommended Bracket Configurations:
+
+**Basic LCARS Brackets:**
+```yaml
+style:
+  bracket_style: true             # Enable with default LCARS style
+  bracket_color: "var(--lcars-orange)"
+```
+
+**Custom LCARS Style:**
+```yaml
+style:
+  bracket_style: "lcars"
+  bracket_color: "var(--lcars-blue)"
+  bracket_width: 3
+  bracket_gap: 6
+  bracket_extension: 12
+```
+
+**Square Technical Brackets:**
+```yaml
+style:
+  bracket_style: "square"
+  bracket_color: "var(--lcars-gray)"
+  bracket_width: 2
+  bracket_opacity: 0.8
+```
+
+**Rounded Modern Brackets:**
+```yaml
+style:
+  bracket_style: "rounded"
+  bracket_color: "var(--lcars-green)"
+  bracket_gap: 8
+```
+
+**Extended Professional Brackets:**
+```yaml
+style:
+  bracket_style: "extended"
+  bracket_color: "var(--lcars-yellow)"
+  bracket_width: 2
+  bracket_extension: 16
+```
+
+**Minimal Corner Brackets:**
+```yaml
+style:
+  bracket_style: "minimal"
+  bracket_corners: "both"         # Show all corners
+  bracket_sides: "both"           # Both left and right
+```
+
+**Asymmetric Brackets:**
+```yaml
+style:
+  bracket_style: "lcars"
+  bracket_sides: "left"           # Only left bracket
+  bracket_corners: "top"          # Only top corners
+```
+
+**With Status Indicator:**
+```yaml
+style:
+  bracket_style: "lcars"
+  bracket_color: "var(--lcars-blue)"
+  status_indicator: "var(--lcars-green)"  # Colored status dot
+```
+
+### 🎯 **Bracket Style Options:**
+
+| Style | Description | Best For |
+|-------|-------------|----------|
+| `lcars` | Classic Star Trek LCARS style | Authentic LCARS look |
+| `square` | Clean rectangular brackets | Technical interfaces |
+| `rounded` | Smooth curved brackets | Modern designs |
+| `extended` | Long brackets with details | Professional dashboards |
+| `minimal` | Corner-only brackets | Subtle accents |
+| `bg-grid` | Sophisticated rounded brackets | High-end interfaces |
+
+**BG-Grid Style Brackets (Sophisticated):**
+```yaml
+style:
+  bracket_style: "bg-grid"
+  bracket_color: "var(--lcars-yellow)"
+  bracket_physical_width: 16      # Width of bracket arms
+  bracket_height: "80%"           # 80% of chart height
+  bracket_radius: 8               # Rounded corners
+  bracket_gap: 6                  # Distance from chart
+```
+
+**BG-Grid with Custom Dimensions:**
+```yaml
+style:
+  bracket_style: "bg-grid"
+  bracket_physical_width: 20      # Thick bracket arms
+  bracket_height: 60              # Fixed 60px height
+  bracket_radius: 12              # Large rounded corners
+  bracket_color: "var(--lcars-orange)"
+  bracket_width: 3                # Stroke thickness
+```
+
+**Classic vs Modern Comparison:**
+```yaml
+# Classic LCARS style
+style:
+  bracket_style: "lcars"
+  bracket_extension: 12
+  bracket_color: "var(--lcars-blue)"
+
+# Modern BG-Grid style
+style:
+  bracket_style: "bg-grid"
+  bracket_physical_width: 16
+  bracket_height: "75%"
+  bracket_radius: 6
+  bracket_color: "var(--lcars-blue)"
+```
+
+**Asymmetric BG-Grid Brackets:**
+```yaml
+style:
+  bracket_style: "bg-grid"
+  bracket_sides: "left"           # Only left bracket
+  bracket_physical_width: 24
+  bracket_height: "90%"
+  bracket_radius: 10
+```
+
+### 🎯 **BG-Grid Bracket Options:**
+
+| Option | Type | Description | Example |
+|--------|------|-------------|---------|
+| `bracket_physical_width` | number | Width of bracket arms in pixels | `16` |
+| `bracket_height` | string/number | Height as percentage or pixels | `"80%"` or `60` |
+| `bracket_radius` | number | Corner radius for rounded ends | `8` |
+
+### 🎛️ **Advanced Bracket Controls:**
+
+**Bracket Positioning:**
+```yaml
+bracket_gap: 4        # Distance from content (pixels)
+bracket_extension: 8  # Length of bracket arms (pixels)
+bracket_width: 2      # Line thickness (pixels)
+```
+
+**Selective Display:**
+```yaml
+bracket_corners: "top"    # "both", "top", "bottom", "none"
+bracket_sides: "left"     # "both", "left", "right", "none"
+```
+
+**Visual Properties:**
+```yaml
+bracket_opacity: 0.8      # Transparency (0-1)
+bracket_color: null       # null = inherit from bar_color
+```
+
+## Advanced Effects
 ```yaml
 style:
   # Visual effects

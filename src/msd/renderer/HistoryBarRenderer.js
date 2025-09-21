@@ -5,6 +5,7 @@
 
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
+import { BracketRenderer } from './BracketRenderer.js';
 
 export class HistoryBarRenderer {
   constructor() {
@@ -159,6 +160,16 @@ export class HistoryBarRenderer {
       // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
       bracket_color: style.bracket_color || style.bracketColor || null,
+      bracket_width: Number(style.bracket_width || style.bracketWidth || 2),
+      bracket_gap: Number(style.bracket_gap || style.bracketGap || 4),
+      bracket_extension: Number(style.bracket_extension || style.bracketExtension || 8),
+      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || 1),
+      bracket_corners: style.bracket_corners || style.bracketCorners || 'both',
+      bracket_sides: style.bracket_sides || style.bracketSides || 'both',
+      // Enhanced bg-grid style bracket options
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_width || style.bracketWidth || 8),
+      bracket_height: style.bracket_height || style.bracketHeight || '70%',
+      bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
       status_indicator: style.status_indicator || style.statusIndicator || false,
 
       // Hover and interaction
@@ -1114,23 +1125,37 @@ export class HistoryBarRenderer {
   }
 
   /**
-   * Build LCARS-style brackets
+   * Build LCARS-style brackets using the generalized BracketRenderer
    * @private
    */
   _buildBrackets(width, height, historyBarStyle, overlayId) {
-    if (!historyBarStyle.bracket_style) return '';
+    if (!historyBarStyle.bracket_style) {
+      console.log(`[HistoryBarRenderer] Brackets disabled for ${overlayId}`);
+      return '';
+    }
 
-    const bracketColor = historyBarStyle.bracket_color || historyBarStyle.bar_color;
-    const strokeWidth = 2;
-    const gap = 4;
+    console.log(`[HistoryBarRenderer] Building brackets for ${overlayId}: style=${historyBarStyle.bracket_style}`);
 
-    const leftBracket = `M ${-gap - 8} 0 L ${-gap - 8} ${height} M ${-gap - 8} 0 L ${-gap} 0 M ${-gap - 8} ${height} L ${-gap} ${height}`;
-    const rightBracket = `M ${width + gap} 0 L ${width + gap + 8} 0 M ${width + gap + 8} 0 L ${width + gap + 8} ${height} M ${width + gap} ${height} L ${width + gap + 8} ${height}`;
+    // Convert style properties to BracketRenderer format
+    const bracketConfig = {
+      enabled: true,
+      style: typeof historyBarStyle.bracket_style === 'string' ? historyBarStyle.bracket_style : 'lcars',
+      color: historyBarStyle.bracket_color || historyBarStyle.bar_color,
+      width: historyBarStyle.bracket_width,
+      gap: historyBarStyle.bracket_gap,
+      extension: historyBarStyle.bracket_extension,
+      opacity: historyBarStyle.bracket_opacity,
+      corners: historyBarStyle.bracket_corners,
+      sides: historyBarStyle.bracket_sides,
+      // Enhanced bg-grid style options
+      bracket_width: historyBarStyle.bracket_physical_width,
+      bracket_height: historyBarStyle.bracket_height,
+      bracket_radius: historyBarStyle.bracket_radius
+    };
 
-    return `<g data-feature="brackets">
-              <path d="${leftBracket}" stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-              <path d="${rightBracket}" stroke="${bracketColor}" stroke-width="${strokeWidth}" fill="none"/>
-            </g>`;
+    console.log(`[HistoryBarRenderer] Bracket config:`, bracketConfig);
+
+    return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
 
   /**
