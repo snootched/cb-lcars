@@ -668,6 +668,69 @@ export class StatusGridRenderer {
 
     return value;
   }
+
+  /**
+   * Update status grid overlay content dynamically using renderer delegation pattern
+   * @param {Element} overlayElement - Cached DOM element for the overlay
+   * @param {Object} overlay - Overlay configuration object
+   * @param {Object} sourceData - New DataSource data
+   * @returns {boolean} True if content was updated, false if unchanged
+   * @static
+   */
+  static updateGridData(overlayElement, overlay, sourceData) {
+    try {
+      console.log(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+
+      // Create renderer instance for content resolution
+      const renderer = new StatusGridRenderer();
+
+      // Get updated cells with processed template content
+      const style = overlay.finalStyle || overlay.style || {};
+      const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
+
+      console.log(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
+
+      let updatedCount = 0;
+
+      // Update each cell's content in the DOM using the cached overlay element
+      updatedCells.forEach(cell => {
+        // Use the cached overlay element for scoped queries (much faster)
+        const cellContentElement = overlayElement.querySelector(`[data-cell-content="${cell.id}"]`);
+
+        if (cellContentElement && cell.content !== undefined) {
+          const oldContent = cellContentElement.textContent?.trim();
+          let newContent = cell.content;
+
+          // Handle [object Object] issue - ensure content is always a string
+          if (typeof newContent === 'object') {
+            console.warn(`[StatusGridRenderer] Cell ${cell.id} has object content, converting to string`);
+            newContent = newContent !== null ? String(newContent) : 'N/A';
+          }
+
+          // Ensure newContent is a string
+          newContent = String(newContent);
+
+          if (newContent !== oldContent) {
+            console.log(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
+            cellContentElement.textContent = newContent;
+            updatedCount++;
+          }
+        }
+      });
+
+      if (updatedCount > 0) {
+        console.log(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
+        return true;
+      } else {
+        console.log(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
+        return false;
+      }
+
+    } catch (error) {
+      console.error(`[StatusGridRenderer] Error updating status grid ${overlay.id}:`, error);
+      return false;
+    }
+  }
 }
 
 // Expose StatusGridRenderer to window for console debugging

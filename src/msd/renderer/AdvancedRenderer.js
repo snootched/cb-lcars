@@ -557,7 +557,8 @@ export class AdvancedRenderer {
         break;
       case 'status_grid':
         console.log(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);
-        this.updateStatusGridWithTemplates(overlayId, sourceData);
+        // Use unified delegation pattern - delegate to StatusGridRenderer
+        StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
         break;
       default:
         console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
@@ -726,61 +727,6 @@ export class AdvancedRenderer {
   }
 
   /**
-   * Update text overlay content dynamically without full re-render
-   * @param {string} overlayId - ID of the text overlay to update
-   * @param {Object} sourceData - New DataSource data
-   */
-  updateTextOverlay(overlayId, sourceData) {
-    try {
-      // Use cached overlay element instead of DOM query
-      const overlayGroup = this.overlayElementCache.get(overlayId);
-      if (!overlayGroup) {
-        console.warn(`[AdvancedRenderer] Cached overlay element not found for: ${overlayId}`);
-        return;
-      }
-
-      // Find the text element within the cached group
-      const textElement = overlayGroup.querySelector('text');
-      if (!textElement) {
-        console.warn(`[AdvancedRenderer] Text element not found within cached overlay: ${overlayId}`);
-        return;
-      }
-
-      // Get the overlay configuration to resolve new content
-      const resolvedModel = this._getResolvedModel();
-
-      const overlay = resolvedModel?.overlays?.find(o => o.id === overlayId);
-      if (!overlay) {
-        console.warn(`[AdvancedRenderer] Overlay configuration not found: ${overlayId}`);
-        return;
-      }
-
-      // Use direct TextOverlayRenderer reference instead of dynamic import
-      const renderer = new TextOverlayRenderer();
-
-      // Resolve new text content using the same logic as initial rendering
-      const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
-
-      if (newContent && newContent !== textElement.textContent) {
-        console.log(`[AdvancedRenderer] Updating text overlay ${overlayId}: "${textElement.textContent}" → "${newContent}"`);
-
-        // Update the text content
-        textElement.textContent = TextOverlayRenderer.escapeXml(newContent);
-
-        // Update any status indicators that might depend on the content
-        this.updateTextDecorations(overlayId, newContent, overlay);
-
-        console.log(`[AdvancedRenderer] ✅ Text overlay ${overlayId} updated successfully`);
-      } else {
-        console.log(`[AdvancedRenderer] Text overlay ${overlayId} content unchanged`);
-      }
-
-    } catch (error) {
-      console.error(`[AdvancedRenderer] Error updating text overlay ${overlayId}:`, error);
-    }
-  }
-
-  /**
    * Update text decorations (status indicators, etc.) when content changes
    * @param {string} overlayId - ID of the text overlay
    * @param {string} newContent - New text content
@@ -808,12 +754,14 @@ export class AdvancedRenderer {
   }
 
   /**
-   * Update status grid cells with new data (similar to updateTextOverlay)
+   * Update status grid cells with new data (legacy method - keeping for compatibility)
+   * @deprecated Use StatusGridRenderer.updateGridData() instead
    * @param {string} overlayId - Status grid overlay ID
    * @param {Array} updatedCells - Updated cell configurations
    * @public
    */
   updateStatusGrid(overlayId, updatedCells) {
+    console.log(`[AdvancedRenderer] DEPRECATED: updateStatusGrid() called. Use StatusGridRenderer.updateGridData() instead.`);
     console.log(`[AdvancedRenderer] Updating status grid ${overlayId} with ${updatedCells.length} cells`);
 
     // Use cached overlay element instead of DOM query
@@ -830,82 +778,33 @@ export class AdvancedRenderer {
     const timestamp = new Date().toISOString();
     gridElement.setAttribute('data-last-update', timestamp);
 
-    // Future: Implement proper cell-by-cell updates
-    // This would involve updating individual cell elements within the grid
-    // For now, we'll trigger a re-render of the entire overlay if needed
-
     console.log(`[AdvancedRenderer] ✅ Status grid ${overlayId} update placeholder completed`);
   }
 
   /**
    * Enhanced status grid update method with template processing
+   * @deprecated Use StatusGridRenderer.updateGridData() instead
    * @param {string} overlayId - Status grid overlay ID
    * @param {Object} sourceData - New DataSource data
    * @public
    */
   updateStatusGridWithTemplates(overlayId, sourceData) {
-    console.log(`[AdvancedRenderer] Updating status grid ${overlayId} with DataSource data`);
+    console.log(`[AdvancedRenderer] DEPRECATED: updateStatusGridWithTemplates() called. Use StatusGridRenderer.updateGridData() instead.`);
 
-    try {
-      // Get the overlay configuration to resolve new content
-      const resolvedModel = this._getResolvedModel();
-
-      const overlay = resolvedModel?.overlays?.find(o => o.id === overlayId);
-      if (!overlay) {
-        console.warn(`[AdvancedRenderer] Status grid overlay configuration not found: ${overlayId}`);
-        return;
-      }
-
-      // Use direct StatusGridRenderer reference instead of dynamic import
-      const renderer = new StatusGridRenderer();
-
-      // Get updated cells with processed template content
-      const style = overlay.finalStyle || overlay.style || {};
-      const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
-
-      console.log(`[AdvancedRenderer] Processing ${updatedCells.length} updated cells for grid ${overlayId}`);
-
-      // Get cached overlay element for more efficient cell updates
-      const gridElement = this.overlayElementCache.get(overlayId);
-      if (!gridElement) {
-        console.warn(`[AdvancedRenderer] Cached grid element not found for ${overlayId}, falling back to DOM query`);
-      }
-
-      // Update each cell's content in the DOM
-      updatedCells.forEach(cell => {
-        // Try cache-based lookup first, fallback to DOM query
-        let cellContentElement;
-        if (gridElement) {
-          cellContentElement = gridElement.querySelector(`[data-cell-content="${cell.id}"]`);
-        }
-        if (!cellContentElement) {
-          cellContentElement = this.mountEl?.querySelector(`[data-cell-content="${cell.id}"]`);
-        }
-
-        if (cellContentElement && cell.content !== undefined) {
-          const oldContent = cellContentElement.textContent?.trim();
-          let newContent = cell.content;
-
-          // Handle [object Object] issue - ensure content is always a string
-          if (typeof newContent === 'object') {
-            console.warn(`[AdvancedRenderer] Cell ${cell.id} has object content, converting to string`);
-            newContent = newContent !== null ? String(newContent) : 'N/A';
-          }
-
-          // Ensure newContent is a string
-          newContent = String(newContent);
-
-          if (newContent !== oldContent) {
-            console.log(`[AdvancedRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
-            cellContentElement.textContent = newContent;
-          }
-        }
-      });
-
-      console.log(`[AdvancedRenderer] ✅ Status grid ${overlayId} updated successfully`);
-
-    } catch (error) {
-      console.error(`[AdvancedRenderer] Error updating status grid ${overlayId}:`, error);
+    // For compatibility, delegate to the new unified method
+    const overlayElement = this.overlayElementCache.get(overlayId);
+    if (!overlayElement) {
+      console.warn(`[AdvancedRenderer] Cached overlay element not found: ${overlayId}`);
+      return;
     }
+
+    const overlay = this.lastRenderArgs?.overlays?.find(o => o.id === overlayId);
+    if (!overlay) {
+      console.warn(`[AdvancedRenderer] Could not find overlay config: ${overlayId}`);
+      return;
+    }
+
+    // Delegate to the new unified method
+    StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
   }
 }
