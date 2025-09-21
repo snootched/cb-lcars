@@ -738,7 +738,7 @@ export class AdvancedRenderer {
         const renderer = new TextOverlayRenderer();
 
         // Resolve new text content using the same logic as initial rendering
-        const newContent = renderer._resolveTextContentWithData(overlay, overlay.finalStyle || {}, sourceData);
+        const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
 
         if (newContent && newContent !== textElement.textContent) {
           console.log(`[AdvancedRenderer] Updating text overlay ${overlayId}: "${textElement.textContent}" → "${newContent}"`);
