@@ -131,6 +131,15 @@ export class StatusGridRenderer {
       bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || 8),
       bracket_height: style.bracket_height || style.bracketHeight || '100%',
       bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
+      // LCARS container/border options
+      border_top: Number(style.border_top || 0),
+      border_left: Number(style.border_left || 0),
+      border_right: Number(style.border_right || 0),
+      border_bottom: Number(style.border_bottom || 0),
+      border_color: style.border_color || null,
+      border_radius: Number(style.border_radius || 8),
+      inner_factor: Number(style.inner_factor || 2),
+      hybrid_mode: style.hybrid_mode || false,
       status_indicator: style.status_indicator || style.statusIndicator || false,
       lcars_corners: style.lcars_corners || style.lcarsCorners || false,
 
@@ -377,7 +386,16 @@ export class StatusGridRenderer {
       // Enhanced bg-grid style options
       bracket_width: gridStyle.bracket_physical_width,
       bracket_height: gridStyle.bracket_height,
-      bracket_radius: gridStyle.bracket_radius
+      bracket_radius: gridStyle.bracket_radius,
+      // LCARS container options
+      border_top: gridStyle.border_top,
+      border_left: gridStyle.border_left,
+      border_right: gridStyle.border_right,
+      border_bottom: gridStyle.border_bottom,
+      border_color: gridStyle.border_color || gridStyle.bracket_color,
+      border_radius: gridStyle.border_radius,
+      inner_factor: gridStyle.inner_factor,
+      hybrid_mode: gridStyle.hybrid_mode
     };
 
     console.log(`[StatusGridRenderer] Bracket config:`, bracketConfig);

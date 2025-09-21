@@ -206,6 +206,15 @@ export class TextOverlayRenderer {
       bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || 8),
       bracket_height: style.bracket_height || '70%',
       bracket_radius: Number(style.bracket_radius || 4),
+      // LCARS container/border options
+      border_top: Number(style.border_top || 0),
+      border_left: Number(style.border_left || 0),
+      border_right: Number(style.border_right || 0),
+      border_bottom: Number(style.border_bottom || 0),
+      border_color: style.border_color || null,
+      border_radius: Number(style.border_radius || 8),
+      inner_factor: Number(style.inner_factor || 2),
+      hybrid_mode: style.hybrid_mode || false,
       highlight: style.highlight || false,
 
       // Store reference to standard styles for access to additional features
@@ -643,7 +652,16 @@ export class TextOverlayRenderer {
       // Enhanced bg-grid style options
       bracket_width: textStyle.bracket_physical_width,
       bracket_height: textStyle.bracket_height,
-      bracket_radius: textStyle.bracket_radius
+      bracket_radius: textStyle.bracket_radius,
+      // LCARS container options
+      border_top: textStyle.border_top,
+      border_left: textStyle.border_left,
+      border_right: textStyle.border_right,
+      border_bottom: textStyle.border_bottom,
+      border_color: textStyle.border_color || textStyle.bracket_color || textStyle.color,
+      border_radius: textStyle.border_radius,
+      inner_factor: textStyle.inner_factor,
+      hybrid_mode: textStyle.hybrid_mode
     };
 
     console.log(`[TextOverlayRenderer] Bracket config:`, bracketConfig);

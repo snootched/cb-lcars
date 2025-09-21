@@ -464,8 +464,34 @@ style:
 | `extended` | Long brackets with details | Professional dashboards |
 | `minimal` | Corner-only brackets | Subtle accents |
 | `bg-grid` | Sophisticated rounded brackets | High-end interfaces |
+| `lcars-container` | Full LCARS borders with elbows | Complete interface containers |
+| `lcars-header` | Header-style with top and left borders | Section headers |
+| `lcars-elbow` | Single corner elbow element | Accent corners |
 
 > **Note**: These bracket styles are available across **all overlay types** that support brackets: History Bar, Sparkline, Status Grid, and Text overlays all use the same unified bracket system.
+
+### 🏗️ **LCARS Container Styling:**
+
+For authentic Star Trek interface containers, use the new container styles:
+
+```yaml
+style:
+  bracket_style: "lcars-container"
+  border_top: 20           # Thick top border
+  border_left: 90          # Prominent left elbow
+  border_color: "var(--lcars-orange)"
+  border_radius: 8         # Corner rounding
+  inner_factor: 2          # Inner border depth effect
+  hybrid_mode: false       # true = add bracket arms too
+```
+
+**Container Style Examples:**
+- **lcars-container**: Full borders (top, left, right, bottom as configured)
+- **lcars-header**: Header styling (top + left borders, like cb-lcars-header template)
+- **lcars-elbow**: Single corner accent (position via `corners: "top-left"`)
+
+### 💡 **Hybrid Mode:**
+Set `hybrid_mode: true` to combine full borders with traditional bracket arms for maximum visual impact!
 
 **BG-Grid Style Brackets (Sophisticated):**
 ```yaml
