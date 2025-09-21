@@ -1391,6 +1391,10 @@ export class SparklineRenderer {
       const points = this._calculateDataPointPositions(processedData, bounds, sparklineStyle);
       const pointElements = dataPointsGroup.querySelectorAll('circle');
 
+      // Get styling for consistency with initial render
+      const pointColor = sparklineStyle.point_color || sparklineStyle.color;
+      const pointSize = sparklineStyle.point_size;
+
       // Update existing points or create new ones
       points.forEach((point, index) => {
         let pointElement = pointElements[index];
@@ -1399,9 +1403,16 @@ export class SparklineRenderer {
           dataPointsGroup.appendChild(pointElement);
         }
 
+        // Update position
         pointElement.setAttribute('cx', point.x.toFixed(sparklineStyle.path_precision));
         pointElement.setAttribute('cy', point.y.toFixed(sparklineStyle.path_precision));
-        pointElement.setAttribute('r', sparklineStyle.point_size);
+        pointElement.setAttribute('r', pointSize);
+
+        // Update styling (this was missing!)
+        pointElement.setAttribute('fill', pointColor);
+        pointElement.setAttribute('opacity', sparklineStyle.opacity);
+
+        // Update data attributes
         pointElement.setAttribute('data-value', point.value);
         pointElement.setAttribute('data-timestamp', point.timestamp);
       });
