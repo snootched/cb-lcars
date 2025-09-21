@@ -1706,6 +1706,7 @@ export class SparklineRenderer {
     }
   }
 
+  /*
   static debugSparklineUpdates() {
     console.debug('🔍 Enhanced Sparkline Update Debug Report');
     const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
@@ -1734,9 +1735,10 @@ export class SparklineRenderer {
 
     return { source };
   }
+  */
 }
 
 // Expose SparklineRenderer to window for console debugging
-if (typeof window !== 'undefined') {
-  window.SparklineRenderer = SparklineRenderer;
-}
+//if (typeof window !== 'undefined') {
+//  window.SparklineRenderer = SparklineRenderer;
+//}
