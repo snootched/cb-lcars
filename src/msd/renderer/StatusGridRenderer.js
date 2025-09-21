@@ -358,7 +358,7 @@ export class StatusGridRenderer {
    * @private
    */
   _resolveCellContent(cell, style) {
-    // ENHANCED: Handle conditional expressions locally before delegating to DataSourceMixin
+    // Get cell content from various sources
     const cellContent = cell.content || cell._raw?.content || cell.label || '';
 
     console.log(`[StatusGridRenderer] Resolving content for cell:`, {
@@ -371,13 +371,13 @@ export class StatusGridRenderer {
       label: cell.label
     });
 
-    // Check if this is a conditional expression before delegating to DataSourceMixin
+    // For conditional expressions, return as-is for later processing
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('?') && cellContent.includes(':')) {
-      console.log(`[StatusGridRenderer] Detected conditional expression, handling locally: "${cellContent}"`);
-      return cellContent; // Return as-is, will be processed by our _processTemplateWithData
+      console.log(`[StatusGridRenderer] Detected conditional expression, returning for later processing: "${cellContent}"`);
+      return cellContent;
     }
 
-    // Use DataSourceMixin's unified content resolution with template processing for simple templates
+    // Use DataSourceMixin's unified content resolution for simple templates
     const resolvedContent = DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
 
     console.log(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
@@ -483,71 +483,39 @@ export class StatusGridRenderer {
 
     // Update cells that have template content
     const updatedCells = cells.map(cell => {
-      const cellContent = cell._raw?.content || cell._raw?.label || cell.label || '';
+      // Use original template content if available, otherwise use current content
+      const cellContent = cell._originalContent || cell._raw?.content || cell._raw?.label || cell.label || '';
 
-        if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
+      if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
         console.log(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${cellContent}"`);
 
         // SIMPLIFIED: Use DataSourceMixin for all template processing (including conditionals now)
         const processedContent = cellContent.includes('?') && cellContent.includes(':') ?
-          this._processConditionalWithDataSourceMixin(cellContent) :
-          DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');          // Ensure we don't return [object Object]
-          const safeContent = (typeof processedContent === 'object') ?
-            JSON.stringify(processedContent) : String(processedContent);
+          this._processConditionalWithDataSourceMixin(cellContent, newDataSourceData) :
+          DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
 
-          return {
-            ...cell,
-            label: processedContent === cellContent ? cell.label : safeContent, // Only update label if content changed
-            content: safeContent,
-            data: {
-              ...cell.data,
-              value: this._extractValueFromTemplate(safeContent, newDataSourceData),
-              timestamp: Date.now()
-            },
-            lastUpdate: Date.now()
-          };
-        }      return cell;
+        // Ensure we don't return [object Object]
+        const safeContent = (typeof processedContent === 'object') ?
+          JSON.stringify(processedContent) : String(processedContent);
+
+        return {
+          ...cell,
+          label: processedContent === cellContent ? cell.label : safeContent, // Only update label if content changed
+          content: safeContent,
+          data: {
+            ...cell.data,
+            value: this._extractValueFromTemplate(safeContent, newDataSourceData),
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now()
+        };
+      }      return cell;
     });
 
     return updatedCells;
   }
 
   /**
-   * Get the appropriate DataSource data for a specific cell template
-   * @private
-   * @param {string} cellContent - Cell template content
-   * @param {Object} changedDataSourceData - The DataSource data that changed
-   * @returns {Object} Appropriate DataSource data for this cell
-   */
-  _getDataSourceForCell(cellContent, changedDataSourceData) {
-    // Extract DataSource reference from template (e.g., "test_cpu_temp" from "{test_cpu_temp:.1%}")
-    const templateMatch = cellContent.match(/\{([^}]+)\}/);
-    if (!templateMatch) return changedDataSourceData;
-
-    const reference = templateMatch[1];
-    // Split by colon first to handle format specs, then by dot to get DataSource name
-    const [pathPart] = reference.split(':');
-    const dataSourceName = pathPart.split('.')[0]; // Get first part before dot
-
-    console.log(`[StatusGridRenderer] Cell needs DataSource: ${dataSourceName}`);
-
-    // Try to get the correct DataSource from the manager
-    if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
-      const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
-      const source = dataSourceManager.getSource(dataSourceName);
-
-      if (source) {
-        const sourceData = source.getCurrentData();
-        console.log(`[StatusGridRenderer] Found DataSource ${dataSourceName}: value=${sourceData?.v}, unit="${sourceData?.unit_of_measurement || 'none'}"`);
-        return sourceData;
-      } else {
-        console.warn(`[StatusGridRenderer] DataSource ${dataSourceName} not found`);
-      }
-    }
-
-    // Fallback: return the changed data (might not work for this cell, but better than nothing)
-    return changedDataSourceData;
-  }  /**
    * Resolve cell content with template processing for initial render
    * @private
    * @param {Object} cell - Cell configuration
@@ -597,18 +565,17 @@ export class StatusGridRenderer {
         };
       } else {
         console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, will resolve during updates`);
+        return {
+          ...cell,
+          content: cellContent,
+          _originalContent: cellContent
+        };
       }
     }
 
     return cell;
   }
 
-  /**
-   * Process conditional template during initial render by attempting to resolve DataSources
-   * @private
-   * @param {string} cellContent - Cell template content with conditional expression
-   * @returns {string} Processed content or original if not resolvable
-   */
   /**
    * Extract numeric value from processed template for status calculations
    * @private
@@ -633,9 +600,10 @@ export class StatusGridRenderer {
    * Process conditional expression by extracting DataSource references and using DataSourceMixin
    * @private
    * @param {string} conditionalTemplate - Template with conditional expression
+   * @param {Object} [updateDataSourceData] - Updated DataSource data to use (for updates)
    * @returns {string} Resolved conditional or original template
    */
-  _processConditionalWithDataSourceMixin(conditionalTemplate) {
+  _processConditionalWithDataSourceMixin(conditionalTemplate, updateDataSourceData = null) {
     try {
       // Extract the conditional expression from the template
       const templateMatch = conditionalTemplate.match(/\{([^}]+)\}/);
@@ -658,9 +626,20 @@ export class StatusGridRenderer {
       const dataSourceTemplate = `{${leftPath.trim()}}`;
       console.log(`[StatusGridRenderer] Resolving DataSource template: "${dataSourceTemplate}"`);
 
-      // Let DataSourceMixin resolve the DataSource reference
-      const resolvedValue = DataSourceMixin.processEnhancedTemplateStringsWithFallback(dataSourceTemplate, 'StatusGridRenderer');
-      console.log(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
+      let resolvedValue;
+
+      // If we have update data, try to extract the value directly first
+      if (updateDataSourceData) {
+        console.log(`[StatusGridRenderer] Using provided update data:`, updateDataSourceData);
+        resolvedValue = this._extractValueFromUpdateData(leftPath.trim(), updateDataSourceData);
+        console.log(`[StatusGridRenderer] Extracted from update data: "${resolvedValue}"`);
+      }
+
+      // If we couldn't extract from update data, fall back to DataSourceMixin
+      if (resolvedValue === null || resolvedValue === undefined) {
+        resolvedValue = DataSourceMixin.processEnhancedTemplateStringsWithFallback(dataSourceTemplate, 'StatusGridRenderer');
+        console.log(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
+      }
 
       // If DataSourceMixin couldn't resolve it, return original
       if (resolvedValue === dataSourceTemplate) {
@@ -699,6 +678,39 @@ export class StatusGridRenderer {
       console.error(`[StatusGridRenderer] Error processing conditional with DataSourceMixin:`, error);
       return conditionalTemplate;
     }
+  }
+
+  /**
+   * Extract value from update DataSource data based on path
+   * @private
+   * @param {string} path - DataSource path (e.g., "temperature_enhanced.transformations.celsius")
+   * @param {Object} updateData - Updated DataSource data
+   * @returns {*} Extracted value or null if not found
+   */
+  _extractValueFromUpdateData(path, updateData) {
+    const pathParts = path.split('.');
+
+    // For simple paths, use the raw value
+    if (pathParts.length === 1) {
+      return updateData?.v || updateData?.value || null;
+    }
+
+    // For complex paths like "temperature_enhanced.transformations.celsius"
+    let value = updateData;
+
+    // Skip the first part (source name) and navigate the rest
+    for (let i = 1; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        console.log(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
+        return null;
+      }
+    }
+
+    return value;
   }
 }
 
