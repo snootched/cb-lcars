@@ -555,10 +555,10 @@ export class StatusGridRenderer {
    * Process template strings with specific DataSource data (using unified DataSourceMixin)
    * @private
    * @param {string} templateString - Template string with placeholders
-   * @param {Object} dataSourceData - DataSource data to use for resolution
+   * @param {Object} dataSourceData - DataSource data to use for resolution (null = fetch internally)
    * @returns {string} Processed template string
    */
-  _processTemplateWithData(templateString, dataSourceData) {
+  _processTemplateWithData(templateString, dataSourceData = null) {
     console.log(`[StatusGridRenderer] Processing template: "${templateString}"`);
     console.log(`[StatusGridRenderer] With DataSource data:`, dataSourceData);
 
@@ -568,6 +568,18 @@ export class StatusGridRenderer {
       // Handle conditional expressions (e.g., "value > 70 ? 'HOT' : 'OK'")
       if (reference.includes('?') && reference.includes(':')) {
         return this._processConditionalExpression(reference, dataSourceData);
+      }
+
+      // For regular templates, if no dataSourceData provided, fetch it
+      if (!dataSourceData) {
+        const fetchedData = this._fetchDataSourceForTemplate(reference);
+        if (fetchedData) {
+          dataSourceData = fetchedData;
+          console.log(`[StatusGridRenderer] Fetched DataSource data for "${reference}":`, dataSourceData);
+        } else {
+          console.log(`[StatusGridRenderer] Could not fetch DataSource data for "${reference}"`);
+          return match; // Return original template
+        }
       }
 
       // Parse the reference (e.g., "temperature_enhanced.transformations.celsius:.1f")
@@ -633,10 +645,43 @@ export class StatusGridRenderer {
   }
 
   /**
+   * Fetch DataSource data for a template reference during initial render
+   * @private
+   * @param {string} reference - Template reference (e.g., "temperature_enhanced.transformations.celsius")
+   * @returns {Object|null} DataSource data or null if not available
+   */
+  _fetchDataSourceForTemplate(reference) {
+    try {
+      const [pathPart] = reference.split(':');
+      const dataSourceName = pathPart.split('.')[0];
+
+      console.log(`[StatusGridRenderer] Fetching DataSource "${dataSourceName}" for template processing`);
+
+      if (typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager) {
+        const dataSourceManager = window.__msdDebug.pipelineInstance.systemsManager.dataSourceManager;
+        const source = dataSourceManager.getSource(dataSourceName);
+
+        if (source) {
+          const sourceData = source.getCurrentData();
+          console.log(`[StatusGridRenderer] Found DataSource ${dataSourceName}: value=${sourceData?.v}, unit="${sourceData?.unit_of_measurement || 'none'}"`);
+          return sourceData;
+        } else {
+          console.log(`[StatusGridRenderer] DataSource "${dataSourceName}" not found`);
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.warn(`[StatusGridRenderer] Error fetching DataSource for template:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Process conditional expressions like "temperature > 70 ? 'HOT' : 'OK'"
    * @private
    */
-  _processConditionalExpression(expression, dataSourceData) {
+  _processConditionalExpression(expression, dataSourceData = null) {
     try {
       // Simple regex to parse conditional: "path operator value ? trueValue : falseValue"
       const conditionMatch = expression.match(/^(.+?)\s*([><=!]+)\s*(.+?)\s*\?\s*'(.+?)'\s*:\s*'(.+?)'$/);
@@ -649,6 +694,18 @@ export class StatusGridRenderer {
       const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
 
       console.log(`[StatusGridRenderer] Parsing conditional - path: "${leftPath.trim()}", operator: "${operator}", value: "${rightValue}"`);
+
+      // If no dataSourceData provided, fetch it
+      if (!dataSourceData) {
+        const fetchedData = this._fetchDataSourceForTemplate(leftPath.trim());
+        if (fetchedData) {
+          dataSourceData = fetchedData;
+          console.log(`[StatusGridRenderer] Fetched DataSource data for conditional "${leftPath.trim()}":`, dataSourceData);
+        } else {
+          console.log(`[StatusGridRenderer] Could not fetch DataSource data for conditional "${leftPath.trim()}"`);
+          return `{${expression}}`; // Return wrapped expression
+        }
+      }
 
       // Get the left side value from data
       const pathParts = leftPath.trim().split('.');
@@ -740,11 +797,36 @@ export class StatusGridRenderer {
   _resolveCellContentForInitialRender(cell, style) {
     const cellContent = cell._raw?.content || cell._raw?.label || cell.label || cell.content || '';
 
-    // If content contains templates, process them using the same approach as TextOverlayRenderer
+    // If content contains templates, process them using the appropriate approach
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
       console.log(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
 
-      // SIMPLIFIED: Use the exact same method TextOverlayRenderer uses
+      // CRITICAL FIX: Handle conditional expressions BEFORE delegating to DataSourceMixin
+      if (cellContent.includes('?') && cellContent.includes(':')) {
+        console.log(`[StatusGridRenderer] Conditional expression detected, processing locally instead of delegating to DataSourceMixin`);
+
+        // Process conditional expression using StatusGridRenderer's own logic
+        const processedContent = this._processTemplateWithData(cellContent, null);
+
+        if (processedContent !== cellContent) {
+          console.log(`[StatusGridRenderer] Conditional resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
+          return {
+            ...cell,
+            content: processedContent,
+            _originalContent: cellContent
+          };
+        } else {
+          console.log(`[StatusGridRenderer] Conditional not resolved for ${cell.id}, will resolve during updates`);
+          return {
+            ...cell,
+            content: cellContent,
+            _originalContent: cellContent,
+            _isConditional: true
+          };
+        }
+      }
+
+      // For non-conditional templates, use DataSourceMixin (this works great now)
       const processedContent = DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
 
       if (processedContent !== cellContent) {
