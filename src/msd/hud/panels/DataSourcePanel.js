@@ -62,14 +62,24 @@ export class DataSourcePanel {
       const stats = dsManager.getStats() || {};
       const sourceData = stats.sources?.[sourceName] || {};
 
+      // ADDED: Get subscriber details using new API
+      let subscribers = [];
+      try {
+        subscribers = dsManager.getSourceSubscribers?.(sourceName) || [];
+        console.log('[DataSourcePanel] Found subscribers via API:', subscribers);
+      } catch (e) {
+        console.warn('[DataSourcePanel] Error getting subscribers:', e);
+      }
+
       // Console logging
       console.group(`🔍 Subscription Inspection: ${sourceName}`);
       console.log('Source Stats:', sourceData);
+      console.log('Subscribers:', subscribers);
       console.log('All Stats:', stats);
       console.groupEnd();
 
-      // Show popup with the subscription data (no subscriber details)
-      this._showSubscriptionPopup(sourceName, sourceData);
+      // Show popup with the subscription data and subscriber details
+      this._showSubscriptionPopup(sourceName, sourceData, subscribers);
     };    // Simple refresh function
     window.__msdRefreshDataSources = () => {
       const dsManager = window.__msdDebug?.dataSourceManager ||
@@ -177,8 +187,8 @@ export class DataSourcePanel {
     document.body.appendChild(popup);
   }
 
-  // SIMPLE: Show subscription popup using fresh DataSourceManager data
-  _showSubscriptionPopup(sourceName, sourceData) {
+  // UPDATED: Show subscription popup with basic subscriber details
+  _showSubscriptionPopup(sourceName, sourceData, subscribers = []) {
     // Remove any existing popup
     const existing = document.getElementById('msd-subscription-popup');
     if (existing) existing.remove();
@@ -235,24 +245,40 @@ export class DataSourcePanel {
       }
     }
 
-    // Note about subscriber details
-    if (sourceData.subscribers > 0) {
+    // ADDED: Basic subscriber details section
+    if (subscribers && subscribers.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#ffcc88;">👥 Subscribers (${subscribers.length})</h4>
+          <div style="font-size:10px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:120px;overflow-y:auto;">
+      `;
+
+      subscribers.forEach((subscriber, i) => {
+        const name = subscriber.name || subscriber.id || `Subscriber ${i + 1}`;
+        const type = subscriber.type || 'unknown';
+        content += `<div style="margin:2px 0;color:#ccc;">• ${name} <span style="color:#888;">(${type})</span></div>`;
+      });
+
+      content += `</div></div>`;
+    } else if (sourceData.subscribers > 0) {
+      // Show that we know there are subscribers but couldn't get details
       content += `
         <div style="margin-bottom:16px;">
           <h4 style="margin:0 0 8px;color:#ffcc88;">👥 Subscribers</h4>
           <div style="font-size:11px;color:#888;">
-            ${sourceData.subscribers} active subscriber${sourceData.subscribers === 1 ? '' : 's'} (details not exposed via API)
+            ${sourceData.subscribers} active subscriber${sourceData.subscribers === 1 ? '' : 's'} (basic details available)
           </div>
         </div>
       `;
     }
 
     // Raw data section
+    const combinedData = { stats: sourceData, subscribers };
     content += `
       <div style="margin-bottom:16px;">
         <h4 style="margin:0 0 8px;color:#ffcc88;">🔧 Raw Data</h4>
         <div style="font-size:9px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;word-break:break-all;color:#aaa;">
-          ${JSON.stringify(sourceData, null, 2)}
+          ${JSON.stringify(combinedData, null, 2)}
         </div>
       </div>
     `;
@@ -260,7 +286,7 @@ export class DataSourcePanel {
     // Action buttons
     content += `
       <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
-        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(sourceData)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Data', 2000);"
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(combinedData)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Data', 2000);"
           style="background:#552200;color:#fff;border:1px solid #aa5500;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
           Copy Data
         </button>
@@ -825,7 +851,7 @@ export class DataSourcePanel {
             <span class="msd-hud-metric-name">${shortId}</span>
             <span style="font-size:10px;color:#888;">${timeAgo}s ago</span>
           </div>
-          <div style="font-size:10px;color:#ccc;margin-top:1px;">
+          <div class="msd-hud-metric-value" style="font-size:10px;color:#ccc;margin-top:1px;">
             ${change.from} → ${change.to}
           </div>
         </div>`;

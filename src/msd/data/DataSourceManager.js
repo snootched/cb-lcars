@@ -333,11 +333,8 @@ export class DataSourceManager {
 
     console.log(`[DataSourceManager] 🔗 Setting up subscription for ${overlay.id} to ${overlay.source}`);
 
-
-
-    /* OLD
     // Subscribe to the data source with enhanced data for sparklines
-    const unsubscribe = source.subscribe((data) => {
+    const unsubscribe = source.subscribeWithMetadata?.((data) => {
       // Enhanced callback data for sparklines
       const enhancedData = {
         ...data,
@@ -362,34 +359,23 @@ export class DataSourceManager {
 
       // Call the callback with overlay and enhanced update data
       callback(overlay, enhancedData);
-    });
-    */
-
-    // Subscribe to the data source with enhanced data for sparklines
-    const unsubscribe = source.subscribe((data) => {
-      // Enhanced callback data for sparklines
+    }, {
+      // ADDED: Pass overlay metadata to the subscription
+      overlayId: overlay.id,
+      overlayType: overlay.type,
+      component: 'OverlayManager'
+    }) || source.subscribe((data) => {
+      // Fallback if subscribeWithMetadata not available
       const enhancedData = {
         ...data,
         sourceId: overlay.source,
         overlayId: overlay.id,
         overlayType: overlay.type,
-        // Include buffer reference for sparklines
         buffer: overlay.type === 'sparkline' ? data.buffer : undefined,
-        // Include historical data if available
         historicalData: overlay.type === 'sparkline' && data.buffer ?
           data.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
       };
 
-      // DEBUG: Log what we're about to send
-      console.log(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
-        hasBuffer: !!enhancedData.buffer,
-        bufferSize: enhancedData.buffer?.size?.() || 0,
-        hasHistoricalData: !!enhancedData.historicalData,
-        historicalDataLength: enhancedData.historicalData?.length || 0,
-        currentValue: enhancedData.v
-      });
-
-      // Call the callback with overlay and enhanced update data
       callback(overlay, enhancedData);
     });
 
@@ -478,6 +464,20 @@ export class DataSourceManager {
         destroyed: this._destroyed
       }
     };
+  }
+
+  // ADDED: Basic subscriber information methods
+  getSourceSubscribers(sourceName) {
+    const source = this.sources.get(sourceName);
+    return source?.getSubscriberInfo?.() || [];
+  }
+
+  getAllSubscribers() {
+    const result = {};
+    this.sources.forEach((source, name) => {
+      result[name] = source.getSubscriberInfo?.() || [];
+    });
+    return result;
   }
 
   async destroy() {

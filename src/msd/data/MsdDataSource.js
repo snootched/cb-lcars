@@ -821,6 +821,24 @@ export class MsdDataSource {
     };
   }
 
+  // ENHANCED: Subscribe with metadata support
+  subscribeWithMetadata(callback, metadata = {}) {
+    if (typeof callback !== 'function') {
+      console.warn('[MsdDataSource] Subscribe requires a function callback');
+      return () => {};
+    }
+
+    // Store metadata on the callback function
+    callback._subscriberMetadata = {
+      overlayId: metadata.overlayId || 'unknown',
+      overlayType: metadata.overlayType || 'unknown',
+      component: metadata.component || 'unknown',
+      subscribedAt: Date.now()
+    };
+
+    return this.subscribe(callback);
+  }
+
 
   /**
    * Convert raw value to number with support for boolean states
@@ -936,7 +954,36 @@ export class MsdDataSource {
     };
   }
 
-  /**
+  // ENHANCED: Basic subscriber information with overlay metadata
+  getSubscriberInfo() {
+    return Array.from(this.subscribers).map((callback, index) => {
+      // Check if callback has stored metadata
+      const metadata = callback._subscriberMetadata;
+
+      if (metadata) {
+        return {
+          id: metadata.overlayId,
+          name: `${metadata.overlayType}_${metadata.overlayId}`,
+          type: metadata.overlayType,
+          component: metadata.component,
+          subscribedAt: metadata.subscribedAt,
+          index: index
+        };
+      }
+
+      // Fallback to basic detection for callbacks without metadata
+      const name = callback.name || 'anonymous';
+      const isWrapped = callback.toString().includes('overlay') || callback.toString().includes('callback');
+
+      return {
+        id: `subscriber_${index}`,
+        name: name === 'anonymous' && isWrapped ? 'overlay_callback' : name,
+        type: 'function',
+        component: 'unknown',
+        index: index
+      };
+    });
+  }  /**
    * Get current data with enhanced metadata
    * @returns {Object|null} Current data object or null
    */
