@@ -117,6 +117,7 @@ export class HistoryBarRenderer {
       show_labels: style.show_labels !== false,
       show_values: style.show_values || false,
       axis_color: style.axis_color || style.axisColor || 'var(--lcars-gray)',
+      axis_width: Number(style.axis_width || style.axisWidth || 2), // Added axis line width control
       label_color: style.label_color || style.labelColor || 'var(--lcars-white)',
       label_font_size: Number(style.label_font_size || style.labelFontSize || 10),
 
@@ -759,20 +760,32 @@ export class HistoryBarRenderer {
    * @private
    */
   _buildAxis(width, height, historyBarStyle, overlayId) {
-    if (!historyBarStyle.show_axis) return '';
-
-    const lines = [];
-
-    if (historyBarStyle.orientation === 'horizontal') {
-      // Bottom axis line
-      lines.push(`<line x1="0" y1="${height}" x2="${width}" y2="${height}"
-                        stroke="${historyBarStyle.axis_color}" stroke-width="1"/>`);
-    } else {
-      // Left axis line
-      lines.push(`<line x1="0" y1="0" x2="0" y2="${height}"
-                        stroke="${historyBarStyle.axis_color}" stroke-width="1"/>`);
+    if (!historyBarStyle.show_axis) {
+      console.log(`[HistoryBarRenderer] Axis lines disabled for ${overlayId}`);
+      return '';
     }
 
+    console.log(`[HistoryBarRenderer] Building axis lines for ${overlayId}: show_axis=${historyBarStyle.show_axis}, orientation=${historyBarStyle.orientation}`);
+
+    const lines = [];
+    const axisColor = historyBarStyle.axis_color;
+    const axisWidth = historyBarStyle.axis_width;
+
+    console.log(`[HistoryBarRenderer] Axis settings: color=${axisColor}, width=${axisWidth}`);
+
+    if (historyBarStyle.orientation === 'horizontal') {
+      // Bottom axis line for horizontal bars
+      lines.push(`<line x1="0" y1="${height}" x2="${width}" y2="${height}" stroke="${axisColor}" stroke-width="${axisWidth}" data-axis-type="bottom"/>`);
+      // Left axis line for value reference
+      lines.push(`<line x1="0" y1="0" x2="0" y2="${height}" stroke="${axisColor}" stroke-width="${axisWidth}" data-axis-type="left"/>`);
+    } else {
+      // Left axis line for vertical bars
+      lines.push(`<line x1="0" y1="0" x2="0" y2="${height}" stroke="${axisColor}" stroke-width="${axisWidth}" data-axis-type="left"/>`);
+      // Bottom axis line for time reference
+      lines.push(`<line x1="0" y1="${height}" x2="${width}" y2="${height}" stroke="${axisColor}" stroke-width="${axisWidth}" data-axis-type="bottom"/>`);
+    }
+
+    console.log(`[HistoryBarRenderer] Created ${lines.length} axis lines for ${historyBarStyle.orientation} orientation`);
     return `<g data-feature="axis">${lines.join('\n')}</g>`;
   }
 

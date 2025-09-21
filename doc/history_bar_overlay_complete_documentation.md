@@ -144,6 +144,67 @@ History Bar: Immediately shows bar at 85°C height (not averaged with previous v
 
 ---
 
+## ✅ **Enhanced Axis & Grid Features**
+
+Both **grid lines** and **axis lines** are now fully configurable with independent styling options:
+
+### **🎛️ Complete Grid & Axis Control:**
+
+```yaml
+style:
+  # Grid Configuration
+  show_grid: true                   # Enable background grid
+  grid_color: "var(--lcars-gray)"   # Grid line color
+  grid_opacity: 0.6                 # Grid transparency (0-1)
+  grid_width: 1                     # Grid line thickness
+
+  # Axis Configuration
+  show_axis: true                   # Enable axis lines
+  axis_color: "var(--lcars-blue)"   # Axis line color
+  axis_width: 2                     # Axis line thickness
+
+  # Orientation affects which axes are drawn
+  orientation: "horizontal"         # horizontal: bottom + left axes
+                                   # vertical: left + bottom axes
+```
+
+### **🔍 Axis Behavior by Orientation:**
+
+**Horizontal Bars** (`orientation: "horizontal"`):
+- **Bottom Axis**: Time reference line
+- **Left Axis**: Value reference line
+
+**Vertical Bars** (`orientation: "vertical"`):
+- **Left Axis**: Time reference line
+- **Bottom Axis**: Value reference line
+
+### **📊 Visual Hierarchy Strategies:**
+
+**Subtle Background Grid with Prominent Axes:**
+```yaml
+style:
+  show_grid: true
+  grid_opacity: 0.3                 # Faint grid
+  grid_width: 0.5
+
+  show_axis: true
+  axis_color: "var(--lcars-orange)"
+  axis_width: 3                     # Strong axes
+```
+
+**Technical Grid with Minimal Axes:**
+```yaml
+style:
+  show_grid: true
+  grid_color: "var(--lcars-blue)"
+  grid_opacity: 0.7                 # Prominent grid
+  grid_width: 1
+
+  show_axis: true
+  axis_color: "var(--lcars-gray)"
+  axis_width: 1                     # Subtle axes
+```
+
 ## Styling & Appearance
 
 ### Orientation & Layout
@@ -173,6 +234,44 @@ style:
 
   show_axis: true                 # Show axis lines
   axis_color: "var(--lcars-gray)" # Axis color
+  axis_width: 2                   # Axis line thickness in pixels (default: 2)
+```
+
+### 💡 Recommended Axis Configurations:
+
+**Subtle Axes:**
+```yaml
+style:
+  show_axis: true
+  axis_color: "var(--lcars-gray)"
+  axis_width: 1
+```
+
+**Prominent Axes:**
+```yaml
+style:
+  show_axis: true
+  axis_color: "var(--lcars-blue)"
+  axis_width: 3
+```
+
+**Combined with Grid (Different Weights):**
+```yaml
+style:
+  show_grid: true
+  show_axis: true
+  grid_color: "var(--lcars-gray)"
+  grid_width: 1                     # Thin grid lines
+  axis_color: "var(--lcars-blue)"
+  axis_width: 2                     # Thicker axis lines
+```
+
+**Strong LCARS Look:**
+```yaml
+style:
+  show_axis: true
+  axis_color: "var(--lcars-orange)"
+  axis_width: 4
 ```
 
 ### 💡 Recommended Grid Configurations:
@@ -406,6 +505,7 @@ overlays:
       show_values: boolean        # Show value labels (default: false)
 
       axis_color: string          # Axis color (default: "var(--lcars-gray)")
+      axis_width: number          # Axis line thickness (default: 2)
       grid_color: string          # Grid color (default: "var(--lcars-gray)")
       grid_opacity: number        # Grid opacity (default: 0.6)
       grid_width: number          # Grid line thickness (default: 1)
