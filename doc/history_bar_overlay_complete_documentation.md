@@ -237,6 +237,88 @@ style:
   axis_width: 2                   # Axis line thickness in pixels (default: 2)
 ```
 
+### 💡 Recommended Label Configurations:
+
+**Basic Time Labels:**
+```yaml
+style:
+  show_labels: true
+  label_color: "var(--lcars-white)"
+  label_font_size: 10
+```
+
+**Enhanced Time Labels:**
+```yaml
+style:
+  show_labels: true
+  label_color: "var(--lcars-blue)"
+  label_font_size: 12
+  label_font_weight: "bold"
+  label_opacity: 0.9
+```
+
+**Value Labels on Bars:**
+```yaml
+style:
+  show_values: true
+  value_color: "var(--lcars-yellow)"
+  value_font_size: 8
+  value_font_weight: "bold"
+  value_format: "{value:.1f}"     # One decimal place
+```
+
+**Both Labels with Different Styling:**
+```yaml
+style:
+  # Time labels
+  show_labels: true
+  label_color: "var(--lcars-gray)"
+  label_font_size: 9
+  label_font_weight: "normal"
+
+  # Value labels
+  show_values: true
+  value_color: "var(--lcars-orange)"
+  value_font_size: 10
+  value_font_weight: "bold"
+  value_format: "{value:k}"       # Kilos format (1000 -> 1.0k)
+```
+
+**Custom Typography:**
+```yaml
+style:
+  show_labels: true
+  show_values: true
+
+  # Custom fonts
+  label_font_family: "Arial, sans-serif"
+  value_font_family: "Courier New, monospace"
+
+  # Custom colors
+  label_color: "#00FFFF"
+  value_color: "#FFAA00"
+```
+
+### 🎯 **Value Format Options:**
+
+**Template Formats:**
+```yaml
+value_format: "{value}"          # Raw value: 1234.56
+value_format: "{value:.1f}"      # 1 decimal: 1234.6
+value_format: "{value:.0f}"      # No decimals: 1235
+value_format: "{value:%}"        # Percentage: 1234.56%
+value_format: "{value:k}"        # Kilos: 1.2k
+value_format: "{value:M}"        # Millions: 1.2M
+```
+
+**Preset Formats:**
+```yaml
+value_format: "int"              # Integer: 1235
+value_format: "float"            # Float: 1234.56
+value_format: "percent"          # Percentage: 1234.56%
+value_format: "currency"         # Currency: $1234.56
+```
+
 ### 💡 Recommended Axis Configurations:
 
 **Subtle Axes:**
@@ -498,17 +580,54 @@ overlays:
       color_ranges: array         # Value-based color ranges
       use_gradient: boolean       # Use gradient fills (default: false)
 
+      # Labels & Values
+      show_labels: boolean        # Show time labels (default: true)
+      show_values: boolean        # Show value labels on bars (default: false)
+
+      # Time Label Styling
+      label_color: string         # Time label color (default: "var(--lcars-white)")
+      label_font_size: number     # Time label font size (default: 10)
+      label_font_family: string   # Time label font family (default: "var(--lcars-font-family, monospace)")
+      label_font_weight: string   # Time label font weight (default: "normal")
+      label_opacity: number       # Time label opacity (default: 1)
+
+      # Value Label Styling
+      value_color: string         # Value label color (default: same as label_color)
+      value_font_size: number     # Value label font size (default: 8)
+      value_font_family: string   # Value label font family (default: same as label_font_family)
+      value_font_weight: string   # Value label font weight (default: "bold")
+      value_opacity: number       # Value label opacity (default: 0.8)
+      value_format: string        # Value formatting template (default: "{value}")
+
       # Axis and Grid
       show_axis: boolean          # Show axis lines (default: true)
       show_grid: boolean          # Show grid lines (default: false)
-      show_labels: boolean        # Show time labels (default: true)
-      show_values: boolean        # Show value labels (default: false)
 
       axis_color: string          # Axis color (default: "var(--lcars-gray)")
       axis_width: number          # Axis line thickness (default: 2)
       grid_color: string          # Grid color (default: "var(--lcars-gray)")
       grid_opacity: number        # Grid opacity (default: 0.6)
       grid_width: number          # Grid line thickness (default: 1)
+
+      # Labels & Values
+      show_labels: boolean        # Show time labels (default: true)
+      show_values: boolean        # Show value labels on bars (default: false)
+
+      # Time Label Styling
+      label_color: string         # Time label color (default: "var(--lcars-white)")
+      label_font_size: number     # Time label font size (default: 10)
+      label_font_family: string   # Time label font family (default: "var(--lcars-font-family, monospace)")
+      label_font_weight: string   # Time label font weight (default: "normal")
+      label_opacity: number       # Time label opacity (default: 1)
+
+      # Value Label Styling
+      value_color: string         # Value label color (default: same as label_color)
+      value_font_size: number     # Value label font size (default: 8)
+      value_font_family: string   # Value label font family (default: same as label_font_family)
+      value_font_weight: string   # Value label font weight (default: "bold")
+      value_opacity: number       # Value label opacity (default: 0.8)
+      value_format: string        # Value formatting template (default: "{value}")
+
       label_color: string         # Label color (default: "var(--lcars-white)")
       label_font_size: number     # Label font size (default: 10)
 

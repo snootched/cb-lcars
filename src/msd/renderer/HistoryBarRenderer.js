@@ -118,8 +118,21 @@ export class HistoryBarRenderer {
       show_values: style.show_values || false,
       axis_color: style.axis_color || style.axisColor || 'var(--lcars-gray)',
       axis_width: Number(style.axis_width || style.axisWidth || 2), // Added axis line width control
+
+      // Label styling
       label_color: style.label_color || style.labelColor || 'var(--lcars-white)',
       label_font_size: Number(style.label_font_size || style.labelFontSize || 10),
+      label_font_family: style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, monospace)',
+      label_font_weight: style.label_font_weight || style.labelFontWeight || 'normal',
+      label_opacity: Number(style.label_opacity || style.labelOpacity || 1),
+
+      // Value label styling
+      value_color: style.value_color || style.valueColor || style.label_color || style.labelColor || 'var(--lcars-white)',
+      value_font_size: Number(style.value_font_size || style.valueFontSize || 8),
+      value_font_family: style.value_font_family || style.valueFontFamily || style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, monospace)',
+      value_font_weight: style.value_font_weight || style.valueFontWeight || 'bold',
+      value_opacity: Number(style.value_opacity || style.valueOpacity || 0.8),
+      value_format: style.value_format || style.valueFormat || '{value}', // Template for value display
 
       // Grid and reference lines
       show_grid: style.show_grid || style.showGrid || false,
@@ -940,30 +953,164 @@ export class HistoryBarRenderer {
   }
 
   /**
-   * Build value labels
+   * Build value labels and time labels with comprehensive styling
    * @private
    */
   _buildLabels(data, width, height, historyBarStyle, overlayId) {
-    if (!historyBarStyle.show_labels && !historyBarStyle.show_values) return '';
+    if (!historyBarStyle.show_labels && !historyBarStyle.show_values) {
+      console.log(`[HistoryBarRenderer] Both labels and values disabled for ${overlayId}`);
+      return '';
+    }
 
+    console.log(`[HistoryBarRenderer] Building labels for ${overlayId}: show_labels=${historyBarStyle.show_labels}, show_values=${historyBarStyle.show_values}`);
+
+    const labels = [];
+    const timeWindow = this._parseTimeWindow(historyBarStyle.time_window);
+    const buckets = this._createTimeBuckets(data, timeWindow, historyBarStyle.bucket_size);
+
+    // Time labels along the axis
+    if (historyBarStyle.show_labels) {
+      console.log(`[HistoryBarRenderer] Creating time labels with settings: color=${historyBarStyle.label_color}, size=${historyBarStyle.label_font_size}, family=${historyBarStyle.label_font_family}`);
+
+      const timeLabels = this._buildTimeLabels(width, height, historyBarStyle, buckets, overlayId);
+      labels.push(...timeLabels);
+    }
+
+    // Value labels on individual bars
+    if (historyBarStyle.show_values) {
+      console.log(`[HistoryBarRenderer] Creating value labels with settings: color=${historyBarStyle.value_color}, size=${historyBarStyle.value_font_size}, format=${historyBarStyle.value_format}`);
+
+      const valueLabels = this._buildValueLabels(data, width, height, historyBarStyle, buckets, overlayId);
+      labels.push(...valueLabels);
+    }
+
+    console.log(`[HistoryBarRenderer] Created ${labels.length} total labels (time + values)`);
+    return labels.length > 0 ? `<g data-feature="labels">${labels.join('\n')}</g>` : '';
+  }
+
+  /**
+   * Build time labels along the axis
+   * @private
+   */
+  _buildTimeLabels(width, height, historyBarStyle, buckets, overlayId) {
     const labels = [];
     const fontSize = historyBarStyle.label_font_size;
     const color = historyBarStyle.label_color;
+    const fontFamily = historyBarStyle.label_font_family;
+    const fontWeight = historyBarStyle.label_font_weight;
+    const opacity = historyBarStyle.label_opacity;
 
-    // Time labels (simplified)
-    if (historyBarStyle.show_labels) {
-      const labelCount = Math.min(5, Math.floor(width / 60)); // Reasonable label spacing
-      for (let i = 0; i < labelCount; i++) {
-        const x = (i / (labelCount - 1)) * width;
-        const y = height + fontSize + 4;
-        const timeLabel = this._formatTimeLabel(Date.now() - (labelCount - 1 - i) * 3600000); // Hour labels
+    // Determine optimal label count based on width and orientation
+    const maxLabels = Math.min(8, Math.max(3, Math.floor(width / 60))); // 3-8 labels, min 60px apart
+    const labelStep = Math.max(1, Math.floor(buckets.length / maxLabels));
 
-        labels.push(`<text x="${x}" y="${y}" fill="${color}" font-size="${fontSize}"
-                           text-anchor="middle" data-label-type="time">${timeLabel}</text>`);
+    console.log(`[HistoryBarRenderer] Time labels: ${maxLabels} max labels, step=${labelStep}, buckets=${buckets.length}`);
+
+    for (let i = 0; i < buckets.length; i += labelStep) {
+      const bucket = buckets[i];
+      let labelX, labelY, textAnchor;
+
+      if (historyBarStyle.orientation === 'horizontal') {
+        // Horizontal bars: labels below the chart
+        labelX = (i / buckets.length) * width + (width / buckets.length) / 2;
+        labelY = height + fontSize + 6;
+        textAnchor = 'middle';
+      } else {
+        // Vertical bars: labels to the right of the chart
+        labelX = width + 8;
+        labelY = (i / buckets.length) * height + (height / buckets.length) / 2 + fontSize / 3;
+        textAnchor = 'start';
       }
+
+      const timeLabel = this._formatTimeLabel(bucket.timestamp, historyBarStyle.time_window);
+
+      labels.push(`<text x="${labelX}" y="${labelY}"
+                         fill="${color}"
+                         font-size="${fontSize}"
+                         font-family="${fontFamily}"
+                         font-weight="${fontWeight}"
+                         opacity="${opacity}"
+                         text-anchor="${textAnchor}"
+                         dominant-baseline="middle"
+                         data-label-type="time"
+                         data-timestamp="${bucket.timestamp}">
+                    ${timeLabel}
+                  </text>`);
     }
 
-    return labels.length > 0 ? `<g data-feature="labels">${labels.join('\n')}</g>` : '';
+    return labels;
+  }
+
+  /**
+   * Build value labels on individual bars
+   * @private
+   */
+  _buildValueLabels(data, width, height, historyBarStyle, buckets, overlayId) {
+    const labels = [];
+    const fontSize = historyBarStyle.value_font_size;
+    const color = historyBarStyle.value_color;
+    const fontFamily = historyBarStyle.value_font_family;
+    const fontWeight = historyBarStyle.value_font_weight;
+    const opacity = historyBarStyle.value_opacity;
+    const format = historyBarStyle.value_format;
+
+    const maxValue = this._getMaxValueForNormalization(historyBarStyle, buckets);
+
+    // Only show value labels on bars that are large enough to accommodate text
+    const minBarSizeForLabel = fontSize + 4;
+
+    buckets.forEach((bucket, index) => {
+      const value = this._aggregateBucketValue(bucket, historyBarStyle.aggregation_mode);
+
+      // Skip zero values and very small bars
+      if (value <= 0) return;
+
+      const normalizedValue = Math.max(0, Math.min(1, value / maxValue));
+
+      let labelX, labelY, textAnchor;
+      let barSize;
+
+      if (historyBarStyle.orientation === 'horizontal') {
+        // Horizontal bars: labels on top of bars
+        const barWidth = (width / buckets.length) - historyBarStyle.bar_gap;
+        const barHeight = normalizedValue * height;
+        barSize = barHeight;
+
+        labelX = (index / buckets.length) * width + (width / buckets.length) / 2;
+        labelY = height - barHeight - 4; // Just above the bar
+        textAnchor = 'middle';
+      } else {
+        // Vertical bars: labels to the right of bars
+        const barWidth = normalizedValue * width;
+        barSize = barWidth;
+
+        labelX = barWidth + 4; // Just to the right of the bar
+        labelY = (index / buckets.length) * height + (height / buckets.length) / 2;
+        textAnchor = 'start';
+      }
+
+      // Only show label if bar is large enough
+      if (barSize < minBarSizeForLabel) return;
+
+      const formattedValue = this._formatValueLabel(value, format);
+
+      labels.push(`<text x="${labelX}" y="${labelY}"
+                         fill="${color}"
+                         font-size="${fontSize}"
+                         font-family="${fontFamily}"
+                         font-weight="${fontWeight}"
+                         opacity="${opacity}"
+                         text-anchor="${textAnchor}"
+                         dominant-baseline="middle"
+                         data-label-type="value"
+                         data-value="${value}"
+                         data-bucket-index="${index}">
+                    ${formattedValue}
+                  </text>`);
+    });
+
+    console.log(`[HistoryBarRenderer] Created ${labels.length} value labels (filtered for size and non-zero values)`);
+    return labels;
   }
 
   /**
@@ -1187,12 +1334,68 @@ export class HistoryBarRenderer {
     console.log(`[HistoryBarRenderer] Using default max: 100`);
     return 100;
   }  /**
-   * Format time label for display
+   * Format time label for display based on time window
    * @private
    */
-  _formatTimeLabel(timestamp) {
+  _formatTimeLabel(timestamp, timeWindow = '24h') {
     const date = new Date(timestamp);
-    return date.getHours().toString().padStart(2, '0') + ':00';
+
+    // Choose format based on time window
+    if (timeWindow.includes('d') || timeWindow.includes('w') || timeWindow.includes('m')) {
+      // For longer time windows, show date
+      return `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+    } else if (timeWindow.includes('h')) {
+      // For hourly windows, show time
+      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    } else {
+      // For minute/second windows, show time with seconds
+      return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+    }
+  }
+
+  /**
+   * Format value label using template format
+   * @private
+   */
+  _formatValueLabel(value, format = '{value}') {
+    try {
+      // Handle template formats
+      if (format.includes('{value}')) {
+        return format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
+          if (formatSpec) {
+            // Handle format specifications like {value:.1f} or {value:%}
+            if (formatSpec.includes('f')) {
+              const decimals = formatSpec.match(/\.(\d+)f/)?.[1];
+              if (decimals !== undefined) {
+                return Number(value).toFixed(parseInt(decimals));
+              }
+            } else if (formatSpec === '%') {
+              return `${value}%`;
+            } else if (formatSpec === 'k') {
+              // Kilos format
+              return value >= 1000 ? `${(value/1000).toFixed(1)}k` : value.toString();
+            } else if (formatSpec === 'M') {
+              // Millions format
+              return value >= 1000000 ? `${(value/1000000).toFixed(1)}M` :
+                     value >= 1000 ? `${(value/1000).toFixed(1)}k` : value.toString();
+            }
+          }
+          return value.toString();
+        });
+      } else {
+        // Direct format strings
+        switch (format) {
+          case 'int': return Math.round(value).toString();
+          case 'float': return value.toFixed(2);
+          case 'percent': return `${value}%`;
+          case 'currency': return `$${value.toFixed(2)}`;
+          default: return value.toString();
+        }
+      }
+    } catch (error) {
+      console.warn(`[HistoryBarRenderer] Value format error:`, error);
+      return value.toString();
+    }
   }
 
   _renderEnhancedStatusIndicator(overlay, x, y, width, height, dataResult, historyBarStyle, animationAttributes, processedContent) {
