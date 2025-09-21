@@ -40,9 +40,9 @@ export class BaseOverlayUpdater {
 
     // History bar updater with data visualization
     this.overlayUpdaters.set('history_bar', {
-      needsUpdate: (overlay, sourceData) => true, // Always update history bars for data visualization
+      needsUpdate: (overlay, sourceData) => this._historyBarNeedsUpdate(overlay, sourceData),
       update: (overlayId, overlay, sourceData) => this._updateHistoryBar(overlayId, overlay, sourceData),
-      hasTemplates: (overlay) => this._hasTemplateContent(overlay)
+      hasTemplates: (overlay) => this._hasTemplateContent(overlay) || this._historyBarNeedsDataUpdates(overlay)
     });
 
     // Generic updater for future overlay types
@@ -63,15 +63,26 @@ export class BaseOverlayUpdater {
 
     const resolvedModel = this.systemsManager.modelBuilder?.getResolvedModel?.();
     if (!resolvedModel?.overlays) {
+      console.warn('[BaseOverlayUpdater] No resolved model or overlays found');
       return;
     }
+
+    console.log(`[BaseOverlayUpdater] Found ${resolvedModel.overlays.length} overlays to check`);
 
     // Check each overlay type
     resolvedModel.overlays.forEach(overlay => {
       const updater = this.overlayUpdaters.get(overlay.type) || this.overlayUpdaters.get('default');
 
+      console.log(`[BaseOverlayUpdater] Checking overlay ${overlay.id} (type: ${overlay.type}):`, {
+        hasTemplates: updater.hasTemplates(overlay),
+        source: overlay.source,
+        content: overlay.content
+      });
+
       if (updater.hasTemplates(overlay)) {
         const needsUpdate = this._overlayReferencesChangedDataSources(overlay, changedIds);
+
+        console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data:`, needsUpdate);
 
         if (needsUpdate) {
           const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
@@ -82,9 +93,15 @@ export class BaseOverlayUpdater {
 
               console.log(`[BaseOverlayUpdater] Updating ${overlay.type} overlay ${overlay.id}`);
               updater.update(overlay.id, overlay, currentData);
+            } else {
+              console.warn(`[BaseOverlayUpdater] DataSource ${updatedDataSourceId} not found`);
             }
+          } else {
+            console.warn(`[BaseOverlayUpdater] No DataSource found for entity ${changedIds[0]}`);
           }
         }
+      } else {
+        console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} has no templates - skipping`);
       }
     });
   }
@@ -129,14 +146,23 @@ export class BaseOverlayUpdater {
    * @private
    */
   _overlayReferencesChangedDataSources(overlay, changedIds) {
-    // Check main overlay content
+    // Check main overlay content for templates
     const mainContent = overlay._raw?.content || overlay.content || overlay.text || '';
 
     let hasReference = false;
 
-    // Check main content
+    // Check main content for template references
     if (mainContent && this._contentReferencesChangedDataSources(mainContent, changedIds)) {
       hasReference = true;
+    }
+
+    // For history bars, also check if the source directly matches a changed DataSource
+    if (overlay.type === 'history_bar' && overlay.source) {
+      const sourceMatches = this._dataSourceMatchesChangedEntities(overlay.source, changedIds);
+      console.log(`[BaseOverlayUpdater] History bar ${overlay.id} source ${overlay.source} matches changed entities:`, sourceMatches);
+      if (sourceMatches) {
+        hasReference = true;
+      }
     }
 
     // For status grids, also check cell configurations - ENHANCED to check multiple sources
@@ -170,6 +196,22 @@ export class BaseOverlayUpdater {
       }
       return false;
     });
+  }
+
+  /**
+   * Check if a DataSource ID matches any of the changed entities
+   * @private
+   */
+  _dataSourceMatchesChangedEntities(dataSourceId, changedIds) {
+    if (!dataSourceId || !this.systemsManager.dataSourceManager) return false;
+
+    const dataSource = this.systemsManager.dataSourceManager.getSource(dataSourceId);
+    if (!dataSource) return false;
+
+    const entityId = dataSource.cfg?.entity;
+    if (!entityId) return false;
+
+    return changedIds.includes(entityId);
   }  /**
    * Text overlay specific update logic
    * @private
@@ -237,7 +279,15 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateHistoryBar(overlayId, overlay, sourceData) {
+    console.log(`[BaseOverlayUpdater] _updateHistoryBar called for ${overlayId}:`, {
+      hasRenderer: !!this.systemsManager.renderer,
+      hasUpdateOverlayData: !!(this.systemsManager.renderer?.updateOverlayData),
+      sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
+      overlaySource: overlay.source
+    });
+
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+      console.log(`[BaseOverlayUpdater] Calling updateOverlayData for history_bar overlay ${overlayId}`);
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     } else {
       console.warn(`[BaseOverlayUpdater] No renderer method available for history_bar overlay ${overlayId}`);
@@ -313,6 +363,32 @@ export class BaseOverlayUpdater {
 
   _statusGridNeedsUpdate(overlay, sourceData) {
     return this._hasTemplateContent(overlay);
+  }
+
+  _historyBarNeedsUpdate(overlay, sourceData) {
+    // History bars need updates if they have templates OR if they visualize data from the changed source
+    return this._hasTemplateContent(overlay) || this._historyBarUsesDataSource(overlay, sourceData);
+  }
+
+  _historyBarNeedsDataUpdates(overlay) {
+    // History bars always need updates for data visualization, even without templates
+    return !!overlay.source;
+  }
+
+  _historyBarUsesDataSource(overlay, sourceData) {
+    // Check if the history bar's source matches the changed data source
+    if (!overlay.source || !sourceData?.entity) return false;
+
+    // Find the DataSource that corresponds to this entity
+    if (this.systemsManager.dataSourceManager) {
+      for (const [sourceId, source] of this.systemsManager.dataSourceManager.sources || new Map()) {
+        if (source.cfg && source.cfg.entity === sourceData.entity && overlay.source === sourceId) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   _findDataSourceForEntity(entityId) {

@@ -100,7 +100,7 @@ export class HistoryBarRenderer {
       // Core bar properties
       orientation: (style.orientation || 'horizontal').toLowerCase(),
       time_window: style.time_window || style.timeWindow || '24h',
-      bucket_size: style.bucket_size || style.bucketSize || 'auto',
+      bucket_size: style.bucket_size || style.bucketSize || '30m', // Changed from 'auto' to 30 minutes for better real-time resolution
 
       // Bar appearance
       bar_color: style.bar_color || style.barColor || style.color || 'var(--lcars-blue)',
@@ -813,15 +813,20 @@ export class HistoryBarRenderer {
     const timeWindow = this._parseTimeWindow(historyBarStyle.time_window);
     const buckets = this._createTimeBuckets(processedData, timeWindow, historyBarStyle.bucket_size);
 
+    // Calculate max value for proper scaling
+    const maxValue = this._getMaxValueForNormalization(historyBarStyle, buckets);
+
+    console.log(`[HistoryBarRenderer] Building ${buckets.length} bars with max value: ${maxValue}`);
+
     const bars = buckets.map((bucket, index) => {
       const value = this._aggregateBucketValue(bucket, historyBarStyle.aggregation_mode);
       const barColor = this._getBarColor(value, historyBarStyle);
 
       let barGeometry;
       if (historyBarStyle.orientation === 'horizontal') {
-        barGeometry = this._createHorizontalBar(bucket, value, index, buckets.length, width, height, historyBarStyle);
+        barGeometry = this._createHorizontalBar(bucket, value, index, buckets.length, width, height, historyBarStyle, maxValue);
       } else {
-        barGeometry = this._createVerticalBar(bucket, value, index, buckets.length, width, height, historyBarStyle);
+        barGeometry = this._createVerticalBar(bucket, value, index, buckets.length, width, height, historyBarStyle, maxValue);
       }
 
       const attributes = [];
@@ -859,18 +864,22 @@ export class HistoryBarRenderer {
    * Create horizontal bar geometry
    * @private
    */
-  _createHorizontalBar(bucket, value, index, totalBars, width, height, historyBarStyle) {
+  _createHorizontalBar(bucket, value, index, totalBars, width, height, historyBarStyle, maxValue) {
     const barWidth = (width / totalBars) - historyBarStyle.bar_gap;
     const barX = (index * width / totalBars) + (historyBarStyle.bar_gap / 2);
 
-    // Normalize value to bar height
-    const maxValue = this._getMaxValueForNormalization(historyBarStyle);
+    // Normalize value to bar height using provided maxValue
     const normalizedValue = Math.max(0, Math.min(1, value / maxValue));
     const barHeight = normalizedValue * height;
     const barY = height - barHeight;
 
     const rx = historyBarStyle.bar_radius;
     const ry = historyBarStyle.bar_radius;
+
+    // Log only first and last bars to avoid spam
+    if (index === 0 || index === totalBars - 1) {
+      console.log(`[HistoryBarRenderer] Bar ${index}: value=${value}, maxValue=${maxValue}, normalized=${normalizedValue.toFixed(3)}, height=${barHeight.toFixed(1)}`);
+    }
 
     return `x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="${rx}" ry="${ry}"`;
   }
@@ -879,12 +888,11 @@ export class HistoryBarRenderer {
    * Create vertical bar geometry
    * @private
    */
-  _createVerticalBar(bucket, value, index, totalBars, width, height, historyBarStyle) {
+  _createVerticalBar(bucket, value, index, totalBars, width, height, historyBarStyle, maxValue) {
     const barHeight = (height / totalBars) - historyBarStyle.bar_gap;
     const barY = index * height / totalBars + (historyBarStyle.bar_gap / 2);
 
-    // Normalize value to bar width
-    const maxValue = this._getMaxValueForNormalization(historyBarStyle);
+    // Normalize value to bar width using provided maxValue
     const normalizedValue = Math.max(0, Math.min(1, value / maxValue));
     const barWidth = normalizedValue * width;
     const barX = 0;
@@ -1028,21 +1036,52 @@ export class HistoryBarRenderer {
     }
 
     const buckets = [];
-    const now = Date.now();
+    // Use the latest data timestamp as "now" to ensure current data is included
+    const latestDataTime = data.length > 0 ? Math.max(...data.map(p => p.timestamp)) : Date.now();
+    const now = Math.max(latestDataTime, Date.now()); // Ensure we don't go backwards in time
     const startTime = now - timeWindow;
+
+    console.log(`[HistoryBarRenderer] Creating time buckets: timeWindow=${timeWindow}ms, bucketSize=${bucketSize}ms, data points=${data.length}`);
+    console.log(`[HistoryBarRenderer] Data timestamps range: ${Math.min(...data.map(p => p.timestamp))} - ${Math.max(...data.map(p => p.timestamp))}`);
+    console.log(`[HistoryBarRenderer] Bucket time range: ${startTime} - ${now} (now adjusted to include latest data)`);
 
     for (let time = startTime; time < now; time += bucketSize) {
       const bucketData = data.filter(point =>
         point.timestamp >= time && point.timestamp < time + bucketSize
       );
 
-      buckets.push({
+      const bucket = {
         timestamp: time,
         endTimestamp: time + bucketSize,
         data: bucketData,
         count: bucketData.length
+      };
+
+      // Log bucket details for debugging
+      if (bucketData.length > 0) {
+        const values = bucketData.map(p => p.value);
+        const times = bucketData.map(p => p.timestamp);
+        console.log(`[HistoryBarRenderer] Bucket ${Math.floor((time - startTime) / bucketSize)}: ${bucketData.length} points, values: [${values.join(', ')}], times: [${times.join(', ')}]`);
+      }
+
+      buckets.push(bucket);
+    }
+
+    // CRITICAL: Add one more bucket to catch any data points at the exact "now" timestamp
+    const finalBucketData = data.filter(point => point.timestamp >= now);
+    if (finalBucketData.length > 0) {
+      console.log(`[HistoryBarRenderer] Adding final bucket for ${finalBucketData.length} points at/after timestamp ${now}`);
+      buckets.push({
+        timestamp: now,
+        endTimestamp: now + bucketSize,
+        data: finalBucketData,
+        count: finalBucketData.length
       });
     }
+
+    // Log bucket summary
+    const nonEmptyBuckets = buckets.filter(b => b.count > 0);
+    console.log(`[HistoryBarRenderer] Created ${buckets.length} buckets, ${nonEmptyBuckets.length} with data`);
 
     return buckets;
   }
@@ -1065,8 +1104,19 @@ export class HistoryBarRenderer {
         return Math.min(...values);
       case 'count':
         return values.length;
+      case 'latest':
+        // Use the most recent value in the bucket (highest timestamp)
+        const sortedByTime = bucket.data.sort((a, b) => b.timestamp - a.timestamp);
+        return sortedByTime[0].value;
       case 'average':
       default:
+        // For real-time updates, if we have multiple points in the same bucket,
+        // use the latest value instead of average to avoid mixing old and new values
+        if (bucket.data.length > 1) {
+          const sortedByTime = bucket.data.sort((a, b) => b.timestamp - a.timestamp);
+          console.log(`[HistoryBarRenderer] Bucket has ${bucket.data.length} points, using latest: ${sortedByTime[0].value} (was going to average: ${values.reduce((a, b) => a + b, 0) / values.length})`);
+          return sortedByTime[0].value;
+        }
         return values.reduce((a, b) => a + b, 0) / values.length;
     }
   }
@@ -1075,17 +1125,50 @@ export class HistoryBarRenderer {
    * Get maximum value for normalization
    * @private
    */
-  _getMaxValueForNormalization(historyBarStyle) {
+  _getMaxValueForNormalization(historyBarStyle, buckets = null) {
     // Use color ranges max if available
     if (historyBarStyle.color_ranges && historyBarStyle.color_ranges.length > 0) {
-      return Math.max(...historyBarStyle.color_ranges.map(r => r.max));
+      const colorMax = Math.max(...historyBarStyle.color_ranges.map(r => r.max));
+      console.log(`[HistoryBarRenderer] Using color ranges max: ${colorMax}`);
+      return colorMax;
     }
 
-    // Default normalization value
-    return 100;
-  }
+    // If we have bucket data, use the actual max value for auto-scaling
+    if (buckets && buckets.length > 0) {
+      const values = buckets.map(bucket => this._aggregateBucketValue(bucket, historyBarStyle.aggregation_mode));
+      const nonZeroValues = values.filter(v => v > 0);
 
-  /**
+      if (nonZeroValues.length === 0) {
+        console.log(`[HistoryBarRenderer] All bucket values are zero, using default max: 100`);
+        return 100;
+      }
+
+      const dataMax = Math.max(...nonZeroValues);
+      const dataMin = Math.min(...nonZeroValues);
+
+      console.log(`[HistoryBarRenderer] Bucket data range: ${dataMin} - ${dataMax} (from ${values.length} buckets, ${nonZeroValues.length} non-zero)`);
+
+      // Use a reasonable max that gives good visual scaling
+      if (dataMax <= 0) return 100; // Fallback for all-zero data
+
+      // Round up to next nice number for better scaling
+      const magnitude = Math.pow(10, Math.floor(Math.log10(dataMax)));
+      const normalized = dataMax / magnitude;
+      let niceMax;
+
+      if (normalized <= 1) niceMax = magnitude;
+      else if (normalized <= 2) niceMax = 2 * magnitude;
+      else if (normalized <= 5) niceMax = 5 * magnitude;
+      else niceMax = 10 * magnitude;
+
+      console.log(`[HistoryBarRenderer] Using auto-scaled max: ${niceMax} (from data max: ${dataMax})`);
+      return niceMax;
+    }
+
+    // Default normalization value for percentages or when no data
+    console.log(`[HistoryBarRenderer] Using default max: 100`);
+    return 100;
+  }  /**
    * Format time label for display
    * @private
    */
@@ -1223,14 +1306,12 @@ export class HistoryBarRenderer {
       return this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
     }
 
-    // For existing history bars, update the bars
-    const barsGroup = historyBarElement.querySelector('g[data-feature="history-bars"]');
-    if (!barsGroup) {
-      // If no bars group, try to upgrade if data is available
-      const historicalData = this._extractHistoricalData(sourceData);
-      if (historicalData.length > 0) {
-        return this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
-      }
+    // Convert source data to history bar format
+    const historicalData = this._extractHistoricalData(sourceData);
+
+    if (historicalData.length === 0) {
+      console.warn(`[HistoryBarRenderer] No data for history bar ${overlay.id}`);
+      historyBarElement.setAttribute('data-status', 'NO_DATA');
       return false;
     }
 
@@ -1241,35 +1322,37 @@ export class HistoryBarRenderer {
         height: overlay.size?.[1] || 80
       };
 
-      // Convert source data to history bar format
-      const historicalData = this._extractHistoricalData(sourceData);
+      // Re-resolve styles for consistency
+      const style = overlay.finalStyle || overlay.style || {};
+      const historyBarStyle = this._resolveHistoryBarStyles(style, overlay.id);
+      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      if (historicalData.length > 0) {
-        // Re-resolve styles for consistency
-        const style = overlay.finalStyle || overlay.style || {};
-        const historyBarStyle = this._resolveHistoryBarStyles(style, overlay.id);
-        const animationAttributes = this._prepareAnimationAttributes(overlay, style);
+      // CRITICAL: Instead of just updating bars, regenerate the entire visualization
+      // because the max value may have changed with new data
+      console.log(`[HistoryBarRenderer] Regenerating entire history bar ${overlay.id} due to data change`);
 
-        // Generate new bars
-        const newBarsMarkup = this._buildHistoryBars(
-          historicalData, bounds.width, bounds.height,
-          historyBarStyle, overlay.id, animationAttributes
-        );
+      const svgParts = [
+        this._buildDefinitions(historyBarStyle, overlay.id),
+        this._buildHistoryBarBackground(bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildGridLines(bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildAxis(bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildThresholdLines(historicalData, bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildHistoryBars(historicalData, bounds.width, bounds.height, historyBarStyle, overlay.id, animationAttributes),
+        this._buildLabels(historicalData, bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildBrackets(bounds.width, bounds.height, historyBarStyle, overlay.id),
+        this._buildStatusIndicator(bounds.width, bounds.height, historyBarStyle, overlay.id)
+      ].filter(Boolean);
 
-        // Replace the bars group content
-        barsGroup.innerHTML = newBarsMarkup.replace(/<\/?g[^>]*>/g, ''); // Remove wrapper <g> tags
+      // Replace entire innerHTML with updated history bar content
+      historyBarElement.innerHTML = svgParts.join('\n');
 
-        // Update status attributes
-        historyBarElement.removeAttribute('data-status');
-        historyBarElement.setAttribute('data-last-update', Date.now());
+      // Update status attributes
+      historyBarElement.removeAttribute('data-status');
+      historyBarElement.setAttribute('data-last-update', Date.now());
+      historyBarElement.setAttribute('data-history-bar-features', historyBarStyle.features.join(','));
 
-        console.log(`[HistoryBarRenderer] ✅ Updated history bar ${overlay.id} with ${historicalData.length} points`);
-        return true;
-      } else {
-        console.warn(`[HistoryBarRenderer] No data for history bar ${overlay.id}`);
-        historyBarElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
-        return false;
-      }
+      console.log(`[HistoryBarRenderer] ✅ Completely regenerated history bar ${overlay.id} with ${historicalData.length} points`);
+      return true;
 
     } catch (error) {
       console.error(`[HistoryBarRenderer] Error updating history bar ${overlay.id}:`, error);
@@ -1327,6 +1410,13 @@ export class HistoryBarRenderer {
   _extractHistoricalData(sourceData) {
     let historicalData = [];
 
+    console.log(`[HistoryBarRenderer] Extracting historical data:`, {
+      hasBuffer: !!(sourceData?.buffer),
+      bufferSize: sourceData?.buffer?.size?.() || 0,
+      currentValue: sourceData?.v,
+      currentTimestamp: sourceData?.t
+    });
+
     // Method 1: Use buffer data directly
     if (sourceData.buffer && typeof sourceData.buffer.getAll === 'function') {
       const bufferData = sourceData.buffer.getAll();
@@ -1334,7 +1424,40 @@ export class HistoryBarRenderer {
         timestamp: point.t,
         value: point.v
       }));
-      console.log('[HistoryBarRenderer] Using buffer data:', historicalData.length, 'points');
+
+      // CRITICAL: Always add current value as the latest point to ensure real-time updates
+      if (sourceData.v !== undefined && sourceData.t !== undefined) {
+        const latestBufferTime = bufferData.length > 0 ? Math.max(...bufferData.map(p => p.t)) : 0;
+
+        console.log(`[HistoryBarRenderer] Current: t=${sourceData.t}, v=${sourceData.v}, Latest buffer: t=${latestBufferTime}`);
+
+        // Always add current value, even if it's the same timestamp (update existing or add new)
+        const existingIndex = historicalData.findIndex(p => p.timestamp === sourceData.t);
+        if (existingIndex >= 0) {
+          // Update existing point
+          console.log(`[HistoryBarRenderer] Updating existing point at timestamp ${sourceData.t}: ${historicalData[existingIndex].value} → ${sourceData.v}`);
+          historicalData[existingIndex].value = sourceData.v;
+        } else {
+          // Add new point
+          console.log(`[HistoryBarRenderer] Adding new current value ${sourceData.v} at ${sourceData.t} to historical data`);
+          historicalData.push({
+            timestamp: sourceData.t,
+            value: sourceData.v
+          });
+        }
+
+        // Sort by timestamp to maintain order
+        historicalData.sort((a, b) => a.timestamp - b.timestamp);
+      }
+
+      const values = historicalData.map(p => p.value);
+      const minValue = Math.min(...values);
+      const maxValue = Math.max(...values);
+      const latestPoint = historicalData[historicalData.length - 1];
+      const oldestPoint = historicalData[0];
+      console.log(`[HistoryBarRenderer] Using buffer data: ${historicalData.length} points, range: ${minValue} - ${maxValue}`);
+      console.log(`[HistoryBarRenderer] Data points span: ${oldestPoint.timestamp} (${new Date(oldestPoint.timestamp).toISOString()}) to ${latestPoint.timestamp} (${new Date(latestPoint.timestamp).toISOString()})`);
+      console.log(`[HistoryBarRenderer] Latest point value: ${latestPoint.value}`);
     }
     // Method 2: Use pre-formatted historical data
     else if (sourceData.historicalData && Array.isArray(sourceData.historicalData)) {

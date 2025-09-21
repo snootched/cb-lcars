@@ -116,6 +116,31 @@ History bars automatically update when DataSource data changes:
 - **Incremental updates**: New data points are added to existing bars
 - **Buffer synchronization**: Utilizes DataSource buffer for historical data
 - **Synthetic data generation**: Creates meaningful history for enhanced DataSource values
+- **Current value integration**: Always includes the latest DataSource value in real-time
+- **Smart time bucketing**: Automatically adjusts time windows to include current data
+
+### Real-time Update Behavior
+The history bar renderer includes special handling for real-time data updates:
+
+**Current Value Integration**: When DataSource values change, the history bar automatically:
+1. Extracts the current value and timestamp from the DataSource
+2. Updates existing data points with the same timestamp or adds new ones
+3. Ensures the current value is always included in the visualization
+4. Recalculates scaling and bucket aggregation with the latest data
+
+**Time Bucket Handling**: To prevent current data from being lost:
+- Time windows are automatically adjusted to include the latest data timestamp
+- When multiple values exist in the same time bucket, intelligent aggregation prevents averaging artifacts
+- The "latest" aggregation mode ensures real-time changes are immediately visible
+
+**Example Real-time Behavior**:
+```
+Initial State: Sensor value = 25°C
+History Bar: Shows bar at 25°C height
+
+Value Changes: Sensor value = 85°C
+History Bar: Immediately shows bar at 85°C height (not averaged with previous values)
+```
 
 ---
 
@@ -195,22 +220,45 @@ style:
   aggregation_mode: "average"     # How to aggregate data within buckets
 
   # Available modes:
-  # - "average": Mean value (default)
+  # - "average": Mean value (default, with smart real-time handling)
+  # - "latest": Most recent value in bucket (best for real-time)
   # - "sum": Total value
   # - "max": Maximum value
   # - "min": Minimum value
   # - "count": Number of data points
 ```
 
+### Real-time Aggregation Behavior
+The history bar renderer includes intelligent aggregation for real-time updates:
+
+- **Smart Average Mode**: When multiple values exist in the same time bucket, uses the most recent value instead of averaging to prevent dilution of current data
+- **Latest Mode**: Always uses the most recent timestamp value in each bucket
+- **Traditional Modes**: Sum, max, min, and count work as expected for historical analysis
+
+```yaml
+style:
+  # For real-time monitoring (recommended)
+  aggregation_mode: "latest"      # Always show current values
+  bucket_size: "30m"              # Smaller buckets for better granularity
+  time_window: "12h"              # Shorter window for recent focus
+
+  # For historical analysis
+  aggregation_mode: "average"     # Traditional averaging
+  bucket_size: "1h"               # Larger buckets for trends
+  time_window: "24h"              # Longer window for patterns
+```
+
 ### Bucket Size Options
 ```yaml
 style:
   bucket_size: "auto"             # Auto-determine optimal bucket size
-  bucket_size: "30m"              # 30-minute buckets
+  bucket_size: "30m"              # 30-minute buckets (recommended for real-time)
   bucket_size: "1h"               # 1-hour buckets
   bucket_size: "4h"               # 4-hour buckets
   bucket_size: "1d"               # Daily buckets
 ```
+
+**Note**: The default bucket size has been changed from `"auto"` to `"30m"` to provide better real-time granularity and prevent averaging artifacts when values change rapidly within the same hour.
 
 ---
 
@@ -308,8 +356,8 @@ overlays:
       # Core Properties
       orientation: string         # horizontal|vertical (default: "horizontal")
       time_window: string         # Time window (default: "24h")
-      bucket_size: string         # Bucket size (default: "auto")
-      aggregation_mode: string    # average|sum|max|min|count (default: "average")
+      bucket_size: string         # Bucket size (default: "30m")
+      aggregation_mode: string    # average|latest|sum|max|min|count (default: "average")
 
       # Bar Appearance
       bar_color: string           # Bar color (default: "var(--lcars-blue)")
@@ -384,6 +432,74 @@ thresholds:
 
 ---
 
+## Best Practices
+
+### Real-time Monitoring Configuration
+For sensors and data that change frequently, use these recommended settings:
+
+```yaml
+style:
+  time_window: "12h"              # Shorter window focuses on recent data
+  bucket_size: "30m"              # 30-minute buckets prevent averaging artifacts
+  aggregation_mode: "latest"      # Always show most recent value in bucket
+
+  # Enhanced visual feedback
+  color_ranges: [...]             # Use to show state changes clearly
+  glow: { ... }                   # Add glow effects for better visibility
+```
+
+### Historical Analysis Configuration
+For long-term trends and analysis, use these settings:
+
+```yaml
+style:
+  time_window: "7d"               # Longer window for patterns
+  bucket_size: "1h"               # Larger buckets for trends
+  aggregation_mode: "average"     # Smooth out short-term fluctuations
+
+  # Data analysis features
+  thresholds: [...]               # Mark important levels
+  show_grid: true                 # Grid for easier reading
+  show_labels: true               # Time labels for context
+```
+
+### Performance Optimization
+For large datasets or slower devices:
+
+```yaml
+style:
+  max_bars: 50                    # Limit number of bars
+  bucket_size: "4h"               # Larger buckets reduce complexity
+  time_window: "24h"              # Reasonable time window
+
+  # Disable expensive effects if needed
+  glow: false
+  shadow: false
+  gradient: false
+```
+
+### Color Coding Strategy
+Use color ranges effectively to convey information:
+
+```yaml
+style:
+  color_ranges:
+    # Use semantic colors
+    - { min: 0, max: 25, color: "var(--lcars-green)", label: "Good" }
+    - { min: 25, max: 75, color: "var(--lcars-blue)", label: "Normal" }
+    - { min: 75, max: 90, color: "var(--lcars-orange)", label: "Warning" }
+    - { min: 90, max: 100, color: "var(--lcars-red)", label: "Critical" }
+
+  # Complement with thresholds
+  thresholds:
+    - value: 80
+      color: var(--lcars-orange)
+      dash: true
+      label: "Action Required"
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -427,13 +543,30 @@ console.log('Buffer data:', source.getCurrentData().buffer?.getAll());
 - Test with different label_font_size
 - Enable show_labels if disabled
 
-#### 5. Enhanced DataSource Not Working
-**Symptoms**: "ENHANCED_DATA_NOT_FOUND" status
+#### 5. Real-time Update Issues
+**Symptoms**: Values appear averaged or don't immediately reflect current changes
 **Solutions**:
-- Verify dot notation syntax: `source.transformations.key`
-- Check transformation/aggregation key names
-- Ensure DataSource has the requested enhancement
-- Use synthetic data generation for single values
+- Use `aggregation_mode: latest` for real-time monitoring
+- Set smaller `bucket_size` (e.g., "30m" instead of "1h")
+- Use shorter `time_window` (e.g., "12h" instead of "24h")
+- Check that current value is being added to historical data
+
+#### 6. Averaging Artifacts
+**Symptoms**: Current value gets mixed with old values in same time bucket
+**Solutions**:
+- Switch to `aggregation_mode: latest`
+- Use smaller bucket sizes to separate data points
+- Verify time bucketing is working correctly
+
+```javascript
+// Check bucket contents for debugging
+const buckets = renderer._createTimeBuckets(data, timeWindow, bucketSize);
+buckets.forEach((bucket, i) => {
+  if (bucket.data.length > 1) {
+    console.log(`Bucket ${i}: ${bucket.data.length} points`, bucket.data.map(p => p.value));
+  }
+});
+```
 
 ### Debug Commands
 
@@ -681,6 +814,305 @@ overlays:
 
       # Performance settings
       max_bars: 72  # 6 hours / 5 minutes = 72 bars max
+```
+
+### Example 6: Real-time System Monitoring (Recommended Configuration)
+```yaml
+data_sources:
+  system_cpu:
+    type: entity
+    entity: sensor.cpu_usage_percent
+    transformations:
+      - type: smooth
+        method: "exponential"
+        alpha: 0.2
+        key: "smoothed"
+
+overlays:
+  # Real-time CPU monitoring with 30-minute buckets
+  - id: cpu_realtime_monitor
+    type: history_bar
+    source: system_cpu
+    position: [100, 100]
+    size: [400, 120]
+    style:
+      orientation: horizontal
+      time_window: 12h              # Shorter window for real-time focus
+      bucket_size: 30m              # 30-minute buckets for better granularity
+      aggregation_mode: latest      # Use latest value when multiple points in bucket
+
+      # Enhanced color coding for CPU usage
+      color_ranges:
+        - { min: 0, max: 25, color: "var(--lcars-green)", label: "Idle" }
+        - { min: 25, max: 50, color: "var(--lcars-blue)", label: "Normal" }
+        - { min: 50, max: 75, color: "var(--lcars-yellow)", label: "Busy" }
+        - { min: 75, max: 90, color: "var(--lcars-orange)", label: "High" }
+        - { min: 90, max: 100, color: "var(--lcars-red)", label: "Critical" }
+
+      # Multiple alert thresholds
+      thresholds:
+        - value: 80
+          color: var(--lcars-orange)
+          width: 2
+          dash: true
+          label: "High Usage"
+        - value: 95
+          color: var(--lcars-red)
+          width: 3
+          label: "Critical"
+
+      # Full LCARS styling
+      bracket_style: true
+      status_indicator: var(--lcars-green)
+      show_grid: true
+      show_axis: true
+      show_labels: true
+
+      glow:
+        color: var(--lcars-blue)
+        blur: 4
+        intensity: 0.6
+```
+
+### Example 7: Temperature History with Enhanced DataSource
+```yaml
+data_sources:
+  temperature_enhanced:
+    type: entity
+    entity: sensor.outdoor_temperature
+    transformations:
+      - type: unit_conversion
+        from: "°F"
+        to: "°C"
+        key: "celsius"
+      - type: smooth
+        method: "moving_average"
+        window_size: 5
+        key: "smoothed"
+
+overlays:
+  # Temperature in Celsius with smart bucketing
+  - id: temp_celsius_history
+    type: history_bar
+    source: temperature_enhanced.transformations.celsius
+    position: [100, 250]
+    size: [300, 80]
+    style:
+      time_window: 24h
+      bucket_size: 1h               # Hourly for daily temperature patterns
+      aggregation_mode: average     # Average is good for temperature trends
+
+      bar_color: var(--lcars-blue)
+      show_axis: true
+      show_labels: true
+
+      # Temperature-specific color ranges
+      color_ranges:
+        - { min: -20, max: 0, color: "#004080", label: "Freezing" }
+        - { min: 0, max: 15, color: "var(--lcars-blue)", label: "Cold" }
+        - { min: 15, max: 25, color: "var(--lcars-green)", label: "Comfortable" }
+        - { min: 25, max: 35, color: "var(--lcars-orange)", label: "Warm" }
+        - { min: 35, max: 50, color: "var(--lcars-red)", label: "Hot" }
+
+      bracket_style: true
+      status_indicator: var(--lcars-green)
+```
+
+### Example 8: Network Traffic with Latest Aggregation
+```yaml
+data_sources:
+  network_speed:
+    type: entity
+    entity: sensor.speedtest_download
+    transformations:
+      - type: expression
+        expression: "value / 8"  # Convert bits to bytes
+        key: "mbytes_per_second"
+
+overlays:
+  # Network speed with real-time updates
+  - id: network_speed_monitor
+    type: history_bar
+    source: network_speed.transformations.mbytes_per_second
+    position: [50, 350]
+    size: [450, 100]
+    style:
+      orientation: horizontal
+      time_window: 6h               # 6-hour window for network monitoring
+      bucket_size: 15m              # 15-minute buckets for network granularity
+      aggregation_mode: latest      # Always show most recent speed
+
+      # Network speed color coding
+      color_ranges:
+        - { min: 0, max: 10, color: "var(--lcars-red)", label: "Slow" }
+        - { min: 10, max: 50, color: "var(--lcars-orange)", label: "Fair" }
+        - { min: 50, max: 100, color: "var(--lcars-blue)", label: "Good" }
+        - { min: 100, max: 500, color: "var(--lcars-green)", label: "Fast" }
+        - { min: 500, max: 1000, color: "var(--lcars-cyan)", label: "Very Fast" }
+
+      # Performance thresholds
+      thresholds:
+        - value: 25
+          color: var(--lcars-orange)
+          dash: true
+          label: "Minimum Usable"
+        - value: 100
+          color: var(--lcars-green)
+          label: "Good Performance"
+
+      show_grid: true
+      show_labels: true
+      bracket_style: true
+
+      # Animated glow effect
+      glow:
+        color: var(--lcars-cyan)
+        blur: 5
+        intensity: 0.8
+```
+
+### Example 9: Power Consumption with Sum Aggregation
+```yaml
+data_sources:
+  power_meter:
+    type: entity
+    entity: sensor.power_consumption_watts
+    transformations:
+      - type: expression
+        expression: "value / 1000"  # Convert to kilowatts
+        key: "kilowatts"
+
+overlays:
+  # Daily power consumption totals
+  - id: daily_power_consumption
+    type: history_bar
+    source: power_meter.transformations.kilowatts
+    position: [100, 450]
+    size: [500, 120]
+    style:
+      orientation: horizontal
+      time_window: 30d              # Monthly view
+      bucket_size: 1d               # Daily buckets
+      aggregation_mode: sum         # Sum daily consumption
+
+      # Power consumption color coding
+      color_ranges:
+        - { min: 0, max: 5, color: "var(--lcars-green)", label: "Low" }
+        - { min: 5, max: 15, color: "var(--lcars-blue)", label: "Normal" }
+        - { min: 15, max: 25, color: "var(--lcars-yellow)", label: "High" }
+        - { min: 25, max: 40, color: "var(--lcars-orange)", label: "Very High" }
+        - { min: 40, max: 100, color: "var(--lcars-red)", label: "Excessive" }
+
+      # Budget thresholds
+      thresholds:
+        - value: 20
+          color: var(--lcars-yellow)
+          width: 2
+          dash: true
+          label: "Budget Alert"
+        - value: 30
+          color: var(--lcars-red)
+          width: 3
+          label: "Budget Exceeded"
+
+      show_grid: true
+      show_labels: true
+      show_values: true
+      bracket_style: true
+      status_indicator: var(--lcars-green)
+
+      # Enhanced visual effects
+      gradient:
+        type: linear
+        direction: vertical
+        stops:
+          - { offset: "0%", color: "var(--lcars-blue)" }
+          - { offset: "100%", color: "var(--lcars-cyan)" }
+
+      shadow:
+        offset_x: 2
+        offset_y: 2
+        blur: 4
+        color: "rgba(0,0,0,0.3)"
+```
+
+### Example 10: Vertical Multi-Sensor Display
+```yaml
+data_sources:
+  environmental_sensor:
+    type: entity
+    entity: sensor.bme280_data
+    transformations:
+      - type: expression
+        expression: "value.temperature"
+        key: "temperature"
+      - type: expression
+        expression: "value.pressure"
+        key: "pressure"
+      - type: expression
+        expression: "value.humidity"
+        key: "humidity"
+
+overlays:
+  # Vertical temperature display
+  - id: temp_vertical_compact
+    type: history_bar
+    source: environmental_sensor.transformations.temperature
+    position: [50, 50]
+    size: [60, 250]
+    style:
+      orientation: vertical
+      time_window: 4h
+      bucket_size: 10m
+      aggregation_mode: latest
+
+      color_ranges:
+        - { min: 15, max: 22, color: "var(--lcars-blue)" }
+        - { min: 22, max: 26, color: "var(--lcars-green)" }
+        - { min: 26, max: 30, color: "var(--lcars-orange)" }
+
+      bracket_style: true
+      show_labels: false
+
+  # Vertical pressure display
+  - id: pressure_vertical_compact
+    type: history_bar
+    source: environmental_sensor.transformations.pressure
+    position: [130, 50]
+    size: [60, 250]
+    style:
+      orientation: vertical
+      time_window: 4h
+      bucket_size: 10m
+      aggregation_mode: average
+
+      color_ranges:
+        - { min: 980, max: 1000, color: "var(--lcars-red)" }
+        - { min: 1000, max: 1020, color: "var(--lcars-green)" }
+        - { min: 1020, max: 1040, color: "var(--lcars-blue)" }
+
+      bracket_style: true
+      show_labels: false
+
+  # Vertical humidity display
+  - id: humidity_vertical_compact
+    type: history_bar
+    source: environmental_sensor.transformations.humidity
+    position: [210, 50]
+    size: [60, 250]
+    style:
+      orientation: vertical
+      time_window: 4h
+      bucket_size: 10m
+      aggregation_mode: latest
+
+      color_ranges:
+        - { min: 30, max: 50, color: "var(--lcars-orange)" }
+        - { min: 50, max: 70, color: "var(--lcars-green)" }
+        - { min: 70, max: 90, color: "var(--lcars-blue)" }
+
+      bracket_style: true
+      show_labels: false
 ```
 
 ### Example 5: Environmental Trends
