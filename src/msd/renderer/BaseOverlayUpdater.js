@@ -185,17 +185,12 @@ export class BaseOverlayUpdater {
 
       console.log(`[BaseOverlayUpdater] Processed ${updatedCells.length} cells for status grid ${overlayId}`);
 
-      // Update the status grid in the renderer
-      if (this.systemsManager.renderer && this.systemsManager.renderer.updateStatusGridWithTemplates) {
-        this.systemsManager.renderer.updateStatusGridWithTemplates(overlayId, sourceData);
-      } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateStatusGrid) {
-        this.systemsManager.renderer.updateStatusGrid(overlayId, updatedCells);
+      // SIMPLIFIED: Let the external renderer handle the actual DOM update
+      // We've done our job of processing the data - the external system will handle rendering
+      if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+        this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
       } else {
-        console.log(`[BaseOverlayUpdater] Status grid update method not yet implemented in AdvancedRenderer`);
-        // For now, trigger a general overlay update
-        if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-          this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
-        }
+        console.log(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
       }
     }).catch(error => {
       console.error(`[BaseOverlayUpdater] Failed to import StatusGridRenderer:`, error);
@@ -232,6 +227,7 @@ export class BaseOverlayUpdater {
    * @param {Object} overlay - Overlay to update
    * @param {Object} data - Data from DataSource
    */
+  /*
   static _updateOverlayWithData(overlay, data) {
     const currentTimestamp = Date.now();
 
@@ -273,6 +269,7 @@ export class BaseOverlayUpdater {
     // Set lastUpdate timestamp
     overlay.lastUpdate = currentTimestamp;
   }
+  */
 
   /**
    * Helper methods

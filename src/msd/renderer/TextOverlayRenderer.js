@@ -1270,63 +1270,17 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Process template strings with specific DataSource data
+   * Process template strings with specific DataSource data - SIMPLIFIED
    * @private
    * @param {string} templateString - Template string with placeholders
    * @param {Object} dataSourceData - DataSource data to use for resolution
    * @returns {string} Processed template string
    */
   _processTemplateWithData(templateString, dataSourceData) {
-    console.log(`[TextOverlayRenderer] DEBUG: Processing template: "${templateString}"`);
+    console.log(`[TextOverlayRenderer] DEBUG: Processing template with DataSourceMixin: "${templateString}"`);
     console.log(`[TextOverlayRenderer] DEBUG: With data:`, dataSourceData);
 
-    return templateString.replace(/\{([^}]+)\}/g, (match, reference) => {
-      console.log(`[TextOverlayRenderer] DEBUG: Processing reference: "${reference}"`);
-
-      // Parse the reference (e.g., "temperature_enhanced.transformations.celsius:.1f")
-      const [fullPath, formatSpec] = reference.split(':');
-      const pathParts = fullPath.split('.');
-
-      console.log(`[TextOverlayRenderer] DEBUG: Path parts:`, pathParts);
-      console.log(`[TextOverlayRenderer] DEBUG: Format spec:`, formatSpec);
-
-      // Navigate the data structure
-      let value = dataSourceData;
-
-      // FIXED: Handle simple DataSource references properly
-      if (pathParts.length === 1) {
-        // Simple DataSource reference like {test_cpu_temp}
-        // Extract the raw value from the DataSource object
-        if (dataSourceData && typeof dataSourceData === 'object' && 'v' in dataSourceData) {
-          value = dataSourceData.v;
-        } else if (dataSourceData && typeof dataSourceData === 'object' && 'value' in dataSourceData) {
-          value = dataSourceData.value;
-        } else {
-          value = dataSourceData;
-        }
-      } else {
-        // Complex path like {temperature_enhanced.transformations.celsius}
-        for (const part of pathParts.slice(1)) { // Skip the first part (source name)
-          if (value && typeof value === 'object' && part in value) {
-            value = value[part];
-          } else {
-            console.log(`[TextOverlayRenderer] DEBUG: Path navigation failed at "${part}"`);
-            return match; // Return original if path doesn't exist
-          }
-        }
-      }
-
-      console.log(`[TextOverlayRenderer] DEBUG: Resolved value:`, value);
-
-      // Apply formatting if specified
-      if (formatSpec && value !== undefined && value !== null) {
-        console.log(`[TextOverlayRenderer] DEBUG: Applying format spec: "${formatSpec}"`);
-        const formattedValue = DataSourceMixin.applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
-        console.log(`[TextOverlayRenderer] DEBUG: Formatted value: "${formattedValue}"`);
-        return formattedValue;
-      }
-
-      return String(value);
-    });
+    // SIMPLIFIED: Just use DataSourceMixin which handles all the complexity
+    return DataSourceMixin.processEnhancedTemplateStringsWithFallback(templateString, 'TextOverlayRenderer');
   }
 }
