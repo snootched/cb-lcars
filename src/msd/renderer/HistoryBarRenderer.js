@@ -123,7 +123,8 @@ export class HistoryBarRenderer {
       // Grid and reference lines
       show_grid: style.show_grid || style.showGrid || false,
       grid_color: style.grid_color || style.gridColor || 'var(--lcars-gray)',
-      grid_opacity: Number(style.grid_opacity || style.gridOpacity || 0.3),
+      grid_opacity: Number(style.grid_opacity || style.gridOpacity || 0.6), // Increased from 0.3 to 0.6
+      grid_width: Number(style.grid_width || style.gridWidth || 1), // Added grid line width control
 
       // Thresholds and reference lines
       thresholds: this._parseThresholds(style.thresholds),
@@ -721,31 +722,35 @@ export class HistoryBarRenderer {
    * @private
    */
   _buildGridLines(width, height, historyBarStyle, overlayId) {
-    if (!historyBarStyle.show_grid) return '';
-
-    const lines = [];
-    const gridCount = historyBarStyle.orientation === 'horizontal' ? 5 : 4;
-
-    if (historyBarStyle.orientation === 'horizontal') {
-      // Horizontal bars - vertical grid lines
-      for (let i = 1; i < gridCount; i++) {
-        const x = (width / gridCount) * i;
-        lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}"
-                          stroke="${historyBarStyle.grid_color}"
-                          stroke-width="1"
-                          opacity="${historyBarStyle.grid_opacity}"/>`);
-      }
-    } else {
-      // Vertical bars - horizontal grid lines
-      for (let i = 1; i < gridCount; i++) {
-        const y = (height / gridCount) * i;
-        lines.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}"
-                          stroke="${historyBarStyle.grid_color}"
-                          stroke-width="1"
-                          opacity="${historyBarStyle.grid_opacity}"/>`);
-      }
+    if (!historyBarStyle.show_grid) {
+      console.log(`[HistoryBarRenderer] Grid lines disabled for ${overlayId}`);
+      return '';
     }
 
+    console.log(`[HistoryBarRenderer] Building grid lines for ${overlayId}: show_grid=${historyBarStyle.show_grid}`);
+
+    const lines = [];
+    const gridColor = historyBarStyle.grid_color;
+    const gridOpacity = historyBarStyle.grid_opacity;
+    const gridWidth = historyBarStyle.grid_width;
+
+    console.log(`[HistoryBarRenderer] Grid settings: color=${gridColor}, opacity=${gridOpacity}, width=${gridWidth}`);
+
+    // Horizontal grid lines (for value references) - always add these
+    const horizontalLines = 5;
+    for (let i = 1; i < horizontalLines; i++) {
+      const y = (height / horizontalLines) * i;
+      lines.push(`<line x1="0" y1="${y}" x2="${width}" y2="${y}" stroke="${gridColor}" stroke-opacity="${gridOpacity}" stroke-width="${gridWidth}" data-grid-type="horizontal"/>`);
+    }
+
+    // Vertical grid lines (for time references)
+    const verticalLines = Math.min(12, Math.floor(width / 40)); // Max 12 lines, min 40px apart
+    for (let i = 1; i < verticalLines; i++) {
+      const x = (width / verticalLines) * i;
+      lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="${gridColor}" stroke-opacity="${gridOpacity}" stroke-width="${gridWidth}" data-grid-type="vertical"/>`);
+    }
+
+    console.log(`[HistoryBarRenderer] Created ${lines.length} grid lines (${horizontalLines-1} horizontal, ${verticalLines-1} vertical)`);
     return `<g data-feature="grid-lines">${lines.join('\n')}</g>`;
   }
 

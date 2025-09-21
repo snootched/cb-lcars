@@ -168,10 +168,40 @@ style:
   # Grid and axis
   show_grid: true                 # Show background grid
   grid_color: "var(--lcars-gray)" # Grid line color
-  grid_opacity: 0.3               # Grid transparency
+  grid_opacity: 0.6               # Grid transparency (0-1, default: 0.6)
+  grid_width: 1                   # Grid line thickness in pixels (default: 1)
 
   show_axis: true                 # Show axis lines
   axis_color: "var(--lcars-gray)" # Axis color
+```
+
+### 💡 Recommended Grid Configurations:
+
+**Subtle Grid:**
+```yaml
+style:
+  show_grid: true
+  grid_color: "var(--lcars-gray)"
+  grid_opacity: 0.4
+  grid_width: 0.5
+```
+
+**Prominent Grid:**
+```yaml
+style:
+  show_grid: true
+  grid_color: "var(--lcars-blue)"
+  grid_opacity: 0.8
+  grid_width: 1.5
+```
+
+**LCARS Technical Look:**
+```yaml
+style:
+  show_grid: true
+  grid_color: "var(--lcars-orange)"
+  grid_opacity: 0.6
+  grid_width: 1
 ```
 
 ### Advanced Effects
@@ -377,7 +407,8 @@ overlays:
 
       axis_color: string          # Axis color (default: "var(--lcars-gray)")
       grid_color: string          # Grid color (default: "var(--lcars-gray)")
-      grid_opacity: number        # Grid opacity (default: 0.3)
+      grid_opacity: number        # Grid opacity (default: 0.6)
+      grid_width: number          # Grid line thickness (default: 1)
       label_color: string         # Label color (default: "var(--lcars-white)")
       label_font_size: number     # Label font size (default: 10)
 
