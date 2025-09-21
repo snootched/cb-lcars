@@ -50,11 +50,28 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       systemsManager.setOriginalHass(hass);
   }
 
-  // Connect DebugManager to window.__msdDebug early for console access
+  // CRITICAL FIX: Ensure essential subsystems are available for overlay rendering
   if (typeof window !== 'undefined') {
     window.__msdDebug = window.__msdDebug || {};
     window.__msdDebug.debugManager = systemsManager.debugManager;
     window.__msdDebug.routing = systemsManager.router;
+
+    // Make core systems available BEFORE any overlay rendering
+    window.__msdDebug.pipelineInstance = {
+      systemsManager: systemsManager,
+      dataSourceManager: systemsManager.dataSourceManager
+    };
+
+    console.log('[MSD v1] Essential subsystems ready for overlay rendering:', {
+      hasSystemsManager: !!systemsManager,
+      hasDataSourceManager: !!systemsManager.dataSourceManager,
+      dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
+    });
+  }
+
+  // VALIDATION: Don't proceed with overlay rendering if essential systems aren't ready
+  if (!systemsManager.dataSourceManager) {
+    console.warn('[MSD v1] DataSourceManager not available - overlay template processing will be limited');
   }
 
   // EARLY DEBUG BOOTSTRAP (Before first render):

@@ -740,33 +740,22 @@ export class StatusGridRenderer {
   _resolveCellContentForInitialRender(cell, style) {
     const cellContent = cell._raw?.content || cell._raw?.label || cell.label || cell.content || '';
 
-    // If content contains templates, check if it's a conditional expression first
+    // If content contains templates, process them using the same approach as TextOverlayRenderer
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
       console.log(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
 
-      // ENHANCED: Handle conditional expressions locally during initial render
-      if (cellContent.includes('?') && cellContent.includes(':')) {
-        console.log(`[StatusGridRenderer] Conditional expression detected during initial render, will process during updates`);
-        return {
-          ...cell,
-          content: cellContent, // Keep original for processing during updates
-          _originalContent: cellContent,
-          _isConditional: true
-        };
-      }
-
-      // Use unified template processing for simple templates only
-      const processedContent = DataSourceMixin.processTemplateForInitialRender(cellContent, 'StatusGridRenderer');
+      // SIMPLIFIED: Use the exact same method TextOverlayRenderer uses
+      const processedContent = DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
 
       if (processedContent !== cellContent) {
         console.log(`[StatusGridRenderer] Template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
         return {
           ...cell,
           content: processedContent,
-          _originalContent: cellContent // Store original for future updates
+          _originalContent: cellContent
         };
       } else {
-        console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, will update when DataSources become available`);
+        console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, will resolve during updates`);
       }
     }
 
@@ -774,67 +763,29 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Extract numeric value from processed template for status calculations
+   * Process conditional template during initial render by attempting to resolve DataSources
    * @private
-   */
-  _extractValueFromTemplate(processedContent, dataSourceData) {
-    // If the processed content is purely numeric, return it
-    const numericValue = parseFloat(processedContent);
-    if (!isNaN(numericValue)) {
-      return numericValue;
-    }
-
-    // Otherwise try to extract the raw value from dataSourceData
-    if (dataSourceData && typeof dataSourceData.v === 'number') {
-      return dataSourceData.v;
-    }
-
-    // Fallback to processed content as string
-    return processedContent;
-  }
-
-  /**
-   * Extract numeric value from processed template for status calculations
-   * @private
-   */
-  _extractValueFromTemplate(processedContent, dataSourceData) {
-    // If the processed content is purely numeric, return it
-    const numericValue = parseFloat(processedContent);
-    if (!isNaN(numericValue)) {
-      return numericValue;
-    }
-
-    // Otherwise try to extract the raw value from dataSourceData
-    if (dataSourceData && typeof dataSourceData.v === 'number') {
-      return dataSourceData.v;
-    }
-
-    // Fallback to processed content as string
-    return processedContent;
-  }
-
-  /**
-   * Process template for initial render (similar to TextOverlayRenderer approach)
-   * @private
-   * @param {string} cellContent - Cell template content
-   * @param {Object} gridStyle - Grid style configuration
+   * @param {string} cellContent - Cell template content with conditional expression
    * @returns {string} Processed content or original if not resolvable
    */
-  _processInitialTemplate(cellContent, gridStyle) {
-    try {
-      // Try to get DataSource data for initial processing
-      const cellDataSource = this._getDataSourceForInitialRender(cellContent);
-
-      if (cellDataSource && cellDataSource.v !== null && cellDataSource.v !== undefined) {
-        const processedContent = this._processTemplateWithData(cellContent, cellDataSource);
-        return processedContent;
-      }
-
-      return cellContent; // Return original if DataSource not available
-    } catch (error) {
-      console.warn(`[StatusGridRenderer] Error processing initial template:`, error);
-      return cellContent;
+  /**
+   * Extract numeric value from processed template for status calculations
+   * @private
+   */
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
     }
+
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
+    }
+
+    // Fallback to processed content as string
+    return processedContent;
   }
 }
 
