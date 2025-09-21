@@ -31,9 +31,9 @@ export class BaseOverlayUpdater {
       hasTemplates: (overlay) => this._hasTemplateContent(overlay)
     });
 
-    // Sparkline updater (existing logic)
+    // Sparkline updater with enhanced synchronization
     this.overlayUpdaters.set('sparkline', {
-      needsUpdate: (overlay, sourceData) => true, // Always update sparklines
+      needsUpdate: (overlay, sourceData) => true, // Always update sparklines for data synchronization
       update: (overlayId, overlay, sourceData) => this._updateSparkline(overlayId, overlay, sourceData),
       hasTemplates: () => false // Sparklines don't use templates
     });
@@ -203,11 +203,16 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Sparkline update logic
+   * Sparkline update logic with enhanced synchronization
    * @private
    */
   _updateSparkline(overlayId, overlay, sourceData) {
-    if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+    console.log(`[BaseOverlayUpdater] Updating sparkline ${overlayId} with enhanced synchronization`);
+
+    if (this.systemsManager.renderer && this.systemsManager.renderer.updateSparklineData) {
+      // Use the enhanced sparkline update method that handles synchronization
+      this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
+    } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     }
   }

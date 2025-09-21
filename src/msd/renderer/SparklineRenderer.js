@@ -5,6 +5,7 @@
 
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
+import { DataSourceMixin } from './DataSourceMixin.js';
 
 export class SparklineRenderer {
   constructor() {
@@ -48,8 +49,9 @@ export class SparklineRenderer {
     const [width, height] = size;
 
     try {
-      // Get data from source
-      const dataResult = SparklineRenderer.getHistoricalDataForSparkline(overlay.source);
+      // Use unified DataSource access through DataSourceMixin
+      const dataResult = this._getHistoricalDataForSparkline(overlay.source);
+
       // Extract comprehensive styling
       const style = overlay.finalStyle || overlay.style || {};
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
@@ -74,6 +76,14 @@ export class SparklineRenderer {
       console.error(`[SparklineRenderer] Enhanced rendering failed for sparkline ${overlay.id}:`, error);
       return this._renderFallbackSparkline(overlay, x, y, width, height);
     }
+  }
+
+  /**
+   * Instance method to get historical data using unified DataSource patterns
+   * @private
+   */
+  _getHistoricalDataForSparkline(dataSourceRef) {
+    return SparklineRenderer.getHistoricalDataForSparkline(dataSourceRef);
   }
 
   /**
@@ -1284,7 +1294,7 @@ export class SparklineRenderer {
   }
 
   /**
-   * Update sparkline data dynamically when data source changes
+   * Update sparkline data dynamically when data source changes with enhanced synchronization
    * @param {Element} sparklineElement - The sparkline SVG element
    * @param {Object} overlay - Overlay configuration
    * @param {Object} sourceData - New data from the data source
@@ -1305,15 +1315,14 @@ export class SparklineRenderer {
 
     // Create instance for update operations
     const instance = new SparklineRenderer();
-    instance._updateSparklineElement(sparklineElement, overlay, sourceData);
+    instance._updateSparklineElementSynchronized(sparklineElement, overlay, sourceData);
   }
 
-
   /**
-   * Instance method to update sparkline element
+   * Enhanced synchronized update method that ensures markers and lines stay in sync
    * @private
    */
-  _updateSparklineElement(sparklineElement, overlay, sourceData) {
+  _updateSparklineElementSynchronized(sparklineElement, overlay, sourceData) {
     const currentStatus = sparklineElement.getAttribute('data-status');
     const isStatusIndicator = currentStatus !== null;
 
@@ -1323,14 +1332,12 @@ export class SparklineRenderer {
       return;
     }
 
-    // Only support new markup
-    const pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
-    if (!pathElement) {
-      // If no path, try to upgrade if data is available
-      const historicalData = this._extractHistoricalData(sourceData);
-      if (historicalData.length > 1) {
-        this._upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData);
-      }
+    // Extract current historical data
+    const historicalData = this._extractHistoricalData(sourceData);
+
+    if (historicalData.length < 2) {
+      console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
+      sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
       return;
     }
 
@@ -1341,38 +1348,134 @@ export class SparklineRenderer {
         height: overlay.size?.[1] || 60
       };
 
-      // Convert source data to sparkline format
-      const historicalData = this._extractHistoricalData(sourceData);
+      // Re-resolve styles for consistency
+      const style = overlay.finalStyle || overlay.style || {};
+      const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
 
-      if (historicalData.length > 1) {
-        // Re-resolve styles for consistency
-        const style = overlay.finalStyle || overlay.style || {};
-        const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
+      // SYNCHRONIZED UPDATE: Update both path and markers together
+      this._updateSparklinePathAndMarkers(sparklineElement, historicalData, bounds, sparklineStyle, overlay.id);
 
-        // Generate new path
-        const processedData = this._processDataForRendering(historicalData, sparklineStyle);
-        const newPathData = this._createSparklinePath(processedData, bounds, sparklineStyle);
+      // Update other features that might depend on data
+      this._updateSparklineFeatures(sparklineElement, historicalData, bounds, sparklineStyle, overlay.id);
 
-        pathElement.setAttribute('d', newPathData);
+      // Update status attributes
+      sparklineElement.removeAttribute('data-status');
+      sparklineElement.setAttribute('data-last-update', Date.now());
 
-        // Update status attributes
-        sparklineElement.removeAttribute('data-status');
-        sparklineElement.setAttribute('data-last-update', Date.now());
-
-        console.log(`[SparklineRenderer] ✅ Updated sparkline ${overlay.id} with ${historicalData.length} points`);
-      } else {
-        console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
-        sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
-      }
+      console.log(`[SparklineRenderer] ✅ Synchronized update for sparkline ${overlay.id} with ${historicalData.length} points`);
 
     } catch (error) {
-      console.error(`[SparklineRenderer] Error updating sparkline ${overlay.id}:`, error);
+      console.error(`[SparklineRenderer] Error in synchronized update for ${overlay.id}:`, error);
       sparklineElement.setAttribute('data-status', 'ERROR');
     }
   }
 
   /**
-   * Upgrade a status indicator to a real sparkline
+   * Update both path and markers simultaneously to ensure synchronization
+   * @private
+   */
+  _updateSparklinePathAndMarkers(sparklineElement, historicalData, bounds, sparklineStyle, overlayId) {
+    // Generate processed data once
+    const processedData = this._processDataForRendering(historicalData, sparklineStyle);
+
+    // Update main path
+    const pathElement = sparklineElement.querySelector('path[data-feature="main-path"]');
+    if (pathElement) {
+      const newPathData = this._createSparklinePath(processedData, bounds, sparklineStyle);
+      pathElement.setAttribute('d', newPathData);
+    }
+
+    // Update data points markers if they exist
+    const dataPointsGroup = sparklineElement.querySelector('g[data-feature="data-points"]');
+    if (dataPointsGroup && sparklineStyle.show_points) {
+      const points = this._calculateDataPointPositions(processedData, bounds, sparklineStyle);
+      const pointElements = dataPointsGroup.querySelectorAll('circle');
+
+      // Update existing points or create new ones
+      points.forEach((point, index) => {
+        let pointElement = pointElements[index];
+        if (!pointElement) {
+          pointElement = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dataPointsGroup.appendChild(pointElement);
+        }
+
+        pointElement.setAttribute('cx', point.x.toFixed(sparklineStyle.path_precision));
+        pointElement.setAttribute('cy', point.y.toFixed(sparklineStyle.path_precision));
+        pointElement.setAttribute('r', sparklineStyle.point_size);
+        pointElement.setAttribute('data-value', point.value);
+        pointElement.setAttribute('data-timestamp', point.timestamp);
+      });
+
+      // Remove excess point elements
+      for (let i = points.length; i < pointElements.length; i++) {
+        pointElements[i].remove();
+      }
+    }
+
+    // Update area fill if it exists
+    const areaElement = sparklineElement.querySelector('path[data-feature="area-fill"]');
+    if (areaElement && (sparklineStyle.fill !== 'none' || sparklineStyle.fillGradient)) {
+      const pathData = this._createSparklinePath(processedData, bounds, sparklineStyle);
+      const areaPath = pathData + ` L ${bounds.width} ${bounds.height} L 0 ${bounds.height} Z`;
+      areaElement.setAttribute('d', areaPath);
+    }
+  }
+
+  /**
+   * Update other sparkline features that might depend on data
+   * @private
+   */
+  _updateSparklineFeatures(sparklineElement, historicalData, bounds, sparklineStyle, overlayId) {
+    // Update value label if it exists
+    const valueLabelElement = sparklineElement.querySelector('text[data-feature="value-label"]');
+    if (valueLabelElement && sparklineStyle.show_last_value && historicalData.length > 0) {
+      const lastValue = historicalData[historicalData.length - 1].value;
+      const formattedValue = sparklineStyle.value_format ?
+        this._formatValue(lastValue, sparklineStyle.value_format) :
+        lastValue.toFixed(1);
+      valueLabelElement.textContent = formattedValue;
+    }
+
+    // Update threshold lines if data range changed significantly
+    const thresholdGroup = sparklineElement.querySelector('g[data-feature="threshold-lines"]');
+    if (thresholdGroup && sparklineStyle.thresholds && sparklineStyle.thresholds.length > 0) {
+      // Recalculate threshold positions based on new data range
+      const values = historicalData.map(d => d.value);
+      const minValue = sparklineStyle.min_value !== null ? sparklineStyle.min_value : Math.min(...values);
+      const maxValue = sparklineStyle.max_value !== null ? sparklineStyle.max_value : Math.max(...values);
+      const valueRange = maxValue - minValue || 1;
+
+      sparklineStyle.thresholds.forEach((threshold, index) => {
+        const thresholdLine = thresholdGroup.children[index];
+        if (thresholdLine) {
+          const y = bounds.height - ((threshold.value - minValue) / valueRange) * bounds.height;
+          thresholdLine.setAttribute('y1', y);
+          thresholdLine.setAttribute('y2', y);
+        }
+      });
+    }
+
+    // Update zero line if it exists and data range changed
+    const zeroLineElement = sparklineElement.querySelector('line[data-feature="zero-line"]');
+    if (zeroLineElement && sparklineStyle.zero_line) {
+      const values = historicalData.map(d => d.value);
+      const minValue = sparklineStyle.min_value !== null ? sparklineStyle.min_value : Math.min(...values);
+      const maxValue = sparklineStyle.max_value !== null ? sparklineStyle.max_value : Math.max(...values);
+
+      if (minValue <= 0 && maxValue >= 0) {
+        const valueRange = maxValue - minValue || 1;
+        const zeroY = bounds.height - ((0 - minValue) / valueRange) * bounds.height;
+        zeroLineElement.setAttribute('y1', zeroY);
+        zeroLineElement.setAttribute('y2', zeroY);
+        zeroLineElement.style.display = '';
+      } else {
+        zeroLineElement.style.display = 'none';
+      }
+    }
+  }
+
+  /**
+   * Extract historical data from various source data formats
    * @private
    */
   _upgradeStatusIndicatorToSparkline(sparklineElement, overlay, sourceData) {

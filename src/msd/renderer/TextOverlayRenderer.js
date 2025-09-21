@@ -1258,7 +1258,10 @@ export class TextOverlayRenderer {
 
     // ENHANCED: If we have template content and new DataSource data, process with new data
     if (content && typeof content === 'string' && content.includes('{') && newDataSourceData) {
-      content = this._processTemplateWithData(content, newDataSourceData);
+      // CRITICAL FIX: The newDataSourceData might be for a specific source, not all sources
+      // We need to delegate to DataSourceMixin for proper template processing
+      console.log(`[TextOverlayRenderer] DEBUG: Processing template with DataSourceMixin for unified handling`);
+      content = DataSourceMixin.processEnhancedTemplateStringsWithFallback(content, 'TextOverlayRenderer');
       return content;
     }
 
@@ -1289,12 +1292,27 @@ export class TextOverlayRenderer {
 
       // Navigate the data structure
       let value = dataSourceData;
-      for (const part of pathParts.slice(1)) { // Skip the first part (source name)
-        if (value && typeof value === 'object' && part in value) {
-          value = value[part];
+
+      // FIXED: Handle simple DataSource references properly
+      if (pathParts.length === 1) {
+        // Simple DataSource reference like {test_cpu_temp}
+        // Extract the raw value from the DataSource object
+        if (dataSourceData && typeof dataSourceData === 'object' && 'v' in dataSourceData) {
+          value = dataSourceData.v;
+        } else if (dataSourceData && typeof dataSourceData === 'object' && 'value' in dataSourceData) {
+          value = dataSourceData.value;
         } else {
-          console.log(`[TextOverlayRenderer] DEBUG: Path navigation failed at "${part}"`);
-          return match; // Return original if path doesn't exist
+          value = dataSourceData;
+        }
+      } else {
+        // Complex path like {temperature_enhanced.transformations.celsius}
+        for (const part of pathParts.slice(1)) { // Skip the first part (source name)
+          if (value && typeof value === 'object' && part in value) {
+            value = value[part];
+          } else {
+            console.log(`[TextOverlayRenderer] DEBUG: Path navigation failed at "${part}"`);
+            return match; // Return original if path doesn't exist
+          }
         }
       }
 

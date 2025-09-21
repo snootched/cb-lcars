@@ -358,18 +358,26 @@ export class StatusGridRenderer {
    * @private
    */
   _resolveCellContent(cell, style) {
-    // UNIFIED: Use DataSourceMixin for consistent content resolution following Text Overlay pattern
+    // ENHANCED: Handle conditional expressions locally before delegating to DataSourceMixin
+    const cellContent = cell.content || cell._raw?.content || cell.label || '';
+
     console.log(`[StatusGridRenderer] Resolving content for cell:`, {
       cellId: cell.id || 'unknown',
       hasContent: !!cell.content,
       hasRawContent: !!cell._raw?.content,
       hasLabel: !!cell.label,
-      content: cell.content,
+      content: cellContent,
       rawContent: cell._raw?.content,
       label: cell.label
     });
 
-    // Use DataSourceMixin's unified content resolution with template processing
+    // Check if this is a conditional expression before delegating to DataSourceMixin
+    if (cellContent && typeof cellContent === 'string' && cellContent.includes('?') && cellContent.includes(':')) {
+      console.log(`[StatusGridRenderer] Detected conditional expression, handling locally: "${cellContent}"`);
+      return cellContent; // Return as-is, will be processed by our _processTemplateWithData
+    }
+
+    // Use DataSourceMixin's unified content resolution with template processing for simple templates
     const resolvedContent = DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
 
     console.log(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
@@ -578,12 +586,34 @@ export class StatusGridRenderer {
         value = dataSourceData?.v || dataSourceData?.value || dataSourceData;
       } else {
         // Complex path like {temperature_enhanced.transformations.celsius}
-        for (const part of pathParts.slice(1)) { // Skip the first part (source name)
+        for (let i = 1; i < pathParts.length; i++) { // Skip the first part (source name)
+          const part = pathParts[i];
+
           if (value && typeof value === 'object' && part in value) {
             value = value[part];
           } else {
-            console.warn(`[StatusGridRenderer] Path not found: ${fullPath}, returning original template`);
-            return match; // Return original template if path doesn't exist
+            console.warn(`[StatusGridRenderer] Path navigation failed at "${part}" in path "${fullPath}"`);
+            console.log(`[StatusGridRenderer] Current value:`, value);
+            console.log(`[StatusGridRenderer] Available keys:`, value && typeof value === 'object' ? Object.keys(value) : 'none');
+
+            // ENHANCED FALLBACK: Try multiple strategies for transformations
+            if (part === 'transformations' && dataSourceData?.transformations) {
+              console.log(`[StatusGridRenderer] Using transformations object directly:`, dataSourceData.transformations);
+              value = dataSourceData.transformations;
+            } else if (part === 'celsius' && dataSourceData?.transformations?.celsius !== undefined) {
+              console.log(`[StatusGridRenderer] Using transformations.celsius directly:`, dataSourceData.transformations.celsius);
+              value = dataSourceData.transformations.celsius;
+              break;
+            } else {
+              console.warn(`[StatusGridRenderer] Path not found: ${fullPath}, returning original template`);
+              console.log(`[StatusGridRenderer] Debug - DataSource structure:`, {
+                hasTransformations: !!dataSourceData?.transformations,
+                transformationsKeys: dataSourceData?.transformations ? Object.keys(dataSourceData.transformations) : [],
+                rawValue: dataSourceData?.v,
+                fullDataSource: dataSourceData
+              });
+              return match; // Return original template if path doesn't exist
+            }
           }
         }
       }
@@ -618,17 +648,60 @@ export class StatusGridRenderer {
 
       const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
 
+      console.log(`[StatusGridRenderer] Parsing conditional - path: "${leftPath.trim()}", operator: "${operator}", value: "${rightValue}"`);
+
       // Get the left side value from data
       const pathParts = leftPath.trim().split('.');
       let leftVal = dataSourceData;
-      for (const part of pathParts.slice(1)) { // Skip source name
-        if (leftVal && typeof leftVal === 'object' && part in leftVal) {
-          leftVal = leftVal[part];
-        } else {
-          console.warn(`[StatusGridRenderer] Conditional path not found: ${leftPath}`);
-          return expression;
+
+      console.log(`[StatusGridRenderer] DataSource data for conditional:`, dataSourceData);
+      console.log(`[StatusGridRenderer] Path parts for conditional:`, pathParts);
+
+      // FIXED: Handle different path structures properly
+      if (pathParts.length === 1) {
+        // Simple path like "temperature"
+        leftVal = dataSourceData?.v || dataSourceData?.value || dataSourceData;
+      } else {
+        // Complex path like "temperature_enhanced.transformations.celsius"
+        // Start from the dataSourceData and navigate
+        for (let i = 1; i < pathParts.length; i++) { // Skip the first part (source name)
+          const part = pathParts[i];
+
+          if (leftVal && typeof leftVal === 'object' && part in leftVal) {
+            leftVal = leftVal[part];
+            console.log(`[StatusGridRenderer] Found "${part}" in data, continuing with:`, leftVal);
+          } else {
+            console.warn(`[StatusGridRenderer] Conditional path not found: ${leftPath}, part "${part}" not found in:`, leftVal);
+
+            // ENHANCED FALLBACK: Try multiple strategies
+            if (part === 'transformations' && dataSourceData?.transformations) {
+              console.log(`[StatusGridRenderer] Using transformations object directly:`, dataSourceData.transformations);
+              leftVal = dataSourceData.transformations;
+            } else if (part === 'celsius' && leftVal?.celsius !== undefined) {
+              console.log(`[StatusGridRenderer] Found celsius in current object:`, leftVal.celsius);
+              leftVal = leftVal.celsius;
+            } else if (i === pathParts.length - 1 && part === 'celsius' && dataSourceData?.transformations?.celsius !== undefined) {
+              // Special case: directly access celsius from transformations
+              console.log(`[StatusGridRenderer] Using transformations.celsius directly:`, dataSourceData.transformations.celsius);
+              leftVal = dataSourceData.transformations.celsius;
+            } else {
+              // Final fallback: use raw value for temperature comparisons
+              console.log(`[StatusGridRenderer] Using raw value as fallback for conditional:`, dataSourceData.v);
+              console.log(`[StatusGridRenderer] Debug - Conditional DataSource structure:`, {
+                hasTransformations: !!dataSourceData?.transformations,
+                transformationsKeys: dataSourceData?.transformations ? Object.keys(dataSourceData.transformations) : [],
+                transformationsContent: dataSourceData?.transformations,
+                rawValue: dataSourceData?.v,
+                targetPart: part
+              });
+              leftVal = dataSourceData.v;
+              break;
+            }
+          }
         }
       }
+
+      console.log(`[StatusGridRenderer] Resolved conditional left value:`, leftVal);
 
       // Parse right side value
       const rightVal = parseFloat(rightValue.trim()) || 0;
@@ -665,14 +738,24 @@ export class StatusGridRenderer {
    * @returns {Object} Cell with processed content if templates are present
    */
   _resolveCellContentForInitialRender(cell, style) {
-    // UNIFIED: Use DataSourceMixin for consistent template processing
     const cellContent = cell._raw?.content || cell._raw?.label || cell.label || cell.content || '';
 
-    // If content contains templates, process them using unified method
+    // If content contains templates, check if it's a conditional expression first
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
       console.log(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
 
-      // Use unified template processing for initial render
+      // ENHANCED: Handle conditional expressions locally during initial render
+      if (cellContent.includes('?') && cellContent.includes(':')) {
+        console.log(`[StatusGridRenderer] Conditional expression detected during initial render, will process during updates`);
+        return {
+          ...cell,
+          content: cellContent, // Keep original for processing during updates
+          _originalContent: cellContent,
+          _isConditional: true
+        };
+      }
+
+      // Use unified template processing for simple templates only
       const processedContent = DataSourceMixin.processTemplateForInitialRender(cellContent, 'StatusGridRenderer');
 
       if (processedContent !== cellContent) {
