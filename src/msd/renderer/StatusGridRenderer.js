@@ -351,35 +351,55 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Resolve cell content from various sources including DataSource integration
+   * Get raw cell content from various sources with consistent priority
    * @private
+   * @param {Object} cell - Cell configuration object
+   * @returns {string} Raw content (may contain templates/conditionals)
    */
-  _resolveCellContent(cell, style) {
-    // Get cell content from various sources
-    const cellContent = cell.content || cell._raw?.content || cell.label || '';
+  _getCellContentFromSources(cell) {
+    // Unified content source priority:
+    // 1. _originalContent (for updates)
+    // 2. _raw.content (preferred source)
+    // 3. _raw.label (fallback)
+    // 4. content (direct)
+    // 5. label (final fallback)
+    return cell._originalContent ||
+           cell._raw?.content ||
+           cell._raw?.label ||
+           cell.content ||
+           cell.label ||
+           '';
+  }
 
-    console.debug(`[StatusGridRenderer] Resolving content for cell:`, {
-      cellId: cell.id || 'unknown',
-      hasContent: !!cell.content,
-      hasRawContent: !!cell._raw?.content,
-      hasLabel: !!cell.label,
-      content: cellContent,
-      rawContent: cell._raw?.content,
-      label: cell.label
-    });
+  /**
+   * UNIFIED: Resolve cell content for both initial render and updates
+   * Handles both standard DataSource templates and conditional expressions
+   * @private
+   * @param {string} cellContent - Raw cell content (may contain templates/conditionals)
+   * @param {Object} [updateDataSourceData] - Fresh DataSource data (for updates)
+   * @returns {string} Resolved content ready for rendering
+   */
+  _resolveUnifiedCellContent(cellContent, updateDataSourceData = null) {
+    if (!cellContent || typeof cellContent !== 'string') {
+      return cellContent || '';
+    }
 
-    // For conditional expressions, return as-is for later processing
-    if (cellContent && typeof cellContent === 'string' && cellContent.includes('?') && cellContent.includes(':')) {
-      console.debug(`[StatusGridRenderer] Detected conditional expression, returning for later processing: "${cellContent}"`);
+    // No templates - return as-is
+    if (!cellContent.includes('{')) {
       return cellContent;
     }
 
-    // Use DataSourceMixin's unified content resolution for simple templates
-    const resolvedContent = DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
+    console.debug(`[StatusGridRenderer] Processing unified content: "${cellContent}"`);
 
-    console.debug(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
+    // Check if this is a conditional expression
+    if (cellContent.includes('?') && cellContent.includes(':')) {
+      console.debug(`[StatusGridRenderer] Processing conditional expression`);
+      return this._processConditionalWithDataSourceMixin(cellContent, updateDataSourceData);
+    }
 
-    return resolvedContent;
+    // Standard DataSource template - use DataSourceMixin
+    console.debug(`[StatusGridRenderer] Processing standard DataSource template`);
+    return DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
   }
 
   // Cell configuration resolution with DataSource integration
@@ -405,8 +425,9 @@ export class StatusGridRenderer {
       cellsConfig.forEach((cellConfig, index) => {
         console.debug(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
 
-        // UNIFIED: Use standardized content resolution following Text Overlay pattern
-        const cellContent = this._resolveCellContent(cellConfig, gridStyle);
+        // UNIFIED: Get raw content and resolve it
+        const rawCellContent = this._getCellContentFromSources(cellConfig);
+        const cellContent = this._resolveUnifiedCellContent(rawCellContent);
 
         const cell = {
           id: cellConfig.id || `cell-${index}`,
@@ -423,14 +444,13 @@ export class StatusGridRenderer {
           },
           lastUpdate: Date.now(),
           animationDelay: index * (gridStyle.cascade_speed || 50),
-          _raw: cellConfig._raw || cellConfig
+          _raw: cellConfig._raw || cellConfig,
+          // Store original content for updates
+          _originalContent: rawCellContent !== cellContent ? rawCellContent : null
         };
 
-        // ENHANCED: Apply template processing for initial render if needed
-        const processedCell = this._resolveCellContentForInitialRender(cell, gridStyle);
-
-        console.debug(`[StatusGridRenderer] Created cell:`, processedCell);
-        cells.push(processedCell);
+        console.debug(`[StatusGridRenderer] Created cell:`, cell);
+        cells.push(cell);
       });
     } else {
       console.debug(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
@@ -480,16 +500,14 @@ export class StatusGridRenderer {
 
     // Update cells that have template content
     const updatedCells = cells.map(cell => {
-      // Use original template content if available, otherwise use current content
-      const cellContent = cell._originalContent || cell._raw?.content || cell._raw?.label || cell.label || '';
+      // Get raw content using unified method
+      const rawCellContent = this._getCellContentFromSources(cell);
 
-      if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-        console.debug(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${cellContent}"`);
+      if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
+        console.debug(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${rawCellContent}"`);
 
-        // SIMPLIFIED: Use DataSourceMixin for all template processing (including conditionals now)
-        const processedContent = cellContent.includes('?') && cellContent.includes(':') ?
-          this._processConditionalWithDataSourceMixin(cellContent, newDataSourceData) :
-          DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
+        // UNIFIED: Use single method for all template processing with fresh data
+        const processedContent = this._resolveUnifiedCellContent(rawCellContent, newDataSourceData);
 
         // Ensure we don't return [object Object]
         const safeContent = (typeof processedContent === 'object') ?
@@ -497,7 +515,7 @@ export class StatusGridRenderer {
 
         return {
           ...cell,
-          label: processedContent === cellContent ? cell.label : safeContent, // Only update label if content changed
+          label: processedContent === rawCellContent ? cell.label : safeContent, // Only update label if content changed
           content: safeContent,
           data: {
             ...cell.data,
@@ -506,71 +524,12 @@ export class StatusGridRenderer {
           },
           lastUpdate: Date.now()
         };
-      }      return cell;
+      }
+
+      return cell;
     });
 
     return updatedCells;
-  }
-
-  /**
-   * Resolve cell content with template processing for initial render
-   * @private
-   * @param {Object} cell - Cell configuration
-   * @param {Object} style - Style configuration
-   * @returns {Object} Cell with processed content if templates are present
-   */
-  _resolveCellContentForInitialRender(cell, style) {
-    const cellContent = cell._raw?.content || cell._raw?.label || cell.label || cell.content || '';
-
-    // If content contains templates, process them using the appropriate approach
-    if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-      console.debug(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
-
-      // SIMPLIFIED: Handle conditional expressions by extracting DataSource references and delegating to DataSourceMixin
-      if (cellContent.includes('?') && cellContent.includes(':')) {
-        console.debug(`[StatusGridRenderer] Conditional expression detected, extracting DataSource references`);
-
-        const resolvedContent = this._processConditionalWithDataSourceMixin(cellContent);
-
-        if (resolvedContent !== cellContent) {
-          console.log(`[StatusGridRenderer] Conditional resolved for ${cell.id}: "${cellContent}" → "${resolvedContent}"`);
-          return {
-            ...cell,
-            content: resolvedContent,
-            _originalContent: cellContent
-          };
-        } else {
-          console.log(`[StatusGridRenderer] Conditional not resolved for ${cell.id}, will resolve during updates`);
-          return {
-            ...cell,
-            content: cellContent,
-            _originalContent: cellContent,
-            _isConditional: true
-          };
-        }
-      }
-
-      // For non-conditional templates, use DataSourceMixin (this works great now)
-      const processedContent = DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
-
-      if (processedContent !== cellContent) {
-        console.log(`[StatusGridRenderer] Template resolved for ${cell.id}: "${cellContent}" → "${processedContent}"`);
-        return {
-          ...cell,
-          content: processedContent,
-          _originalContent: cellContent
-        };
-      } else {
-        console.log(`[StatusGridRenderer] Template not resolved for ${cell.id}, will resolve during updates`);
-        return {
-          ...cell,
-          content: cellContent,
-          _originalContent: cellContent
-        };
-      }
-    }
-
-    return cell;
   }
 
   /**
