@@ -9,10 +9,7 @@ import { DataSourceMixin } from './DataSourceMixin.js';
 
 export class StatusGridRenderer {
   constructor() {
-    // Pre-defined caches for performance optimization
-    this.gradientCache = new Map();
-    this.patternCache = new Map();
-    this.filterCache = new Map();
+    // Note: Caches removed as they were not being used in practice
   }
 
   /**
@@ -54,7 +51,7 @@ export class StatusGridRenderer {
 
       // Get cell configurations
       const cells = this._resolveCellConfigurations(overlay, gridStyle);
-      console.log(`[StatusGridRenderer] Rendering ${cells.length} cells for grid ${overlay.id}`);
+      console.debug(`[StatusGridRenderer] Rendering ${cells.length} cells for grid ${overlay.id}`);
 
       // Render enhanced status grid
       return this._renderEnhancedStatusGrid(
@@ -361,7 +358,7 @@ export class StatusGridRenderer {
     // Get cell content from various sources
     const cellContent = cell.content || cell._raw?.content || cell.label || '';
 
-    console.log(`[StatusGridRenderer] Resolving content for cell:`, {
+    console.debug(`[StatusGridRenderer] Resolving content for cell:`, {
       cellId: cell.id || 'unknown',
       hasContent: !!cell.content,
       hasRawContent: !!cell._raw?.content,
@@ -373,14 +370,14 @@ export class StatusGridRenderer {
 
     // For conditional expressions, return as-is for later processing
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('?') && cellContent.includes(':')) {
-      console.log(`[StatusGridRenderer] Detected conditional expression, returning for later processing: "${cellContent}"`);
+      console.debug(`[StatusGridRenderer] Detected conditional expression, returning for later processing: "${cellContent}"`);
       return cellContent;
     }
 
     // Use DataSourceMixin's unified content resolution for simple templates
     const resolvedContent = DataSourceMixin.resolveContent(cell, style, 'StatusGridRenderer');
 
-    console.log(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
+    console.debug(`[StatusGridRenderer] Resolved content: "${resolvedContent}" for cell ${cell.id || 'unknown'}`);
 
     return resolvedContent;
   }
@@ -392,7 +389,7 @@ export class StatusGridRenderer {
     // ENHANCED: Check multiple sources for cells configuration
     const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
 
-    console.log(`[StatusGridRenderer] Resolving cells for ${overlay.id}:`, {
+    console.debug(`[StatusGridRenderer] Resolving cells for ${overlay.id}:`, {
       hasCells: !!(cellsConfig && Array.isArray(cellsConfig)),
       cellCount: cellsConfig?.length || 0,
       cellsData: cellsConfig,
@@ -406,7 +403,7 @@ export class StatusGridRenderer {
     // Use explicit cell definitions if provided
     if (cellsConfig && Array.isArray(cellsConfig)) {
       cellsConfig.forEach((cellConfig, index) => {
-        console.log(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
+        console.debug(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
 
         // UNIFIED: Use standardized content resolution following Text Overlay pattern
         const cellContent = this._resolveCellContent(cellConfig, gridStyle);
@@ -432,11 +429,11 @@ export class StatusGridRenderer {
         // ENHANCED: Apply template processing for initial render if needed
         const processedCell = this._resolveCellContentForInitialRender(cell, gridStyle);
 
-        console.log(`[StatusGridRenderer] Created cell:`, processedCell);
+        console.debug(`[StatusGridRenderer] Created cell:`, processedCell);
         cells.push(processedCell);
       });
     } else {
-      console.log(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
+      console.debug(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
 
       // Generate grid cells based on rows/columns
       const totalCells = gridStyle.rows * gridStyle.columns;
@@ -463,7 +460,7 @@ export class StatusGridRenderer {
       }
     }
 
-    console.log(`[StatusGridRenderer] Final cells array:`, cells);
+    console.debug(`[StatusGridRenderer] Final cells array:`, cells);
     return cells;
   }
 
@@ -487,7 +484,7 @@ export class StatusGridRenderer {
       const cellContent = cell._originalContent || cell._raw?.content || cell._raw?.label || cell.label || '';
 
       if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-        console.log(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${cellContent}"`);
+        console.debug(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${cellContent}"`);
 
         // SIMPLIFIED: Use DataSourceMixin for all template processing (including conditionals now)
         const processedContent = cellContent.includes('?') && cellContent.includes(':') ?
@@ -527,11 +524,11 @@ export class StatusGridRenderer {
 
     // If content contains templates, process them using the appropriate approach
     if (cellContent && typeof cellContent === 'string' && cellContent.includes('{')) {
-      console.log(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
+      console.debug(`[StatusGridRenderer] Processing template for initial render in cell ${cell.id}: "${cellContent}"`);
 
       // SIMPLIFIED: Handle conditional expressions by extracting DataSource references and delegating to DataSourceMixin
       if (cellContent.includes('?') && cellContent.includes(':')) {
-        console.log(`[StatusGridRenderer] Conditional expression detected, extracting DataSource references`);
+        console.debug(`[StatusGridRenderer] Conditional expression detected, extracting DataSource references`);
 
         const resolvedContent = this._processConditionalWithDataSourceMixin(cellContent);
 
@@ -610,7 +607,7 @@ export class StatusGridRenderer {
       if (!templateMatch) return conditionalTemplate;
 
       const expression = templateMatch[1];
-      console.log(`[StatusGridRenderer] Extracted conditional expression: "${expression}"`);
+      console.debug(`[StatusGridRenderer] Extracted conditional expression: "${expression}"`);
 
       // Parse the conditional: "path operator value ? trueValue : falseValue"
       const conditionMatch = expression.match(/^(.+?)\s*([><=!]+)\s*(.+?)\s*\?\s*'(.+?)'\s*:\s*'(.+?)'$/);
@@ -620,30 +617,30 @@ export class StatusGridRenderer {
       }
 
       const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
-      console.log(`[StatusGridRenderer] Parsed conditional: "${leftPath.trim()}" ${operator} ${rightValue} ? "${trueValue}" : "${falseValue}"`);
+      console.debug(`[StatusGridRenderer] Parsed conditional: "${leftPath.trim()}" ${operator} ${rightValue} ? "${trueValue}" : "${falseValue}"`);
 
       // Create a simple template with just the DataSource reference
       const dataSourceTemplate = `{${leftPath.trim()}}`;
-      console.log(`[StatusGridRenderer] Resolving DataSource template: "${dataSourceTemplate}"`);
+      console.debug(`[StatusGridRenderer] Resolving DataSource template: "${dataSourceTemplate}"`);
 
       let resolvedValue;
 
       // If we have update data, try to extract the value directly first
       if (updateDataSourceData) {
-        console.log(`[StatusGridRenderer] Using provided update data:`, updateDataSourceData);
+        console.debug(`[StatusGridRenderer] Using provided update data:`, updateDataSourceData);
         resolvedValue = this._extractValueFromUpdateData(leftPath.trim(), updateDataSourceData);
-        console.log(`[StatusGridRenderer] Extracted from update data: "${resolvedValue}"`);
+        console.debug(`[StatusGridRenderer] Extracted from update data: "${resolvedValue}"`);
       }
 
       // If we couldn't extract from update data, fall back to DataSourceMixin
       if (resolvedValue === null || resolvedValue === undefined) {
         resolvedValue = DataSourceMixin.processEnhancedTemplateStringsWithFallback(dataSourceTemplate, 'StatusGridRenderer');
-        console.log(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
+        console.debug(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
       }
 
       // If DataSourceMixin couldn't resolve it, return original
       if (resolvedValue === dataSourceTemplate) {
-        console.log(`[StatusGridRenderer] DataSource not resolved, returning original template`);
+        console.debug(`[StatusGridRenderer] DataSource not resolved, returning original template`);
         return conditionalTemplate;
       }
 
@@ -705,7 +702,7 @@ export class StatusGridRenderer {
       if (value && typeof value === 'object' && part in value) {
         value = value[part];
       } else {
-        console.log(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
+        console.debug(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
         return null;
       }
     }
