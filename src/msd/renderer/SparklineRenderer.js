@@ -9,11 +9,7 @@ import { DataSourceMixin } from './DataSourceMixin.js';
 
 export class SparklineRenderer {
   constructor() {
-    // Pre-defined caches for performance optimization
-    this.gradientCache = new Map();
-    this.patternCache = new Map();
-    this.filterCache = new Map();
-    this.pathCache = new Map();
+    // Note: Caches removed as they were not being used in practice
   }
 
   /**
@@ -57,7 +53,7 @@ export class SparklineRenderer {
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      console.log(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
+      console.debug(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
 
       if (dataResult.status === 'OK' && dataResult.data && dataResult.data.length >= 2) {
         // Render real sparkline with advanced features
@@ -219,7 +215,7 @@ export class SparklineRenderer {
       this._buildScanLine(width, height, sparklineStyle, overlay.id)
     ].filter(Boolean);
 
-    console.log(`[SparklineRenderer] Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
+    console.debug(`[SparklineRenderer] Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
 
     return `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="sparkline"
@@ -1193,13 +1189,13 @@ export class SparklineRenderer {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dataSourceManager) {
-        console.log(`[SparklineRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
+        console.debug(`[SparklineRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
 
         const dataSource = dataSourceManager.getSource(sourceName);
 
         if (dataSource) {
           const currentData = dataSource.getCurrentData();
-          console.log(`[SparklineRenderer] Source data for '${sourceName}':`, {
+          console.debug(`[SparklineRenderer] Source data for '${sourceName}':`, {
             bufferSize: currentData?.bufferSize || 0,
             historyReady: currentData?.historyReady,
             started: currentData?.started,
@@ -1217,7 +1213,7 @@ export class SparklineRenderer {
           // Original buffer-based data access
           if (currentData?.buffer) {
             const bufferData = currentData.buffer.getAll();
-            console.log(`[SparklineRenderer] Raw buffer data for '${sourceName}':`, bufferData);
+            console.debug(`[SparklineRenderer] Raw buffer data for '${sourceName}':`, bufferData);
 
             if (bufferData && bufferData.length >= 2) {
               const historicalData = bufferData.map(point => ({
@@ -1225,7 +1221,7 @@ export class SparklineRenderer {
                 value: point.v
               }));
 
-              console.log(`[SparklineRenderer] ✅ Found ${historicalData.length} data points for '${sourceName}'`);
+              console.debug(`[SparklineRenderer] ✅ Found ${historicalData.length} data points for '${sourceName}'`);
               return {
                 data: historicalData,
                 status: 'OK',
@@ -1238,7 +1234,7 @@ export class SparklineRenderer {
                 }
               };
             } else if (bufferData && bufferData.length === 1) {
-              console.log(`[SparklineRenderer] ⚠️ Only 1 data point available for '${sourceName}'`);
+              console.debug(`[SparklineRenderer] ⚠️ Only 1 data point available for '${sourceName}'`);
               return {
                 data: null,
                 status: 'INSUFFICIENT_DATA',
@@ -1246,7 +1242,7 @@ export class SparklineRenderer {
                 metadata: { sourceName, dataType: 'raw' }
               };
             } else {
-              console.log(`[SparklineRenderer] ⚠️ Buffer exists but is empty for '${sourceName}'`);
+              console.debug(`[SparklineRenderer] ⚠️ Buffer exists but is empty for '${sourceName}'`);
               return {
                 data: null,
                 status: 'EMPTY_BUFFER',
@@ -1256,7 +1252,7 @@ export class SparklineRenderer {
             }
           }
 
-          console.log(`[SparklineRenderer] ⚠️ Data source '${sourceName}' found but no buffer`);
+          console.debug(`[SparklineRenderer] ⚠️ Data source '${sourceName}' found but no buffer`);
           return {
             data: null,
             status: 'NO_BUFFER',
@@ -1300,7 +1296,7 @@ export class SparklineRenderer {
    * @param {Object} sourceData - New data from the data source
    */
   static updateSparklineData(sparklineElement, overlay, sourceData) {
-    console.log(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
+    console.debug(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
       hasBuffer: !!(sourceData?.buffer),
       bufferSize: sourceData?.buffer?.size?.() || 0,
       currentStatus: sparklineElement.getAttribute('data-status'),
@@ -1362,7 +1358,7 @@ export class SparklineRenderer {
       sparklineElement.removeAttribute('data-status');
       sparklineElement.setAttribute('data-last-update', Date.now());
 
-      console.log(`[SparklineRenderer] ✅ Synchronized update for sparkline ${overlay.id} with ${historicalData.length} points`);
+      console.debug(`[SparklineRenderer] ✅ Synchronized update for sparkline ${overlay.id} with ${historicalData.length} points`);
 
     } catch (error) {
       console.error(`[SparklineRenderer] Error in synchronized update for ${overlay.id}:`, error);
@@ -1522,7 +1518,7 @@ export class SparklineRenderer {
       sparklineElement.setAttribute('data-last-update', Date.now());
       sparklineElement.setAttribute('data-sparkline-features', sparklineStyle.features.join(','));
 
-      console.log(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to full sparkline with ${sparklineStyle.features.length} features and ${historicalData.length} data points`);
+      console.debug(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to full sparkline with ${sparklineStyle.features.length} features and ${historicalData.length} data points`);
     } else {
       sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
     }
@@ -1542,16 +1538,16 @@ export class SparklineRenderer {
         timestamp: point.t,
         value: point.v
       }));
-      console.log('[SparklineRenderer] Using buffer data:', historicalData.length, 'points');
+      console.debug('[SparklineRenderer] Using buffer data:', historicalData.length, 'points');
     }
     // Method 2: Use pre-formatted historical data
     else if (sourceData.historicalData && Array.isArray(sourceData.historicalData)) {
       historicalData = sourceData.historicalData;
-      console.log('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
+      console.debug('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
     }
     // Method 3: Generate from single current value (fallback for testing)
     else if (sourceData.v !== undefined && sourceData.t !== undefined) {
-      console.log('[SparklineRenderer] Generating demo data from current value:', sourceData.v);
+      console.debug('[SparklineRenderer] Generating demo data from current value:', sourceData.v);
       const now = Date.now();
       for (let i = 0; i < 20; i++) {
         historicalData.push({
@@ -1641,7 +1637,7 @@ export class SparklineRenderer {
       if (isTransformation && currentData.transformations) {
         enhancedValue = currentData.transformations[dataKey];
         dataType = 'transformation';
-        console.log(`[SparklineRenderer] 🔄 Accessing transformation '${dataKey}':`, enhancedValue);
+        console.debug(`[SparklineRenderer] 🔄 Accessing transformation '${dataKey}':`, enhancedValue);
       } else if (isAggregation && currentData.aggregations) {
         const aggregationData = currentData.aggregations[dataKey];
         dataType = 'aggregation';
@@ -1664,7 +1660,7 @@ export class SparklineRenderer {
           enhancedValue = aggregationData;
         }
 
-        console.log(`[SparklineRenderer] 📊 Accessing aggregation '${dataKey}':`, aggregationData, '-> value:', enhancedValue);
+        console.debug(`[SparklineRenderer] 📊 Accessing aggregation '${dataKey}':`, aggregationData, '-> value:', enhancedValue);
       }
 
       if (enhancedValue === null || enhancedValue === undefined) {
@@ -1750,7 +1746,7 @@ export class SparklineRenderer {
           });
         });
 
-        console.log(`[SparklineRenderer] ✅ Generated ${historicalData.length} synthetic ${dataType} points for '${dataKey}'`);
+        console.debug(`[SparklineRenderer] ✅ Generated ${historicalData.length} synthetic ${dataType} points for '${dataKey}'`);
         return {
           data: historicalData,
           status: 'OK_SYNTHETIC',
@@ -1777,7 +1773,7 @@ export class SparklineRenderer {
       });
     }
 
-    console.log(`[SparklineRenderer] ⚠️ Generated ${historicalData.length} fallback synthetic ${dataType} points for '${dataKey}'`);
+    console.debug(`[SparklineRenderer] ⚠️ Generated ${historicalData.length} fallback synthetic ${dataType} points for '${dataKey}'`);
     return {
       data: historicalData,
       status: 'OK_SYNTHETIC_FALLBACK',
@@ -1847,22 +1843,18 @@ export class SparklineRenderer {
   }
 
   static debugSparklineUpdates() {
-    console.log('🔍 Enhanced Sparkline Update Debug Report');
-    console.log('==========================================');
-
+    console.debug('🔍 Enhanced Sparkline Update Debug Report');
     const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (dsm) {
       const stats = dsm.getStats();
-      console.log('DataSourceManager stats:', stats);
+      console.debug('DataSourceManager stats:', stats);
     } else {
       console.warn('DataSourceManager not accessible via debug interface');
     }
   }
 
   static debugDataSource(dataSourceName) {
-    console.log(`🔍 Enhanced Debugging data source: ${dataSourceName}`);
-    console.log('====================================================');
-
+    console.debug(`🔍 Enhanced Debugging data source: ${dataSourceName}`);
     const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (!dsm) {
       console.error('❌ DataSourceManager not available');
@@ -1872,11 +1864,10 @@ export class SparklineRenderer {
     const source = dsm.getSource(dataSourceName);
     if (!source) {
       console.error(`❌ Source '${dataSourceName}' not found`);
-      console.log('Available sources:', Array.from(dsm.sources.keys()));
+      console.debug('Available sources:', Array.from(dsm.sources.keys()));
       return;
     }
 
-    // Detailed analysis as before...
     return { source };
   }
 }
