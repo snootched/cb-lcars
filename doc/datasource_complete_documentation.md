@@ -26,11 +26,12 @@ The MSD DataSource system provides real-time data processing for Home Assistant 
 
 - **Real-time subscriptions** to Home Assistant state changes
 - **Historical data preloading** with multiple fallback strategies
-- **Transformation pipelines** for unit conversion, scaling, smoothing, and custom calculations
-- **Aggregation engines** for moving averages, min/max tracking, rate analysis, and trend detection
+- **Advanced transformation pipelines** with 50+ predefined unit conversions, non-linear scaling, statistical analysis, and multi-entity expressions
+- **Comprehensive aggregation engines** for moving averages, min/max tracking, rate analysis, trend detection, and duration tracking
 - **Rules engine integration** with dot notation access to processed data
 - **Memory-efficient** runtime-only processing (no persistent storage)
 - **Performance optimized** with coalescing, throttling, and configurable windows
+- **Home Assistant optimized** with device-specific conversions (brightness, volume, signal strength, etc.)
 
 ---
 
@@ -116,15 +117,20 @@ data_sources:
 ## Transformation Processors
 
 ### Unit Conversion Processor
-Convert between different units of measurement.
+Convert between different units of measurement with extensive predefined conversions.
 
 ```yaml
 transformations:
-  # Predefined conversions
+  # Traditional from/to format
   - type: unit_conversion
     from: "°F"                  # Source unit
     to: "°C"                    # Target unit
     key: "celsius"              # Result key
+
+  # NEW: Direct conversion format (shortcut)
+  - type: unit_conversion
+    conversion: "brightness_to_percent"  # Direct conversion name
+    key: "brightness_pct"
 
   # Factor-based conversion
   - type: unit_conversion
@@ -138,13 +144,48 @@ transformations:
     key: "custom_celsius"
 ```
 
-**Predefined Conversions:**
-- Temperature: `°F ↔ °C`, `F ↔ C`
-- Power: `W ↔ kW`
-- Data: `KB → MB → GB`
+**Comprehensive Predefined Conversions:**
+
+**Temperature:**
+- `°f_to_°c`, `f_to_c`: Fahrenheit to Celsius
+- `°c_to_°f`, `c_to_f`: Celsius to Fahrenheit
+- `k_to_c`, `c_to_k`: Kelvin conversions
+- `k_to_f`, `f_to_k`: Kelvin to/from Fahrenheit
+
+**Power & Energy:**
+- `w_to_kw`, `kw_to_w`: Watts ↔ Kilowatts
+- `kw_to_mw`, `mw_to_kw`: Kilowatts ↔ Megawatts
+- `wh_to_kwh`, `kwh_to_wh`: Watt-hours ↔ Kilowatt-hours
+- `j_to_kwh`, `kwh_to_j`: Joules ↔ Kilowatt-hours
+
+**Data Size:**
+- `b_to_kb`, `kb_to_mb`, `mb_to_gb`, `gb_to_tb`: Progressive size conversions
+- `kb_to_b`, `mb_to_kb`, etc.: Reverse size conversions
+
+**Distance & Speed:**
+- `mm_to_cm`, `cm_to_m`, `m_to_km`: Metric distance
+- `ft_to_m`, `m_to_ft`, `in_to_cm`, `cm_to_in`: Imperial conversions
+- `ms_to_kmh`, `kmh_to_ms`: Meters/sec ↔ Kilometers/hour
+- `mph_to_kmh`, `kmh_to_mph`: Miles/hour ↔ Kilometers/hour
+
+**Pressure:**
+- `hpa_to_mmhg`, `mmhg_to_hpa`: Pressure units
+- `psi_to_hpa`, `hpa_to_psi`: PSI conversions
+- `bar_to_hpa`, `hpa_to_bar`: Bar pressure
+
+**Home Assistant Specific:**
+- `brightness_to_percent`, `percent_to_brightness`: HA brightness (0-255) ↔ percent
+- `brightness_255_to_percent`, `percent_to_brightness_255`: Explicit 255 range
+- `rgb_to_percent`, `percent_to_rgb`: RGB color values
+- `volume_to_percent`, `percent_to_volume`: Media volume (0-1) ↔ percent
+- `dbm_to_percent`, `rssi_to_percent`: WiFi/signal strength
+- `lux_to_percent`: Light sensor to percentage
+- `humidity_to_comfort`: Returns 'dry', 'comfortable', 'humid'
+- `percent_to_decimal`, `decimal_to_percent`: Percentage conversions
+- `hvac_percent_to_decimal`, `hvac_decimal_to_percent`: HVAC controls
 
 ### Scale/Range Processor
-Map values from one range to another.
+Map values from one range to another with support for non-linear curves.
 
 ```yaml
 transformations:
@@ -152,8 +193,29 @@ transformations:
     input_range: [0, 100]       # Source range [min, max]
     output_range: [0, 1]        # Target range [min, max]
     clamp: true                 # Clamp input to range (default: true)
+    curve: "linear"             # Curve type (default: linear)
     key: "normalized"
+
+  # Non-linear scaling examples
+  - type: scale
+    input_range: [0, 1000]
+    output_range: [0, 100]
+    curve: "logarithmic"        # Better for exponential data
+    key: "log_scaled"
+
+  - type: scale
+    input_range: [0, 100]
+    output_range: [0, 255]
+    curve: "sqrt"               # Square root curve for perceptual scaling
+    key: "perceptual"
 ```
+
+**Supported Curves:**
+- `linear`: Standard linear interpolation
+- `logarithmic`: Logarithmic curve (good for exponential data)
+- `exponential`: Exponential curve (inverse of logarithmic)
+- `square`: Quadratic curve (accelerating)
+- `sqrt`: Square root curve (decelerating, perceptually linear)
 
 ### Smoothing Processor
 Apply smoothing algorithms to reduce noise.
@@ -185,7 +247,7 @@ transformations:
 - `median`: Median filter (good for spike removal)
 
 ### Expression Processor
-Evaluate custom JavaScript expressions.
+Evaluate custom JavaScript expressions with enhanced context.
 
 ```yaml
 transformations:
@@ -200,6 +262,12 @@ transformations:
   - type: expression
     expression: "value < 50 ? 'low' : 'high'"  # Conditional logic
     key: "category"
+
+  # NEW: Multi-entity expressions
+  - type: expression
+    expression: "value + getEntity('sensor.other_power')"
+    inputs: ["sensor.other_power"]     # Optional: pre-defined inputs
+    key: "total_power"
 ```
 
 **Available Context:**
@@ -207,6 +275,38 @@ transformations:
 - `timestamp`: Current timestamp (milliseconds)
 - `buffer`: Historical data buffer (RollingBuffer instance)
 - `Math`: JavaScript Math object
+- `inputs`: Array of pre-defined input values (if specified)
+- `getEntity(entityId)`: Function to access other HA entity values
+
+### Statistical Processor
+Calculate rolling statistical measures for anomaly detection and analysis.
+
+```yaml
+transformations:
+  # Standard deviation
+  - type: statistical
+    method: "std_dev"
+    window_size: 20
+    key: "std_deviation"
+
+  # Percentile calculation
+  - type: statistical
+    method: "percentile"
+    percentile: 95              # 95th percentile
+    window_size: 50
+    key: "p95"
+
+  # Z-Score for anomaly detection
+  - type: statistical
+    method: "z_score"
+    window_size: 30
+    key: "anomaly_score"        # Values > 2 or < -2 are anomalies
+```
+
+**Statistical Methods:**
+- `std_dev`: Rolling standard deviation
+- `percentile`: Configurable percentile (e.g., 95th percentile)
+- `z_score`: Z-score for anomaly detection (> ±2 indicates anomaly)
 
 ---
 
@@ -303,6 +403,36 @@ aggregations:
   direction: "increasing",     // increasing, decreasing, stable
   strength: 0.045,            // Magnitude of trend
   slope: 0.045                // Raw slope value
+}
+```
+
+### Duration Aggregation
+Track how long conditions are maintained (NEW).
+
+```yaml
+aggregations:
+  duration:
+    condition: "above"          # above, below, equals, range
+    threshold: 25               # Value threshold
+    units: "minutes"            # seconds, minutes, hours
+    key: "high_temp_duration"
+
+  # Range condition example
+  comfort_zone_duration:
+    condition: "range"
+    range: [20, 25]             # Temperature comfort zone
+    units: "hours"
+    key: "comfort_duration"
+```
+
+**Result Structure:**
+```javascript
+{
+  current: 12.5,              // Current streak duration
+  total: 45.3,                // Total duration in session
+  longest: 23.1,              // Longest streak recorded
+  isActive: true,             // Whether condition is currently met
+  units: "minutes"            // Unit of measurement
 }
 ```
 
@@ -458,6 +588,7 @@ transformations:
   - type: unit_conversion
     from: string                   # Source unit
     to: string                     # Target unit
+    conversion: string             # NEW: Direct conversion format (e.g., "cm_to_in")
     factor: number                 # Alternative: multiplication factor
     offset: number                 # Addition offset (default: 0)
     customFunction: string         # Alternative: JavaScript function
@@ -468,6 +599,7 @@ transformations:
     input_range: [number, number]  # [min, max] source range
     output_range: [number, number] # [min, max] target range
     clamp: boolean                 # Clamp input (default: true)
+    curve: string                  # NEW: linear, logarithmic, exponential, square, sqrt
     key: string                    # Result key
 
   # Smoothing
@@ -480,6 +612,14 @@ transformations:
   # Expression
   - type: expression
     expression: string             # JavaScript expression
+    inputs: [string]               # NEW: Optional pre-defined entity inputs
+    key: string                    # Result key
+
+  # Statistical (NEW)
+  - type: statistical
+    method: string                 # std_dev, percentile, z_score
+    window_size: number            # Rolling window size
+    percentile: number             # For percentile method (0-100)
     key: string                    # Result key
 ```
 
@@ -514,6 +654,14 @@ aggregations:
   recent_trend:
     samples: number                # Sample count (default: 5)
     threshold: number              # Significance threshold (default: 0.01)
+    key: string                    # Result key
+
+  # Duration (NEW)
+  duration:
+    condition: string              # above, below, equals, range
+    threshold: number              # Value threshold (for above/below/equals)
+    range: [number, number]        # Value range (for range condition)
+    units: string                  # seconds, minutes, hours
     key: string                    # Result key
 ```
 
@@ -727,76 +875,276 @@ overlays:
       width: 2
 ```
 
-### Example 3: Multi-Sensor Environmental Analysis
+### Example 4: Smart Home Device Control & Monitoring
 ```yaml
 data_sources:
-  humidity_analysis:
+  # Light brightness control with HA-specific conversions
+  living_room_light:
     type: entity
-    entity: sensor.humidity_percent
+    entity: light.living_room
+    attribute: brightness
+    transformations:
+      # Direct conversion format for common HA values
+      - type: unit_conversion
+        conversion: "brightness_to_percent"
+        key: "brightness_pct"
+
+      # Non-linear scaling for perceptual brightness
+      - type: scale
+        input_range: [0, 100]
+        output_range: [0, 255]
+        curve: "sqrt"              # Perceptually linear
+        key: "perceptual_brightness"
+
+    aggregations:
+      # Track how long lights are at full brightness
+      duration:
+        condition: "above"
+        threshold: 90              # 90% brightness
+        units: "hours"
+        key: "high_brightness_time"
+
+  # WiFi signal monitoring with anomaly detection
+  wifi_signal:
+    type: entity
+    entity: sensor.wifi_signal_dbm
+    transformations:
+      - type: unit_conversion
+        conversion: "dbm_to_percent"
+        key: "signal_strength"
+
+      # Detect signal anomalies
+      - type: statistical
+        method: "z_score"
+        window_size: 50
+        key: "anomaly_score"
+
+    aggregations:
+      session_stats:
+        key: "connection_quality"
+
+  # Smart thermostat with comfort zone tracking
+  thermostat:
+    type: entity
+    entity: climate.main
+    attribute: current_temperature
     transformations:
       - type: smooth
-        method: "moving_average"
-        window_size: 5
+        method: "exponential"
+        alpha: 0.1                 # Heavy smoothing for temperature
         key: "smoothed"
-      - type: expression
-        expression: "value > 60 ? 'high' : value < 30 ? 'low' : 'normal'"
-        key: "comfort_level"
-    aggregations:
-      moving_average:
-        window: "1h"
-        key: "hourly_avg"
-      recent_trend:
-        samples: 15
-        threshold: 0.5
-        key: "trend"
 
-  air_quality:
+    aggregations:
+      # Track time in comfort zone
+      duration:
+        condition: "range"
+        range: [20, 24]            # Comfort zone 20-24°C
+        units: "hours"
+        key: "comfort_time"
+
+      recent_trend:
+        samples: 20
+        threshold: 0.05            # 0.05°C/sample sensitivity
+        key: "temp_trend"
+
+rules:
+  # Smart lighting rule
+  - id: optimize_lighting
+    when:
+      all:
+        - entity: living_room_light.aggregations.high_brightness_time.current
+          above: 2                 # High brightness for > 2 hours
+        - entity: living_room_light.transformations.brightness_pct
+          above: 95
+    apply:
+      overlays:
+        - id: energy_saving_tip
+          style:
+            color: "var(--lcars-yellow)"
+
+  # Network quality alert
+  - id: wifi_quality_alert
+    when:
+      any:
+        - entity: wifi_signal.transformations.signal_strength
+          below: 30                # Poor signal
+        - entity: wifi_signal.transformations.anomaly_score
+          above: 2                 # Signal anomaly detected
+    apply:
+      overlays:
+        - id: network_warning
+          style:
+            color: "var(--lcars-red)"
+
+  # Climate comfort optimization
+  - id: climate_comfort
+    when:
+      all:
+        - entity: thermostat.aggregations.comfort_time.current
+          below: 0.5               # Less than 30min in comfort zone
+        - entity: thermostat.aggregations.temp_trend.direction
+          not_equals: "stable"
+    apply:
+      overlays:
+        - id: climate_suggestion
+          style:
+            color: "var(--lcars-blue)"
+
+overlays:
+  - id: smart_home_dashboard
+    type: text
+    content: |
+      🏠 Smart Home Status
+
+      💡 Living Room Light: {living_room_light.transformations.brightness_pct:.0f}%
+         High Brightness: {living_room_light.aggregations.high_brightness_time.current:.1f}h today
+
+      📶 WiFi Signal: {wifi_signal.transformations.signal_strength:.0f}%
+         Quality: {wifi_signal.aggregations.connection_quality.avg:.0f}% avg
+         Anomaly Score: {wifi_signal.transformations.anomaly_score:.1f}
+
+      🌡️ Temperature: {thermostat.transformations.smoothed:.1f}°C
+         Comfort Time: {thermostat.aggregations.comfort_time.current:.1f}h
+         Trend: {thermostat.aggregations.temp_trend.direction}
+
+  # Advanced sparkline showing signal quality over time
+  - id: wifi_quality_chart
+    type: sparkline
+    source: wifi_signal
+    data_key: "signal_strength"
+    style:
+      color: "var(--lcars-green)"
+      warning_threshold: 50
+      critical_threshold: 30
+```
+
+### Example 5: Environmental Monitoring with Comprehensive Analysis
+```yaml
+data_sources:
+  environmental_station:
     type: entity
-    entity: sensor.air_quality_index
+    entity: sensor.bme680_temperature
     transformations:
-      - type: scale
-        input_range: [0, 500]
-        output_range: [0, 100]
-        key: "percentage"
+      # Multi-entity expression combining sensors
       - type: expression
         expression: |
-          value <= 50 ? 'good' :
-          value <= 100 ? 'moderate' :
-          value <= 150 ? 'unhealthy_sensitive' :
-          value <= 200 ? 'unhealthy' :
-          value <= 300 ? 'very_unhealthy' : 'hazardous'
-        key: "aqi_category"
+          const temp = value;
+          const humidity = getEntity('sensor.bme680_humidity');
+          const pressure = getEntity('sensor.bme680_pressure');
+
+          // Calculate heat index
+          if (temp < 26.7) return temp;
+          const hi = -8.784 + 1.611*temp + 2.339*humidity - 0.146*temp*humidity;
+          return hi;
+        inputs: ["sensor.bme680_humidity", "sensor.bme680_pressure"]
+        key: "heat_index"
+
+      # Comfort level assessment
+      - type: expression
+        expression: |
+          const hi = transformations.heat_index || value;
+          if (hi < 27) return 'comfortable';
+          if (hi < 32) return 'caution';
+          if (hi < 40) return 'extreme_caution';
+          return 'danger';
+        key: "comfort_level"
+
     aggregations:
+      # Daily temperature statistics
       daily_stats:
         min: true
         max: true
         avg: true
-        key: "daily"
+        window: "24h"
+        key: "daily_temp"
+
+      # Track extreme heat events
+      duration:
+        condition: "above"
+        threshold: 35              # Heat wave threshold
+        units: "hours"
+        key: "heat_wave_duration"
+
+      # Environmental trend analysis
+      recent_trend:
+        samples: 30
+        threshold: 0.1
+        key: "environmental_trend"
+
+  air_quality_monitor:
+    type: entity
+    entity: sensor.air_quality_pm25
+    transformations:
+      # AQI calculation from PM2.5
+      - type: expression
+        expression: |
+          // EPA AQI calculation for PM2.5
+          if (value <= 12.0) return Math.round(value * 50 / 12.0);
+          if (value <= 35.4) return Math.round(51 + (value - 12.1) * 49 / 23.3);
+          if (value <= 55.4) return Math.round(101 + (value - 35.5) * 49 / 19.9);
+          if (value <= 150.4) return Math.round(151 + (value - 55.5) * 49 / 94.9);
+          return Math.min(500, Math.round(201 + (value - 150.5) * 99 / 99.9));
+        key: "aqi"
+
+      # Health impact classification
+      - type: expression
+        expression: |
+          const aqi = transformations.aqi || 0;
+          if (aqi <= 50) return 'good';
+          if (aqi <= 100) return 'moderate';
+          if (aqi <= 150) return 'unhealthy_sensitive';
+          if (aqi <= 200) return 'unhealthy';
+          if (aqi <= 300) return 'very_unhealthy';
+          return 'hazardous';
+        key: "health_impact"
+
+    aggregations:
+      moving_average:
+        window: "2h"
+        key: "avg_2h"
+
+      session_stats:
+        key: "air_quality_session"
 
 rules:
-  - id: environmental_comfort
+  - id: environmental_health_alert
     when:
-      all:
-        - entity: humidity_analysis.transformations.comfort_level
-          equals: "normal"
-        - entity: air_quality.transformations.aqi_category
-          in: ["good", "moderate"]
+      any:
+        # Heat-related health risk
+        - entity: environmental_station.transformations.comfort_level
+          in: ["extreme_caution", "danger"]
+
+        # Air quality health risk
+        - entity: air_quality_monitor.transformations.health_impact
+          in: ["unhealthy", "very_unhealthy", "hazardous"]
+
+        # Sustained poor conditions
+        - entity: environmental_station.aggregations.heat_wave_duration.current
+          above: 2                 # 2+ hours of extreme heat
     apply:
       overlays:
-        - id: comfort_indicator
+        - id: health_warning
           style:
-            color: "var(--lcars-green)"
+            color: "var(--lcars-red)"
+            pulse: true
 
 overlays:
-  - id: environmental_status
+  - id: environmental_dashboard
     type: text
     content: |
-      Humidity: {humidity_analysis.v:.0f}% ({humidity_analysis.transformations.comfort_level})
-      Hourly Avg: {humidity_analysis.aggregations.hourly_avg:.0f}%
-      Trend: {humidity_analysis.aggregations.trend.direction}
+      🌡️ Environmental Station
+      Temperature: {environmental_station.v:.1f}°C (Heat Index: {environmental_station.transformations.heat_index:.1f}°C)
+      Comfort: {environmental_station.transformations.comfort_level}
+      Daily Range: {environmental_station.aggregations.daily_temp.min:.1f}°C - {environmental_station.aggregations.daily_temp.max:.1f}°C
+      Trend: {environmental_station.aggregations.environmental_trend.direction}
 
-      Air Quality: {air_quality.v:.0f} AQI ({air_quality.transformations.aqi_category})
-      Daily Range: {air_quality.aggregations.daily.min:.0f} - {air_quality.aggregations.daily.max:.0f}
+      🌬️ Air Quality
+      PM2.5: {air_quality_monitor.v:.1f} μg/m³ (AQI: {air_quality_monitor.transformations.aqi:.0f})
+      Health Impact: {air_quality_monitor.transformations.health_impact}
+      2hr Average: {air_quality_monitor.aggregations.avg_2h:.1f} μg/m³
+
+      ⚠️ Alerts
+      Heat Wave Duration: {environmental_station.aggregations.heat_wave_duration.current:.1f}h
 ```
 
 ---

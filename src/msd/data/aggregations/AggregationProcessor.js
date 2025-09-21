@@ -303,8 +303,106 @@ export class SessionStatsAggregation extends AggregationProcessor {
 }
 
 /**
+ * Duration Aggregation
+ * Tracks how long a condition has been true/false or value ranges
+ */
+export class DurationAggregation extends AggregationProcessor {
+  constructor(config) {
+    super('duration', config);
+
+    // Configuration for what to track
+    this.condition = config.condition || 'above'; // above, below, equals, range
+    this.threshold = config.threshold;
+    this.range = config.range; // [min, max] for range condition
+    this.units = config.units || 'seconds'; // seconds, minutes, hours
+
+    // State tracking
+    this._conditionStart = null;
+    this._totalDuration = 0;
+    this._currentStreak = 0;
+    this._longestStreak = 0;
+  }
+
+  _calculate() {
+    if (this._values.length === 0) {
+      this._result = null;
+      return;
+    }
+
+    const now = Date.now();
+    let currentDuration = 0;
+
+    // Calculate current streak duration
+    if (this._conditionStart !== null) {
+      currentDuration = now - this._conditionStart;
+    }
+
+    // Convert to requested units
+    const convert = (ms) => {
+      switch (this.units) {
+        case 'minutes': return ms / (1000 * 60);
+        case 'hours': return ms / (1000 * 60 * 60);
+        case 'seconds':
+        default: return ms / 1000;
+      }
+    };
+
+    this._result = {
+      current: convert(currentDuration),
+      total: convert(this._totalDuration + currentDuration),
+      longest: convert(this._longestStreak),
+      isActive: this._conditionStart !== null,
+      units: this.units
+    };
+
+    this._stats.calculations++;
+  }
+
+  update(timestamp, value, transformedData = {}) {
+    if (!this.enabled || !Number.isFinite(value)) return;
+
+    // Check if condition is met
+    let conditionMet = false;
+
+    switch (this.condition) {
+      case 'above':
+        conditionMet = value > this.threshold;
+        break;
+      case 'below':
+        conditionMet = value < this.threshold;
+        break;
+      case 'equals':
+        conditionMet = Math.abs(value - this.threshold) < 0.0001;
+        break;
+      case 'range':
+        if (this.range && this.range.length === 2) {
+          conditionMet = value >= this.range[0] && value <= this.range[1];
+        }
+        break;
+    }
+
+    // Track condition changes
+    if (conditionMet && this._conditionStart === null) {
+      // Condition just became true
+      this._conditionStart = timestamp;
+    } else if (!conditionMet && this._conditionStart !== null) {
+      // Condition just became false
+      const duration = timestamp - this._conditionStart;
+      this._totalDuration += duration;
+      this._longestStreak = Math.max(this._longestStreak, duration);
+      this._conditionStart = null;
+    }
+
+    // Update values and recalculate
+    this._values.push({ timestamp, value, transformed: transformedData });
+    this._cleanOldValues(timestamp);
+    this._calculate();
+  }
+}
+
+/**
  * Recent Trend Aggregation
- * Analyzes recent trend direction
+ * Analyzes recent trend direction using linear regression
  */
 export class RecentTrendAggregation extends AggregationProcessor {
   constructor(config) {
@@ -370,6 +468,9 @@ export function createAggregationProcessor(type, config) {
 
     case 'session_stats':
       return new SessionStatsAggregation(config);
+
+    case 'duration':
+      return new DurationAggregation(config);
 
     case 'recent_trend':
       return new RecentTrendAggregation(config);

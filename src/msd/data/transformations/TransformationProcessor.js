@@ -104,17 +104,115 @@ export class UnitConversionProcessor extends TransformationProcessor {
   constructor(config) {
     super(config);
 
-    // Predefined conversion factors
+    // Enhanced predefined conversion factors
     this.conversions = {
+      // Temperature conversions
       '°f_to_°c': (f) => (f - 32) * 5/9,
       'f_to_c': (f) => (f - 32) * 5/9,
       '°c_to_°f': (c) => (c * 9/5) + 32,
       'c_to_f': (c) => (c * 9/5) + 32,
+      'k_to_c': (k) => k - 273.15,
+      'c_to_k': (c) => c + 273.15,
+      'k_to_f': (k) => (k - 273.15) * 9/5 + 32,
+      'f_to_k': (f) => (f - 32) * 5/9 + 273.15,
+
+      // Power conversions
       'w_to_kw': (w) => w / 1000,
       'kw_to_w': (kw) => kw * 1000,
+      'kw_to_mw': (kw) => kw / 1000,
+      'mw_to_kw': (mw) => mw * 1000,
+      'w_to_mw': (w) => w / 1000000,
+      'mw_to_w': (mw) => mw * 1000000,
+
+      // Energy conversions
+      'wh_to_kwh': (wh) => wh / 1000,
+      'kwh_to_wh': (kwh) => kwh * 1000,
+      'kwh_to_mwh': (kwh) => kwh / 1000,
+      'mwh_to_kwh': (mwh) => mwh * 1000,
+      'j_to_kwh': (j) => j / 3600000,
+      'kwh_to_j': (kwh) => kwh * 3600000,
+
+      // Data size conversions
+      'b_to_kb': (b) => b / 1024,
       'kb_to_mb': (kb) => kb / 1024,
-      'mb_to_gb': (mb) => mb / 1024
+      'mb_to_gb': (mb) => mb / 1024,
+      'gb_to_tb': (gb) => gb / 1024,
+      'kb_to_b': (kb) => kb * 1024,
+      'mb_to_kb': (mb) => mb * 1024,
+      'gb_to_mb': (gb) => gb * 1024,
+      'tb_to_gb': (tb) => tb * 1024,
+
+      // Pressure conversions
+      'hpa_to_mmhg': (hpa) => hpa * 0.750062,
+      'mmhg_to_hpa': (mmhg) => mmhg / 0.750062,
+      'psi_to_hpa': (psi) => psi * 68.9476,
+      'hpa_to_psi': (hpa) => hpa / 68.9476,
+      'bar_to_hpa': (bar) => bar * 1000,
+      'hpa_to_bar': (hpa) => hpa / 1000,
+
+      // Speed conversions
+      'ms_to_kmh': (ms) => ms * 3.6,
+      'kmh_to_ms': (kmh) => kmh / 3.6,
+      'mph_to_kmh': (mph) => mph * 1.60934,
+      'kmh_to_mph': (kmh) => kmh / 1.60934,
+      'ms_to_mph': (ms) => ms * 2.23694,
+      'mph_to_ms': (mph) => mph / 2.23694,
+
+      // Distance conversions
+      'mm_to_cm': (mm) => mm / 10,
+      'cm_to_m': (cm) => cm / 100,
+      'm_to_km': (m) => m / 1000,
+      'ft_to_m': (ft) => ft * 0.3048,
+      'm_to_ft': (m) => m / 0.3048,
+      'in_to_cm': (inch) => inch * 2.54,
+      'cm_to_in': (cm) => cm / 2.54,
+
+      // Volume conversions
+      'l_to_ml': (l) => l * 1000,
+      'ml_to_l': (ml) => ml / 1000,
+      'gal_to_l': (gal) => gal * 3.78541,
+      'l_to_gal': (l) => l / 3.78541,
+
+      // Home Assistant specific conversions
+      'lux_to_percent': (lux) => Math.min(100, (lux / 1000) * 100),
+      'percent_to_decimal': (percent) => percent / 100,
+      'decimal_to_percent': (decimal) => decimal * 100,
+
+      // Brightness conversions (common HA use case)
+      'brightness_to_percent': (brightness) => Math.round((brightness / 255) * 100),
+      'percent_to_brightness': (percent) => Math.round((percent / 100) * 255),
+      'brightness_255_to_percent': (brightness) => Math.round((brightness / 255) * 100),
+      'percent_to_brightness_255': (percent) => Math.round((percent / 100) * 255),
+
+      // RGB/Color conversions
+      'rgb_to_percent': (rgb) => Math.round((rgb / 255) * 100),
+      'percent_to_rgb': (percent) => Math.round((percent / 100) * 255),
+
+      // Battery/charge conversions
+      'voltage_to_percent': (voltage, min = 3.0, max = 4.2) => Math.max(0, Math.min(100, ((voltage - min) / (max - min)) * 100)),
+
+      // HVAC conversions
+      'hvac_percent_to_decimal': (percent) => percent / 100,
+      'hvac_decimal_to_percent': (decimal) => decimal * 100,
+
+      // Media volume conversions
+      'volume_to_percent': (volume) => Math.round(volume * 100),
+      'percent_to_volume': (percent) => percent / 100,
+
+      // Signal strength conversions
+      'dbm_to_percent': (dbm) => Math.max(0, Math.min(100, 2 * (dbm + 100))), // Rough WiFi conversion
+      'rssi_to_percent': (rssi) => Math.max(0, Math.min(100, (rssi + 100) * 2)), // Generic signal strength
+
+      // Humidity comfort mappings
+      'humidity_to_comfort': (humidity) => {
+        if (humidity < 30) return 'dry';
+        if (humidity > 60) return 'humid';
+        return 'comfortable';
+      }
     };
+
+    // NEW: Support direct conversion format (e.g., "cm_to_in")
+    this.directConversion = config.conversion || config.type === 'unit_conversion' && config.conversion;
 
     this.fromUnit = config.from?.toLowerCase();
     this.toUnit = config.to?.toLowerCase();
@@ -129,16 +227,23 @@ export class UnitConversionProcessor extends TransformationProcessor {
       return this.customFunction(value);
     }
 
-    // Try multiple conversion key formats
-    const conversionKeys = [
-      `${this.fromUnit}_to_${this.toUnit}`,
-      `${this.fromUnit.replace(/°/g, '')}_to_${this.toUnit.replace(/°/g, '')}`,
-      `${this.fromUnit.replace(/[°\s]/g, '')}_to_${this.toUnit.replace(/[°\s]/g, '')}`
-    ];
+    // NEW: Direct conversion format (e.g., "cm_to_in")
+    if (this.directConversion && this.conversions[this.directConversion]) {
+      return this.conversions[this.directConversion](value);
+    }
 
-    for (const conversionKey of conversionKeys) {
-      if (this.conversions[conversionKey]) {
-        return this.conversions[conversionKey](value);
+    // Try multiple conversion key formats using from/to units
+    if (this.fromUnit && this.toUnit) {
+      const conversionKeys = [
+        `${this.fromUnit}_to_${this.toUnit}`,
+        `${this.fromUnit.replace(/°/g, '')}_to_${this.toUnit.replace(/°/g, '')}`,
+        `${this.fromUnit.replace(/[°\s]/g, '')}_to_${this.toUnit.replace(/[°\s]/g, '')}`
+      ];
+
+      for (const conversionKey of conversionKeys) {
+        if (this.conversions[conversionKey]) {
+          return this.conversions[conversionKey](value);
+        }
       }
     }
 
@@ -147,7 +252,9 @@ export class UnitConversionProcessor extends TransformationProcessor {
       return (value * this.factor) + this.offset;
     }
 
-    throw new Error(`No conversion method available for ${this.fromUnit} to ${this.toUnit}. Available: ${Object.keys(this.conversions).join(', ')}`);
+    // Build error message with available conversions
+    const availableConversions = Object.keys(this.conversions).join(', ');
+    throw new Error(`No conversion method available for ${this.fromUnit || this.directConversion} to ${this.toUnit || 'unknown'}. Available: ${availableConversions}`);
   }
 }
 
@@ -162,6 +269,7 @@ export class ScaleProcessor extends TransformationProcessor {
     this.inputRange = config.input_range || config.inputRange || [0, 100];
     this.outputRange = config.output_range || config.outputRange || [0, 1];
     this.clamp = config.clamp !== false; // Default to true
+    this.curve = config.curve || 'linear'; // linear, logarithmic, exponential, square, sqrt
 
     if (!Array.isArray(this.inputRange) || this.inputRange.length !== 2) {
       throw new Error('input_range must be an array of 2 numbers');
@@ -181,9 +289,32 @@ export class ScaleProcessor extends TransformationProcessor {
     let inputValue = this.clamp ?
       Math.max(inMin, Math.min(inMax, value)) : value;
 
-    // Linear interpolation
+    // Normalize to 0-1 range
     const ratio = (inputValue - inMin) / (inMax - inMin);
-    return outMin + ratio * (outMax - outMin);
+
+    // Apply curve transformation
+    let curvedRatio;
+    switch (this.curve) {
+      case 'logarithmic':
+        curvedRatio = Math.log(1 + ratio * 9) / Math.log(10); // log10(1 + 9*ratio)
+        break;
+      case 'exponential':
+        curvedRatio = (Math.pow(10, ratio) - 1) / 9;
+        break;
+      case 'square':
+        curvedRatio = ratio * ratio;
+        break;
+      case 'sqrt':
+        curvedRatio = Math.sqrt(ratio);
+        break;
+      case 'linear':
+      default:
+        curvedRatio = ratio;
+        break;
+    }
+
+    // Map to output range
+    return outMin + curvedRatio * (outMax - outMin);
   }
 }
 
@@ -272,9 +403,14 @@ export class ExpressionProcessor extends TransformationProcessor {
       throw new Error('Expression is required for ExpressionProcessor');
     }
 
+    // Store additional inputs for multi-entity expressions
+    this.inputs = config.inputs || [];
+    this.hass = config.hass; // For accessing other entities
+
     // Pre-compile the expression for performance
     try {
-      this._compiledFunction = new Function('value', 'timestamp', 'buffer', 'Math', `
+      // Enhanced context with inputs support
+      this._compiledFunction = new Function('value', 'timestamp', 'buffer', 'Math', 'inputs', 'getEntity', `
         "use strict";
         return (${this.expression});
       `);
@@ -287,11 +423,97 @@ export class ExpressionProcessor extends TransformationProcessor {
     if (!Number.isFinite(value)) return null;
 
     try {
-      const result = this._compiledFunction(value, timestamp, buffer, Math);
+      // Gather input values from other entities
+      const inputs = this.inputs.map(entityId => {
+        if (this.hass?.states?.[entityId]) {
+          const state = this.hass.states[entityId].state;
+          const numValue = parseFloat(state);
+          return isNaN(numValue) ? 0 : numValue;
+        }
+        return 0;
+      });
+
+      // Simple getEntity function for expression context
+      const getEntity = (entityId) => {
+        if (this.hass?.states?.[entityId]) {
+          const state = this.hass.states[entityId].state;
+          const numValue = parseFloat(state);
+          return isNaN(numValue) ? 0 : numValue;
+        }
+        return 0;
+      };
+
+      const result = this._compiledFunction(value, timestamp, buffer, Math, inputs, getEntity);
       return Number.isFinite(result) ? result : null;
     } catch (error) {
       throw new Error(`Expression evaluation failed: ${error.message}`);
     }
+  }
+}
+
+/**
+ * Statistical Processor
+ * Calculates rolling statistical measures (percentiles, standard deviation, etc.)
+ */
+export class StatisticalProcessor extends TransformationProcessor {
+  constructor(config) {
+    super(config);
+
+    this.method = config.method || 'std_dev'; // std_dev, percentile, z_score
+    this.windowSize = config.window_size || config.windowSize || 10;
+    this.percentile = config.percentile || 95; // For percentile method
+
+    // Rolling window for calculations
+    this._window = [];
+  }
+
+  _doTransform(value, timestamp, buffer) {
+    if (!Number.isFinite(value)) return null;
+
+    // Update rolling window
+    this._window.push(value);
+    if (this._window.length > this.windowSize) {
+      this._window.shift();
+    }
+
+    // Need at least 2 values for statistical calculations
+    if (this._window.length < 2) return value;
+
+    switch (this.method) {
+      case 'std_dev':
+        return this._calculateStdDev();
+      case 'percentile':
+        return this._calculatePercentile();
+      case 'z_score':
+        return this._calculateZScore(value);
+      default:
+        throw new Error(`Unknown statistical method: ${this.method}`);
+    }
+  }
+
+  _calculateStdDev() {
+    const mean = this._window.reduce((sum, val) => sum + val, 0) / this._window.length;
+    const variance = this._window.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / this._window.length;
+    return Math.sqrt(variance);
+  }
+
+  _calculatePercentile() {
+    const sorted = [...this._window].sort((a, b) => a - b);
+    const index = (this.percentile / 100) * (sorted.length - 1);
+
+    if (Number.isInteger(index)) {
+      return sorted[index];
+    } else {
+      const lower = sorted[Math.floor(index)];
+      const upper = sorted[Math.ceil(index)];
+      return lower + (upper - lower) * (index - Math.floor(index));
+    }
+  }
+
+  _calculateZScore(value) {
+    const mean = this._window.reduce((sum, val) => sum + val, 0) / this._window.length;
+    const stdDev = this._calculateStdDev();
+    return stdDev === 0 ? 0 : (value - mean) / stdDev;
   }
 }
 
@@ -317,6 +539,9 @@ export function createTransformationProcessor(config) {
 
     case 'expression':
       return new ExpressionProcessor(config);
+
+    case 'statistical':
+      return new StatisticalProcessor(config);
 
     default:
       throw new Error(`Unknown transformation type: ${config.type}`);
