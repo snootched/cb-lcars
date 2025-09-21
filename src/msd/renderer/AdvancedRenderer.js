@@ -548,7 +548,12 @@ export class AdvancedRenderer {
         break;
       case 'text':
         console.log(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
-        this.updateTextOverlay(overlayId, sourceData);
+        // Use unified delegation pattern - delegate to TextOverlayRenderer
+        const textUpdated = TextOverlayRenderer.updateTextData(overlayElement, overlay, sourceData);
+        if (textUpdated) {
+          // Update any status indicators that might depend on the content
+          this.updateTextDecorations(overlayId, 'updated', overlay);
+        }
         break;
       case 'status_grid':
         console.log(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);

@@ -250,43 +250,43 @@ export class TextOverlayRenderer {
     }
 
       // Check if we have a value_format and a DataSource reference
-    let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
-    if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
-      // Try to resolve the DataSource value
-      const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
-      if (dataSourceContent !== null) {
-        // Check if the DataSource content is already formatted or if it's a raw value
-        const numericValue = parseFloat(dataSourceContent);
-        if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
-          // DataSource returned a raw numeric value, apply formatting using unified method
-          if (style.value_format.includes('{value')) {
-            content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
-              if (formatSpec) {
-                // Use DataSourceMixin for unit-aware formatting
-                const dsManager = DataSourceMixin.getDataSourceManager();
-                const dataSource = dsManager?.getSource(dataSourceRef.split('.')[0]);
-                const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
-                return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
-              }
-              return String(numericValue);
-            });
+      let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
+      if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
+        // Try to resolve the DataSource value
+        const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
+        if (dataSourceContent !== null) {
+          // Check if the DataSource content is already formatted or if it's a raw value
+          const numericValue = parseFloat(dataSourceContent);
+          if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
+            // DataSource returned a raw numeric value, apply formatting using unified method
+            if (style.value_format.includes('{value')) {
+              content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
+                if (formatSpec) {
+                  // Use DataSourceMixin for unit-aware formatting
+                  const dsManager = DataSourceMixin.getDataSourceManager();
+                  const dataSource = dsManager?.getSource(dataSourceRef.split('.')[0]);
+                  const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
+                  return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
+                }
+                return String(numericValue);
+              });
+            } else {
+              content = style.value_format.replace('{value}', String(numericValue));
+            }
           } else {
-            content = style.value_format.replace('{value}', String(numericValue));
+            // DataSource returned already formatted content, use it directly
+            content = dataSourceContent;
           }
+          return content;
         } else {
-          // DataSource returned already formatted content, use it directly
-          content = dataSourceContent;
+          // DataSource not available, show loading state with format context
+          content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
+          return content;
         }
-        return content;
-      } else {
-        // DataSource not available, show loading state with format context
-        content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
-        return content;
+      }    // Fallback: if we have a value_format but no DataSource, treat it as a template string
+      if (!content && style.value_format && typeof style.value_format === 'string') {
+        content = style.value_format;
       }
-    }    // Fallback: if we have a value_format but no DataSource, treat it as a template string
-    if (!content && style.value_format && typeof style.value_format === 'string') {
-      content = style.value_format;
-    }
 
     // If we have basic content and it contains template strings, process them
     if (content && typeof content === 'string' && content.includes('{')) {
@@ -1111,6 +1111,48 @@ export class TextOverlayRenderer {
   updateTextStyle(overlayId, newStyle) {
     // Future: Update existing text styles without full re-render
     console.log(`[TextOverlayRenderer] Style update requested for text ${overlayId}`);
+  }
+
+  /**
+   * Update text overlay content dynamically using renderer delegation pattern
+   * @param {Element} overlayElement - Cached DOM element for the overlay
+   * @param {Object} overlay - Overlay configuration object
+   * @param {Object} sourceData - New DataSource data
+   * @returns {boolean} True if content was updated, false if unchanged
+   * @static
+   */
+  static updateTextData(overlayElement, overlay, sourceData) {
+    try {
+      // Find the text element within the overlay group
+      const textElement = overlayElement.querySelector('text');
+      if (!textElement) {
+        console.warn(`[TextOverlayRenderer] Text element not found within overlay: ${overlay.id}`);
+        return false;
+      }
+
+      // Create renderer instance for content resolution
+      const renderer = new TextOverlayRenderer();
+
+      // Resolve new text content using the same logic as initial rendering
+      const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
+
+      if (newContent && newContent !== textElement.textContent) {
+        console.log(`[TextOverlayRenderer] Updating text overlay ${overlay.id}: "${textElement.textContent}" → "${newContent}"`);
+
+        // Update the text content with proper escaping
+        textElement.textContent = TextOverlayRenderer.escapeXml(newContent);
+
+        console.log(`[TextOverlayRenderer] ✅ Text overlay ${overlay.id} updated successfully`);
+        return true;
+      } else {
+        console.log(`[TextOverlayRenderer] Text overlay ${overlay.id} content unchanged`);
+        return false;
+      }
+
+    } catch (error) {
+      console.error(`[TextOverlayRenderer] Error updating text overlay ${overlay.id}:`, error);
+      return false;
+    }
   }
 
   /**
