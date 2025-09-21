@@ -98,7 +98,7 @@ export class DataSourceMixin {
 
       // Format the value
       if (value !== null && value !== undefined) {
-        return this.formatDataSourceValue(value, style);
+        return this.formatDataSourceValue(value, style, currentData);
       }
 
       return `[${dataSourceRef}: no data]`;
@@ -140,9 +140,10 @@ export class DataSourceMixin {
    * Format DataSource values with optional formatting
    * @param {any} value - Value to format
    * @param {Object} style - Style configuration containing format options
+   * @param {Object} [dataSourceData] - Full DataSource data for unit context
    * @returns {string} Formatted value
    */
-  static formatDataSourceValue(value, style) {
+  static formatDataSourceValue(value, style, dataSourceData = null) {
     const format = style.value_format || style.format;
 
     if (typeof format === 'function') {
@@ -153,7 +154,7 @@ export class DataSourceMixin {
       if (format.includes('{value')) {
         return format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
           if (formatSpec) {
-            return this.applyNumberFormat(value, formatSpec);
+            return this.applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
           }
           return String(value);
         });
@@ -174,23 +175,34 @@ export class DataSourceMixin {
   }
 
   /**
-   * Apply number formatting specifications
+   * Apply number formatting specifications with unit-aware intelligence
    * @param {number} value - Numeric value to format
    * @param {string} formatSpec - Format specification like ".1f", ".2%", "d"
+   * @param {string} [unitOfMeasurement] - Original entity's unit_of_measurement for intelligent formatting
    * @returns {string} Formatted value
    */
-  static applyNumberFormat(value, formatSpec) {
+  static applyNumberFormat(value, formatSpec, unitOfMeasurement) {
     if (typeof value !== 'number') return String(value);
 
     // Parse format specifications like ".1f", ".2%", "d", etc.
+    if (formatSpec.endsWith('%')) {
+      const precision = parseInt(formatSpec.slice(1, -1)) || 0;
+
+      // UNIT-AWARE: Check if the source entity already has % units
+      if (unitOfMeasurement === '%') {
+        // Already a percentage (0-100), don't multiply by 100
+        console.log(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement}" → ${value.toFixed(precision)}% (no conversion)`);
+        return `${value.toFixed(precision)}%`;
+      } else {
+        // Decimal value (0.0-1.0) or other unit, multiply by 100
+        console.log(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement || 'none'}" → ${(value * 100).toFixed(precision)}% (×100 conversion)`);
+        return `${(value * 100).toFixed(precision)}%`;
+      }
+    }
+
     if (formatSpec.endsWith('f')) {
       const precision = parseInt(formatSpec.slice(1, -1)) || 1;
       return value.toFixed(precision);
-    }
-
-    if (formatSpec.endsWith('%')) {
-      const precision = parseInt(formatSpec.slice(1, -1)) || 0;
-      return (value * 100).toFixed(precision) + '%';
     }
 
     if (formatSpec === 'd') {
@@ -308,7 +320,7 @@ export class DataSourceMixin {
 
           // Apply formatting if specified
           if (formatSpec) {
-            return this.applyNumberFormat(value, formatSpec.trim());
+            return this.applyNumberFormat(value, formatSpec.trim(), currentData?.unit_of_measurement);
           }
 
           return String(value);

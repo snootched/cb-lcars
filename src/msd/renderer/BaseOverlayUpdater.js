@@ -169,6 +169,10 @@ export class BaseOverlayUpdater {
    * Status grid update logic with template processing
    * @private
    */
+    /**
+   * Status grid update logic with template processing
+   * @private
+   */
   _updateStatusGrid(overlayId, overlay, sourceData) {
     console.log(`[BaseOverlayUpdater] Updating status grid ${overlayId} with template processing`);
 

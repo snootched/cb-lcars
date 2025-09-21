@@ -249,7 +249,7 @@ export class TextOverlayRenderer {
       console.log(`[TextOverlayRenderer] DEBUG: Found content in _raw.text: "${content}"`);
     }
 
-    // Check if we have a value_format and a DataSource reference
+      // Check if we have a value_format and a DataSource reference
     let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
     if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
       // Try to resolve the DataSource value
@@ -258,11 +258,15 @@ export class TextOverlayRenderer {
         // Check if the DataSource content is already formatted or if it's a raw value
         const numericValue = parseFloat(dataSourceContent);
         if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
-          // DataSource returned a raw numeric value, apply formatting
+          // DataSource returned a raw numeric value, apply formatting using unified method
           if (style.value_format.includes('{value')) {
             content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
               if (formatSpec) {
-                return this._applyNumberFormat(numericValue, formatSpec);
+                // Use DataSourceMixin for unit-aware formatting
+                const dsManager = DataSourceMixin.getDataSourceManager();
+                const dataSource = dsManager?.getSource(dataSourceRef.split('.')[0]);
+                const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
+                return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
               }
               return String(numericValue);
             });
@@ -279,9 +283,7 @@ export class TextOverlayRenderer {
         content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
         return content;
       }
-    }
-
-    // Fallback: if we have a value_format but no DataSource, treat it as a template string
+    }    // Fallback: if we have a value_format but no DataSource, treat it as a template string
     if (!content && style.value_format && typeof style.value_format === 'string') {
       content = style.value_format;
     }
@@ -312,30 +314,6 @@ export class TextOverlayRenderer {
     }
 
     return content; // Return whatever we found (might be empty string)
-  }  /**
-   * Apply number formatting specifications
-   * @private
-   */
-  _applyNumberFormat(value, formatSpec) {
-    if (typeof value !== 'number') return String(value);
-
-    // Parse format specifications like ".1f", ".2%", "d", etc.
-    if (formatSpec.endsWith('f')) {
-      const precision = parseInt(formatSpec.slice(1, -1)) || 1;
-      return value.toFixed(precision);
-    }
-
-    if (formatSpec.endsWith('%')) {
-      const precision = parseInt(formatSpec.slice(1, -1)) || 0;
-      return (value * 100).toFixed(precision) + '%';
-    }
-
-    if (formatSpec === 'd') {
-      return Math.round(value).toString();
-    }
-
-    // Fallback
-    return String(value);
   }
 
   /**
@@ -1325,7 +1303,7 @@ export class TextOverlayRenderer {
       // Apply formatting if specified
       if (formatSpec && value !== undefined && value !== null) {
         console.log(`[TextOverlayRenderer] DEBUG: Applying format spec: "${formatSpec}"`);
-        const formattedValue = this._applyNumberFormat(value, formatSpec);
+        const formattedValue = DataSourceMixin.applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
         console.log(`[TextOverlayRenderer] DEBUG: Formatted value: "${formattedValue}"`);
         return formattedValue;
       }

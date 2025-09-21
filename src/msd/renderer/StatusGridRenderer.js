@@ -544,7 +544,7 @@ export class StatusGridRenderer {
     // Fallback: return the changed data (might not work for this cell)
     return changedDataSourceData;
   }  /**
-   * Process template strings with specific DataSource data (similar to TextOverlayRenderer)
+   * Process template strings with specific DataSource data (using unified DataSourceMixin)
    * @private
    * @param {string} templateString - Template string with placeholders
    * @param {Object} dataSourceData - DataSource data to use for resolution
@@ -590,10 +590,10 @@ export class StatusGridRenderer {
 
       console.log(`[StatusGridRenderer] Resolved value:`, value);
 
-      // Apply formatting if specified
+      // Apply formatting if specified - USE UNIFIED DataSourceMixin formatting
       if (formatSpec && value !== undefined && value !== null) {
-        // ENHANCED: Pass unit_of_measurement for intelligent formatting
-        const formattedValue = this._applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
+        console.log(`[StatusGridRenderer] Using DataSourceMixin.applyNumberFormat for unit-aware formatting`);
+        const formattedValue = DataSourceMixin.applyNumberFormat(value, formatSpec, dataSourceData?.unit_of_measurement);
         console.log(`[StatusGridRenderer] Formatted value: "${formattedValue}"`);
         return formattedValue;
       }
@@ -658,59 +658,6 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Apply number formatting to a value with unit-aware intelligence
-   * @private
-   * @param {number} value - Value to format
-   * @param {string} formatSpec - Format specification like ".1f" or ".1%"
-   * @param {string} [unitOfMeasurement] - Original entity's unit_of_measurement
-   * @returns {string} Formatted value
-   */
-  _applyNumberFormat(value, formatSpec, unitOfMeasurement) {
-    const num = Number(value);
-    if (isNaN(num)) return String(value);
-
-    if (formatSpec.endsWith('%')) {
-      const digits = parseInt(formatSpec.match(/\.(\d+)%/)?.[1] || '0');
-
-      // INTELLIGENT: Check if the source entity already has % units
-      if (unitOfMeasurement === '%') {
-        // Already a percentage (0-100), don't multiply by 100
-        console.log(`[StatusGridRenderer] Unit-aware formatting: ${num} with unit="${unitOfMeasurement}" → ${num.toFixed(digits)}% (no conversion)`);
-        return `${num.toFixed(digits)}%`;
-      } else {
-        // Decimal value (0.0-1.0) or other unit, multiply by 100
-        console.log(`[StatusGridRenderer] Unit-aware formatting: ${num} with unit="${unitOfMeasurement || 'none'}" → ${(num * 100).toFixed(digits)}% (×100 conversion)`);
-        return `${(num * 100).toFixed(digits)}%`;
-      }
-    } else if (formatSpec.endsWith('f')) {
-      const digits = parseInt(formatSpec.match(/\.(\d+)f/)?.[1] || '0');
-      return num.toFixed(digits);
-    }
-
-    return String(value);
-  }
-
-  /**
-   * Extract numeric value from processed template for status calculations
-   * @private
-   */
-  _extractValueFromTemplate(processedContent, dataSourceData) {
-    // If the processed content is purely numeric, return it
-    const numericValue = parseFloat(processedContent);
-    if (!isNaN(numericValue)) {
-      return numericValue;
-    }
-
-    // Otherwise try to extract the raw value from dataSourceData
-    if (dataSourceData && typeof dataSourceData.v === 'number') {
-      return dataSourceData.v;
-    }
-
-    // Fallback to processed content as string
-    return processedContent;
-  }
-
-  /**
    * Resolve cell content with template processing for initial render
    * @private
    * @param {Object} cell - Cell configuration
@@ -741,6 +688,26 @@ export class StatusGridRenderer {
     }
 
     return cell;
+  }
+
+  /**
+   * Extract numeric value from processed template for status calculations
+   * @private
+   */
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
+    }
+
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
+    }
+
+    // Fallback to processed content as string
+    return processedContent;
   }
 
   /**
