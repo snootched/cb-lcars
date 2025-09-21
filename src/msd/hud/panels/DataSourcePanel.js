@@ -7,25 +7,558 @@ export class DataSourcePanel {
   constructor() {
     this.entityChangeHistory = new Map(); // entityId -> recent state changes
     this.maxHistoryLength = 10;
+
+    // ADDED: Set up global helper functions
+    this._setupGlobalHelpers();
   }
 
-  inspectEntity(entityId) {
-    try {
-      const pipelineInstance = window.__msdDebug?.pipelineInstance;
-      const dsManager = pipelineInstance?.dataSourceManager ||
-                       pipelineInstance?.systemsManager?.dataSourceManager ||
-                       window.__msdDebug?.dataSourceManager;
+  // ADDED: Setup simple global helper functions with direct access
+  _setupGlobalHelpers() {
+    // Global entity inspection function with direct DataSourceManager access
+    window.__msdInspectDataEntity = (entityId) => {
+      console.log('[DataSourcePanel] Inspecting entity:', entityId);
 
-      if (dsManager?.getEntity) {
-        const entity = dsManager.getEntity(entityId);
-        console.log(`[DataSourcePanel] Entity ${entityId}:`, entity);
-        console.table([entity]);
-      } else {
+      const dsManager = window.__msdDebug?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+
+      if (!dsManager?.getEntity) {
         console.warn('[DataSourcePanel] DataSourceManager not available');
+        return;
       }
-    } catch (e) {
-      console.warn('[DataSourcePanel] Entity inspection failed:', e);
+
+      const entity = dsManager.getEntity(entityId);
+      if (!entity) {
+        console.warn('[DataSourcePanel] Entity not found:', entityId);
+        return;
+      }
+
+      // Show available methods for debugging
+      console.log('[DataSourcePanel] Available dsManager methods:', Object.getOwnPropertyNames(dsManager).filter(name => typeof dsManager[name] === 'function'));
+
+      // Console logging
+      console.group(`🔍 Entity Inspection: ${entityId}`);
+      console.log('Entity Data:', entity);
+      console.table([entity]);
+      console.groupEnd();
+
+      // Show popup with the entity data we just retrieved
+      this._showEntityPopup(entityId, entity);
+    };
+
+    // Global subscription inspection function with direct DataSourceManager access
+    window.__msdInspectDataSubscription = (sourceName) => {
+      console.log('[DataSourcePanel] Inspecting subscription:', sourceName);
+
+      const dsManager = window.__msdDebug?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+
+      if (!dsManager?.getStats) {
+        console.warn('[DataSourcePanel] DataSourceManager not available');
+        return;
+      }
+
+      const stats = dsManager.getStats() || {};
+      const sourceData = stats.sources?.[sourceName] || {};
+
+      // Console logging
+      console.group(`🔍 Subscription Inspection: ${sourceName}`);
+      console.log('Source Stats:', sourceData);
+      console.log('All Stats:', stats);
+      console.groupEnd();
+
+      // Show popup with the subscription data (no subscriber details)
+      this._showSubscriptionPopup(sourceName, sourceData);
+    };    // Simple refresh function
+    window.__msdRefreshDataSources = () => {
+      const dsManager = window.__msdDebug?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.dataSourceManager ||
+                       window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+
+      if (dsManager?.refreshSubscriptions) {
+        dsManager.refreshSubscriptions();
+        console.log('[DataSourcePanel] Subscriptions refreshed');
+      } else {
+        console.warn('[DataSourcePanel] Refresh not available');
+      }
+
+      // Trigger HUD refresh
+      if (window.__msdDebug?.hud?.refresh) {
+        window.__msdDebug.hud.refresh();
+      }
+    };
+  }
+
+  // SIMPLE: Show entity popup using fresh DataSourceManager data
+  _showEntityPopup(entityId, entity) {
+    // Remove any existing popup
+    const existing = document.getElementById('msd-entity-inspection-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'msd-entity-inspection-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      color: #66ff99;
+      padding: 20px;
+      border: 2px solid #66ff99;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000002;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(102, 255, 153, 0.3);
+    `;
+
+    let content = `<h3 style="margin:0 0 16px;color:#ffaa00;">🔍 Entity Inspection: ${entityId}</h3>`;
+
+    // Basic entity information
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#88ffcc;">📊 Entity State</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+          <div><strong>Current State:</strong> <span style="color:#ffcc88;">${entity.state || 'N/A'}</span></div>
+          <div><strong>Domain:</strong> ${entityId.split('.')[0]}</div>
+          <div><strong>Last Changed:</strong> ${entity.last_changed ? new Date(entity.last_changed).toLocaleString() : 'N/A'}</div>
+          <div><strong>Last Updated:</strong> ${entity.last_updated ? new Date(entity.last_updated).toLocaleString() : 'N/A'}</div>
+        </div>
+      </div>
+    `;
+
+    // Entity attributes
+    if (entity.attributes && Object.keys(entity.attributes).length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">🏷️ Attributes (${Object.keys(entity.attributes).length})</h4>
+          <div style="font-size:10px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;">
+      `;
+
+      Object.entries(entity.attributes).forEach(([key, value]) => {
+        const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        const truncatedValue = displayValue.length > 60 ? displayValue.substring(0, 57) + '...' : displayValue;
+        content += `<div style="margin:2px 0;"><strong style="color:#99ddff;">${key}:</strong> <span style="color:#ccc;">${truncatedValue}</span></div>`;
+      });
+
+      content += `</div></div>`;
     }
+
+    // Raw entity data
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#88ffcc;">🔧 Raw Entity Data</h4>
+        <div style="font-size:9px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;word-break:break-all;color:#aaa;">
+          ${JSON.stringify(entity, null, 2)}
+        </div>
+      </div>
+    `;
+
+    // Action buttons
+    content += `
+      <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(entity)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Entity', 2000);"
+          style="background:#225522;color:#fff;border:1px solid #55aa55;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Copy Entity
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()"
+          style="background:#333;color:#fff;border:1px solid #555;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">
+          Close
+        </button>
+      </div>
+    `;
+
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
+  }
+
+  // SIMPLE: Show subscription popup using fresh DataSourceManager data
+  _showSubscriptionPopup(sourceName, sourceData) {
+    // Remove any existing popup
+    const existing = document.getElementById('msd-subscription-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'msd-subscription-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      color: #ffaa66;
+      padding: 20px;
+      border: 2px solid #ffaa66;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000002;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(255, 170, 102, 0.3);
+    `;
+
+    let content = `<h3 style="margin:0 0 16px;color:#ff9900;">🔗 Subscription: ${sourceName}</h3>`;
+
+    // Subscription statistics
+    if (sourceData && Object.keys(sourceData).length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#ffcc88;">📊 Statistics</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+            <div><strong>Subscribers:</strong> <span style="color:#88ccff;">${sourceData.subscribers || 0}</span></div>
+            <div><strong>Updates Received:</strong> <span style="color:#88ff88;">${sourceData.received || 0}</span></div>
+            <div><strong>Cache Hits:</strong> <span style="color:#ffcc88;">${sourceData.cacheHits || 0}</span></div>
+            <div><strong>Errors:</strong> <span style="color:${sourceData.errors > 0 ? '#ff6666' : '#888'};">${sourceData.errors || 0}</span></div>
+            <div><strong>Last Update:</strong> ${sourceData.lastUpdate ? new Date(sourceData.lastUpdate).toLocaleString() : 'Never'}</div>
+          </div>
+        </div>
+      `;
+
+      // Cache hit rate
+      if (sourceData.received > 0) {
+        const hitRate = ((sourceData.cacheHits || 0) / sourceData.received * 100).toFixed(1);
+        content += `
+          <div style="margin-bottom:16px;">
+            <h4 style="margin:0 0 8px;color:#ffcc88;">📈 Performance</h4>
+            <div style="font-size:11px;">
+              <div><strong>Cache Hit Rate:</strong> <span style="color:#88ff88;">${hitRate}%</span></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Note about subscriber details
+    if (sourceData.subscribers > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#ffcc88;">👥 Subscribers</h4>
+          <div style="font-size:11px;color:#888;">
+            ${sourceData.subscribers} active subscriber${sourceData.subscribers === 1 ? '' : 's'} (details not exposed via API)
+          </div>
+        </div>
+      `;
+    }
+
+    // Raw data section
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#ffcc88;">🔧 Raw Data</h4>
+        <div style="font-size:9px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;word-break:break-all;color:#aaa;">
+          ${JSON.stringify(sourceData, null, 2)}
+        </div>
+      </div>
+    `;
+
+    // Action buttons
+    content += `
+      <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(sourceData)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Data', 2000);"
+          style="background:#552200;color:#fff;border:1px solid #aa5500;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Copy Data
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()"
+          style="background:#333;color:#fff;border:1px solid #555;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">
+          Close
+        </button>
+      </div>
+    `;
+
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
+  }
+
+  // NEW: Create detailed entity inspection popup
+  _createEntityPopup(entityId, entity, extras = {}) {
+    // Remove any existing popup
+    const existing = document.getElementById('msd-entity-inspection-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'msd-entity-inspection-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      color: #66ff99;
+      padding: 20px;
+      border: 2px solid #66ff99;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000002;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(102, 255, 153, 0.3);
+    `;
+
+    let content = `<h3 style="margin:0 0 16px;color:#ffaa00;">🔍 Entity Inspection: ${entityId}</h3>`;
+
+    // Basic entity information
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#88ffcc;">📊 Entity State</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+          <div><strong>Current State:</strong> <span style="color:#ffcc88;">${entity.state || 'N/A'}</span></div>
+          <div><strong>Domain:</strong> ${entityId.split('.')[0]}</div>
+          <div><strong>Last Changed:</strong> ${entity.last_changed ? new Date(entity.last_changed).toLocaleString() : 'N/A'}</div>
+          <div><strong>Last Updated:</strong> ${entity.last_updated ? new Date(entity.last_updated).toLocaleString() : 'N/A'}</div>
+        </div>
+      </div>
+    `;
+
+    // Entity attributes
+    if (entity.attributes && Object.keys(entity.attributes).length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">🏷️ Attributes</h4>
+          <div style="font-size:10px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:150px;overflow-y:auto;">
+      `;
+
+      Object.entries(entity.attributes).forEach(([key, value]) => {
+        const displayValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        const truncatedValue = displayValue.length > 50 ? displayValue.substring(0, 47) + '...' : displayValue;
+        content += `<div style="margin:2px 0;"><strong style="color:#99ddff;">${key}:</strong> <span style="color:#ccc;">${truncatedValue}</span></div>`;
+      });
+
+      content += `</div></div>`;
+    }
+
+    // Change history
+    if (extras.history) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">📈 Recent Activity</h4>
+          <div style="font-size:11px;color:#ccc;">
+            <div><strong>Previous State:</strong> ${extras.history.state || 'N/A'}</div>
+            <div><strong>Changed:</strong> ${new Date(extras.history.timestamp).toLocaleString()}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Subscribers
+    if (extras.subscribers && extras.subscribers.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">👥 Subscribers (${extras.subscribers.length})</h4>
+          <div style="font-size:10px;color:#ccc;">
+      `;
+
+      extras.subscribers.forEach((subscriber, i) => {
+        const subscriberName = typeof subscriber === 'string' ? subscriber : (subscriber.name || subscriber.id || `Subscriber ${i + 1}`);
+        content += `<div style="margin:2px 0;">• ${subscriberName}</div>`;
+      });
+
+      content += `</div></div>`;
+    }
+
+    // Transforms
+    if (extras.transforms && extras.transforms.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">🔄 Transforms (${extras.transforms.length})</h4>
+          <div style="font-size:10px;color:#ccc;">
+      `;
+
+      extras.transforms.forEach((transform, i) => {
+        const transformName = typeof transform === 'string' ? transform : (transform.type || transform.name || `Transform ${i + 1}`);
+        content += `<div style="margin:2px 0;">• ${transformName}</div>`;
+      });
+
+      content += `</div></div>`;
+    }
+
+    // Calculations
+    if (extras.calculations && extras.calculations.length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#88ffcc;">🧮 Calculations (${extras.calculations.length})</h4>
+          <div style="font-size:10px;color:#ccc;">
+      `;
+
+      extras.calculations.forEach((calc, i) => {
+        const calcName = typeof calc === 'string' ? calc : (calc.type || calc.name || `Calculation ${i + 1}`);
+        content += `<div style="margin:2px 0;">• ${calcName}</div>`;
+      });
+
+      content += `</div></div>`;
+    }
+
+    // Raw entity data
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#88ffcc;">🔧 Raw Entity Data</h4>
+        <div style="font-size:9px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;word-break:break-all;color:#aaa;">
+          ${JSON.stringify(entity, null, 2)}
+        </div>
+      </div>
+    `;
+
+    // Action buttons
+    content += `
+      <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(entity)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Entity', 2000);"
+          style="background:#225522;color:#fff;border:1px solid #55aa55;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Copy Entity
+        </button>
+        <button onclick="console.log('Entity ${entityId}:', ${JSON.stringify(entity)}); this.textContent='Logged!'; setTimeout(() => this.textContent='Log to Console', 2000);"
+          style="background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Log to Console
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()"
+          style="background:#333;color:#fff;border:1px solid #555;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">
+          Close
+        </button>
+      </div>
+    `;
+
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
+  }
+
+  // NEW: Show subscription inspection popup using stored data
+  _showSubscriptionInspectionPopup(sourceName) {
+    try {
+      if (!this._currentData?.subscriptions) {
+        console.warn('[DataSourcePanel] No subscription data available');
+        return;
+      }
+
+      const sourceData = this._currentData.subscriptions[sourceName];
+      if (!sourceData) {
+        console.warn('[DataSourcePanel] Subscription not found:', sourceName);
+        return;
+      }
+
+      // Log to console
+      console.group(`🔍 Subscription Inspection: ${sourceName}`);
+      console.log('Source Stats:', sourceData);
+      console.groupEnd();
+
+      // Show detailed popup
+      this._createSubscriptionPopup(sourceName, sourceData, {});
+
+    } catch (e) {
+      console.warn('[DataSourcePanel] Subscription inspection failed:', e);
+    }
+  }
+
+  // NEW: Create subscription inspection popup
+  _createSubscriptionPopup(sourceName, sourceData, details) {
+    // Remove any existing popup
+    const existing = document.getElementById('msd-subscription-popup');
+    if (existing) existing.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'msd-subscription-popup';
+    popup.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      color: #ffaa66;
+      padding: 20px;
+      border: 2px solid #ffaa66;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 12px;
+      z-index: 1000002;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(255, 170, 102, 0.3);
+    `;
+
+    let content = `<h3 style="margin:0 0 16px;color:#ff9900;">🔗 Subscription: ${sourceName}</h3>`;
+
+    // Subscription statistics
+    if (sourceData && Object.keys(sourceData).length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#ffcc88;">📊 Statistics</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+            <div><strong>Subscribers:</strong> <span style="color:#88ccff;">${sourceData.subscribers || 0}</span></div>
+            <div><strong>Updates Received:</strong> <span style="color:#88ff88;">${sourceData.received || 0}</span></div>
+            <div><strong>Cache Hits:</strong> <span style="color:#ffcc88;">${sourceData.cacheHits || 0}</span></div>
+            <div><strong>Errors:</strong> <span style="color:${sourceData.errors > 0 ? '#ff6666' : '#888'};">${sourceData.errors || 0}</span></div>
+            <div><strong>Last Update:</strong> ${sourceData.lastUpdate ? new Date(sourceData.lastUpdate).toLocaleString() : 'Never'}</div>
+          </div>
+        </div>
+      `;
+
+      // Cache hit rate
+      if (sourceData.received > 0) {
+        const hitRate = ((sourceData.cacheHits || 0) / sourceData.received * 100).toFixed(1);
+        content += `
+          <div style="margin-bottom:16px;">
+            <h4 style="margin:0 0 8px;color:#ffcc88;">📈 Performance</h4>
+            <div style="font-size:11px;">
+              <div><strong>Cache Hit Rate:</strong> <span style="color:#88ff88;">${hitRate}%</span></div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Detailed subscription info
+    if (details && Object.keys(details).length > 0) {
+      content += `
+        <div style="margin-bottom:16px;">
+          <h4 style="margin:0 0 8px;color:#ffcc88;">🔧 Details</h4>
+          <div style="font-size:10px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;">
+      `;
+
+      Object.entries(details).forEach(([key, value]) => {
+        const displayValue = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+        content += `<div style="margin:3px 0;"><strong style="color:#ffaa88;">${key}:</strong><br><span style="color:#ccc;margin-left:10px;">${displayValue}</span></div>`;
+      });
+
+      content += `</div></div>`;
+    }
+
+    // Raw data section
+    const combinedData = { stats: sourceData, details };
+    content += `
+      <div style="margin-bottom:16px;">
+        <h4 style="margin:0 0 8px;color:#ffcc88;">🔧 Raw Data</h4>
+        <div style="font-size:9px;background:#111;padding:8px;border:1px solid #333;border-radius:4px;max-height:200px;overflow-y:auto;word-break:break-all;color:#aaa;">
+          ${JSON.stringify(combinedData, null, 2)}
+        </div>
+      </div>
+    `;
+
+    // Action buttons
+    content += `
+      <div style="text-align:center;margin-top:20px;border-top:1px solid #333;padding-top:16px;">
+        <button onclick="navigator.clipboard.writeText(JSON.stringify(${JSON.stringify(combinedData)}, null, 2)); this.textContent='Copied!'; setTimeout(() => this.textContent='Copy Data', 2000);"
+          style="background:#552200;color:#fff;border:1px solid #aa5500;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Copy Data
+        </button>
+        <button onclick="console.log('Subscription ${sourceName}:', ${JSON.stringify(combinedData)}); this.textContent='Logged!'; setTimeout(() => this.textContent='Log to Console', 2000);"
+          style="background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:4px;padding:6px 12px;cursor:pointer;margin-right:8px;font-size:11px;">
+          Log to Console
+        </button>
+        <button onclick="this.parentElement.parentElement.remove()"
+          style="background:#333;color:#fff;border:1px solid #555;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:11px;">
+          Close
+        </button>
+      </div>
+    `;
+
+    popup.innerHTML = content;
+    document.body.appendChild(popup);
   }
 
   refreshSubscriptions() {
@@ -162,6 +695,9 @@ export class DataSourcePanel {
 
     const { entities, stats, health, subscriptions, recentChanges } = entityData;
 
+    // ADDED: Store data for popup access
+    this._currentData = entityData;
+
     // Error handling
     if (stats.error) {
       html += `<div class="msd-hud-section msd-hud-error">
@@ -176,13 +712,13 @@ export class DataSourcePanel {
     html += '<div class="msd-hud-section"><h4>Controls</h4>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
 
-    html += `<button data-bus-event="datasource:refresh-subs" onclick="__msdHudBus('datasource:refresh-subs')"
-      style="font-size:10px;padding:2px 6px;background:#333;color:#fff;border:1px solid #555;border-radius:3px;cursor:pointer;">
+    html += `<button onclick="window.__msdRefreshDataSources();"
+      style="font-size:10px;padding:2px 6px;background:#225522;color:#fff;border:1px solid #55aa55;border-radius:3px;cursor:pointer;">
       Refresh Subs
     </button>`;
 
-    html += `<button data-bus-event="datasource:clear-history" onclick="__msdHudBus('datasource:clear-history')"
-      style="font-size:10px;padding:2px 6px;background:#666;color:#fff;border:1px solid #888;border-radius:3px;cursor:pointer;">
+    html += `<button onclick="(function(){const panel=window.__msdDebug?.hud?.manager?.dataSourcePanel;if(panel?.clearHistory){panel.clearHistory();}else{console.warn('Clear history not available');}})();"
+      style="font-size:10px;padding:2px 6px;background:#552255;color:#fff;border:1px solid #aa55aa;border-radius:3px;cursor:pointer;">
       Clear History
     </button>`;
 
@@ -261,7 +797,8 @@ export class DataSourcePanel {
         const hasErrors = sourceData.errors > 0;
         const errorClass = hasErrors ? 'msd-hud-warning' : '';
 
-        html += `<div class="msd-hud-metric ${errorClass}">
+        html += `<div class="msd-hud-metric ${errorClass}" style="cursor:pointer;"
+          onclick="window.__msdInspectDataSubscription('${sourceName}')">
           <div style="display:flex;justify-content:space-between;">
             <span class="msd-hud-metric-name">${shortName}</span>
             <span class="msd-hud-metric-value">${sourceData.subscribers} subs</span>
@@ -283,7 +820,7 @@ export class DataSourcePanel {
         const timeAgo = Math.round((Date.now() - change.timestamp) / 1000);
 
         html += `<div class="msd-hud-metric" style="cursor:pointer;"
-          onclick="__msdHudBus('datasource:inspect',{id:'${change.id}'})">
+          onclick="window.__msdInspectDataEntity('${change.id}')">
           <div style="display:flex;justify-content:space-between;">
             <span class="msd-hud-metric-name">${shortId}</span>
             <span style="font-size:10px;color:#888;">${timeAgo}s ago</span>
@@ -318,7 +855,7 @@ export class DataSourcePanel {
           const shortState = stateValue.length > 12 ? stateValue.substring(0, 9) + '...' : stateValue;
 
           html += `<div class="msd-hud-metric" style="cursor:pointer;margin-left:10px;"
-            onclick="__msdHudBus('datasource:inspect',{id:'${id}'})">
+            onclick="window.__msdInspectDataEntity('${id}')">
             <span class="msd-hud-metric-name">${shortId}</span>
             <span class="msd-hud-metric-value">${shortState}</span>
           </div>`;
