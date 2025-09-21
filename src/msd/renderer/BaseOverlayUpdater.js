@@ -38,6 +38,13 @@ export class BaseOverlayUpdater {
       hasTemplates: () => false // Sparklines don't use templates
     });
 
+    // History bar updater with data visualization
+    this.overlayUpdaters.set('history_bar', {
+      needsUpdate: (overlay, sourceData) => true, // Always update history bars for data visualization
+      update: (overlayId, overlay, sourceData) => this._updateHistoryBar(overlayId, overlay, sourceData),
+      hasTemplates: (overlay) => this._hasTemplateContent(overlay)
+    });
+
     // Generic updater for future overlay types
     this.overlayUpdaters.set('default', {
       needsUpdate: (overlay, sourceData) => this._hasTemplateContent(overlay),
@@ -103,6 +110,14 @@ export class BaseOverlayUpdater {
           const cellContent = cell.content || cell.label || cell.value_format || '';
           return cellContent && typeof cellContent === 'string' && cellContent.includes('{');
         });
+      }
+    }
+
+    // For history bars, check content property for templates
+    if (overlay.type === 'history_bar') {
+      const historyBarContent = overlay.content || overlay._raw?.content || '';
+      if (historyBarContent && typeof historyBarContent === 'string' && historyBarContent.includes('{')) {
+        return true;
       }
     }
 
@@ -214,6 +229,18 @@ export class BaseOverlayUpdater {
       this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
     } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+    }
+  }
+
+  /**
+   * History bar update logic with data visualization
+   * @private
+   */
+  _updateHistoryBar(overlayId, overlay, sourceData) {
+    if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+      this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+    } else {
+      console.warn(`[BaseOverlayUpdater] No renderer method available for history_bar overlay ${overlayId}`);
     }
   }
 

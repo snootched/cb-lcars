@@ -19,11 +19,18 @@ export class HistoryBarRenderer {
    * @param {Object} overlay - History bar overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Element} svgContainer - Container element for measurements
    * @returns {string} Complete SVG markup for the styled history bar
    */
-  static render(overlay, anchors, viewBox) {
+  static render(overlay, anchors, viewBox, svgContainer) {
     // Create instance for non-static methods
     const instance = new HistoryBarRenderer();
+    instance.container = svgContainer;
+    instance.viewBox = viewBox;
+
+    // CRITICAL: Pass systemsManager if available for DataSource access
+    instance.systemsManager = svgContainer?.systemsManager || window.__msdSystemsManager;
+
     return instance.renderHistoryBar(overlay, anchors, viewBox);
   }
 
@@ -46,10 +53,17 @@ export class HistoryBarRenderer {
     const [width, height] = size;
 
     try {
+      const style = overlay.finalStyle || overlay.style || {};
+
+      // Handle template processing for initial render if content exists
+      let processedContent = null;
+      if (overlay.content) {
+        processedContent = this._processTemplatesForInitialRender(overlay, style);
+      }
+
       // Get data from source
       const dataResult = HistoryBarRenderer.getHistoricalDataForHistoryBar(overlay.source);
       // Extract comprehensive styling
-      const style = overlay.finalStyle || overlay.style || {};
       const historyBarStyle = this._resolveHistoryBarStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
@@ -59,13 +73,13 @@ export class HistoryBarRenderer {
         // Render real history bar with advanced features
         return this._renderEnhancedHistoryBar(
           overlay, x, y, width, height, dataResult.data,
-          historyBarStyle, animationAttributes
+          historyBarStyle, animationAttributes, processedContent
         );
       } else {
         // Render enhanced status indicator
         return this._renderEnhancedStatusIndicator(
           overlay, x, y, width, height, dataResult,
-          historyBarStyle, animationAttributes
+          historyBarStyle, animationAttributes, processedContent
         );
       }
     } catch (error) {
@@ -545,8 +559,97 @@ export class HistoryBarRenderer {
     return animationAttributes;
   }
 
+  /**
+   * Process templates during initial render
+   * @private
+   */
+  _processTemplatesForInitialRender(overlay, style) {
+    const content = overlay.content || style.content || '';
+
+    if (!this._hasTemplates(content)) return content;
+
+    // Try multiple approaches to get DataSource data
+    let sourceData = null;
+
+    // 1. Explicit dataSource
+    if (overlay.dataSource && this.systemsManager) {
+      sourceData = this.systemsManager.getDataSourceData?.(overlay.dataSource);
+    }
+
+    // 2. Global data context
+    if (!sourceData) {
+      sourceData = window.__msdDataContext || overlay._dataContext;
+    }
+
+    // 3. All data sources
+    if (!sourceData && this.systemsManager) {
+      sourceData = this.systemsManager.getAllDataSourceData?.();
+    }
+
+    // 4. DataSourceMixin fallback
+    if (!sourceData && typeof DataSourceMixin !== 'undefined' && DataSourceMixin?.getAllData) {
+      sourceData = DataSourceMixin.getAllData();
+    }
+
+    // Process templates if data available
+    if (sourceData) {
+      return this._processTemplates(content, sourceData);
+    } else {
+      console.warn(`[HistoryBarRenderer] No DataSource data for template processing: ${overlay.id}`);
+      return content;
+    }
+  }
+
+  /**
+   * Template processing logic
+   * @private
+   */
+  _processTemplates(content, sourceData) {
+    if (!sourceData || typeof content !== 'string' || !content.includes('{')) {
+      return content;
+    }
+
+    return content.replace(/\{([^}]+)\}/g, (match, template) => {
+      try {
+        // Split template into field path and format
+        const [fieldPath, format] = template.split(':');
+
+        // Navigate nested object paths
+        const value = fieldPath.split('.').reduce((obj, key) => obj?.[key], sourceData);
+
+        if (value !== undefined && value !== null) {
+          // Apply format if specified
+          if (format) {
+            if (format.includes('f')) {
+              const decimals = format.match(/\.(\d+)f/)?.[1];
+              if (decimals !== undefined) {
+                return Number(value).toFixed(parseInt(decimals));
+              }
+            } else if (format === '%') {
+              return `${value}%`;
+            }
+          }
+          return String(value);
+        }
+
+        return match; // Return original if field not found
+      } catch (e) {
+        console.warn(`[HistoryBarRenderer] Template processing failed:`, e);
+        return match;
+      }
+    });
+  }
+
+  /**
+   * Check if content has template placeholders
+   * @private
+   */
+  _hasTemplates(content) {
+    return content && typeof content === 'string' && content.includes('{');
+  }
+
   // Placeholder methods for the rendering pipeline - will be implemented in next part
-  _renderEnhancedHistoryBar(overlay, x, y, width, height, data, historyBarStyle, animationAttributes) {
+  _renderEnhancedHistoryBar(overlay, x, y, width, height, data, historyBarStyle, animationAttributes, processedContent) {
     const svgParts = [
       this._buildDefinitions(historyBarStyle, overlay.id),
       this._buildHistoryBarBackground(width, height, historyBarStyle, overlay.id),
@@ -991,7 +1094,7 @@ export class HistoryBarRenderer {
     return date.getHours().toString().padStart(2, '0') + ':00';
   }
 
-  _renderEnhancedStatusIndicator(overlay, x, y, width, height, dataResult, historyBarStyle, animationAttributes) {
+  _renderEnhancedStatusIndicator(overlay, x, y, width, height, dataResult, historyBarStyle, animationAttributes, processedContent) {
     const statusColors = {
       'NO_SOURCE': 'var(--lcars-red)',
       'MANAGER_NOT_AVAILABLE': 'var(--lcars-blue)',
@@ -1076,28 +1179,35 @@ export class HistoryBarRenderer {
   }
 
   /**
-   * Update history bar data dynamically when data source changes
+   * Update history bar data dynamically when data source changes (static method for delegation pattern)
    * @param {Element} historyBarElement - The history bar SVG element
    * @param {Object} overlay - Overlay configuration
    * @param {Object} sourceData - New data from the data source
+   * @returns {boolean} True if content was updated, false if unchanged
+   * @static
    */
   static updateHistoryBarData(historyBarElement, overlay, sourceData) {
-    console.log(`[HistoryBarRenderer] updateHistoryBarData called for ${overlay.id}:`, {
-      hasBuffer: !!(sourceData?.buffer),
-      bufferSize: sourceData?.buffer?.size?.() || 0,
-      currentStatus: historyBarElement.getAttribute('data-status'),
-      elementFound: !!historyBarElement,
-      currentValue: sourceData?.v
-    });
+    try {
+      console.log(`[HistoryBarRenderer] updateHistoryBarData called for ${overlay.id}:`, {
+        hasBuffer: !!(sourceData?.buffer),
+        bufferSize: sourceData?.buffer?.size?.() || 0,
+        currentStatus: historyBarElement.getAttribute('data-status'),
+        elementFound: !!historyBarElement,
+        currentValue: sourceData?.v
+      });
 
-    if (!historyBarElement || !overlay || !sourceData) {
-      console.warn('[HistoryBarRenderer] updateHistoryBarData: Missing required parameters');
-      return;
+      if (!historyBarElement || !overlay || !sourceData) {
+        console.warn('[HistoryBarRenderer] updateHistoryBarData: Missing required parameters');
+        return false;
+      }
+
+      // Create instance for update operations
+      const instance = new HistoryBarRenderer();
+      return instance._updateHistoryBarElement(historyBarElement, overlay, sourceData);
+    } catch (error) {
+      console.error(`[HistoryBarRenderer] Error updating history bar ${overlay.id}:`, error);
+      return false;
     }
-
-    // Create instance for update operations
-    const instance = new HistoryBarRenderer();
-    instance._updateHistoryBarElement(historyBarElement, overlay, sourceData);
   }
 
   /**
@@ -1110,8 +1220,7 @@ export class HistoryBarRenderer {
 
     // If status indicator and data is now available, upgrade
     if (isStatusIndicator && (sourceData.buffer || sourceData.historicalData)) {
-      this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
-      return;
+      return this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
     }
 
     // For existing history bars, update the bars
@@ -1120,9 +1229,9 @@ export class HistoryBarRenderer {
       // If no bars group, try to upgrade if data is available
       const historicalData = this._extractHistoricalData(sourceData);
       if (historicalData.length > 0) {
-        this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
+        return this._upgradeStatusIndicatorToHistoryBar(historyBarElement, overlay, sourceData);
       }
-      return;
+      return false;
     }
 
     try {
@@ -1155,14 +1264,17 @@ export class HistoryBarRenderer {
         historyBarElement.setAttribute('data-last-update', Date.now());
 
         console.log(`[HistoryBarRenderer] ✅ Updated history bar ${overlay.id} with ${historicalData.length} points`);
+        return true;
       } else {
         console.warn(`[HistoryBarRenderer] No data for history bar ${overlay.id}`);
         historyBarElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
+        return false;
       }
 
     } catch (error) {
       console.error(`[HistoryBarRenderer] Error updating history bar ${overlay.id}:`, error);
       historyBarElement.setAttribute('data-status', 'ERROR');
+      return false;
     }
   }
 
@@ -1201,8 +1313,10 @@ export class HistoryBarRenderer {
       historyBarElement.setAttribute('data-history-bar-features', historyBarStyle.features.join(','));
 
       console.log(`[HistoryBarRenderer] ✅ Upgraded status indicator ${overlay.id} to full history bar with ${historyBarStyle.features.length} features and ${historicalData.length} data points`);
+      return true;
     } else {
       historyBarElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
+      return false;
     }
   }
 
@@ -1295,11 +1409,6 @@ export class HistoryBarRenderer {
 
     return { source };
   }
-}
-
-// Expose HistoryBarRenderer to window for console debugging
-if (typeof window !== 'undefined') {
-  window.HistoryBarRenderer = HistoryBarRenderer;
 }
 
 // Expose HistoryBarRenderer to window for console debugging

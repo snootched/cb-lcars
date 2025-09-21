@@ -7,6 +7,7 @@ import { TextOverlayRenderer } from './TextOverlayRenderer.js';
 import { SparklineRenderer } from './SparklineRenderer.js';
 import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { StatusGridRenderer } from './StatusGridRenderer.js';
+import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { RendererUtils } from './RendererUtils.js';
 
 export class AdvancedRenderer {
@@ -450,7 +451,9 @@ export class AdvancedRenderer {
         console.log('[AdvancedRenderer] Control overlay detected, skipping SVG rendering:', overlay.id);
         return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
       case 'status_grid':
-        return StatusGridRenderer.render(overlay, anchors, viewBox);
+        return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
+      case 'history_bar':
+        return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
       default:
         console.warn(`[AdvancedRenderer] Unknown overlay type: ${overlay.type}`);
         return '';
@@ -559,6 +562,14 @@ export class AdvancedRenderer {
         console.log(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);
         // Use unified delegation pattern - delegate to StatusGridRenderer
         StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
+        break;
+      case 'history_bar':
+        console.log(`[AdvancedRenderer] Updating history_bar overlay: ${overlayId}`);
+        const historyBarUpdated = HistoryBarRenderer.updateHistoryBarData(overlayElement, overlay, sourceData);
+        if (historyBarUpdated) {
+          // Update any status indicators that might depend on the content
+          this.updateTextDecorations(overlayId, 'updated', overlay);
+        }
         break;
       default:
         console.warn(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
