@@ -160,8 +160,13 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateTextOverlay(overlayId, overlay, sourceData) {
-    if (this.systemsManager.renderer && this.systemsManager.renderer.updateTextOverlay) {
+    if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+      this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+    } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateTextOverlay) {
+      // Legacy fallback for backward compatibility
       this.systemsManager.renderer.updateTextOverlay(overlayId, sourceData);
+    } else {
+      console.warn(`[BaseOverlayUpdater] No renderer method available for text overlay ${overlayId}`);
     }
   }
 
