@@ -1545,17 +1545,6 @@ export class SparklineRenderer {
       historicalData = sourceData.historicalData;
       console.debug('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
     }
-    // Method 3: Generate from single current value (fallback for testing)
-    else if (sourceData.v !== undefined && sourceData.t !== undefined) {
-      console.debug('[SparklineRenderer] Generating demo data from current value:', sourceData.v);
-      const now = Date.now();
-      for (let i = 0; i < 20; i++) {
-        historicalData.push({
-          timestamp: now - (19 - i) * 60000,
-          value: sourceData.v + (Math.random() - 0.5) * (sourceData.v * 0.1)
-        });
-      }
-    }
 
     return historicalData;
   }
@@ -1678,14 +1667,24 @@ export class SparklineRenderer {
         };
       }
 
-      // For single values, generate synthetic historical data
-      if (typeof enhancedValue === 'number') {
-        return SparklineRenderer.generateSyntheticHistoricalData(enhancedValue, currentData, sourceName, dataKey, dataType);
-      }
+      // For single values, we no longer generate synthetic data
+      // If there's no historical data, sparkline will show status indicator
+      return {
+        data: null,
+        status: 'ENHANCED_DATA_NOT_HISTORIC',
+        message: `${dataType} '${dataKey}' is a single value, no historical data available`,
+        metadata: { sourceName, dataKey, dataType, value: enhancedValue }
+      };
 
       // For complex objects, try to extract meaningful data
       if (typeof enhancedValue === 'object') {
-        return SparklineRenderer.extractHistoricalFromObject(enhancedValue, currentData, sourceName, dataKey, dataType);
+        // Complex objects are not supported for sparkline historical data
+        return {
+          data: null,
+          status: 'ENHANCED_OBJECT_NOT_SUPPORTED',
+          message: `${dataType} '${dataKey}' is a complex object, no historical data available`,
+          metadata: { sourceName, dataKey, dataType, objectKeys: Object.keys(enhancedValue) }
+        };
       }
 
       // Fallback for non-numeric data
@@ -1705,141 +1704,6 @@ export class SparklineRenderer {
         metadata: { sourceName, dataKey, error: error.message }
       };
     }
-  }
-
-  /**
-   * Generate synthetic historical data for single enhanced values
-   * @param {number} currentValue - Current transformed/aggregated value
-   * @param {Object} currentData - Full DataSource data
-   * @param {string} sourceName - Source name
-   * @param {string} dataKey - Data key
-   * @param {string} dataType - Type of data (transformation/aggregation)
-   * @returns {Object} Data result with synthetic history
-   */
-  static generateSyntheticHistoricalData(currentValue, currentData, sourceName, dataKey, dataType) {
-    const historicalData = [];
-    const now = Date.now();
-
-    // Use buffer data if available for better synthetic generation
-    if (currentData.buffer) {
-      const bufferData = currentData.buffer.getAll();
-
-      if (bufferData.length > 1) {
-        // Apply transformation/aggregation logic to each historical point
-        bufferData.forEach(point => {
-          // This is a simplified approach - in reality, transformations should be applied to each point
-          // For now, we'll generate reasonable synthetic data based on the raw values
-          let syntheticValue = currentValue;
-
-          if (dataType === 'transformation') {
-            // Estimate transformation based on ratio to current raw value
-            const ratio = currentData.v ? currentValue / currentData.v : 1;
-            syntheticValue = point.v * ratio;
-          } else if (dataType === 'aggregation') {
-            // For aggregations, use a sliding calculation or approximation
-            syntheticValue = currentValue + (Math.random() - 0.5) * (currentValue * 0.1);
-          }
-
-          historicalData.push({
-            timestamp: point.t,
-            value: syntheticValue
-          });
-        });
-
-        console.debug(`[SparklineRenderer] ✅ Generated ${historicalData.length} synthetic ${dataType} points for '${dataKey}'`);
-        return {
-          data: historicalData,
-          status: 'OK_SYNTHETIC',
-          message: `${historicalData.length} synthetic ${dataType} points`,
-          metadata: {
-            sourceName,
-            dataKey,
-            dataType,
-            synthetic: true,
-            currentValue,
-            basedOnRawData: true
-          }
-        };
-      }
-    }
-
-    // Fallback: Generate simple synthetic data
-    for (let i = 19; i >= 0; i--) {
-      const timestamp = now - i * 30000; // 30-second intervals
-      const variance = (Math.random() - 0.5) * (currentValue * 0.05); // 5% variance
-      historicalData.push({
-        timestamp,
-        value: currentValue + variance
-      });
-    }
-
-    console.debug(`[SparklineRenderer] ⚠️ Generated ${historicalData.length} fallback synthetic ${dataType} points for '${dataKey}'`);
-    return {
-      data: historicalData,
-      status: 'OK_SYNTHETIC_FALLBACK',
-      message: `${historicalData.length} fallback synthetic ${dataType} points`,
-      metadata: {
-        sourceName,
-        dataKey,
-        dataType,
-        synthetic: true,
-        currentValue,
-        basedOnRawData: false
-      }
-    };
-  }
-
-  /**
-   * Extract historical data from complex aggregation objects
-   * @param {Object} aggregationObject - Complex aggregation result
-   * @param {Object} currentData - Full DataSource data
-   * @param {string} sourceName - Source name
-   * @param {string} dataKey - Data key
-   * @param {string} dataType - Type of data
-   * @returns {Object} Data result
-   */
-  static extractHistoricalFromObject(aggregationObject, currentData, sourceName, dataKey, dataType) {
-    // Handle trend objects
-    if (aggregationObject.direction && aggregationObject.slope !== undefined) {
-      return SparklineRenderer.generateSyntheticHistoricalData(
-        aggregationObject.slope,
-        currentData,
-        sourceName,
-        `${dataKey}.slope`,
-        'trend-slope'
-      );
-    }
-
-    // Handle min/max/avg objects
-    if (aggregationObject.avg !== undefined) {
-      return SparklineRenderer.generateSyntheticHistoricalData(
-        aggregationObject.avg,
-        currentData,
-        sourceName,
-        `${dataKey}.avg`,
-        'stats-average'
-      );
-    }
-
-    // Handle session stats objects
-    if (aggregationObject.count !== undefined && aggregationObject.last !== undefined) {
-      return SparklineRenderer.generateSyntheticHistoricalData(
-        aggregationObject.last,
-        currentData,
-        sourceName,
-        `${dataKey}.last`,
-        'session-last'
-      );
-    }
-
-    // Fallback for unknown object types
-    console.warn(`[SparklineRenderer] Unknown aggregation object structure for '${dataKey}':`, aggregationObject);
-    return {
-      data: null,
-      status: 'ENHANCED_OBJECT_UNKNOWN',
-      message: `Unknown aggregation object structure for '${dataKey}'`,
-      metadata: { sourceName, dataKey, dataType, objectKeys: Object.keys(aggregationObject) }
-    };
   }
 
   static debugSparklineUpdates() {
