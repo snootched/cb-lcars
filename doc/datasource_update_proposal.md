@@ -82,50 +82,140 @@ data_sources:
 
 ---
 
-## 4. Pseudocode: Core Implementation Patterns
+## 4. Implementation: Core Architecture
 
-### DataSourceManager.js
+### Unified Dot Notation Access
+- All data accessible via consistent dot notation: `source.transformations.key` and `source.aggregations.key`
+- No need for separate `data_key` configuration - overlays use source paths directly
+- Zero breaking changes to existing overlay code
+- Automatic transform history caching for visualization overlays
+
+### Enhanced DataSourceManager.js
 ```js
 class DataSourceManager {
   // ...existing...
   getEntity(entityId) {
     // Support dot notation for aggregation/transformation paths
     if (entityId.includes('.')) {
-      const [sourceId, path] = entityId.split('.', 2);
+      const [sourceId, ...pathParts] = entityId.split('.');
       const source = this.sources.get(sourceId);
       if (source) {
         const currentData = source.getCurrentData();
-        // Aggregation path
-        if (path.startsWith('aggregations')) return resolvePath(currentData.aggregations, path);
-        if (path.startsWith('transformations')) return resolvePath(currentData.transformations, path);
+        const path = pathParts.join('.');
+
+        // Resolve nested paths
+        if (path.startsWith('transformations.') || path.startsWith('aggregations.')) {
+          return this._resolveDataPath(currentData, path);
+        }
+
         // Default
-        return { state: currentData.v?.toString(), attributes: { ...currentData.stats } };
+        return {
+          state: currentData.v?.toString(),
+          attributes: { ...currentData.stats },
+          getHistoricalData: () => source.getHistoricalData(),
+          getTransformedHistory: (key) => source.getTransformedHistory(key)
+        };
       }
     }
     // ...fallback to HA entity lookup...
   }
+
+  _resolveDataPath(data, path) {
+    const pathParts = path.split('.');
+    let current = data;
+
+    for (const part of pathParts) {
+      if (current && typeof current === 'object') {
+        current = current[part];
+      } else {
+        return null;
+      }
+    }
+
+    return current ? {
+      state: current.toString(),
+      attributes: { data_path: path }
+    } : null;
+  }
 }
 ```
 
-### MsdDataSource.js
+### Enhanced MsdDataSource.js
 ```js
 class MsdDataSource {
   constructor(cfg, hass) {
     // ...existing...
     this.transformations = new Map();
     this.aggregations = new Map();
+    this.transformedBuffers = new Map(); // Auto-cache transformed historical data
     this._initializeProcessors(cfg);
   }
 
   _initializeProcessors(cfg) {
     // Setup transformations
     (cfg.transformations || []).forEach((t, i) => {
-      this.transformations.set(t.key || `transform${i}`, createTransformProcessor(t));
+      const key = t.key || `transform${i}`;
+      this.transformations.set(key, createTransformationProcessor(t));
+      this.transformedBuffers.set(key, new RollingBuffer(this.cfg.windowSeconds));
     });
+
     // Setup aggregations
     Object.entries(cfg.aggregations || {}).forEach(([type, config]) => {
-      this.aggregations.set(config.key || type, createAggregationProcessor(type, config));
+      const key = config.key || type;
+      this.aggregations.set(key, createAggregationProcessor(type, config));
     });
+  }
+
+  _handleStateChange(eventData) {
+    // ...existing buffer logic...
+
+    // Apply transformations and cache history
+    const transformedData = {};
+    this.transformations.forEach((processor, key) => {
+      try {
+        const result = processor.transform(value, timestamp, this.buffer);
+        transformedData[key] = result;
+
+        // Cache transformed historical data
+        this.transformedBuffers.get(key).add(timestamp, result);
+      } catch (error) {
+        console.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
+        transformedData[key] = null;
+      }
+    });
+
+    // Update aggregations
+    this.aggregations.forEach((processor, key) => {
+      processor.update(timestamp, value, transformedData);
+    });
+
+    // Enhanced emit data
+    const emitData = {
+      t: timestamp,
+      v: value,
+      buffer: this.buffer,
+      stats: { ...this._stats },
+      transformations: transformedData,
+      aggregations: this._getAggregationData(),
+      entity: this.cfg.entity,
+      historyReady: this._stats.historyLoaded > 0
+    };
+
+    this.subscribers.forEach(callback => callback(emitData));
+  }
+
+  // NEW: Get transformed historical data for overlays
+  getTransformedHistory(transformKey, count = 100) {
+    const buffer = this.transformedBuffers.get(transformKey);
+    return buffer ? buffer.getRecent(count) : [];
+  }
+
+  _getAggregationData() {
+    const results = {};
+    this.aggregations.forEach((processor, key) => {
+      results[key] = processor.getValue();
+    });
+    return results;
   }
 }
 ```
@@ -252,13 +342,21 @@ data_sources:
         key: "daily_stats"
 ```
 
-Then overlays can choose which data to consume:
+Then overlays can access any data via unified dot notation:
 
 ```yaml
 overlays:
+  # Raw data (existing behavior)
   - type: sparkline
     source: temperature_enhanced
-    data_key: "smoothed"  # Use the smoothed transformation
+
+  # Transformed data via dot notation
+  - type: sparkline
+    source: temperature_enhanced.transformations.smoothed
+
+  # Aggregated data
+  - type: sparkline
+    source: temperature_enhanced.aggregations.avg_5m
 
   - type: text
     source: temperature_enhanced

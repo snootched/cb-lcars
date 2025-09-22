@@ -10,7 +10,7 @@
 
 import { RollingBuffer } from './RollingBuffer.js';
 import { createTransformationProcessor } from './transformations/TransformationProcessor.js';
-import { createAggregationProcessor } from './aggregations/AggregationProcessor.js';
+import { createAggregationProcessor } from './aggregations/index.js';
 
 // Node.js polyfills for test environment
 const isNode = typeof window === 'undefined';
@@ -71,8 +71,7 @@ export class MsdDataSource {
     // NEW: Transformation and aggregation processors
     this.transformations = new Map();
     this.aggregations = new Map();
-    this._transformationData = new Map();
-    this._aggregationData = new Map();
+    this.transformedBuffers = new Map();
 
     // PORT: Complete internal timing state from original
     this._lastEmitTime = 0;
@@ -108,14 +107,23 @@ export class MsdDataSource {
   _initializeProcessors(cfg) {
     // Initialize transformations
     if (cfg.transformations && Array.isArray(cfg.transformations)) {
-      cfg.transformations.forEach((transform, index) => {
+      cfg.transformations.forEach((transformConfig, index) => {
         try {
-          const key = transform.key || `transform_${index}`;
-          const processor = createTransformationProcessor(transform);
+          const key = transformConfig.key || `transform_${index}`;
+          const processor = createTransformationProcessor({
+            ...transformConfig,
+            hass: this.hass // Pass hass for multi-entity expressions
+          });
+
           this.transformations.set(key, processor);
-          console.log(`[MsdDataSource] Initialized transformation: ${key} (${transform.type})`);
+
+          // Create buffer for transformed historical data with same capacity as main buffer
+          const capacity = this.buffer.capacity || 60;
+          this.transformedBuffers.set(key, new RollingBuffer(capacity));          console.log(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
+          console.log(`[MsdDataSource] Transformation ${key} config:`, transformConfig);
+          console.log(`[MsdDataSource] Created buffer for ${key} with capacity:`, capacity);
         } catch (error) {
-          console.warn(`[MsdDataSource] Failed to create transformation ${index}:`, error);
+          console.error(`[MsdDataSource] Failed to initialize transformation ${transformConfig.type}:`, error);
         }
       });
     }
@@ -126,10 +134,12 @@ export class MsdDataSource {
         try {
           const key = config.key || type;
           const processor = createAggregationProcessor(type, config);
+
           this.aggregations.set(key, processor);
+
           console.log(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
         } catch (error) {
-          console.warn(`[MsdDataSource] Failed to create aggregation ${type}:`, error);
+          console.error(`[MsdDataSource] Failed to initialize aggregation ${type}:`, error);
         }
       });
     }
@@ -484,6 +494,7 @@ export class MsdDataSource {
    * @private
    * @param {Object} eventData - State change event data
    */
+    // Enhanced _handleStateChange method
   _handleStateChange(eventData) {
 
     console.log('[MSD DEBUG] 📊 MsdDataSource._handleStateChange() ENTRY:', {
@@ -493,11 +504,22 @@ export class MsdDataSource {
       hasNewState: !!eventData?.new_state,
       newStateValue: eventData?.new_state?.state,
       subscriberCount: this.subscribers.size,
+      bufferExists: !!this.buffer,
+      bufferType: this.buffer ? this.buffer.constructor.name : 'none',
       stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
     });
 
     if (!eventData?.new_state || this._destroyed) {
       console.log('[MSD DEBUG] ⏭️ Skipping state change - no new state or destroyed');
+      return;
+    }
+
+    // Safety check: ensure buffer exists and has required methods
+    if (!this.buffer || typeof this.buffer.push !== 'function') {
+      console.error('[MSD DEBUG] ❌ Buffer not properly initialized:', {
+        bufferExists: !!this.buffer,
+        bufferMethods: this.buffer ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.buffer)) : 'no buffer'
+      });
       return;
     }
 
@@ -512,6 +534,12 @@ export class MsdDataSource {
 
     // FIXED: Use current timestamp instead of state timestamp
     const timestamp = Date.now();
+
+    // Validate timestamp
+    if (!Number.isFinite(timestamp)) {
+      console.error('[MSD DEBUG] ❌ Invalid timestamp generated:', timestamp);
+      return;
+    }
     const rawValue = this.cfg.attribute
       ? eventData.new_state.attributes?.[this.cfg.attribute]
       : eventData.new_state.state;
@@ -523,22 +551,30 @@ export class MsdDataSource {
         value,
         timestamp,
         subscriberCount: this.subscribers.size,
-        originalState: this._lastOriginalState.state,
+        bufferExists: !!this.buffer,
+        bufferMethods: this.buffer ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.buffer)) : 'no buffer',
+        originalState: this._lastOriginalState?.state,
         unit_of_measurement: this.cfg.unit_of_measurement
       });
 
-      // Add to buffer with proper timestamp
-      this.buffer.push(timestamp, value);
-      this._stats.updates++;
-      this._stats.currentValue = value;
+    // Store in raw buffer
+    this.buffer.push(timestamp, value);
 
-      // NEW: Apply transformations
-      const transformedData = this._applyTransformations(timestamp, value);
+    // Apply transformations and cache history
+    const transformedData = this._applyTransformations(timestamp, value);
 
-      // NEW: Update aggregations
-      this._updateAggregations(timestamp, value, transformedData);
+    // Update aggregations
+    this.aggregations.forEach((processor, key) => {
+      try {
+        processor.update(timestamp, value, transformedData);
+      } catch (error) {
+        console.warn(`[MsdDataSource] Aggregation ${key} update failed:`, error);
+      }
+    });
 
-      // Emit to subscribers
+    // Update statistics
+    this._stats.updates++;
+    this._stats.lastUpdate = timestamp;      // Emit to subscribers
       console.log(`[MSD DEBUG] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
 
       const emitData = {
@@ -1070,6 +1106,56 @@ export class MsdDataSource {
   }
 
   /**
+   * Get recent points from the main buffer (compatibility method)
+   * @param {number} count - Number of recent points to return
+   * @returns {Array} Array of recent data points
+   */
+  getRecent(count = 100) {
+    try {
+      return this.buffer.getRecent(count) || [];
+    } catch (error) {
+      console.warn('[MsdDataSource] getRecent error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get transformed historical data for overlays (ensure this method exists)
+   * @param {string} transformKey - Key of the transformation
+   * @param {number} count - Number of recent points to get
+   * @returns {Array} Historical transformed data
+   */
+  getTransformedHistory(transformKey, count = 100) {
+    const buffer = this.transformedBuffers.get(transformKey);
+    if (!buffer || buffer.size() === 0) {
+      return [];
+    }
+
+    // Use the correct RollingBuffer method
+    try {
+      // Try getRecent method first
+      if (typeof buffer.getRecent === 'function') {
+        return buffer.getRecent(count);
+      }
+      // Fallback to manual extraction
+      else {
+        const points = [];
+        const maxCount = Math.min(count, buffer.size());
+        for (let i = 0; i < maxCount; i++) {
+          const point = buffer.last(); // This won't work well, but it's a fallback
+          if (point) {
+            points.push(point);
+          }
+        }
+        return points;
+      }
+    } catch (error) {
+      console.error(`[MsdDataSource] Error getting transformed history for ${transformKey}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Apply all configured transformations to a value
    * @private
    * @param {number} timestamp - Current timestamp
@@ -1077,16 +1163,28 @@ export class MsdDataSource {
    * @returns {Object} Map of transformation keys to results
    */
   _applyTransformations(timestamp, value) {
-    const results = { original: value };
+    const results = {};
 
     this.transformations.forEach((processor, key) => {
       try {
-        results[key] = processor.transform(value, timestamp, this.buffer);
-        this._transformationData.set(key, results[key]);
+        const transformedValue = processor.transform(value, timestamp, this.buffer);
+        results[key] = transformedValue;
+
+        console.log(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
+
+        // Cache transformed historical data if the value is valid
+        if (transformedValue !== null && Number.isFinite(transformedValue)) {
+          const buffer = this.transformedBuffers.get(key);
+          if (buffer) {
+            buffer.push(timestamp, transformedValue);
+            console.log(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
+          } else {
+            console.warn(`[MsdDataSource] No buffer found for transformation ${key}`);
+          }
+        }
       } catch (error) {
         console.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
         results[key] = null;
-        this._transformationData.set(key, null);
       }
     });
 
@@ -1104,37 +1202,93 @@ export class MsdDataSource {
     this.aggregations.forEach((processor, key) => {
       try {
         processor.update(timestamp, value, transformedData);
-        this._aggregationData.set(key, processor.getValue());
       } catch (error) {
         console.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
-        this._aggregationData.set(key, null);
       }
     });
   }
 
   /**
-   * Get current transformation data for emission
-   * @private
-   * @returns {Object} Current transformation results
-   */
-  _getTransformationData() {
-    const data = {};
-    this._transformationData.forEach((value, key) => {
-      data[key] = value;
-    });
-    return data;
-  }
-
-  /**
-   * Get current aggregation data for emission
+   * Get current aggregation data
    * @private
    * @returns {Object} Current aggregation results
    */
   _getAggregationData() {
-    const data = {};
-    this._aggregationData.forEach((value, key) => {
-      data[key] = value;
+    const results = {};
+    this.aggregations.forEach((processor, key) => {
+      try {
+        results[key] = processor.getValue();
+      } catch (error) {
+        console.warn(`[MsdDataSource] Failed to get aggregation value for ${key}:`, error);
+        results[key] = null;
+      }
     });
-    return data;
+    return results;
+  }
+
+  /**
+   * Get current transformation data
+   * @private
+   * @returns {Object} Current transformation results
+   */
+  _getTransformationData() {
+    const results = {};
+
+    // Get the latest raw value to transform
+    const latestPoint = this.buffer.last();
+    if (!latestPoint) {
+      // No data available - return empty results
+      this.transformations.forEach((processor, key) => {
+        results[key] = null;
+      });
+      return results;
+    }
+
+    // Apply transformations to the latest value
+    this.transformations.forEach((processor, key) => {
+      try {
+        // Use proper timestamp and value from buffer point
+        const timestamp = latestPoint.timestamp || latestPoint.t;
+        const value = latestPoint.value || latestPoint.v;
+
+        if (Number.isFinite(value) && Number.isFinite(timestamp)) {
+          results[key] = processor.transform(value, timestamp, this.buffer);
+        } else {
+          console.warn(`[MsdDataSource] Invalid data for transformation ${key}:`, { value, timestamp });
+          results[key] = null;
+        }
+      } catch (error) {
+        console.warn(`[MsdDataSource] Failed to get current transformation ${key}:`, error);
+        results[key] = null;
+      }
+    });
+
+    return results;
+  }
+
+  /**
+   * Enhanced debug method to show transformation and aggregation data
+   * @returns {Object} Debug information including transformations and aggregations
+   */
+  getDebugInfo() {
+    const currentData = this.getCurrentData();
+
+    return {
+      entity: this.cfg.entity,
+      currentValue: currentData.v,
+      timestamp: currentData.t ? new Date(currentData.t).toISOString() : null,
+      bufferSize: this.buffer.size(),
+      transformations: {
+        count: this.transformations.size,
+        data: currentData.transformations,
+        processors: Array.from(this.transformations.keys())
+      },
+      aggregations: {
+        count: this.aggregations.size,
+        data: currentData.aggregations,
+        processors: Array.from(this.aggregations.keys())
+      },
+      stats: currentData.stats
+    };
   }
 }

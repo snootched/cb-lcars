@@ -157,135 +157,153 @@ export class DataSourceManager {
 
   // NEW: EntityRuntime compatibility methods
   getEntity(entityId) {
-    // NEW: Support dot notation for datasource aggregations/transformations
+    // Handle dot notation for datasource references
     if (entityId.includes('.')) {
       const [sourceId, ...pathParts] = entityId.split('.');
       const source = this.sources.get(sourceId);
 
       if (source) {
         const currentData = source.getCurrentData();
-        if (!currentData) return null;
+        const path = pathParts.join('.');
 
-        // Handle dot notation paths
-        if (pathParts.length >= 2) {
-          const dataType = pathParts[0]; // 'aggregations' or 'transformations'
-          const dataKey = pathParts.slice(1).join('.'); // Support nested keys
-
-          if (dataType === 'transformations' && currentData.transformations) {
-            const value = currentData.transformations[dataKey];
-            if (value !== undefined && value !== null) {
-              return {
-                state: String(value), // Convert to string properly
-                attributes: {
-                  data_path: entityId,
-                  source_type: 'datasource_transformation',
-                  raw_value: value
-                }
-              };
-            }
-          } else if (dataType === 'aggregations' && currentData.aggregations) {
-            const aggData = currentData.aggregations[dataKey];
-
-            // Handle aggregation objects with multiple properties
-            if (typeof aggData === 'object' && aggData !== null) {
-              // Return the most relevant value from aggregation
-              let value = aggData.avg ?? aggData.value ?? aggData.last ?? aggData.current;
-              if (value !== undefined && value !== null) {
-                return {
-                  state: String(value),
-                  attributes: {
-                    data_path: entityId,
-                    source_type: 'datasource_aggregation',
-                    raw_value: value,
-                    aggregation_data: aggData
-                  }
-                };
-              }
-            } else if (aggData !== undefined && aggData !== null) {
-              return {
-                state: String(aggData),
-                attributes: {
-                  data_path: entityId,
-                  source_type: 'datasource_aggregation',
-                  raw_value: aggData
-                }
-              };
-            }
-          }
+        // Handle transformation paths
+        if (path.startsWith('transformations.')) {
+          return this._resolveDataPath(currentData, path, source, 'transformations');
         }
 
-        // Default to current value if no specific path found
+        // Handle aggregation paths
+        if (path.startsWith('aggregations.')) {
+          return this._resolveDataPath(currentData, path, source, 'aggregations');
+        }
+
+        // Default: return raw datasource data
         return {
           state: currentData.v?.toString() || 'unavailable',
           attributes: {
             timestamp: currentData.t,
             source_type: 'datasource',
+            entity_id: sourceId,
             ...currentData.stats
+          },
+          // Provide methods for overlay access
+          getHistoricalData: (count) => {
+            try {
+              return source.buffer.getRecent(count || 100);
+            } catch (error) {
+              console.warn(`[DataSourceManager] Error getting historical data for ${sourceId}:`, error);
+              return [];
+            }
+          },
+          getTransformedHistory: (transformKey, count) => {
+            try {
+              return source.getTransformedHistory(transformKey, count || 100);
+            } catch (error) {
+              console.warn(`[DataSourceManager] Error getting transformed history for ${sourceId}.${transformKey}:`, error);
+              return [];
+            }
           }
         };
       }
     }
 
-    // Check entity index for direct entity mappings
-    const source = this.entityIndex.get(entityId);
+    // Check if it's a simple datasource reference
+    const source = this.sources.get(entityId);
     if (source) {
       const currentData = source.getCurrentData();
-      if (currentData) {
-        return {
-          state: currentData.v?.toString() || 'unavailable',
-          attributes: {
-            timestamp: currentData.t,
-            source_type: 'datasource'
+      return {
+        state: currentData.v?.toString() || 'unavailable',
+        attributes: {
+          timestamp: currentData.t,
+          source_type: 'datasource',
+          entity_id: entityId
+        },
+        getHistoricalData: (count) => {
+          try {
+            return source.buffer.getRecent(count || 100);
+          } catch (error) {
+            console.warn(`[DataSourceManager] Error getting historical data for ${entityId}:`, error);
+            return [];
           }
-        };
-      }
+        },
+        getTransformedHistory: (transformKey, count) => {
+          try {
+            return source.getTransformedHistory(transformKey, count || 100);
+          } catch (error) {
+            console.warn(`[DataSourceManager] Error getting transformed history for ${entityId}.${transformKey}:`, error);
+            return [];
+          }
+        }
+      };
     }
 
-    // Fallback to HASS states directly
-    if (this.hass.states && this.hass.states[entityId]) {
-      const hassState = this.hass.states[entityId];
+    // Check entity index for basic entity sources
+    const entitySource = this.entityIndex.get(entityId);
+    if (entitySource) {
+      const currentData = entitySource.getCurrentData();
       return {
-        state: hassState.state,
-        attributes: hassState.attributes || {}
+        state: currentData.v?.toString() || 'unavailable',
+        attributes: {
+          timestamp: currentData.t,
+          source_type: 'entity_datasource'
+        }
       };
+    }
+
+    // Final fallback to HASS states
+    if (this.hass?.states?.[entityId]) {
+      return this.hass.states[entityId];
     }
 
     return null;
   }
 
   /**
-   * Resolve dot notation paths in aggregation/transformation data
+   * Resolve nested data paths for transformations and aggregations
    * @private
-   * @param {Object} data - Data object to traverse
-   * @param {string} path - Dot notation path
-   * @returns {Object|null} Entity-like object or null
+   * @param {Object} currentData - Current data from datasource
+   * @param {string} path - Full dot notation path
+   * @param {Object} source - Source object for historical data access
+   * @param {string} dataType - 'transformations' or 'aggregations'
+   * @returns {Object|null} Resolved entity-like object
    */
-  _resolveDataPath(data, path) {
-    if (!data || typeof data !== 'object') return null;
-
+  _resolveDataPath(currentData, path, source, dataType) {
     const pathParts = path.split('.');
-    let current = data;
+    let current = currentData;
 
-    // Skip first part if it's the category (aggregations/transformations)
-    const startIndex = (pathParts[0] === 'aggregations' || pathParts[0] === 'transformations') ? 1 : 0;
-
-    for (let i = startIndex; i < pathParts.length; i++) {
-      if (current && typeof current === 'object') {
-        current = current[pathParts[i]];
+    // Navigate through the path
+    for (const part of pathParts) {
+      if (current && typeof current === 'object' && current.hasOwnProperty(part)) {
+        current = current[part];
       } else {
         return null;
       }
     }
 
-    // If we found a value, wrap it in entity-like format
+    // If we found a value, create entity-like object
     if (current !== undefined && current !== null) {
-      return {
+      const entityResult = {
         state: current.toString(),
         attributes: {
           data_path: path,
-          source_type: 'datasource_processed'
+          data_type: dataType,
+          source_id: source.entity || 'unknown'
         }
       };
+
+      // For transformations, provide historical data access
+      if (dataType === 'transformations') {
+        const transformKey = pathParts[1]; // e.g., "celsius" from "transformations.celsius"
+        entityResult.getHistoricalData = (count) => {
+          try {
+            return source.getTransformedHistory(transformKey, count || 100);
+          } catch (error) {
+            console.warn(`[DataSourceManager] Error getting transformed history for ${transformKey}:`, error);
+            return [];
+          }
+        };
+      }
+
+      return entityResult;
     }
 
     return null;
@@ -478,6 +496,51 @@ export class DataSourceManager {
       result[name] = source.getSubscriberInfo?.() || [];
     });
     return result;
+  }
+
+  /**
+   * Enhanced debugging method for transformation and aggregation inspection
+   * @returns {Object} Comprehensive debug information
+   */
+  getDebugInfo() {
+    const debugInfo = {
+      sources: this.sources.size,
+      entityIndex: this.entityIndex.size,
+      enhanced_sources: [],
+      dot_notation_test: {}
+    };
+
+    // Get debug info from all sources
+    this.sources.forEach((source, id) => {
+      if (typeof source.getDebugInfo === 'function') {
+        debugInfo.enhanced_sources.push({
+          id,
+          ...source.getDebugInfo()
+        });
+      }
+    });
+
+    // Test dot notation access for enhanced sources
+    this.sources.forEach((source, id) => {
+      const currentData = source.getCurrentData();
+      if (currentData.transformations && Object.keys(currentData.transformations).length > 0) {
+        Object.keys(currentData.transformations).forEach(transformKey => {
+          const dotPath = `${id}.transformations.${transformKey}`;
+          const resolved = this.getEntity(dotPath);
+          debugInfo.dot_notation_test[dotPath] = resolved ? resolved.state : 'null';
+        });
+      }
+
+      if (currentData.aggregations && Object.keys(currentData.aggregations).length > 0) {
+        Object.keys(currentData.aggregations).forEach(aggKey => {
+          const dotPath = `${id}.aggregations.${aggKey}`;
+          const resolved = this.getEntity(dotPath);
+          debugInfo.dot_notation_test[dotPath] = resolved ? resolved.state : 'null';
+        });
+      }
+    });
+
+    return debugInfo;
   }
 
   async destroy() {

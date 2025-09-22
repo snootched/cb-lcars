@@ -105,6 +105,15 @@ export class RollingBuffer {
   }
 
   /**
+   * Add method (alias for push for compatibility)
+   * @param {number} timestamp - Data timestamp
+   * @param {number} value - Data value
+   */
+  add(timestamp, value) {
+    return this.push(timestamp, value);
+  }
+
+  /**
    * Get data as parallel arrays { t: timestamps[], v: values[] }
    * Returns data in chronological order (oldest first)
    */
@@ -305,5 +314,37 @@ export class RollingBuffer {
     }
 
     return true;
+  }
+
+  /**
+   * Get recent points (compatibility method for DataSource) - FIXED VERSION
+   * @param {number} count - Number of recent points to return
+   * @returns {Array} Array of recent data points
+   */
+  getRecent(count = 100) {
+    if (this._size === 0) {
+      return [];
+    }
+
+    const points = [];
+    const maxCount = Math.min(count, this._size);
+
+    for (let i = 0; i < maxCount; i++) {
+      const index = (this._head - 1 - i + this.capacity) % this.capacity;
+      const point = {
+        t: this._timestamps[index],
+        v: this._values[index]
+      };
+      if (point.t !== undefined && point.v !== undefined) {
+        points.push({
+          timestamp: point.t,
+          value: point.v,
+          t: point.t,
+          v: point.v
+        });
+      }
+    }
+
+    return points;
   }
 }
