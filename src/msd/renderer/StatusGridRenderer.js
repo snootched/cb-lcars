@@ -741,6 +741,71 @@ export class StatusGridRenderer {
   }
 
   /**
+   * Compute attachment points for status grid overlay
+   * @param {Object} overlay - Status grid overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {Element} container - Container element for measurements
+   * @returns {Object|null} Attachment points object
+   * @static
+   */
+  static computeAttachmentPoints(overlay, anchors, container) {
+    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const size = overlay.size || [200, 150];
+
+    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+      console.debug(`[StatusGridRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      return null;
+    }
+
+    const [x, y] = position;
+    const [width, height] = size;
+
+    // Calculate bounding box
+    const left = x;
+    const right = x + width;
+    const top = y;
+    const bottom = y + height;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    const attachmentPoints = {
+      id: overlay.id,
+      center: [centerX, centerY],
+      bbox: {
+        left,
+        right,
+        top,
+        bottom,
+        width,
+        height,
+        x,
+        y
+      },
+      points: {
+        center: [centerX, centerY],
+        top: [centerX, top],
+        bottom: [centerX, bottom],
+        left: [left, centerY],
+        right: [right, centerY],
+        topLeft: [left, top],
+        topRight: [right, top],
+        bottomLeft: [left, bottom],
+        bottomRight: [right, bottom],
+        // Aliases for common naming conventions
+        'top-left': [left, top],
+        'top-right': [right, top],
+        'bottom-left': [left, bottom],
+        'bottom-right': [right, bottom]
+      }
+    };
+
+    // TODO: Future enhancement - add individual grid cell attachment points
+    // This would allow attaching lines to specific cells: grid.cell_0_0, grid.cell_1_2, etc.
+
+    return attachmentPoints;
+  }
+
+  /**
    * Update status grid overlay content dynamically using renderer delegation pattern
    * @param {Element} overlayElement - Cached DOM element for the overlay
    * @param {Object} overlay - Overlay configuration object

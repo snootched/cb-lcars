@@ -17,8 +17,13 @@ export class LineOverlayRenderer {
     this.textAttachmentPoints = new Map();
   }
 
-  setTextAttachmentPoints(map) {
-    this.textAttachmentPoints = map || new Map();
+  setOverlayAttachmentPoints(overlayAttachmentPoints) {
+    this.overlayAttachmentPoints = overlayAttachmentPoints;
+    // Keep backward compatibility
+    this.textAttachmentPoints = overlayAttachmentPoints;
+
+    console.debug('[LineOverlayRenderer] Updated with unified attachment points:',
+      overlayAttachmentPoints ? overlayAttachmentPoints.size : 0, 'overlay(s)');
   }
 
   /**

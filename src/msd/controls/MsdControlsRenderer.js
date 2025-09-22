@@ -1210,6 +1210,66 @@ export class MsdControlsRenderer {
     return [size[0], size[1]];
   }
 
+  /**
+   * Compute attachment points for control overlay
+   * @param {Object} overlay - Control overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {Element} container - Container element for measurements
+   * @returns {Object|null} Attachment points object
+   * @static
+   */
+  static computeAttachmentPoints(overlay, anchors, container) {
+    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const size = overlay.size || [100, 80];
+
+    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+      console.debug(`[MsdControlsRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      return null;
+    }
+
+    const [x, y] = position;
+    const [width, height] = size;
+
+    // Calculate bounding box in SVG coordinate space (where foreignObject is positioned)
+    const left = x;
+    const right = x + width;
+    const top = y;
+    const bottom = y + height;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    return {
+      id: overlay.id,
+      center: [centerX, centerY],
+      bbox: {
+        left,
+        right,
+        top,
+        bottom,
+        width,
+        height,
+        x,
+        y
+      },
+      points: {
+        center: [centerX, centerY],
+        top: [centerX, top],
+        bottom: [centerX, bottom],
+        left: [left, centerY],
+        right: [right, centerY],
+        topLeft: [left, top],
+        topRight: [right, top],
+        bottomLeft: [left, bottom],
+        bottomRight: [right, bottom],
+        // Aliases for common naming conventions
+        'top-left': [left, top],
+        'top-right': [right, top],
+        'bottom-left': [left, bottom],
+        'bottom-right': [right, bottom]
+      }
+    };
+  }
+
   // Cleanup method
   cleanup() {
     console.log('[MsdControlsRenderer] Cleaning up controls renderer');

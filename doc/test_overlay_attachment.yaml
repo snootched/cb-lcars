@@ -1,0 +1,64 @@
+/**
+ * TEST CONFIGURATION FOR OVERLAY-TO-OVERLAY ATTACHMENT
+ *
+ * This demonstrates the new unified attachment point system:
+ * - Sparkline can be attached to by lines
+ * - History bars can be attached to by lines
+ * - Status grids can be attached to by lines
+ * - Controls can be attached to by lines
+ * - Any overlay can attach to any other overlay
+ *
+ * Example configuration:
+ *
+ * overlays:
+ *   - id: cpu_sparkline
+ *     type: sparkline
+ *     position: [100, 100]
+ *     size: [200, 60]
+ *     source: cpu_usage
+ *
+ *   - id: memory_history
+ *     type: history_bar
+ *     position: [400, 100]
+ *     size: [300, 80]
+ *     source: memory_usage
+ *
+ *   - id: system_status
+ *     type: status_grid
+ *     position: [100, 200]
+ *     size: [150, 120]
+ *
+ *   - id: power_control
+ *     type: control
+ *     position: [300, 250]
+ *     size: [100, 80]
+ *     card:
+ *       type: button
+ *       entity: switch.main_power
+ *
+ *   - id: line_to_sparkline
+ *     type: line
+ *     anchor: [50, 130]  # Start point
+ *     attach_to: cpu_sparkline  # Attach to sparkline
+ *     attach_side: left
+ *     attach_gap: 10
+ *
+ *   - id: line_sparkline_to_history
+ *     type: line
+ *     anchor: cpu_sparkline      # Start from sparkline
+ *     attach_to: memory_history  # Attach to history bar
+ *     attach_side: top-left
+ *
+ *   - id: line_to_status_grid
+ *     type: line
+ *     anchor: memory_history     # Start from history bar
+ *     attach_to: system_status   # Attach to status grid
+ *     attach_side: right
+ *
+ *   - id: line_to_control
+ *     type: line
+ *     anchor: system_status      # Start from status grid
+ *     attach_to: power_control   # Attach to control
+ *     attach_side: bottom-right
+ *     attach_gap: 5
+ */

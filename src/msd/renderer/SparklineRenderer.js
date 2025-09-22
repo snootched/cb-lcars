@@ -1485,6 +1485,66 @@ export class SparklineRenderer {
   }
 
   /**
+   * Compute attachment points for sparkline overlay
+   * @param {Object} overlay - Sparkline overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {Element} container - Container element for measurements
+   * @returns {Object|null} Attachment points object
+   * @static
+   */
+  static computeAttachmentPoints(overlay, anchors, container) {
+    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const size = overlay.size || [200, 60];
+
+    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+      console.debug(`[SparklineRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      return null;
+    }
+
+    const [x, y] = position;
+    const [width, height] = size;
+
+    // Calculate bounding box
+    const left = x;
+    const right = x + width;
+    const top = y;
+    const bottom = y + height;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    return {
+      id: overlay.id,
+      center: [centerX, centerY],
+      bbox: {
+        left,
+        right,
+        top,
+        bottom,
+        width,
+        height,
+        x,
+        y
+      },
+      points: {
+        center: [centerX, centerY],
+        top: [centerX, top],
+        bottom: [centerX, bottom],
+        left: [left, centerY],
+        right: [right, centerY],
+        topLeft: [left, top],
+        topRight: [right, top],
+        bottomLeft: [left, bottom],
+        bottomRight: [right, bottom],
+        // Aliases for common naming conventions
+        'top-left': [left, top],
+        'top-right': [right, top],
+        'bottom-left': [left, bottom],
+        'bottom-right': [right, bottom]
+      }
+    };
+  }
+
+  /**
    * Get rendering capabilities and features supported
    * @public
    */

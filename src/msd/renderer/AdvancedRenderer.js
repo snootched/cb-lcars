@@ -3,12 +3,16 @@
  * Main orchestrator that delegates to specialized renderers
  */
 
+
+import { RendererUtils } from './RendererUtils.js';
+import { PositionResolver } from './PositionResolver.js';
+
+import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
 import { SparklineRenderer } from './SparklineRenderer.js';
-import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { StatusGridRenderer } from './StatusGridRenderer.js';
 import { HistoryBarRenderer } from './HistoryBarRenderer.js';
-import { RendererUtils } from './RendererUtils.js';
+import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 
 export class AdvancedRenderer {
   constructor(mountEl, routerCore, systemsManager = null) {
@@ -21,7 +25,8 @@ export class AdvancedRenderer {
 
     // Track overlay elements for efficient updates
     this.overlayElementCache = new Map(); // overlayId -> DOM element
-    this.textAttachmentPoints = new Map();
+    this.overlayAttachmentPoints = new Map(); // UNIFIED: All overlay attachment points
+    this.textAttachmentPoints = new Map(); // DEPRECATED: Keep for backward compatibility
     this._lineDeps = new Map(); // targetOverlayId -> Set(lineOverlayId)
   }
 
@@ -67,13 +72,23 @@ export class AdvancedRenderer {
     overlayGroup.innerHTML = '';
     this.overlayElementCache.clear();
 
-    // Precompute text attachment points (unchanged)
-    this.textAttachmentPoints.clear();
-    overlays.filter(o => o.type === 'text').forEach(tov => {
-      const ap = TextOverlayRenderer.computeAttachmentPoints(tov, anchors, this.mountEl);
-      if (ap) this.textAttachmentPoints.set(tov.id, ap);
+    // Precompute attachment points for all overlay types (after initial render)
+    this.overlayAttachmentPoints.clear();
+    this.textAttachmentPoints.clear(); // Keep for backward compatibility
+
+    overlays.forEach(ov => {
+      const attachmentPoints = this.computeAttachmentPointsForType(ov, anchors, this.mountEl);
+      if (attachmentPoints) {
+        this.overlayAttachmentPoints.set(ov.id, attachmentPoints);
+
+        // BACKWARD COMPATIBILITY: Also populate textAttachmentPoints for text overlays
+        if (ov.type === 'text') {
+          this.textAttachmentPoints.set(ov.id, attachmentPoints);
+        }
+      }
     });
-    this.lineRenderer.setTextAttachmentPoints(this.textAttachmentPoints);
+
+    this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
     // Phase 1: render overlays that others may depend on (text, sparkline)
     const earlyTypes = new Set(['text', 'sparkline']);
@@ -154,6 +169,125 @@ export class AdvancedRenderer {
     };
   }
 
+  /**
+   * Compute attachment points for any overlay type
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {Element} container - Container element for measurements
+   * @returns {Object|null} Attachment points object or null if not computable
+   */
+  computeAttachmentPointsForType(overlay, anchors, container) {
+    if (!overlay || !overlay.type || !overlay.id) {
+      return null;
+    }
+
+    try {
+      switch (overlay.type) {
+        case 'text':
+          return this._computeTextAttachmentPoints(overlay, anchors, container);
+        case 'sparkline':
+          return this._computeSparklineAttachmentPoints(overlay, anchors, container);
+        case 'history_bar':
+          return this._computeHistoryBarAttachmentPoints(overlay, anchors, container);
+        case 'status_grid':
+          return this._computeStatusGridAttachmentPoints(overlay, anchors, container);
+        case 'control':
+          return this._computeControlAttachmentPoints(overlay, anchors, container);
+        case 'line':
+          // Lines don't have attachment points (they attach to others, not vice versa)
+          return null;
+        default:
+          console.warn(`[AdvancedRenderer] Unknown overlay type for attachment points: ${overlay.type}`);
+          return null;
+      }
+    } catch (error) {
+      console.warn(`[AdvancedRenderer] Failed to compute attachment points for ${overlay.id}:`, error);
+      return null;
+    }
+  }
+
+  // Individual attachment point computation methods for each overlay type
+
+  _computeTextAttachmentPoints(overlay, anchors, container) {
+    // Use existing TextOverlayRenderer method
+    return TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, container);
+  }
+
+  _computeSparklineAttachmentPoints(overlay, anchors, container) {
+    return SparklineRenderer.computeAttachmentPoints(overlay, anchors, container);
+  }
+
+  _computeHistoryBarAttachmentPoints(overlay, anchors, container) {
+    return HistoryBarRenderer.computeAttachmentPoints(overlay, anchors, container);
+  }
+
+  _computeStatusGridAttachmentPoints(overlay, anchors, container) {
+    return StatusGridRenderer.computeAttachmentPoints(overlay, anchors, container);
+  }
+
+  _computeControlAttachmentPoints(overlay, anchors, container) {
+    return MsdControlsRenderer.computeAttachmentPoints(overlay, anchors, container);
+  }
+
+  /**
+   * Compute basic attachment points for non-text overlays using position/size
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {string} type - Overlay type for logging
+   * @returns {Object|null} Attachment points object
+   */
+  _computeBasicAttachmentPoints(overlay, anchors, type) {
+    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const size = overlay.size;
+
+    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+      console.debug(`[AdvancedRenderer] Cannot compute attachment points for ${type} ${overlay.id}: missing position or size`);
+      return null;
+    }
+
+    const [x, y] = position;
+    const [width, height] = size;
+
+    // Calculate bounding box
+    const left = x;
+    const right = x + width;
+    const top = y;
+    const bottom = y + height;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    return {
+      id: overlay.id,
+      center: [centerX, centerY],
+      bbox: {
+        left,
+        right,
+        top,
+        bottom,
+        width,
+        height,
+        x,
+        y
+      },
+      points: {
+        center: [centerX, centerY],
+        top: [centerX, top],
+        bottom: [centerX, bottom],
+        left: [left, centerY],
+        right: [right, centerY],
+        topLeft: [left, top],
+        topRight: [right, top],
+        bottomLeft: [left, bottom],
+        bottomRight: [right, bottom],
+        // Aliases for common naming conventions
+        'top-left': [left, top],
+        'top-right': [right, top],
+        'bottom-left': [left, bottom],
+        'bottom-right': [right, bottom]
+      }
+    };
+  }
+
   _ensureOverlayGroup(svg) {
     let group = svg.querySelector('#msd-overlay-container');
     if (!group) {
@@ -178,12 +312,13 @@ export class AdvancedRenderer {
       const raw = line._raw || line.raw || {};
       const dest = raw.attach_to || raw.attachTo;
       if (!dest) return;
-      const tap = this.textAttachmentPoints.get(dest);
-      if (!tap || !tap.points) return;
+      // Use unified attachment points (includes all overlay types)
+      const attachmentPointData = this.overlayAttachmentPoints.get(dest);
+      if (!attachmentPointData || !attachmentPointData.points) return;
       const side = (raw.attach_side || raw.attachSide || '').toLowerCase();
-      const basePt = this._resolveOverlayAttachmentPoint(tap.points, side);
+      const basePt = this._resolveOverlayAttachmentPoint(attachmentPointData.points, side);
       if (!basePt) return;
-      const gapPt = this._applyAttachGap(basePt, side, raw, tap.bbox);
+      const gapPt = this._applyAttachGap(basePt, side, raw, attachmentPointData.bbox);
       anchorMap[dest] = gapPt;
       // Register in routerCore so HUD sees it as an anchor
       if (this.routerCore && this.routerCore.anchors) {
