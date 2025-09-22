@@ -165,17 +165,26 @@ export class BaseOverlayUpdater {
       }
     }
 
-    // For status grids, also check cell configurations - ENHANCED to check multiple sources
+    // For status grids, check EACH CELL INDIVIDUALLY - FIXED: Don't use global reference check
     if (overlay.type === 'status_grid') {
       const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
       if (cellsConfig && Array.isArray(cellsConfig)) {
-        hasReference = hasReference || cellsConfig.some(cell => {
+        // Check each cell individually rather than using OR logic
+        cellsConfig.forEach(cell => {
           const cellContent = cell.content || cell.label || cell.value_format || '';
-          return this._contentReferencesChangedDataSources(cellContent, changedIds);
+          const cellReferencesChanged = this._contentReferencesChangedDataSources(cellContent, changedIds);
+
+          console.log(`[BaseOverlayUpdater] Status grid ${overlay.id} cell "${cell.id || cell.label}" content="${cellContent}" references changed data:`, cellReferencesChanged);
+
+          if (cellReferencesChanged) {
+            console.log(`[BaseOverlayUpdater] Status grid ${overlay.id} cell ${cell.id || cell.label} references changed data:`, cellContent);
+            hasReference = true;
+          }
         });
       }
     }
 
+    console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data: ${hasReference}`);
     return hasReference;
   }
 
@@ -186,16 +195,52 @@ export class BaseOverlayUpdater {
   _contentReferencesChangedDataSources(content, changedIds) {
     if (!content || typeof content !== 'string') return false;
 
-    return changedIds.some(entityId => {
+    // Extract all entity references from the content
+    const templateRegex = /\{([^}]+)\}/g;
+    let match;
+    const referencedEntities = new Set();
+
+    while ((match = templateRegex.exec(content)) !== null) {
+      const expression = match[1].trim();
+
+      // Extract entity names from the expression (handle both simple refs and expressions)
+      const entityRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\b/g;
+      let entityMatch;
+
+      while ((entityMatch = entityRegex.exec(expression)) !== null) {
+        const entityName = entityMatch[1];
+
+        // Skip JavaScript keywords
+        if (!['true', 'false', 'null', 'undefined', 'if', 'else', 'return', 'var', 'let', 'const'].includes(entityName)) {
+          referencedEntities.add(entityName);
+        }
+      }
+    }
+
+    // Now check if any of the referenced entities match the changed data sources
+    for (const entityName of referencedEntities) {
+      // Check if this entity name directly matches a changed DataSource
       if (this.systemsManager.dataSourceManager) {
-        for (const [sourceId, source] of this.systemsManager.dataSourceManager.sources || new Map()) {
-          if (source.cfg && source.cfg.entity === entityId && content.includes(sourceId)) {
+        const dataSource = this.systemsManager.dataSourceManager.getSource(entityName);
+        if (dataSource && changedIds.includes(dataSource.cfg?.entity)) {
+          console.log(`[BaseOverlayUpdater] Content references changed DataSource: ${entityName} (entity: ${dataSource.cfg?.entity})`);
+          return true;
+        }
+
+        // ENHANCED: Check for dot notation references (e.g., temperature_enhanced.transformations.celsius)
+        if (entityName.includes('.')) {
+          const baseSourceName = entityName.split('.')[0];
+          const baseDataSource = this.systemsManager.dataSourceManager.getSource(baseSourceName);
+          if (baseDataSource && changedIds.includes(baseDataSource.cfg?.entity)) {
+            console.log(`[BaseOverlayUpdater] Content references changed DataSource via dot notation: ${entityName} -> ${baseSourceName} (entity: ${baseDataSource.cfg?.entity})`);
             return true;
           }
         }
       }
-      return false;
-    });
+    }
+
+    console.log(`[BaseOverlayUpdater] Content does not reference any changed DataSources. Referenced: [${Array.from(referencedEntities).join(', ')}], Changed: [${changedIds.join(', ')}]`);
+    return false;
   }
 
   /**
