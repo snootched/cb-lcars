@@ -210,7 +210,7 @@ export class DataSourceManager {
     const source = this.sources.get(entityId);
     if (source) {
       const currentData = source.getCurrentData();
-      return {
+      const entityResult = {
         state: currentData.v?.toString() || 'unavailable',
         attributes: {
           timestamp: currentData.t,
@@ -232,8 +232,14 @@ export class DataSourceManager {
             console.warn(`[DataSourceManager] Error getting transformed history for ${entityId}.${transformKey}:`, error);
             return [];
           }
+        },
+        // NEW: Add subscription capability for real-time updates
+        subscribe: (callback) => {
+          return source.subscribe(callback);
         }
       };
+
+      return entityResult;
     }
 
     // Check entity index for basic entity sources
@@ -287,6 +293,35 @@ export class DataSourceManager {
           data_path: path,
           data_type: dataType,
           source_id: source.entity || 'unknown'
+        },
+        // NEW: Add subscription capability for dot notation entities
+        subscribe: (callback) => {
+          // Subscribe to the underlying source and filter for our specific transformation/aggregation
+          return source.subscribe((data) => {
+            const pathParts = path.split('.');
+            let current = data;
+
+            for (const part of pathParts) {
+              if (current && typeof current === 'object' && current.hasOwnProperty(part)) {
+                current = current[part];
+              } else {
+                current = null;
+                break;
+              }
+            }
+
+            if (current !== undefined && current !== null) {
+              // Create entity-like data for the callback
+              callback({
+                state: current.toString(),
+                attributes: {
+                  data_path: path,
+                  data_type: dataType,
+                  source_id: source.entity || 'unknown'
+                }
+              });
+            }
+          });
         }
       };
 
@@ -304,9 +339,7 @@ export class DataSourceManager {
       }
 
       return entityResult;
-    }
-
-    return null;
+    }    return null;
   }
 
   listIds() {

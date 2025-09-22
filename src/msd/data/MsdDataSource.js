@@ -294,7 +294,10 @@ export class MsdDataSource {
       this._started = true;
       console.log(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
 
-      // STEP 4: Emit initial data to any existing subscribers
+      // STEP 4: Process historical data through transformations
+      this._processHistoricalTransformations();
+
+      // STEP 5: Emit initial data to any existing subscribers
       this._emitInitialData();
 
     } catch (error) {
@@ -1189,6 +1192,54 @@ export class MsdDataSource {
     });
 
     return results;
+  }
+
+  /**
+   * Process historical data through transformations to populate transform buffers
+   * @private
+   */
+  _processHistoricalTransformations() {
+    if (this.transformations.size === 0) {
+      return; // No transformations to process
+    }
+
+    console.log(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
+
+    try {
+      // Get all historical points from main buffer
+      const historicalPoints = this.buffer.getRecent(this.buffer.size());
+
+      if (historicalPoints.length === 0) {
+        console.log(`[MsdDataSource] No historical data to process for transformations`);
+        return;
+      }
+
+      // Process each historical point through transformations
+      historicalPoints.reverse().forEach((point) => { // Process in chronological order
+        this.transformations.forEach((processor, key) => {
+          try {
+            const transformedValue = processor.transform(point.value, point.timestamp, this.buffer);
+
+            if (transformedValue !== null && Number.isFinite(transformedValue)) {
+              const buffer = this.transformedBuffers.get(key);
+              if (buffer) {
+                buffer.push(point.timestamp, transformedValue);
+              }
+            }
+          } catch (error) {
+            console.warn(`[MsdDataSource] Failed to process historical point through transformation ${key}:`, error);
+          }
+        });
+      });
+
+      // Log results
+      this.transformedBuffers.forEach((buffer, key) => {
+        console.log(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
+      });
+
+    } catch (error) {
+      console.error(`[MsdDataSource] Error processing historical transformations:`, error);
+    }
   }
 
   /**
