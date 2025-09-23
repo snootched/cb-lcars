@@ -153,7 +153,9 @@ function validateOverlays(config, issues) {
       const validSides = [
         'center', 'top', 'bottom', 'left', 'right',
         'topLeft', 'topRight', 'bottomLeft', 'bottomRight',
-        'top-left', 'top-right', 'bottom-left', 'bottom-right'
+        'top-left', 'top-right', 'bottom-left', 'bottom-right',
+        'leftTop', 'leftBottom', 'rightTop', 'rightBottom',
+        'left-top', 'left-bottom', 'right-top', 'right-bottom'
       ];
       if (!validSides.includes(overlay.anchor_side)) {
         issues.errors.push({
@@ -170,7 +172,9 @@ function validateOverlays(config, issues) {
       const validSides = [
         'center', 'top', 'bottom', 'left', 'right',
         'topLeft', 'topRight', 'bottomLeft', 'bottomRight',
-        'top-left', 'top-right', 'bottom-left', 'bottom-right'
+        'top-left', 'top-right', 'bottom-left', 'bottom-right',
+        'leftTop', 'leftBottom', 'rightTop', 'rightBottom',
+        'left-top', 'left-bottom', 'right-top', 'right-bottom'
       ];
       if (!validSides.includes(overlay.attach_side)) {
         issues.errors.push({

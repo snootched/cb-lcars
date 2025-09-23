@@ -879,6 +879,7 @@ export class LineOverlayRenderer {
       'bottom': 'bottom',
       'left': 'left',
       'right': 'right',
+      // Vertical-Horizontal pattern (top-*, bottom-*)
       'top-left': 'topLeft',
       'top-right': 'topRight',
       'bottom-left': 'bottomLeft',
@@ -886,7 +887,16 @@ export class LineOverlayRenderer {
       'topLeft': 'topLeft',
       'topRight': 'topRight',
       'bottomLeft': 'bottomLeft',
-      'bottomRight': 'bottomRight'
+      'bottomRight': 'bottomRight',
+      // Horizontal-Vertical pattern (left-*, right-*)
+      'left-top': 'topLeft',
+      'left-bottom': 'bottomLeft',
+      'right-top': 'topRight',
+      'right-bottom': 'bottomRight',
+      'leftTop': 'topLeft',
+      'leftBottom': 'bottomLeft',
+      'rightTop': 'topRight',
+      'rightBottom': 'bottomRight'
     };
 
     const resolvedSide = aliases[side] || side;
@@ -944,25 +954,40 @@ export class LineOverlayRenderer {
       case 'right':
         offsetX = gap;
         break;
+      // Corner attachments: Apply gap in PRIMARY direction only (first part of compound name)
+      // Vertical-Horizontal pattern (top-*, bottom-*)
       case 'topleft':
       case 'top-left':
-        offsetX = -gap;
-        offsetY = -gap;
+        offsetY = -gap;  // Primary: top → gap goes up
         break;
       case 'topright':
       case 'top-right':
-        offsetX = gap;
-        offsetY = -gap;
+        offsetY = -gap;  // Primary: top → gap goes up
         break;
       case 'bottomleft':
       case 'bottom-left':
-        offsetX = -gap;
-        offsetY = gap;
+        offsetY = gap;   // Primary: bottom → gap goes down
         break;
       case 'bottomright':
       case 'bottom-right':
-        offsetX = gap;
-        offsetY = gap;
+        offsetY = gap;   // Primary: bottom → gap goes down
+        break;
+      // Horizontal-Vertical pattern (left-*, right-*)
+      case 'lefttop':
+      case 'left-top':
+        offsetX = -gap;  // Primary: left → gap goes left
+        break;
+      case 'leftbottom':
+      case 'left-bottom':
+        offsetX = -gap;  // Primary: left → gap goes left
+        break;
+      case 'righttop':
+      case 'right-top':
+        offsetX = gap;   // Primary: right → gap goes right
+        break;
+      case 'rightbottom':
+      case 'right-bottom':
+        offsetX = gap;   // Primary: right → gap goes right
         break;
       case 'center':
       default:

@@ -78,14 +78,24 @@ Each overlay now provides these attachment points:
     topRight: [right, top],
     bottomLeft: [left, bottom],
     bottomRight: [right, bottom],
-    // Aliases
-    'top-left': [left, top],
-    'top-right': [right, top],
-    'bottom-left': [left, bottom],
-    'bottom-right': [right, bottom]
+    // Aliases for all gap direction patterns
+    'top-left': [left, top],        // Gap goes UP
+    'top-right': [right, top],      // Gap goes UP
+    'bottom-left': [left, bottom],  // Gap goes DOWN
+    'bottom-right': [right, bottom], // Gap goes DOWN
+    'left-top': [left, top],        // Gap goes LEFT
+    'left-bottom': [left, bottom],  // Gap goes LEFT
+    'right-top': [right, top],      // Gap goes RIGHT
+    'right-bottom': [right, bottom] // Gap goes RIGHT
   }
 }
 ```
+
+### 🎯 **All Supported Attachment Sides:**
+- **Basic**: `center`, `top`, `bottom`, `left`, `right`
+- **Vertical-Primary**: `top-left`, `top-right`, `bottom-left`, `bottom-right`
+- **Horizontal-Primary**: `left-top`, `left-bottom`, `right-top`, `right-bottom`
+- **CamelCase Aliases**: `topLeft`, `topRight`, `bottomLeft`, `bottomRight`, `leftTop`, `leftBottom`, `rightTop`, `rightBottom`
 
 ## ✅ **Confirmed Working Examples**
 
@@ -183,9 +193,30 @@ The system now correctly prioritizes attachment targets in this order:
 [LineOverlayRenderer] Resolved target overlay attachment: control2.bottom-right -> [1370, 200]
 ```
 
-## 🚀 **Implementation Complete**
+## Implementation Complete**
 
 This feature is **PRODUCTION READY** and provides comprehensive overlay-to-overlay line attachment capabilities for the LCARS MSD system.
+
+### ✅ **v2025.08.1-fuk.27-69 Updates:**
+- **Enhanced Gap Control**: Added `left-*` and `right-*` attachment side patterns
+- **Directional Gap Logic**: Gap direction determined by first part of compound names
+  - `top-*`, `bottom-*` → vertical gap movement
+  - `left-*`, `right-*` → horizontal gap movement
+- **Complete Validation**: Updated validation to support all new attachment side patterns
+- **Full Alias Support**: Both hyphenated and camelCase variations supported
+
+### 🎯 **Gap Direction Examples:**
+```yaml
+# Vertical-primary gaps
+attach_side: bottom-right    # Gap goes DOWN
+attach_side: top-left        # Gap goes UP
+
+# Horizontal-primary gaps
+attach_side: right-bottom    # Gap goes RIGHT
+attach_side: left-top        # Gap goes LEFT
+```
+
+This provides precise control over line spacing for professional LCARS layouts.
 
 ## Future Enhancements
 

@@ -20,11 +20,20 @@ line_overlay:
     # Description: Which side/corner of the source overlay to attach from
     # Required: Only when anchor is an overlay_id
     # Default: center
-    # Values: center | top | bottom | left | right | top-left | top-right | bottom-left | bottom-right
-    # Aliases: topLeft | topRight | bottomLeft | bottomRight
+    # Values: center | top | bottom | left | right |
+    #         top-left | top-right | bottom-left | bottom-right |
+    #         left-top | left-bottom | right-top | right-bottom
+    # Aliases: topLeft | topRight | bottomLeft | bottomRight |
+    #          leftTop | leftBottom | rightTop | rightBottom
+    # Gap Direction: First part of compound names determines gap direction
+    #   - top-* → gap goes UP (negative Y)
+    #   - bottom-* → gap goes DOWN (positive Y)
+    #   - left-* → gap goes LEFT (negative X)
+    #   - right-* → gap goes RIGHT (positive X)
     # Examples:
     #   anchor_side: right
-    #   anchor_side: bottom-right
+    #   anchor_side: bottom-right  # gap goes DOWN
+    #   anchor_side: right-bottom  # gap goes RIGHT
 
   anchor_gap: <number>
     # Description: Gap offset from the source attachment point (pixels)
@@ -50,11 +59,20 @@ line_overlay:
     # Description: Which side/corner of the target overlay to attach to
     # Required: Only when attach_to is an overlay_id
     # Default: center
-    # Values: center | top | bottom | left | right | top-left | top-right | bottom-left | bottom-right
-    # Aliases: topLeft | topRight | bottomLeft | bottomRight
+    # Values: center | top | bottom | left | right |
+    #         top-left | top-right | bottom-left | bottom-right |
+    #         left-top | left-bottom | right-top | right-bottom
+    # Aliases: topLeft | topRight | bottomLeft | bottomRight |
+    #          leftTop | leftBottom | rightTop | rightBottom
+    # Gap Direction: First part of compound names determines gap direction
+    #   - top-* → gap goes UP (negative Y)
+    #   - bottom-* → gap goes DOWN (positive Y)
+    #   - left-* → gap goes LEFT (negative X)
+    #   - right-* → gap goes RIGHT (positive X)
     # Examples:
     #   attach_side: left
-    #   attach_side: top-right
+    #   attach_side: top-right     # gap goes UP
+    #   attach_side: right-top     # gap goes RIGHT
 
   attach_gap: <number>
     # Description: Gap offset from the target attachment point (pixels)
@@ -64,10 +82,35 @@ line_overlay:
     #   attach_gap: 12   # 12px gap from target edge
     #   attach_gap: 0    # No gap (line touches overlay)
 
+  # Gap Direction Examples
+  gap_direction_examples:
+    # Vertical-Primary (gap moves vertically)
+    - attachment_side: bottom-right
+      gap: 15
+      result: "Line moves 15px DOWN from bottom-right corner"
+
+    - attachment_side: top-left
+      gap: 10
+      result: "Line moves 10px UP from top-left corner"
+
+    # Horizontal-Primary (gap moves horizontally)
+    - attachment_side: right-bottom
+      gap: 20
+      result: "Line moves 20px RIGHT from right-bottom corner"
+
+    - attachment_side: left-top
+      gap: 12
+      result: "Line moves 12px LEFT from left-top corner"
+
+    # Basic sides (gap moves outward)
+    - attachment_side: right
+      gap: 8
+      result: "Line moves 8px RIGHT from right edge"
+
 # === IMPLEMENTATION STATUS ===
 
 implementation_status:
-  version: "v2025.08.1-fuk.24-69"
+  version: "v2025.08.1-fuk.27-69"
   status: "FULLY IMPLEMENTED AND TESTED"
 
   completed_features:
