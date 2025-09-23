@@ -139,6 +139,69 @@ function validateOverlays(config, issues) {
       }
     });
 
+    console.debug(`[Validation] Validating overlay properties for ${overlay.id}:`, {
+      type: overlay.type,
+      anchor_side: overlay.anchor_side,
+      attach_side: overlay.attach_side,
+      anchor_gap: overlay.anchor_gap,
+      attach_gap: overlay.attach_gap,
+      allKeys: Object.keys(overlay)
+    });
+
+    // Validate anchor_side property
+    if (overlay.anchor_side !== undefined) {
+      const validSides = [
+        'center', 'top', 'bottom', 'left', 'right',
+        'topLeft', 'topRight', 'bottomLeft', 'bottomRight',
+        'top-left', 'top-right', 'bottom-left', 'bottom-right'
+      ];
+      if (!validSides.includes(overlay.anchor_side)) {
+        issues.errors.push({
+          code: 'anchor_side.invalid',
+          overlay_id: overlay.id,
+          anchor_side: overlay.anchor_side,
+          message: `Overlay '${overlay.id}' has invalid anchor_side '${overlay.anchor_side}'. Valid values: ${validSides.join(', ')}`
+        });
+      }
+    }
+
+    // Validate attach_side property (ensure consistency with anchor_side validation)
+    if (overlay.attach_side !== undefined) {
+      const validSides = [
+        'center', 'top', 'bottom', 'left', 'right',
+        'topLeft', 'topRight', 'bottomLeft', 'bottomRight',
+        'top-left', 'top-right', 'bottom-left', 'bottom-right'
+      ];
+      if (!validSides.includes(overlay.attach_side)) {
+        issues.errors.push({
+          code: 'attach_side.invalid',
+          overlay_id: overlay.id,
+          attach_side: overlay.attach_side,
+          message: `Overlay '${overlay.id}' has invalid attach_side '${overlay.attach_side}'. Valid values: ${validSides.join(', ')}`
+        });
+      }
+    }
+
+    // Validate anchor_gap property
+    if (overlay.anchor_gap !== undefined && typeof overlay.anchor_gap !== 'number') {
+      issues.errors.push({
+        code: 'anchor_gap.invalid',
+        overlay_id: overlay.id,
+        anchor_gap: overlay.anchor_gap,
+        message: `Overlay '${overlay.id}' anchor_gap must be a number`
+      });
+    }
+
+    // Validate attach_gap property (ensure consistency)
+    if (overlay.attach_gap !== undefined && typeof overlay.attach_gap !== 'number') {
+      issues.errors.push({
+        code: 'attach_gap.invalid',
+        overlay_id: overlay.id,
+        attach_gap: overlay.attach_gap,
+        message: `Overlay '${overlay.id}' attach_gap must be a number`
+      });
+    }
+
     if (overlay.position && Array.isArray(overlay.position)) {
       validateCoordinateArray(overlay.position, issues, `Overlay '${overlay.id}' position`);
     }

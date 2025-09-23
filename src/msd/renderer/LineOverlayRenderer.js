@@ -39,25 +39,142 @@ export class LineOverlayRenderer {
       return '';
     }
 
-    let anchor1 = PositionResolver.resolvePosition(overlay.anchor, anchors);
-    let anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
+        // Resolve anchor position with overlay attachment support
+    let anchor;
 
-    // If attach_to not an anchor but matches a text overlay id we have attachment points
-    let attachMeta = null;
-    if (!anchor2 && overlay.attach_to && this.textAttachmentPoints.has(overlay.attach_to)) {
-      attachMeta = this.textAttachmentPoints.get(overlay.attach_to);
-      // Compute smart attachment point
-      anchor2 = this._computeTextAttachPoint(anchor1, attachMeta, overlay);
+    // Check if anchor refers to an overlay and handle anchor_side/anchor_gap
+    if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.anchor)) {
+      const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
+      if (sourceAttachmentPoints && sourceAttachmentPoints.points) {
+        console.debug(`[LineOverlayRenderer] Found source overlay attachment points for: ${overlay.anchor}`);
+
+        console.debug(`[LineOverlayRenderer] Overlay object properties:`, {
+          id: overlay.id,
+          anchor: overlay.anchor,
+          anchor_side: overlay.anchor_side,
+          attach_to: overlay.attach_to,
+          attach_side: overlay.attach_side,
+          allKeys: Object.keys(overlay),
+          rawObject: overlay
+        });
+
+        const anchorSide = overlay.anchor_side || 'center';
+        console.debug(`[LineOverlayRenderer] anchor_side resolution:`, {
+          rawValue: overlay.anchor_side,
+          finalValue: anchorSide,
+          typeOfRaw: typeof overlay.anchor_side
+        });
+
+        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);        console.debug(`[LineOverlayRenderer] Source attachment resolution:`, {
+          overlayId: overlay.anchor,
+          requestedSide: anchorSide,
+          availablePoints: Object.keys(sourceAttachmentPoints.points),
+          resolvedPoint: sourcePoint
+        });
+
+        if (sourcePoint) {
+          // Apply gap offset if specified
+          const anchorGap = overlay.anchor_gap || 0;
+          anchor = this._applyGapToAttachmentPoint(
+            sourcePoint,
+            anchorSide,
+            anchorGap,
+            sourceAttachmentPoints.bbox
+          );
+
+          console.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
+        } else {
+          console.warn(`[LineOverlayRenderer] Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
+          anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+        }
+      } else {
+        console.warn(`[LineOverlayRenderer] No attachment points found for source overlay: ${overlay.anchor}`);
+        anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+      }
+    } else {
+      // Standard anchor resolution (coordinates, static anchors)
+      anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+    }
+    // Resolve target position with overlay attachment support
+    // PRIORITIZE: Check overlay attachment points first, then fall back to static anchors
+    let anchor2 = null;
+
+    console.debug(`[LineOverlayRenderer] Target resolution debug for ${overlay.id}:`, {
+      attach_to: overlay.attach_to,
+      hasOverlayAttachmentPoints: !!(this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)),
+      overlayAttachmentPointsSize: this.overlayAttachmentPoints ? this.overlayAttachmentPoints.size : 0
+    });
+
+    // Check for overlay attachment points FIRST (prioritize over static anchors)
+    if (overlay.attach_to && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)) {
+      const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
+      if (targetAttachmentPoints && targetAttachmentPoints.points) {
+        console.debug(`[LineOverlayRenderer] Found target overlay attachment points for: ${overlay.attach_to}`);
+
+        const attachSide = overlay.attach_side || 'center';
+        const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
+
+        console.debug(`[LineOverlayRenderer] Target attachment resolution:`, {
+          overlayId: overlay.attach_to,
+          requestedSide: attachSide,
+          availablePoints: Object.keys(targetAttachmentPoints.points),
+          resolvedPoint: targetPoint
+        });
+
+        if (targetPoint) {
+          // Apply gap offset if specified
+          const attachGap = overlay.attach_gap || 0;
+          anchor2 = this._applyGapToAttachmentPoint(
+            targetPoint,
+            attachSide,
+            attachGap,
+            targetAttachmentPoints.bbox
+          );
+
+          console.debug(`[LineOverlayRenderer] Resolved target overlay attachment: ${overlay.attach_to}.${attachSide} -> [${anchor2[0]}, ${anchor2[1]}]`);
+        } else {
+          console.warn(`[LineOverlayRenderer] Could not resolve attach_side '${attachSide}' for overlay ${overlay.attach_to}`);
+          anchor2 = targetAttachmentPoints.center; // Fallback to center
+        }
+      } else {
+        console.warn(`[LineOverlayRenderer] No attachment points found for target overlay: ${overlay.attach_to}`);
+      }
     }
 
-    if (!anchor1 || !anchor2) {
-      console.warn(`[LineOverlayRenderer] Line ${overlay.id} missing anchor points`);
+    // Fallback to static anchor resolution if no overlay attachment points found
+    if (!anchor2 && overlay.attach_to) {
+      anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
+      console.debug(`[LineOverlayRenderer] Using static anchor for target ${overlay.attach_to}:`, anchor2);
+    }
+
+    // Legacy fallback for text overlays (backward compatibility)
+    if (!anchor2 && overlay.attach_to && this.textAttachmentPoints.has(overlay.attach_to)) {
+      const attachMeta = this.textAttachmentPoints.get(overlay.attach_to);
+      // Compute smart attachment point using legacy method
+      anchor2 = this._computeTextAttachPoint(anchor, attachMeta, overlay);
+    }
+
+    // Validate anchor is properly resolved
+    if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
+      console.error(`[LineOverlayRenderer] Invalid anchor for ${overlay.id}:`, {
+        anchor,
+        type: typeof anchor,
+        isArray: Array.isArray(anchor)
+      });
       return '';
     }
 
+    // DEBUG: Log anchor resolution for troubleshooting
+    console.debug(`[LineOverlayRenderer] Resolved anchor for ${overlay.id}:`, {
+      originalAnchor: overlay.anchor,
+      resolvedAnchor: anchor,
+      anchorType: typeof overlay.anchor,
+      hasAttachmentPoints: !!(this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.anchor))
+    });
+
     try {
       // Get the computed path from RouterCore (includes all smart routing)
-      const routeRequest = this.routerCore.buildRouteRequest(overlay, anchor1, anchor2);
+      const routeRequest = this.routerCore.buildRouteRequest(overlay, anchor, anchor2);
       const pathResult = this.routerCore.computePath(routeRequest);
 
       if (!pathResult?.d) {
@@ -89,7 +206,7 @@ export class LineOverlayRenderer {
 
     } catch (error) {
       console.error(`[LineOverlayRenderer] Enhanced rendering failed for line ${overlay.id}:`, error);
-      return this._renderFallbackLine(overlay, anchor1, anchor2);
+      return this._renderFallbackLine(overlay, anchor, anchor2);
     }
   }
 
@@ -616,8 +733,8 @@ export class LineOverlayRenderer {
    * Render a simple fallback line when enhanced rendering fails
    * @private
    */
-  _renderFallbackLine(overlay, anchor1, anchor2) {
-    const [x1, y1] = anchor1;
+  _renderFallbackLine(overlay, anchor, anchor2) {
+    const [x1, y1] = anchor;
     const [x2, y2] = anchor2;
     const style = overlay.finalStyle || overlay.style || {};
     const color = style.color || 'var(--lcars-orange)';
@@ -728,5 +845,131 @@ export class LineOverlayRenderer {
     };
 
     return attachPoint;
+  }
+
+  /**
+   * Resolve attachment point from attachment points object
+   * @param {Object} points - Attachment points object
+   * @param {string} side - Side to resolve (center, top, left, etc.)
+   * @returns {Array|null} [x, y] coordinates or null
+   * @private
+   */
+  _resolveAttachmentPoint(points, side) {
+    if (!points || typeof points !== 'object') {
+      console.warn(`[LineOverlayRenderer] No attachment points provided for side '${side}'`);
+      return null;
+    }
+
+    console.debug(`[LineOverlayRenderer] Resolving attachment point:`, {
+      requestedSide: side,
+      availablePoints: Object.keys(points),
+      pointsData: points
+    });
+
+    // Try exact side match first
+    if (points[side]) {
+      console.debug(`[LineOverlayRenderer] Found exact match for side '${side}':`, points[side]);
+      return points[side];
+    }
+
+    // Try common aliases
+    const aliases = {
+      'center': 'center',
+      'top': 'top',
+      'bottom': 'bottom',
+      'left': 'left',
+      'right': 'right',
+      'top-left': 'topLeft',
+      'top-right': 'topRight',
+      'bottom-left': 'bottomLeft',
+      'bottom-right': 'bottomRight',
+      'topLeft': 'topLeft',
+      'topRight': 'topRight',
+      'bottomLeft': 'bottomLeft',
+      'bottomRight': 'bottomRight'
+    };
+
+    const resolvedSide = aliases[side] || side;
+    if (points[resolvedSide]) {
+      console.debug(`[LineOverlayRenderer] Found alias match '${side}' -> '${resolvedSide}':`, points[resolvedSide]);
+      return points[resolvedSide];
+    }
+
+    // Fallback to center if available
+    if (points.center) {
+      console.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using center:`, points.center);
+      return points.center;
+    }
+
+    // Last resort: return first available point
+    const firstPoint = Object.values(points)[0];
+    if (firstPoint && Array.isArray(firstPoint)) {
+      console.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using first available point:`, firstPoint);
+      return firstPoint;
+    }
+
+    console.error(`[LineOverlayRenderer] No attachment points available for side '${side}'`);
+    return null;
+  }
+
+  /**
+   * Apply gap offset to attachment point
+   * @param {Array} point - [x, y] attachment point
+   * @param {string} side - Side the point is on
+   * @param {number} gap - Gap distance
+   * @param {Object} bbox - Bounding box of target overlay
+   * @returns {Array} [x, y] gap-adjusted point
+   * @private
+   */
+  _applyGapToAttachmentPoint(point, side, gap, bbox) {
+    if (!point || !Array.isArray(point) || gap === 0) {
+      return point;
+    }
+
+    const [x, y] = point;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    // Apply gap offset based on attachment side
+    switch (side.toLowerCase()) {
+      case 'top':
+        offsetY = -gap;
+        break;
+      case 'bottom':
+        offsetY = gap;
+        break;
+      case 'left':
+        offsetX = -gap;
+        break;
+      case 'right':
+        offsetX = gap;
+        break;
+      case 'topleft':
+      case 'top-left':
+        offsetX = -gap;
+        offsetY = -gap;
+        break;
+      case 'topright':
+      case 'top-right':
+        offsetX = gap;
+        offsetY = -gap;
+        break;
+      case 'bottomleft':
+      case 'bottom-left':
+        offsetX = -gap;
+        offsetY = gap;
+        break;
+      case 'bottomright':
+      case 'bottom-right':
+        offsetX = gap;
+        offsetY = gap;
+        break;
+      case 'center':
+      default:
+        // For center, don't apply gap (or could apply in direction of closest edge)
+        break;
+    }
+
+    return [x + offsetX, y + offsetY];
   }
 }

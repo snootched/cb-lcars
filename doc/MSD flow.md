@@ -136,13 +136,41 @@ Anime.js v4 integration with LCARS-specific extensions:
 - **Scope Support**: ShadowDOM-compatible animations
 - **Timeline Integration**: Coordinated multi-element animations
 
-### 14. **Introspection System (`src/msd/introspection/MsdIntrospection.js`)**
+### 14. **✅ Unified Overlay Attachment System (`src/msd/renderer/`)**
+**FULLY IMPLEMENTED** comprehensive overlay-to-overlay line attachment:
+- **Universal Attachment**: ANY overlay can attach to ANY other overlay
+- **Precise Positioning**: 9 attachment points per overlay (center, corners, sides)
+- **Smart Prioritization**: Overlay points > Static anchors > Coordinates
+- **Gap Support**: `anchor_gap` and `attach_gap` for precise spacing
+- **Property Validation**: Complete schema validation for attachment properties
+- **Backward Compatibility**: Maintains existing text overlay attachment behavior
+
+**Supported Configuration:**
+```yaml
+- id: connection_line
+  type: line
+  anchor: cpu_sparkline          # Source overlay
+  anchor_side: right             # From right edge
+  anchor_gap: 8                  # 8px gap from edge
+  attach_to: memory_status       # Target overlay
+  attach_side: bottom-right      # To bottom-right corner
+  attach_gap: 12                 # 12px gap from corner
+```
+
+**All Overlay Types Supported:**
+- ✅ Text overlays (dynamic text-based attachment points)
+- ✅ Sparkline overlays (position/size-based attachment points)
+- ✅ Status Grid overlays (grid-based attachment points)
+- ✅ History Bar overlays (visualization-based attachment points)
+- ✅ Control overlays (foreignObject-based attachment points)
+
+### 15. **Introspection System (`src/msd/introspection/MsdIntrospection.js`)**
 Runtime analysis and debugging:
 - **Live Overlay Inspection**: Real-time overlay state analysis
 - **Performance Monitoring**: Render timing and metrics
 - **Configuration Introspection**: Runtime config analysis
 
-### 15. **API Layer (`src/msd/api/MsdApi.js`)**
+### 16. **API Layer (`src/msd/api/MsdApi.js`)**
 Unified external interface:
 
 ```javascript
@@ -164,6 +192,8 @@ window.cblcars.msd = {
 5. **Developer Experience**: Comprehensive debugging and introspection tools
 6. **Extensibility**: Plugin-like pack system for configuration sharing
 7. **Error Resilience**: Graceful degradation with validation and error handling
+8. **✅ Universal Connectivity**: Complete overlay-to-overlay attachment system with precise positioning
+9. **✅ Future-Proof Design**: Unified attachment API supports any overlay type with consistent behavior
 
 ## Testing Infrastructure
 

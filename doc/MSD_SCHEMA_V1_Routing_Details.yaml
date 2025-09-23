@@ -1,4 +1,5 @@
 # LCARS MSD Supplementary Example: Global and Per-Overlay Routing/Style Options
+# Including Unified Overlay-to-Overlay Attachment System
 
 msd:
   # --- Global Routing Configuration ---
@@ -32,22 +33,48 @@ msd:
     smoothing_max_points: 160              # Default max points after smoothing
 
   overlays:
-    # --- Overlay using only global routing options ---
+    # --- Example overlays to demonstrate attachment capabilities ---
+    - id: cpu_sparkline
+      type: sparkline
+      position: [100, 100]
+      size: [200, 60]
+      source: cpu_usage
+
+    - id: memory_status
+      type: status_grid
+      position: [400, 100]
+      size: [150, 120]
+
+    - id: power_control
+      type: control
+      position: [600, 200]
+      size: [100, 80]
+      card_type: button
+
+    - id: system_title
+      type: text
+      position: [100, 50]
+      text: "System Status"
+
+    # --- Line using only global routing options ---
     - id: line_global_defaults
       type: line
-      anchor: cpu
-      attach_to: mem
+      anchor: cpu_sparkline                 # Can anchor to ANY overlay type
+      attach_to: memory_status              # Can attach to ANY overlay type
       style:
         color: var(--lcars-orange)
         width: 2
         # No per-overlay routing options; uses global defaults
 
-    # --- Overlay overriding routing and style options ---
-    - id: line_per_overlay
+    # --- Advanced line with overlay-to-overlay attachment ---
+    - id: line_overlay_to_overlay
       type: line
-      anchor: cpu
-      attach_to: mem
-      attach_gap: 12                        # Gap from anchor edge
+      anchor: cpu_sparkline                 # Source: sparkline overlay
+      anchor_side: right                    # Attach from RIGHT side of sparkline
+      anchor_gap: 8                         # Gap from sparkline edge
+      attach_to: memory_status              # Target: status grid overlay
+      attach_side: top-left                 # Attach to TOP-LEFT corner of grid
+      attach_gap: 12                        # Gap from grid edge
       route: grid                           # Per-overlay routing strategy
       route_mode: grid                      # Explicit routing mode
       route_mode_last: yx                   # Last segment: vertical last (approach to end)
@@ -56,7 +83,6 @@ msd:
       channel_mode: force                   # Channel mode: prefer | avoid | force
       clearance: 16                         # Override global clearance
       proximity: 10                         # Override global proximity
-      attach_side: left                     # Attach to left side of anchor
       corner_style: round                   # Elbow style: round | bevel | miter
       corner_radius: 20                     # Arc radius for round elbows
       smoothing_mode: chaikin               # Override global smoothing
@@ -118,6 +144,76 @@ msd:
 
       animation_ref: pulse_fast
 
+    # --- Chained overlay connections ---
+    - id: line_chain_1
+      type: line
+      anchor: system_title                  # Text overlay
+      anchor_side: bottom
+      attach_to: cpu_sparkline             # Sparkline overlay
+      attach_side: top-left
+      style:
+        color: var(--lcars-blue)
+        width: 2
+
+    - id: line_chain_2
+      type: line
+      anchor: cpu_sparkline                # Sparkline overlay
+      anchor_side: bottom-right
+      attach_to: memory_status             # Status grid overlay
+      attach_side: left
+      style:
+        color: var(--lcars-green)
+        width: 2
+
+    - id: line_chain_3
+      type: line
+      anchor: memory_status                # Status grid overlay
+      anchor_side: right
+      attach_to: power_control             # Control overlay
+      attach_side: bottom-left
+      attach_gap: 10
+      style:
+        color: var(--lcars-red)
+        width: 3
+
+    # --- Mixed attachment (overlay to static anchor) ---
+    - id: line_mixed
+      type: line
+      anchor: power_control                # Control overlay
+      anchor_side: top
+      attach_to: [800, 100]                # Static coordinates
+      style:
+        color: var(--lcars-orange)
+        width: 2
+
+  # --- OVERLAY ATTACHMENT CAPABILITIES ---
+  #
+  # ALL overlay types now support attachment points:
+  #   - text: Dynamic attachment based on actual text size
+  #   - sparkline: 9 attachment points based on position/size
+  #   - history_bar: 9 attachment points based on position/size
+  #   - status_grid: 9 attachment points based on position/size
+  #   - control: 9 attachment points based on foreignObject position
+  #   - line: Future enhancement for line-to-line connections
+  #
+  # ATTACHMENT SIDES supported for ALL overlay types:
+  #   - center, top, bottom, left, right
+  #   - top-left, top-right, bottom-left, bottom-right
+  #   - topLeft, topRight, bottomLeft, bottomRight (aliases)
+  #
+  # LINE ATTACHMENT PROPERTIES:
+  #   anchor: <overlay_id> | [x, y]        # Source: overlay ID or coordinates
+  #   anchor_side: <side>                  # Source attachment side
+  #   anchor_gap: <number>                 # Gap from source edge (px)
+  #   attach_to: <overlay_id> | [x, y]     # Target: overlay ID or coordinates
+  #   attach_side: <side>                  # Target attachment side
+  #   attach_gap: <number>                 # Gap from target edge (px)
+  #
+  # PRIORITY ORDER for attach_to:
+  #   1. Overlay attachment points (if overlay exists)
+  #   2. Static anchors (from anchors: section)
+  #   3. Coordinate arrays [x, y]
+
   # --- Supported Routing and Style Properties ---
   # Global (routing:):
   #   default_mode, clearance, grid_resolution, channel_target_coverage,
@@ -127,8 +223,10 @@ msd:
   #   smoothing_mode, smoothing_iterations, smoothing_max_points
   #
   # Per-overlay (overlays[]):
+  #   anchor, anchor_side, anchor_gap,              # NEW: Overlay attachment
+  #   attach_to, attach_side, attach_gap,           # NEW: Overlay attachment
   #   route, route_mode, route_mode_full, route_channels, channel_mode,
-  #   clearance, proximity, attach_side,
+  #   clearance, proximity,
   #   corner_style, corner_radius,
   #   smoothing_mode, smoothing_iterations, smoothing_max_points
   #
@@ -142,5 +240,3 @@ msd:
   #   glow, shadow,
   #   animatable, pulse_speed, flow_speed,
   #   segment_colors, status_indicator
-  #
-  #

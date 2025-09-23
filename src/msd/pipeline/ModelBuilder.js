@@ -119,6 +119,10 @@ export class ModelBuilder {
           _raw: o.raw,
           anchor: o.raw?.anchor,
           attach_to: o.raw?.attach_to,
+          anchor_side: o.raw?.anchor_side,
+          attach_side: o.raw?.attach_side,
+          anchor_gap: o.raw?.anchor_gap,
+          attach_gap: o.raw?.attach_gap,
           position: o.raw?.position,
           size: o.raw?.size
         };

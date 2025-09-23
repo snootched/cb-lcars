@@ -112,6 +112,9 @@ export class AdvancedRenderer {
     this._dynamicAnchors = { ...anchors };
     this._buildDynamicOverlayAnchors(overlays, this._dynamicAnchors);
 
+    // Build virtual anchors from ALL overlay attachment points for line anchoring
+    this._buildVirtualAnchorsFromAllOverlays(overlays, this._dynamicAnchors);
+
     // Phase 2: render line overlays (now DOM for targets exists)
     overlays.filter(o => !earlyTypes.has(o.type)).forEach(ov => {
       try {
@@ -256,7 +259,7 @@ export class AdvancedRenderer {
     const centerX = x + width / 2;
     const centerY = y + height / 2;
 
-    return {
+    const attachmentPoints = {
       id: overlay.id,
       center: [centerX, centerY],
       bbox: {
@@ -286,9 +289,15 @@ export class AdvancedRenderer {
         'bottom-right': [right, bottom]
       }
     };
-  }
 
-  _ensureOverlayGroup(svg) {
+    console.debug(`[AdvancedRenderer] Created attachment points for ${type} ${overlay.id}:`, {
+      center: attachmentPoints.center,
+      bbox: attachmentPoints.bbox,
+      availablePoints: Object.keys(attachmentPoints.points)
+    });
+
+    return attachmentPoints;
+  }  _ensureOverlayGroup(svg) {
     let group = svg.querySelector('#msd-overlay-container');
     if (!group) {
       group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -469,7 +478,7 @@ export class AdvancedRenderer {
         }
       });
 
-      this.lineRenderer.setTextAttachmentPoints(this.textAttachmentPoints);
+      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
       if (changedTargets.size) {
         this._updateDynamicAnchorsForOverlays(changedTargets, overlays, this._dynamicAnchors);
@@ -580,7 +589,9 @@ export class AdvancedRenderer {
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':
-        return this.lineRenderer.render(overlay, anchors, viewBox);
+        // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
+        const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
+        return this.lineRenderer.render(overlay, completeAnchors, viewBox);
       case 'control':
         // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
         console.log('[AdvancedRenderer] Control overlay detected, skipping SVG rendering:', overlay.id);
@@ -952,5 +963,77 @@ export class AdvancedRenderer {
 
     // Delegate to the new unified method
     StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
+  }
+
+  /**
+   * Build virtual anchors from ALL overlay attachment points (not just attach_to targets)
+   * This allows lines to use ANY overlay as an anchor point
+   * @private
+   */
+  _buildVirtualAnchorsFromAllOverlays(overlays, anchorMap) {
+    overlays.forEach(overlay => {
+      if (overlay.type === 'line') return; // Lines don't create virtual anchors
+
+      const attachmentPoints = this.overlayAttachmentPoints.get(overlay.id);
+      if (!attachmentPoints || !attachmentPoints.points) return;
+
+      // Create virtual anchors for each attachment point of this overlay
+      Object.entries(attachmentPoints.points).forEach(([side, point]) => {
+        const virtualAnchorId = `${overlay.id}.${side}`;
+        anchorMap[virtualAnchorId] = point;
+      });
+
+      // Also create a default virtual anchor using the center point
+      anchorMap[overlay.id] = attachmentPoints.center;
+
+      console.debug(`[AdvancedRenderer] Created virtual anchors for overlay ${overlay.id}:`, {
+        center: attachmentPoints.center,
+        points: Object.keys(attachmentPoints.points).length
+      });
+    });
+  }
+
+  /**
+   * Get complete anchor set for rendering (static + virtual)
+   * @param {Object} staticAnchors - Original anchors from configuration
+   * @param {string} overlayType - Type of overlay being rendered
+   * @returns {Object} Complete anchor set
+   * @private
+   */
+  _getCompleteAnchors(staticAnchors, overlayType) {
+    // Line overlays need access to virtual anchors for overlay-to-overlay connections
+    if (overlayType === 'line') {
+      return { ...staticAnchors, ...this._dynamicAnchors };
+    }
+    return staticAnchors;
+  }
+
+  /**
+   * Debug overlay property processing to identify where anchor_side/attach_side are lost
+   * @private
+   */
+  _debugOverlayProcessing(overlayId, originalOverlay, processedOverlay) {
+    if (originalOverlay.type === 'line') {
+      console.debug(`[AdvancedRenderer] Overlay processing debug for line ${overlayId}:`, {
+        original: {
+          anchor_side: originalOverlay.anchor_side,
+          attach_side: originalOverlay.attach_side,
+          anchor_gap: originalOverlay.anchor_gap,
+          attach_gap: originalOverlay.attach_gap
+        },
+        processed: {
+          anchor_side: processedOverlay.anchor_side,
+          attach_side: processedOverlay.attach_side,
+          anchor_gap: processedOverlay.anchor_gap,
+          attach_gap: processedOverlay.attach_gap
+        },
+        raw: {
+          anchor_side: processedOverlay._raw?.anchor_side,
+          attach_side: processedOverlay._raw?.attach_side,
+          anchor_gap: processedOverlay._raw?.anchor_gap,
+          attach_gap: processedOverlay._raw?.attach_gap
+        }
+      });
+    }
   }
 }

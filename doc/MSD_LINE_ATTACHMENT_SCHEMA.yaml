@@ -1,0 +1,79 @@
+# LCARS MSD Line Attachment Schema V1
+# Comprehensive documentation for overlay-to-overlay line attachment capabilities
+
+# === LINE OVERLAY ATTACHMENT PROPERTIES ===
+
+line_overlay:
+  # --- Source Attachment Properties ---
+  anchor: <overlay_id> | [x, y] | <static_anchor_id>
+    # Description: Starting point for the line
+    # Values:
+    #   - overlay_id: Any overlay ID (text, sparkline, status_grid, control, history_bar)
+    #   - [x, y]: Static coordinates
+    #   - static_anchor_id: Static anchor from anchors: section
+    # Examples:
+    #   anchor: cpu_sparkline
+    #   anchor: [100, 200]
+    #   anchor: bridge_center
+
+  anchor_side: <attachment_side>
+    # Description: Which side/corner of the source overlay to attach from
+    # Required: Only when anchor is an overlay_id
+    # Default: center
+    # Values: center | top | bottom | left | right | top-left | top-right | bottom-left | bottom-right
+    # Aliases: topLeft | topRight | bottomLeft | bottomRight
+    # Examples:
+    #   anchor_side: right
+    #   anchor_side: bottom-right
+
+  anchor_gap: <number>
+    # Description: Gap offset from the source attachment point (pixels)
+    # Default: 0
+    # Direction: Applied outward from the overlay based on anchor_side
+    # Examples:
+    #   anchor_gap: 8    # 8px gap from source edge
+    #   anchor_gap: 0    # No gap (line touches overlay)
+
+  # --- Target Attachment Properties ---
+  attach_to: <overlay_id> | [x, y] | <static_anchor_id>
+    # Description: Ending point for the line
+    # Values:
+    #   - overlay_id: Any overlay ID (text, sparkline, status_grid, control, history_bar)
+    #   - [x, y]: Static coordinates
+    #   - static_anchor_id: Static anchor from anchors: section
+    # Examples:
+    #   attach_to: memory_status
+    #   attach_to: [800, 300]
+    #   attach_to: warp_core
+
+  attach_side: <attachment_side>
+    # Description: Which side/corner of the target overlay to attach to
+    # Required: Only when attach_to is an overlay_id
+    # Default: center
+    # Values: center | top | bottom | left | right | top-left | top-right | bottom-left | bottom-right
+    # Aliases: topLeft | topRight | bottomLeft | bottomRight
+    # Examples:
+    #   attach_side: left
+    #   attach_side: top-right
+
+  attach_gap: <number>
+    # Description: Gap offset from the target attachment point (pixels)
+    # Default: 0
+    # Direction: Applied outward from the overlay based on attach_side
+    # Examples:
+    #   attach_gap: 12   # 12px gap from target edge
+    #   attach_gap: 0    # No gap (line touches overlay)
+
+# === IMPLEMENTATION STATUS ===
+
+implementation_status:
+  version: "v2025.08.1-fuk.24-69"
+  status: "FULLY IMPLEMENTED AND TESTED"
+
+  completed_features:
+    - "Unified attachment point system for ALL overlay types"
+    - "Priority resolution (overlay > static > coordinates)"
+    - "Property propagation through configuration pipeline"
+    - "Comprehensive side/corner attachment support"
+    - "Gap offset calculations with directional awareness"
+    - "Backward compatibility with existing text attachments"

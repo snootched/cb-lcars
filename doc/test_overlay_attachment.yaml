@@ -1,64 +1,77 @@
 /**
- * TEST CONFIGURATION FOR OVERLAY-TO-OVERLAY ATTACHMENT
+ * TEST CONFIGURATION FOR OVERLAY-TO-OVERLAY ATTACHMENT WITH SIDE CONTROL
  *
- * This demonstrates the new unified attachment point system:
- * - Sparkline can be attached to by lines
- * - History bars can be attached to by lines
- * - Status grids can be attached to by lines
- * - Controls can be attached to by lines
- * - Any overlay can attach to any other overlay
+ * This demonstrates the new unified attachment point system with explicit side control:
+ * - anchor_side: Controls which side of SOURCE overlay to attach from
+ * - attach_side: Controls which side of TARGET overlay to attach to
+ * - anchor_gap/attach_gap: Gap offsets from overlay edges
  *
- * Example configuration:
+ * Test Cases:
+ * 1. Coordinate to overlay attachment (basic)
+ * 2. Overlay to overlay with specific sides
+ * 3. Chain of overlays with different sides
+ * 4. Gap testing with various offsets
+ *
+ * Expected Behavior:
+ * - Lines should NOT all connect to centers
+ * - Each line should respect its anchor_side and attach_side settings
+ * - Gaps should create visible offsets from overlay edges
  *
  * overlays:
- *   - id: cpu_sparkline
+ *   # Source overlays at known positions
+ *   - id: source_sparkline
  *     type: sparkline
- *     position: [100, 100]
- *     size: [200, 60]
- *     source: cpu_usage
+ *     position: [100, 100]    # Top-left area
+ *     size: [200, 60]         # 200w x 60h
+ *     # Center: [200, 130], Right edge: [300, 130], Bottom: [200, 160]
  *
- *   - id: memory_history
+ *   - id: target_history
  *     type: history_bar
- *     position: [400, 100]
- *     size: [300, 80]
- *     source: memory_usage
+ *     position: [400, 200]    # Right side, lower
+ *     size: [300, 80]         # 300w x 80h
+ *     # Center: [550, 240], Left edge: [400, 240], Top: [550, 200]
  *
- *   - id: system_status
+ *   - id: final_grid
  *     type: status_grid
- *     position: [100, 200]
- *     size: [150, 120]
+ *     position: [200, 350]    # Bottom area
+ *     size: [150, 120]        # 150w x 120h
+ *     # Center: [275, 410], Top edge: [275, 350], Right: [350, 410]
  *
- *   - id: power_control
- *     type: control
- *     position: [300, 250]
- *     size: [100, 80]
- *     card:
- *       type: button
- *       entity: switch.main_power
- *
- *   - id: line_to_sparkline
+ *   # Test Line 1: Coordinate to specific side of overlay
+ *   - id: test_line_coord_to_left
  *     type: line
- *     anchor: [50, 130]  # Start point
- *     attach_to: cpu_sparkline  # Attach to sparkline
- *     attach_side: left
- *     attach_gap: 10
+ *     anchor: [50, 130]           # Static coordinate
+ *     attach_to: source_sparkline # Target overlay
+ *     attach_side: left           # Should attach to LEFT side of sparkline [100, 130]
+ *     attach_gap: 10              # 10px gap = should end at [90, 130]
  *
- *   - id: line_sparkline_to_history
+ *   # Test Line 2: Overlay right side to overlay left side
+ *   - id: test_line_right_to_left
  *     type: line
- *     anchor: cpu_sparkline      # Start from sparkline
- *     attach_to: memory_history  # Attach to history bar
- *     attach_side: top-left
+ *     anchor: source_sparkline    # Source overlay (center: [200, 130])
+ *     anchor_side: right          # Start from RIGHT side [300, 130]
+ *     anchor_gap: 5               # 5px gap = start at [305, 130]
+ *     attach_to: target_history   # Target overlay (center: [550, 240])
+ *     attach_side: left           # End at LEFT side [400, 240]
+ *     attach_gap: 8               # 8px gap = end at [392, 240]
  *
- *   - id: line_to_status_grid
+ *   # Test Line 3: Overlay bottom to overlay top
+ *   - id: test_line_bottom_to_top
  *     type: line
- *     anchor: memory_history     # Start from history bar
- *     attach_to: system_status   # Attach to status grid
- *     attach_side: right
+ *     anchor: source_sparkline    # Source overlay
+ *     anchor_side: bottom         # Start from BOTTOM [200, 160]
+ *     anchor_gap: 3               # 3px gap = start at [200, 163]
+ *     attach_to: final_grid       # Target overlay
+ *     attach_side: top            # End at TOP [275, 350]
+ *     attach_gap: 5               # 5px gap = end at [275, 345]
  *
- *   - id: line_to_control
+ *   # Test Line 4: Corner to corner attachment
+ *   - id: test_line_corner_to_corner
  *     type: line
- *     anchor: system_status      # Start from status grid
- *     attach_to: power_control   # Attach to control
- *     attach_side: bottom-right
- *     attach_gap: 5
+ *     anchor: target_history      # Source overlay
+ *     anchor_side: bottom-right   # Start from BOTTOM-RIGHT corner [700, 280]
+ *     anchor_gap: 2               # 2px gap = start at [702, 282]
+ *     attach_to: final_grid       # Target overlay
+ *     attach_side: top-right      # End at TOP-RIGHT corner [350, 350]
+ *     attach_gap: 4               # 4px gap = end at [354, 346]
  */
