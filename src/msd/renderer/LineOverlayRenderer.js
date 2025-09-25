@@ -195,7 +195,7 @@ export class LineOverlayRenderer {
         this._buildEffects(pathResult, lineStyle, overlay.id)
       ].filter(Boolean);
 
-      console.log(`[LineOverlayRenderer] Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
+      console.debug(`[LineOverlayRenderer] Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="line"
@@ -755,7 +755,7 @@ export class LineOverlayRenderer {
    */
   updateLineStyle(overlayId, newStyle) {
     // Future: Update existing line styles without full re-render
-    console.log(`[LineOverlayRenderer] Style update requested for line ${overlayId}`);
+    console.debug(`[LineOverlayRenderer] Style update requested for line ${overlayId}`);
   }
 
   /**

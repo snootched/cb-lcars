@@ -18,15 +18,15 @@ import { SelectionManager } from './hudService.js'; // ADDED
 import { OverlaysPanel } from './panels/OverlaysPanel.js'; // ADDED
 
 // FIXED: Move debug verification to constructor only, not on every import
-console.log('[MsdHudManager] Importing ExportPanel class');
+console.debug('[MsdHudManager] Importing ExportPanel class');
 
 export class MsdHudManager {
   constructor() {
     // FIXED: Test ExportPanel instantiation only once during construction
-    console.log('[MsdHudManager] Testing ExportPanel instantiation...');
+    console.debug('[MsdHudManager] Testing ExportPanel instantiation...');
     try {
       const testExportPanel = new ExportPanel();
-      console.log('[MsdHudManager] ExportPanel test successful');
+      console.debug('[MsdHudManager] ExportPanel test successful');
     } catch (e) {
       console.error('[MsdHudManager] ExportPanel instantiation failed:', e);
     }
@@ -49,7 +49,7 @@ export class MsdHudManager {
     };
 
     // FIXED: Only log panel creation once during construction
-    console.log('[MsdHudManager] Created panels:', Object.keys(this.panels));
+    console.debug('[MsdHudManager] Created panels:', Object.keys(this.panels));
 
     this.state = {
       visible: false,
@@ -82,7 +82,7 @@ export class MsdHudManager {
     };
 
     // FIXED: Only log state once during construction
-    console.log('[MsdHudManager] Initial panel order:', this.state.panelOrder);
+    console.debug('[MsdHudManager] Initial panel order:', this.state.panelOrder);
 
     this.hudElement = null;
     this.refreshInterval = null;
@@ -185,7 +185,7 @@ export class MsdHudManager {
           }
         }
 
-        console.log('[MsdHudManager] Panel manager toggled:', self.state.panelManagerOpen);
+        console.debug('[MsdHudManager] Panel manager toggled:', self.state.panelManagerOpen);
       },
 
       // ADDED: Close panel manager handler
@@ -197,7 +197,7 @@ export class MsdHudManager {
           manager.style.display = 'none';
         }
 
-        console.log('[MsdHudManager] Panel manager closed');
+        console.debug('[MsdHudManager] Panel manager closed');
       },
 
       // ADDED: Font size controls
@@ -214,7 +214,7 @@ export class MsdHudManager {
         if (newSize !== self.state.fontSize) {
           self.state.fontSize = newSize;
           self._applyFontAndScale();
-          console.log(`[MsdHudManager] Font size adjusted to ${newSize}px`);
+          console.debug(`[MsdHudManager] Font size adjusted to ${newSize}px`);
         }
       },
 
@@ -223,7 +223,7 @@ export class MsdHudManager {
         if (newSize !== self.state.fontSize) {
           self.state.fontSize = newSize;
           self._applyFontAndScale();
-          console.log(`[MsdHudManager] Font size set to ${newSize}px`);
+          console.debug(`[MsdHudManager] Font size set to ${newSize}px`);
         }
       },
 
@@ -241,7 +241,7 @@ export class MsdHudManager {
         if (Math.abs(newScale - self.state.hudScale) > 0.05) {
           self.state.hudScale = newScale;
           self._applyFontAndScale();
-          console.log(`[MsdHudManager] HUD scale adjusted to ${newScale.toFixed(2)}x`);
+          console.debug(`[MsdHudManager] HUD scale adjusted to ${newScale.toFixed(2)}x`);
         }
       },
 
@@ -250,13 +250,13 @@ export class MsdHudManager {
         if (Math.abs(newScale - self.state.hudScale) > 0.05) {
           self.state.hudScale = newScale;
           self._applyFontAndScale();
-          console.log(`[MsdHudManager] HUD scale set to ${newScale.toFixed(2)}x`);
+          console.debug(`[MsdHudManager] HUD scale set to ${newScale.toFixed(2)}x`);
         }
       },
 
       // ADDED: Font family controls
       setFontFamily: function(family) {
-        console.log(`[MsdHudManager] setFontFamily called with: "${family}"`);
+        console.debug(`[MsdHudManager] setFontFamily called with: "${family}"`);
         const validFamilies = [
           '"Antonio", monospace',
           'monospace',
@@ -272,14 +272,14 @@ export class MsdHudManager {
           normalizedFamily = family.replace(/&quot;/g, '"');
         }
 
-        console.log(`[MsdHudManager] Normalized font family: "${normalizedFamily}"`);
+        console.debug(`[MsdHudManager] Normalized font family: "${normalizedFamily}"`);
 
         if (validFamilies.includes(normalizedFamily)) {
           self.state.fontFamily = normalizedFamily;
           self._applyFontAndScale();
           // FIXED: Don't force a content update that might close dropdowns
           // setTimeout(() => self.updateHudContent(), 50);
-          console.log(`[MsdHudManager] Font family successfully set to: ${normalizedFamily}`);
+          console.debug(`[MsdHudManager] Font family successfully set to: ${normalizedFamily}`);
         } else {
           console.warn(`[MsdHudManager] Invalid font family: "${family}" (normalized: "${normalizedFamily}")`, {
             validFamilies,
@@ -326,7 +326,7 @@ export class MsdHudManager {
       }
     }
 
-    console.log(`[MsdHudManager] Applied font: ${baseFontSize}px ${family}, scale: ${scale}x`);
+    console.debug(`[MsdHudManager] Applied font: ${baseFontSize}px ${family}, scale: ${scale}x`);
   }
 
   // ADDED: Auto-positioning logic
@@ -387,7 +387,7 @@ export class MsdHudManager {
       this.hudElement.style.transition = '';
     }, 300);
 
-    console.log(`[MsdHudManager] Auto-positioned to (${left}, ${top}) avoiding header:${headerHeight}px sidebar:${sidebarWidth}px`);
+    console.debug(`[MsdHudManager] Auto-positioned to (${left}, ${top}) avoiding header:${headerHeight}px sidebar:${sidebarWidth}px`);
   }
 
   // ADDED: Handle window resize for auto-positioning
@@ -422,7 +422,7 @@ export class MsdHudManager {
     // ADDED: Setup centralized debug status access for panels
     this._setupDebugStatusHelper();
 
-    console.log('[MsdHudManager] Initialized with pipeline mount element reference');
+    console.debug('[MsdHudManager] Initialized with pipeline mount element reference');
   }
 
   // ADDED: Centralized debug status access for all panels
@@ -503,31 +503,31 @@ export class MsdHudManager {
 
     // ADDED: HUD settings controls
     this.bus.on('refresh-rate:change', ({ value }) => {
-      console.log('[MsdHudManager] Refresh rate change event:', value);
+      console.debug('[MsdHudManager] Refresh rate change event:', value);
       const rate = parseInt(value);
       if (!isNaN(rate) && rate > 0) {
         this.setRefreshRate(rate);
-        console.log('[MsdHudManager] Refresh rate set to:', rate);
+        console.debug('[MsdHudManager] Refresh rate set to:', rate);
       }
     });
 
     this.bus.on('width:adjust', ({ delta }) => {
-      console.log('[MsdHudManager] Width adjust event:', delta);
+      console.debug('[MsdHudManager] Width adjust event:', delta);
       this.adjustWidth(parseInt(delta));
     });
 
     this.bus.on('font:adjust', ({ delta }) => {
-      console.log('[MsdHudManager] Font adjust event:', delta, 'throttled:', !!this._fontSizeThrottle);
+      console.debug('[MsdHudManager] Font adjust event:', delta, 'throttled:', !!this._fontSizeThrottle);
       window.__msdHudPanelControls?.adjustFontSize(parseInt(delta));
     });
 
     this.bus.on('scale:adjust', ({ delta }) => {
-      console.log('[MsdHudManager] Scale adjust event:', delta, 'throttled:', !!this._scaleThrottle);
+      console.debug('[MsdHudManager] Scale adjust event:', delta, 'throttled:', !!this._scaleThrottle);
       window.__msdHudPanelControls?.adjustHudScale(parseFloat(delta));
     });
 
     this.bus.on('font-family:change', ({ value }) => {
-      console.log('[MsdHudManager] Font family change event:', value);
+      console.debug('[MsdHudManager] Font family change event:', value);
       // FIXED: Add small delay to prevent event conflicts
       setTimeout(() => {
         window.__msdHudPanelControls?.setFontFamily(value);
@@ -535,13 +535,13 @@ export class MsdHudManager {
     });
 
     this.bus.on('font:reset', () => {
-      console.log('[MsdHudManager] Font reset event');
+      console.debug('[MsdHudManager] Font reset event');
       this.state.fontSize = 14;
       this.state.hudScale = 1.0;
       this.state.fontFamily = '"Antonio", monospace';
       this._applyFontAndScale();
       this.updateHudContent();
-      console.log('[MsdHudManager] Font settings reset to defaults');
+      console.debug('[MsdHudManager] Font settings reset to defaults');
     });
   }
 
@@ -789,7 +789,7 @@ export class MsdHudManager {
           if (/^-?\d+(\.\d+)?$/.test(rest[k])) rest[k] = Number(rest[k]);
         });
 
-        console.log(`[MsdHudManager] Bus event: ${target.dataset.busEvent}`, rest);
+        console.debug(`[MsdHudManager] Bus event: ${target.dataset.busEvent}`, rest);
         this.bus.emit(target.dataset.busEvent, rest);
       }, true);
     };
@@ -815,7 +815,7 @@ export class MsdHudManager {
     // FIXED: Skip update if any dropdown is currently open
     const openDropdowns = this.hudElement.querySelectorAll('select:focus, select:focus-within');
     if (openDropdowns.length > 0) {
-      console.log('[MsdHudManager] Skipping refresh - dropdown is open');
+      console.debug('[MsdHudManager] Skipping refresh - dropdown is open');
       return;
     }
 
@@ -1189,7 +1189,7 @@ export class MsdHudManager {
   refresh() {
     if (this.state.visible && this.hudElement) {
       this.updateHudContent();
-      console.log('[MsdHudManager] Manual refresh triggered');
+      console.debug('[MsdHudManager] Manual refresh triggered');
     }
   }
 
@@ -1346,7 +1346,7 @@ export class MsdHudManager {
         this.hudElement.style.width = newWidth + 'px';
       }
 
-      console.log(`[MsdHudManager] HUD width adjusted to ${newWidth}px`);
+      console.debug(`[MsdHudManager] HUD width adjusted to ${newWidth}px`);
 
       setTimeout(() => this.updateHudContent(), 100);
     }
@@ -1443,7 +1443,7 @@ export class MsdHudManager {
     if (this.state.autoPosition) {
       setTimeout(() => this._autoPositionHud(), 100);
     }
-    console.log('[MsdHudManager] HUD activated and exposed globally');
+    console.debug('[MsdHudManager] HUD activated and exposed globally');
   }
 
   // ADDED: Previously removed hide() method
@@ -1455,6 +1455,6 @@ export class MsdHudManager {
       this.hudElement.remove();
       this.hudElement = null;
     }
-    console.log('[MsdHudManager] HUD deactivated');
+    console.debug('[MsdHudManager] HUD deactivated');
   }
 }

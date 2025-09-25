@@ -370,7 +370,7 @@ export class StatusGridRenderer {
       return '';
     }
 
-    console.log(`[StatusGridRenderer] Building brackets for ${overlayId}: style=${gridStyle.bracket_style}`);
+    console.debug(`[StatusGridRenderer] Building brackets for ${overlayId}: style=${gridStyle.bracket_style}`);
 
     // Convert grid style properties to BracketRenderer format
     const bracketConfig = {
@@ -398,7 +398,7 @@ export class StatusGridRenderer {
       hybrid_mode: gridStyle.hybrid_mode
     };
 
-    console.log(`[StatusGridRenderer] Bracket config:`, bracketConfig);
+    console.debug(`[StatusGridRenderer] Bracket config:`, bracketConfig);
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
@@ -564,7 +564,7 @@ export class StatusGridRenderer {
    * @returns {Array} Updated cell configurations with new data
    */
   updateCellsWithData(overlay, style, newDataSourceData) {
-    console.log(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
+    console.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
 
     const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
     const cells = this._resolveCellConfigurations(overlay, gridStyle);
@@ -698,7 +698,7 @@ export class StatusGridRenderer {
       }
 
       const finalValue = result ? trueValue : falseValue;
-      console.log(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
+      console.debug(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
       return finalValue;
 
     } catch (error) {
@@ -815,7 +815,7 @@ export class StatusGridRenderer {
    */
   static updateGridData(overlayElement, overlay, sourceData) {
     try {
-      console.log(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+      console.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
 
       // Create renderer instance for content resolution
       const renderer = new StatusGridRenderer();
@@ -824,7 +824,7 @@ export class StatusGridRenderer {
       const style = overlay.finalStyle || overlay.style || {};
       const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
 
-      console.log(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
+      console.debug(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
 
       let updatedCount = 0;
 
@@ -847,7 +847,7 @@ export class StatusGridRenderer {
           newContent = String(newContent);
 
           if (newContent !== oldContent) {
-            console.log(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
+            console.debug(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
             cellContentElement.textContent = newContent;
             updatedCount++;
           }
@@ -855,10 +855,10 @@ export class StatusGridRenderer {
       });
 
       if (updatedCount > 0) {
-        console.log(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
+        console.debug(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
         return true;
       } else {
-        console.log(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
+        console.debug(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
         return false;
       }
 

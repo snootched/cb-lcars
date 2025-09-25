@@ -1,5 +1,5 @@
 /**
- * Phase 4: Unified MSD API structure
+ * Phase 4: Unified MsdApi structure
  * Provides window.cblcars.msd.api namespace
  * MSD v1 is now the stable system - no feature flag needed
  */
@@ -177,7 +177,7 @@ export class MsdApi {
       }
 
       // Fallback: log highlight request
-      console.log('[MSD API] Highlight request:', ids, opts);
+      console.debug('[MsdApi] Highlight request:', ids, opts);
     } catch (_) {}
   }
 
@@ -231,7 +231,7 @@ export class MsdApi {
 
   static updateOverlay(id, data) {
     // Future: Dynamic overlay updates
-    console.warn('[MSD API] Dynamic overlay updates not yet implemented');
+    console.warn('[MsdApi] Dynamic overlay updates not yet implemented');
     return false;
   }
 

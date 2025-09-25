@@ -707,7 +707,7 @@ export class RulesEngine {
    * @param {Object} dataSourceManager - DataSourceManager instance
    */
   setDataSourceManager(dataSourceManager) {
-    console.log(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
+    console.debug(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
     this.dataSourceManager = dataSourceManager;
 
     // Rebuild dependency index to include DataSource references
@@ -716,7 +716,7 @@ export class RulesEngine {
     // Mark all rules dirty since DataSource conditions might now be evaluable
     this.markAllDirty();
 
-    console.log(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
+    console.debug(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
   }
 
   getRuleDependencies(ruleId) {
@@ -734,7 +734,7 @@ export function applyOverlayPatches(overlays, patches) {
     return overlays;
   }
 
-  console.log('[RulesEngine] 🎨 Applying overlay patches:', {
+  console.debug('[RulesEngine] 🎨 Applying overlay patches:', {
     overlayCount: overlays.length,
     patchCount: patches.length,
     patches: patches.map(p => ({ id: p.id, styleKeys: Object.keys(p.style || {}) }))
@@ -748,7 +748,7 @@ export function applyOverlayPatches(overlays, patches) {
       return overlay;
     }
 
-    console.log('[RulesEngine] 🎯 Applying patch to overlay:', {
+    console.debug('[RulesEngine] 🎯 Applying patch to overlay:', {
       id: overlay.id,
       originalStyle: overlay.style,
       originalFinalStyle: overlay.finalStyle,
@@ -768,7 +768,7 @@ export function applyOverlayPatches(overlays, patches) {
       }
     };
 
-    console.log('[RulesEngine] ✅ Patched overlay result:', {
+    console.debug('[RulesEngine] ✅ Patched overlay result:', {
       id: patchedOverlay.id,
       newStyle: patchedOverlay.style,
       newFinalStyle: patchedOverlay.finalStyle

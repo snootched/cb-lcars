@@ -17,7 +17,7 @@ export class BracketRenderer {
       return '';
     }
 
-    console.log(`[BracketRenderer] Rendering brackets for ${overlayId}:`, bracketConfig);
+    console.debug(`[BracketRenderer] Rendering brackets for ${overlayId}:`, bracketConfig);
 
     const config = BracketRenderer.resolveBracketConfig(bracketConfig);
 
@@ -127,7 +127,7 @@ export class BracketRenderer {
              data-bracket-style="lcars"/>`
     );
 
-    console.log(`[BracketRenderer] Created ${bracketPaths.length} LCARS bracket paths`);
+    console.debug(`[BracketRenderer] Created ${bracketPaths.length} LCARS bracket paths`);
     return `<g data-feature="brackets" data-bracket-style="lcars">${bracketPaths.join('\n')}</g>`;
   }
 
@@ -166,7 +166,7 @@ export class BracketRenderer {
       );
     }
 
-    console.log(`[BracketRenderer] Created ${brackets.length} square brackets`);
+    console.debug(`[BracketRenderer] Created ${brackets.length} square brackets`);
     return `<g data-feature="brackets" data-bracket-style="square">${brackets.join('\n')}</g>`;
   }
 
@@ -208,7 +208,7 @@ export class BracketRenderer {
              data-bracket-style="rounded"/>`
     );
 
-    console.log(`[BracketRenderer] Created ${bracketPaths.length} rounded brackets`);
+    console.debug(`[BracketRenderer] Created ${bracketPaths.length} rounded brackets`);
     return `<g data-feature="brackets" data-bracket-style="rounded">${bracketPaths.join('\n')}</g>`;
   }
 
@@ -253,7 +253,7 @@ export class BracketRenderer {
              data-bracket-style="extended"/>`
     );
 
-    console.log(`[BracketRenderer] Created ${bracketPaths.length} extended brackets`);
+    console.debug(`[BracketRenderer] Created ${bracketPaths.length} extended brackets`);
     return `<g data-feature="brackets" data-bracket-style="extended">${bracketPaths.join('\n')}</g>`;
   }
 
@@ -301,7 +301,7 @@ export class BracketRenderer {
              data-bracket-style="minimal"/>`
     );
 
-    console.log(`[BracketRenderer] Created ${bracketPaths.length} minimal bracket corners`);
+    console.debug(`[BracketRenderer] Created ${bracketPaths.length} minimal bracket corners`);
     return `<g data-feature="brackets" data-bracket-style="minimal">${bracketPaths.join('\n')}</g>`;
   }
 
@@ -391,7 +391,7 @@ export class BracketRenderer {
       );
     }
 
-    console.log(`[BracketRenderer] Created ${brackets.length} bg-grid style brackets with width=${bracketWidth}, height=${bracketHeight}, radius=${bracketRadius}`);
+    console.debug(`[BracketRenderer] Created ${brackets.length} bg-grid style brackets with width=${bracketWidth}, height=${bracketHeight}, radius=${bracketRadius}`);
     return `<g data-feature="brackets" data-bracket-style="bg-grid">${brackets.join('\n')}</g>`;
   }
 

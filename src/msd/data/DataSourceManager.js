@@ -43,7 +43,7 @@ export class DataSourceManager {
       throw new Error('DataSourceManager has been destroyed');
     }
 
-    console.log(`[DataSourceManager] 🚀 Initializing ${Object.keys(dataSourceConfigs || {}).length} data sources`);
+    console.debug(`[DataSourceManager] 🚀 Initializing ${Object.keys(dataSourceConfigs || {}).length} data sources`);
 
     // Create all data sources from config
     const promises = Object.entries(dataSourceConfigs || {}).map(async ([name, config]) => {
@@ -67,7 +67,7 @@ export class DataSourceManager {
 
     const successful = this.sources.size;
     const failed = Object.keys(dataSourceConfigs || {}).length - successful;
-    console.log(`[DataSourceManager] ✅ Initialization complete: ${successful} successful, ${failed} failed`);
+    console.debug(`[DataSourceManager] ✅ Initialization complete: ${successful} successful, ${failed} failed`);
 
     return successful;
   }
@@ -125,7 +125,7 @@ export class DataSourceManager {
     const startTime = Date.now();
     const checkInterval = 100;
 
-    console.log(`[DataSourceManager] ⏳ Waiting for history preloading...`);
+    console.debug(`[DataSourceManager] ⏳ Waiting for history preloading...`);
 
     while (Date.now() - startTime < maxWaitMs) {
       let allReady = true;
@@ -143,11 +143,11 @@ export class DataSourceManager {
       }
 
       if (readySources > 0) {
-        console.log(`[DataSourceManager] History loading progress: ${readySources}/${totalSources} sources ready`);
+        console.debug(`[DataSourceManager] History loading progress: ${readySources}/${totalSources} sources ready`);
       }
 
       if (allReady || totalSources === 0) {
-        console.log(`[DataSourceManager] ✅ History preloading complete in ${Date.now() - startTime}ms`);
+        console.debug(`[DataSourceManager] ✅ History preloading complete in ${Date.now() - startTime}ms`);
         break;
       }
 
@@ -382,7 +382,7 @@ export class DataSourceManager {
       return;
     }
 
-    console.log(`[DataSourceManager] 🔗 Setting up subscription for ${overlay.id} to ${overlay.source}`);
+    console.debug(`[DataSourceManager] 🔗 Setting up subscription for ${overlay.id} to ${overlay.source}`);
 
     // Subscribe to the data source with enhanced data for sparklines
     const unsubscribe = source.subscribeWithMetadata?.((data) => {
@@ -400,7 +400,7 @@ export class DataSourceManager {
       };
 
       // DEBUG: Log what we're about to send
-      console.log(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
+      console.debug(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
         hasBuffer: !!enhancedData.buffer,
         bufferSize: enhancedData.buffer?.size?.() || 0,
         hasHistoricalData: !!enhancedData.historicalData,
@@ -434,7 +434,7 @@ export class DataSourceManager {
     // This fixes the timing issue where overlays subscribe after data is ready
     const currentData = source.getCurrentData();
     if (currentData && (currentData.buffer?.size?.() > 0 || currentData.v !== undefined)) {
-      console.log(`[DataSourceManager] 🔄 Providing immediate data for ${overlay.id}`);
+      console.debug(`[DataSourceManager] 🔄 Providing immediate data for ${overlay.id}`);
 
       const immediateData = {
         ...currentData,
@@ -461,7 +461,7 @@ export class DataSourceManager {
     this.overlaySubscriptions.get(overlay.id).push(unsubscribe);
     this._stats.subscriptionsActive++;
 
-    console.log(`[DataSourceManager] ✅ Subscribed ${overlay.type} overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.size || 0} total subscribers)`);
+    console.debug(`[DataSourceManager] ✅ Subscribed ${overlay.type} overlay ${overlay.id} to source ${overlay.source} (${source.subscribers?.size || 0} total subscribers)`);
 
     return unsubscribe;
   }

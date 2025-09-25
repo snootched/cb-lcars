@@ -139,15 +139,6 @@ function validateOverlays(config, issues) {
       }
     });
 
-    console.debug(`[Validation] Validating overlay properties for ${overlay.id}:`, {
-      type: overlay.type,
-      anchor_side: overlay.anchor_side,
-      attach_side: overlay.attach_side,
-      anchor_gap: overlay.anchor_gap,
-      attach_gap: overlay.attach_gap,
-      allKeys: Object.keys(overlay)
-    });
-
     // Validate anchor_side property
     if (overlay.anchor_side !== undefined) {
       const validSides = [

@@ -40,7 +40,7 @@ export class DebugManager {
   init(debugConfig = {}) {
     // REDUCED: Only log if debug is actually enabled
     if (debugConfig && Object.keys(debugConfig).length > 0) {
-      console.log('[DebugManager] Initializing with config:', debugConfig);
+      console.debug('[DebugManager] Initializing with config:', debugConfig);
     }
 
     // FIXED: Apply initial config - handle both flat and nested structures
@@ -70,7 +70,7 @@ export class DebugManager {
     // REDUCED: Only log state if features are enabled
     const hasEnabledFeatures = this.isAnyEnabled();
     if (hasEnabledFeatures) {
-      console.log('[DebugManager] State after config init:', this.state);
+      console.debug('[DebugManager] State after config init:', this.state);
     }
 
     // Process pending init actions
@@ -285,7 +285,7 @@ export class DebugManager {
 
     const action = () => {
       if (this.state[feature] !== enabled) {
-        console.log(`[DebugManager] Setting ${feature} to ${enabled}`);
+        console.debug(`[DebugManager] Setting ${feature} to ${enabled}`);
         this.state[feature] = enabled;
         this._scheduleNotification('feature', { feature, enabled });
 
@@ -294,7 +294,7 @@ export class DebugManager {
           try {
             const pipelineInstance = window.__msdDebug?.pipelineInstance;
             if (pipelineInstance?.reRender) {
-              console.log(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
+              console.debug(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
               pipelineInstance.reRender();
             }
           } catch (error) {

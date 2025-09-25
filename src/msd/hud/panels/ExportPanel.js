@@ -6,8 +6,6 @@
 
 export class ExportPanel {
   constructor() {
-    // FIXED: Only log construction once, not on every refresh
-    console.log('[ExportPanel] Constructor called');
     this.initialized = false;
     this.initialized = true;
   }

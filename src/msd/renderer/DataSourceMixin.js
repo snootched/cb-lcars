@@ -191,11 +191,11 @@ export class DataSourceMixin {
       // UNIT-AWARE: Check if the source entity already has % units
       if (unitOfMeasurement === '%') {
         // Already a percentage (0-100), don't multiply by 100
-        console.log(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement}" → ${value.toFixed(precision)}% (no conversion)`);
+        console.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement}" → ${value.toFixed(precision)}% (no conversion)`);
         return `${value.toFixed(precision)}%`;
       } else {
         // Decimal value (0.0-1.0) or other unit, multiply by 100
-        console.log(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement || 'none'}" → ${(value * 100).toFixed(precision)}% (×100 conversion)`);
+        console.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement || 'none'}" → ${(value * 100).toFixed(precision)}% (×100 conversion)`);
         return `${(value * 100).toFixed(precision)}%`;
       }
     }
@@ -235,14 +235,14 @@ export class DataSourceMixin {
       return content;
     }
 
-    console.log(`[${rendererName}] Processing template for initial render: "${content}"`);
+    console.debug(`[${rendererName}] Processing template for initial render: "${content}"`);
 
     // Try to process templates, but gracefully fall back to original content
     const processed = this.processEnhancedTemplateStringsWithFallback(content, rendererName, true);
 
     // If processing didn't change the content, DataSources might not be ready
     if (processed === content) {
-      console.log(`[${rendererName}] Templates not resolved during initial render, will update when DataSources become available`);
+      console.debug(`[${rendererName}] Templates not resolved during initial render, will update when DataSources become available`);
     }
 
     return processed;
@@ -260,7 +260,7 @@ export class DataSourceMixin {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
         // DataSourceManager not available - this is normal during initial rendering
-        console.log(`[${rendererName}] DataSourceManager not available, ${fallbackToOriginal ? 'returning original content' : 'returning null'}`);
+        console.debug(`[${rendererName}] DataSourceManager not available, ${fallbackToOriginal ? 'returning original content' : 'returning null'}`);
         return fallbackToOriginal ? content : null;
       }
 
@@ -334,7 +334,7 @@ export class DataSourceMixin {
 
       // Log whether templates were successfully resolved
       if (!hasUnresolvedTemplates && processedContent !== content) {
-        console.log(`[${rendererName}] Successfully resolved all templates in: "${content}" → "${processedContent}"`);
+        console.debug(`[${rendererName}] Successfully resolved all templates in: "${content}" → "${processedContent}"`);
       }
 
       return processedContent;

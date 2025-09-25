@@ -28,7 +28,7 @@ export class MsdDataSource {
 
     // Validate essential config
     if (!this.cfg.entity) {
-      console.warn('[MsdDataSource] No entity specified in config');
+      console.debug('[MsdDataSource] No entity specified in config');
       this.cfg.entity = '';
     }
 
@@ -119,9 +119,8 @@ export class MsdDataSource {
 
           // Create buffer for transformed historical data with same capacity as main buffer
           const capacity = this.buffer.capacity || 60;
-          this.transformedBuffers.set(key, new RollingBuffer(capacity));          console.log(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
-          console.log(`[MsdDataSource] Transformation ${key} config:`, transformConfig);
-          console.log(`[MsdDataSource] Created buffer for ${key} with capacity:`, capacity);
+          this.transformedBuffers.set(key, new RollingBuffer(capacity));
+          console.debug(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
         } catch (error) {
           console.error(`[MsdDataSource] Failed to initialize transformation ${transformConfig.type}:`, error);
         }
@@ -137,14 +136,14 @@ export class MsdDataSource {
 
           this.aggregations.set(key, processor);
 
-          console.log(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
+          console.debug(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
         } catch (error) {
           console.error(`[MsdDataSource] Failed to initialize aggregation ${type}:`, error);
         }
       });
     }
 
-    console.log(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
+    console.debug(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
   }
 
   /**
@@ -162,7 +161,7 @@ export class MsdDataSource {
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - hours * 3600000);
 
-    console.log(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
+    console.debug(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
 
     try {
       // Strategy 1: Try Home Assistant's history service (most reliable)
@@ -180,7 +179,7 @@ export class MsdDataSource {
       }
     }
 
-    console.log(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
+    console.debug(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
   }
 
   /**
@@ -198,7 +197,7 @@ export class MsdDataSource {
 
     if (response && response[0]) {
       const states = response[0];
-      console.log(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
+      console.debug(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
 
       for (const state of states) {
         const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -230,7 +229,7 @@ export class MsdDataSource {
 
     if (response && response[0]?.statistics) {
       const statistics = response[0].statistics;
-      console.log(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
+      console.debug(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
 
       for (const stat of statistics) {
         const timestamp = new Date(stat.start).getTime();
@@ -252,7 +251,7 @@ export class MsdDataSource {
     if (this._started || this._destroyed) return;
 
     try {
-      console.log(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
+      console.debug(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
 
       // STEP 1: Preload historical data FIRST
       if (this.hass?.callService) {
@@ -262,12 +261,12 @@ export class MsdDataSource {
       // STEP 2: Initialize with current HASS state if available
       if (this.hass.states && this.hass.states[this.cfg.entity]) {
         const currentState = this.hass.states[this.cfg.entity];
-        console.log(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
+        console.debug(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
 
-        // ENHANCED: Capture unit_of_measurement from initial state
+                // ENHANCED: Capture unit_of_measurement from initial state
         if (currentState.attributes?.unit_of_measurement) {
           this.cfg.unit_of_measurement = currentState.attributes.unit_of_measurement;
-          console.log(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+          console.debug(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
         }
 
         // FIXED: Use current timestamp for initial state
@@ -276,7 +275,7 @@ export class MsdDataSource {
         const value = this._toNumber(rawValue);
 
         if (value !== null) {
-          console.log(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
+          console.debug(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
           this.buffer.push(currentTimestamp, value);
           this._stats.currentValue = value;
         }
@@ -286,13 +285,13 @@ export class MsdDataSource {
       this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
         if (event.event_type === 'state_changed' &&
             event.data?.entity_id === this.cfg.entity) {
-          console.log(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
+          console.debug(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
           this._handleStateChange(event.data);
         }
       }, 'state_changed');
 
       this._started = true;
-      console.log(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
+      console.debug(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
 
       // STEP 4: Process historical data through transformations
       this._processHistoricalTransformations();
@@ -314,7 +313,7 @@ export class MsdDataSource {
     if (this.subscribers.size > 0) {
       const lastPoint = this.buffer.last();
       if (lastPoint) {
-        console.log(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        console.debug(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
         const emitData = {
           t: lastPoint.t,
           v: lastPoint.v,
@@ -337,7 +336,7 @@ export class MsdDataSource {
         });
       } else {
         // Even if no buffer data, emit initial structure for consistency
-        console.log(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        console.debug(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
         const emitData = {
           t: null,
           v: null,
@@ -372,7 +371,7 @@ export class MsdDataSource {
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - hours * 3600000);
 
-    console.log(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
+    console.debug(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
 
     try {
       // Use modern WebSocket call for statistics (preferred)
@@ -386,7 +385,7 @@ export class MsdDataSource {
 
       if (statisticsData && statisticsData[this.cfg.entity]) {
         const statistics = statisticsData[this.cfg.entity];
-        console.log(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`);
+        console.debug(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`,statistics);
 
         for (const stat of statistics) {
           const timestamp = new Date(stat.start).getTime();
@@ -398,7 +397,7 @@ export class MsdDataSource {
           }
         }
 
-        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
+        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
         return; // Success with statistics
       }
     } catch (error) {
@@ -411,7 +410,7 @@ export class MsdDataSource {
 
   async _preloadStateHistoryWS(startTime, endTime) {
     try {
-      console.log(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
+      console.debug(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
 
       // Use modern WebSocket call for history
       const historyData = await this.hass.connection.sendMessagePromise({
@@ -425,7 +424,7 @@ export class MsdDataSource {
 
       if (historyData && historyData[0]) {
         const states = historyData[0];
-        console.log(`[MsdDataSource] 📊 Got ${states.length} history states`);
+        console.debug(`[MsdDataSource] 📊 Got ${states.length} history states`);
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -438,7 +437,7 @@ export class MsdDataSource {
           }
         }
 
-        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
+        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
       } else {
         console.warn('[MsdDataSource] No history data returned from WebSocket call');
       }
@@ -452,7 +451,7 @@ export class MsdDataSource {
 
   async _preloadHistoryREST(startTime, endTime) {
     try {
-      console.log(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
+      console.debug(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
 
       const startParam = startTime.toISOString();
       const url = `/api/history/period/${startParam}?filter_entity_id=${this.cfg.entity}&minimal_response&no_attributes`;
@@ -472,7 +471,7 @@ export class MsdDataSource {
 
       if (historyData && historyData[0]) {
         const states = historyData[0];
-        console.log(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
+        console.debug(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -485,7 +484,7 @@ export class MsdDataSource {
           }
         }
 
-        console.log(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
+        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
       }
     } catch (error) {
       console.error('[MsdDataSource] REST history fallback also failed:', error);
@@ -500,29 +499,16 @@ export class MsdDataSource {
     // Enhanced _handleStateChange method
   _handleStateChange(eventData) {
 
-    console.log('[MSD DEBUG] 📊 MsdDataSource._handleStateChange() ENTRY:', {
-      entity: this.cfg.entity,
-      timestamp: new Date().toISOString(),
-      hasEventData: !!eventData,
-      hasNewState: !!eventData?.new_state,
-      newStateValue: eventData?.new_state?.state,
-      subscriberCount: this.subscribers.size,
-      bufferExists: !!this.buffer,
-      bufferType: this.buffer ? this.buffer.constructor.name : 'none',
-      stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
-    });
+    console.debug('[MsdDataSource] State change for', this.cfg.entity, ':', eventData?.new_state?.state);
 
     if (!eventData?.new_state || this._destroyed) {
-      console.log('[MSD DEBUG] ⏭️ Skipping state change - no new state or destroyed');
+      console.debug('[MsdDataSource] Skipping state change - no new state or destroyed');
       return;
     }
 
     // Safety check: ensure buffer exists and has required methods
     if (!this.buffer || typeof this.buffer.push !== 'function') {
-      console.error('[MSD DEBUG] ❌ Buffer not properly initialized:', {
-        bufferExists: !!this.buffer,
-        bufferMethods: this.buffer ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.buffer)) : 'no buffer'
-      });
+      console.error('[MsdDataSource] Buffer not properly initialized for', this.cfg.entity);
       return;
     }
 
@@ -532,7 +518,7 @@ export class MsdDataSource {
     // ENHANCED: Capture and store unit_of_measurement from the entity
     if (eventData.new_state.attributes?.unit_of_measurement) {
       this.cfg.unit_of_measurement = eventData.new_state.attributes.unit_of_measurement;
-      console.log(`[MSD DEBUG] 📊 Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+      console.debug(`[MsdDataSource] Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
     }
 
     // FIXED: Use current timestamp instead of state timestamp
@@ -540,7 +526,7 @@ export class MsdDataSource {
 
     // Validate timestamp
     if (!Number.isFinite(timestamp)) {
-      console.error('[MSD DEBUG] ❌ Invalid timestamp generated:', timestamp);
+      console.error('[MsdDataSource] Invalid timestamp generated:', timestamp);
       return;
     }
     const rawValue = this.cfg.attribute
@@ -550,15 +536,7 @@ export class MsdDataSource {
     const value = this._toNumber(rawValue);
 
     if (value !== null) {
-      console.log(`[MSD DEBUG] 📊 Processing state change for ${this.cfg.entity}:`, {
-        value,
-        timestamp,
-        subscriberCount: this.subscribers.size,
-        bufferExists: !!this.buffer,
-        bufferMethods: this.buffer ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.buffer)) : 'no buffer',
-        originalState: this._lastOriginalState?.state,
-        unit_of_measurement: this.cfg.unit_of_measurement
-      });
+      console.debug(`[MsdDataSource] Processing state change for ${this.cfg.entity}: ${value} (${this.subscribers.size} subscribers)`);
 
     // Store in raw buffer
     this.buffer.push(timestamp, value);
@@ -577,8 +555,10 @@ export class MsdDataSource {
 
     // Update statistics
     this._stats.updates++;
-    this._stats.lastUpdate = timestamp;      // Emit to subscribers
-      console.log(`[MSD DEBUG] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
+    this._stats.lastUpdate = timestamp;
+
+      // Emit to subscribers
+      console.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
 
       const emitData = {
         t: timestamp,
@@ -594,16 +574,13 @@ export class MsdDataSource {
 
       this.subscribers.forEach((callback, index) => {
         try {
-          console.log(`[MSD DEBUG] 📞 Calling subscriber ${index} for ${this.cfg.entity}`);
           callback(emitData);
-          console.log(`[MSD DEBUG] ✅ Subscriber ${index} completed successfully`);
         } catch (error) {
-          console.error(`[MSD DEBUG] ❌ Subscriber ${index} callback FAILED for ${this.cfg.entity}:`, error);
-          console.error(`[MSD DEBUG] ❌ Subscriber error stack:`, error.stack);
+          console.error(`[MsdDataSource] ❌ Subscriber ${index} callback FAILED for ${this.cfg.entity}:`, error);
         }
       });
     } else {
-      console.log(`[MSD DEBUG] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
+      console.debug(`[MsdDataSource] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
     }
   }
 
@@ -637,7 +614,7 @@ export class MsdDataSource {
     this._lastEmittedValue = data.v;
     this._stats.emits++;
 
-    console.log(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, data.v);
+    console.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, data.v);
 
     // Call all subscribers
     this.subscribers.forEach(callback => {
@@ -831,7 +808,7 @@ export class MsdDataSource {
           historyReady: this._stats.historyLoaded > 0
         };
 
-        console.log(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
+        console.debug(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
           entity: this.cfg.entity,
           value: lastPoint.v,
           bufferSize: this.buffer.size(),
@@ -847,7 +824,7 @@ export class MsdDataSource {
         console.warn('[MsdDataSource] Initial callback error:', error);
       }
     } else {
-      console.log(`[MsdDataSource] No data available for immediate hydration:`, {
+      console.debug(`[MsdDataSource] No data available for immediate hydration:`, {
         entity: this.cfg.entity,
         bufferSize: this.buffer.size(),
         started: this._started
@@ -885,22 +862,13 @@ export class MsdDataSource {
    * @returns {number|null} Converted number or null if invalid
    */
   _toNumber(raw) {
-    console.log('[MSD DEBUG] 📊 _toNumber() converting:', {
-      raw,
-      type: typeof raw,
-      entity: this.cfg.entity
-    });
-
     if (raw === null || raw === undefined) {
-      console.log('[MSD DEBUG] ⚠️ _toNumber() - null/undefined value');
       return null;
     }
 
     // Handle numeric values
     if (typeof raw === 'number') {
-      const result = isNaN(raw) ? null : raw;
-      console.log('[MSD DEBUG] 📊 _toNumber() - numeric:', { raw, result });
-      return result;
+      return isNaN(raw) ? null : raw;
     }
 
     // Handle string values
@@ -908,40 +876,36 @@ export class MsdDataSource {
       // Try direct numeric conversion first
       const num = parseFloat(raw);
       if (!isNaN(num) && isFinite(num)) {
-        console.log('[MSD DEBUG] 📊 _toNumber() - string numeric:', { raw, num });
         return num;
       }
 
       // ADDED: Handle boolean-like string states
       const lowerRaw = raw.toLowerCase().trim();
       if (lowerRaw === 'on' || lowerRaw === 'true' || lowerRaw === 'active' || lowerRaw === 'open') {
-        console.log('[MSD DEBUG] 📊 _toNumber() - boolean TRUE:', { raw, converted: 1 });
         return 1;
       }
 
       if (lowerRaw === 'off' || lowerRaw === 'false' || lowerRaw === 'inactive' || lowerRaw === 'closed') {
-        console.log('[MSD DEBUG] 📊 _toNumber() - boolean FALSE:', { raw, converted: 0 });
         return 0;
       }
 
       // Handle unavailable/unknown states
       if (lowerRaw === 'unavailable' || lowerRaw === 'unknown') {
-        console.log('[MSD DEBUG] 📊 _toNumber() - unavailable state:', { raw, converted: null });
         return null;
       }
 
-      console.log('[MSD DEBUG] ⚠️ _toNumber() - unhandled string:', { raw });
+      // Log unhandled strings occasionally for debugging
+      if (Math.random() < 0.1) {
+        console.debug('[MsdDataSource] Unhandled string value:', raw, 'for entity:', this.cfg.entity);
+      }
       return null;
     }
 
     // Handle boolean values
     if (typeof raw === 'boolean') {
-      const result = raw ? 1 : 0;
-      console.log('[MSD DEBUG] 📊 _toNumber() - boolean:', { raw, result });
-      return result;
+      return raw ? 1 : 0;
     }
 
-    console.log('[MSD DEBUG] ⚠️ _toNumber() - unsupported type:', { raw, type: typeof raw });
     return null;
   }
 
@@ -1173,14 +1137,14 @@ export class MsdDataSource {
         const transformedValue = processor.transform(value, timestamp, this.buffer);
         results[key] = transformedValue;
 
-        console.log(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
+        console.debug(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
 
         // Cache transformed historical data if the value is valid
         if (transformedValue !== null && Number.isFinite(transformedValue)) {
           const buffer = this.transformedBuffers.get(key);
           if (buffer) {
             buffer.push(timestamp, transformedValue);
-            console.log(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
+            console.debug(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
           } else {
             console.warn(`[MsdDataSource] No buffer found for transformation ${key}`);
           }
@@ -1203,7 +1167,7 @@ export class MsdDataSource {
       return; // No transformations to process
     }
 
-    console.log(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
+    console.debug(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
 
     try {
       // Get all historical points from main buffer
@@ -1234,7 +1198,7 @@ export class MsdDataSource {
 
       // Log results
       this.transformedBuffers.forEach((buffer, key) => {
-        console.log(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
+        console.debug(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
       });
 
     } catch (error) {

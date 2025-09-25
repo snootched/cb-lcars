@@ -143,7 +143,7 @@ export class RendererUtils {
       actualRight: pixelToViewBox(metrics.actualRight)
     };
 
-    console.log('[RendererUtils] Transformed text metrics:', {
+    console.debug('[RendererUtils] Transformed text metrics:', {
       original: {
         width: metrics.width,
         height: metrics.height
@@ -248,7 +248,7 @@ export class RendererUtils {
       centerY: top + metrics.height / 2
     };
 
-    console.log('[RendererUtils] Text bounding box calculation:', {
+    console.debug('[RendererUtils] Text bounding box calculation:', {
       text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
       inputPosition: { x, y },
       textAnchor,
@@ -493,7 +493,7 @@ export class RendererUtils {
     return null;
   }
 
-    /**
+  /**
    * Parse glow effect configuration
    * @param {Object} glowConfig - Glow configuration object
    * @returns {Object|null} Normalized glow configuration

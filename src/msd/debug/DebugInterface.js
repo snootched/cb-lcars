@@ -1,5 +1,6 @@
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { MsdIntrospection } from '../introspection/MsdIntrospection.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
   if (typeof window === 'undefined') return;
@@ -10,7 +11,7 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   const debugConfig = mergedConfig?.debug || {};
 
   // REDUCED: Minimal startup logging
-  console.log('[MSD v1] Debug interface ready - type window.__msdDebug.help() for usage');
+  cblcarsLog.debug('[DebugInterface] Debug interface ready - type window.__msdDebug.help() for usage');
 
   // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
@@ -19,7 +20,7 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   if (!dbg.hasOwnProperty('pipeline')) {
     Object.defineProperty(dbg, 'pipeline', {
       get() {
-        console.warn('[MSD Debug] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
+        cblcarsLog.warn('[DebugInterface] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
         return this.pipelineInstance;
       },
       configurable: true
@@ -40,12 +41,12 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   // Performance and validation
   setupUtilityDebugInterface(dbg, mergedConfig, systemsManager);
 
-  console.log('[MSD v1] Debug interface setup complete');
-  console.log('[MSD v1] Available methods:', Object.keys(dbg));
+  cblcarsLog.debug('[DebugInterface] Debug interface setup complete');
+  cblcarsLog.debug('[DebugInterface] Available methods:', Object.keys(dbg));
 
   // Log debug config state (REDUCED)
   if (debugConfig.enabled) {
-    console.log('[MSD v1] Debug mode enabled');
+    cblcarsLog.debug('[DebugInterface] Debug mode enabled');
   }
 }
 
@@ -59,7 +60,7 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
       try {
         return systemsManager.router.stats?.() || { cacheHits: 0, pathsComputed: 0, invalidations: 0 };
       } catch (e) {
-        console.warn('[MSD v1] routing.stats failed:', e);
+        cblcarsLog.warn('[DebugInterface] routing.stats failed:', e);
         return { cacheHits: 0, pathsComputed: 0, invalidations: 0, error: e.message };
       }
     },
@@ -78,7 +79,7 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
         systemsManager.router.invalidate && systemsManager.router.invalidate('*');
         return res;
       } catch (e) {
-        console.warn('[MSD v1] inspectAs failed', e);
+        cblcarsLog.warn('[DebugInterface] inspectAs failed', e);
         return null;
       }
     }
@@ -112,7 +113,7 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
         dump: () => systemsManager.dataSourceManager?.debugDump() || { error: 'DataSourceManager not initialized' },
         manager: () => systemsManager.dataSourceManager
       };
-      console.log('[DebugInterface] Created dataSourcesDebug as alternative access due to getter conflict');
+      cblcarsLog.debug('[DebugInterface] Created dataSourcesDebug as alternative access due to getter conflict');
     }
   }
 
@@ -120,15 +121,15 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
   // This provides entity-like access through DataSourceManager
   dbg.entities = {
     list: () => {
-      console.warn('[MSD Debug] entities.list() is deprecated. Use window.__msdDebug.dataSourceManager.listIds() instead.');
+      cblcarsLog.warn('[DebugInterface] entities.list() is deprecated. Use window.__msdDebug.dataSourceManager.listIds() instead.');
       return systemsManager.dataSourceManager?.listIds() || [];
     },
     get: (id) => {
-      console.warn('[MSD Debug] entities.get() is deprecated. Use window.__msdDebug.dataSourceManager.getEntity() instead.');
+      cblcarsLog.warn('[DebugInterface] entities.get() is deprecated. Use window.__msdDebug.dataSourceManager.getEntity() instead.');
       return systemsManager.dataSourceManager?.getEntity(id) || null;
     },
     stats: () => {
-      console.warn('[MSD Debug] entities.stats() is deprecated. Use window.__msdDebug.dataSources.stats() instead.');
+      cblcarsLog.warn('[DebugInterface] entities.stats() is deprecated. Use window.__msdDebug.dataSources.stats() instead.');
       const dsStats = systemsManager.dataSourceManager?.getStats() || {};
       const entityCount = systemsManager.dataSourceManager?.listIds()?.length || 0;
 
@@ -162,11 +163,11 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
-            console.log('[MSD Debug] Force re-render after enable:', feature);
+            cblcarsLog.debug('[DebugInterface] Force re-render after enable:', feature);
             pipelineInstance.reRender();
           }
         } catch (error) {
-          console.warn('[MSD Debug] Failed to trigger re-render:', error);
+          cblcarsLog.warn('[DebugInterface] Failed to trigger re-render:', error);
         }
       }, 10);
     },
@@ -183,57 +184,57 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         try {
           const pipelineInstance = window.__msdDebug?.pipelineInstance;
           if (pipelineInstance?.reRender) {
-            console.log('[MSD Debug] Force re-render after disable:', feature);
+            cblcarsLog.debug('[DebugInterface] Force re-render after disable:', feature);
             pipelineInstance.reRender();
           }
         } catch (error) {
-          console.warn('[MSD Debug] Failed to trigger re-render:', error);
+          cblcarsLog.warn('[DebugInterface] Failed to trigger re-render:', error);
         }
       }, 10);
     },
 
     // Manual debug render test
     testRender: () => {
-      console.log('[MSD Debug] Testing debug render directly...');
+      cblcarsLog.debug('[DebugInterface] Testing debug render directly...');
       try {
         const debugState = debugManager.getSnapshot();
-        console.log('[MSD Debug] Current state:', debugState);
+        cblcarsLog.debug('[DebugInterface] Current state:', debugState);
 
         // Get pipeline instance to access the shadowRoot context
         const pipelineInstance = window.__msdDebug?.pipelineInstance;
         if (!pipelineInstance) {
-          console.warn('[MSD Debug] No pipeline instance available');
+          cblcarsLog.warn('[DebugInterface] No pipeline instance available');
           return;
         }
 
         // Try to get the shadowRoot from the systems manager
         const systemsManager = pipelineInstance.systemsManager;
         if (!systemsManager) {
-          console.warn('[MSD Debug] No systems manager available');
+          cblcarsLog.warn('[DebugInterface] No systems manager available');
           return;
         }
 
         // Use the renderer's mount element (shadowRoot)
         const mountEl = systemsManager.renderer?.mountEl;
         if (!mountEl) {
-          console.warn('[MSD Debug] No mount element found in renderer');
+          cblcarsLog.warn('[DebugInterface] No mount element found in renderer');
           return;
         }
 
-        console.log('[MSD Debug] Found mount element:', mountEl.constructor.name);
+        cblcarsLog.debug('[DebugInterface] Found mount element:', mountEl.constructor.name);
 
         // Get resolved model for proper context
         const resolvedModel = pipelineInstance.getResolvedModel();
         if (!resolvedModel) {
-          console.warn('[MSD Debug] No resolved model available');
+          cblcarsLog.warn('[DebugInterface] No resolved model available');
           return;
         }
 
-        console.log('[MSD Debug] Calling renderDebugAndControls with shadowRoot context');
+        cblcarsLog.debug('[DebugInterface] Calling renderDebugAndControls with shadowRoot context');
         systemsManager.renderDebugAndControls(resolvedModel, mountEl);
 
       } catch (error) {
-        console.error('[MSD Debug] testRender failed:', error);
+        cblcarsLog.error('[DebugInterface] testRender failed:', error);
       }
     },
 
@@ -259,10 +260,10 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
         const pipelineInstance = window.__msdDebug?.pipelineInstance;
         if (pipelineInstance?.reRender) {
           pipelineInstance.reRender();
-          console.log('[MSD Debug] Debug overlays refreshed');
+          cblcarsLog.debug('[DebugInterface] Debug overlays refreshed');
         }
       } catch (error) {
-        console.warn('[MSD Debug] Failed to trigger pipeline re-render:', error);
+        cblcarsLog.warn('[DebugInterface] Failed to trigger pipeline re-render:', error);
       }
     },
 
@@ -281,39 +282,39 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       test: (overlayId) => {
         const pipelineInstance = window.__msdDebug?.pipelineInstance;
         if (!pipelineInstance) {
-          console.warn('[MSD Debug] No pipeline instance available');
+          cblcarsLog.warn('[DebugInterface] No pipeline instance available');
           return null;
         }
 
         const model = pipelineInstance.getResolvedModel?.();
         if (!model) {
-          console.warn('[MSD Debug] No resolved model available');
+          cblcarsLog.warn('[DebugInterface] No resolved model available');
           return null;
         }
 
         const overlay = model.overlays.find(o => o.id === overlayId);
         if (!overlay) {
-          console.warn(`[MSD Debug] Overlay "${overlayId}" not found`);
+          cblcarsLog.warn(`[DebugInterface] Overlay "${overlayId}" not found`);
           return null;
         }
 
         // Get the debug renderer from systems manager
         const debugRenderer = systemsManager.debugRenderer;
         if (!debugRenderer) {
-          console.warn('[MSD Debug] Debug renderer not available');
+          cblcarsLog.warn('[DebugInterface] Debug renderer not available');
           return null;
         }
 
         const position = overlay.position;
         if (!position || !Array.isArray(position)) {
-          console.warn(`[MSD Debug] Invalid position for overlay "${overlayId}"`);
+          cblcarsLog.warn(`[DebugInterface] Invalid position for overlay "${overlayId}"`);
           return null;
         }
 
         const [x, y] = position;
         const dimensions = debugRenderer._getOverlayDimensions(overlay, x, y);
 
-        console.log(`[MSD Debug] Bounding box test for "${overlayId}":`, {
+        cblcarsLog.debug(`[DebugInterface] Bounding box test for "${overlayId}":`, {
           overlay: {
             id: overlay.id,
             type: overlay.type,
@@ -332,19 +333,19 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       compare: (overlayId) => {
         const pipelineInstance = window.__msdDebug?.pipelineInstance;
         if (!pipelineInstance) {
-          console.warn('[MSD Debug] No pipeline instance available');
+          cblcarsLog.warn('[DebugInterface] No pipeline instance available');
           return null;
         }
 
         const model = pipelineInstance.getResolvedModel?.();
         if (!model) {
-          console.warn('[MSD Debug] No resolved model available');
+          cblcarsLog.warn('[DebugInterface] No resolved model available');
           return null;
         }
 
         const overlay = model.overlays.find(o => o.id === overlayId);
         if (!overlay || overlay.type !== 'text') {
-          console.warn(`[MSD Debug] Text overlay "${overlayId}" not found`);
+          cblcarsLog.warn(`[DebugInterface] Text overlay "${overlayId}" not found`);
           return null;
         }
 
@@ -476,73 +477,17 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     }
   };
 
-  /*
-  // Keep the shadowRoot tracking code - it's still used by testRender and other methods
-  let debugShadowRoot = null;
-  let lastUsedRoot = null;
-  */
-
-  /**
-   * Store the shadowRoot context from the render call
-   * This allows us to find elements within the correct scope later
-   */
-  /*
-  function setDebugContext(root) {
-    if (root && root.querySelector) {
-      debugShadowRoot = root;
-      lastUsedRoot = root;
-      console.log('[MSD Debug] Stored debug context:', root.constructor.name);
-    }
-  }
-  */
-  /**
-   * Find MSD wrapper element within the correct scope (shadowRoot)
-   */
-  /*
-  function findMsdWrapper() {
-    const searchRoots = [debugShadowRoot, lastUsedRoot].filter(Boolean);
-
-    for (const root of searchRoots) {
-      if (!root || !root.querySelector) continue;
-
-      // Try multiple selectors within this shadowRoot
-      const selectors = [
-        '#msd-v1-comprehensive-wrapper',
-        '[id*="msd-v1"]',
-        '[id*="msd"]',
-        '.msd-container',
-        'div[style*="border:2px solid cyan"]'  // Fallback to the wrapper div style
-      ];
-
-      for (const selector of selectors) {
-        try {
-          const element = root.querySelector(selector);
-          if (element) {
-            console.log(`[MSD Debug] Found wrapper using selector '${selector}' in ${root.constructor.name}`);
-            return element;
-          }
-        } catch (e) {
-          // Continue to next selector
-        }
-      }
-    }
-
-    console.warn('[MSD Debug] Could not find MSD wrapper in any known shadowRoot');
-    return null;
-  }
-  */
-
   dbg.renderAdvanced = (options) => {
     try {
-      console.log('[MSD v1] renderAdvanced called - using AdvancedRenderer');
+      cblcarsLog.debug('[DebugInterface] renderAdvanced called - using AdvancedRenderer');
       const model = modelBuilder.getResolvedModel();
       if (model) {
         return systemsManager.renderer.render(model);
       }
-      console.warn('[MSD v1] renderAdvanced: No resolved model available');
+      cblcarsLog.warn('[DebugInterface] renderAdvanced: No resolved model available');
       return { svgMarkup: '' };
     } catch (error) {
-      console.error('[MSD v1] renderAdvanced failed:', error);
+      cblcarsLog.error('[DebugInterface] renderAdvanced failed:', error);
       return { svgMarkup: '', error: error.message };
     }
   };
@@ -562,7 +507,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
       if (debugConfig?.hud?.auto_show) {
         setTimeout(() => {
           systemsManager.hudManager.show();
-          console.log('[MSD v1] HUD auto-shown based on config');
+          cblcarsLog.debug('[DebugInterface] HUD auto-shown based on config');
         }, 2000);
       }
     }
@@ -583,7 +528,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 
   // ADD: Help system
   dbg.help = function() {
-    console.log(`
+    cblcarsLog.info(`
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║                          MSD Debug Interface Help                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
@@ -635,7 +580,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 
   // ADD: Simplified usage examples
   dbg.usage = function() {
-    console.log(`
+    cblcarsLog.info(`
 🔧 Quick MSD Debug Commands:
 
 Enable debug features:
@@ -660,7 +605,7 @@ For full help: __msdDebug.help()
 
   // Log debug config state (REDUCED)
   if (debugConfig.enabled) {
-    console.log('[MSD v1] Debug mode enabled');
+    cblcarsLog.info('[DebugInterface] Debug mode enabled');
   }
 }
 
@@ -708,7 +653,7 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
       try {
         return mergedConfig.__issues || { errors: [], warnings: [] };
       } catch (e) {
-        console.warn('[MSD v1] validation.issues failed:', e);
+        cblcarsLog.warn('[DebugInterface] validation.issues failed:', e);
         return { errors: [], warnings: [] };
       }
     }
@@ -735,7 +680,7 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
     markersEnabled: false,
     showMarkers(flag=true){
       this.markersEnabled=!!flag;
-      console.info('[MSD v1] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED');
+      console.info('[DebugInterface] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED');
     },
     forceRedraw: () => {
       // Connect to the reRender callback through systems manager

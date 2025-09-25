@@ -512,7 +512,7 @@ export class SparklineRenderer {
   _buildBrackets(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.bracket_style) return '';
 
-    console.log(`[SparklineRenderer] Building brackets for ${overlayId}: style=${sparklineStyle.bracket_style}`);
+    console.debug(`[SparklineRenderer] Building brackets for ${overlayId}: style=${sparklineStyle.bracket_style}`);
 
     // Convert sparkline style properties to BracketRenderer format
     const bracketConfig = {
@@ -540,7 +540,7 @@ export class SparklineRenderer {
       hybrid_mode: sparklineStyle.hybrid_mode
     };
 
-    console.log(`[SparklineRenderer] Bracket config:`, bracketConfig);
+    console.debug(`[SparklineRenderer] Bracket config:`, bracketConfig);
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }

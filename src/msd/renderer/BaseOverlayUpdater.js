@@ -59,7 +59,7 @@ export class BaseOverlayUpdater {
    * @public
    */
   updateOverlaysForDataSourceChanges(changedIds) {
-    console.log('[BaseOverlayUpdater] Checking overlays for DataSource changes:', changedIds);
+    console.debug('[BaseOverlayUpdater] Checking overlays for DataSource changes:', changedIds);
 
     const resolvedModel = this.systemsManager.modelBuilder?.getResolvedModel?.();
     if (!resolvedModel?.overlays) {
@@ -67,13 +67,13 @@ export class BaseOverlayUpdater {
       return;
     }
 
-    console.log(`[BaseOverlayUpdater] Found ${resolvedModel.overlays.length} overlays to check`);
+    console.debug(`[BaseOverlayUpdater] Found ${resolvedModel.overlays.length} overlays to check`);
 
     // Check each overlay type
     resolvedModel.overlays.forEach(overlay => {
       const updater = this.overlayUpdaters.get(overlay.type) || this.overlayUpdaters.get('default');
 
-      console.log(`[BaseOverlayUpdater] Checking overlay ${overlay.id} (type: ${overlay.type}):`, {
+      console.debug(`[BaseOverlayUpdater] Checking overlay ${overlay.id} (type: ${overlay.type}):`, {
         hasTemplates: updater.hasTemplates(overlay),
         source: overlay.source,
         content: overlay.content
@@ -82,7 +82,7 @@ export class BaseOverlayUpdater {
       if (updater.hasTemplates(overlay)) {
         const needsUpdate = this._overlayReferencesChangedDataSources(overlay, changedIds);
 
-        console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data:`, needsUpdate);
+        console.debug(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data:`, needsUpdate);
 
         if (needsUpdate) {
           const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
@@ -91,7 +91,7 @@ export class BaseOverlayUpdater {
             if (dataSource) {
               const currentData = dataSource.getCurrentData();
 
-              console.log(`[BaseOverlayUpdater] Updating ${overlay.type} overlay ${overlay.id}`);
+              console.debug(`[BaseOverlayUpdater] Updating ${overlay.type} overlay ${overlay.id}`);
               updater.update(overlay.id, overlay, currentData);
             } else {
               console.warn(`[BaseOverlayUpdater] DataSource ${updatedDataSourceId} not found`);
@@ -101,7 +101,7 @@ export class BaseOverlayUpdater {
           }
         }
       } else {
-        console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} has no templates - skipping`);
+        console.debug(`[BaseOverlayUpdater] Overlay ${overlay.id} has no templates - skipping`);
       }
     });
   }
@@ -159,7 +159,7 @@ export class BaseOverlayUpdater {
     // For history bars, also check if the source directly matches a changed DataSource
     if (overlay.type === 'history_bar' && overlay.source) {
       const sourceMatches = this._dataSourceMatchesChangedEntities(overlay.source, changedIds);
-      console.log(`[BaseOverlayUpdater] History bar ${overlay.id} source ${overlay.source} matches changed entities:`, sourceMatches);
+      console.debug(`[BaseOverlayUpdater] History bar ${overlay.id} source ${overlay.source} matches changed entities:`, sourceMatches);
       if (sourceMatches) {
         hasReference = true;
       }
@@ -174,17 +174,16 @@ export class BaseOverlayUpdater {
           const cellContent = cell.content || cell.label || cell.value_format || '';
           const cellReferencesChanged = this._contentReferencesChangedDataSources(cellContent, changedIds);
 
-          console.log(`[BaseOverlayUpdater] Status grid ${overlay.id} cell "${cell.id || cell.label}" content="${cellContent}" references changed data:`, cellReferencesChanged);
+          console.debug(`[BaseOverlayUpdater] Status grid ${overlay.id} cell "${cell.id || cell.label}" content="${cellContent}" references changed data:`, cellReferencesChanged);
 
           if (cellReferencesChanged) {
-            console.log(`[BaseOverlayUpdater] Status grid ${overlay.id} cell ${cell.id || cell.label} references changed data:`, cellContent);
+            console.debug(`[BaseOverlayUpdater] Status grid ${overlay.id} cell ${cell.id || cell.label} references changed data:`, cellContent);
             hasReference = true;
           }
         });
       }
     }
 
-    console.log(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data: ${hasReference}`);
     return hasReference;
   }
 
@@ -223,7 +222,7 @@ export class BaseOverlayUpdater {
       if (this.systemsManager.dataSourceManager) {
         const dataSource = this.systemsManager.dataSourceManager.getSource(entityName);
         if (dataSource && changedIds.includes(dataSource.cfg?.entity)) {
-          console.log(`[BaseOverlayUpdater] Content references changed DataSource: ${entityName} (entity: ${dataSource.cfg?.entity})`);
+          console.debug(`[BaseOverlayUpdater] Content references changed DataSource: ${entityName} (entity: ${dataSource.cfg?.entity})`);
           return true;
         }
 
@@ -232,14 +231,14 @@ export class BaseOverlayUpdater {
           const baseSourceName = entityName.split('.')[0];
           const baseDataSource = this.systemsManager.dataSourceManager.getSource(baseSourceName);
           if (baseDataSource && changedIds.includes(baseDataSource.cfg?.entity)) {
-            console.log(`[BaseOverlayUpdater] Content references changed DataSource via dot notation: ${entityName} -> ${baseSourceName} (entity: ${baseDataSource.cfg?.entity})`);
+            console.debug(`[BaseOverlayUpdater] Content references changed DataSource via dot notation: ${entityName} -> ${baseSourceName} (entity: ${baseDataSource.cfg?.entity})`);
             return true;
           }
         }
       }
     }
 
-    console.log(`[BaseOverlayUpdater] Content does not reference any changed DataSources. Referenced: [${Array.from(referencedEntities).join(', ')}], Changed: [${changedIds.join(', ')}]`);
+    console.debug(`[BaseOverlayUpdater] Content does not reference any changed DataSources. Referenced: [${Array.from(referencedEntities).join(', ')}], Changed: [${changedIds.join(', ')}]`);
     return false;
   }
 
@@ -281,7 +280,7 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateStatusGrid(overlayId, overlay, sourceData) {
-    console.log(`[BaseOverlayUpdater] Updating status grid ${overlayId} with template processing`);
+    console.debug(`[BaseOverlayUpdater] Updating status grid ${overlayId} with template processing`);
 
     // Import StatusGridRenderer for template processing
     import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
@@ -290,14 +289,14 @@ export class BaseOverlayUpdater {
       // Process cell templates with new DataSource data
       const updatedCells = renderer.updateCellsWithData(overlay, overlay.finalStyle || {}, sourceData);
 
-      console.log(`[BaseOverlayUpdater] Processed ${updatedCells.length} cells for status grid ${overlayId}`);
+      console.debug(`[BaseOverlayUpdater] Processed ${updatedCells.length} cells for status grid ${overlayId}`);
 
       // SIMPLIFIED: Let the external renderer handle the actual DOM update
       // We've done our job of processing the data - the external system will handle rendering
       if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
         this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
       } else {
-        console.log(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
+        console.debug(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
       }
     }).catch(error => {
       console.error(`[BaseOverlayUpdater] Failed to import StatusGridRenderer:`, error);
@@ -309,7 +308,7 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateSparkline(overlayId, overlay, sourceData) {
-    console.log(`[BaseOverlayUpdater] Updating sparkline ${overlayId} with enhanced synchronization`);
+    console.debug(`[BaseOverlayUpdater] Updating sparkline ${overlayId} with enhanced synchronization`);
 
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateSparklineData) {
       // Use the enhanced sparkline update method that handles synchronization
@@ -324,7 +323,7 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateHistoryBar(overlayId, overlay, sourceData) {
-    console.log(`[BaseOverlayUpdater] _updateHistoryBar called for ${overlayId}:`, {
+    console.debug(`[BaseOverlayUpdater] _updateHistoryBar called for ${overlayId}:`, {
       hasRenderer: !!this.systemsManager.renderer,
       hasUpdateOverlayData: !!(this.systemsManager.renderer?.updateOverlayData),
       sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
@@ -332,7 +331,7 @@ export class BaseOverlayUpdater {
     });
 
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-      console.log(`[BaseOverlayUpdater] Calling updateOverlayData for history_bar overlay ${overlayId}`);
+      console.debug(`[BaseOverlayUpdater] Calling updateOverlayData for history_bar overlay ${overlayId}`);
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     } else {
       console.warn(`[BaseOverlayUpdater] No renderer method available for history_bar overlay ${overlayId}`);
@@ -344,59 +343,9 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateGenericOverlay(overlayId, overlay, sourceData) {
-    console.log(`[BaseOverlayUpdater] Generic update for ${overlay.type} overlay ${overlayId}`);
+    console.debug(`[BaseOverlayUpdater] Generic update for ${overlay.type} overlay ${overlayId}`);
     // Could implement generic template processing here
   }
-
-  /**
-   * Enhanced overlay update with initial data handling for Status Grid
-   * @private
-   * @param {Object} overlay - Overlay to update
-   * @param {Object} data - Data from DataSource
-   */
-  /*
-  static _updateOverlayWithData(overlay, data) {
-    const currentTimestamp = Date.now();
-
-    // ENHANCED: Handle initial data differently than ongoing updates
-    const isInitialData = data.historyReady && (!overlay.lastUpdate || overlay.lastUpdate === 0);
-
-    if (isInitialData) {
-      console.log(`[BaseOverlayUpdater] 🚀 Processing INITIAL data for ${overlay.type} overlay ${overlay.id}`);
-    }
-
-    // ENHANCED: Update based on overlay type with initial data consideration
-    if (overlay.type === 'text') {
-      TextOverlayRenderer.updateTextOverlay(overlay, data.entity, data.v, currentTimestamp, data.unit_of_measurement);
-      console.log(`[BaseOverlayUpdater] ✅ Updated TEXT overlay ${overlay.id} with value: ${data.v}`);
-
-    } else if (overlay.type === 'status_grid') {
-      // For Status Grid, ensure initial data triggers proper rendering
-      StatusGridRenderer.updateCellsWithData(overlay, data);
-
-      if (isInitialData) {
-        console.log(`[BaseOverlayUpdater] 🎯 STATUS GRID ${overlay.id} received initial data - forcing re-render if needed`);
-        // Trigger a re-render to ensure templates are processed with new data
-        overlay._needsRerender = true;
-      }
-
-      console.log(`[BaseOverlayUpdater] ✅ Updated STATUS GRID overlay ${overlay.id} with data from entity: ${data.entity}`);
-
-    } else if (overlay.type === 'sparkline') {
-      SparklineRenderer.updateSparklineData(overlay, data);
-      console.log(`[BaseOverlayUpdater] ✅ Updated SPARKLINE overlay ${overlay.id} with buffer data`);
-
-    } else {
-      // Fallback for other overlay types
-      overlay.data = data;
-      overlay.lastUpdate = currentTimestamp;
-      console.log(`[BaseOverlayUpdater] ✅ Updated ${overlay.type} overlay ${overlay.id} with generic data`);
-    }
-
-    // Set lastUpdate timestamp
-    overlay.lastUpdate = currentTimestamp;
-  }
-  */
 
   /**
    * Helper methods
