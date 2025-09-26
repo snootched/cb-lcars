@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+
 /**
  * Shared Renderer Utilities - Common functionality for all renderers
  * Provides reusable components for gradients, patterns, filters, and effects
@@ -56,7 +58,7 @@ export class RendererUtils {
         pixelToViewBox: (pixelSize) => pixelSize * Math.max(scaleX, scaleY)
       };
     } catch (error) {
-      console.warn('[RendererUtils] Failed to get SVG transform info:', error);
+      cblcarsLog.warn('[RendererUtils] Failed to get SVG transform info:', error);
       return null;
     }
   }
@@ -127,7 +129,7 @@ export class RendererUtils {
     const transformInfo = this._getSvgTransformInfo(containerElement);
     if (!transformInfo) {
       // No transformation available - return original metrics
-      console.warn('[RendererUtils] No transform info available, using pixel metrics');
+      cblcarsLog.warn('[RendererUtils] No transform info available, using pixel metrics');
       return metrics;
     }
 
@@ -143,7 +145,7 @@ export class RendererUtils {
       actualRight: pixelToViewBox(metrics.actualRight)
     };
 
-    console.debug('[RendererUtils] Transformed text metrics:', {
+    cblcarsLog.debug('[RendererUtils] Transformed text metrics:', {
       original: {
         width: metrics.width,
         height: metrics.height
@@ -248,7 +250,7 @@ export class RendererUtils {
       centerY: top + metrics.height / 2
     };
 
-    console.debug('[RendererUtils] Text bounding box calculation:', {
+    cblcarsLog.debug('[RendererUtils] Text bounding box calculation:', {
       text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
       inputPosition: { x, y },
       textAnchor,
@@ -358,7 +360,7 @@ export class RendererUtils {
       const computed = window.getComputedStyle(target).fontFamily;
       if (computed && computed !== 'inherit') return computed;
     } catch (e) {
-      console.warn('[RendererUtils] resolveFontFamily failed:', e);
+      cblcarsLog.warn('[RendererUtils] resolveFontFamily failed:', e);
     }
     return 'Arial, sans-serif';
   }

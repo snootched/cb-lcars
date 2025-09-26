@@ -3,12 +3,6 @@ import { processMsdConfig } from './pipeline/ConfigProcessor.js';
 import { mergePacks, validateMerged } from './pipeline/ConfigProcessor.js';
 import { buildCardModel } from './model/CardModel.js';
 
-// Import tests and services
-//import "./tests/routingScenarios.js"
-//import "./tests/smartRoutingScenarios.js"
-//import "./tests/channelsRoutingScenarios.js"
-//import "./tests/arcsRoutingScenarios.js";
-//import "./tests/smoothingRoutingScenarios.js";
 import "./hud/hudService.js";
 
 // Main exports

@@ -4,6 +4,7 @@ import { resolveValueMaps } from '../valueMap/resolveValueMaps.js';
 import { resolveDesiredAnimations } from '../animation/resolveAnimations.js';
 import { resolveDesiredTimelines } from '../animation/resolveTimelines.js';
 import { perfTime } from '../perf/PerfCounters.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class ModelBuilder {
   constructor(mergedConfig, cardModel, systemsManager) {
@@ -61,7 +62,7 @@ export class ModelBuilder {
     // DEBUG: Check final overlay state before rendering
     const titleOverlay = resolved.overlays.find(o => o.id === 'title_overlay');
     if (titleOverlay) {
-      console.debug('[ModelBuilder] 🏁 Final title_overlay state before rendering:', {
+      cblcarsLog.debug('[ModelBuilder] 🏁 Final title_overlay state before rendering:', {
         id: titleOverlay.id,
         color: titleOverlay.style?.color,
         status_indicator: titleOverlay.style?.status_indicator,
@@ -85,10 +86,10 @@ export class ModelBuilder {
   _ensureAnchors() {
     if (!this.cardModel.anchors || Object.keys(this.cardModel.anchors).length === 0) {
       if (this.mergedConfig.anchors && Object.keys(this.mergedConfig.anchors).length) {
-        console.warn('[ModelBuilder] computeResolvedModel: anchors missing – repairing from merged.anchors');
+        cblcarsLog.warn('[ModelBuilder] computeResolvedModel: anchors missing – repairing from merged.anchors');
         this.cardModel.anchors = { ...this.mergedConfig.anchors };
       } else {
-        console.warn('[ModelBuilder] computeResolvedModel: anchors missing and no merged fallback available.');
+        cblcarsLog.warn('[ModelBuilder] computeResolvedModel: anchors missing and no merged fallback available.');
       }
     }
   }
@@ -143,7 +144,7 @@ export class ModelBuilder {
 
   _subscribeOverlaysToDataSources(baseOverlays) {
     if (!this.systems.dataSourceManager || !baseOverlays) {
-      console.debug('[ModelBuilder] Skipping overlay subscriptions - no DataSourceManager or overlays');
+      cblcarsLog.debug('[ModelBuilder] Skipping overlay subscriptions - no DataSourceManager or overlays');
       return;
     }
 
@@ -156,7 +157,7 @@ export class ModelBuilder {
           // Check if data source exists and is ready
           const dataSource = this.systems.dataSourceManager.getSource(overlay.source);
           if (!dataSource) {
-            console.warn(`[ModelBuilder] Data source '${overlay.source}' not found for overlay ${overlay.id}`);
+            cblcarsLog.warn(`[ModelBuilder] Data source '${overlay.source}' not found for overlay ${overlay.id}`);
             return;
           }
 
@@ -164,7 +165,7 @@ export class ModelBuilder {
           const currentData = dataSource.getCurrentData();
           const isReady = currentData && (currentData.bufferSize > 0 || currentData.v !== undefined);
 
-          console.debug(`[ModelBuilder] Subscribing overlay ${overlay.id} to source ${overlay.source}:`, {
+          cblcarsLog.debug(`[ModelBuilder] Subscribing overlay ${overlay.id} to source ${overlay.source}:`, {
             sourceReady: isReady,
             bufferSize: currentData?.bufferSize || 0,
             hasValue: currentData?.v !== undefined
@@ -172,7 +173,7 @@ export class ModelBuilder {
 
           // Subscribe with enhanced callback
           const unsubscribe = this.systems.dataSourceManager.subscribeOverlay(overlay, (overlayConfig, updateData) => {
-            console.debug(`[ModelBuilder] 📊 Data update for overlay ${overlayConfig.id}:`, {
+            cblcarsLog.debug(`[ModelBuilder] 📊 Data update for overlay ${overlayConfig.id}:`, {
               value: updateData.v,
               bufferSize: updateData.buffer?.size?.() || 0,
               hasHistoricalData: !!(updateData.historicalData?.length),
@@ -184,20 +185,20 @@ export class ModelBuilder {
               try {
                 this.systems.renderer.updateOverlayData(overlayConfig.id, updateData);
               } catch (error) {
-                console.error(`[ModelBuilder] Error updating overlay ${overlayConfig.id}:`, error);
+                cblcarsLog.error(`[ModelBuilder] Error updating overlay ${overlayConfig.id}:`, error);
               }
             } else {
-              console.warn(`[ModelBuilder] Renderer not available for overlay update: ${overlayConfig.id}`);
+              cblcarsLog.warn(`[ModelBuilder] Renderer not available for overlay update: ${overlayConfig.id}`);
             }
           });
 
           if (unsubscribe) {
             subscriptionCount++;
             if (isReady) {
-              console.debug(`[ModelBuilder] ✅ Subscribed overlay ${overlay.id} to ready source ${overlay.source}`);
+              cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed overlay ${overlay.id} to ready source ${overlay.source}`);
             } else {
               pendingSubscriptions++;
-              console.debug(`[ModelBuilder] ⏳ Subscribed overlay ${overlay.id} to pending source ${overlay.source}`);
+              cblcarsLog.debug(`[ModelBuilder] ⏳ Subscribed overlay ${overlay.id} to pending source ${overlay.source}`);
             }
 
             // Store unsubscribe function for cleanup
@@ -211,13 +212,13 @@ export class ModelBuilder {
           }
 
         } catch (error) {
-          console.warn(`[ModelBuilder] ⚠️ Failed to subscribe overlay ${overlay.id} to source ${overlay.source}:`, error.message);
+          cblcarsLog.warn(`[ModelBuilder] ⚠️ Failed to subscribe overlay ${overlay.id} to source ${overlay.source}:`, error.message);
         }
       }
     });
 
     if (subscriptionCount > 0) {
-      console.debug(`[ModelBuilder] ✅ Established ${subscriptionCount} overlay data subscriptions (${pendingSubscriptions} pending data)`);
+      cblcarsLog.debug(`[ModelBuilder] ✅ Established ${subscriptionCount} overlay data subscriptions (${pendingSubscriptions} pending data)`);
     }
 
     // Monitor pending subscriptions and log when they become ready
@@ -260,14 +261,14 @@ export class ModelBuilder {
       });
 
       if (stillPending === 0) {
-        console.debug(`[ModelBuilder] 🎉 All overlay data sources are now ready (checked ${checkCount} times)`);
+        cblcarsLog.debug(`[ModelBuilder] 🎉 All overlay data sources are now ready (checked ${checkCount} times)`);
         clearInterval(checkInterval);
       } else if (checkCount >= maxChecks) {
-        console.warn(`[ModelBuilder] ⏰ Timeout waiting for ${stillPending} data sources to become ready`);
+        cblcarsLog.warn(`[ModelBuilder] ⏰ Timeout waiting for ${stillPending} data sources to become ready`);
         clearInterval(checkInterval);
       } else if (checkCount % 10 === 0) {
         // Log progress every second (10 * 100ms)
-        console.debug(`[ModelBuilder] ⏳ Still waiting for ${stillPending} data sources (${checkCount * 100}ms elapsed)`);
+        cblcarsLog.debug(`[ModelBuilder] ⏳ Still waiting for ${stillPending} data sources (${checkCount * 100}ms elapsed)`);
       }
     }, 100); // Check every 100ms
   }
@@ -276,12 +277,12 @@ export class ModelBuilder {
 
 
   _applyRules() {
-    console.debug('[ModelBuilder] 🔍 _applyRules() called');
+    cblcarsLog.debug('[ModelBuilder] 🔍 _applyRules() called');
 
     // FIXED: Always evaluate rules during render, not just when dirty
     // This ensures rule patches are generated even if rules weren't marked dirty externally
     this.systems.rulesEngine.markAllDirty();
-    console.debug('[ModelBuilder] 📏 Marked all rules dirty');
+    cblcarsLog.debug('[ModelBuilder] 📏 Marked all rules dirty');
 
     // Use DataSourceManager's getEntity for comprehensive entity resolution
     const getEntity = (entityId) => {
@@ -306,7 +307,7 @@ export class ModelBuilder {
     };
 
     const ruleResult = this.systems.rulesEngine.evaluateDirty({ getEntity });
-    console.debug('[ModelBuilder] 📏 Rule evaluation result:', {
+    cblcarsLog.debug('[ModelBuilder] 📏 Rule evaluation result:', {
       overlayPatches: ruleResult.overlayPatches.length,
       patches: ruleResult.overlayPatches
     });
@@ -325,7 +326,7 @@ export class ModelBuilder {
   }
 
   _applyOverlayPatches(baseOverlays, ruleResult) {
-    console.debug('[ModelBuilder] 🎨 _applyOverlayPatches() called with:', {
+    cblcarsLog.debug('[ModelBuilder] 🎨 _applyOverlayPatches() called with:', {
       overlayCount: baseOverlays.length,
       patchCount: ruleResult.overlayPatches.length,
       patches: ruleResult.overlayPatches
@@ -335,10 +336,10 @@ export class ModelBuilder {
       applyOverlayPatches(baseOverlays, ruleResult.overlayPatches)
     );
 
-    console.debug('[ModelBuilder] 🎨 Overlay patches applied. Checking title_overlay:');
+    cblcarsLog.debug('[ModelBuilder] 🎨 Overlay patches applied. Checking title_overlay:');
     const titleOverlay = result.find(o => o.id === 'title_overlay');
     if (titleOverlay) {
-      console.debug('[ModelBuilder] 🎯 Title overlay after patching:', {
+      cblcarsLog.debug('[ModelBuilder] 🎯 Title overlay after patching:', {
         id: titleOverlay.id,
         color: titleOverlay.style?.color,
         status_indicator: titleOverlay.style?.status_indicator
@@ -395,14 +396,14 @@ export class ModelBuilder {
    */
   destroy() {
     if (this._overlayUnsubscribers) {
-      console.debug(`[ModelBuilder] Cleaning up ${this._overlayUnsubscribers.size} overlay subscriptions`);
+      cblcarsLog.debug(`[ModelBuilder] Cleaning up ${this._overlayUnsubscribers.size} overlay subscriptions`);
 
       for (const [overlayId, unsubscribers] of this._overlayUnsubscribers) {
         unsubscribers.forEach(unsubscribe => {
           try {
             unsubscribe();
           } catch (error) {
-            console.warn(`[ModelBuilder] Error unsubscribing overlay ${overlayId}:`, error);
+            cblcarsLog.warn(`[ModelBuilder] Error unsubscribing overlay ${overlayId}:`, error);
           }
         });
       }
@@ -449,7 +450,7 @@ export class ModelBuilder {
     try {
       const dataSourceManager = this.systems?.dataSourceManager;
       if (!dataSourceManager) {
-        console.warn(`[ModelBuilder] DataSourceManager not available for text overlay subscription: ${overlayId}`);
+        cblcarsLog.warn(`[ModelBuilder] DataSourceManager not available for text overlay subscription: ${overlayId}`);
         return;
       }
 
@@ -458,13 +459,13 @@ export class ModelBuilder {
       const dataSource = dataSourceManager.getSource(sourceName);
 
       if (!dataSource) {
-        console.warn(`[ModelBuilder] DataSource '${sourceName}' not found for text overlay: ${overlayId}`);
+        cblcarsLog.warn(`[ModelBuilder] DataSource '${sourceName}' not found for text overlay: ${overlayId}`);
         return;
       }
 
       // Create subscription callback
       const callback = (data) => {
-        console.debug(`[ModelBuilder] 📊 Text overlay ${overlayId} received DataSource update from ${sourceName}`);
+        cblcarsLog.debug(`[ModelBuilder] 📊 Text overlay ${overlayId} received DataSource update from ${sourceName}`);
 
         // Notify AdvancedRenderer to update the text overlay
         if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
@@ -475,10 +476,10 @@ export class ModelBuilder {
       // Subscribe to the DataSource
       dataSource.subscribe(overlayId, callback);
 
-      console.debug(`[ModelBuilder] ✅ Subscribed text overlay ${overlayId} to DataSource ${sourceName}`);
+      cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed text overlay ${overlayId} to DataSource ${sourceName}`);
 
     } catch (error) {
-      console.error(`[ModelBuilder] Failed to subscribe text overlay ${overlayId} to DataSource ${dataSourceRef}:`, error);
+      cblcarsLog.error(`[ModelBuilder] Failed to subscribe text overlay ${overlayId} to DataSource ${dataSourceRef}:`, error);
     }
   }
 

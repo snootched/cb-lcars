@@ -426,8 +426,12 @@ class CBLCARSBaseCard extends ButtonCard {
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
-        // Set the _logLevel property from the config
-        this._logLevel = config.cblcars_log_level || cblcarsGetGlobalLogLevel();
+        // Set the _logLevel property from the location bar, config, or global function
+        const urlLogLevel = new URLSearchParams(window.location.search).get('cblcars_log_level');
+        this._logLevel = urlLogLevel || config.cblcars_log_level || cblcarsGetGlobalLogLevel();
+        if (urlLogLevel) {
+            cblcarsSetGlobalLogLevel(urlLogLevel);
+        }
 
         // ENHANCED: Skip entity collection entirely for MSD cards
         let triggersUpdate = [];
@@ -982,7 +986,7 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
                             }, 100);
                         })
                         .catch((error) => {
-                            console.warn('[CBLCARSMSDCard] Failed to load user SVG:', error);
+                            cblcarsLog.warn('[CBLCARSMSDCard] Failed to load user SVG:', error);
                         });
                 }
             }

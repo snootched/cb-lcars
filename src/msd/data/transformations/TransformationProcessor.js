@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
+
 /**
  * TransformationProcessor - Base class for data transformations
  *
@@ -43,7 +45,7 @@ export class TransformationProcessor {
       return result;
     } catch (error) {
       this._stats.errors++;
-      console.warn(`[${this.constructor.name}] Transform failed:`, error);
+      cblcarsLog.warn(`[${this.constructor.name}] Transform failed:`, error);
       return this._getFallbackValue(value);
     }
   }

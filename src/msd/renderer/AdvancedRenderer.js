@@ -764,9 +764,24 @@ export class AdvancedRenderer {
    * Clean up resources when renderer is destroyed
    */
   destroy() {
+    // Clear all caches and references
     this.overlayElements.clear();
     this.overlayElementCache.clear();
+    this.overlayAttachmentPoints.clear();
+    this.textAttachmentPoints.clear();
+    this._lineDeps.clear();
+
+    // Clear stored references
     this.lastRenderArgs = null;
+    this._dynamicAnchors = null;
+
+    // Clean up renderer references
+    if (this.lineRenderer) {
+      this.lineRenderer.destroy?.();
+      this.lineRenderer = null;
+    }
+
+    cblcarsLog.debug('[AdvancedRenderer] Cleanup completed');
   }
 
   _updateTextAttachmentPointsFromDom(overlay, groupEl, bb) {

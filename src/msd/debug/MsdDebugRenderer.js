@@ -48,7 +48,7 @@ export class MsdDebugRenderer {
    */
   setScale(scale = 1.0) {
     this.scale = Math.max(0.3, Math.min(3.0, scale)); // Clamp between reasonable bounds
-    console.debug(`[MsdDebugRenderer] Scale factor set to: ${this.scale}`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Scale factor set to: ${this.scale}`);
   }
 
   /**
@@ -72,13 +72,13 @@ export class MsdDebugRenderer {
     }
 
     if (!root || typeof root.querySelector !== 'function') {
-      console.warn('[MsdDebugRenderer] Invalid root element');
+      cblcarsLog.warn('[MsdDebugRenderer] Invalid root element');
       return;
     }
 
     const svgElement = root.querySelector('svg');
     if (!svgElement) {
-      console.warn('[MsdDebugRenderer] No SVG element found in root');
+      cblcarsLog.warn('[MsdDebugRenderer] No SVG element found in root');
       return;
     }
 
@@ -102,7 +102,7 @@ export class MsdDebugRenderer {
     }
 
     // REDUCED: Only log when actually rendering features
-    console.debug('[MsdDebugRenderer] Rendering debug features', debugState);
+    cblcarsLog.debug('[MsdDebugRenderer] Rendering debug features', debugState);
 
     // Render enabled features using DebugManager state
     if (debugState.anchors && opts.anchors) {
@@ -156,7 +156,7 @@ export class MsdDebugRenderer {
     const routing = opts.router || window.__msdDebug?.routing;
 
     if (!routing || typeof routing.inspect !== 'function') {
-      console.debug('[MsdDebugRenderer] Routing system not available for debug rendering');
+      cblcarsLog.debug('[MsdDebugRenderer] Routing system not available for debug rendering');
       return;
     }
 
@@ -164,7 +164,7 @@ export class MsdDebugRenderer {
     const lineOverlays = overlays.filter(o => o.type === 'line');
 
     if (lineOverlays.length === 0) {
-      console.debug('[MsdDebugRenderer] No line overlays found for routing visualization');
+      cblcarsLog.debug('[MsdDebugRenderer] No line overlays found for routing visualization');
       return;
     }
 
@@ -179,14 +179,14 @@ export class MsdDebugRenderer {
           routeCount++;
         } else {
           // Fine-grained debug, not necessarily an error
-          console.debug(`[MsdDebugRenderer] No route info for overlay ${overlay.id}`);
+          cblcarsLog.debug(`[MsdDebugRenderer] No route info for overlay ${overlay.id}`);
         }
       } catch (error) {
-        console.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
+        cblcarsLog.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
       }
     });
 
-    console.debug(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
   }
 
   /**
@@ -266,7 +266,7 @@ export class MsdDebugRenderer {
       }
     }
 
-    console.debug(`[MsdDebugRenderer] Rendered ${markerCount} anchor markers`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Rendered ${markerCount} anchor markers`);
   }
 
   /**
@@ -332,7 +332,7 @@ export class MsdDebugRenderer {
       }
     });
 
-    console.debug(`[MsdDebugRenderer] Rendered ${bboxCount} bounding boxes`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Rendered ${bboxCount} bounding boxes`);
   }
 
   /**
@@ -417,7 +417,7 @@ export class MsdDebugRenderer {
     }
 
     if (perfEntries.length === 0) {
-      console.debug('[MsdDebugRenderer] No performance data available');
+      cblcarsLog.debug('[MsdDebugRenderer] No performance data available');
       return;
     }
 
@@ -465,7 +465,7 @@ export class MsdDebugRenderer {
     this.debugLayer.appendChild(perfGroup);
     this.performanceOverlays.set('perf-info', perfGroup);
 
-    console.debug(`[MsdDebugRenderer] Rendered performance overlay with ${perfEntries.length} metrics at scale ${this.scale}`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Rendered performance overlay with ${perfEntries.length} metrics at scale ${this.scale}`);
   }
 
   /**
@@ -487,13 +487,13 @@ export class MsdDebugRenderer {
    */
   ensureDebugLayer(svgElement) {
     if (!svgElement) {
-      console.warn('[MsdDebugRenderer] ensureDebugLayer: no SVG element provided');
+      cblcarsLog.warn('[MsdDebugRenderer] ensureDebugLayer: no SVG element provided');
       return;
     }
 
     let debugLayer = svgElement.querySelector('#msd-debug-layer');
     if (!debugLayer) {
-      console.debug('[MsdDebugRenderer] Creating new debug layer');
+      cblcarsLog.debug('[MsdDebugRenderer] Creating new debug layer');
       const doc = svgElement.ownerDocument;
       debugLayer = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
       debugLayer.id = 'msd-debug-layer';
@@ -501,7 +501,7 @@ export class MsdDebugRenderer {
       debugLayer.style.zIndex = '1000';
       svgElement.appendChild(debugLayer);
     } else {
-      console.debug('[MsdDebugRenderer] Using existing debug layer');
+      cblcarsLog.debug('[MsdDebugRenderer] Using existing debug layer');
     }
 
     this.debugLayer = debugLayer;
@@ -517,7 +517,7 @@ export class MsdDebugRenderer {
     if (this.debugLayer) {
       this.debugLayer.style.display = enabled ? 'block' : 'none';
     }
-    console.debug(`[MsdDebugRenderer] Debug visualization ${enabled ? 'enabled' : 'disabled'}`);
+    cblcarsLog.debug(`[MsdDebugRenderer] Debug visualization ${enabled ? 'enabled' : 'disabled'}`);
     return enabled;
   }
 
@@ -529,7 +529,7 @@ export class MsdDebugRenderer {
   toggleFeature(feature, enabled) {
     if (this.features.hasOwnProperty(feature)) {
       this.features[feature] = enabled;
-      console.debug(`[MsdDebugRenderer] Feature '${feature}' ${enabled ? 'enabled' : 'disabled'}`);
+      cblcarsLog.debug(`[MsdDebugRenderer] Feature '${feature}' ${enabled ? 'enabled' : 'disabled'}`);
 
       // Optionally re-render (future HUD integration may call up-stream)
       setTimeout(() => {
@@ -580,7 +580,7 @@ export class MsdDebugRenderer {
           const textAnchor = renderedOverlay.getAttribute('data-text-anchor');
 
           if (width && height && width !== '0' && height !== '0') {
-            console.debug(`[MsdDebugRenderer] Using rendered dimensions for ${overlay.id}: ${width}x${height}, baseline: ${dominantBaseline}, anchor: ${textAnchor}`);
+            cblcarsLog.debug(`[MsdDebugRenderer] Using rendered dimensions for ${overlay.id}: ${width}x${height}, baseline: ${dominantBaseline}, anchor: ${textAnchor}`);
 
             // Calculate proper positions based on actual rendered attributes
             const textHeight = parseFloat(height);
@@ -672,7 +672,7 @@ export class MsdDebugRenderer {
         );
 
         if (attachmentData && attachmentData.bbox) {
-          console.debug(`[MsdDebugRenderer] Using TextOverlayRenderer bbox for ${overlay.id}`);
+          cblcarsLog.debug(`[MsdDebugRenderer] Using TextOverlayRenderer bbox for ${overlay.id}`);
           return {
             x: attachmentData.bbox.left,
             y: attachmentData.bbox.top,
@@ -689,7 +689,7 @@ export class MsdDebugRenderer {
           try {
             const bbox = renderedElement.getBBox();
             if (bbox.width > 0 && bbox.height > 0) {
-              console.debug(`[MsdDebugRenderer] Using getBBox for ${overlay.id}: ${bbox.width}x${bbox.height}`);
+              cblcarsLog.debug(`[MsdDebugRenderer] Using getBBox for ${overlay.id}: ${bbox.width}x${bbox.height}`);
               return {
                 x: bbox.x,
                 y: bbox.y,
@@ -698,7 +698,7 @@ export class MsdDebugRenderer {
               };
             }
           } catch (bboxError) {
-            console.warn(`[MsdDebugRenderer] getBBox failed for ${overlay.id}:`, bboxError);
+            cblcarsLog.warn(`[MsdDebugRenderer] getBBox failed for ${overlay.id}:`, bboxError);
           }
         }
       }
@@ -762,7 +762,7 @@ export class MsdDebugRenderer {
         height
       };
     } catch (error) {
-      console.warn(`[MsdDebugRenderer] Failed to calculate text dimensions for ${overlay.id}:`, error);
+      cblcarsLog.warn(`[MsdDebugRenderer] Failed to calculate text dimensions for ${overlay.id}:`, error);
       return { x, y, width: 100, height: 20 };
     }
   }

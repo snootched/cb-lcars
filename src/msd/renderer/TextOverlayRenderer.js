@@ -7,6 +7,7 @@ import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
 import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class TextOverlayRenderer {
   constructor() {
@@ -39,14 +40,14 @@ export class TextOverlayRenderer {
    * @returns {string} Complete SVG markup for the styled text
    */
   renderText(overlay, anchors, viewBox) {
-    console.debug(`[TextOverlayRenderer] renderText called for overlay "${overlay.id}"`);
-    console.debug(`[TextOverlayRenderer] Full overlay object:`, overlay);
-    console.debug(`[TextOverlayRenderer] Anchors:`, anchors);
+    cblcarsLog.debug(`[TextOverlayRenderer] renderText called for overlay "${overlay.id}"`);
+    cblcarsLog.debug(`[TextOverlayRenderer] Full overlay object:`, overlay);
+    cblcarsLog.debug(`[TextOverlayRenderer] Anchors:`, anchors);
 
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      console.warn('[TextOverlayRenderer] Text overlay position could not be resolved:', overlay.id);
-      console.debug(`[TextOverlayRenderer] Position resolution failed for:`, {
+      cblcarsLog.warn('[TextOverlayRenderer] Text overlay position could not be resolved:', overlay.id);
+      cblcarsLog.debug(`[TextOverlayRenderer] Position resolution failed for:`, {
         overlayId: overlay.id,
         position: overlay.position,
         anchors: anchors
@@ -57,7 +58,7 @@ export class TextOverlayRenderer {
 
     try {
       const style = overlay.finalStyle || overlay.style || {};
-      console.debug(`[TextOverlayRenderer] Style object for "${overlay.id}":`, style);
+      cblcarsLog.debug(`[TextOverlayRenderer] Style object for "${overlay.id}":`, style);
 
       const textStyle = this._resolveTextStyles(style, overlay.id);
 
@@ -82,11 +83,11 @@ export class TextOverlayRenderer {
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
       const textContent = this._resolveTextContent(overlay, style);
 
-      console.debug(`[TextOverlayRenderer] Final text content for "${overlay.id}": "${textContent}"`);
+      cblcarsLog.debug(`[TextOverlayRenderer] Final text content for "${overlay.id}": "${textContent}"`);
 
       if (!textContent) {
-        console.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
-        console.debug(`[TextOverlayRenderer] Content resolution chain failed - check the debug logs above`);
+        cblcarsLog.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
+        cblcarsLog.debug(`[TextOverlayRenderer] Content resolution chain failed - check the debug logs above`);
         return '';
       }
       textStyle._cachedContent = textContent;
@@ -101,7 +102,7 @@ export class TextOverlayRenderer {
         this._buildEffects(textContent, x, y, textStyle, overlay.id)
       ].filter(Boolean);
 
-      console.debug(`[TextOverlayRenderer] Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`);
+      cblcarsLog.debug(`[TextOverlayRenderer] Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
@@ -117,7 +118,7 @@ export class TextOverlayRenderer {
                 ${svgParts.join('\n')}
               </g>`;
     } catch (error) {
-      console.error(`[TextOverlayRenderer] Enhanced rendering failed for text ${overlay.id}:`, error);
+      cblcarsLog.error(`[TextOverlayRenderer] Enhanced rendering failed for text ${overlay.id}:`, error);
       return this._renderFallbackText(overlay, x, y);
     }
   }
@@ -247,8 +248,8 @@ export class TextOverlayRenderer {
    * @private
    */
   _resolveTextContent(overlay, style) {
-    console.debug(`[TextOverlayRenderer] Resolving text content for ${overlay.id}`);
-    console.debug(`[TextOverlayRenderer] Available sources:`, {
+    cblcarsLog.debug(`[TextOverlayRenderer] Resolving text content for ${overlay.id}`);
+    cblcarsLog.debug(`[TextOverlayRenderer] Available sources:`, {
       'style.value': style.value,
       'overlay.text': overlay.text,
       'overlay.content': overlay.content,
@@ -262,11 +263,11 @@ export class TextOverlayRenderer {
     // Check raw overlay configuration if content not found in standard properties
     if (!content && overlay._raw?.content) {
       content = overlay._raw.content;
-      console.debug(`[TextOverlayRenderer] Found content in _raw.content: "${content}"`);
+      cblcarsLog.debug(`[TextOverlayRenderer] Found content in _raw.content: "${content}"`);
     }
     if (!content && overlay._raw?.text) {
       content = overlay._raw.text;
-      console.debug(`[TextOverlayRenderer] Found content in _raw.text: "${content}"`);
+      cblcarsLog.debug(`[TextOverlayRenderer] Found content in _raw.text: "${content}"`);
     }
 
       // Check if we have a value_format and a DataSource reference
@@ -594,7 +595,7 @@ export class TextOverlayRenderer {
       return '';
     }
 
-    console.debug(`[TextOverlayRenderer] Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
+    cblcarsLog.debug(`[TextOverlayRenderer] Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
 
     // Measure text to get accurate dimensions
     const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
@@ -664,7 +665,7 @@ export class TextOverlayRenderer {
       hybrid_mode: textStyle.hybrid_mode
     };
 
-    console.debug(`[TextOverlayRenderer] Bracket config:`, bracketConfig);
+    cblcarsLog.debug(`[TextOverlayRenderer] Bracket config:`, bracketConfig);
 
     // Use BracketRenderer with measured text dimensions
     return BracketRenderer.render(bbox.width, bbox.height, bracketConfig, overlayId);
@@ -768,7 +769,7 @@ export class TextOverlayRenderer {
     // Get the SVG transform info for debugging and padding calculation
     const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
 
-    console.debug(`[TextOverlayRenderer] Transform info for ${overlayId}:`, {
+    cblcarsLog.debug(`[TextOverlayRenderer] Transform info for ${overlayId}:`, {
       transformInfo,
       containerTag: this.container?.tagName,
       hasSvg: !!this.container?.querySelector('svg')
@@ -842,7 +843,7 @@ export class TextOverlayRenderer {
     }
 
     // Debug logging to trace coordinate issues
-    console.debug(`[TextOverlayRenderer] Status indicator debug for ${overlayId}:`, {
+    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator debug for ${overlayId}:`, {
       textContent,
       x, y,
       textAnchor: textStyle.textAnchor,
@@ -913,7 +914,7 @@ export class TextOverlayRenderer {
         indicatorY = bbox.centerY;
     }
 
-    console.debug(`[TextOverlayRenderer] Status indicator final position for ${overlayId}:`, {
+    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator final position for ${overlayId}:`, {
       indicatorX,
       indicatorY,
       padding,
@@ -1129,7 +1130,7 @@ export class TextOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const fontSize = style.font_size || style.fontSize || 16;
 
-    console.warn(`[TextOverlayRenderer] Using fallback rendering for text ${overlay.id}`);
+    cblcarsLog.warn(`[TextOverlayRenderer] Using fallback rendering for text ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
               <text x="${x}" y="${y}"
@@ -1148,7 +1149,7 @@ export class TextOverlayRenderer {
    */
   updateTextStyle(overlayId, newStyle) {
     // Future: Update existing text styles without full re-render
-    console.debug(`[TextOverlayRenderer] Style update requested for text ${overlayId}`);
+    cblcarsLog.debug(`[TextOverlayRenderer] Style update requested for text ${overlayId}`);
   }
 
   /**
@@ -1164,7 +1165,7 @@ export class TextOverlayRenderer {
       // Find the text element within the overlay group
       const textElement = overlayElement.querySelector('text');
       if (!textElement) {
-        console.warn(`[TextOverlayRenderer] Text element not found within overlay: ${overlay.id}`);
+        cblcarsLog.warn(`[TextOverlayRenderer] Text element not found within overlay: ${overlay.id}`);
         return false;
       }
 
@@ -1175,20 +1176,20 @@ export class TextOverlayRenderer {
       const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
 
       if (newContent && newContent !== textElement.textContent) {
-        console.debug(`[TextOverlayRenderer] Updating text overlay ${overlay.id}: "${textElement.textContent}" → "${newContent}"`);
+        cblcarsLog.debug(`[TextOverlayRenderer] Updating text overlay ${overlay.id}: "${textElement.textContent}" → "${newContent}"`);
 
         // Update the text content with proper escaping
         textElement.textContent = TextOverlayRenderer.escapeXml(newContent);
 
-        console.debug(`[TextOverlayRenderer] ✅ Text overlay ${overlay.id} updated successfully`);
+        cblcarsLog.debug(`[TextOverlayRenderer] ✅ Text overlay ${overlay.id} updated successfully`);
         return true;
       } else {
-        console.debug(`[TextOverlayRenderer] Text overlay ${overlay.id} content unchanged`);
+        cblcarsLog.debug(`[TextOverlayRenderer] Text overlay ${overlay.id} content unchanged`);
         return false;
       }
 
     } catch (error) {
-      console.error(`[TextOverlayRenderer] Error updating text overlay ${overlay.id}:`, error);
+      cblcarsLog.error(`[TextOverlayRenderer] Error updating text overlay ${overlay.id}:`, error);
       return false;
     }
   }

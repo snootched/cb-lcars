@@ -7,6 +7,7 @@ import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class SparklineRenderer {
   constructor() {
@@ -37,7 +38,7 @@ export class SparklineRenderer {
 
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      console.warn('[SparklineRenderer] Sparkline overlay position could not be resolved:', overlay.id);
+      cblcarsLog.warn('[SparklineRenderer] Sparkline overlay position could not be resolved:', overlay.id);
       return '';
     }
 
@@ -54,7 +55,7 @@ export class SparklineRenderer {
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      console.debug(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
+      cblcarsLog.debug(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
 
       if (dataResult.status === 'OK' && dataResult.data && dataResult.data.length >= 2) {
         // Render real sparkline with advanced features
@@ -70,7 +71,7 @@ export class SparklineRenderer {
         );
       }
     } catch (error) {
-      console.error(`[SparklineRenderer] Enhanced rendering failed for sparkline ${overlay.id}:`, error);
+      cblcarsLog.error(`[SparklineRenderer] Enhanced rendering failed for sparkline ${overlay.id}:`, error);
       return this._renderFallbackSparkline(overlay, x, y, width, height);
     }
   }
@@ -231,7 +232,7 @@ export class SparklineRenderer {
       this._buildScanLine(width, height, sparklineStyle, overlay.id)
     ].filter(Boolean);
 
-    console.debug(`[SparklineRenderer] Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
+    cblcarsLog.debug(`[SparklineRenderer] Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
 
     return `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="sparkline"
@@ -512,7 +513,7 @@ export class SparklineRenderer {
   _buildBrackets(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.bracket_style) return '';
 
-    console.debug(`[SparklineRenderer] Building brackets for ${overlayId}: style=${sparklineStyle.bracket_style}`);
+    cblcarsLog.debug(`[SparklineRenderer] Building brackets for ${overlayId}: style=${sparklineStyle.bracket_style}`);
 
     // Convert sparkline style properties to BracketRenderer format
     const bracketConfig = {
@@ -540,7 +541,7 @@ export class SparklineRenderer {
       hybrid_mode: sparklineStyle.hybrid_mode
     };
 
-    console.debug(`[SparklineRenderer] Bracket config:`, bracketConfig);
+    cblcarsLog.debug(`[SparklineRenderer] Bracket config:`, bracketConfig);
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
@@ -1089,7 +1090,7 @@ export class SparklineRenderer {
     const color = style.color || 'var(--lcars-yellow)';
     const strokeWidth = style.width || 2;
 
-    console.warn(`[SparklineRenderer] Using fallback rendering for sparkline ${overlay.id}`);
+    cblcarsLog.warn(`[SparklineRenderer] Using fallback rendering for sparkline ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="sparkline" data-fallback="true">
               <g transform="translate(${x}, ${y})">
@@ -1124,13 +1125,13 @@ export class SparklineRenderer {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dataSourceManager) {
-        console.debug(`[SparklineRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
+        cblcarsLog.debug(`[SparklineRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
 
         const dataSource = dataSourceManager.getSource(sourceName);
 
         if (dataSource) {
           const currentData = dataSource.getCurrentData();
-          console.debug(`[SparklineRenderer] Source data for '${sourceName}':`, {
+          cblcarsLog.debug(`[SparklineRenderer] Source data for '${sourceName}':`, {
             bufferSize: currentData?.bufferSize || 0,
             historyReady: currentData?.historyReady,
             started: currentData?.started,
@@ -1148,7 +1149,7 @@ export class SparklineRenderer {
           // Original buffer-based data access
           if (currentData?.buffer) {
             const bufferData = currentData.buffer.getAll();
-            console.debug(`[SparklineRenderer] Raw buffer data for '${sourceName}':`, bufferData);
+            cblcarsLog.debug(`[SparklineRenderer] Raw buffer data for '${sourceName}':`, bufferData);
 
             if (bufferData && bufferData.length >= 2) {
               const historicalData = bufferData.map(point => ({
@@ -1156,7 +1157,7 @@ export class SparklineRenderer {
                 value: point.v
               }));
 
-              console.debug(`[SparklineRenderer] ✅ Found ${historicalData.length} data points for '${sourceName}'`);
+              cblcarsLog.debug(`[SparklineRenderer] ✅ Found ${historicalData.length} data points for '${sourceName}'`);
               return {
                 data: historicalData,
                 status: 'OK',
@@ -1169,7 +1170,7 @@ export class SparklineRenderer {
                 }
               };
             } else if (bufferData && bufferData.length === 1) {
-              console.debug(`[SparklineRenderer] ⚠️ Only 1 data point available for '${sourceName}'`);
+              cblcarsLog.debug(`[SparklineRenderer] ⚠️ Only 1 data point available for '${sourceName}'`);
               return {
                 data: null,
                 status: 'INSUFFICIENT_DATA',
@@ -1177,7 +1178,7 @@ export class SparklineRenderer {
                 metadata: { sourceName, dataType: 'raw' }
               };
             } else {
-              console.debug(`[SparklineRenderer] ⚠️ Buffer exists but is empty for '${sourceName}'`);
+              cblcarsLog.debug(`[SparklineRenderer] ⚠️ Buffer exists but is empty for '${sourceName}'`);
               return {
                 data: null,
                 status: 'EMPTY_BUFFER',
@@ -1187,7 +1188,7 @@ export class SparklineRenderer {
             }
           }
 
-          console.debug(`[SparklineRenderer] ⚠️ Data source '${sourceName}' found but no buffer`);
+          cblcarsLog.debug(`[SparklineRenderer] ⚠️ Data source '${sourceName}' found but no buffer`);
           return {
             data: null,
             status: 'NO_BUFFER',
@@ -1197,7 +1198,7 @@ export class SparklineRenderer {
         }
 
         const availableSources = Array.from(dataSourceManager.sources.keys());
-        console.warn(`[SparklineRenderer] ❌ Source '${sourceName}' not found in DataSourceManager`);
+        cblcarsLog.warn(`[SparklineRenderer] ❌ Source '${sourceName}' not found in DataSourceManager`);
         return {
           data: null,
           status: 'SOURCE_NOT_FOUND',
@@ -1214,7 +1215,7 @@ export class SparklineRenderer {
       };
 
     } catch (error) {
-      console.error(`[SparklineRenderer] Error getting data for '${dataSourceRef}':`, error);
+      cblcarsLog.error(`[SparklineRenderer] Error getting data for '${dataSourceRef}':`, error);
       return {
         data: null,
         status: 'ERROR',
@@ -1231,7 +1232,7 @@ export class SparklineRenderer {
    * @param {Object} sourceData - New data from the data source
    */
   static updateSparklineData(sparklineElement, overlay, sourceData) {
-    console.debug(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
+    cblcarsLog.debug(`[SparklineRenderer] updateSparklineData called for ${overlay.id}:`, {
       hasBuffer: !!(sourceData?.buffer),
       bufferSize: sourceData?.buffer?.size?.() || 0,
       currentStatus: sparklineElement.getAttribute('data-status'),
@@ -1240,7 +1241,7 @@ export class SparklineRenderer {
     });
 
     if (!sparklineElement || !overlay || !sourceData) {
-      console.warn('[SparklineRenderer] updateSparklineData: Missing required parameters');
+      cblcarsLog.warn('[SparklineRenderer] updateSparklineData: Missing required parameters');
       return;
     }
 
@@ -1267,7 +1268,7 @@ export class SparklineRenderer {
     const historicalData = this._extractHistoricalData(sourceData);
 
     if (historicalData.length < 2) {
-      console.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
+      cblcarsLog.warn(`[SparklineRenderer] Insufficient data for sparkline ${overlay.id}: ${historicalData.length} points`);
       sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
       return;
     }
@@ -1293,10 +1294,10 @@ export class SparklineRenderer {
       sparklineElement.removeAttribute('data-status');
       sparklineElement.setAttribute('data-last-update', Date.now());
 
-      console.debug(`[SparklineRenderer] ✅ Synchronized update for sparkline ${overlay.id} with ${historicalData.length} points`);
+      cblcarsLog.debug(`[SparklineRenderer] ✅ Synchronized update for sparkline ${overlay.id} with ${historicalData.length} points`);
 
     } catch (error) {
-      console.error(`[SparklineRenderer] Error in synchronized update for ${overlay.id}:`, error);
+      cblcarsLog.error(`[SparklineRenderer] Error in synchronized update for ${overlay.id}:`, error);
       sparklineElement.setAttribute('data-status', 'ERROR');
     }
   }
@@ -1453,7 +1454,7 @@ export class SparklineRenderer {
       sparklineElement.setAttribute('data-last-update', Date.now());
       sparklineElement.setAttribute('data-sparkline-features', sparklineStyle.features.join(','));
 
-      console.debug(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to full sparkline with ${sparklineStyle.features.length} features and ${historicalData.length} data points`);
+      cblcarsLog.debug(`[SparklineRenderer] ✅ Upgraded status indicator ${overlay.id} to full sparkline with ${sparklineStyle.features.length} features and ${historicalData.length} data points`);
     } else {
       sparklineElement.setAttribute('data-status', historicalData.length === 0 ? 'NO_DATA' : 'INSUFFICIENT_DATA');
     }
@@ -1473,12 +1474,12 @@ export class SparklineRenderer {
         timestamp: point.t,
         value: point.v
       }));
-      console.debug('[SparklineRenderer] Using buffer data:', historicalData.length, 'points');
+      cblcarsLog.debug('[SparklineRenderer] Using buffer data:', historicalData.length, 'points');
     }
     // Method 2: Use pre-formatted historical data
     else if (sourceData.historicalData && Array.isArray(sourceData.historicalData)) {
       historicalData = sourceData.historicalData;
-      console.debug('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
+      cblcarsLog.debug('[SparklineRenderer] Using pre-formatted historical data:', historicalData.length, 'points');
     }
 
     return historicalData;
@@ -1497,7 +1498,7 @@ export class SparklineRenderer {
     const size = overlay.size || [200, 60];
 
     if (!position || !size || !Array.isArray(size) || size.length < 2) {
-      console.debug(`[SparklineRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      cblcarsLog.debug(`[SparklineRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
       return null;
     }
 
@@ -1621,7 +1622,7 @@ export class SparklineRenderer {
       if (isTransformation && currentData.transformations) {
         enhancedValue = currentData.transformations[dataKey];
         dataType = 'transformation';
-        console.debug(`[SparklineRenderer] 🔄 Accessing transformation '${dataKey}':`, enhancedValue);
+        cblcarsLog.debug(`[SparklineRenderer] 🔄 Accessing transformation '${dataKey}':`, enhancedValue);
       } else if (isAggregation && currentData.aggregations) {
         const aggregationData = currentData.aggregations[dataKey];
         dataType = 'aggregation';
@@ -1644,7 +1645,7 @@ export class SparklineRenderer {
           enhancedValue = aggregationData;
         }
 
-        console.debug(`[SparklineRenderer] 📊 Accessing aggregation '${dataKey}':`, aggregationData, '-> value:', enhancedValue);
+        cblcarsLog.debug(`[SparklineRenderer] 📊 Accessing aggregation '${dataKey}':`, aggregationData, '-> value:', enhancedValue);
       }
 
       if (enhancedValue === null || enhancedValue === undefined) {
@@ -1691,7 +1692,7 @@ export class SparklineRenderer {
       };
 
     } catch (error) {
-      console.error(`[SparklineRenderer] Error accessing enhanced data:`, error);
+      cblcarsLog.error(`[SparklineRenderer] Error accessing enhanced data:`, error);
       return {
         data: null,
         status: 'ENHANCED_DATA_ERROR',
@@ -1703,28 +1704,28 @@ export class SparklineRenderer {
 
   /*
   static debugSparklineUpdates() {
-    console.debug('🔍 Enhanced Sparkline Update Debug Report');
+    cblcarsLog.debug('🔍 Enhanced Sparkline Update Debug Report');
     const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (dsm) {
       const stats = dsm.getStats();
-      console.debug('DataSourceManager stats:', stats);
+      cblcarsLog.debug('DataSourceManager stats:', stats);
     } else {
-      console.warn('DataSourceManager not accessible via debug interface');
+      cblcarsLog.warn('DataSourceManager not accessible via debug interface');
     }
   }
 
   static debugDataSource(dataSourceName) {
-    console.debug(`🔍 Enhanced Debugging data source: ${dataSourceName}`);
+    cblcarsLog.debug(`🔍 Enhanced Debugging data source: ${dataSourceName}`);
     const dsm = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
     if (!dsm) {
-      console.error('❌ DataSourceManager not available');
+      cblcarsLog.error('❌ DataSourceManager not available');
       return;
     }
 
     const source = dsm.getSource(dataSourceName);
     if (!source) {
-      console.error(`❌ Source '${dataSourceName}' not found`);
-      console.debug('Available sources:', Array.from(dsm.sources.keys()));
+      cblcarsLog.error(`❌ Source '${dataSourceName}' not found`);
+      cblcarsLog.debug('Available sources:', Array.from(dsm.sources.keys()));
       return;
     }
 

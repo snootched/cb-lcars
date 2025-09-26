@@ -1,5 +1,6 @@
 import { mergePacks } from '../packs/mergePacks.js';
 import { validateMerged } from '../validation/validateMerged.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export { mergePacks, validateMerged };
 
@@ -67,11 +68,11 @@ export async function processMsdConfig(userMsdConfig) {
     };
 
     if (issues.errors.length > 0) {
-      console.error('MSD validation errors:', issues.errors);
+      cblcarsLog.error('MSD validation errors:', issues.errors);
     }
 
     if (issues.warnings.length > 0) {
-      console.warn('MSD validation warnings:', issues.warnings);
+      cblcarsLog.warn('MSD validation warnings:', issues.warnings);
     }
 
     return {
@@ -80,7 +81,7 @@ export async function processMsdConfig(userMsdConfig) {
     };
 
   } catch (error) {
-    console.error('MSD processing failed:', error);
+    cblcarsLog.error('MSD processing failed:', error);
     throw error;
   }
 }

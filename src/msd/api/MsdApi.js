@@ -63,10 +63,10 @@ export class MsdApi {
     };
 
     // Backward compatibility aliases (temporary - remove after migration)
-    window.cblcars.msd.listOverlays = (root) => this.listOverlays(root);
-    window.cblcars.msd.listAnchors = () => this.listAnchors();
-    window.cblcars.msd.getOverlayBBox = (id, root) => this.getOverlayBBox(id, root);
-    window.cblcars.msd.highlight = (ids, opts) => this.highlightOverlays(ids, opts);
+    //window.cblcars.msd.listOverlays = (root) => this.listOverlays(root);
+    //window.cblcars.msd.listAnchors = () => this.listAnchors();
+    //window.cblcars.msd.getOverlayBBox = (id, root) => this.getOverlayBBox(id, root);
+    //window.cblcars.msd.highlight = (ids, opts) => this.highlightOverlays(ids, opts);
   }
 
   static getWindow() {

@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+
 /**
  * Line Overlay Renderer - Advanced line rendering with comprehensive styling support
  * Leverages RouterCore's sophisticated path computation and adds rich visual features
@@ -22,7 +24,7 @@ export class LineOverlayRenderer {
     // Keep backward compatibility
     this.textAttachmentPoints = overlayAttachmentPoints;
 
-    console.debug('[LineOverlayRenderer] Updated with unified attachment points:',
+    cblcarsLog.debug('[LineOverlayRenderer] Updated with unified attachment points:',
       overlayAttachmentPoints ? overlayAttachmentPoints.size : 0, 'overlay(s)');
   }
 
@@ -35,7 +37,7 @@ export class LineOverlayRenderer {
    */
   render(overlay, anchors, viewBox) {
     if (!this.routerCore) {
-      console.error('[LineOverlayRenderer] RouterCore not available for line rendering');
+      cblcarsLog.error('[LineOverlayRenderer] RouterCore not available for line rendering');
       return '';
     }
 
@@ -46,9 +48,9 @@ export class LineOverlayRenderer {
     if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.anchor)) {
       const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
       if (sourceAttachmentPoints && sourceAttachmentPoints.points) {
-        console.debug(`[LineOverlayRenderer] Found source overlay attachment points for: ${overlay.anchor}`);
+        cblcarsLog.debug(`[LineOverlayRenderer] Found source overlay attachment points for: ${overlay.anchor}`);
 
-        console.debug(`[LineOverlayRenderer] Overlay object properties:`, {
+        cblcarsLog.debug(`[LineOverlayRenderer] Overlay object properties:`, {
           id: overlay.id,
           anchor: overlay.anchor,
           anchor_side: overlay.anchor_side,
@@ -59,13 +61,13 @@ export class LineOverlayRenderer {
         });
 
         const anchorSide = overlay.anchor_side || 'center';
-        console.debug(`[LineOverlayRenderer] anchor_side resolution:`, {
+        cblcarsLog.debug(`[LineOverlayRenderer] anchor_side resolution:`, {
           rawValue: overlay.anchor_side,
           finalValue: anchorSide,
           typeOfRaw: typeof overlay.anchor_side
         });
 
-        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);        console.debug(`[LineOverlayRenderer] Source attachment resolution:`, {
+        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);        cblcarsLog.debug(`[LineOverlayRenderer] Source attachment resolution:`, {
           overlayId: overlay.anchor,
           requestedSide: anchorSide,
           availablePoints: Object.keys(sourceAttachmentPoints.points),
@@ -82,13 +84,13 @@ export class LineOverlayRenderer {
             sourceAttachmentPoints.bbox
           );
 
-          console.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
+          cblcarsLog.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
         } else {
-          console.warn(`[LineOverlayRenderer] Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
+          cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
           anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
         }
       } else {
-        console.warn(`[LineOverlayRenderer] No attachment points found for source overlay: ${overlay.anchor}`);
+        cblcarsLog.warn(`[LineOverlayRenderer] No attachment points found for source overlay: ${overlay.anchor}`);
         anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
       }
     } else {
@@ -99,7 +101,7 @@ export class LineOverlayRenderer {
     // PRIORITIZE: Check overlay attachment points first, then fall back to static anchors
     let anchor2 = null;
 
-    console.debug(`[LineOverlayRenderer] Target resolution debug for ${overlay.id}:`, {
+    cblcarsLog.debug(`[LineOverlayRenderer] Target resolution debug for ${overlay.id}:`, {
       attach_to: overlay.attach_to,
       hasOverlayAttachmentPoints: !!(this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)),
       overlayAttachmentPointsSize: this.overlayAttachmentPoints ? this.overlayAttachmentPoints.size : 0
@@ -109,12 +111,12 @@ export class LineOverlayRenderer {
     if (overlay.attach_to && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)) {
       const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
       if (targetAttachmentPoints && targetAttachmentPoints.points) {
-        console.debug(`[LineOverlayRenderer] Found target overlay attachment points for: ${overlay.attach_to}`);
+        cblcarsLog.debug(`[LineOverlayRenderer] Found target overlay attachment points for: ${overlay.attach_to}`);
 
         const attachSide = overlay.attach_side || 'center';
         const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
 
-        console.debug(`[LineOverlayRenderer] Target attachment resolution:`, {
+        cblcarsLog.debug(`[LineOverlayRenderer] Target attachment resolution:`, {
           overlayId: overlay.attach_to,
           requestedSide: attachSide,
           availablePoints: Object.keys(targetAttachmentPoints.points),
@@ -131,20 +133,20 @@ export class LineOverlayRenderer {
             targetAttachmentPoints.bbox
           );
 
-          console.debug(`[LineOverlayRenderer] Resolved target overlay attachment: ${overlay.attach_to}.${attachSide} -> [${anchor2[0]}, ${anchor2[1]}]`);
+          cblcarsLog.debug(`[LineOverlayRenderer] Resolved target overlay attachment: ${overlay.attach_to}.${attachSide} -> [${anchor2[0]}, ${anchor2[1]}]`);
         } else {
-          console.warn(`[LineOverlayRenderer] Could not resolve attach_side '${attachSide}' for overlay ${overlay.attach_to}`);
+          cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve attach_side '${attachSide}' for overlay ${overlay.attach_to}`);
           anchor2 = targetAttachmentPoints.center; // Fallback to center
         }
       } else {
-        console.warn(`[LineOverlayRenderer] No attachment points found for target overlay: ${overlay.attach_to}`);
+        cblcarsLog.warn(`[LineOverlayRenderer] No attachment points found for target overlay: ${overlay.attach_to}`);
       }
     }
 
     // Fallback to static anchor resolution if no overlay attachment points found
     if (!anchor2 && overlay.attach_to) {
       anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
-      console.debug(`[LineOverlayRenderer] Using static anchor for target ${overlay.attach_to}:`, anchor2);
+      cblcarsLog.debug(`[LineOverlayRenderer] Using static anchor for target ${overlay.attach_to}:`, anchor2);
     }
 
     // Legacy fallback for text overlays (backward compatibility)
@@ -156,7 +158,7 @@ export class LineOverlayRenderer {
 
     // Validate anchor is properly resolved
     if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
-      console.error(`[LineOverlayRenderer] Invalid anchor for ${overlay.id}:`, {
+      cblcarsLog.error(`[LineOverlayRenderer] Invalid anchor for ${overlay.id}:`, {
         anchor,
         type: typeof anchor,
         isArray: Array.isArray(anchor)
@@ -165,7 +167,7 @@ export class LineOverlayRenderer {
     }
 
     // DEBUG: Log anchor resolution for troubleshooting
-    console.debug(`[LineOverlayRenderer] Resolved anchor for ${overlay.id}:`, {
+    cblcarsLog.debug(`[LineOverlayRenderer] Resolved anchor for ${overlay.id}:`, {
       originalAnchor: overlay.anchor,
       resolvedAnchor: anchor,
       anchorType: typeof overlay.anchor,
@@ -178,7 +180,7 @@ export class LineOverlayRenderer {
       const pathResult = this.routerCore.computePath(routeRequest);
 
       if (!pathResult?.d) {
-        console.warn(`[LineOverlayRenderer] No path computed for line ${overlay.id}`);
+        cblcarsLog.warn(`[LineOverlayRenderer] No path computed for line ${overlay.id}`);
         return '';
       }
 
@@ -195,7 +197,7 @@ export class LineOverlayRenderer {
         this._buildEffects(pathResult, lineStyle, overlay.id)
       ].filter(Boolean);
 
-      console.debug(`[LineOverlayRenderer] Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
+      cblcarsLog.debug(`[LineOverlayRenderer] Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="line"
@@ -205,7 +207,7 @@ export class LineOverlayRenderer {
               </g>`;
 
     } catch (error) {
-      console.error(`[LineOverlayRenderer] Enhanced rendering failed for line ${overlay.id}:`, error);
+      cblcarsLog.error(`[LineOverlayRenderer] Enhanced rendering failed for line ${overlay.id}:`, error);
       return this._renderFallbackLine(overlay, anchor, anchor2);
     }
   }
@@ -740,7 +742,7 @@ export class LineOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const width = style.width || 2;
 
-    console.warn(`[LineOverlayRenderer] Using fallback rendering for line ${overlay.id}`);
+    cblcarsLog.warn(`[LineOverlayRenderer] Using fallback rendering for line ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="line" data-fallback="true">
               <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
@@ -755,7 +757,7 @@ export class LineOverlayRenderer {
    */
   updateLineStyle(overlayId, newStyle) {
     // Future: Update existing line styles without full re-render
-    console.debug(`[LineOverlayRenderer] Style update requested for line ${overlayId}`);
+    cblcarsLog.debug(`[LineOverlayRenderer] Style update requested for line ${overlayId}`);
   }
 
   /**
@@ -856,11 +858,11 @@ export class LineOverlayRenderer {
    */
   _resolveAttachmentPoint(points, side) {
     if (!points || typeof points !== 'object') {
-      console.warn(`[LineOverlayRenderer] No attachment points provided for side '${side}'`);
+      cblcarsLog.warn(`[LineOverlayRenderer] No attachment points provided for side '${side}'`);
       return null;
     }
 
-    console.debug(`[LineOverlayRenderer] Resolving attachment point:`, {
+    cblcarsLog.debug(`[LineOverlayRenderer] Resolving attachment point:`, {
       requestedSide: side,
       availablePoints: Object.keys(points),
       pointsData: points
@@ -868,7 +870,7 @@ export class LineOverlayRenderer {
 
     // Try exact side match first
     if (points[side]) {
-      console.debug(`[LineOverlayRenderer] Found exact match for side '${side}':`, points[side]);
+      cblcarsLog.debug(`[LineOverlayRenderer] Found exact match for side '${side}':`, points[side]);
       return points[side];
     }
 
@@ -901,24 +903,24 @@ export class LineOverlayRenderer {
 
     const resolvedSide = aliases[side] || side;
     if (points[resolvedSide]) {
-      console.debug(`[LineOverlayRenderer] Found alias match '${side}' -> '${resolvedSide}':`, points[resolvedSide]);
+      cblcarsLog.debug(`[LineOverlayRenderer] Found alias match '${side}' -> '${resolvedSide}':`, points[resolvedSide]);
       return points[resolvedSide];
     }
 
     // Fallback to center if available
     if (points.center) {
-      console.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using center:`, points.center);
+      cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using center:`, points.center);
       return points.center;
     }
 
     // Last resort: return first available point
     const firstPoint = Object.values(points)[0];
     if (firstPoint && Array.isArray(firstPoint)) {
-      console.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using first available point:`, firstPoint);
+      cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using first available point:`, firstPoint);
       return firstPoint;
     }
 
-    console.error(`[LineOverlayRenderer] No attachment points available for side '${side}'`);
+    cblcarsLog.error(`[LineOverlayRenderer] No attachment points available for side '${side}'`);
     return null;
   }
 

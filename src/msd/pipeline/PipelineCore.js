@@ -8,6 +8,7 @@ import { exportCollapsed, exportCollapsedJson } from '../export/exportCollapsed.
 import { exportFullSnapshot, exportFullSnapshotJson } from '../export/exportFullSnapshot.js';
 import { diffItem } from '../export/diffItem.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
  * Initialize the MSD processing/rendering pipeline.
@@ -25,7 +26,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
   // Handle validation errors
   if (issues.errors.length) {
-    console.error('[PipelineCore] Validation errors – pipeline disabled', issues.errors);
+    cblcarsLog.error('[PipelineCore] Validation errors – pipeline disabled', issues.errors);
     return createDisabledPipeline(mergedConfig, issues, provenance);
   }
 
@@ -37,7 +38,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   if (!Object.keys(cardModel.anchors).length) {
     if (mergedConfig.anchors && Object.keys(mergedConfig.anchors).length) {
       cardModel.anchors = { ...mergedConfig.anchors };
-      console.debug('[PipelineCore] Adopted user anchors');
+      cblcarsLog.debug('[PipelineCore] Adopted user anchors');
     }
   }
 
@@ -62,7 +63,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       dataSourceManager: systemsManager.dataSourceManager
     };
 
-    console.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
+    cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
       hasSystemsManager: !!systemsManager,
       hasDataSourceManager: !!systemsManager.dataSourceManager,
       dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
@@ -71,7 +72,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
   // VALIDATION: Don't proceed with overlay rendering if essential systems aren't ready
   if (!systemsManager.dataSourceManager) {
-    console.warn('[PipelineCore] DataSourceManager not available - overlay template processing will be limited');
+    cblcarsLog.warn('[PipelineCore] DataSourceManager not available - overlay template processing will be limited');
   }
 
   // EARLY DEBUG BOOTSTRAP (Before first render):
@@ -109,7 +110,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
    * @returns {Object|undefined} Renderer result object
    */
   async function reRender() {
-    console.debug('[PipelineCore] 🔄 reRender() ENTRY', {
+    cblcarsLog.debug('[PipelineCore] 🔄 reRender() ENTRY', {
       timestamp: new Date().toISOString(),
       renderInProgress: systemsManager._renderInProgress,
       stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
@@ -117,7 +118,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
     // IMPROVED: Queue renders instead of blocking them
     if (systemsManager._renderInProgress) {
-      console.debug('[PipelineCore] 🕐 Render in progress, queueing re-render');
+      cblcarsLog.debug('[PipelineCore] 🕐 Render in progress, queueing re-render');
       systemsManager._queuedReRender = true;
       return { success: false, reason: 'render_in_progress', queued: true };
     }
@@ -126,58 +127,58 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     systemsManager._queuedReRender = false;
 
     try {
-      console.debug('[PipelineCore] 📊 Computing resolved model...');
+      cblcarsLog.debug('[PipelineCore] 📊 Computing resolved model...');
       const startTime = performance.now();
       const resolvedModel = modelBuilder.computeResolvedModel();
 
-      console.debug('[PipelineCore] ✅ Resolved model computed:', {
+      cblcarsLog.debug('[PipelineCore] ✅ Resolved model computed:', {
         overlayCount: resolvedModel.overlays.length,
         controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
         hasAnchors: !!resolvedModel.anchors,
         hasViewBox: !!resolvedModel.viewBox
       });
 
-      console.debug(`[PipelineCore] 🎨 Starting AdvancedRenderer.render() - overlays: ${resolvedModel.overlays.length}`);
+      cblcarsLog.debug(`[PipelineCore] 🎨 Starting AdvancedRenderer.render() - overlays: ${resolvedModel.overlays.length}`);
 
       // ADDED: Defensive rendering with error boundary
       let renderResult;
       try {
         renderResult = systemsManager.renderer.render(resolvedModel);
-        console.debug('[PipelineCore] ✅ AdvancedRenderer.render() completed successfully:', renderResult);
+        cblcarsLog.debug('[PipelineCore] ✅ AdvancedRenderer.render() completed successfully:', renderResult);
       } catch (renderError) {
-        console.error('[PipelineCore] ❌ AdvancedRenderer.render() FAILED:', renderError);
-        console.error('[PipelineCore] ❌ Render error stack:', renderError.stack);
+        cblcarsLog.error('[PipelineCore] ❌ AdvancedRenderer.render() FAILED:', renderError);
+        cblcarsLog.error('[PipelineCore] ❌ Render error stack:', renderError.stack);
         return { success: false, error: renderError.message, phase: 'advanced_renderer' };
       }
 
-      console.debug('[PipelineCore] 🎮 Starting renderDebugAndControls()...');
+      cblcarsLog.debug('[PipelineCore] 🎮 Starting renderDebugAndControls()...');
       // CHANGED: Make debug and controls rendering more defensive
       try {
         await systemsManager.renderDebugAndControls(resolvedModel, mountEl);
-        console.debug('[PipelineCore] ✅ renderDebugAndControls() completed successfully');
+        cblcarsLog.debug('[PipelineCore] ✅ renderDebugAndControls() completed successfully');
       } catch (debugControlsError) {
-        console.error('[PipelineCore] ❌ renderDebugAndControls() FAILED:', debugControlsError);
-        console.error('[PipelineCore] ❌ Debug/Controls error stack:', debugControlsError.stack);
+        cblcarsLog.error('[PipelineCore] ❌ renderDebugAndControls() FAILED:', debugControlsError);
+        cblcarsLog.error('[PipelineCore] ❌ Debug/Controls error stack:', debugControlsError.stack);
         // Don't fail the entire render - just log the error
-        console.warn('[PipelineCore] ⚠️ Continuing without debug/controls rendering due to error');
+        cblcarsLog.warn('[PipelineCore] ⚠️ Continuing without debug/controls rendering due to error');
       }
 
       const renderTime = performance.now() - startTime;
-      console.debug(`[PipelineCore] ✅ reRender() COMPLETED in ${renderTime.toFixed(2)}ms`);
+      cblcarsLog.debug(`[PipelineCore] ✅ reRender() COMPLETED in ${renderTime.toFixed(2)}ms`);
 
       return renderResult || { success: true };
 
     } catch (error) {
-      console.error('[PipelineCore] ❌ reRender() COMPLETELY FAILED:', error);
-      console.error('[PipelineCore] ❌ Complete failure stack:', error.stack);
+      cblcarsLog.error('[PipelineCore] ❌ reRender() COMPLETELY FAILED:', error);
+      cblcarsLog.error('[PipelineCore] ❌ Complete failure stack:', error.stack);
       return { success: false, error: error.message };
     } finally {
       systemsManager._renderInProgress = false;
-      console.debug('[PipelineCore] 🏁 reRender() FINALLY block - _renderInProgress reset to false');
+      cblcarsLog.debug('[PipelineCore] 🏁 reRender() FINALLY block - _renderInProgress reset to false');
 
       // IMPROVED: Execute queued re-render if one was requested
       if (systemsManager._queuedReRender) {
-        console.debug('[PipelineCore] 🔄 Executing queued re-render');
+        cblcarsLog.debug('[PipelineCore] 🔄 Executing queued re-render');
         systemsManager._queuedReRender = false;
         // Use setTimeout to avoid immediate recursion and allow stack to clear
         setTimeout(() => reRender(), 50);
@@ -189,15 +190,15 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   systemsManager.setReRenderCallback(reRender);
 
   // Initial render - CHANGED: Make async
-  console.debug('[PipelineCore] Computing initial resolved model');
-  console.debug('[PipelineCore] DataSourceManager status:', {
+  cblcarsLog.debug('[PipelineCore] Computing initial resolved model');
+  cblcarsLog.debug('[PipelineCore] DataSourceManager status:', {
     sourcesCount: systemsManager.dataSourceManager?.getAllSources?.()?.length || 0,
     entityCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
   });
 
   const initialRenderResult = await reRender();
 
-  console.debug('[PipelineCore] Initial render completed:', {
+  cblcarsLog.debug('[PipelineCore] Initial render completed:', {
     overlayCount: initialRenderResult?.overlayCount || 0,
     errors: initialRenderResult?.errors || 0
   });
@@ -216,7 +217,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   }
 
   // Attach unified API
-  console.debug('[PipelineCore] Attaching unified API');
+  cblcarsLog.debug('[PipelineCore] Attaching unified API');
   MsdApi.attach();
 
   // Augment debug tracking (now that pipelineApi exists)
@@ -235,7 +236,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     }
   }
 
-  console.debug('[PipelineCore] Pipeline initialization complete');
+  cblcarsLog.debug('[PipelineCore] Pipeline initialization complete');
   return pipelineApi;
 }
 
@@ -315,10 +316,10 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
      */
     reRender: () => {
       try {
-        console.debug('[PipelineCore] Manual re-render triggered');
+        cblcarsLog.debug('[PipelineCore] Manual re-render triggered');
         return reRender();
       } catch (error) {
-        console.error('[PipelineCore] Manual re-render failed:', error);
+        cblcarsLog.error('[PipelineCore] Manual re-render failed:', error);
         return { success: false, error: error.message };
       }
     },

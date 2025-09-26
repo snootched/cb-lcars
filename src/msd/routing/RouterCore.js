@@ -1,4 +1,5 @@
 import { perfInc, perfTime } from '../perf/PerfCounters.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
  * M5.1 RouterCore
@@ -246,7 +247,7 @@ export class RouterCore {
           }
         }
       } catch (e) {
-        console.warn('[MSD v1] smart/grid router error; fallback to manhattan', e);
+        cblcarsLog.warn('[MSD v1] smart/grid router error; fallback to manhattan', e);
       }
       if (!result) {
         if (mode === 'smart') perfInc('routing.strategy.smart', 1);

@@ -44,16 +44,16 @@ export class SystemsManager {
 
         // CRITICAL FIX: Execute queued render when render completes (true → false)
         if (oldValue === true && value === false && this._queuedReRender) {
-          console.debug('[SystemsManager] 🔄 Executing queued re-render (render completed)');
+          cblcarsLog.debug('[SystemsManager] 🔄 Executing queued re-render (render completed)');
           this._queuedReRender = false;
 
           setTimeout(() => {
             if (!this._internalRenderInProgress && this._reRenderCallback) {
-              console.debug('[SystemsManager] 🚀 Executing queued re-render callback');
+              cblcarsLog.debug('[SystemsManager] 🚀 Executing queued re-render callback');
               try {
                 this._reRenderCallback();
               } catch (error) {
-                console.error('[SystemsManager] ❌ Queued re-render failed:', error);
+                cblcarsLog.error('[SystemsManager] ❌ Queued re-render failed:', error);
               }
             }
           }, 50);
@@ -63,7 +63,7 @@ export class SystemsManager {
   }
 
   async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
-    console.debug('[SystemsManager] Initializing runtime systems');
+    cblcarsLog.debug('[SystemsManager] Initializing runtime systems');
 
     // Store config for later use
     this.mergedConfig = mergedConfig;
@@ -73,10 +73,10 @@ export class SystemsManager {
 
     // ENHANCED: Initialize debug manager early with config and better logging
     const debugConfig = mergedConfig.debug || {};
-    console.debug('[SystemsManager] Raw debug config from mergedConfig:', debugConfig);
+    cblcarsLog.debug('[SystemsManager] Raw debug config from mergedConfig:', debugConfig);
 
     this.debugManager.init(debugConfig);
-    console.debug('[SystemsManager] DebugManager initialized with config:', debugConfig);
+    cblcarsLog.debug('[SystemsManager] DebugManager initialized with config:', debugConfig);
 
     // Initialize data source manager FIRST
     await this._initializeDataSources(hass, mergedConfig);
@@ -92,11 +92,11 @@ export class SystemsManager {
 
       // Add entity change listener
       this.dataSourceManager.addEntityChangeListener(entityChangeHandler);
-      console.debug('[SystemsManager] DataSourceManager connected to rules engine with entity change handler');
+      cblcarsLog.debug('[SystemsManager] DataSourceManager connected to rules engine with entity change handler');
 
-      console.debug('[SystemsManager] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
+      cblcarsLog.debug('[SystemsManager] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
     } else {
-      console.warn('[SystemsManager] DataSourceManager not initialized - no data sources configured or HASS unavailable');
+      cblcarsLog.warn('[SystemsManager] DataSourceManager not initialized - no data sources configured or HASS unavailable');
     }
 
     // Initialize rendering systems
@@ -107,7 +107,7 @@ export class SystemsManager {
 
     // ADDED: Set HASS context on controls renderer immediately if available
     if (this._currentHass && this.controlsRenderer) {
-      console.debug('[SystemsManager] Setting initial HASS context on controls renderer');
+      cblcarsLog.debug('[SystemsManager] Setting initial HASS context on controls renderer');
       this.controlsRenderer.setHass(this._currentHass);
     }
 
@@ -123,29 +123,16 @@ export class SystemsManager {
 
     // Mark router as ready for debug system
     this.debugManager.markRouterReady();
-    console.debug('[SystemsManager] RouterCore marked ready for debug system');
+    cblcarsLog.debug('[SystemsManager] RouterCore marked ready for debug system');
 
     // Initialize animation registry
     this.animRegistry = new AnimationRegistry();
 
     // ADDED: Initialize unified overlay update system
     this.overlayUpdater = new BaseOverlayUpdater(this);
-    console.debug('[SystemsManager] BaseOverlayUpdater initialized for unified overlay updates');
+    cblcarsLog.debug('[SystemsManager] BaseOverlayUpdater initialized for unified overlay updates');
 
-    // CRITICAL FIX: Temporarily disable status indicators to prevent NaN coordinate SVG errors
-    // The TextOverlayRenderer calculates invalid coordinates causing SVG errors and MSD disappearing
-    if (this.mergedConfig && this.mergedConfig.overlays) {
-      console.debug('[SystemsManager] Applying status indicator fix to prevent NaN coordinate errors');
-      this.mergedConfig.overlays = this.mergedConfig.overlays.map(overlay => {
-        if (overlay && overlay.status_indicator) {
-          console.debug(`[SystemsManager] DISABLED status indicator for ${overlay.id} to prevent NaN coordinates`);
-          return { ...overlay, status_indicator: false };
-        }
-        return overlay;
-      });
-    }
-
-    console.debug('[SystemsManager] All systems initialized successfully');
+    cblcarsLog.debug('[SystemsManager] All systems initialized successfully');
     return this;
   }
 
@@ -159,7 +146,7 @@ export class SystemsManager {
       return (changedIds, enhancedData = null) => {
           const timestamp = Date.now();
 
-          console.debug('[SystemsManager] 🔔 Entity change handler TRIGGERED:', {
+          cblcarsLog.debug('[SystemsManager] 🔔 Entity change handler TRIGGERED:', {
               timestamp: new Date().toISOString(),
               changedIds,
               hasEnhancedData: !!enhancedData,
@@ -174,8 +161,8 @@ export class SystemsManager {
 
           if (controlChangedIds.length > 0 && this.controlsRenderer) {
               // SIMPLIFIED: Direct subscription handles control updates automatically
-              console.debug('[SystemsManager] 📡 Control entities changed:', controlChangedIds);
-              console.debug('[SystemsManager] ℹ️ Direct subscription will handle these updates automatically');
+              cblcarsLog.debug('[SystemsManager] 📡 Control entities changed:', controlChangedIds);
+              cblcarsLog.debug('[SystemsManager] ℹ️ Direct subscription will handle these updates automatically');
               // NOTE: The direct HASS subscription automatically handles control updates
               // No need to manually forward HASS here as it causes duplicate/stale updates
           }
@@ -183,7 +170,7 @@ export class SystemsManager {
           // STEP 2: Update MSD internal HASS with converted data (existing logic)
           const workingHass = this.getCurrentHass();
           if (workingHass && this.dataSourceManager) {
-              console.debug('[SystemsManager] 📤 Refreshing MSD internal HASS context with converted entity states');
+              cblcarsLog.debug('[SystemsManager] 📤 Refreshing MSD internal HASS context with converted entity states');
 
               // Get converted state from data source manager for MSD internal use
               const freshStates = {};
@@ -203,13 +190,13 @@ export class SystemsManager {
                           }
                       };
 
-                      console.debug('[SystemsManager] 🔄 Updated MSD internal state for', entityId, {
+                      cblcarsLog.debug('[SystemsManager] 🔄 Updated MSD internal state for', entityId, {
                           originalState: this._originalHass?.states[entityId]?.state,
                           convertedState: freshStates[entityId].state,
                           rawValue: entity.state
                       });
                   } else {
-                      console.debug('[SystemsManager] ⚠️ No data source found for entity:', entityId, '(entity will not be updated in MSD internal HASS)');
+                      cblcarsLog.debug('[SystemsManager] ⚠️ No data source found for entity:', entityId, '(entity will not be updated in MSD internal HASS)');
                   }
               });
 
@@ -224,12 +211,12 @@ export class SystemsManager {
                       }
                   };
 
-                  console.debug('[SystemsManager] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
+                  cblcarsLog.debug('[SystemsManager] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
               } else {
-                  console.debug('[SystemsManager] ℹ️ No data source entities changed - MSD internal HASS unchanged');
+                  cblcarsLog.debug('[SystemsManager] ℹ️ No data source entities changed - MSD internal HASS unchanged');
               }
           } else {
-              console.debug('[SystemsManager] ⚠️ Skipping MSD internal HASS update:', {
+              cblcarsLog.debug('[SystemsManager] ⚠️ Skipping MSD internal HASS update:', {
                   hasWorkingHass: !!workingHass,
                   hasDataSourceManager: !!this.dataSourceManager,
                   dataSourceManagerIsNull: this.dataSourceManager === null
@@ -238,10 +225,10 @@ export class SystemsManager {
 
           // STEP 2.5: ENHANCED - Update overlays with DataSource changes using unified system
           if (this.overlayUpdater) {
-              console.debug('[SystemsManager] 🔄 Using BaseOverlayUpdater for overlay updates');
+              cblcarsLog.debug('[SystemsManager] 🔄 Using BaseOverlayUpdater for overlay updates');
               this.overlayUpdater.updateOverlaysForDataSourceChanges(changedIds);
           } else {
-              console.debug('[SystemsManager] ⚠️ BaseOverlayUpdater not available, skipping overlay updates');
+              cblcarsLog.debug('[SystemsManager] ⚠️ BaseOverlayUpdater not available, skipping overlay updates');
           }
 
           // Mark rules dirty for future renders
@@ -260,7 +247,7 @@ export class SystemsManager {
                           if (source.cfg && source.cfg.entity === entityId) {
                               // Add the DataSource ID so rules can be triggered
                               entitiesToMarkDirty.add(sourceId);
-                              console.debug(`[SystemsManager] 📏 Mapped entity "${entityId}" to DataSource "${sourceId}"`);
+                              cblcarsLog.debug(`[SystemsManager] 📏 Mapped entity "${entityId}" to DataSource "${sourceId}"`);
                           }
                       }
                   }
@@ -268,13 +255,13 @@ export class SystemsManager {
 
               const finalEntityList = Array.from(entitiesToMarkDirty);
               this.rulesEngine.markEntitiesDirty(finalEntityList);
-              console.debug('[SystemsManager] 📏 Marked rules dirty for entities:', finalEntityList);
+              cblcarsLog.debug('[SystemsManager] 📏 Marked rules dirty for entities:', finalEntityList);
           } else {
-              console.debug('[SystemsManager] ⚠️ No rules engine available to mark dirty');
+              cblcarsLog.debug('[SystemsManager] ⚠️ No rules engine available to mark dirty');
           }
 
           if (this._renderTimeout) {
-              console.debug('[SystemsManager] ⏰ Clearing existing render timeout');
+              cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing render timeout');
               clearTimeout(this._renderTimeout);
           }
 
@@ -294,25 +281,25 @@ export class SystemsManager {
               matchingEntities: changedIds.filter(id => controlEntities.includes(id))
           };
 
-          console.debug('[SystemsManager] 🎯 Entity change analysis:', this._lastEntityAnalysis);
+          cblcarsLog.debug('[SystemsManager] 🎯 Entity change analysis:', this._lastEntityAnalysis);
 
           // IMPROVED: Only trigger re-render if rules might have actually changed
           if (hasDataSourceChanges) {
-              console.debug('[SystemsManager] 🔄 Checking if rules need re-evaluation for data source changes');
+              cblcarsLog.debug('[SystemsManager] 🔄 Checking if rules need re-evaluation for data source changes');
 
               // Check if rule conditions might have changed
               const needsRuleReRender = this._checkIfRulesNeedReRender(changedIds);
 
               if (needsRuleReRender) {
-                  console.debug('[SystemsManager] 🎨 Rule conditions may have changed - scheduling full re-render');
+                  cblcarsLog.debug('[SystemsManager] 🎨 Rule conditions may have changed - scheduling full re-render');
                   this._scheduleFullReRender();
               } else {
-                  console.debug('[SystemsManager] 📊 Only content changed - rules unchanged, skipping full re-render');
+                  cblcarsLog.debug('[SystemsManager] 📊 Only content changed - rules unchanged, skipping full re-render');
                   // Content updates happen automatically via DataSource subscriptions
                   // No full re-render needed for content-only changes
               }
           } else {
-              console.debug('[SystemsManager] ⏭️ SKIPPING re-render - no relevant entity changes for MSD');
+              cblcarsLog.debug('[SystemsManager] ⏭️ SKIPPING re-render - no relevant entity changes for MSD');
           }
       };
   }
@@ -324,7 +311,7 @@ export class SystemsManager {
    * @param {Object} hass - Original Home Assistant object
    */
   setOriginalHass(hass) {
-      console.debug('[SystemsManager] 📚 Setting original HASS reference:', {
+      cblcarsLog.debug('[SystemsManager] 📚 Setting original HASS reference:', {
           hasStates: !!hass?.states,
           entityCount: hass?.states ? Object.keys(hass.states).length : 0,
           hasAuth: !!hass?.auth,
@@ -339,7 +326,7 @@ export class SystemsManager {
       // If this is the first time setting HASS, also set working copy
       if (!this._currentHass) {
           this._currentHass = hass;
-          console.debug('[SystemsManager] 📚 Also setting _currentHass (first time)');
+          cblcarsLog.debug('[SystemsManager] 📚 Also setting _currentHass (first time)');
       }
 
       // ADDED: Set up direct subscription to ensure fresh HASS for controls
@@ -399,7 +386,7 @@ export class SystemsManager {
         this.rulesEngine.__perfWrapped = true;
       }
     } catch(e){
-      console.warn('[SystemsManager][rules instrumentation] failed', e);
+      cblcarsLog.warn('[SystemsManager][rules instrumentation] failed', e);
     }
   }
 
@@ -408,49 +395,49 @@ export class SystemsManager {
 
     // ENHANCED: Better logging and error handling
     if (!hass) {
-      console.warn('[SystemsManager] No HASS provided - DataSourceManager will not be initialized');
+      cblcarsLog.warn('[SystemsManager] No HASS provided - DataSourceManager will not be initialized');
       return;
     }
 
     // ENHANCED: Explicit-only data sources - no auto-creation
     const configuredDataSources = mergedConfig.data_sources || {};
 
-    console.debug('[SystemsManager] 🔍 Using explicit-only data sources mode');
-    console.debug('[SystemsManager] 🔍 Configured data sources:', Object.keys(configuredDataSources));
+    cblcarsLog.debug('[SystemsManager] 🔍 Using explicit-only data sources mode');
+    cblcarsLog.debug('[SystemsManager] 🔍 Configured data sources:', Object.keys(configuredDataSources));
 
     // Controls use direct HASS - no data sources needed
     const controlEntities = this._extractControlEntities(mergedConfig);
-    console.debug('[SystemsManager] 🔍 Control entities (using direct HASS):', controlEntities);
+    cblcarsLog.debug('[SystemsManager] 🔍 Control entities (using direct HASS):', controlEntities);
 
     // Use only explicitly configured data sources
     const allDataSources = { ...configuredDataSources };
 
-    console.debug('[SystemsManager] 📊 Data source summary:', {
+    cblcarsLog.debug('[SystemsManager] 📊 Data source summary:', {
       configured: Object.keys(configuredDataSources).length,
       total: Object.keys(allDataSources).length,
       allDataSourceIds: Object.keys(allDataSources)
     });
 
     if (Object.keys(allDataSources).length === 0) {
-      console.debug('[SystemsManager] No explicit data sources configured - DataSourceManager will not be initialized');
-      console.debug('[SystemsManager] Note: Control overlays will use direct HASS (no data sources needed)');
+      cblcarsLog.debug('[SystemsManager] No explicit data sources configured - DataSourceManager will not be initialized');
+      cblcarsLog.debug('[SystemsManager] Note: Control overlays will use direct HASS (no data sources needed)');
       return;
     }
 
-    console.debug('[SystemsManager] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'explicit data sources');
+    cblcarsLog.debug('[SystemsManager] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'explicit data sources');
 
     try {
       this.dataSourceManager = new DataSourceManager(hass);
       const sourceCount = await this.dataSourceManager.initializeFromConfig(allDataSources);
-      console.debug('[SystemsManager] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
+      cblcarsLog.debug('[SystemsManager] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
 
       // ADDED: Verify entities are available
       const entityIds = this.dataSourceManager.listIds();
-      console.debug('[SystemsManager] ✅ DataSourceManager entities available:', entityIds);
+      cblcarsLog.debug('[SystemsManager] ✅ DataSourceManager entities available:', entityIds);
 
     } catch (error) {
-      console.error('[SystemsManager] ❌ DataSourceManager initialization failed:', error);
-      console.error('[SystemsManager] Error details:', error.stack);
+      cblcarsLog.error('[SystemsManager] ❌ DataSourceManager initialization failed:', error);
+      cblcarsLog.error('[SystemsManager] Error details:', error.stack);
       this.dataSourceManager = null;
     }
   }
@@ -485,6 +472,7 @@ export class SystemsManager {
   /**
    * Essential cleanup method
    */
+  /*
   destroy() {
     if (this.debugRenderer) {
       this.debugRenderer.destroy();
@@ -499,6 +487,30 @@ export class SystemsManager {
     // Clear re-render callback
     this._reRenderCallback = null;
   }
+  */
+
+  destroy() {
+    // Stop all subscriptions and clean up resources
+    this.dataSourceManager?.destroy();
+    this.animRegistry?.clear();
+    this.debugRenderer?.destroy();
+    this.controlsRenderer?.destroy();
+    this.renderer?.destroy();
+    this.rulesEngine?.destroy();
+
+    // Clear timeouts and callbacks
+    if (this._renderTimeout) {
+      clearTimeout(this._renderTimeout);
+      this._renderTimeout = null;
+    }
+    this._reRenderCallback = null;
+
+    // Remove global references
+    if (typeof window !== 'undefined' && window.__msdDebug) {
+      delete window.__msdDebug.pipelineInstance;
+      delete window.__msdDebug.systemsManager;
+    }
+  }
 
   /**
    * Render debug overlays and controls using DebugManager with basic performance tracking
@@ -508,7 +520,7 @@ export class SystemsManager {
   async renderDebugAndControls(resolvedModel, mountEl = null) {
     // ADDED: Early exit if already rendering
     if (this._debugControlsRendering) {
-      console.debug('[SystemsManager] renderDebugAndControls already in progress, skipping');
+      cblcarsLog.debug('[SystemsManager] renderDebugAndControls already in progress, skipping');
       return;
     }
 
@@ -517,7 +529,7 @@ export class SystemsManager {
     try {
       const debugState = this.debugManager.getSnapshot();
 
-      console.debug('[SystemsManager] renderDebugAndControls called:', {
+      cblcarsLog.debug('[SystemsManager] renderDebugAndControls called:', {
         anyEnabled: this.debugManager.isAnyEnabled(),
         controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
         hasHass: !!this._currentHass,
@@ -527,7 +539,7 @@ export class SystemsManager {
 
       // ADDED: Validate resolved model
       if (!resolvedModel || !resolvedModel.overlays) {
-        console.warn('[SystemsManager] Invalid resolved model for renderDebugAndControls');
+        cblcarsLog.warn('[SystemsManager] Invalid resolved model for renderDebugAndControls');
         return;
       }
 
@@ -545,9 +557,9 @@ export class SystemsManager {
           };
 
           this.debugRenderer.render(mountEl || this.renderer?.mountEl, resolvedModel.viewBox, debugOptions);
-          console.debug('[SystemsManager] ✅ Debug renderer completed');
+          cblcarsLog.debug('[SystemsManager] ✅ Debug renderer completed');
         } catch (error) {
-          console.error('[SystemsManager] ❌ Debug renderer failed:', error);
+          cblcarsLog.error('[SystemsManager] ❌ Debug renderer failed:', error);
           // Continue execution - don't fail the entire render
         }
       }
@@ -555,21 +567,21 @@ export class SystemsManager {
       // FIXED: Render control overlays with comprehensive error handling
       const controlOverlays = resolvedModel.overlays.filter(o => o.type === 'control');
       if (controlOverlays.length > 0) {
-        console.debug('[SystemsManager] Rendering control overlays:', controlOverlays.map(c => c.id));
+        cblcarsLog.debug('[SystemsManager] Rendering control overlays:', controlOverlays.map(c => c.id));
 
         try {
           // ADDED: Validate controls renderer exists
           if (!this.controlsRenderer) {
-            console.error('[SystemsManager] No controls renderer available');
+            cblcarsLog.error('[SystemsManager] No controls renderer available');
             return;
           }
 
           // Ensure controls renderer has current HASS context
           if (this._currentHass && this.controlsRenderer) {
             this.controlsRenderer.setHass(this._currentHass);
-            console.debug('[SystemsManager] HASS context applied to controls renderer');
+            cblcarsLog.debug('[SystemsManager] HASS context applied to controls renderer');
           } else {
-            console.warn('[SystemsManager] No HASS context available for controls');
+            cblcarsLog.warn('[SystemsManager] No HASS context available for controls');
           }
 
           // REMOVED: Defensive container creation - not needed with SVG foreignObject approach
@@ -582,17 +594,17 @@ export class SystemsManager {
           );
 
           await Promise.race([renderPromise, timeoutPromise]);
-          console.debug('[SystemsManager] ✅ Controls rendered successfully');
+          cblcarsLog.debug('[SystemsManager] ✅ Controls rendered successfully');
 
         } catch (error) {
-          console.error('[SystemsManager] ❌ Controls rendering failed:', error);
-          console.error('[SystemsManager] Error stack:', error.stack);
+          cblcarsLog.error('[SystemsManager] ❌ Controls rendering failed:', error);
+          cblcarsLog.error('[SystemsManager] Error stack:', error.stack);
         }
       }
 
     } catch (error) {
-      console.error('[SystemsManager] renderDebugAndControls failed completely:', error);
-      console.error('[SystemsManager] Error stack:', error.stack);
+      cblcarsLog.error('[SystemsManager] renderDebugAndControls failed completely:', error);
+      cblcarsLog.error('[SystemsManager] Error stack:', error.stack);
     } finally {
       this._debugControlsRendering = false;
     }
@@ -631,7 +643,7 @@ export class SystemsManager {
 
   // Public API methods - now exclusively using DataSourceManager
   ingestHass(hass) {
-    console.debug('[SystemsManager] ingestHass called with:', {
+    cblcarsLog.debug('[SystemsManager] ingestHass called with:', {
       hasHass: !!hass,
       hasStates: !!hass?.states,
       entityCount: hass?.states ? Object.keys(hass.states).length : 0,
@@ -641,7 +653,7 @@ export class SystemsManager {
     });
 
     if (!hass || !hass.states) {
-      console.warn('[SystemsManager] ingestHass called without valid hass.states');
+      cblcarsLog.warn('[SystemsManager] ingestHass called without valid hass.states');
       return;
     }
 
@@ -649,26 +661,26 @@ export class SystemsManager {
     this._currentHass = hass;
     this._originalHass = hass;  // ADDED: Keep original fresh too
 
-    console.debug('[SystemsManager] Updated both _currentHass and _originalHass with fresh data');
+    cblcarsLog.debug('[SystemsManager] Updated both _currentHass and _originalHass with fresh data');
 
     // ENHANCED: Pass HASS to controls renderer EVERY time to ensure cards get updates
     if (this.controlsRenderer) {
-      console.debug('[SystemsManager] Updating HASS context in controls renderer immediately');
+      cblcarsLog.debug('[SystemsManager] Updating HASS context in controls renderer immediately');
       this.controlsRenderer.setHass(hass);
     } else {
-      console.warn('[SystemsManager] No controls renderer available for HASS update');
+      cblcarsLog.warn('[SystemsManager] No controls renderer available for HASS update');
     }
 
     // DataSources handle HASS updates automatically via their subscriptions
     // No manual ingestion needed - handled by individual data sources
-    console.debug('[SystemsManager] HASS ingestion handled by individual data sources');
+    cblcarsLog.debug('[SystemsManager] HASS ingestion handled by individual data sources');
   }
 
   updateEntities(map) {
     if (!map || typeof map !== 'object') return;
 
-    console.debug('[SystemsManager] Manual entity updates not supported in DataSources system');
-    console.warn('[SystemsManager] Use direct HASS state updates instead of manual entity updates');
+    cblcarsLog.debug('[SystemsManager] Manual entity updates not supported in DataSources system');
+    cblcarsLog.warn('[SystemsManager] Use direct HASS state updates instead of manual entity updates');
   }
 
   // Entity API methods using DataSourceManager
@@ -686,7 +698,7 @@ export class SystemsManager {
    */
   setupDirectHassSubscription(hass) {
     if (hass && hass.connection && !this._directHassSubscription) {
-      console.debug('[SystemsManager] 🔗 Setting up direct HASS subscription for fresh control updates');
+      cblcarsLog.debug('[SystemsManager] 🔗 Setting up direct HASS subscription for fresh control updates');
 
       this._directHassSubscription = hass.connection.subscribeEvents((event) => {
         if (event.event_type === 'state_changed' && event.data && event.data.entity_id) {
@@ -696,7 +708,7 @@ export class SystemsManager {
           // Check if this is a control entity
           const controlEntities = this._extractControlEntities(this.mergedConfig);
           if (controlEntities.includes(entityId) && newState) {
-            console.debug('[SystemsManager] 📡 Direct HASS update for control entity:', entityId, 'new state:', newState.state);
+            cblcarsLog.debug('[SystemsManager] 📡 Direct HASS update for control entity:', entityId, 'new state:', newState.state);
 
             // Update our HASS with the fresh state
             if (this._originalHass && this._originalHass.states) {
@@ -708,13 +720,13 @@ export class SystemsManager {
                 }
               };
 
-              console.debug('[SystemsManager] 📊 Updated HASS with fresh state for', entityId, ':', newState.state);
+              cblcarsLog.debug('[SystemsManager] 📊 Updated HASS with fresh state for', entityId, ':', newState.state);
               this._originalHass = freshHass;
               this._currentHass = freshHass;
 
               // Forward fresh HASS to controls immediately
               if (this.controlsRenderer) {
-                console.debug('[SystemsManager] 📤 Immediately forwarding fresh HASS to controls');
+                cblcarsLog.debug('[SystemsManager] 📤 Immediately forwarding fresh HASS to controls');
                 this.controlsRenderer.setHass(freshHass);
               }
             }
@@ -722,7 +734,7 @@ export class SystemsManager {
         }
       }, 'state_changed');
 
-            console.debug('[SystemsManager] ✅ Direct HASS subscription established');
+            cblcarsLog.debug('[SystemsManager] ✅ Direct HASS subscription established');
     }
   }
 
@@ -731,7 +743,7 @@ export class SystemsManager {
    * @private
    */
   _setupGlobalHudInterface() {
-    console.debug('[SystemsManager] Global HUD interface setup completed');
+    cblcarsLog.debug('[SystemsManager] Global HUD interface setup completed');
     // This method is called during initialization
     // Future HUD interface setup will go here
   }
@@ -756,13 +768,13 @@ export class SystemsManager {
     });
 
     if (affectedDataSources.length > 0) {
-      console.debug('[SystemsManager] 🎯 DataSource entities affected by changes:', affectedDataSources);
+      cblcarsLog.debug('[SystemsManager] 🎯 DataSource entities affected by changes:', affectedDataSources);
 
       // ADVANCED: Check if the specific rule thresholds might be crossed
       // This is where we could add more sophisticated logic to detect actual rule changes
       const mightCrossThresholds = this._checkThresholdCrossing(changedIds);
 
-      console.debug('[SystemsManager] 🌡️ Threshold crossing check:', mightCrossThresholds);
+      cblcarsLog.debug('[SystemsManager] 🌡️ Threshold crossing check:', mightCrossThresholds);
       return mightCrossThresholds;
     }
 
@@ -794,7 +806,7 @@ export class SystemsManager {
           });
 
           if (isDataSourceAffected) {
-            console.debug('[SystemsManager] 🎯 Rule condition potentially affected:', {
+            cblcarsLog.debug('[SystemsManager] 🎯 Rule condition potentially affected:', {
               rule: rule.id,
               entity: entityInRule,
               threshold: condition.above || condition.below,
@@ -812,7 +824,7 @@ export class SystemsManager {
               // Check if current value satisfies the condition
               const currentlyMatches = condition.above ? isAboveThreshold : isBelowThreshold;
 
-              console.debug('[SystemsManager] 🌡️ Detailed threshold analysis:', {
+              cblcarsLog.debug('[SystemsManager] 🌡️ Detailed threshold analysis:', {
                 currentValue,
                 threshold,
                 operator: condition.above ? 'above' : 'below',
@@ -830,7 +842,7 @@ export class SystemsManager {
               const ruleKey = `${rule.id}_${condition.entity}`;
               const previouslyMatched = this._previousRuleStates.get(ruleKey);
 
-              console.debug('[SystemsManager] 📊 Rule state comparison:', {
+              cblcarsLog.debug('[SystemsManager] 📊 Rule state comparison:', {
                 ruleKey,
                 previouslyMatched,
                 currentlyMatches,
@@ -842,14 +854,14 @@ export class SystemsManager {
 
               // Only trigger re-render if the rule state actually changed
               if (previouslyMatched !== undefined && previouslyMatched !== currentlyMatches) {
-                console.debug('[SystemsManager] 🔄 Rule state CHANGED - threshold crossing detected!');
+                cblcarsLog.debug('[SystemsManager] 🔄 Rule state CHANGED - threshold crossing detected!');
                 return true;
               } else if (previouslyMatched === undefined) {
-                console.debug('[SystemsManager] 🆕 First rule evaluation - storing state');
+                cblcarsLog.debug('[SystemsManager] 🆕 First rule evaluation - storing state');
                 // First time seeing this rule, don't trigger re-render
                 return false;
               } else {
-                console.debug('[SystemsManager] 📌 Rule state UNCHANGED - no threshold crossing');
+                cblcarsLog.debug('[SystemsManager] 📌 Rule state UNCHANGED - no threshold crossing');
                 return false;
               }
             }
@@ -858,7 +870,7 @@ export class SystemsManager {
       }
     }
 
-    console.debug('[SystemsManager] 📊 No threshold crossings detected');
+    cblcarsLog.debug('[SystemsManager] 📊 No threshold crossings detected');
     return false;
   }  /**
    * Schedule a full re-render with proper queuing
@@ -866,7 +878,7 @@ export class SystemsManager {
    */
   _scheduleFullReRender() {
     if (this._renderTimeout) {
-      console.debug('[SystemsManager] ⏰ Clearing existing render timeout');
+      cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing render timeout');
       clearTimeout(this._renderTimeout);
     }
 
@@ -875,10 +887,10 @@ export class SystemsManager {
       if (this._reRenderCallback && !this._renderInProgress) {
         try {
           this._renderInProgress = true;
-          console.debug('[SystemsManager] 🚀 TRIGGERING full re-render from rule change timeout');
+          cblcarsLog.debug('[SystemsManager] 🚀 TRIGGERING full re-render from rule change timeout');
           this._reRenderCallback();
         } catch (error) {
-          console.error('[SystemsManager] ❌ Re-render FAILED in entity change handler:', error);
+          cblcarsLog.error('[SystemsManager] ❌ Re-render FAILED in entity change handler:', error);
         } finally {
           this._renderInProgress = false;
         }
@@ -893,25 +905,25 @@ export class SystemsManager {
    * @private
    */
   _updateTextOverlaysForDataSourceChanges(changedIds) {
-    console.debug('[SystemsManager] 🔤 Checking for text overlays affected by DataSource changes:', changedIds);
+    cblcarsLog.debug('[SystemsManager] 🔤 Checking for text overlays affected by DataSource changes:', changedIds);
 
     // Get current resolved model to find text overlays
     const resolvedModel = this.modelBuilder?.getResolvedModel?.();
     if (!resolvedModel || !resolvedModel.overlays) {
-      console.debug('[SystemsManager] ⚠️ No resolved model available for text overlay updates');
+      cblcarsLog.debug('[SystemsManager] ⚠️ No resolved model available for text overlay updates');
       return;
     }
 
     // Find text overlays that might be affected
     const textOverlays = resolvedModel.overlays.filter(overlay => overlay.type === 'text');
-    console.debug('[SystemsManager] 🔤 Found', textOverlays.length, 'text overlays to check');
+    cblcarsLog.debug('[SystemsManager] 🔤 Found', textOverlays.length, 'text overlays to check');
 
     textOverlays.forEach(overlay => {
       // Check if this text overlay uses template strings that reference the changed DataSources
       const content = overlay._raw?.content || overlay.content || overlay.text || '';
 
       if (content && typeof content === 'string' && content.includes('{')) {
-        console.debug(`[SystemsManager] 🔤 Checking text overlay ${overlay.id} with content: "${content}"`);
+        cblcarsLog.debug(`[SystemsManager] 🔤 Checking text overlay ${overlay.id} with content: "${content}"`);
 
         // Check if any of the changed entities map to DataSources referenced in the template
         const needsUpdate = changedIds.some(entityId => {
@@ -919,11 +931,11 @@ export class SystemsManager {
           if (this.dataSourceManager) {
             for (const [sourceId, source] of this.dataSourceManager.sources || new Map()) {
               if (source.cfg && source.cfg.entity === entityId) {
-                console.debug(`[SystemsManager] 🔗 Entity ${entityId} maps to DataSource ${sourceId}`);
+                cblcarsLog.debug(`[SystemsManager] 🔗 Entity ${entityId} maps to DataSource ${sourceId}`);
 
                 // Check if the template content references this DataSource
                 if (content.includes(sourceId)) {
-                  console.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} references DataSource ${sourceId} - needs update`);
+                  cblcarsLog.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} references DataSource ${sourceId} - needs update`);
                   return true;
                 }
               }
@@ -933,7 +945,7 @@ export class SystemsManager {
         });
 
         if (needsUpdate) {
-          console.debug(`[SystemsManager] 🚀 Updating text overlay ${overlay.id} for DataSource changes`);
+          cblcarsLog.debug(`[SystemsManager] 🚀 Updating text overlay ${overlay.id} for DataSource changes`);
 
           // Get the updated DataSource data for the first changed DataSource
           const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
@@ -941,21 +953,21 @@ export class SystemsManager {
             const dataSource = this.dataSourceManager.getSource(updatedDataSourceId);
             if (dataSource) {
               const currentData = dataSource.getCurrentData();
-              console.debug(`[SystemsManager] 📊 Using DataSource ${updatedDataSourceId} data:`, currentData);
+              cblcarsLog.debug(`[SystemsManager] 📊 Using DataSource ${updatedDataSourceId} data:`, currentData);
 
               // Update the text overlay with new data
               if (this.renderer && this.renderer.updateTextOverlay) {
                 try {
                   this.renderer.updateTextOverlay(overlay.id, currentData);
-                  console.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} updated successfully`);
+                  cblcarsLog.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} updated successfully`);
                 } catch (error) {
-                  console.error(`[SystemsManager] ❌ Failed to update text overlay ${overlay.id}:`, error);
+                  cblcarsLog.error(`[SystemsManager] ❌ Failed to update text overlay ${overlay.id}:`, error);
                 }
               }
             }
           }
         } else {
-          console.debug(`[SystemsManager] ⏭️ Text overlay ${overlay.id} not affected by these changes`);
+          cblcarsLog.debug(`[SystemsManager] ⏭️ Text overlay ${overlay.id} not affected by these changes`);
         }
       }
     });

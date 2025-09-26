@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+
 /**
  * @file DebugManager.js
  * @description Centralized debug state manager with proper initialization ordering
@@ -40,7 +42,7 @@ export class DebugManager {
   init(debugConfig = {}) {
     // REDUCED: Only log if debug is actually enabled
     if (debugConfig && Object.keys(debugConfig).length > 0) {
-      console.debug('[DebugManager] Initializing with config:', debugConfig);
+      cblcarsLog.debug('[DebugManager] Initializing with config:', debugConfig);
     }
 
     // FIXED: Apply initial config - handle both flat and nested structures
@@ -70,7 +72,7 @@ export class DebugManager {
     // REDUCED: Only log state if features are enabled
     const hasEnabledFeatures = this.isAnyEnabled();
     if (hasEnabledFeatures) {
-      console.debug('[DebugManager] State after config init:', this.state);
+      cblcarsLog.debug('[DebugManager] State after config init:', this.state);
     }
 
     // Process pending init actions
@@ -159,7 +161,7 @@ export class DebugManager {
    */
   status() {
     const snapshot = this.getSnapshot();
-    console.table(snapshot);
+    cblcarsLog.table(snapshot);
     return snapshot;
   }
 
@@ -266,7 +268,7 @@ export class DebugManager {
       try {
         callback(event);
       } catch (error) {
-        console.warn('[DebugManager] Callback error:', error);
+        cblcarsLog.warn('[DebugManager] Callback error:', error);
       }
     });
   }
@@ -279,13 +281,13 @@ export class DebugManager {
    */
   _setFeature(feature, enabled) {
     if (!this.state.hasOwnProperty(feature) || feature === 'scale') {
-      console.warn(`[DebugManager] Invalid debug feature: ${feature}`);
+      cblcarsLog.warn(`[DebugManager] Invalid debug feature: ${feature}`);
       return;
     }
 
     const action = () => {
       if (this.state[feature] !== enabled) {
-        console.debug(`[DebugManager] Setting ${feature} to ${enabled}`);
+        cblcarsLog.debug(`[DebugManager] Setting ${feature} to ${enabled}`);
         this.state[feature] = enabled;
         this._scheduleNotification('feature', { feature, enabled });
 
@@ -294,11 +296,11 @@ export class DebugManager {
           try {
             const pipelineInstance = window.__msdDebug?.pipelineInstance;
             if (pipelineInstance?.reRender) {
-              console.debug(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
+              cblcarsLog.debug(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
               pipelineInstance.reRender();
             }
           } catch (error) {
-            console.warn('[DebugManager] Auto re-render failed:', error);
+            cblcarsLog.warn('[DebugManager] Auto re-render failed:', error);
           }
         }, 5);
       }

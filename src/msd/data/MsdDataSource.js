@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+
 /**
  * MsdDataSource - Complete port of cb-lcars-data.js DataSource functionality
  *
@@ -28,7 +30,7 @@ export class MsdDataSource {
 
     // Validate essential config
     if (!this.cfg.entity) {
-      console.debug('[MsdDataSource] No entity specified in config');
+      cblcarsLog.debug('[MsdDataSource] No entity specified in config');
       this.cfg.entity = '';
     }
 
@@ -120,9 +122,9 @@ export class MsdDataSource {
           // Create buffer for transformed historical data with same capacity as main buffer
           const capacity = this.buffer.capacity || 60;
           this.transformedBuffers.set(key, new RollingBuffer(capacity));
-          console.debug(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
+          cblcarsLog.debug(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
         } catch (error) {
-          console.error(`[MsdDataSource] Failed to initialize transformation ${transformConfig.type}:`, error);
+          cblcarsLog.error(`[MsdDataSource] Failed to initialize transformation ${transformConfig.type}:`, error);
         }
       });
     }
@@ -136,14 +138,14 @@ export class MsdDataSource {
 
           this.aggregations.set(key, processor);
 
-          console.debug(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
+          cblcarsLog.debug(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
         } catch (error) {
-          console.error(`[MsdDataSource] Failed to initialize aggregation ${type}:`, error);
+          cblcarsLog.error(`[MsdDataSource] Failed to initialize aggregation ${type}:`, error);
         }
       });
     }
 
-    console.debug(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
+    cblcarsLog.debug(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
   }
 
   /**
@@ -161,25 +163,25 @@ export class MsdDataSource {
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - hours * 3600000);
 
-    console.debug(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
+    cblcarsLog.debug(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
 
     try {
       // Strategy 1: Try Home Assistant's history service (most reliable)
       await this._preloadWithHistoryService(startTime, endTime);
     } catch (error) {
-      console.warn(`[MsdDataSource] History service failed for ${this.cfg.entity}, trying statistics:`, error.message);
+      cblcarsLog.warn(`[MsdDataSource] History service failed for ${this.cfg.entity}, trying statistics:`, error.message);
 
       try {
         // Strategy 2: Fall back to enhanced statistics
         await this._preloadWithStatistics(startTime, endTime);
       } catch (statError) {
-        console.warn(`[MsdDataSource] Statistics failed, trying state history:`, statError.message);
+        cblcarsLog.warn(`[MsdDataSource] Statistics failed, trying state history:`, statError.message);
         // Strategy 3: Final fallback (existing _preloadStateHistory method)
         await this._preloadStateHistory(startTime, endTime);
       }
     }
 
-    console.debug(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
+    cblcarsLog.debug(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
   }
 
   /**
@@ -197,7 +199,7 @@ export class MsdDataSource {
 
     if (response && response[0]) {
       const states = response[0];
-      console.debug(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
+      cblcarsLog.debug(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
 
       for (const state of states) {
         const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -229,7 +231,7 @@ export class MsdDataSource {
 
     if (response && response[0]?.statistics) {
       const statistics = response[0].statistics;
-      console.debug(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
+      cblcarsLog.debug(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
 
       for (const stat of statistics) {
         const timestamp = new Date(stat.start).getTime();
@@ -251,7 +253,7 @@ export class MsdDataSource {
     if (this._started || this._destroyed) return;
 
     try {
-      console.debug(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
+      cblcarsLog.debug(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
 
       // STEP 1: Preload historical data FIRST
       if (this.hass?.callService) {
@@ -261,12 +263,12 @@ export class MsdDataSource {
       // STEP 2: Initialize with current HASS state if available
       if (this.hass.states && this.hass.states[this.cfg.entity]) {
         const currentState = this.hass.states[this.cfg.entity];
-        console.debug(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
+        cblcarsLog.debug(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
 
                 // ENHANCED: Capture unit_of_measurement from initial state
         if (currentState.attributes?.unit_of_measurement) {
           this.cfg.unit_of_measurement = currentState.attributes.unit_of_measurement;
-          console.debug(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+          cblcarsLog.debug(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
         }
 
         // FIXED: Use current timestamp for initial state
@@ -275,7 +277,7 @@ export class MsdDataSource {
         const value = this._toNumber(rawValue);
 
         if (value !== null) {
-          console.debug(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
+          cblcarsLog.debug(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
           this.buffer.push(currentTimestamp, value);
           this._stats.currentValue = value;
         }
@@ -285,13 +287,13 @@ export class MsdDataSource {
       this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
         if (event.event_type === 'state_changed' &&
             event.data?.entity_id === this.cfg.entity) {
-          console.debug(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
+          cblcarsLog.debug(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
           this._handleStateChange(event.data);
         }
       }, 'state_changed');
 
       this._started = true;
-      console.debug(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
+      cblcarsLog.debug(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
 
       // STEP 4: Process historical data through transformations
       this._processHistoricalTransformations();
@@ -300,7 +302,7 @@ export class MsdDataSource {
       this._emitInitialData();
 
     } catch (error) {
-      console.error(`[MsdDataSource] ❌ Failed to initialize ${this.cfg.entity}:`, error);
+      cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize ${this.cfg.entity}:`, error);
       throw error;
     }
   }
@@ -313,7 +315,7 @@ export class MsdDataSource {
     if (this.subscribers.size > 0) {
       const lastPoint = this.buffer.last();
       if (lastPoint) {
-        console.debug(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        cblcarsLog.debug(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
         const emitData = {
           t: lastPoint.t,
           v: lastPoint.v,
@@ -331,12 +333,12 @@ export class MsdDataSource {
           try {
             callback(emitData);
           } catch (error) {
-            console.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+            cblcarsLog.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
           }
         });
       } else {
         // Even if no buffer data, emit initial structure for consistency
-        console.debug(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        cblcarsLog.debug(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
         const emitData = {
           t: null,
           v: null,
@@ -354,7 +356,7 @@ export class MsdDataSource {
           try {
             callback(emitData);
           } catch (error) {
-            console.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+            cblcarsLog.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
           }
         });
       }
@@ -363,7 +365,7 @@ export class MsdDataSource {
 
   async _preloadHistory() {
     if (!this.hass?.connection || !this.cfg.entity) {
-      console.warn('[MsdDataSource] No HASS connection or entity for history preload');
+      cblcarsLog.warn('[MsdDataSource] No HASS connection or entity for history preload');
       return;
     }
 
@@ -371,7 +373,7 @@ export class MsdDataSource {
     const endTime = new Date();
     const startTime = new Date(endTime.getTime() - hours * 3600000);
 
-    console.debug(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
+    cblcarsLog.debug(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
 
     try {
       // Use modern WebSocket call for statistics (preferred)
@@ -385,7 +387,7 @@ export class MsdDataSource {
 
       if (statisticsData && statisticsData[this.cfg.entity]) {
         const statistics = statisticsData[this.cfg.entity];
-        console.debug(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`,statistics);
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`,statistics);
 
         for (const stat of statistics) {
           const timestamp = new Date(stat.start).getTime();
@@ -397,11 +399,11 @@ export class MsdDataSource {
           }
         }
 
-        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
         return; // Success with statistics
       }
     } catch (error) {
-      console.warn('[MsdDataSource] Statistics failed, trying state history:', error.message);
+      cblcarsLog.warn('[MsdDataSource] Statistics failed, trying state history:', error.message);
     }
 
     // Fallback: try state history via WebSocket
@@ -410,7 +412,7 @@ export class MsdDataSource {
 
   async _preloadStateHistoryWS(startTime, endTime) {
     try {
-      console.debug(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
+      cblcarsLog.debug(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
 
       // Use modern WebSocket call for history
       const historyData = await this.hass.connection.sendMessagePromise({
@@ -424,7 +426,7 @@ export class MsdDataSource {
 
       if (historyData && historyData[0]) {
         const states = historyData[0];
-        console.debug(`[MsdDataSource] 📊 Got ${states.length} history states`);
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${states.length} history states`);
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -437,12 +439,12 @@ export class MsdDataSource {
           }
         }
 
-        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
       } else {
-        console.warn('[MsdDataSource] No history data returned from WebSocket call');
+        cblcarsLog.warn('[MsdDataSource] No history data returned from WebSocket call');
       }
     } catch (error) {
-      console.error('[MsdDataSource] WebSocket state history also failed:', error);
+      cblcarsLog.error('[MsdDataSource] WebSocket state history also failed:', error);
 
       // Final fallback: try direct REST API if available
       await this._preloadHistoryREST(startTime, endTime);
@@ -451,7 +453,7 @@ export class MsdDataSource {
 
   async _preloadHistoryREST(startTime, endTime) {
     try {
-      console.debug(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
+      cblcarsLog.debug(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
 
       const startParam = startTime.toISOString();
       const url = `/api/history/period/${startParam}?filter_entity_id=${this.cfg.entity}&minimal_response&no_attributes`;
@@ -471,7 +473,7 @@ export class MsdDataSource {
 
       if (historyData && historyData[0]) {
         const states = historyData[0];
-        console.debug(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
@@ -484,10 +486,10 @@ export class MsdDataSource {
           }
         }
 
-        console.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
       }
     } catch (error) {
-      console.error('[MsdDataSource] REST history fallback also failed:', error);
+      cblcarsLog.error('[MsdDataSource] REST history fallback also failed:', error);
     }
   }
 
@@ -499,16 +501,16 @@ export class MsdDataSource {
     // Enhanced _handleStateChange method
   _handleStateChange(eventData) {
 
-    console.debug('[MsdDataSource] State change for', this.cfg.entity, ':', eventData?.new_state?.state);
+    cblcarsLog.debug('[MsdDataSource] State change for', this.cfg.entity, ':', eventData?.new_state?.state);
 
     if (!eventData?.new_state || this._destroyed) {
-      console.debug('[MsdDataSource] Skipping state change - no new state or destroyed');
+      cblcarsLog.debug('[MsdDataSource] Skipping state change - no new state or destroyed');
       return;
     }
 
     // Safety check: ensure buffer exists and has required methods
     if (!this.buffer || typeof this.buffer.push !== 'function') {
-      console.error('[MsdDataSource] Buffer not properly initialized for', this.cfg.entity);
+      cblcarsLog.error('[MsdDataSource] Buffer not properly initialized for', this.cfg.entity);
       return;
     }
 
@@ -518,7 +520,7 @@ export class MsdDataSource {
     // ENHANCED: Capture and store unit_of_measurement from the entity
     if (eventData.new_state.attributes?.unit_of_measurement) {
       this.cfg.unit_of_measurement = eventData.new_state.attributes.unit_of_measurement;
-      console.debug(`[MsdDataSource] Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+      cblcarsLog.debug(`[MsdDataSource] Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
     }
 
     // FIXED: Use current timestamp instead of state timestamp
@@ -526,7 +528,7 @@ export class MsdDataSource {
 
     // Validate timestamp
     if (!Number.isFinite(timestamp)) {
-      console.error('[MsdDataSource] Invalid timestamp generated:', timestamp);
+      cblcarsLog.error('[MsdDataSource] Invalid timestamp generated:', timestamp);
       return;
     }
     const rawValue = this.cfg.attribute
@@ -536,7 +538,7 @@ export class MsdDataSource {
     const value = this._toNumber(rawValue);
 
     if (value !== null) {
-      console.debug(`[MsdDataSource] Processing state change for ${this.cfg.entity}: ${value} (${this.subscribers.size} subscribers)`);
+      cblcarsLog.debug(`[MsdDataSource] Processing state change for ${this.cfg.entity}: ${value} (${this.subscribers.size} subscribers)`);
 
     // Store in raw buffer
     this.buffer.push(timestamp, value);
@@ -549,7 +551,7 @@ export class MsdDataSource {
       try {
         processor.update(timestamp, value, transformedData);
       } catch (error) {
-        console.warn(`[MsdDataSource] Aggregation ${key} update failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Aggregation ${key} update failed:`, error);
       }
     });
 
@@ -558,7 +560,7 @@ export class MsdDataSource {
     this._stats.lastUpdate = timestamp;
 
       // Emit to subscribers
-      console.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
+      cblcarsLog.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, value);
 
       const emitData = {
         t: timestamp,
@@ -576,11 +578,11 @@ export class MsdDataSource {
         try {
           callback(emitData);
         } catch (error) {
-          console.error(`[MsdDataSource] ❌ Subscriber ${index} callback FAILED for ${this.cfg.entity}:`, error);
+          cblcarsLog.error(`[MsdDataSource] ❌ Subscriber ${index} callback FAILED for ${this.cfg.entity}:`, error);
         }
       });
     } else {
-      console.debug(`[MsdDataSource] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
+      cblcarsLog.debug(`[MsdDataSource] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
     }
   }
 
@@ -614,14 +616,14 @@ export class MsdDataSource {
     this._lastEmittedValue = data.v;
     this._stats.emits++;
 
-    console.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, data.v);
+    cblcarsLog.debug(`[MsdDataSource] 📤 Emitting to ${this.subscribers.size} subscribers:`, data.v);
 
     // Call all subscribers
     this.subscribers.forEach(callback => {
       try {
         callback(data);
       } catch (error) {
-        console.warn(`[MsdDataSource] Subscriber callback error:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Subscriber callback error:`, error);
       }
     });
   }
@@ -644,7 +646,7 @@ export class MsdDataSource {
       }, 'state_changed');
 
     } catch (error) {
-      console.warn('[MsdDataSource] Failed to subscribe to HA events:', error.message);
+      cblcarsLog.warn('[MsdDataSource] Failed to subscribe to HA events:', error.message);
     }
   }
 
@@ -756,7 +758,7 @@ export class MsdDataSource {
   /* OLD
   subscribe(callback) {
     if (typeof callback !== 'function') {
-      console.warn('[MsdDataSource] Subscribe requires a function callback');
+      cblcarsLog.warn('[MsdDataSource] Subscribe requires a function callback');
       return () => {};
     }
 
@@ -773,7 +775,7 @@ export class MsdDataSource {
           stats: this._stats
         });
       } catch (error) {
-        console.warn('[MsdDataSource] Initial callback error:', error);
+        cblcarsLog.warn('[MsdDataSource] Initial callback error:', error);
       }
     }
 
@@ -787,7 +789,7 @@ export class MsdDataSource {
 
   subscribe(callback) {
     if (typeof callback !== 'function') {
-      console.warn('[MsdDataSource] Subscribe requires a function callback');
+      cblcarsLog.warn('[MsdDataSource] Subscribe requires a function callback');
       return () => {};
     }
 
@@ -808,7 +810,7 @@ export class MsdDataSource {
           historyReady: this._stats.historyLoaded > 0
         };
 
-        console.debug(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
+        cblcarsLog.debug(`[MsdDataSource] Providing immediate hydration for new subscriber:`, {
           entity: this.cfg.entity,
           value: lastPoint.v,
           bufferSize: this.buffer.size(),
@@ -821,10 +823,10 @@ export class MsdDataSource {
         }, 0);
 
       } catch (error) {
-        console.warn('[MsdDataSource] Initial callback error:', error);
+        cblcarsLog.warn('[MsdDataSource] Initial callback error:', error);
       }
     } else {
-      console.debug(`[MsdDataSource] No data available for immediate hydration:`, {
+      cblcarsLog.debug(`[MsdDataSource] No data available for immediate hydration:`, {
         entity: this.cfg.entity,
         bufferSize: this.buffer.size(),
         started: this._started
@@ -840,7 +842,7 @@ export class MsdDataSource {
   // ENHANCED: Subscribe with metadata support
   subscribeWithMetadata(callback, metadata = {}) {
     if (typeof callback !== 'function') {
-      console.warn('[MsdDataSource] Subscribe requires a function callback');
+      cblcarsLog.warn('[MsdDataSource] Subscribe requires a function callback');
       return () => {};
     }
 
@@ -896,7 +898,7 @@ export class MsdDataSource {
 
       // Log unhandled strings occasionally for debugging
       if (Math.random() < 0.1) {
-        console.debug('[MsdDataSource] Unhandled string value:', raw, 'for entity:', this.cfg.entity);
+        cblcarsLog.debug('[MsdDataSource] Unhandled string value:', raw, 'for entity:', this.cfg.entity);
       }
       return null;
     }
@@ -1042,7 +1044,7 @@ export class MsdDataSource {
       try {
         this.haUnsubscribe();
       } catch (error) {
-        console.warn('[MsdDataSource] HA unsubscribe error:', error);
+        cblcarsLog.warn('[MsdDataSource] HA unsubscribe error:', error);
       }
       this.haUnsubscribe = null;
     }
@@ -1081,7 +1083,7 @@ export class MsdDataSource {
     try {
       return this.buffer.getRecent(count) || [];
     } catch (error) {
-      console.warn('[MsdDataSource] getRecent error:', error);
+      cblcarsLog.warn('[MsdDataSource] getRecent error:', error);
       return [];
     }
   }
@@ -1117,7 +1119,7 @@ export class MsdDataSource {
         return points;
       }
     } catch (error) {
-      console.error(`[MsdDataSource] Error getting transformed history for ${transformKey}:`, error);
+      cblcarsLog.error(`[MsdDataSource] Error getting transformed history for ${transformKey}:`, error);
       return [];
     }
   }
@@ -1137,20 +1139,20 @@ export class MsdDataSource {
         const transformedValue = processor.transform(value, timestamp, this.buffer);
         results[key] = transformedValue;
 
-        console.debug(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
+        cblcarsLog.debug(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
 
         // Cache transformed historical data if the value is valid
         if (transformedValue !== null && Number.isFinite(transformedValue)) {
           const buffer = this.transformedBuffers.get(key);
           if (buffer) {
             buffer.push(timestamp, transformedValue);
-            console.debug(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
+            cblcarsLog.debug(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
           } else {
-            console.warn(`[MsdDataSource] No buffer found for transformation ${key}`);
+            cblcarsLog.warn(`[MsdDataSource] No buffer found for transformation ${key}`);
           }
         }
       } catch (error) {
-        console.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
         results[key] = null;
       }
     });
@@ -1167,14 +1169,14 @@ export class MsdDataSource {
       return; // No transformations to process
     }
 
-    console.debug(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
+    cblcarsLog.debug(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
 
     try {
       // Get all historical points from main buffer
       const historicalPoints = this.buffer.getRecent(this.buffer.size());
 
       if (historicalPoints.length === 0) {
-        console.log(`[MsdDataSource] No historical data to process for transformations`);
+        cblcarsLog.log(`[MsdDataSource] No historical data to process for transformations`);
         return;
       }
 
@@ -1191,18 +1193,18 @@ export class MsdDataSource {
               }
             }
           } catch (error) {
-            console.warn(`[MsdDataSource] Failed to process historical point through transformation ${key}:`, error);
+            cblcarsLog.warn(`[MsdDataSource] Failed to process historical point through transformation ${key}:`, error);
           }
         });
       });
 
       // Log results
       this.transformedBuffers.forEach((buffer, key) => {
-        console.debug(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
+        cblcarsLog.debug(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
       });
 
     } catch (error) {
-      console.error(`[MsdDataSource] Error processing historical transformations:`, error);
+      cblcarsLog.error(`[MsdDataSource] Error processing historical transformations:`, error);
     }
   }
 
@@ -1218,7 +1220,7 @@ export class MsdDataSource {
       try {
         processor.update(timestamp, value, transformedData);
       } catch (error) {
-        console.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
       }
     });
   }
@@ -1234,7 +1236,7 @@ export class MsdDataSource {
       try {
         results[key] = processor.getValue();
       } catch (error) {
-        console.warn(`[MsdDataSource] Failed to get aggregation value for ${key}:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Failed to get aggregation value for ${key}:`, error);
         results[key] = null;
       }
     });
@@ -1269,11 +1271,11 @@ export class MsdDataSource {
         if (Number.isFinite(value) && Number.isFinite(timestamp)) {
           results[key] = processor.transform(value, timestamp, this.buffer);
         } else {
-          console.warn(`[MsdDataSource] Invalid data for transformation ${key}:`, { value, timestamp });
+          cblcarsLog.warn(`[MsdDataSource] Invalid data for transformation ${key}:`, { value, timestamp });
           results[key] = null;
         }
       } catch (error) {
-        console.warn(`[MsdDataSource] Failed to get current transformation ${key}:`, error);
+        cblcarsLog.warn(`[MsdDataSource] Failed to get current transformation ${key}:`, error);
         results[key] = null;
       }
     });

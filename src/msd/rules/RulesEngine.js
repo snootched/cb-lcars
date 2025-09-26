@@ -1,5 +1,6 @@
 import { perfTime, perfCount } from '../util/performance.js';
 import { globalTraceBuffer } from './RuleTraceBuffer.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class RulesEngine {
   constructor(rules = [], dataSourceManager = null) {
@@ -210,7 +211,7 @@ export class RulesEngine {
       }
 
       if (!getEntity || typeof getEntity !== 'function') {
-        console.warn('[RulesEngine] evaluateDirty called without getEntity function and no DataSourceManager available');
+        cblcarsLog.warn('[RulesEngine] evaluateDirty called without getEntity function and no DataSourceManager available');
         return this.createEmptyResult();
       }
 
@@ -311,7 +312,7 @@ export class RulesEngine {
         { error: error.message }
       );
 
-      console.warn(`[RulesEngine] Error evaluating rule ${rule.id}:`, error);
+      cblcarsLog.warn(`[RulesEngine] Error evaluating rule ${rule.id}:`, error);
       return {
         ruleId: rule.id,
         matched: false,
@@ -521,7 +522,7 @@ export class RulesEngine {
 
       return null;
     } catch (error) {
-      console.warn(`[RulesEngine] Error resolving DataSource reference '${dataSourceRef}':`, error);
+      cblcarsLog.warn(`[RulesEngine] Error resolving DataSource reference '${dataSourceRef}':`, error);
       return null;
     }
   }  determineMatch(when, conditions) {
@@ -707,7 +708,7 @@ export class RulesEngine {
    * @param {Object} dataSourceManager - DataSourceManager instance
    */
   setDataSourceManager(dataSourceManager) {
-    console.debug(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
+    cblcarsLog.debug(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
     this.dataSourceManager = dataSourceManager;
 
     // Rebuild dependency index to include DataSource references
@@ -716,7 +717,7 @@ export class RulesEngine {
     // Mark all rules dirty since DataSource conditions might now be evaluable
     this.markAllDirty();
 
-    console.debug(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
+    cblcarsLog.debug(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
   }
 
   getRuleDependencies(ruleId) {
@@ -734,7 +735,7 @@ export function applyOverlayPatches(overlays, patches) {
     return overlays;
   }
 
-  console.debug('[RulesEngine] 🎨 Applying overlay patches:', {
+  cblcarsLog.debug('[RulesEngine] 🎨 Applying overlay patches:', {
     overlayCount: overlays.length,
     patchCount: patches.length,
     patches: patches.map(p => ({ id: p.id, styleKeys: Object.keys(p.style || {}) }))
@@ -748,7 +749,7 @@ export function applyOverlayPatches(overlays, patches) {
       return overlay;
     }
 
-    console.debug('[RulesEngine] 🎯 Applying patch to overlay:', {
+    cblcarsLog.debug('[RulesEngine] 🎯 Applying patch to overlay:', {
       id: overlay.id,
       originalStyle: overlay.style,
       originalFinalStyle: overlay.finalStyle,
@@ -768,7 +769,7 @@ export function applyOverlayPatches(overlays, patches) {
       }
     };
 
-    console.debug('[RulesEngine] ✅ Patched overlay result:', {
+    cblcarsLog.debug('[RulesEngine] ✅ Patched overlay result:', {
       id: patchedOverlay.id,
       newStyle: patchedOverlay.style,
       newFinalStyle: patchedOverlay.finalStyle

@@ -244,7 +244,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     // Status from DebugManager - FIXED: Use silent method by default
     status: () => {
       const state = debugManager.getSnapshot();
-      console.table(state);
+      cblcarsLog.table(state);
       return state;
     },
 
@@ -459,7 +459,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
           }
         } catch (error) {
           results.methods.dataAttributes = { error: error.message };
-        }        console.table(results.methods);
+        }        cblcarsLog.table(results.methods);
         return results;
       }
     },
@@ -680,7 +680,7 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
     markersEnabled: false,
     showMarkers(flag=true){
       this.markersEnabled=!!flag;
-      console.info('[DebugInterface] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED');
+      cblcarsLog.info('[DebugInterface] line endpoint markers', this.markersEnabled?'ENABLED':'DISABLED');
     },
     forceRedraw: () => {
       // Connect to the reRender callback through systems manager

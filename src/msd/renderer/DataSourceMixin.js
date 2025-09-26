@@ -1,3 +1,5 @@
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+
 /**
  * DataSource Integration Mixin - Reusable DataSource integration methods
  * Provides consistent DataSource access, template processing, and value formatting
@@ -73,7 +75,7 @@ export class DataSourceMixin {
       const dataSource = dataSourceManager.getSource(sourceName);
 
       if (!dataSource) {
-        console.warn(`[${rendererName}] DataSource '${sourceName}' not found`);
+        cblcarsLog.warn(`[${rendererName}] DataSource '${sourceName}' not found`);
         return `[Source: ${sourceName} not found]`;
       }
 
@@ -104,7 +106,7 @@ export class DataSourceMixin {
       return `[${dataSourceRef}: no data]`;
 
     } catch (error) {
-      console.error(`[${rendererName}] Error resolving DataSource content:`, error);
+      cblcarsLog.error(`[${rendererName}] Error resolving DataSource content:`, error);
       return `[DataSource Error: ${error.message}]`;
     }
   }
@@ -191,11 +193,11 @@ export class DataSourceMixin {
       // UNIT-AWARE: Check if the source entity already has % units
       if (unitOfMeasurement === '%') {
         // Already a percentage (0-100), don't multiply by 100
-        console.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement}" → ${value.toFixed(precision)}% (no conversion)`);
+        cblcarsLog.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement}" → ${value.toFixed(precision)}% (no conversion)`);
         return `${value.toFixed(precision)}%`;
       } else {
         // Decimal value (0.0-1.0) or other unit, multiply by 100
-        console.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement || 'none'}" → ${(value * 100).toFixed(precision)}% (×100 conversion)`);
+        cblcarsLog.debug(`[DataSourceMixin] Unit-aware formatting: ${value} with unit="${unitOfMeasurement || 'none'}" → ${(value * 100).toFixed(precision)}% (×100 conversion)`);
         return `${(value * 100).toFixed(precision)}%`;
       }
     }
@@ -235,14 +237,14 @@ export class DataSourceMixin {
       return content;
     }
 
-    console.debug(`[${rendererName}] Processing template for initial render: "${content}"`);
+    cblcarsLog.debug(`[${rendererName}] Processing template for initial render: "${content}"`);
 
     // Try to process templates, but gracefully fall back to original content
     const processed = this.processEnhancedTemplateStringsWithFallback(content, rendererName, true);
 
     // If processing didn't change the content, DataSources might not be ready
     if (processed === content) {
-      console.debug(`[${rendererName}] Templates not resolved during initial render, will update when DataSources become available`);
+      cblcarsLog.debug(`[${rendererName}] Templates not resolved during initial render, will update when DataSources become available`);
     }
 
     return processed;
@@ -260,7 +262,7 @@ export class DataSourceMixin {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
         // DataSourceManager not available - this is normal during initial rendering
-        console.debug(`[${rendererName}] DataSourceManager not available, ${fallbackToOriginal ? 'returning original content' : 'returning null'}`);
+        cblcarsLog.debug(`[${rendererName}] DataSourceManager not available, ${fallbackToOriginal ? 'returning original content' : 'returning null'}`);
         return fallbackToOriginal ? content : null;
       }
 
@@ -276,7 +278,7 @@ export class DataSourceMixin {
           const dataSource = dataSourceManager.getSource(sourceName);
 
           if (!dataSource) {
-            console.warn(`[${rendererName}] DataSource '${sourceName}' not found`);
+            cblcarsLog.warn(`[${rendererName}] DataSource '${sourceName}' not found`);
             hasUnresolvedTemplates = true;
             return fallbackToOriginal ? match : `[Source: ${sourceName} not found]`;
           }
@@ -313,7 +315,7 @@ export class DataSourceMixin {
           }
 
           if (value === null || value === undefined) {
-            console.warn(`[${rendererName}] No value found for reference '${reference}'`);
+            cblcarsLog.warn(`[${rendererName}] No value found for reference '${reference}'`);
             hasUnresolvedTemplates = true;
             return fallbackToOriginal ? match : `[No data: ${reference}]`;
           }
@@ -326,7 +328,7 @@ export class DataSourceMixin {
           return String(value);
 
         } catch (error) {
-          console.error(`[${rendererName}] Template processing error for '${reference}':`, error);
+          cblcarsLog.error(`[${rendererName}] Template processing error for '${reference}':`, error);
           hasUnresolvedTemplates = true;
           return fallbackToOriginal ? match : `[Error: ${reference}]`;
         }
@@ -334,13 +336,13 @@ export class DataSourceMixin {
 
       // Log whether templates were successfully resolved
       if (!hasUnresolvedTemplates && processedContent !== content) {
-        console.debug(`[${rendererName}] Successfully resolved all templates in: "${content}" → "${processedContent}"`);
+        cblcarsLog.debug(`[${rendererName}] Successfully resolved all templates in: "${content}" → "${processedContent}"`);
       }
 
       return processedContent;
 
     } catch (error) {
-      console.error(`[${rendererName}] Enhanced template processing failed:`, error);
+      cblcarsLog.error(`[${rendererName}] Enhanced template processing failed:`, error);
       return fallbackToOriginal ? content : null;
     }
   }

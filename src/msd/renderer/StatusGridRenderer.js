@@ -7,6 +7,7 @@ import { PositionResolver } from './PositionResolver.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class StatusGridRenderer {
   constructor() {
@@ -36,7 +37,7 @@ export class StatusGridRenderer {
   renderStatusGrid(overlay, anchors, viewBox) {
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      console.warn('[StatusGridRenderer] Status grid overlay position could not be resolved:', overlay.id);
+      cblcarsLog.warn('[StatusGridRenderer] Status grid overlay position could not be resolved:', overlay.id);
       return '';
     }
 
@@ -52,7 +53,7 @@ export class StatusGridRenderer {
 
       // Get cell configurations
       const cells = this._resolveCellConfigurations(overlay, gridStyle);
-      console.debug(`[StatusGridRenderer] Rendering ${cells.length} cells for grid ${overlay.id}`);
+      cblcarsLog.debug(`[StatusGridRenderer] Rendering ${cells.length} cells for grid ${overlay.id}`);
 
       // Render enhanced status grid
       return this._renderEnhancedStatusGrid(
@@ -61,7 +62,7 @@ export class StatusGridRenderer {
       );
 
     } catch (error) {
-      console.error(`[StatusGridRenderer] Enhanced rendering failed for status grid ${overlay.id}:`, error);
+      cblcarsLog.error(`[StatusGridRenderer] Enhanced rendering failed for status grid ${overlay.id}:`, error);
       return this._renderFallbackStatusGrid(overlay, x, y, width, height);
     }
   }
@@ -370,7 +371,7 @@ export class StatusGridRenderer {
       return '';
     }
 
-    console.debug(`[StatusGridRenderer] Building brackets for ${overlayId}: style=${gridStyle.bracket_style}`);
+    cblcarsLog.debug(`[StatusGridRenderer] Building brackets for ${overlayId}: style=${gridStyle.bracket_style}`);
 
     // Convert grid style properties to BracketRenderer format
     const bracketConfig = {
@@ -398,7 +399,7 @@ export class StatusGridRenderer {
       hybrid_mode: gridStyle.hybrid_mode
     };
 
-    console.debug(`[StatusGridRenderer] Bracket config:`, bracketConfig);
+    cblcarsLog.debug(`[StatusGridRenderer] Bracket config:`, bracketConfig);
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
@@ -407,7 +408,7 @@ export class StatusGridRenderer {
     const style = overlay.finalStyle || overlay.style || {};
     const color = style.cell_color || style.color || 'var(--lcars-gray)';
 
-    console.warn(`[StatusGridRenderer] Using fallback rendering for status grid ${overlay.id}`);
+    cblcarsLog.warn(`[StatusGridRenderer] Using fallback rendering for status grid ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="status_grid" data-fallback="true">
               <g transform="translate(${x}, ${y})">
@@ -460,16 +461,16 @@ export class StatusGridRenderer {
       return cellContent;
     }
 
-    console.debug(`[StatusGridRenderer] Processing unified content: "${cellContent}"`);
+    cblcarsLog.debug(`[StatusGridRenderer] Processing unified content: "${cellContent}"`);
 
     // Check if this is a conditional expression
     if (cellContent.includes('?') && cellContent.includes(':')) {
-      console.debug(`[StatusGridRenderer] Processing conditional expression`);
+      cblcarsLog.debug(`[StatusGridRenderer] Processing conditional expression`);
       return this._processConditionalWithDataSourceMixin(cellContent, updateDataSourceData);
     }
 
     // Standard DataSource template - use DataSourceMixin
-    console.debug(`[StatusGridRenderer] Processing standard DataSource template`);
+    cblcarsLog.debug(`[StatusGridRenderer] Processing standard DataSource template`);
     return DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
   }
 
@@ -480,7 +481,7 @@ export class StatusGridRenderer {
     // ENHANCED: Check multiple sources for cells configuration
     const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
 
-    console.debug(`[StatusGridRenderer] Resolving cells for ${overlay.id}:`, {
+    cblcarsLog.debug(`[StatusGridRenderer] Resolving cells for ${overlay.id}:`, {
       hasCells: !!(cellsConfig && Array.isArray(cellsConfig)),
       cellCount: cellsConfig?.length || 0,
       cellsData: cellsConfig,
@@ -494,7 +495,7 @@ export class StatusGridRenderer {
     // Use explicit cell definitions if provided
     if (cellsConfig && Array.isArray(cellsConfig)) {
       cellsConfig.forEach((cellConfig, index) => {
-        console.debug(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
+        cblcarsLog.debug(`[StatusGridRenderer] Processing cell ${index}:`, cellConfig);
 
         // UNIFIED: Get raw content and resolve it
         const rawCellContent = this._getCellContentFromSources(cellConfig);
@@ -520,11 +521,11 @@ export class StatusGridRenderer {
           _originalContent: rawCellContent !== cellContent ? rawCellContent : null
         };
 
-        console.debug(`[StatusGridRenderer] Created cell:`, cell);
+        cblcarsLog.debug(`[StatusGridRenderer] Created cell:`, cell);
         cells.push(cell);
       });
     } else {
-      console.debug(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
+      cblcarsLog.debug(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
 
       // Generate grid cells based on rows/columns
       const totalCells = gridStyle.rows * gridStyle.columns;
@@ -551,7 +552,7 @@ export class StatusGridRenderer {
       }
     }
 
-    console.debug(`[StatusGridRenderer] Final cells array:`, cells);
+    cblcarsLog.debug(`[StatusGridRenderer] Final cells array:`, cells);
     return cells;
   }
 
@@ -564,7 +565,7 @@ export class StatusGridRenderer {
    * @returns {Array} Updated cell configurations with new data
    */
   updateCellsWithData(overlay, style, newDataSourceData) {
-    console.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
+    cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
 
     const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
     const cells = this._resolveCellConfigurations(overlay, gridStyle);
@@ -575,7 +576,7 @@ export class StatusGridRenderer {
       const rawCellContent = this._getCellContentFromSources(cell);
 
       if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
-        console.debug(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${rawCellContent}"`);
+        cblcarsLog.debug(`[StatusGridRenderer] Processing template for cell ${cell.id}: "${rawCellContent}"`);
 
         // UNIFIED: Use single method for all template processing with fresh data
         const processedContent = this._resolveUnifiedCellContent(rawCellContent, newDataSourceData);
@@ -637,40 +638,40 @@ export class StatusGridRenderer {
       if (!templateMatch) return conditionalTemplate;
 
       const expression = templateMatch[1];
-      console.debug(`[StatusGridRenderer] Extracted conditional expression: "${expression}"`);
+      cblcarsLog.debug(`[StatusGridRenderer] Extracted conditional expression: "${expression}"`);
 
       // Parse the conditional: "path operator value ? trueValue : falseValue"
       const conditionMatch = expression.match(/^(.+?)\s*([><=!]+)\s*(.+?)\s*\?\s*'(.+?)'\s*:\s*'(.+?)'$/);
       if (!conditionMatch) {
-        console.warn(`[StatusGridRenderer] Could not parse conditional: ${expression}`);
+        cblcarsLog.warn(`[StatusGridRenderer] Could not parse conditional: ${expression}`);
         return conditionalTemplate;
       }
 
       const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
-      console.debug(`[StatusGridRenderer] Parsed conditional: "${leftPath.trim()}" ${operator} ${rightValue} ? "${trueValue}" : "${falseValue}"`);
+      cblcarsLog.debug(`[StatusGridRenderer] Parsed conditional: "${leftPath.trim()}" ${operator} ${rightValue} ? "${trueValue}" : "${falseValue}"`);
 
       // Create a simple template with just the DataSource reference
       const dataSourceTemplate = `{${leftPath.trim()}}`;
-      console.debug(`[StatusGridRenderer] Resolving DataSource template: "${dataSourceTemplate}"`);
+      cblcarsLog.debug(`[StatusGridRenderer] Resolving DataSource template: "${dataSourceTemplate}"`);
 
       let resolvedValue;
 
       // If we have update data, try to extract the value directly first
       if (updateDataSourceData) {
-        console.debug(`[StatusGridRenderer] Using provided update data:`, updateDataSourceData);
+        cblcarsLog.debug(`[StatusGridRenderer] Using provided update data:`, updateDataSourceData);
         resolvedValue = this._extractValueFromUpdateData(leftPath.trim(), updateDataSourceData);
-        console.debug(`[StatusGridRenderer] Extracted from update data: "${resolvedValue}"`);
+        cblcarsLog.debug(`[StatusGridRenderer] Extracted from update data: "${resolvedValue}"`);
       }
 
       // If we couldn't extract from update data, fall back to DataSourceMixin
       if (resolvedValue === null || resolvedValue === undefined) {
         resolvedValue = DataSourceMixin.processEnhancedTemplateStringsWithFallback(dataSourceTemplate, 'StatusGridRenderer');
-        console.debug(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
+        cblcarsLog.debug(`[StatusGridRenderer] DataSourceMixin resolved: "${dataSourceTemplate}" → "${resolvedValue}"`);
       }
 
       // If DataSourceMixin couldn't resolve it, return original
       if (resolvedValue === dataSourceTemplate) {
-        console.debug(`[StatusGridRenderer] DataSource not resolved, returning original template`);
+        cblcarsLog.debug(`[StatusGridRenderer] DataSource not resolved, returning original template`);
         return conditionalTemplate;
       }
 
@@ -679,7 +680,7 @@ export class StatusGridRenderer {
       const rightVal = parseFloat(rightValue.trim());
 
       if (isNaN(leftVal) || isNaN(rightVal)) {
-        console.warn(`[StatusGridRenderer] Could not parse numeric values: left="${resolvedValue}" (${leftVal}), right="${rightValue.trim()}" (${rightVal})`);
+        cblcarsLog.warn(`[StatusGridRenderer] Could not parse numeric values: left="${resolvedValue}" (${leftVal}), right="${rightValue.trim()}" (${rightVal})`);
         return conditionalTemplate;
       }
 
@@ -693,16 +694,16 @@ export class StatusGridRenderer {
         case '==': result = leftVal == rightVal; break;
         case '!=': result = leftVal != rightVal; break;
         default:
-          console.warn(`[StatusGridRenderer] Unknown operator: ${operator}`);
+          cblcarsLog.warn(`[StatusGridRenderer] Unknown operator: ${operator}`);
           return conditionalTemplate;
       }
 
       const finalValue = result ? trueValue : falseValue;
-      console.debug(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
+      cblcarsLog.debug(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
       return finalValue;
 
     } catch (error) {
-      console.error(`[StatusGridRenderer] Error processing conditional with DataSourceMixin:`, error);
+      cblcarsLog.error(`[StatusGridRenderer] Error processing conditional with DataSourceMixin:`, error);
       return conditionalTemplate;
     }
   }
@@ -732,7 +733,7 @@ export class StatusGridRenderer {
       if (value && typeof value === 'object' && part in value) {
         value = value[part];
       } else {
-        console.debug(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
+        cblcarsLog.debug(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
         return null;
       }
     }
@@ -753,7 +754,7 @@ export class StatusGridRenderer {
     const size = overlay.size || [200, 150];
 
     if (!position || !size || !Array.isArray(size) || size.length < 2) {
-      console.debug(`[StatusGridRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      cblcarsLog.debug(`[StatusGridRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
       return null;
     }
 
@@ -815,7 +816,7 @@ export class StatusGridRenderer {
    */
   static updateGridData(overlayElement, overlay, sourceData) {
     try {
-      console.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+      cblcarsLog.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
 
       // Create renderer instance for content resolution
       const renderer = new StatusGridRenderer();
@@ -824,7 +825,7 @@ export class StatusGridRenderer {
       const style = overlay.finalStyle || overlay.style || {};
       const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
 
-      console.debug(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
+      cblcarsLog.debug(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
 
       let updatedCount = 0;
 
@@ -839,7 +840,7 @@ export class StatusGridRenderer {
 
           // Handle [object Object] issue - ensure content is always a string
           if (typeof newContent === 'object') {
-            console.warn(`[StatusGridRenderer] Cell ${cell.id} has object content, converting to string`);
+            cblcarsLog.warn(`[StatusGridRenderer] Cell ${cell.id} has object content, converting to string`);
             newContent = newContent !== null ? String(newContent) : 'N/A';
           }
 
@@ -847,7 +848,7 @@ export class StatusGridRenderer {
           newContent = String(newContent);
 
           if (newContent !== oldContent) {
-            console.debug(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
+            cblcarsLog.debug(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
             cellContentElement.textContent = newContent;
             updatedCount++;
           }
@@ -855,15 +856,15 @@ export class StatusGridRenderer {
       });
 
       if (updatedCount > 0) {
-        console.debug(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
         return true;
       } else {
-        console.debug(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
+        cblcarsLog.debug(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
         return false;
       }
 
     } catch (error) {
-      console.error(`[StatusGridRenderer] Error updating status grid ${overlay.id}:`, error);
+      cblcarsLog.error(`[StatusGridRenderer] Error updating status grid ${overlay.id}:`, error);
       return false;
     }
   }
