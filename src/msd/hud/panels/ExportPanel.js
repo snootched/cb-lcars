@@ -142,6 +142,16 @@ export class ExportPanel {
     return data;
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear any initialization state
+    this.initialized = false;
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(exportData) {
     // FIXED: Add debug info to help troubleshoot rendering
     if (!exportData.available) {

@@ -78,6 +78,14 @@ export class RulesPanel {
     return { rules, trace, stats };
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // No specific resources to clean up for this panel
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(rulesData) {
     let html = '<div class="msd-hud-panel"><h3>Rules Engine</h3>';
 

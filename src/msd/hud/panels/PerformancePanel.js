@@ -137,6 +137,22 @@ export class PerformancePanel {
     return { timers, counters, alerts, regressions };
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear threshold configurations
+    if (this.thresholds) {
+      this.thresholds.clear();
+      this.thresholds = null;
+    }
+
+    // Clear previous snapshot data
+    this.previousSnapshot = null;
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(performance) {
     let html = '<div class="msd-hud-panel"><h3>Performance Monitor</h3>';
 

@@ -564,6 +564,14 @@ export class OverlaysPanel {
     setTimeout(() => el.remove(), 1600);
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // No specific resources to clean up for this panel
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(data) {
     const { overlays = [], stats = {} } = data;
 

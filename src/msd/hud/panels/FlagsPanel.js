@@ -122,6 +122,16 @@ export class FlagsPanel {
     return { flags, debugFeatures };
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear debug features list
+    this.debugFeatures = null;
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(flagsData) {
     let html = '<div class="msd-hud-panel"><h3>Debug Features</h3>';
 

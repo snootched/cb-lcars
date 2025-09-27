@@ -216,6 +216,19 @@ export class IssuesPanel {
     return issues;
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear issue categories configuration
+    this.issueCategories = null;
+
+    // Clear bus reference if it exists
+    this.bus = null;
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(issuesData) {
     let html = '<div class="msd-hud-panel"><h3>Issues</h3>';
 

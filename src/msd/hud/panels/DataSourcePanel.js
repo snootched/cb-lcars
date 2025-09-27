@@ -696,6 +696,29 @@ export class DataSourcePanel {
     return { entities, stats, health, subscriptions, recentChanges };
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear data caches
+    if (this.entityChangeHistory) {
+      this.entityChangeHistory.clear();
+      this.entityChangeHistory = null;
+    }
+
+    // Clear stored data
+    this._currentData = null;
+
+    // Remove global helper functions
+    if (typeof window !== 'undefined') {
+      delete window.__msdInspectDataEntity;
+      delete window.__msdInspectDataSubscription;
+      delete window.__msdRefreshDataSources;
+    }
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(entityData) {
     let html = '<div class="msd-hud-panel"><h3>Data Sources</h3>';
 

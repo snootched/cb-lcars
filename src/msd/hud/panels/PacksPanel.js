@@ -53,6 +53,14 @@ export class PacksPanel {
     return { collections, provenance, summary };
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // No specific resources to clean up for this panel
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderHtml(packsData) {
     let html = '<div class="msd-hud-panel"><h3>Packs & Collections</h3>';
 

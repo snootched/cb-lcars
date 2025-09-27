@@ -111,6 +111,22 @@ export class ChannelTrendPanel {
     return squaredDiffs.reduce((sum, val) => sum + val, 0) / values.length;
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear data caches
+    if (this.history) {
+      this.history.clear();
+      this.history = null;
+    }
+
+    // Clear last snapshot
+    this.lastSnapshot = null;
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   renderSparkline(history, maxValue = null) {
     if (!history || history.length === 0) return '';
 

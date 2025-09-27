@@ -758,6 +758,24 @@ export class RoutingPanel {
     return html;
   }
 
+  /**
+   * Clean up panel resources
+   */
+  destroy() {
+    // Clear filter state
+    this.filters = null;
+
+    // Clear input states
+    this.inputStates = null;
+
+    // Remove global helper functions
+    if (typeof window !== 'undefined') {
+      delete window.__msdAnalyzeRoute;
+    }
+
+    cblcarsLog.debug(`[MSD:${this.constructor.name}] Panel cleanup completed`);
+  }
+
   // FIXED: Add method to check if inputs are focused (prevents refresh interference)
   shouldSkipRefresh() {
     return this.inputStates.minCostFocused || this.inputStates.maxCostFocused;
