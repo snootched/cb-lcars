@@ -5,7 +5,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
  * 📏 Leverages RouterCore's sophisticated path computation and adds rich visual features
  */
 
-import { PositionResolver } from './PositionResolver.js';
+import { OverlayUtils } from './OverlayUtils.js';
 
 export class LineOverlayRenderer {
   constructor(routerCore) {
@@ -67,15 +67,15 @@ export class LineOverlayRenderer {
           cblcarsLog.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
         } else {
           cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
-          anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+          anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
         }
       } else {
         cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ No attachment points found for source overlay: ${overlay.anchor}`);
-        anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+        anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
       }
     } else {
       // Standard anchor resolution (coordinates, static anchors)
-      anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
+      anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
     }
     // Resolve target position with overlay attachment support
     // PRIORITIZE: Check overlay attachment points first, then fall back to static anchors
@@ -114,7 +114,7 @@ export class LineOverlayRenderer {
 
     // Fallback to static anchor resolution if no overlay attachment points found
     if (!anchor2 && overlay.attach_to) {
-      anchor2 = PositionResolver.resolvePosition(overlay.attach_to, anchors);
+      anchor2 = OverlayUtils.resolvePosition(overlay.attach_to, anchors);
       cblcarsLog.debug(`[LineOverlayRenderer] Using static anchor for target ${overlay.attach_to}:`, anchor2);
     }
 

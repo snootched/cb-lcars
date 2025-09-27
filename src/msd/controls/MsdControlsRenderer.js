@@ -3,7 +3,7 @@
  * 🎮 Provides sophisticated card creation, HASS context management, and SVG-based positioning for proper scaling
  */
 
-import { PositionResolver } from '../renderer/PositionResolver.js';
+import { OverlayUtils } from '../renderer/OverlayUtils.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class MsdControlsRenderer {
@@ -1151,8 +1151,8 @@ export class MsdControlsRenderer {
 
   // Helper methods for position and size resolution
   resolvePosition(position, resolvedModel) {
-    // Use the PositionResolver for consistency with other overlays
-    const resolved = PositionResolver.resolvePosition(position, resolvedModel.anchors || {});
+    // Use the OverlayUtils for consistency with other overlays
+    const resolved = OverlayUtils.resolvePosition(position, resolvedModel.anchors || {});
     if (resolved) {
       return resolved;
     }
@@ -1178,55 +1178,23 @@ export class MsdControlsRenderer {
    * @static
    */
   static computeAttachmentPoints(overlay, anchors, container) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
-    const size = overlay.size || [100, 80];
+    // Set default size for control overlays if not specified
+    if (!overlay.size) overlay.size = [100, 80];
 
-    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+    const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
+
+    if (!attachmentPoints) {
       cblcarsLog.debug(`[MsdControlsRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
       return null;
     }
 
-    const [x, y] = position;
-    const [width, height] = size;
+    // Add aliases for common naming conventions
+    attachmentPoints.points['top-left'] = attachmentPoints.points.topLeft;
+    attachmentPoints.points['top-right'] = attachmentPoints.points.topRight;
+    attachmentPoints.points['bottom-left'] = attachmentPoints.points.bottomLeft;
+    attachmentPoints.points['bottom-right'] = attachmentPoints.points.bottomRight;
 
-    // Calculate bounding box in SVG coordinate space (where foreignObject is positioned)
-    const left = x;
-    const right = x + width;
-    const top = y;
-    const bottom = y + height;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    return {
-      id: overlay.id,
-      center: [centerX, centerY],
-      bbox: {
-        left,
-        right,
-        top,
-        bottom,
-        width,
-        height,
-        x,
-        y
-      },
-      points: {
-        center: [centerX, centerY],
-        top: [centerX, top],
-        bottom: [centerX, bottom],
-        left: [left, centerY],
-        right: [right, centerY],
-        topLeft: [left, top],
-        topRight: [right, top],
-        bottomLeft: [left, bottom],
-        bottomRight: [right, bottom],
-        // Aliases for common naming conventions
-        'top-left': [left, top],
-        'top-right': [right, top],
-        'bottom-left': [left, bottom],
-        'bottom-right': [right, bottom]
-      }
-    };
+    return attachmentPoints;
   }
 
   // Cleanup method

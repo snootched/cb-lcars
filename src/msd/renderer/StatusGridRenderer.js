@@ -3,7 +3,7 @@
  * 🔲 Provides compact status displays perfect for cascade animations and multi-sensor monitoring
  */
 
-import { PositionResolver } from './PositionResolver.js';
+import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
@@ -35,7 +35,7 @@ export class StatusGridRenderer {
    * @returns {string} Complete SVG markup for the styled status grid
    */
   renderStatusGrid(overlay, anchors, viewBox) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[StatusGridRenderer] ⚠️ Status grid overlay position could not be resolved:', overlay.id);
       return '';
@@ -719,55 +719,12 @@ export class StatusGridRenderer {
    * @static
    */
   static computeAttachmentPoints(overlay, anchors, container) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
-    const size = overlay.size || [200, 150];
+    const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
 
-    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+    if (!attachmentPoints) {
       cblcarsLog.debug(`[StatusGridRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
       return null;
     }
-
-    const [x, y] = position;
-    const [width, height] = size;
-
-    // Calculate bounding box
-    const left = x;
-    const right = x + width;
-    const top = y;
-    const bottom = y + height;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    const attachmentPoints = {
-      id: overlay.id,
-      center: [centerX, centerY],
-      bbox: {
-        left,
-        right,
-        top,
-        bottom,
-        width,
-        height,
-        x,
-        y
-      },
-      points: {
-        center: [centerX, centerY],
-        top: [centerX, top],
-        bottom: [centerX, bottom],
-        left: [left, centerY],
-        right: [right, centerY],
-        topLeft: [left, top],
-        topRight: [right, top],
-        bottomLeft: [left, bottom],
-        bottomRight: [right, bottom],
-        // Aliases for common naming conventions
-        'top-left': [left, top],
-        'top-right': [right, top],
-        'bottom-left': [left, bottom],
-        'bottom-right': [right, bottom]
-      }
-    };
 
     // TODO: Future enhancement - add individual grid cell attachment points
     // This would allow attaching lines to specific cells: grid.cell_0_0, grid.cell_1_2, etc.

@@ -5,7 +5,7 @@
 
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
-import { PositionResolver } from './PositionResolver.js';
+import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
@@ -41,7 +41,7 @@ export class TextOverlayRenderer {
    */
   renderText(overlay, anchors, viewBox) {
 
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[TextOverlayRenderer] ⚠️ Text overlay position could not be resolved:', overlay.id);
       return '';
@@ -1206,7 +1206,7 @@ export class TextOverlayRenderer {
    */
   static computeAttachmentPoints(overlay, anchors, container) {
     if (!overlay || overlay.type !== 'text') return null;
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) return null;
     const [x, y] = position;
     const instance = new TextOverlayRenderer();

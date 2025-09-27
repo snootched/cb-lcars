@@ -5,7 +5,7 @@
 
 
 import { RendererUtils } from './RendererUtils.js';
-import { PositionResolver } from './PositionResolver.js';
+import { OverlayUtils } from './OverlayUtils.js';
 
 import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
@@ -222,55 +222,18 @@ export class AdvancedRenderer {
    * @returns {Object|null} Attachment points object
    */
   _computeBasicAttachmentPoints(overlay, anchors, type) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
-    const size = overlay.size;
+    const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
 
-    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+    if (!attachmentPoints) {
       cblcarsLog.debug(`[AdvancedRenderer] Cannot compute attachment points for ${type} ${overlay.id}: missing position or size`);
       return null;
     }
 
-    const [x, y] = position;
-    const [width, height] = size;
-
-    // Calculate bounding box
-    const left = x;
-    const right = x + width;
-    const top = y;
-    const bottom = y + height;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    const attachmentPoints = {
-      id: overlay.id,
-      center: [centerX, centerY],
-      bbox: {
-        left,
-        right,
-        top,
-        bottom,
-        width,
-        height,
-        x,
-        y
-      },
-      points: {
-        center: [centerX, centerY],
-        top: [centerX, top],
-        bottom: [centerX, bottom],
-        left: [left, centerY],
-        right: [right, centerY],
-        topLeft: [left, top],
-        topRight: [right, top],
-        bottomLeft: [left, bottom],
-        bottomRight: [right, bottom],
-        // Aliases for common naming conventions
-        'top-left': [left, top],
-        'top-right': [right, top],
-        'bottom-left': [left, bottom],
-        'bottom-right': [right, bottom]
-      }
-    };
+    // Add aliases for common naming conventions
+    attachmentPoints.points['top-left'] = attachmentPoints.points.topLeft;
+    attachmentPoints.points['top-right'] = attachmentPoints.points.topRight;
+    attachmentPoints.points['bottom-left'] = attachmentPoints.points.bottomLeft;
+    attachmentPoints.points['bottom-right'] = attachmentPoints.points.bottomRight;
 
     cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created attachment points for ${type} ${overlay.id}`);
 

@@ -1,13 +1,12 @@
-import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
-
 /**
  * [HistoryBarRenderer] History bar renderer - advanced temporal bar chart visualization
  * 📊 Provides rich historical data visualization features with LCARS theming and real-time updates
  */
 
-import { PositionResolver } from './PositionResolver.js';
+import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { BracketRenderer } from './BracketRenderer.js';
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class HistoryBarRenderer {
   constructor() {
@@ -45,7 +44,7 @@ export class HistoryBarRenderer {
    * @returns {string} Complete SVG markup for the styled history bar
    */
   renderHistoryBar(overlay, anchors, viewBox) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[HistoryBarRenderer] ⚠️ History bar overlay position could not be resolved:', overlay.id);
       return '';
@@ -1712,55 +1711,20 @@ export class HistoryBarRenderer {
    * @static
    */
   static computeAttachmentPoints(overlay, anchors, container) {
-    const position = PositionResolver.resolvePosition(overlay.position, anchors);
-    const size = overlay.size || [300, 80];
+    const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
 
-    if (!position || !size || !Array.isArray(size) || size.length < 2) {
+    if (!attachmentPoints) {
       cblcarsLog.debug(`[HistoryBarRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
       return null;
     }
 
-    const [x, y] = position;
-    const [width, height] = size;
+    // Add aliases for common naming conventions
+    attachmentPoints.points['top-left'] = attachmentPoints.points.topLeft;
+    attachmentPoints.points['top-right'] = attachmentPoints.points.topRight;
+    attachmentPoints.points['bottom-left'] = attachmentPoints.points.bottomLeft;
+    attachmentPoints.points['bottom-right'] = attachmentPoints.points.bottomRight;
 
-    // Calculate bounding box
-    const left = x;
-    const right = x + width;
-    const top = y;
-    const bottom = y + height;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    return {
-      id: overlay.id,
-      center: [centerX, centerY],
-      bbox: {
-        left,
-        right,
-        top,
-        bottom,
-        width,
-        height,
-        x,
-        y
-      },
-      points: {
-        center: [centerX, centerY],
-        top: [centerX, top],
-        bottom: [centerX, bottom],
-        left: [left, centerY],
-        right: [right, centerY],
-        topLeft: [left, top],
-        topRight: [right, top],
-        bottomLeft: [left, bottom],
-        bottomRight: [right, bottom],
-        // Aliases for common naming conventions
-        'top-left': [left, top],
-        'top-right': [right, top],
-        'bottom-left': [left, bottom],
-        'bottom-right': [right, bottom]
-      }
-    };
+    return attachmentPoints;
   }
 
   /**
