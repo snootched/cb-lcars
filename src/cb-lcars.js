@@ -1,7 +1,14 @@
-import * as anime from 'animejs';
-
-import * as CBLCARS from './cb-lcars-vars.js'
 import { cblcarsSetGlobalLogLevel, cblcarsGetGlobalLogLevel, cblcarsLog, cblcarsLogBanner} from './utils/cb-lcars-logging.js';
+
+// Check URL for log level override and set it immediately
+const urlLogLevel = new URLSearchParams(window.location.search).get('cblcars_log_level');
+if (urlLogLevel) {
+    cblcarsSetGlobalLogLevel(urlLogLevel);
+}
+
+// Now import everything else (including MSD system which will use correct log level)
+import * as anime from 'animejs';
+import * as CBLCARS from './cb-lcars-vars.js'
 import { readYamlFile } from './utils/cb-lcars-fileutils.js';
 import { preloadSVGs, loadSVGToCache, getSVGFromCache } from './utils/cb-lcars-fileutils.js';
 //import { CBLCARSDashboardStrategy, CBLCARSViewStrategy, CBLCARSViewStrategyAirlock } from './strategy/cb-lcars-strategy.js';
@@ -16,11 +23,11 @@ import { animPresets } from './utils/cb-lcars-anim-presets.js';
 import * as svgHelpers from './utils/cb-lcars-svg-helpers.js';
 import * as anchorHelpers from './utils/cb-lcars-anchor-helpers.js';
 
-
-
-// CHANGED: Side-effect import that initializes the MSD v1 pipeline
+// MSD system import
 import './msd/index.js';
 
+// Display banner after log level is set
+cblcarsLogBanner();
 
 // Ensure global namespace
 window.cblcars = window.cblcars || {};
@@ -42,8 +49,7 @@ window.cblcars.loadFont = loadFont;
 async function initializeCustomCard() {
 
     // Call log banner function immediately when the script loads
-    cblcarsLogBanner();
-    window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
+    //window.cblcars.cblcarsLog = cblcarsLog; // Expose the logging function globally
 
     // Expose debug helpers (the module already attaches API; this ensures references exist)
     window.cblcars.debug = window.cblcars.debug || {};
@@ -426,12 +432,13 @@ class CBLCARSBaseCard extends ButtonCard {
         const userTemplates = (config.template) ? [...config.template] : [];
         const mergedTemplates = [...defaultTemplates, ...userTemplates];
 
+        //REMOVE THIS
         // Set the _logLevel property from the location bar, config, or global function
-        const urlLogLevel = new URLSearchParams(window.location.search).get('cblcars_log_level');
-        this._logLevel = urlLogLevel || config.cblcars_log_level || cblcarsGetGlobalLogLevel();
-        if (urlLogLevel) {
-            cblcarsSetGlobalLogLevel(urlLogLevel);
-        }
+        //const urlLogLevel = new URLSearchParams(window.location.search).get('cblcars_log_level');
+        //this._logLevel = urlLogLevel || config.cblcars_log_level || cblcarsGetGlobalLogLevel();
+        //if (urlLogLevel) {
+        //    cblcarsSetGlobalLogLevel(urlLogLevel);
+        //}
 
         // ENHANCED: Skip entity collection entirely for MSD cards
         let triggersUpdate = [];
@@ -884,6 +891,7 @@ class CBLCARSElbowCard extends CBLCARSBaseCard {
 
 
 class CBLCARSMSDCard extends CBLCARSBaseCard {
+
     static get editorType() {
         return 'cb-lcars-msd-card-editor';
     }
@@ -1023,18 +1031,18 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         // CRITICAL: ALWAYS update SystemsManager with the FRESHEST HASS immediately
         // This ensures _originalHass is never stale
         if (this._msdPipeline && this._msdPipeline.systemsManager) {
-            cblcarsLog.log('[CBLCARSMSDCard.setHass()] 📤 IMMEDIATELY updating SystemsManager with FRESH HASS');
+            cblcarsLog.info('[CBLCARSMSDCard.setHass()] 📤 IMMEDIATELY updating SystemsManager with FRESH HASS');
 
             // This bypasses the entity change detection delay
             if (this._msdPipeline.systemsManager.controlsRenderer) {
-                cblcarsLog.log('[CBLCARSMSDCard.setHass()] 📤 Immediately forwarding fresh HASS to controls');
+                cblcarsLog.info('[CBLCARSMSDCard.setHass()] 📤 Immediately forwarding fresh HASS to controls');
                 this._msdPipeline.systemsManager.controlsRenderer.setHass(hass);
             }
         }
 
         // Forward HASS to the MSD system directly instead of re-rendering the card
         if (this._msdPipeline && typeof this._msdPipeline.ingestHass === 'function') {
-            cblcarsLog.log('[CBLCARSMSDCard.setHass()] 📤 Forwarding HASS to MSD pipeline via ingestHass');
+            cblcarsLog.info('[CBLCARSMSDCard.setHass()] 📤 Forwarding HASS to MSD pipeline via ingestHass');
             this._msdPipeline.ingestHass(hass);
         }
 

@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Enhanced Data source monitoring panel for MSD HUD
- * DataSourceManager integration health checks and subscription diagnostics
+ * [DataSourcePanel] Enhanced data source monitoring panel for MSD HUD
+ * 📊 DataSourceManager integration health checks and subscription diagnostics
  */
 
 export class DataSourcePanel {
@@ -12,33 +13,33 @@ export class DataSourcePanel {
     this._setupGlobalHelpers();
   }
 
-  // ADDED: Setup simple global helper functions with direct access
+  // ADDED: Setup global helper functions with direct access
   _setupGlobalHelpers() {
     // Global entity inspection function with direct DataSourceManager access
     window.__msdInspectDataEntity = (entityId) => {
-      console.log('[DataSourcePanel] Inspecting entity:', entityId);
+      cblcarsLog.info('[DataSourcePanel] 🔍 Inspecting entity:', entityId);
 
       const dsManager = window.__msdDebug?.dataSourceManager ||
                        window.__msdDebug?.pipelineInstance?.dataSourceManager ||
                        window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (!dsManager?.getEntity) {
-        console.warn('[DataSourcePanel] DataSourceManager not available');
+        cblcarsLog.warn('[DataSourcePanel] ❌ DataSourceManager not available');
         return;
       }
 
       const entity = dsManager.getEntity(entityId);
       if (!entity) {
-        console.warn('[DataSourcePanel] Entity not found:', entityId);
+        cblcarsLog.warn('[DataSourcePanel] ❌ Entity not found:', entityId);
         return;
       }
 
       // Show available methods for debugging
-      console.log('[DataSourcePanel] Available dsManager methods:', Object.getOwnPropertyNames(dsManager).filter(name => typeof dsManager[name] === 'function'));
+      cblcarsLog.debug('[DataSourcePanel] 🛠️ Available dsManager methods:', Object.getOwnPropertyNames(dsManager).filter(name => typeof dsManager[name] === 'function'));
 
       // Console logging
       console.group(`🔍 Entity Inspection: ${entityId}`);
-      console.log('Entity Data:', entity);
+      cblcarsLog.info('[DataSourcePanel] 📊 Entity Data:', entity);
       console.table([entity]);
       console.groupEnd();
 
@@ -48,14 +49,14 @@ export class DataSourcePanel {
 
     // Global subscription inspection function with direct DataSourceManager access
     window.__msdInspectDataSubscription = (sourceName) => {
-      console.log('[DataSourcePanel] Inspecting subscription:', sourceName);
+      cblcarsLog.info('[DataSourcePanel] 🔗 Inspecting subscription:', sourceName);
 
       const dsManager = window.__msdDebug?.dataSourceManager ||
                        window.__msdDebug?.pipelineInstance?.dataSourceManager ||
                        window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (!dsManager?.getStats) {
-        console.warn('[DataSourcePanel] DataSourceManager not available');
+        cblcarsLog.warn('[DataSourcePanel] ❌ DataSourceManager not available');
         return;
       }
 
@@ -66,16 +67,16 @@ export class DataSourcePanel {
       let subscribers = [];
       try {
         subscribers = dsManager.getSourceSubscribers?.(sourceName) || [];
-        console.log('[DataSourcePanel] Found subscribers via API:', subscribers);
+        cblcarsLog.debug('[DataSourcePanel] 👥 Found subscribers via API:', subscribers);
       } catch (e) {
-        console.warn('[DataSourcePanel] Error getting subscribers:', e);
+        cblcarsLog.warn('[DataSourcePanel] ⚠️ Error getting subscribers:', e);
       }
 
       // Console logging
       console.group(`🔍 Subscription Inspection: ${sourceName}`);
-      console.log('Source Stats:', sourceData);
-      console.log('Subscribers:', subscribers);
-      console.log('All Stats:', stats);
+      cblcarsLog.info('[DataSourcePanel] 📊 Source Stats:', sourceData);
+      cblcarsLog.info('[DataSourcePanel] 👥 Subscribers:', subscribers);
+      cblcarsLog.debug('[DataSourcePanel] 📋 All Stats:', stats);
       console.groupEnd();
 
       // Show popup with the subscription data and subscriber details
@@ -88,9 +89,9 @@ export class DataSourcePanel {
 
       if (dsManager?.refreshSubscriptions) {
         dsManager.refreshSubscriptions();
-        console.log('[DataSourcePanel] Subscriptions refreshed');
+        cblcarsLog.info('[DataSourcePanel] ✅ Subscriptions refreshed');
       } else {
-        console.warn('[DataSourcePanel] Refresh not available');
+        cblcarsLog.warn('[DataSourcePanel] ❌ Refresh not available');
       }
 
       // Trigger HUD refresh
@@ -457,26 +458,26 @@ export class DataSourcePanel {
   _showSubscriptionInspectionPopup(sourceName) {
     try {
       if (!this._currentData?.subscriptions) {
-        console.warn('[DataSourcePanel] No subscription data available');
+        cblcarsLog.warn('[DataSourcePanel] No subscription data available');
         return;
       }
 
       const sourceData = this._currentData.subscriptions[sourceName];
       if (!sourceData) {
-        console.warn('[DataSourcePanel] Subscription not found:', sourceName);
+        cblcarsLog.warn('[DataSourcePanel] Subscription not found:', sourceName);
         return;
       }
 
       // Log to console
       console.group(`🔍 Subscription Inspection: ${sourceName}`);
-      console.log('Source Stats:', sourceData);
+      cblcarsLog.info('Source Stats:', sourceData);
       console.groupEnd();
 
       // Show detailed popup
       this._createSubscriptionPopup(sourceName, sourceData, {});
 
     } catch (e) {
-      console.warn('[DataSourcePanel] Subscription inspection failed:', e);
+      cblcarsLog.warn('[DataSourcePanel] ⚠️ Subscription inspection failed:', e);
     }
   }
 
@@ -590,13 +591,13 @@ export class DataSourcePanel {
   refreshSubscriptions() {
     // REMOVED: Not useful - DataSourceManager doesn't have refreshSubscriptions method
     // and HUD auto-refreshes anyway
-    console.log('[DataSourcePanel] Refresh functionality removed - HUD auto-refreshes');
+    cblcarsLog.info('[DataSourcePanel] Refresh functionality removed - HUD auto-refreshes');
   }
 
   clearHistory() {
     // REMOVED: Only clears internal panel history, rebuilds automatically
     // this.entityChangeHistory.clear();
-    console.log('[DataSourcePanel] Clear history functionality removed - limited utility');
+    cblcarsLog.info('[DataSourcePanel] Clear history functionality removed - limited utility');
   }
 
   captureData() {
@@ -684,11 +685,11 @@ export class DataSourcePanel {
         });
 
       } else {
-        console.warn('[DataSourcePanel] DataSourceManager not available via consolidated interface');
+        cblcarsLog.warn('[DataSourcePanel] ❌ DataSourceManager not available via consolidated interface');
         stats.error = 'DataSourceManager not available';
       }
     } catch (e) {
-      console.warn('[DataSourcePanel] Data capture failed:', e);
+      cblcarsLog.warn('[DataSourcePanel] ⚠️ Data capture failed:', e);
       stats.error = e.message;
     }
 

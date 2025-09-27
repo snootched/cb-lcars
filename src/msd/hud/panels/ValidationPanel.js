@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Validation monitoring panel for MSD HUD
- * Displays validation errors and warnings with overlay highlighting
+ * [ValidationPanel] Validation monitoring panel for MSD HUD
+ * ✅ Displays validation errors and warnings with overlay highlighting
  */
 
 export class ValidationPanel {
@@ -9,15 +10,18 @@ export class ValidationPanel {
     const warnings = [];
 
     try {
+      cblcarsLog.debug('[ValidationPanel] 📋 Capturing validation data');
       // FIXED: Use centralized silent debug status access
       const debugStatus = window.__msdDebug?.getDebugStatusSilent?.() || {};
       let validationData = {};
 
       if (debugStatus.enabled && window.__msdDebug?.validation?.issues) {
         validationData = window.__msdDebug.validation.issues() || {};
+        cblcarsLog.debug('[ValidationPanel] 🔍 Retrieved validation data from debug interface');
       } else {
         // Fallback: try direct access without debug interface
         validationData = window.__msdDebug?.pipelineInstance?.getValidationIssues?.() || {};
+        cblcarsLog.debug('[ValidationPanel] 🔄 Using fallback validation data access');
       }
 
       if (validationData.errors) {
@@ -30,6 +34,7 @@ export class ValidationPanel {
             anchor: error.anchor
           });
         });
+        cblcarsLog.debug(`[ValidationPanel] ❌ Processed ${validationData.errors.length} validation errors`);
       }
 
       if (validationData.warnings) {
@@ -42,8 +47,18 @@ export class ValidationPanel {
             anchor: warning.anchor
           });
         });
+        cblcarsLog.debug(`[ValidationPanel] ⚠️ Processed ${validationData.warnings.length} validation warnings`);
       }
-    } catch (_) {}
+
+      const totalIssues = errors.length + warnings.length;
+      if (totalIssues === 0) {
+        cblcarsLog.debug('[ValidationPanel] ✅ No validation issues found');
+      } else {
+        cblcarsLog.info(`[ValidationPanel] 📊 Found ${errors.length} errors and ${warnings.length} warnings`);
+      }
+    } catch (e) {
+      cblcarsLog.warn('[ValidationPanel] ⚠️ Data capture failed:', e);
+    }
 
     return { errors, warnings };
   }
@@ -106,6 +121,5 @@ export class ValidationPanel {
 
     html += '</div>';
     return html;
-
-}
+  }
 }

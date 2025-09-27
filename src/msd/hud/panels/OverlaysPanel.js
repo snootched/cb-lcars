@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Overlays Inspection Panel
- * Lists resolved overlays with quick highlight and structural info.
+ * [OverlaysPanel] Overlays inspection panel
+ * 🎯 Lists resolved overlays with quick highlight and structural info
  */
 export class OverlaysPanel {
   captureData() {
@@ -33,7 +34,7 @@ export class OverlaysPanel {
         });
       }
     } catch (e) {
-      console.warn('[OverlaysPanel] captureData failed:', e);
+      cblcarsLog.warn('[OverlaysPanel] ⚠️ captureData failed:', e);
     }
 
     return { overlays, stats };
@@ -46,7 +47,7 @@ export class OverlaysPanel {
       const mount = window.__msdDebug?.pipelineInstance?.mountElement ||
                     window.__msdDebug?.mountElement;
       if (!mount) {
-        console.warn('[OverlaysPanel] No mountElement available for highlight');
+        cblcarsLog.warn('[OverlaysPanel] ⚠️ No mountElement available for highlight');
         return;
       }
 
@@ -56,8 +57,8 @@ export class OverlaysPanel {
       const overlay = this._findOverlayModel(id);
       const isControlsType = overlay?.type === 'control'; // FIXED: singular 'control' not 'controls'
 
-      console.log(`[OverlaysPanel] Overlay "${id}":`, overlay);
-      console.log(`[OverlaysPanel] Overlay type: "${overlay?.type}", isControlsType: ${isControlsType}`);
+      cblcarsLog.debug(`[OverlaysPanel] 🎯 Overlay "${id}":`, overlay);
+      cblcarsLog.debug(`[OverlaysPanel] 🏷️ Overlay type: "${overlay?.type}", isControlsType: ${isControlsType}`);
 
       // Search only inside mount (and shadow root if present)
       const roots = [mount];
@@ -75,12 +76,12 @@ export class OverlaysPanel {
       ] : [];
 
       roots.forEach(root => {
-        console.log(`[OverlaysPanel] Searching in root:`, root);
+        cblcarsLog.debug(`[OverlaysPanel] 🔍 Searching in root:`, root);
 
         // Try standard selectors first
         const exactMatches = root.querySelectorAll(selectorExact);
         const byIdMatch = root.querySelector(selectorId);
-        console.log(`[OverlaysPanel] Standard selectors for "${id}":`, {
+        cblcarsLog.debug(`[OverlaysPanel] 🎯 Standard selectors for "${id}":`, {
           selectorExact: selectorExact,
           exactMatches: exactMatches.length,
           selectorId: selectorId,
@@ -92,28 +93,28 @@ export class OverlaysPanel {
 
         // ADDED: Search for controls-specific elements
         if (isControlsType) {
-          console.log(`[OverlaysPanel] Searching for controls overlay: ${id}`);
-          console.log(`[OverlaysPanel] Controls selectors:`, controlsSelectors);
+          cblcarsLog.debug(`[OverlaysPanel] 🎮 Searching for controls overlay: ${id}`);
+          cblcarsLog.debug(`[OverlaysPanel] 🎯 Controls selectors:`, controlsSelectors);
           controlsSelectors.forEach(selector => {
             try {
               const found = root.querySelectorAll(selector);
-              console.log(`[OverlaysPanel] Selector "${selector}" found ${found.length} elements:`, found);
+              cblcarsLog.debug(`[OverlaysPanel] 📋 Selector "${selector}" found ${found.length} elements:`, found);
               found.forEach(el => {
                 if (!matches.includes(el)) matches.push(el);
               });
             } catch (e) {
-              console.warn(`[OverlaysPanel] Invalid selector: ${selector}`, e);
+              cblcarsLog.warn(`[OverlaysPanel] ⚠️ Invalid selector: ${selector}`, e);
             }
           });
         } else {
-          console.log(`[OverlaysPanel] Not a controls type overlay, skipping controls selectors`);
+          cblcarsLog.debug(`[OverlaysPanel] 🚫 Not a controls type overlay, skipping controls selectors`);
         }
       });
 
-      console.log(`[OverlaysPanel] Total matches found: ${matches.length}`, matches);
+      cblcarsLog.info(`[OverlaysPanel] 📊 Total matches found: ${matches.length}`, matches);
 
       if (matches.length === 0) {
-        console.warn('[OverlaysPanel] No nodes found for overlay', id);
+        cblcarsLog.warn('[OverlaysPanel] ❌ No nodes found for overlay', id);
         this._toast(`Overlay not found: ${id}`, '#ff4444');
         return;
       }
@@ -136,7 +137,7 @@ export class OverlaysPanel {
 
       this._toast(`Overlay: ${id} (${overlay?.type || 'unknown'})`, '#ff66ff');
     } catch (e) {
-      console.warn('[OverlaysPanel] highlightOverlay failed:', e);
+      cblcarsLog.warn('[OverlaysPanel] ⚠️ highlightOverlay failed:', e);
     }
   }
 
@@ -300,7 +301,7 @@ export class OverlaysPanel {
       const model = pipeline?.getResolvedModel?.();
       const overlay = model?.overlays?.find(o => o.id === id);
       if (!overlay) {
-        console.warn('[OverlaysPanel] analyzeOverlay: overlay not found', id);
+        cblcarsLog.warn('[OverlaysPanel] ❌ analyzeOverlay: overlay not found', id);
         this._toast('Overlay not found', '#ff4444');
         return;
       }
@@ -325,23 +326,23 @@ export class OverlaysPanel {
         console.log('Style Sources (detailed):', overlay._styleSources);
         // ADDED: Log each source individually for debugging
         overlay._styleSources.forEach((source, i) => {
-          console.log(`Source ${i}:`, source);
+          cblcarsLog.debug(`[OverlaysPanel] 📋 Source ${i}:`, source);
         });
       }
       if (overlay._patches) {
-        console.log('Rule Patches:', overlay._patches);
+        cblcarsLog.debug('[OverlaysPanel] 🔄 Rule Patches:', overlay._patches);
       }
       if (overlay.__meta) {
-        console.log('Metadata:', overlay.__meta);
+        cblcarsLog.debug('[OverlaysPanel] 🏷️ Metadata:', overlay.__meta);
       }
       // ADDED: Log full overlay object for debugging
-      console.log('Full Overlay Object:', overlay);
+      cblcarsLog.debug('[OverlaysPanel] 📊 Full Overlay Object:', overlay);
       console.groupEnd();
 
       // Popup
       this._showOverlayPopup(overlay);
     } catch (e) {
-      console.warn('[OverlaysPanel] analyzeOverlay failed:', e);
+      cblcarsLog.warn('[OverlaysPanel] ⚠️ analyzeOverlay failed:', e);
     }
   }
 
@@ -386,8 +387,8 @@ export class OverlaysPanel {
 
       try {
         const finalStyleProps = overlay.finalStyle ? Object.keys(overlay.finalStyle) : [];
-        console.log('[OverlaysPanel] Final style properties:', finalStyleProps);
-        console.log('[OverlaysPanel] Number of sources:', overlay._styleSources.length);
+        cblcarsLog.debug('[OverlaysPanel] 🎨 Final style properties:', finalStyleProps);
+        cblcarsLog.debug('[OverlaysPanel] 🔢 Number of sources:', overlay._styleSources.length);
 
         // FIXED: Show each property individually with its source
         const propertyMappings = [];
@@ -399,7 +400,7 @@ export class OverlaysPanel {
           if (index < finalStyleProps.length) {
             const property = finalStyleProps[index];
             propertyMappings.push(`${property} <span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.3)}px;"> ◀ </span> ${sourceLabel}`);
-            console.log(`[OverlaysPanel] Source ${index} (${sourceLabel}) → ${property}`);
+            cblcarsLog.debug(`[OverlaysPanel] 🔗 Source ${index} (${sourceLabel}) → ${property}`);
           }
         });
 
@@ -414,7 +415,7 @@ export class OverlaysPanel {
         // Format as individual property lines
         return propertyMappings.join('<br>') || 'none';
       } catch (e) {
-        console.warn('[OverlaysPanel] Error processing sources:', e);
+        cblcarsLog.warn('[OverlaysPanel] ⚠️ Error processing sources:', e);
         // Fallback to simple list
         return overlay._styleSources.map((s, i) => `property${i} <span style="color:#ffaa00;font-weight:bold;font-size:${Math.round(controlsFontSize * 1.3)}px;"> ◀ </span> ${s.kind || 'unknown'}:${s.id || 'unnamed'}`).join('<br>');
       }
@@ -526,7 +527,7 @@ export class OverlaysPanel {
         '#ff66ff'
       );
     } catch (e) {
-      console.warn('[OverlaysPanel] _highlightBoundingBoxFromModel failed:', e);
+      cblcarsLog.warn('[OverlaysPanel] ⚠️ _highlightBoundingBoxFromModel failed:', e);
     }
   }
 

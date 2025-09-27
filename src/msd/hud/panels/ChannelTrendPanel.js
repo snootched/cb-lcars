@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Advanced Channel Trend Panel for MSD HUD
- * Historical channel usage analysis with conflict detection
+ * [ChannelTrendPanel] Advanced channel trend panel for MSD HUD
+ * 📈 Historical channel usage analysis with conflict detection
  */
 
 export class ChannelTrendPanel {
@@ -97,7 +98,7 @@ export class ChannelTrendPanel {
       }
 
     } catch (e) {
-      console.warn('[ChannelTrendPanel] Data capture failed:', e);
+      cblcarsLog.warn('[ChannelTrendPanel] ⚠️ Data capture failed:', e);
     }
 
     return { current, conflicts, trends, recommendations };

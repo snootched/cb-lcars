@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Export Panel for MSD HUD
- * Interactive configuration export/import/diff tools
+ * [ExportPanel] Export panel for MSD HUD
+ * 📤 Interactive configuration export/import/diff tools
  * Based on legacy HudController export functionality
  */
 
@@ -14,12 +15,15 @@ export class ExportPanel {
     try {
       const pipeline = window.__msdDebug?.pipelineInstance;
       if (pipeline?.exportCollapsedJson) {
+        cblcarsLog.info('[ExportPanel] 📤 Exporting collapsed configuration');
         const json = pipeline.exportCollapsedJson(true);
         this.downloadJson(json, 'msd-config-collapsed');
         this.updateTextarea('collapsed', json);
+      } else {
+        cblcarsLog.warn('[ExportPanel] ⚠️ Pipeline or exportCollapsedJson method not available');
       }
     } catch (e) {
-      console.error('[ExportPanel] Collapsed export failed:', e);
+      cblcarsLog.error('[ExportPanel] ❌ Collapsed export failed:', e);
     }
   }
 
@@ -27,14 +31,18 @@ export class ExportPanel {
     try {
       const pipeline = window.__msdDebug?.pipelineInstance;
       if (pipeline?.exportFullSnapshotJson) {
+        const metaText = includeMeta ? ' with metadata' : '';
+        cblcarsLog.info(`[ExportPanel] 📋 Exporting full snapshot${metaText}`);
         const options = includeMeta ? { include_meta: true } : {};
         const json = pipeline.exportFullSnapshotJson(options, true);
         const filename = includeMeta ? 'msd-snapshot-with-meta' : 'msd-snapshot';
         this.downloadJson(json, filename);
         this.updateTextarea('full', json);
+      } else {
+        cblcarsLog.warn('[ExportPanel] ⚠️ Pipeline or exportFullSnapshotJson method not available');
       }
     } catch (e) {
-      console.error('[ExportPanel] Full export failed:', e);
+      cblcarsLog.error('[ExportPanel] ❌ Full export failed:', e);
     }
   }
 
@@ -50,9 +58,9 @@ export class ExportPanel {
     const textarea = document.getElementById(`export-${type}-textarea`);
     if (textarea && textarea.value) {
       navigator.clipboard.writeText(textarea.value).then(() => {
-        this.showFeedback('Copied to clipboard!');
+        this.showFeedback('📋 Copied to clipboard!');
       }).catch(e => {
-        console.warn('Clipboard copy failed:', e);
+        cblcarsLog.warn('[ExportPanel] ⚠️ Clipboard copy failed:', e);
         textarea.select();
         textarea.setSelectionRange(0, 99999);
       });
@@ -71,9 +79,9 @@ export class ExportPanel {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      this.showFeedback(`Downloaded: ${a.download}`);
+      this.showFeedback(`📥 Downloaded: ${a.download}`, 'success');
     } catch (e) {
-      console.error('[ExportPanel] Download failed:', e);
+      cblcarsLog.error('[ExportPanel] ❌ Download failed:', e);
     }
   }
 
@@ -128,7 +136,7 @@ export class ExportPanel {
 
     // FIXED: Only log data capture issues, not every successful capture
     if (!data.available) {
-      console.warn('[ExportPanel] Pipeline not available for export functionality');
+      cblcarsLog.warn('[ExportPanel] ⚠️ Pipeline not available for export functionality');
     }
 
     return data;

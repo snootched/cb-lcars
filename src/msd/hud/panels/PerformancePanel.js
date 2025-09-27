@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Enhanced Performance monitoring panel for MSD HUD
- * Timer and counter data with threshold alerts and reset functionality
+ * [PerformancePanel] Enhanced performance monitoring panel for MSD HUD
+ * ⏱️ Timer and counter data with threshold alerts and reset functionality
  */
 
 export class PerformancePanel {
@@ -12,15 +13,30 @@ export class PerformancePanel {
   // Instance methods replacing global panel handlers
   setThreshold(timerId, avgMs) {
     const t = parseFloat(avgMs);
-    if (isNaN(t)) this.thresholds.delete(timerId);
-    else this.thresholds.set(timerId, { avgMs: t });
+    if (isNaN(t)) {
+      this.thresholds.delete(timerId);
+      cblcarsLog.debug(`[PerformancePanel] 🚫 Removed threshold for timer: ${timerId}`);
+    } else {
+      this.thresholds.set(timerId, { avgMs: t });
+      cblcarsLog.info(`[PerformancePanel] ⏱️ Set threshold for ${timerId}: ${t}ms`);
+    }
   }
   resetTimer(timerId) {
-    try { window.__msdDebug?.getPerf?.()?.resetTimer?.(timerId); } catch {}
+    try {
+      window.__msdDebug?.getPerf?.()?.resetTimer?.(timerId);
+      cblcarsLog.info(`[PerformancePanel] 🔄 Reset timer: ${timerId}`);
+    } catch (e) {
+      cblcarsLog.warn(`[PerformancePanel] ⚠️ Failed to reset timer ${timerId}:`, e);
+    }
   }
   clearAllTimers() {
-    try { window.__msdDebug?.getPerf?.()?.clear?.(); } catch {}
-    this.thresholds.clear();
+    try {
+      window.__msdDebug?.getPerf?.()?.clear?.();
+      this.thresholds.clear();
+      cblcarsLog.info('[PerformancePanel] 🧹 Cleared all timers and thresholds');
+    } catch (e) {
+      cblcarsLog.warn('[PerformancePanel] ⚠️ Failed to clear timers:', e);
+    }
   }
   exportData() {
     const perfData = window.__msdDebug?.getPerf?.() || {};
@@ -32,7 +48,7 @@ export class PerformancePanel {
     };
 
     console.table(data.timers);
-    console.log('[PerformancePanel] Performance data:', data);
+    cblcarsLog.info('[PerformancePanel] 📤 Exporting performance data:', data);
 
     // Create downloadable export
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -76,13 +92,15 @@ export class PerformancePanel {
           // Check thresholds
           const threshold = this.thresholds.get(key);
           if (threshold && timerData.avg > threshold.avgMs) {
+            const severity = timerData.avg > threshold.avgMs * 2 ? 'high' : 'medium';
             alerts.push({
               type: 'threshold',
               timer: key,
               current: timerData.avg,
               threshold: threshold.avgMs,
-              severity: timerData.avg > threshold.avgMs * 2 ? 'high' : 'medium'
+              severity: severity
             });
+            cblcarsLog.warn(`[PerformancePanel] 📈 Threshold alert for ${key}: ${timerData.avg.toFixed(2)}ms > ${threshold.avgMs}ms (${severity})`);
           }
 
           // Check for regressions
@@ -96,6 +114,7 @@ export class PerformancePanel {
                 currentAvg: timerData.avg,
                 regression: regression
               });
+              cblcarsLog.warn(`[PerformancePanel] 📉 Performance regression detected for ${key}: +${regression.toFixed(1)}% (${previous.avg.toFixed(2)}ms → ${timerData.avg.toFixed(2)}ms)`);
             }
           }
         });
@@ -112,7 +131,7 @@ export class PerformancePanel {
       this.previousSnapshot = { ...timers };
 
     } catch (e) {
-      console.warn('[PerformancePanel] Data capture failed:', e);
+      cblcarsLog.warn('[PerformancePanel] ⚠️ Data capture failed:', e);
     }
 
     return { timers, counters, alerts, regressions };

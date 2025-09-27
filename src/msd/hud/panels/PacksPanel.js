@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Packs Panel for MSD HUD
- * Shows pack collections and provenance information
+ * [PacksPanel] Packs panel for MSD HUD
+ * 📦 Shows pack collections and provenance information
  */
 
 export class PacksPanel {
@@ -12,6 +13,7 @@ export class PacksPanel {
     try {
       const pipelineInstance = window.__msdDebug?.pipelineInstance;
       if (pipelineInstance) {
+        cblcarsLog.debug('[PacksPanel] 📋 Capturing pack collections and provenance data');
         const resolvedModel = pipelineInstance.getResolvedModel?.();
         if (resolvedModel) {
           // Capture collections
@@ -41,9 +43,11 @@ export class PacksPanel {
             Object.assign(provenance, merged.__provenance);
           }
         }
+      } else {
+        cblcarsLog.warn('[PacksPanel] ⚠️ Pipeline instance not available for pack data capture');
       }
     } catch (e) {
-      console.warn('[PacksPanel] Data capture failed:', e);
+      cblcarsLog.warn('[PacksPanel] ⚠️ Data capture failed:', e);
     }
 
     return { collections, provenance, summary };

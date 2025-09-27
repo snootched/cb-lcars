@@ -1,6 +1,7 @@
+import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 /**
- * Enhanced Issues Panel for MSD HUD
- * Unified issue aggregation with smart routing to editors/actions
+ * [IssuesPanel] Enhanced issues panel for MSD HUD
+ * 🚨 Unified issue aggregation with smart routing to editors/actions
  * Based on legacy HUD issues panel functionality
  */
 
@@ -15,19 +16,19 @@ export class IssuesPanel {
   }
 
   handleIssueClick(action, id, overlay) {
-    console.log('[IssuesPanel] Issue clicked:', { action, id, overlay });
+    cblcarsLog.info('[IssuesPanel] 🔍 Issue clicked:', { action, id, overlay });
 
     switch (action) {
       case 'overlay':
         if (overlay && window.__msdDebug?.debug) {
           // Try to highlight the overlay
-          console.log(`[IssuesPanel] Highlighting overlay: ${overlay}`);
+          cblcarsLog.debug(`[IssuesPanel] 🎯 Highlighting overlay: ${overlay}`);
           // Could integrate with overlay editor here
         }
         break;
 
       case 'routing':
-        console.log('[IssuesPanel] Opening routing diagnostics');
+        cblcarsLog.info('[IssuesPanel] 🔀 Opening routing diagnostics');
         // Could emit routing focus event
         if (window.__msdDebug?.hud?.refresh) {
           window.__msdDebug.hud.refresh();
@@ -35,12 +36,12 @@ export class IssuesPanel {
         break;
 
       case 'performance':
-        console.log(`[IssuesPanel] Performance issue: ${id}`);
+        cblcarsLog.info(`[IssuesPanel] ⏱️ Performance issue: ${id}`);
         // Could open performance panel or set thresholds
         break;
 
       case 'debug':
-        console.log('[IssuesPanel] Debug issue clicked - attempting to initialize debug interface');
+        cblcarsLog.info('[IssuesPanel] 🔧 Debug issue clicked - attempting to initialize debug interface');
         // Try to initialize debug interface
         if (window.__msdDebug?.debug?.refresh) {
           window.__msdDebug.debug.refresh();
@@ -49,11 +50,12 @@ export class IssuesPanel {
 
       // ADDED: New action for enabling debug features
       case 'enable-features':
-        console.log('[IssuesPanel] Enabling basic debug features');
+        cblcarsLog.info('[IssuesPanel] 🛠️ Enabling basic debug features');
         if (window.__msdDebug?.debug) {
           // Enable a basic set of debug features
           window.__msdDebug.debug.enable('anchors');
           window.__msdDebug.debug.enable('bounding_boxes');
+          cblcarsLog.debug('[IssuesPanel] ✅ Enabled anchors and bounding_boxes debug features');
 
           // Show user feedback
           const feedback = document.createElement('div');
@@ -70,10 +72,12 @@ export class IssuesPanel {
             z-index: 1000001;
             pointer-events: none;
           `;
-          feedback.textContent = 'Debug features enabled: anchors, bounding_boxes';
+          feedback.textContent = '✅ Debug features enabled: anchors, bounding_boxes';
           document.body.appendChild(feedback);
 
           setTimeout(() => feedback.remove(), 3000);
+        } else {
+          cblcarsLog.warn('[IssuesPanel] ⚠️ Debug interface not available for enabling features');
         }
         break;
     }
@@ -198,7 +202,7 @@ export class IssuesPanel {
       }
 
     } catch (e) {
-      console.warn('[IssuesPanel] Data capture failed:', e);
+      cblcarsLog.warn('[IssuesPanel] ⚠️ Data capture failed:', e);
       issues.debug.push({
         id: 'capture-error',
         type: 'debug',

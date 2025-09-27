@@ -244,7 +244,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
     // Status from DebugManager - FIXED: Use silent method by default
     status: () => {
       const state = debugManager.getSnapshot();
-      cblcarsLog.table(state);
+      console.table(state);
       return state;
     },
 
@@ -459,7 +459,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
           }
         } catch (error) {
           results.methods.dataAttributes = { error: error.message };
-        }        cblcarsLog.table(results.methods);
+        }        console.table(results.methods);
         return results;
       }
     },

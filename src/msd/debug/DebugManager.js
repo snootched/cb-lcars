@@ -161,7 +161,7 @@ export class DebugManager {
    */
   status() {
     const snapshot = this.getSnapshot();
-    cblcarsLog.table(snapshot);
+    console.table(snapshot);
     return snapshot;
   }
 

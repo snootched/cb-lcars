@@ -3,8 +3,13 @@ import * as CBLCARS from '../cb-lcars-vars.js';
 let cblcarsGlobalLogLevel = 'info';
 
 export function cblcarsSetGlobalLogLevel(level) {
+  const validLevels = ['error', 'warn', 'info', 'debug'];
+  if (!validLevels.includes(level)) {
+    console.warn('🟡 CB-LCARS|WARN: Invalid log level:', level, 'Using "info" instead');
+    level = 'info';
+  }
   cblcarsGlobalLogLevel = level;
-  cblcarsLog.info(`Setting CBLCARS global log level set to: ${level}`, {}, 'info');
+  console.log('🔵 CB-LCARS|INFO: Setting CBLCARS global log level to:', level);
 }
 export function cblcarsGetGlobalLogLevel() {
   return cblcarsGlobalLogLevel;
@@ -20,105 +25,6 @@ window.cblcars.getGlobalLogLevel = cblcarsGetGlobalLogLevel;
   window.cblcars.setGlobalLogLevel[level] = () => cblcarsSetGlobalLogLevel(level);
 });
 
-export function baseLogger(level, ...args) {
-  const levels = ['error', 'warn', 'info', 'debug'];
-  const currentLevelIndex = levels.indexOf(cblcarsGlobalLogLevel);
-  const messageLevelIndex = levels.indexOf(level);
-
-  if (messageLevelIndex > currentLevelIndex) return;
-
-  const commonStyles = 'color: white; padding: 1px 4px; border-radius: 15px;';
-  const levelStyles = {
-    info: 'background-color: #37a6d1',
-    warn: 'background-color: #ff6753',
-    error: 'background-color: #ef1d10',
-    debug: 'background-color: #8e44ad',
-    default: 'background-color: #6d748c',
-  };
-
-  const logMessage = `%c    CB-LCARS | ${level} `;
-  const style = `${levelStyles[level] || levelStyles.default}; ${commonStyles}`;
-
-  // Use spread to pass all args after the styled prefix
-  switch (level) {
-    case 'info':
-      console.log(logMessage, style, ...args);
-      break;
-    case 'warn':
-      console.warn(logMessage, style, ...args);
-      break;
-    case 'error':
-      console.error(logMessage, style, ...args);
-      break;
-    case 'debug':
-      console.debug(logMessage, style, ...args);
-      break;
-    default:
-      console.log(logMessage, style, ...args);
-      break;
-  }
-}
-
-/**
- * Centralized CB-LCARS logging utility.
- *
- * Supports log level filtering and styled output.
- * Functions as a drop-in replacement for `console.log`, `console.warn`, etc.
- *
- * **Preferred usage:**
- *   `cblcarsLog.info('message');`
- *   `cblcarsLog.warn('message');`
- *   `cblcarsLog.error('message');`
- *   `cblcarsLog.debug('message');`
- *   `cblcarsLog.log('message');`
- *
- * *Legacy usage (not recommended):*
- *   `cblcarsLog('warn', 'message');`
- *
- * **Log level filtering:**
- *
- *   Only messages at or above the global log level are printed.
- *   For example, if the global log level is 'warn', only 'warn' and 'error' messages are shown.
- *
- * **Setting the global log level:**
- *
- *   Use the function `cblcarsSetGlobalLogLevel(level)`, or
- *   `window.cblcars.setGlobalLogLevel(level)`
- *   Valid levels: `'error'`, `'warn'`, `'info'`, `'debug'`
- *
- * @param {'error'|'warn'|'info'|'debug'} level - The log level.
- * @param {...any} args - Arguments to log.
- * @returns {void}
- *
- * @property {function(...any):void} log   - Log an info-level message.
- * @property {function(...any):void} info  - Log an info-level message.
- * @property {function(...any):void} warn  - Log a warning message.
- * @property {function(...any):void} error - Log an error message.
- * @property {function(...any):void} debug - Log a debug message.
- */
-function cblcarsLog(level, ...args) {
-  return baseLogger(level, ...args);
-}
-cblcarsLog.log   = (...args) => baseLogger('info', ...args);
-cblcarsLog.info  = (...args) => baseLogger('info', ...args);
-cblcarsLog.warn  = (...args) => baseLogger('warn', ...args);
-cblcarsLog.error = (...args) => baseLogger('error', ...args);
-cblcarsLog.debug = (...args) => baseLogger('debug', ...args);
-export { cblcarsLog };
-
-
-export function cblcarsLogGroup(level, title) {
-    console.groupCollapsed(); // Create a collapsed group
-    cblcarsLog(level, `Group: ${title}`);
-    }
-
-export function logImportStatus(importName, importedValue) {
-    if (importedValue === undefined) {
-        cblcarsLog.error(`Import error: ${importName} is not imported correctly.`);
-    } else {
-        cblcarsLog.debug(`${importName} imported successfully.`);
-    }
-}
 
 export function cblcarsLogBanner() {
   let styles1 = [
@@ -157,3 +63,125 @@ export function cblcarsLogBanner() {
 
   console.info(`%c${spaces}${baseString}  %c\n%c${paddedUrl}  `, styles1.join(';'), invisibleStyle.join(';'), styles2.join(';'));
 }
+
+/**
+ * CB-LCARS Logging System
+ *
+ * RECOMMENDED USAGE:
+ *   import { cblcarsLog } from './utils/cb-lcars-logging.js';
+ *
+ *   cblcarsLog.error('[MyClass] Something failed:', error);    // ✅ Styled, ✅ Level filtered, ✅ Stack trace
+ *   cblcarsLog.warn('[MyClass] Deprecated usage detected');    // ✅ Styled, ✅ Level filtered, ✅ Stack trace
+ *   cblcarsLog.info('[MyClass] Processing started');           // ✅ Styled, ✅ Level filtered, use [Class] prefix
+ *   cblcarsLog.debug('[MyClass] Debug data:', data);           // ✅ Styled, ✅ Level filtered, use [Class] prefix
+ *
+ *
+ * EMOTICON REFERENCE GUIDE:
+ * Use these emoticons consistently across all panels for similar operations:
+ *
+ *   ⚠️  - Warnings (data capture failures, missing resources, deprecated usage)
+ *   ❌  - Error conditions (not found, failed operations, critical failures)
+ *   ✅  - Successful operations (completed tasks, enabled features)
+ *   🔍  - Searching/inspection operations (looking for elements, analyzing)
+ *   �  - Targeting/highlighting (selecting specific items, focus operations)
+ *   🏷️  - Metadata/labeling (type information, tags, classifications)
+ *   📊  - Data/statistics (counts, summaries, metrics, analysis results)
+ *   📋  - Detailed information (lists, sources, comprehensive data)
+ *   �  - Debug/development operations (troubleshooting, developer tools)
+ *   �️  - Configuration/setup (enabling features, initialization)
+ *   🔄  - Processing/modifications (transforms, patches, updates)
+ *   🔗  - Connections/relationships (linking, mapping, associations)
+ *   ♻️  - Refresh/reload operations (data refresh, interface updates)
+ *   �  - Export/output operations (data export, file generation)
+ *   �  - Import/download operations (file downloads, data ingestion)
+ *   �  - Flags/features (feature toggles, debug flags)
+ *   🚨  - Issues/alerts (problem detection, critical notifications)
+ *   �  - Packages/collections (pack management, bundled resources)
+ *   📈  - Trends/analytics (usage patterns, performance tracking)
+ *   🎮  - Controls/interactions (UI controls, user input handling)
+ *   �  - Styling/appearance (CSS operations, visual modifications)
+ *   🔀  - Routing/navigation (path management, flow control)
+ *   ⏱️  - Performance/timing (speed issues, duration tracking)
+ *   �  - Scaling/sizing (dimension adjustments, zoom operations)
+ *   🧹  - Cleanup/maintenance (clearing data, housekeeping)
+ *   🚫  - Blocking/skipping (prevented operations, filtered out)
+ *   🔢  - Counting/enumeration (numeric operations, indexing)
+*/
+
+const styleConfig = {
+  commonStyles: 'color: white; padding: 2px 6px; border-radius: 15px; font-weight: bold;',
+  levels: {
+    info: 'background: linear-gradient(45deg, #37a6d1, #4db8e8);',
+    warn: 'background: linear-gradient(45deg, #ff6753, #ff8570);',
+    error: 'background: linear-gradient(45deg, #ef1d10, #ff453a);',
+    debug: 'background: linear-gradient(45deg, #8e44ad, #a569bd);'
+  }
+};
+
+function shouldLog(level) {
+  // Correct logging hierarchy: error (most critical) -> warn -> info -> debug (least critical)
+  const levels = ['error', 'warn', 'info', 'debug'];
+  const levelPriority = {
+    'error': 0,  // Always shown (highest priority)
+    'warn': 1,   // Shown at warn level and above
+    'info': 2,   // Shown at info level and above
+    'debug': 3   // Only shown at debug level (lowest priority)
+  };
+
+  const currentPriority = levelPriority[cblcarsGlobalLogLevel] ?? 2; // Default to info
+  const messagePriority = levelPriority[level] ?? 2;
+
+  return messagePriority <= currentPriority;
+}
+
+function createStyleArgs(level, message, ...args) {
+  return [
+    `%c CB-LCARS|${level} `,
+    `${styleConfig.levels[level]} ${styleConfig.commonStyles}`,
+    message,
+    ...args
+  ];
+}
+
+export function logError(message, ...args) {
+  if (shouldLog('error')) {
+    console.error(...createStyleArgs('error', message, ...args));
+  }
+}
+
+export function logWarn(message, ...args) {
+  if (shouldLog('warn')) {
+    console.warn(...createStyleArgs('warn', message, ...args));
+  }
+}
+
+export function logInfo(message, ...args) {
+  if (shouldLog('info')) {
+    console.log(...createStyleArgs('info', message, ...args));
+  }
+}
+
+export function logDebug(message, ...args) {
+  if (shouldLog('debug')) {
+    console.debug(...createStyleArgs('debug', message, ...args));
+  }
+}
+
+// Alias
+export const logLog = logInfo;
+
+
+
+
+/*
+ * PRIMARY API - Dot notation logging (recommended approach)
+ * Familiar console.* style API with level filtering and styling
+ */
+export const cblcarsLog = {
+  log: (...args) => logInfo(...args),
+  info: (...args) => logInfo(...args),
+  warn: (...args) => logWarn(...args),
+  error: (...args) => logError(...args),
+  debug: (...args) => logDebug(...args)
+};
+
