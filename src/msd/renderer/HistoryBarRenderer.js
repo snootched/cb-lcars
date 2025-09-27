@@ -1,8 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * History Bar Renderer - Advanced temporal bar chart visualization with comprehensive styling support
- * Provides rich historical data visualization features with LCARS theming
+ * [HistoryBarRenderer] History bar renderer - advanced temporal bar chart visualization
+ * 📊 Provides rich historical data visualization features with LCARS theming and real-time updates
  */
 
 import { PositionResolver } from './PositionResolver.js';
@@ -47,7 +47,7 @@ export class HistoryBarRenderer {
   renderHistoryBar(overlay, anchors, viewBox) {
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      cblcarsLog.warn('[HistoryBarRenderer] History bar overlay position could not be resolved:', overlay.id);
+      cblcarsLog.warn('[HistoryBarRenderer] ⚠️ History bar overlay position could not be resolved:', overlay.id);
       return '';
     }
 
@@ -70,7 +70,7 @@ export class HistoryBarRenderer {
       const historyBarStyle = this._resolveHistoryBarStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      cblcarsLog.debug(`[HistoryBarRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
+      cblcarsLog.debug(`[HistoryBarRenderer] 📊 Data result for ${overlay.id}: ${dataResult.status} (${dataResult.data?.length || 0} points)`);
 
       if (dataResult.status === 'OK' && dataResult.data && dataResult.data.length >= 1) {
         // Render real history bar with advanced features
@@ -86,7 +86,7 @@ export class HistoryBarRenderer {
         );
       }
     } catch (error) {
-      cblcarsLog.error(`[HistoryBarRenderer] Enhanced rendering failed for history bar ${overlay.id}:`, error);
+      cblcarsLog.error(`[HistoryBarRenderer] ❌ Enhanced rendering failed for history bar ${overlay.id}:`, error);
       return this._renderFallbackHistoryBar(overlay, x, y, width, height);
     }
   }
@@ -265,7 +265,7 @@ export class HistoryBarRenderer {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dataSourceManager) {
-        cblcarsLog.debug(`[HistoryBarRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
+        cblcarsLog.debug(`[HistoryBarRenderer] 🔍 Checking DataSourceManager for '${sourceName}'${dataKey ? ` with key: '${dataKey}'` : ''}`);
 
         const dataSource = dataSourceManager.getSource(sourceName);
 
@@ -289,7 +289,7 @@ export class HistoryBarRenderer {
           // Original buffer-based data access
           if (currentData?.buffer) {
             const bufferData = currentData.buffer.getAll();
-            cblcarsLog.debug(`[HistoryBarRenderer] Raw buffer data for '${sourceName}':`, bufferData);
+
 
             if (bufferData && bufferData.length >= 1) {
               const historicalData = bufferData.map(point => ({
@@ -623,7 +623,7 @@ export class HistoryBarRenderer {
     if (sourceData) {
       return this._processTemplates(content, sourceData);
     } else {
-      cblcarsLog.warn(`[HistoryBarRenderer] No DataSource data for template processing: ${overlay.id}`);
+      cblcarsLog.warn(`[HistoryBarRenderer] ⚠️ No DataSource data for template processing: ${overlay.id}`);
       return content;
     }
   }
@@ -662,7 +662,7 @@ export class HistoryBarRenderer {
 
         return match; // Return original if field not found
       } catch (e) {
-        cblcarsLog.warn(`[HistoryBarRenderer] Template processing failed:`, e);
+        cblcarsLog.warn(`[HistoryBarRenderer] ⚠️ Template processing failed:`, e);
         return match;
       }
     });
@@ -750,18 +750,15 @@ export class HistoryBarRenderer {
    */
   _buildGridLines(width, height, historyBarStyle, overlayId) {
     if (!historyBarStyle.show_grid) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Grid lines disabled for ${overlayId}`);
       return '';
     }
-
-    cblcarsLog.debug(`[HistoryBarRenderer] Building grid lines for ${overlayId}: show_grid=${historyBarStyle.show_grid}`);
 
     const lines = [];
     const gridColor = historyBarStyle.grid_color;
     const gridOpacity = historyBarStyle.grid_opacity;
     const gridWidth = historyBarStyle.grid_width;
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Grid settings: color=${gridColor}, opacity=${gridOpacity}, width=${gridWidth}`);
+
 
     // Horizontal grid lines (for value references) - always add these
     const horizontalLines = 5;
@@ -777,7 +774,7 @@ export class HistoryBarRenderer {
       lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${height}" stroke="${gridColor}" stroke-opacity="${gridOpacity}" stroke-width="${gridWidth}" data-grid-type="vertical"/>`);
     }
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Created ${lines.length} grid lines (${horizontalLines-1} horizontal, ${verticalLines-1} vertical)`);
+
     return `<g data-feature="grid-lines">${lines.join('\n')}</g>`;
   }
 
@@ -787,17 +784,12 @@ export class HistoryBarRenderer {
    */
   _buildAxis(width, height, historyBarStyle, overlayId) {
     if (!historyBarStyle.show_axis) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Axis lines disabled for ${overlayId}`);
       return '';
     }
-
-    cblcarsLog.debug(`[HistoryBarRenderer] Building axis lines for ${overlayId}: show_axis=${historyBarStyle.show_axis}, orientation=${historyBarStyle.orientation}`);
 
     const lines = [];
     const axisColor = historyBarStyle.axis_color;
     const axisWidth = historyBarStyle.axis_width;
-
-    cblcarsLog.debug(`[HistoryBarRenderer] Axis settings: color=${axisColor}, width=${axisWidth}`);
 
     if (historyBarStyle.orientation === 'horizontal') {
       // Bottom axis line for horizontal bars
@@ -811,7 +803,6 @@ export class HistoryBarRenderer {
       lines.push(`<line x1="0" y1="${height}" x2="${width}" y2="${height}" stroke="${axisColor}" stroke-width="${axisWidth}" data-axis-type="bottom"/>`);
     }
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Created ${lines.length} axis lines for ${historyBarStyle.orientation} orientation`);
     return `<g data-feature="axis">${lines.join('\n')}</g>`;
   }
 
@@ -860,7 +851,7 @@ export class HistoryBarRenderer {
     // Calculate max value for proper scaling
     const maxValue = this._getMaxValueForNormalization(historyBarStyle, buckets);
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Building ${buckets.length} bars with max value: ${maxValue}`);
+    cblcarsLog.debug(`[HistoryBarRenderer] 📊 Building ${buckets.length} bars with max value: ${maxValue}`);
 
     const bars = buckets.map((bucket, index) => {
       const value = this._aggregateBucketValue(bucket, historyBarStyle.aggregation_mode);
@@ -920,10 +911,7 @@ export class HistoryBarRenderer {
     const rx = historyBarStyle.bar_radius;
     const ry = historyBarStyle.bar_radius;
 
-    // Log only first and last bars to avoid spam
-    if (index === 0 || index === totalBars - 1) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Bar ${index}: value=${value}, maxValue=${maxValue}, normalized=${normalizedValue.toFixed(3)}, height=${barHeight.toFixed(1)}`);
-    }
+
 
     return `x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" rx="${rx}" ry="${ry}"`;
   }
@@ -971,11 +959,8 @@ export class HistoryBarRenderer {
    */
   _buildLabels(data, width, height, historyBarStyle, overlayId) {
     if (!historyBarStyle.show_labels && !historyBarStyle.show_values) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Both labels and values disabled for ${overlayId}`);
       return '';
     }
-
-    cblcarsLog.debug(`[HistoryBarRenderer] Building labels for ${overlayId}: show_labels=${historyBarStyle.show_labels}, show_values=${historyBarStyle.show_values}`);
 
     const labels = [];
     const timeWindow = this._parseTimeWindow(historyBarStyle.time_window);
@@ -983,21 +968,15 @@ export class HistoryBarRenderer {
 
     // Time labels along the axis
     if (historyBarStyle.show_labels) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Creating time labels with settings: color=${historyBarStyle.label_color}, size=${historyBarStyle.label_font_size}, family=${historyBarStyle.label_font_family}`);
-
       const timeLabels = this._buildTimeLabels(width, height, historyBarStyle, buckets, overlayId);
       labels.push(...timeLabels);
     }
 
     // Value labels on individual bars
     if (historyBarStyle.show_values) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Creating value labels with settings: color=${historyBarStyle.value_color}, size=${historyBarStyle.value_font_size}, format=${historyBarStyle.value_format}`);
-
       const valueLabels = this._buildValueLabels(data, width, height, historyBarStyle, buckets, overlayId);
       labels.push(...valueLabels);
     }
-
-    cblcarsLog.debug(`[HistoryBarRenderer] Created ${labels.length} total labels (time + values)`);
     return labels.length > 0 ? `<g data-feature="labels">${labels.join('\n')}</g>` : '';
   }
 
@@ -1017,7 +996,7 @@ export class HistoryBarRenderer {
     const maxLabels = Math.min(8, Math.max(3, Math.floor(width / 60))); // 3-8 labels, min 60px apart
     const labelStep = Math.max(1, Math.floor(buckets.length / maxLabels));
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Time labels: ${maxLabels} max labels, step=${labelStep}, buckets=${buckets.length}`);
+
 
     for (let i = 0; i < buckets.length; i += labelStep) {
       const bucket = buckets[i];
@@ -1132,7 +1111,6 @@ export class HistoryBarRenderer {
    */
   _buildBrackets(width, height, historyBarStyle, overlayId) {
     if (!historyBarStyle.bracket_style) {
-      cblcarsLog.debug(`[HistoryBarRenderer] Brackets disabled for ${overlayId}`);
       return '';
     }
 
@@ -1155,7 +1133,7 @@ export class HistoryBarRenderer {
       bracket_radius: historyBarStyle.bracket_radius
     };
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Bracket config:`, bracketConfig);
+
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
@@ -1233,9 +1211,7 @@ export class HistoryBarRenderer {
     const now = Math.max(latestDataTime, Date.now()); // Ensure we don't go backwards in time
     const startTime = now - timeWindow;
 
-    cblcarsLog.debug(`[HistoryBarRenderer] Creating time buckets: timeWindow=${timeWindow}ms, bucketSize=${bucketSize}ms, data points=${data.length}`);
-    cblcarsLog.debug(`[HistoryBarRenderer] Data timestamps range: ${Math.min(...data.map(p => p.timestamp))} - ${Math.max(...data.map(p => p.timestamp))}`);
-    cblcarsLog.debug(`[HistoryBarRenderer] Bucket time range: ${startTime} - ${now} (now adjusted to include latest data)`);
+
 
     for (let time = startTime; time < now; time += bucketSize) {
       const bucketData = data.filter(point =>
@@ -1495,7 +1471,7 @@ export class HistoryBarRenderer {
     const style = overlay.finalStyle || overlay.style || {};
     const color = style.bar_color || style.color || 'var(--lcars-gray)';
 
-    cblcarsLog.warn(`[HistoryBarRenderer] Using fallback rendering for history bar ${overlay.id}`);
+    cblcarsLog.warn(`[HistoryBarRenderer] ⚠️ Using fallback rendering for history bar ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="history_bar" data-fallback="true">
               <g transform="translate(${x}, ${y})">

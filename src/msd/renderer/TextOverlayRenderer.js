@@ -1,6 +1,6 @@
 /**
- * Text Overlay Renderer - Advanced text rendering with comprehensive styling support
- * Provides rich text styling features similar to LineOverlayRenderer
+ * [TextOverlayRenderer] Text overlay renderer - advanced text rendering with comprehensive styling support
+ * 📝 Provides rich text styling features with DataSource integration, brackets, and effects
  */
 
 import { DataSourceMixin } from './DataSourceMixin.js';
@@ -40,25 +40,16 @@ export class TextOverlayRenderer {
    * @returns {string} Complete SVG markup for the styled text
    */
   renderText(overlay, anchors, viewBox) {
-    cblcarsLog.debug(`[TextOverlayRenderer] renderText called for overlay "${overlay.id}"`);
-    cblcarsLog.debug(`[TextOverlayRenderer] Full overlay object:`, overlay);
-    cblcarsLog.debug(`[TextOverlayRenderer] Anchors:`, anchors);
 
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      cblcarsLog.warn('[TextOverlayRenderer] Text overlay position could not be resolved:', overlay.id);
-      cblcarsLog.debug(`[TextOverlayRenderer] Position resolution failed for:`, {
-        overlayId: overlay.id,
-        position: overlay.position,
-        anchors: anchors
-      });
+      cblcarsLog.warn('[TextOverlayRenderer] ⚠️ Text overlay position could not be resolved:', overlay.id);
       return '';
     }
     const [x, y] = position;
 
     try {
       const style = overlay.finalStyle || overlay.style || {};
-      cblcarsLog.debug(`[TextOverlayRenderer] Style object for "${overlay.id}":`, style);
 
       const textStyle = this._resolveTextStyles(style, overlay.id);
 
@@ -86,8 +77,7 @@ export class TextOverlayRenderer {
       cblcarsLog.debug(`[TextOverlayRenderer] Final text content for "${overlay.id}": "${textContent}"`);
 
       if (!textContent) {
-        cblcarsLog.warn(`[TextOverlayRenderer] No text content for overlay ${overlay.id}`);
-        cblcarsLog.debug(`[TextOverlayRenderer] Content resolution chain failed - check the debug logs above`);
+        cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id}`);
         return '';
       }
       textStyle._cachedContent = textContent;
@@ -102,7 +92,7 @@ export class TextOverlayRenderer {
         this._buildEffects(textContent, x, y, textStyle, overlay.id)
       ].filter(Boolean);
 
-      cblcarsLog.debug(`[TextOverlayRenderer] Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`);
+      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
@@ -118,7 +108,7 @@ export class TextOverlayRenderer {
                 ${svgParts.join('\n')}
               </g>`;
     } catch (error) {
-      cblcarsLog.error(`[TextOverlayRenderer] Enhanced rendering failed for text ${overlay.id}:`, error);
+      cblcarsLog.error(`[TextOverlayRenderer] ❌ Enhanced rendering failed for text ${overlay.id}:`, error);
       return this._renderFallbackText(overlay, x, y);
     }
   }
@@ -248,14 +238,6 @@ export class TextOverlayRenderer {
    * @private
    */
   _resolveTextContent(overlay, style) {
-    cblcarsLog.debug(`[TextOverlayRenderer] Resolving text content for ${overlay.id}`);
-    cblcarsLog.debug(`[TextOverlayRenderer] Available sources:`, {
-      'style.value': style.value,
-      'overlay.text': overlay.text,
-      'overlay.content': overlay.content,
-      '_raw.content': overlay._raw?.content,
-      '_raw.text': overlay._raw?.text
-    });
 
     // Start with basic content resolution
     let content = style.value || overlay.text || overlay.content || '';
@@ -263,11 +245,9 @@ export class TextOverlayRenderer {
     // Check raw overlay configuration if content not found in standard properties
     if (!content && overlay._raw?.content) {
       content = overlay._raw.content;
-      cblcarsLog.debug(`[TextOverlayRenderer] Found content in _raw.content: "${content}"`);
     }
     if (!content && overlay._raw?.text) {
       content = overlay._raw.text;
-      cblcarsLog.debug(`[TextOverlayRenderer] Found content in _raw.text: "${content}"`);
     }
 
       // Check if we have a value_format and a DataSource reference
@@ -595,7 +575,7 @@ export class TextOverlayRenderer {
       return '';
     }
 
-    cblcarsLog.debug(`[TextOverlayRenderer] Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
+    cblcarsLog.debug(`[TextOverlayRenderer] 📐 Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
 
     // Measure text to get accurate dimensions
     const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
@@ -665,7 +645,7 @@ export class TextOverlayRenderer {
       hybrid_mode: textStyle.hybrid_mode
     };
 
-    cblcarsLog.debug(`[TextOverlayRenderer] Bracket config:`, bracketConfig);
+
 
     // Use BracketRenderer with measured text dimensions
     return BracketRenderer.render(bbox.width, bbox.height, bracketConfig, overlayId);
@@ -769,12 +749,6 @@ export class TextOverlayRenderer {
     // Get the SVG transform info for debugging and padding calculation
     const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
 
-    cblcarsLog.debug(`[TextOverlayRenderer] Transform info for ${overlayId}:`, {
-      transformInfo,
-      containerTag: this.container?.tagName,
-      hasSvg: !!this.container?.querySelector('svg')
-    });
-
     let bbox;
     if (textStyle.multiline) {
       // For multiline text, get measurements and let RendererUtils handle coordinate transformation
@@ -842,23 +816,7 @@ export class TextOverlayRenderer {
       };
     }
 
-    // Debug logging to trace coordinate issues
-    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator debug for ${overlayId}:`, {
-      textContent,
-      x, y,
-      textAnchor: textStyle.textAnchor,
-      dominantBaseline: textStyle.dominantBaseline,
-      position,
-      bbox,
-      fontSize: textStyle.fontSize,
-      hasContainer: !!this.container,
-      containerType: this.container?.tagName,
-      transformInfo: transformInfo ? {
-        scaleX: transformInfo.scaleX,
-        scaleY: transformInfo.scaleY,
-        viewBox: transformInfo.viewBox
-      } : null
-    });
+
 
     // Calculate indicator position based on actual text bounds (already in correct coordinate space)
     let indicatorX = x, indicatorY = y;
@@ -1130,7 +1088,7 @@ export class TextOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const fontSize = style.font_size || style.fontSize || 16;
 
-    cblcarsLog.warn(`[TextOverlayRenderer] Using fallback rendering for text ${overlay.id}`);
+    cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ Using fallback rendering for text ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
               <text x="${x}" y="${y}"
@@ -1189,7 +1147,7 @@ export class TextOverlayRenderer {
       }
 
     } catch (error) {
-      cblcarsLog.error(`[TextOverlayRenderer] Error updating text overlay ${overlay.id}:`, error);
+      cblcarsLog.error(`[TextOverlayRenderer] ❌ Error updating text overlay ${overlay.id}:`, error);
       return false;
     }
   }

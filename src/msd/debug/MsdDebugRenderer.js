@@ -1,10 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
-cblcarsLog.debug('Loading MsdDebugRenderer.js');
 
 /**
- * Phase 2: Debug visualization renderer
- * Shows anchor markers, overlay bounding boxes, routing guidelines, performance overlays.
- * Handles timing resilience for systems that may not be fully initialized at first render.
+ * [MsdDebugRenderer] Debug visualization renderer - shows anchor markers, overlay bounding boxes, routing guidelines
+ * 🔍 Provides comprehensive debug overlays with performance metrics and visual debugging aids
  */
 export class MsdDebugRenderer {
   constructor() {
@@ -48,7 +46,7 @@ export class MsdDebugRenderer {
    */
   setScale(scale = 1.0) {
     this.scale = Math.max(0.3, Math.min(3.0, scale)); // Clamp between reasonable bounds
-    cblcarsLog.debug(`[MsdDebugRenderer] Scale factor set to: ${this.scale}`);
+    cblcarsLog.debug(`[MsdDebugRenderer] 🔍 Scale factor set to: ${this.scale}`);
   }
 
   /**
@@ -102,7 +100,7 @@ export class MsdDebugRenderer {
     }
 
     // REDUCED: Only log when actually rendering features
-    cblcarsLog.debug('[MsdDebugRenderer] Rendering debug features', debugState);
+    cblcarsLog.debug('[MsdDebugRenderer] 🔍 Rendering debug features', debugState);
 
     // Render enabled features using DebugManager state
     if (debugState.anchors && opts.anchors) {
@@ -182,11 +180,13 @@ export class MsdDebugRenderer {
           cblcarsLog.debug(`[MsdDebugRenderer] No route info for overlay ${overlay.id}`);
         }
       } catch (error) {
-        cblcarsLog.warn(`[MsdDebugRenderer] Failed to render routing guide for ${overlay.id}:`, error);
+        cblcarsLog.warn(`[MsdDebugRenderer] ⚠️ Failed to render routing guide for ${overlay.id}:`, error);
       }
     });
 
-    cblcarsLog.debug(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
+    if (routeCount > 0) {
+      cblcarsLog.debug(`[MsdDebugRenderer] Rendered ${routeCount} routing guides`);
+    }
   }
 
   /**
@@ -580,8 +580,6 @@ export class MsdDebugRenderer {
           const textAnchor = renderedOverlay.getAttribute('data-text-anchor');
 
           if (width && height && width !== '0' && height !== '0') {
-            cblcarsLog.debug(`[MsdDebugRenderer] Using rendered dimensions for ${overlay.id}: ${width}x${height}, baseline: ${dominantBaseline}, anchor: ${textAnchor}`);
-
             // Calculate proper positions based on actual rendered attributes
             const textHeight = parseFloat(height);
             const textWidth = parseFloat(width);
@@ -617,7 +615,7 @@ export class MsdDebugRenderer {
             }
             // 'start' anchor keeps x as-is
 
-            cblcarsLog.debug(`[MsdDebugRenderer] Calculated bbox for ${overlay.id}: x=${adjustedX}, y=${adjustedY}, baseline=${actualBaseline}, anchor=${actualTextAnchor}`);
+
 
             return {
               x: adjustedX,
@@ -762,7 +760,7 @@ export class MsdDebugRenderer {
         height
       };
     } catch (error) {
-      cblcarsLog.warn(`[MsdDebugRenderer] Failed to calculate text dimensions for ${overlay.id}:`, error);
+      cblcarsLog.warn(`[MsdDebugRenderer] ⚠️ Failed to calculate text dimensions for ${overlay.id}:`, error);
       return { x, y, width: 100, height: 20 };
     }
   }

@@ -1,13 +1,8 @@
 import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 
 /**
- * TransformationProcessor - Base class for data transformations
- *
- * Features:
- * - Chainable transformations with configurable keys
- * - Type-safe transformation pipeline
- * - Error handling and fallback values
- * - Performance tracking
+ * [TransformationProcessor] Data transformation system - chainable transformations with type-safe pipeline
+ * 🔄 Features configurable keys, error handling, performance tracking, and comprehensive unit conversions
  */
 
 export class TransformationProcessor {
@@ -45,7 +40,7 @@ export class TransformationProcessor {
       return result;
     } catch (error) {
       this._stats.errors++;
-      cblcarsLog.warn(`[${this.constructor.name}] Transform failed:`, error);
+      cblcarsLog.warn(`[${this.constructor.name}] ⚠️ Transform failed:`, error);
       return this._getFallbackValue(value);
     }
   }

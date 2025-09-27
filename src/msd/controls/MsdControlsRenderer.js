@@ -1,6 +1,6 @@
 /**
- * Phase 4: Home Assistant card controls renderer
- * Handles HA card embedding with SVG foreignObject positioning for proper scaling
+ * [MsdControlsRenderer] Home Assistant card controls renderer - handles HA card embedding with SVG foreignObject positioning
+ * 🎮 Provides sophisticated card creation, HASS context management, and SVG-based positioning for proper scaling
  */
 
 import { PositionResolver } from '../renderer/PositionResolver.js';
@@ -19,7 +19,7 @@ export class MsdControlsRenderer {
     }
 
     // DEBUGGING: Log when MsdControlsRenderer is created
-    cblcarsLog.debug('[MsdControlsRenderer] Constructor called');
+    cblcarsLog.debug('[MsdControlsRenderer] 🎮 Constructor called');
   }
 
   setHass(hass) {
@@ -60,7 +60,7 @@ export class MsdControlsRenderer {
           this._applyHassToCard(cardElement, hass, overlayId);
         }
       } catch (error) {
-        cblcarsLog.warn('[MsdControlsRenderer] Failed to update HASS for control:', overlayId, error);
+            cblcarsLog.warn('[MsdControls] ❌ Config stored for deferred application:', overlayId);
       }
     }
   }
@@ -74,15 +74,7 @@ export class MsdControlsRenderer {
    * @param {string} controlId - Control identifier for logging
    */
   _applyHassToCard(card, hass, controlId) {
-      cblcarsLog.debug(`[MsdControlsRenderer] Updating HASS for ${controlId}:`, {
-          tagName: card.tagName,
-          isCustomButtonCard: card.tagName.toLowerCase().includes('button-card'),
-          hasConfig: !!card._config,
-          hasSetConfig: typeof card.setConfig === 'function',
-          currentHass: !!card.hass,
-          hasSetHass: typeof card.setHass === 'function',
-          entity: card._config?.entity || 'none'
-      });
+      // Debug reduced: Only log for CB-LCARS cards or when issues occur
 
       try {
           const tagName = card.tagName ? card.tagName.toLowerCase() : '';
@@ -485,11 +477,9 @@ export class MsdControlsRenderer {
 
   // ADDED: Create custom cards (extracted from existing logic)
   async _createCustomCard(normalizedCardType, cardDef, overlay) {
-    cblcarsLog.debug('[MsdControls] Starting custom card creation strategies for:', normalizedCardType);
     let cardElement = null;
 
     // Strategy 1: Try direct custom element creation
-    cblcarsLog.debug('[MsdControls] Strategy 1: Attempting direct custom element creation for:', normalizedCardType);
     if (window.customElements && typeof window.customElements.get === 'function') {
       try {
         const CardClass = window.customElements.get(normalizedCardType);
@@ -497,13 +487,10 @@ export class MsdControlsRenderer {
           cardElement = new CardClass();
           cblcarsLog.debug('[MsdControls] ✅ Strategy 1 SUCCESS: Created via constructor:', normalizedCardType);
         } else {
-          cblcarsLog.debug('[MsdControls] ❌ Strategy 1 FAILED: No custom element found for:', normalizedCardType);
         }
       } catch (e) {
-        cblcarsLog.debug('[MsdControls] ❌ Strategy 1 FAILED: Constructor error for', normalizedCardType, ':', e.message);
+        cblcarsLog.debug('[MsdControls] Strategy 1 failed:', normalizedCardType, e.message);
       }
-    } else {
-      cblcarsLog.debug('[MsdControls] ❌ Strategy 1 SKIPPED: customElements not available');
     }
 
     // Strategy 2: Try document.createElement with normalized type
@@ -787,7 +774,7 @@ export class MsdControlsRenderer {
    */
   async _applyHassContext(cardElement, overlayId) {
     if (!this.hass) {
-      cblcarsLog.warn('[MsdControls] No HASS context available for:', overlayId);
+      cblcarsLog.warn('[MsdControls] ⚠️ No HASS context available for:', overlayId);
       return false;
     }
 

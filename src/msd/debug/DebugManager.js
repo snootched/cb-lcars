@@ -1,9 +1,10 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * @file DebugManager.js
- * @description Centralized debug state manager with proper initialization ordering
- */
+ * [DebugManager] Centralized debug state manager - manages debug feature states with proper initialization ordering
+ * 🎛️ Provides centralized control for debug features with reactive state management and callback syste        if (this.state[feature] !== enabled) {
+          cblcarsLog.debug(`[DebugManager] 🎛️ Setting ${feature} to ${enabled}`);
+          this.state[feature] = enabled;*/
 export class DebugManager {
   constructor() {
     /** @type {Object} Debug feature states */
@@ -42,7 +43,7 @@ export class DebugManager {
   init(debugConfig = {}) {
     // REDUCED: Only log if debug is actually enabled
     if (debugConfig && Object.keys(debugConfig).length > 0) {
-      cblcarsLog.debug('[DebugManager] Initializing with config:', debugConfig);
+      cblcarsLog.debug('[DebugManager] 🎛️ Initializing with config:', debugConfig);
     }
 
     // FIXED: Apply initial config - handle both flat and nested structures
@@ -268,7 +269,7 @@ export class DebugManager {
       try {
         callback(event);
       } catch (error) {
-        cblcarsLog.warn('[DebugManager] Callback error:', error);
+        cblcarsLog.warn('[DebugManager] ⚠️ Callback error:', error);
       }
     });
   }
@@ -281,7 +282,7 @@ export class DebugManager {
    */
   _setFeature(feature, enabled) {
     if (!this.state.hasOwnProperty(feature) || feature === 'scale') {
-      cblcarsLog.warn(`[DebugManager] Invalid debug feature: ${feature}`);
+      cblcarsLog.warn(`[DebugManager] ⚠️ Invalid debug feature: ${feature}`);
       return;
     }
 
@@ -296,7 +297,7 @@ export class DebugManager {
           try {
             const pipelineInstance = window.__msdDebug?.pipelineInstance;
             if (pipelineInstance?.reRender) {
-              cblcarsLog.debug(`[DebugManager] Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
+              cblcarsLog.debug(`[DebugManager] 🔄 Auto re-render after ${feature} ${enabled ? 'enable' : 'disable'}`);
               pipelineInstance.reRender();
             }
           } catch (error) {

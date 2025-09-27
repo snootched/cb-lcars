@@ -1,8 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * Shared Renderer Utilities - Common functionality for all renderers
- * Provides reusable components for gradients, patterns, filters, and effects
+ * [RendererUtils] Shared renderer utilities - common functionality for all renderers
+ * 🛠️ Provides reusable components for gradients, patterns, filters, and effects
  */
 
 export class RendererUtils {
@@ -58,7 +58,7 @@ export class RendererUtils {
         pixelToViewBox: (pixelSize) => pixelSize * Math.max(scaleX, scaleY)
       };
     } catch (error) {
-      cblcarsLog.warn('[RendererUtils] Failed to get SVG transform info:', error);
+      cblcarsLog.warn('[RendererUtils] ⚠️ Failed to get SVG transform info:', error);
       return null;
     }
   }
@@ -129,7 +129,7 @@ export class RendererUtils {
     const transformInfo = this._getSvgTransformInfo(containerElement);
     if (!transformInfo) {
       // No transformation available - return original metrics
-      cblcarsLog.warn('[RendererUtils] No transform info available, using pixel metrics');
+      cblcarsLog.warn('[RendererUtils] ⚠️ No transform info available, using pixel metrics');
       return metrics;
     }
 
@@ -145,20 +145,7 @@ export class RendererUtils {
       actualRight: pixelToViewBox(metrics.actualRight)
     };
 
-    cblcarsLog.debug('[RendererUtils] Transformed text metrics:', {
-      original: {
-        width: metrics.width,
-        height: metrics.height
-      },
-      transformed: {
-        width: transformed.width,
-        height: transformed.height
-      },
-      scaleInfo: {
-        scaleX: transformInfo.scaleX,
-        scaleY: transformInfo.scaleY
-      }
-    });
+
 
     return transformed;
   }
@@ -250,20 +237,7 @@ export class RendererUtils {
       centerY: top + metrics.height / 2
     };
 
-    cblcarsLog.debug('[RendererUtils] Text bounding box calculation:', {
-      text: text.substring(0, 20) + (text.length > 20 ? '...' : ''),
-      inputPosition: { x, y },
-      textAnchor,
-      dominantBaseline,
-      metrics: {
-        width: metrics.width,
-        height: metrics.height,
-        ascent: metrics.ascent,
-        descent: metrics.descent
-      },
-      bbox,
-      hasContainer: !!containerElement
-    });
+
 
     return bbox;
   }
@@ -360,7 +334,7 @@ export class RendererUtils {
       const computed = window.getComputedStyle(target).fontFamily;
       if (computed && computed !== 'inherit') return computed;
     } catch (e) {
-      cblcarsLog.warn('[RendererUtils] resolveFontFamily failed:', e);
+      cblcarsLog.warn('[RendererUtils] ⚠️ resolveFontFamily failed:', e);
     }
     return 'Arial, sans-serif';
   }

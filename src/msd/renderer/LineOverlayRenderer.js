@@ -1,8 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * Line Overlay Renderer - Advanced line rendering with comprehensive styling support
- * Leverages RouterCore's sophisticated path computation and adds rich visual features
+ * [LineOverlayRenderer] Line overlay renderer - advanced line rendering with comprehensive styling support
+ * 📏 Leverages RouterCore's sophisticated path computation and adds rich visual features
  */
 
 import { PositionResolver } from './PositionResolver.js';
@@ -24,7 +24,7 @@ export class LineOverlayRenderer {
     // Keep backward compatibility
     this.textAttachmentPoints = overlayAttachmentPoints;
 
-    cblcarsLog.debug('[LineOverlayRenderer] Updated with unified attachment points:',
+    cblcarsLog.debug('[LineOverlayRenderer] 📏 Updated with unified attachment points:',
       overlayAttachmentPoints ? overlayAttachmentPoints.size : 0, 'overlay(s)');
   }
 
@@ -37,7 +37,7 @@ export class LineOverlayRenderer {
    */
   render(overlay, anchors, viewBox) {
     if (!this.routerCore) {
-      cblcarsLog.error('[LineOverlayRenderer] RouterCore not available for line rendering');
+      cblcarsLog.error('[LineOverlayRenderer] ❌ RouterCore not available for line rendering');
       return '';
     }
 
@@ -48,31 +48,11 @@ export class LineOverlayRenderer {
     if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.anchor)) {
       const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
       if (sourceAttachmentPoints && sourceAttachmentPoints.points) {
-        cblcarsLog.debug(`[LineOverlayRenderer] Found source overlay attachment points for: ${overlay.anchor}`);
-
-        cblcarsLog.debug(`[LineOverlayRenderer] Overlay object properties:`, {
-          id: overlay.id,
-          anchor: overlay.anchor,
-          anchor_side: overlay.anchor_side,
-          attach_to: overlay.attach_to,
-          attach_side: overlay.attach_side,
-          allKeys: Object.keys(overlay),
-          rawObject: overlay
-        });
+        cblcarsLog.debug(`[LineOverlayRenderer] 📏 Found source overlay attachment points for: ${overlay.anchor}`);
 
         const anchorSide = overlay.anchor_side || 'center';
-        cblcarsLog.debug(`[LineOverlayRenderer] anchor_side resolution:`, {
-          rawValue: overlay.anchor_side,
-          finalValue: anchorSide,
-          typeOfRaw: typeof overlay.anchor_side
-        });
 
-        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);        cblcarsLog.debug(`[LineOverlayRenderer] Source attachment resolution:`, {
-          overlayId: overlay.anchor,
-          requestedSide: anchorSide,
-          availablePoints: Object.keys(sourceAttachmentPoints.points),
-          resolvedPoint: sourcePoint
-        });
+        const sourcePoint = this._resolveAttachmentPoint(sourceAttachmentPoints.points, anchorSide);
 
         if (sourcePoint) {
           // Apply gap offset if specified
@@ -86,11 +66,11 @@ export class LineOverlayRenderer {
 
           cblcarsLog.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
         } else {
-          cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
+          cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
           anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
         }
       } else {
-        cblcarsLog.warn(`[LineOverlayRenderer] No attachment points found for source overlay: ${overlay.anchor}`);
+        cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ No attachment points found for source overlay: ${overlay.anchor}`);
         anchor = PositionResolver.resolvePosition(overlay.anchor, anchors);
       }
     } else {
@@ -101,11 +81,7 @@ export class LineOverlayRenderer {
     // PRIORITIZE: Check overlay attachment points first, then fall back to static anchors
     let anchor2 = null;
 
-    cblcarsLog.debug(`[LineOverlayRenderer] Target resolution debug for ${overlay.id}:`, {
-      attach_to: overlay.attach_to,
-      hasOverlayAttachmentPoints: !!(this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)),
-      overlayAttachmentPointsSize: this.overlayAttachmentPoints ? this.overlayAttachmentPoints.size : 0
-    });
+
 
     // Check for overlay attachment points FIRST (prioritize over static anchors)
     if (overlay.attach_to && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)) {
@@ -115,13 +91,6 @@ export class LineOverlayRenderer {
 
         const attachSide = overlay.attach_side || 'center';
         const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
-
-        cblcarsLog.debug(`[LineOverlayRenderer] Target attachment resolution:`, {
-          overlayId: overlay.attach_to,
-          requestedSide: attachSide,
-          availablePoints: Object.keys(targetAttachmentPoints.points),
-          resolvedPoint: targetPoint
-        });
 
         if (targetPoint) {
           // Apply gap offset if specified
@@ -158,7 +127,7 @@ export class LineOverlayRenderer {
 
     // Validate anchor is properly resolved
     if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
-      cblcarsLog.error(`[LineOverlayRenderer] Invalid anchor for ${overlay.id}:`, {
+      cblcarsLog.error(`[LineOverlayRenderer] ❌ Invalid anchor for ${overlay.id}:`, {
         anchor,
         type: typeof anchor,
         isArray: Array.isArray(anchor)
@@ -180,7 +149,7 @@ export class LineOverlayRenderer {
       const pathResult = this.routerCore.computePath(routeRequest);
 
       if (!pathResult?.d) {
-        cblcarsLog.warn(`[LineOverlayRenderer] No path computed for line ${overlay.id}`);
+        cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ No path computed for line ${overlay.id}`);
         return '';
       }
 
@@ -197,7 +166,7 @@ export class LineOverlayRenderer {
         this._buildEffects(pathResult, lineStyle, overlay.id)
       ].filter(Boolean);
 
-      cblcarsLog.debug(`[LineOverlayRenderer] Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
+      cblcarsLog.debug(`[LineOverlayRenderer] 📏 Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="line"
@@ -207,7 +176,7 @@ export class LineOverlayRenderer {
               </g>`;
 
     } catch (error) {
-      cblcarsLog.error(`[LineOverlayRenderer] Enhanced rendering failed for line ${overlay.id}:`, error);
+      cblcarsLog.error(`[LineOverlayRenderer] ❌ Enhanced rendering failed for line ${overlay.id}:`, error);
       return this._renderFallbackLine(overlay, anchor, anchor2);
     }
   }
@@ -742,7 +711,7 @@ export class LineOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const width = style.width || 2;
 
-    cblcarsLog.warn(`[LineOverlayRenderer] Using fallback rendering for line ${overlay.id}`);
+    cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ Using fallback rendering for line ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="line" data-fallback="true">
               <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
@@ -862,11 +831,7 @@ export class LineOverlayRenderer {
       return null;
     }
 
-    cblcarsLog.debug(`[LineOverlayRenderer] Resolving attachment point:`, {
-      requestedSide: side,
-      availablePoints: Object.keys(points),
-      pointsData: points
-    });
+
 
     // Try exact side match first
     if (points[side]) {
@@ -920,7 +885,7 @@ export class LineOverlayRenderer {
       return firstPoint;
     }
 
-    cblcarsLog.error(`[LineOverlayRenderer] No attachment points available for side '${side}'`);
+    cblcarsLog.error(`[LineOverlayRenderer] ❌ No attachment points available for side '${side}'`);
     return null;
   }
 

@@ -1,7 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * Position Resolver - Utility for resolving positions and anchor points
+ * [PositionResolver] Position resolver - utility for resolving positions and anchor points
+ * 📍 Handles coordinate resolution and anchor point calculations
  */
 
 export class PositionResolver {
@@ -17,7 +18,7 @@ export class PositionResolver {
       }
     }
 
-    cblcarsLog.warn('[PositionResolver] Could not resolve position:', position);
+    cblcarsLog.warn('[PositionResolver] ⚠️ Could not resolve position:', position);
     return null;
   }
 }

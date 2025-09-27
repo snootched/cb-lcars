@@ -1,3 +1,8 @@
+/**
+ * [RulesEngine] Rules evaluation system - processes rules with DataSource integration and performance tracing
+ * 🧠 Features dependency tracking, conditional evaluation, overlay patching, and comprehensive rule tracing
+ */
+
 import { perfTime, perfCount } from '../util/performance.js';
 import { globalTraceBuffer } from './RuleTraceBuffer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
@@ -211,7 +216,7 @@ export class RulesEngine {
       }
 
       if (!getEntity || typeof getEntity !== 'function') {
-        cblcarsLog.warn('[RulesEngine] evaluateDirty called without getEntity function and no DataSourceManager available');
+        cblcarsLog.warn('[RulesEngine] ⚠️ evaluateDirty called without getEntity function and no DataSourceManager available');
         return this.createEmptyResult();
       }
 
@@ -312,7 +317,7 @@ export class RulesEngine {
         { error: error.message }
       );
 
-      cblcarsLog.warn(`[RulesEngine] Error evaluating rule ${rule.id}:`, error);
+      cblcarsLog.warn(`[RulesEngine] ⚠️ Error evaluating rule ${rule.id}:`, error);
       return {
         ruleId: rule.id,
         matched: false,
@@ -522,7 +527,7 @@ export class RulesEngine {
 
       return null;
     } catch (error) {
-      cblcarsLog.warn(`[RulesEngine] Error resolving DataSource reference '${dataSourceRef}':`, error);
+      cblcarsLog.warn(`[RulesEngine] ⚠️ Error resolving DataSource reference '${dataSourceRef}':`, error);
       return null;
     }
   }  determineMatch(when, conditions) {
@@ -708,7 +713,7 @@ export class RulesEngine {
    * @param {Object} dataSourceManager - DataSourceManager instance
    */
   setDataSourceManager(dataSourceManager) {
-    cblcarsLog.debug(`[RulesEngine] Setting DataSourceManager:`, dataSourceManager);
+    cblcarsLog.debug(`[RulesEngine] Setting DataSourceManager with ${Object.keys(dataSourceManager?.sources || {}).length} sources`);
     this.dataSourceManager = dataSourceManager;
 
     // Rebuild dependency index to include DataSource references
@@ -717,7 +722,7 @@ export class RulesEngine {
     // Mark all rules dirty since DataSource conditions might now be evaluable
     this.markAllDirty();
 
-    cblcarsLog.debug(`[RulesEngine] DataSourceManager set, rebuilding dependencies and marking rules dirty`);
+    cblcarsLog.debug(`[RulesEngine] DataSourceManager set, rebuilt dependencies and marked ${this.dirtyRules.size} rules dirty`);
   }
 
   getRuleDependencies(ruleId) {

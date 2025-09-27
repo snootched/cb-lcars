@@ -1,13 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * RollingBuffer - Efficient circular buffer for time-series data
- *
- * Features:
- * - Fixed capacity with automatic overflow handling
- * - Time-based slicing for windowed data access
- * - Optimized for sparkline/ribbon real-time updates
- * - Memory efficient - no array reallocations during normal operation
+ * [RollingBuffer] Circular buffer for time-series data - efficient storage with automatic overflow handling
+ * 🔄 Features fixed capacity, time-based slicing, and memory-efficient operations for real-time updates
  */
 export class RollingBuffer {
   constructor(capacity = 100) {
@@ -51,18 +46,18 @@ export class RollingBuffer {
 
     // Check for reasonable timestamp range
     if (timestamp < oneYearAgo || timestamp > oneHourFromNow) {
-      cblcarsLog.debug(`[RollingBuffer] Suspicious timestamp: ${timestamp} (${new Date(timestamp).toISOString()}), current: ${now} (${new Date(now).toISOString()})`);
+      cblcarsLog.debug(`[RollingBuffer] ⚠️ Suspicious timestamp: ${timestamp} (${new Date(timestamp).toISOString()})`);
       // Don't reject, but log for debugging
     }
 
     // Validate inputs
     if (!Number.isFinite(timestamp) || timestamp < 0) {
-      cblcarsLog.debug('[RollingBuffer] Invalid timestamp:', timestamp);
+      cblcarsLog.debug('[RollingBuffer] ⚠️ Invalid timestamp:', timestamp);
       return;
     }
 
     if (typeof value !== 'number' || !isFinite(value)) {
-      cblcarsLog.debug(`[RollingBuffer] Invalid value: ${value} for timestamp ${timestamp}`);
+      cblcarsLog.debug(`[RollingBuffer] ⚠️ Invalid value: ${value} for timestamp ${timestamp}`);
       return;
     }
 
@@ -314,7 +309,7 @@ export class RollingBuffer {
     }
 
     if (issues.length > 0) {
-      cblcarsLog.warn('[RollingBuffer] Consistency issues:', issues);
+      cblcarsLog.warn('[RollingBuffer] ⚠️ Consistency issues:', issues);
       return false;
     }
 

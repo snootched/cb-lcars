@@ -1,6 +1,6 @@
 /**
- * Advanced Renderer - Clean implementation for MSD v1
- * Main orchestrator that delegates to specialized renderers
+ * [AdvancedRenderer] Advanced renderer - clean implementation for MSD v1
+ * 🎨 Main orchestrator that delegates to specialized renderers
  */
 
 
@@ -32,41 +32,19 @@ export class AdvancedRenderer {
   }
 
   render(resolvedModel) {
-
-    cblcarsLog.debug('[AdvancedRenderer] 🎨 AdvancedRenderer.render() ENTRY:', {
-      timestamp: new Date().toISOString(),
-      hasResolvedModel: !!resolvedModel,
-      overlayCount: resolvedModel?.overlays?.length || 0,
-      anchorCount: resolvedModel?.anchors ? Object.keys(resolvedModel.anchors).length : 0,
-      hasViewBox: !!resolvedModel?.viewBox,
-      mountElExists: !!this.mountEl,
-      stackTrace: new Error().stack.split('\n').slice(1, 3).join('\n')
-    });
-
     if (!resolvedModel) {
-      cblcarsLog.info('[AdvancedRenderer] ❌ AdvancedRenderer.render() - No resolved model provided');
+      cblcarsLog.warn('[AdvancedRenderer] ⚠️ No resolved model provided');
       return { svgMarkup: '', overlayCount: 0 };
     }
     const { overlays = [], anchors = {}, viewBox } = resolvedModel;
-    cblcarsLog.debug(`[AdvancedRenderer] 🎨 AdvancedRenderer processing:`, {
-      overlayCount: overlays.length,
-      overlayTypes: overlays.map(o => o.type),
-      anchorCount: Object.keys(anchors).length,
-      viewBox
-    });
+    cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering ${overlays.length} overlays, ${Object.keys(anchors).length} anchors`);
     this.overlayElements.clear();
     // Phase rendering requires live SVG early
     const svg = this.mountEl?.querySelector('svg');
     if (!svg) {
-      cblcarsLog.info('[AdvancedRenderer] ❌ AdvancedRenderer.render() - SVG element not found in container:', {
-        mountEl: this.mountEl,
-        mountElTagName: this.mountEl?.tagName,
-        mountElChildren: this.mountEl?.children?.length || 0
-      });
+      cblcarsLog.warn('[AdvancedRenderer] ❌ SVG element not found in container');
       return { svgMarkup: '', overlayCount: 0 };
     }
-
-    cblcarsLog.debug('[AdvancedRenderer] ✅ SVG element found, proceeding with overlay rendering');
 
     // Prepare / clear overlay group
     const overlayGroup = this._ensureOverlayGroup(svg);
@@ -103,7 +81,7 @@ export class AdvancedRenderer {
         }
         processedCount++;
       } catch (e) {
-        cblcarsLog.info('[AdvancedRenderer] Phase1 failed for', ov.id, e);
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase1 render failed for overlay ${ov.id}:`, e);
       }
     });
     overlayGroup.innerHTML = svgMarkupAccum;
@@ -141,14 +119,14 @@ export class AdvancedRenderer {
                 );
                 this.routerCore.computePath(req);
               } catch (e) {
-                cblcarsLog.info('[AdvancedRenderer] Overlay-destination route registration failed', ov.id, e);
+                cblcarsLog.debug('[AdvancedRenderer] 🔗 Route registration failed for overlay', ov.id, e);
               }
             }
           }
         }
         processedCount++;
       } catch (e) {
-        cblcarsLog.info('[AdvancedRenderer] Phase2 failed for', ov.id, e);
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase2 render failed for overlay ${ov.id}:`, e);
       }
     });
 
@@ -156,7 +134,10 @@ export class AdvancedRenderer {
       total: this.overlayElementCache.size,
       text: overlayGroup.querySelectorAll('[data-overlay-type="text"]').length,
       lines: overlayGroup.querySelectorAll('[data-overlay-type="line"]').length,
-      sparklines: overlayGroup.querySelectorAll('[data-overlay-type="sparkline"]').length
+      sparklines: overlayGroup.querySelectorAll('[data-overlay-type="sparkline"]').length,
+      status_grid: overlayGroup.querySelectorAll('[data-overlay-type="status_grid"]').length,
+      history_bars: overlayGroup.querySelectorAll('[data-overlay-type="history_bar"]').length,
+      controls: overlayGroup.querySelectorAll('[data-overlay-type="control"]').length
     });
 
     // NEW: schedule deferred line refresh to fix first-load orientation/position
@@ -291,11 +272,7 @@ export class AdvancedRenderer {
       }
     };
 
-    cblcarsLog.debug(`[AdvancedRenderer] Created attachment points for ${type} ${overlay.id}:`, {
-      center: attachmentPoints.center,
-      bbox: attachmentPoints.bbox,
-      availablePoints: Object.keys(attachmentPoints.points)
-    });
+    cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created attachment points for ${type} ${overlay.id}`);
 
     return attachmentPoints;
   }  _ensureOverlayGroup(svg) {
@@ -502,7 +479,7 @@ export class AdvancedRenderer {
               return g && g.getAttribute('data-font-stabilized') !== '1';
             });
           if (remaining) {
-            cblcarsLog.debug('[AdvancedRenderer] Running safety stabilization pass');
+            cblcarsLog.debug('[AdvancedRenderer] 🔤 Running safety stabilization pass');
             pass = 0;
             requestAnimationFrame(run);
           }
@@ -552,7 +529,7 @@ export class AdvancedRenderer {
 
   renderOverlay(overlay, anchors, viewBox) {
     if (!overlay || !overlay.type) {
-      cblcarsLog.info('[AdvancedRenderer] Invalid overlay - missing type:', overlay);
+      cblcarsLog.warn('[AdvancedRenderer] ⚠️ Invalid overlay - missing type:', overlay);
       return '';
     }
 
@@ -572,17 +549,6 @@ export class AdvancedRenderer {
 
     switch (overlay.type) {
       case 'text':
-        // DEBUG: Check what overlay object is being passed to TextOverlayRenderer
-        if (overlay.id === 'title_overlay') {
-          cblcarsLog.debug('[AdvancedRenderer] 🔍 Passing title_overlay to TextOverlayRenderer:', {
-            id: overlay.id,
-            color: overlay.style?.color,
-            status_indicator: overlay.style?.status_indicator,
-            finalStyleColor: overlay.finalStyle?.color,
-            finalStyleStatusIndicator: overlay.finalStyle?.status_indicator
-          });
-        }
-
         // Update (in case dynamic overlays later): recompute & refresh map
         const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
         if (ap) this.textAttachmentPoints.set(overlay.id, ap);
@@ -595,7 +561,7 @@ export class AdvancedRenderer {
         return this.lineRenderer.render(overlay, completeAnchors, viewBox);
       case 'control':
         // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
-        cblcarsLog.debug('[AdvancedRenderer] Control overlay detected, skipping SVG rendering:', overlay.id);
+        cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
         return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
       case 'status_grid':
         return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
@@ -634,7 +600,6 @@ export class AdvancedRenderer {
         const overlayId = element.getAttribute('data-overlay-id');
         if (overlayId) {
           this.overlayElementCache.set(overlayId, element);
-          cblcarsLog.debug(`[AdvancedRenderer] Cached element for overlay: ${overlayId}`);
         }
       });
 
@@ -663,15 +628,6 @@ export class AdvancedRenderer {
    * @param {Object} sourceData - Data from the data source
    */
   updateOverlayData(overlayId, sourceData) {
-    cblcarsLog.debug('[AdvancedRenderer] updateOverlayData called:', {
-      overlayId,
-      hasSourceData: !!sourceData,
-      sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
-      hasBuffer: !!(sourceData?.buffer),
-      bufferSize: sourceData?.buffer?.size?.() || 0,
-      hasCachedElement: this.overlayElementCache.has(overlayId)
-    });
-
     if (!sourceData) {
       cblcarsLog.info('[AdvancedRenderer] updateOverlayData: Missing sourceData');
       return;
@@ -935,7 +891,6 @@ export class AdvancedRenderer {
    */
   updateStatusGrid(overlayId, updatedCells) {
     cblcarsLog.debug(`[AdvancedRenderer] DEPRECATED: updateStatusGrid() called. Use StatusGridRenderer.updateGridData() instead.`);
-    cblcarsLog.debug(`[AdvancedRenderer] Updating status grid ${overlayId} with ${updatedCells.length} cells`);
 
     // Use cached overlay element instead of DOM query
     const gridElement = this.overlayElementCache.get(overlayId);
@@ -943,9 +898,6 @@ export class AdvancedRenderer {
       cblcarsLog.info(`[AdvancedRenderer] Cached status grid element not found: ${overlayId}`);
       return;
     }
-
-    // For now, log the update and add a simple visual indication
-    cblcarsLog.debug(`[AdvancedRenderer] Status grid ${overlayId} cells updated:`, updatedCells);
 
     // Add visual indication that the grid was updated
     const timestamp = new Date().toISOString();
@@ -1002,10 +954,7 @@ export class AdvancedRenderer {
       // Also create a default virtual anchor using the center point
       anchorMap[overlay.id] = attachmentPoints.center;
 
-      cblcarsLog.debug(`[AdvancedRenderer] Created virtual anchors for overlay ${overlay.id}:`, {
-        center: attachmentPoints.center,
-        points: Object.keys(attachmentPoints.points).length
-      });
+      cblcarsLog.debug(`[AdvancedRenderer] 🔗 Created virtual anchors for overlay ${overlay.id}`);
     });
   }
 

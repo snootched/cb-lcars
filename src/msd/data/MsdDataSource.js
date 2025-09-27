@@ -1,13 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * MsdDataSource - Complete port of cb-lcars-data.js DataSource functionality
- *
- * Provides real-time Home Assistant entity subscriptions with:
- * - Coalescing and throttling for performance
- * - History preload capability
- * - Rolling buffer management
- * - Identical API and behavior to original implementation
+ * [MsdDataSource] Data source implementation - provides real-time Home Assistant entity subscriptions
+ * 📈 Features coalescing/throttling, history preload, rolling buffer management, and transformation processing
  */
 
 import { RollingBuffer } from './RollingBuffer.js';
@@ -30,7 +25,7 @@ export class MsdDataSource {
 
     // Validate essential config
     if (!this.cfg.entity) {
-      cblcarsLog.debug('[MsdDataSource] No entity specified in config');
+      cblcarsLog.debug('[MsdDataSource] ⚠️ No entity specified in config');
       this.cfg.entity = '';
     }
 
@@ -124,7 +119,7 @@ export class MsdDataSource {
           this.transformedBuffers.set(key, new RollingBuffer(capacity));
           cblcarsLog.debug(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
         } catch (error) {
-          cblcarsLog.error(`[MsdDataSource] Failed to initialize transformation ${transformConfig.type}:`, error);
+          cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize transformation ${transformConfig.type}:`, error);
         }
       });
     }
@@ -140,7 +135,7 @@ export class MsdDataSource {
 
           cblcarsLog.debug(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
         } catch (error) {
-          cblcarsLog.error(`[MsdDataSource] Failed to initialize aggregation ${type}:`, error);
+          cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize aggregation ${type}:`, error);
         }
       });
     }
@@ -365,7 +360,7 @@ export class MsdDataSource {
 
   async _preloadHistory() {
     if (!this.hass?.connection || !this.cfg.entity) {
-      cblcarsLog.warn('[MsdDataSource] No HASS connection or entity for history preload');
+      cblcarsLog.warn('[MsdDataSource] ⚠️ No HASS connection or entity for history preload');
       return;
     }
 
@@ -403,7 +398,7 @@ export class MsdDataSource {
         return; // Success with statistics
       }
     } catch (error) {
-      cblcarsLog.warn('[MsdDataSource] Statistics failed, trying state history:', error.message);
+      cblcarsLog.warn('[MsdDataSource] ⚠️ Statistics failed, trying state history:', error.message);
     }
 
     // Fallback: try state history via WebSocket
@@ -441,10 +436,10 @@ export class MsdDataSource {
 
         cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
       } else {
-        cblcarsLog.warn('[MsdDataSource] No history data returned from WebSocket call');
+        cblcarsLog.warn('[MsdDataSource] ⚠️ No history data returned from WebSocket call');
       }
     } catch (error) {
-      cblcarsLog.error('[MsdDataSource] WebSocket state history also failed:', error);
+      cblcarsLog.error('[MsdDataSource] ❌ WebSocket state history also failed:', error);
 
       // Final fallback: try direct REST API if available
       await this._preloadHistoryREST(startTime, endTime);
@@ -489,7 +484,7 @@ export class MsdDataSource {
         cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
       }
     } catch (error) {
-      cblcarsLog.error('[MsdDataSource] REST history fallback also failed:', error);
+      cblcarsLog.error('[MsdDataSource] ❌ REST history fallback also failed:', error);
     }
   }
 
@@ -501,16 +496,13 @@ export class MsdDataSource {
     // Enhanced _handleStateChange method
   _handleStateChange(eventData) {
 
-    cblcarsLog.debug('[MsdDataSource] State change for', this.cfg.entity, ':', eventData?.new_state?.state);
-
     if (!eventData?.new_state || this._destroyed) {
-      cblcarsLog.debug('[MsdDataSource] Skipping state change - no new state or destroyed');
       return;
     }
 
     // Safety check: ensure buffer exists and has required methods
     if (!this.buffer || typeof this.buffer.push !== 'function') {
-      cblcarsLog.error('[MsdDataSource] Buffer not properly initialized for', this.cfg.entity);
+      cblcarsLog.error('[MsdDataSource] ❌ Buffer not properly initialized for', this.cfg.entity);
       return;
     }
 
@@ -520,7 +512,6 @@ export class MsdDataSource {
     // ENHANCED: Capture and store unit_of_measurement from the entity
     if (eventData.new_state.attributes?.unit_of_measurement) {
       this.cfg.unit_of_measurement = eventData.new_state.attributes.unit_of_measurement;
-      cblcarsLog.debug(`[MsdDataSource] Captured unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
     }
 
     // FIXED: Use current timestamp instead of state timestamp
@@ -528,7 +519,7 @@ export class MsdDataSource {
 
     // Validate timestamp
     if (!Number.isFinite(timestamp)) {
-      cblcarsLog.error('[MsdDataSource] Invalid timestamp generated:', timestamp);
+      cblcarsLog.error('[MsdDataSource] ❌ Invalid timestamp generated:', timestamp);
       return;
     }
     const rawValue = this.cfg.attribute
@@ -538,8 +529,6 @@ export class MsdDataSource {
     const value = this._toNumber(rawValue);
 
     if (value !== null) {
-      cblcarsLog.debug(`[MsdDataSource] Processing state change for ${this.cfg.entity}: ${value} (${this.subscribers.size} subscribers)`);
-
     // Store in raw buffer
     this.buffer.push(timestamp, value);
 
@@ -551,7 +540,7 @@ export class MsdDataSource {
       try {
         processor.update(timestamp, value, transformedData);
       } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Aggregation ${key} update failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] ⚠️ Aggregation ${key} update failed:`, error);
       }
     });
 
@@ -623,7 +612,7 @@ export class MsdDataSource {
       try {
         callback(data);
       } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Subscriber callback error:`, error);
+        cblcarsLog.warn(`[MsdDataSource] ⚠️ Subscriber callback error:`, error);
       }
     });
   }
@@ -646,7 +635,7 @@ export class MsdDataSource {
       }, 'state_changed');
 
     } catch (error) {
-      cblcarsLog.warn('[MsdDataSource] Failed to subscribe to HA events:', error.message);
+      cblcarsLog.warn('[MsdDataSource] ⚠️ Failed to subscribe to HA events:', error.message);
     }
   }
 
@@ -1044,7 +1033,7 @@ export class MsdDataSource {
       try {
         this.haUnsubscribe();
       } catch (error) {
-        cblcarsLog.warn('[MsdDataSource] HA unsubscribe error:', error);
+        cblcarsLog.warn('[MsdDataSource] ⚠️ HA unsubscribe error:', error);
       }
       this.haUnsubscribe = null;
     }
@@ -1139,20 +1128,17 @@ export class MsdDataSource {
         const transformedValue = processor.transform(value, timestamp, this.buffer);
         results[key] = transformedValue;
 
-        cblcarsLog.debug(`[MsdDataSource] Transformation ${key}: ${value} -> ${transformedValue}`);
-
         // Cache transformed historical data if the value is valid
         if (transformedValue !== null && Number.isFinite(transformedValue)) {
           const buffer = this.transformedBuffers.get(key);
           if (buffer) {
             buffer.push(timestamp, transformedValue);
-            cblcarsLog.debug(`[MsdDataSource] Cached ${key} value ${transformedValue} in buffer (size: ${buffer.size()})`);
           } else {
-            cblcarsLog.warn(`[MsdDataSource] No buffer found for transformation ${key}`);
+            cblcarsLog.warn(`[MsdDataSource] ⚠️ No buffer found for transformation ${key}`);
           }
         }
       } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Transformation ${key} failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] ⚠️ Transformation ${key} failed:`, error);
         results[key] = null;
       }
     });

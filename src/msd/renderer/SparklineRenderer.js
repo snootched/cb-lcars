@@ -1,6 +1,6 @@
 /**
- * Enhanced Sparkline Renderer - Advanced sparkline rendering with comprehensive styling support
- * Provides rich sparkline styling features similar to LineOverlayRenderer and TextOverlayRenderer
+ * [SparklineRenderer] Sparkline renderer - advanced sparkline rendering with comprehensive styling support
+ * ⚡ Provides rich sparkline styling features with path smoothing, effects, and real-time updates
  */
 
 import { PositionResolver } from './PositionResolver.js';
@@ -38,7 +38,7 @@ export class SparklineRenderer {
 
     const position = PositionResolver.resolvePosition(overlay.position, anchors);
     if (!position) {
-      cblcarsLog.warn('[SparklineRenderer] Sparkline overlay position could not be resolved:', overlay.id);
+      cblcarsLog.warn('[SparklineRenderer] ⚠️ Sparkline overlay position could not be resolved:', overlay.id);
       return '';
     }
 
@@ -55,7 +55,7 @@ export class SparklineRenderer {
       const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
-      cblcarsLog.debug(`[SparklineRenderer] Data result for ${overlay.id}:`, dataResult.status, dataResult.data?.length);
+      cblcarsLog.debug(`[SparklineRenderer] ⚡ Data result for ${overlay.id}: ${dataResult.status} (${dataResult.data?.length || 0} points)`);
 
       if (dataResult.status === 'OK' && dataResult.data && dataResult.data.length >= 2) {
         // Render real sparkline with advanced features
@@ -71,7 +71,7 @@ export class SparklineRenderer {
         );
       }
     } catch (error) {
-      cblcarsLog.error(`[SparklineRenderer] Enhanced rendering failed for sparkline ${overlay.id}:`, error);
+      cblcarsLog.error(`[SparklineRenderer] ❌ Enhanced rendering failed for sparkline ${overlay.id}:`, error);
       return this._renderFallbackSparkline(overlay, x, y, width, height);
     }
   }
@@ -232,7 +232,7 @@ export class SparklineRenderer {
       this._buildScanLine(width, height, sparklineStyle, overlay.id)
     ].filter(Boolean);
 
-    cblcarsLog.debug(`[SparklineRenderer] Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
+    cblcarsLog.debug(`[SparklineRenderer] ⚡ Rendered enhanced sparkline ${overlay.id} with ${sparklineStyle.features.length} features`);
 
     return `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="sparkline"
@@ -513,8 +513,6 @@ export class SparklineRenderer {
   _buildBrackets(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.bracket_style) return '';
 
-    cblcarsLog.debug(`[SparklineRenderer] Building brackets for ${overlayId}: style=${sparklineStyle.bracket_style}`);
-
     // Convert sparkline style properties to BracketRenderer format
     const bracketConfig = {
       enabled: true,
@@ -540,8 +538,6 @@ export class SparklineRenderer {
       inner_factor: sparklineStyle.inner_factor,
       hybrid_mode: sparklineStyle.hybrid_mode
     };
-
-    cblcarsLog.debug(`[SparklineRenderer] Bracket config:`, bracketConfig);
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
@@ -1090,7 +1086,7 @@ export class SparklineRenderer {
     const color = style.color || 'var(--lcars-yellow)';
     const strokeWidth = style.width || 2;
 
-    cblcarsLog.warn(`[SparklineRenderer] Using fallback rendering for sparkline ${overlay.id}`);
+    cblcarsLog.warn(`[SparklineRenderer] ⚠️ Using fallback rendering for sparkline ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="sparkline" data-fallback="true">
               <g transform="translate(${x}, ${y})">
@@ -1125,21 +1121,10 @@ export class SparklineRenderer {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
       if (dataSourceManager) {
-        cblcarsLog.debug(`[SparklineRenderer] 🔍 Checking DataSourceManager for '${sourceName}' with data key: '${dataKey}'`);
-
         const dataSource = dataSourceManager.getSource(sourceName);
 
         if (dataSource) {
           const currentData = dataSource.getCurrentData();
-          cblcarsLog.debug(`[SparklineRenderer] Source data for '${sourceName}':`, {
-            bufferSize: currentData?.bufferSize || 0,
-            historyReady: currentData?.historyReady,
-            started: currentData?.started,
-            historyLoaded: currentData?.stats?.historyLoaded || 0,
-            hasTransformations: Object.keys(currentData?.transformations || {}).length,
-            hasAggregations: Object.keys(currentData?.aggregations || {}).length,
-            requestedDataKey: dataKey
-          });
 
           // NEW: Support for enhanced data access
           if (dataKey && (isTransformation || isAggregation)) {
@@ -1149,7 +1134,7 @@ export class SparklineRenderer {
           // Original buffer-based data access
           if (currentData?.buffer) {
             const bufferData = currentData.buffer.getAll();
-            cblcarsLog.debug(`[SparklineRenderer] Raw buffer data for '${sourceName}':`, bufferData);
+
 
             if (bufferData && bufferData.length >= 2) {
               const historicalData = bufferData.map(point => ({

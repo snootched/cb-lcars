@@ -1,8 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * Bracket Renderer - Generalized LCARS-style bracket system for all overlay types
- * Provides consistent bracket styling and positioning across the entire MSD system
+ * [BracketRenderer] Bracket renderer - generalized LCARS-style bracket system
+ * 📐 Provides consistent bracket styling and positioning across the entire MSD system
  */
 
 export class BracketRenderer {
@@ -19,7 +19,7 @@ export class BracketRenderer {
       return '';
     }
 
-    cblcarsLog.debug(`[BracketRenderer] Rendering brackets for ${overlayId}:`, bracketConfig);
+    cblcarsLog.debug(`[BracketRenderer] 📐 Rendering ${bracketConfig.style || 'lcars'} brackets for ${overlayId}`);
 
     const config = BracketRenderer.resolveBracketConfig(bracketConfig);
 
@@ -129,7 +129,7 @@ export class BracketRenderer {
              data-bracket-style="lcars"/>`
     );
 
-    cblcarsLog.debug(`[BracketRenderer] Created ${bracketPaths.length} LCARS bracket paths`);
+    cblcarsLog.debug(`[BracketRenderer] 📐 Created ${bracketPaths.length} LCARS bracket paths`);
     return `<g data-feature="brackets" data-bracket-style="lcars">${bracketPaths.join('\n')}</g>`;
   }
 
@@ -168,7 +168,7 @@ export class BracketRenderer {
       );
     }
 
-    cblcarsLog.debug(`[BracketRenderer] Created ${brackets.length} square brackets`);
+
     return `<g data-feature="brackets" data-bracket-style="square">${brackets.join('\n')}</g>`;
   }
 
@@ -210,7 +210,7 @@ export class BracketRenderer {
              data-bracket-style="rounded"/>`
     );
 
-    cblcarsLog.debug(`[BracketRenderer] Created ${bracketPaths.length} rounded brackets`);
+
     return `<g data-feature="brackets" data-bracket-style="rounded">${bracketPaths.join('\n')}</g>`;
   }
 

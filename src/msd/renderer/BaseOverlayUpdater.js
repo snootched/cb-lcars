@@ -1,8 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * Base Overlay Update System - Unified interface for dynamic overlay updates
- * Provides consistent template processing and DataSource integration across all overlay types
+ * [BaseOverlayUpdater] Base overlay update system - unified interface for dynamic overlay updates
+ * 🔄 Provides consistent template processing and DataSource integration across all overlay types
  */
 
 export class BaseOverlayUpdater {
@@ -61,30 +61,20 @@ export class BaseOverlayUpdater {
    * @public
    */
   updateOverlaysForDataSourceChanges(changedIds) {
-    cblcarsLog.debug('[BaseOverlayUpdater] Checking overlays for DataSource changes:', changedIds);
+    cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Checking overlays for DataSource changes: ${changedIds.join(', ')}`);
 
     const resolvedModel = this.systemsManager.modelBuilder?.getResolvedModel?.();
     if (!resolvedModel?.overlays) {
-      cblcarsLog.warn('[BaseOverlayUpdater] No resolved model or overlays found');
+      cblcarsLog.warn('[BaseOverlayUpdater] ⚠️ No resolved model or overlays found');
       return;
     }
-
-    cblcarsLog.debug(`[BaseOverlayUpdater] Found ${resolvedModel.overlays.length} overlays to check`);
 
     // Check each overlay type
     resolvedModel.overlays.forEach(overlay => {
       const updater = this.overlayUpdaters.get(overlay.type) || this.overlayUpdaters.get('default');
 
-      cblcarsLog.debug(`[BaseOverlayUpdater] Checking overlay ${overlay.id} (type: ${overlay.type}):`, {
-        hasTemplates: updater.hasTemplates(overlay),
-        source: overlay.source,
-        content: overlay.content
-      });
-
       if (updater.hasTemplates(overlay)) {
         const needsUpdate = this._overlayReferencesChangedDataSources(overlay, changedIds);
-
-        cblcarsLog.debug(`[BaseOverlayUpdater] Overlay ${overlay.id} references changed data:`, needsUpdate);
 
         if (needsUpdate) {
           const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
@@ -93,17 +83,15 @@ export class BaseOverlayUpdater {
             if (dataSource) {
               const currentData = dataSource.getCurrentData();
 
-              cblcarsLog.debug(`[BaseOverlayUpdater] Updating ${overlay.type} overlay ${overlay.id}`);
+              cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Updating ${overlay.type} overlay ${overlay.id}`);
               updater.update(overlay.id, overlay, currentData);
             } else {
-              cblcarsLog.warn(`[BaseOverlayUpdater] DataSource ${updatedDataSourceId} not found`);
+              cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ DataSource ${updatedDataSourceId} not found`);
             }
           } else {
-            cblcarsLog.warn(`[BaseOverlayUpdater] No DataSource found for entity ${changedIds[0]}`);
+            cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No DataSource found for entity ${changedIds[0]}`);
           }
         }
-      } else {
-        cblcarsLog.debug(`[BaseOverlayUpdater] Overlay ${overlay.id} has no templates - skipping`);
       }
     });
   }
@@ -161,7 +149,6 @@ export class BaseOverlayUpdater {
     // For history bars, also check if the source directly matches a changed DataSource
     if (overlay.type === 'history_bar' && overlay.source) {
       const sourceMatches = this._dataSourceMatchesChangedEntities(overlay.source, changedIds);
-      cblcarsLog.debug(`[BaseOverlayUpdater] History bar ${overlay.id} source ${overlay.source} matches changed entities:`, sourceMatches);
       if (sourceMatches) {
         hasReference = true;
       }
@@ -176,10 +163,7 @@ export class BaseOverlayUpdater {
           const cellContent = cell.content || cell.label || cell.value_format || '';
           const cellReferencesChanged = this._contentReferencesChangedDataSources(cellContent, changedIds);
 
-          cblcarsLog.debug(`[BaseOverlayUpdater] Status grid ${overlay.id} cell "${cell.id || cell.label}" content="${cellContent}" references changed data:`, cellReferencesChanged);
-
           if (cellReferencesChanged) {
-            cblcarsLog.debug(`[BaseOverlayUpdater] Status grid ${overlay.id} cell ${cell.id || cell.label} references changed data:`, cellContent);
             hasReference = true;
           }
         });
@@ -224,7 +208,7 @@ export class BaseOverlayUpdater {
       if (this.systemsManager.dataSourceManager) {
         const dataSource = this.systemsManager.dataSourceManager.getSource(entityName);
         if (dataSource && changedIds.includes(dataSource.cfg?.entity)) {
-          cblcarsLog.debug(`[BaseOverlayUpdater] Content references changed DataSource: ${entityName} (entity: ${dataSource.cfg?.entity})`);
+          cblcarsLog.debug(`[BaseOverlayUpdater] 🔗 Content references changed DataSource: ${entityName}`);
           return true;
         }
 
@@ -233,14 +217,13 @@ export class BaseOverlayUpdater {
           const baseSourceName = entityName.split('.')[0];
           const baseDataSource = this.systemsManager.dataSourceManager.getSource(baseSourceName);
           if (baseDataSource && changedIds.includes(baseDataSource.cfg?.entity)) {
-            cblcarsLog.debug(`[BaseOverlayUpdater] Content references changed DataSource via dot notation: ${entityName} -> ${baseSourceName} (entity: ${baseDataSource.cfg?.entity})`);
+            cblcarsLog.debug(`[BaseOverlayUpdater] 🔗 Content references changed DataSource via dot notation: ${entityName} -> ${baseSourceName}`);
             return true;
           }
         }
       }
     }
 
-    cblcarsLog.debug(`[BaseOverlayUpdater] Content does not reference any changed DataSources. Referenced: [${Array.from(referencedEntities).join(', ')}], Changed: [${changedIds.join(', ')}]`);
     return false;
   }
 
@@ -269,7 +252,7 @@ export class BaseOverlayUpdater {
       // Legacy fallback for backward compatibility
       this.systemsManager.renderer.updateTextOverlay(overlayId, sourceData);
     } else {
-      cblcarsLog.warn(`[BaseOverlayUpdater] No renderer method available for text overlay ${overlayId}`);
+      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for text overlay ${overlayId}`);
     }
   }
 
@@ -282,7 +265,7 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateStatusGrid(overlayId, overlay, sourceData) {
-    cblcarsLog.debug(`[BaseOverlayUpdater] Updating status grid ${overlayId} with template processing`);
+    cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updating status grid ${overlayId} with template processing`);
 
     // Import StatusGridRenderer for template processing
     import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
@@ -291,7 +274,7 @@ export class BaseOverlayUpdater {
       // Process cell templates with new DataSource data
       const updatedCells = renderer.updateCellsWithData(overlay, overlay.finalStyle || {}, sourceData);
 
-      cblcarsLog.debug(`[BaseOverlayUpdater] Processed ${updatedCells.length} cells for status grid ${overlayId}`);
+      cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Processed ${updatedCells.length} cells for status grid ${overlayId}`);
 
       // SIMPLIFIED: Let the external renderer handle the actual DOM update
       // We've done our job of processing the data - the external system will handle rendering
@@ -301,7 +284,7 @@ export class BaseOverlayUpdater {
         cblcarsLog.debug(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
       }
     }).catch(error => {
-      cblcarsLog.error(`[BaseOverlayUpdater] Failed to import StatusGridRenderer:`, error);
+      cblcarsLog.error(`[BaseOverlayUpdater] ❌ Failed to import StatusGridRenderer:`, error);
     });
   }
 
@@ -310,8 +293,6 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateSparkline(overlayId, overlay, sourceData) {
-    cblcarsLog.debug(`[BaseOverlayUpdater] Updating sparkline ${overlayId} with enhanced synchronization`);
-
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateSparklineData) {
       // Use the enhanced sparkline update method that handles synchronization
       this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
@@ -325,18 +306,10 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateHistoryBar(overlayId, overlay, sourceData) {
-    cblcarsLog.debug(`[BaseOverlayUpdater] _updateHistoryBar called for ${overlayId}:`, {
-      hasRenderer: !!this.systemsManager.renderer,
-      hasUpdateOverlayData: !!(this.systemsManager.renderer?.updateOverlayData),
-      sourceDataKeys: sourceData ? Object.keys(sourceData) : 'none',
-      overlaySource: overlay.source
-    });
-
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-      cblcarsLog.debug(`[BaseOverlayUpdater] Calling updateOverlayData for history_bar overlay ${overlayId}`);
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     } else {
-      cblcarsLog.warn(`[BaseOverlayUpdater] No renderer method available for history_bar overlay ${overlayId}`);
+      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for history_bar overlay ${overlayId}`);
     }
   }
 

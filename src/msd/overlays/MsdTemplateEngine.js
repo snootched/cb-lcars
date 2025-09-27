@@ -1,6 +1,6 @@
 /**
- * MSD Template Engine - Real Entity State Templates
- * Processes template strings with HASS entity references
+ * [MsdTemplateEngine] Template processing system - processes template strings with HASS entity references
+ * 🔧 Features template compilation, entity dependency tracking, real-time updates, and comprehensive formatting
  */
 
 class MsdTemplateEngine {
@@ -172,7 +172,7 @@ class MsdTemplateEngine {
         }
 
         if (!hassStates) {
-            console.warn('MSD Template: HASS states not available');
+            console.warn('MSD Template: ⚠️ HASS states not available');
             return compiledTemplate.original; // Return original template as fallback
         }
 
@@ -220,7 +220,7 @@ class MsdTemplateEngine {
     getEntityState(entityId, hassStates) {
         const entity = hassStates[entityId];
         if (!entity) {
-            console.warn(`MSD Template: Entity ${entityId} not found`);
+            console.warn(`MSD Template: ⚠️ Entity ${entityId} not found`);
             return 'unavailable';
         }
 
@@ -236,7 +236,7 @@ class MsdTemplateEngine {
     getEntityAttribute(entityId, attribute, hassStates) {
         const entity = hassStates[entityId];
         if (!entity || !entity.attributes) {
-            console.warn(`MSD Template: Entity ${entityId} or attributes not found`);
+            console.warn(`MSD Template: ⚠️ Entity ${entityId} or attributes not found`);
             return 'unavailable';
         }
 
@@ -275,7 +275,7 @@ class MsdTemplateEngine {
                 return `${value}${unit}`;
 
             default:
-                console.warn(`Unknown template format function: ${format.function}`);
+                console.warn(`MSD Template: ⚠️ Unknown template format function: ${format.function}`);
                 return value;
         }
     }
@@ -317,7 +317,7 @@ class MsdTemplateEngine {
     subscribeToTemplateUpdates(templateId, entityIds, callback) {
         const hass = this.getHassInstance();
         if (!hass || !hass.connection) {
-            console.warn('MSD Template: Cannot subscribe to updates, HASS connection unavailable');
+            console.warn('MSD Template: ⚠️ Cannot subscribe to updates, HASS connection unavailable');
             return null;
         }
 
@@ -338,7 +338,7 @@ class MsdTemplateEngine {
                 subscriptions.push({ entityId, unsubscribe });
 
             } catch (error) {
-                console.warn(`Failed to subscribe to ${entityId}:`, error);
+                console.warn(`MSD Template: ⚠️ Failed to subscribe to ${entityId}:`, error);
             }
         }
 

@@ -1,11 +1,6 @@
 /**
- * AggregationProcessor - Base class for data aggregations
- *
- * Features:
- * - Runtime-only aggregations (no persistence)
- * - Time-windowed calculations
- * - Memory-efficient for MSD page lifecycles
- * - Configurable reset behavior
+ * [AggregationProcessor] Data aggregation system - runtime aggregations with time-windowed calculations
+ * 📊 Features memory-efficient processing, configurable reset behavior, and comprehensive statistical operations
  */
 
 export class AggregationProcessor {

@@ -7,9 +7,6 @@ export async function buildCardModel(mergedConfig) {
     const anchors = {}; // merged + normalized numeric
     const overlaysBase = mergedConfig.overlays.map(o => ({ id: o.id, type: o.type, style: o.style || {}, raw: o }));
 
-    // Ensure status_grid overlays preserve cells configuration
-    // Status grid overlays need special handling to preserve cell definitions
-
     return { viewBox, anchors, overlaysBase, __raw: mergedConfig };
   });
 }

@@ -1,14 +1,8 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
- * DataSourceManager - Manages multiple data sources and overlay subscriptions
- *
- * Features:
- * - Multi-source lifecycle management
- * - Overlay subscription system
- * - Clean shutdown and resource management
- * - Performance monitoring and statistics
- * - EntityRuntime API compatibility for rules engine
+ * [DataSourceManager] Data source manager - manages multiple data sources and overlay subscriptions
+ * 📊 Provides multi-source lifecycle management, overlay subscription system, and EntityRuntime API compatibility
  */
 
 import { MsdDataSource } from './MsdDataSource.js';
@@ -54,7 +48,7 @@ export class DataSourceManager {
         this._stats.sourcesCreated++;
         return source;
       } catch (error) {
-        cblcarsLog.warn(`[DataSourceManager] Failed to create source ${name}:`, error);
+        cblcarsLog.warn(`[DataSourceManager] ⚠️ Failed to create source ${name}:`, error);
         this._stats.errors++;
         throw error;
       }
@@ -108,7 +102,7 @@ export class DataSourceManager {
       }
 
     } catch (error) {
-      cblcarsLog.warn(`[DataSourceManager] Failed to start source ${name}:`, error);
+      cblcarsLog.warn(`[DataSourceManager] ⚠️ Failed to start source ${name}:`, error);
       this.sources.delete(name);
       this.entityIndex.delete(config.entity);
       this._stats.errors++;
@@ -200,7 +194,7 @@ export class DataSourceManager {
             try {
               return source.getTransformedHistory(transformKey, count || 100);
             } catch (error) {
-              cblcarsLog.warn(`[DataSourceManager] Error getting transformed history for ${sourceId}.${transformKey}:`, error);
+              cblcarsLog.warn(`[DataSourceManager] ⚠️ Error getting transformed history for ${sourceId}.${transformKey}:`, error);
               return [];
             }
           }
@@ -223,7 +217,7 @@ export class DataSourceManager {
           try {
             return source.buffer.getRecent(count || 100);
           } catch (error) {
-            cblcarsLog.warn(`[DataSourceManager] Error getting historical data for ${entityId}:`, error);
+            cblcarsLog.warn(`[DataSourceManager] ⚠️ Error getting historical data for ${entityId}:`, error);
             return [];
           }
         },
@@ -231,7 +225,7 @@ export class DataSourceManager {
           try {
             return source.getTransformedHistory(transformKey, count || 100);
           } catch (error) {
-            cblcarsLog.warn(`[DataSourceManager] Error getting transformed history for ${entityId}.${transformKey}:`, error);
+            cblcarsLog.warn(`[DataSourceManager] ⚠️ Error getting transformed history for ${entityId}.${transformKey}:`, error);
             return [];
           }
         },
@@ -334,7 +328,7 @@ export class DataSourceManager {
           try {
             return source.getTransformedHistory(transformKey, count || 100);
           } catch (error) {
-            cblcarsLog.warn(`[DataSourceManager] Error getting transformed history for ${transformKey}:`, error);
+            cblcarsLog.warn(`[DataSourceManager] ⚠️ Error getting transformed history for ${transformKey}:`, error);
             return [];
           }
         };
@@ -361,7 +355,7 @@ export class DataSourceManager {
       try {
         callback(changedEntityIds);
       } catch (error) {
-        cblcarsLog.warn('[DataSourceManager] Global entity listener error:', error);
+        cblcarsLog.warn('[DataSourceManager] ⚠️ Global entity listener error:', error);
       }
     });
   }
@@ -374,13 +368,13 @@ export class DataSourceManager {
    */
   subscribeOverlay(overlay, callback) {
     if (!overlay.source) {
-      cblcarsLog.warn('[DataSourceManager] subscribeOverlay: No source specified for overlay', overlay.id);
+      cblcarsLog.warn('[DataSourceManager] ⚠️ subscribeOverlay: No source specified for overlay', overlay.id);
       return;
     }
 
     const source = this.sources.get(overlay.source);
     if (!source) {
-      cblcarsLog.warn('[DataSourceManager] subscribeOverlay: Source not found:', overlay.source);
+      cblcarsLog.warn('[DataSourceManager] ⚠️ subscribeOverlay: Source not found:', overlay.source);
       return;
     }
 
@@ -401,14 +395,7 @@ export class DataSourceManager {
           data.buffer.getAll().map(point => ({ timestamp: point.t, value: point.v })) : undefined
       };
 
-      // DEBUG: Log what we're about to send
-      cblcarsLog.debug(`[DataSourceManager] 📤 Calling callback for ${overlay.id}:`, {
-        hasBuffer: !!enhancedData.buffer,
-        bufferSize: enhancedData.buffer?.size?.() || 0,
-        hasHistoricalData: !!enhancedData.historicalData,
-        historicalDataLength: enhancedData.historicalData?.length || 0,
-        currentValue: enhancedData.v
-      });
+      // Reduced debug logging for callback data
 
       // Call the callback with overlay and enhanced update data
       callback(overlay, enhancedData);
@@ -475,7 +462,7 @@ export class DataSourceManager {
         try {
           unsubscribe();
         } catch (error) {
-          cblcarsLog.warn(`[DataSourceManager] Error unsubscribing overlay ${overlayId}:`, error);
+          cblcarsLog.warn(`[DataSourceManager] ⚠️ Error unsubscribing overlay ${overlayId}:`, error);
           this._stats.errors++;
         }
       });
@@ -597,7 +584,7 @@ export class DataSourceManager {
           stopPromises.push(source.destroy());
         }
       } catch (error) {
-        cblcarsLog.warn(`[DataSourceManager] Error stopping source ${name}:`, error);
+        cblcarsLog.warn(`[DataSourceManager] ⚠️ Error stopping source ${name}:`, error);
       }
     }
 

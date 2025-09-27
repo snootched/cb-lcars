@@ -11,7 +11,7 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   const debugConfig = mergedConfig?.debug || {};
 
   // REDUCED: Minimal startup logging
-  cblcarsLog.debug('[DebugInterface] Debug interface ready - type window.__msdDebug.help() for usage');
+  cblcarsLog.debug('[DebugInterface] 🛠️ Debug interface ready - type window.__msdDebug.help() for usage');
 
   // Core pipeline access - UNIFIED: Only set pipelineInstance
   dbg.pipelineInstance = pipelineApi;
@@ -20,7 +20,7 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   if (!dbg.hasOwnProperty('pipeline')) {
     Object.defineProperty(dbg, 'pipeline', {
       get() {
-        cblcarsLog.warn('[DebugInterface] window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
+        cblcarsLog.warn('[DebugInterface] ⚠️ window.__msdDebug.pipeline is deprecated. Use window.__msdDebug.pipelineInstance instead.');
         return this.pipelineInstance;
       },
       configurable: true
@@ -60,7 +60,7 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
       try {
         return systemsManager.router.stats?.() || { cacheHits: 0, pathsComputed: 0, invalidations: 0 };
       } catch (e) {
-        cblcarsLog.warn('[DebugInterface] routing.stats failed:', e);
+        cblcarsLog.warn('[DebugInterface] ⚠️ routing.stats failed:', e);
         return { cacheHits: 0, pathsComputed: 0, invalidations: 0, error: e.message };
       }
     },
@@ -79,7 +79,7 @@ function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
         systemsManager.router.invalidate && systemsManager.router.invalidate('*');
         return res;
       } catch (e) {
-        cblcarsLog.warn('[DebugInterface] inspectAs failed', e);
+        cblcarsLog.warn('[DebugInterface] ⚠️ inspectAs failed', e);
         return null;
       }
     }
@@ -121,15 +121,15 @@ function setupDataSourceDebugInterface(dbg, systemsManager) {
   // This provides entity-like access through DataSourceManager
   dbg.entities = {
     list: () => {
-      cblcarsLog.warn('[DebugInterface] entities.list() is deprecated. Use window.__msdDebug.dataSourceManager.listIds() instead.');
+      cblcarsLog.warn('[DebugInterface] ⚠️ entities.list() is deprecated. Use window.__msdDebug.dataSourceManager.listIds() instead.');
       return systemsManager.dataSourceManager?.listIds() || [];
     },
     get: (id) => {
-      cblcarsLog.warn('[DebugInterface] entities.get() is deprecated. Use window.__msdDebug.dataSourceManager.getEntity() instead.');
+      cblcarsLog.warn('[DebugInterface] ⚠️ entities.get() is deprecated. Use window.__msdDebug.dataSourceManager.getEntity() instead.');
       return systemsManager.dataSourceManager?.getEntity(id) || null;
     },
     stats: () => {
-      cblcarsLog.warn('[DebugInterface] entities.stats() is deprecated. Use window.__msdDebug.dataSources.stats() instead.');
+      cblcarsLog.warn('[DebugInterface] ⚠️ entities.stats() is deprecated. Use window.__msdDebug.dataSources.stats() instead.');
       const dsStats = systemsManager.dataSourceManager?.getStats() || {};
       const entityCount = systemsManager.dataSourceManager?.listIds()?.length || 0;
 
@@ -167,7 +167,7 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
             pipelineInstance.reRender();
           }
         } catch (error) {
-          cblcarsLog.warn('[DebugInterface] Failed to trigger re-render:', error);
+          cblcarsLog.warn('[DebugInterface] ⚠️ Failed to trigger re-render:', error);
         }
       }, 10);
     },

@@ -1,7 +1,9 @@
 /**
- * Phase 2: Overlay introspection utilities
- * Provides overlay listing, highlighting, and geometry utilities
+ * [MsdIntrospection] Overlay introspection utilities - provides overlay listing, highlighting, and geometry utilities
+ * 🔍 Enables runtime overlay discovery, bounding box calculation, and visual highlighting for debugging
  */
+
+import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class MsdIntrospection {
   static getOverlaysSvg(root) {
@@ -92,13 +94,13 @@ export class MsdIntrospection {
 
     // Require explicit root element - no document fallback
     if (!root) {
-      console.warn('[MsdIntrospection] Root element required for highlighting');
+      cblcarsLog.warn('[MsdIntrospection] ⚠️ Root element required for highlighting');
       return;
     }
 
     const svg = this.getOverlaysSvg(root);
     if (!svg) {
-      console.warn('[MsdIntrospection] No SVG found for highlighting');
+      cblcarsLog.warn('[MsdIntrospection] ⚠️ No SVG found for highlighting');
       return;
     }
 
@@ -112,7 +114,7 @@ export class MsdIntrospection {
     // Use proper createElementNS from root's document
     const doc = root.ownerDocument || root.document;
     if (!doc || !doc.createElementNS) {
-      console.warn('[MsdIntrospection] createElementNS not available');
+      cblcarsLog.warn('[MsdIntrospection] ⚠️ createElementNS not available');
       return;
     }
 
