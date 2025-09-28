@@ -743,7 +743,11 @@ export function applyOverlayPatches(overlays, patches) {
   cblcarsLog.debug('[RulesEngine] 🎨 Applying overlay patches:', {
     overlayCount: overlays.length,
     patchCount: patches.length,
-    patches: patches.map(p => ({ id: p.id, styleKeys: Object.keys(p.style || {}) }))
+    patches: patches.map(p => ({
+      id: p.id,
+      styleKeys: Object.keys(p.style || {}),
+      cellTarget: p.cell_target || p.cellTarget || null
+    }))
   });
 
   const patchMap = new Map(patches.map(patch => [patch.id, patch]));
@@ -756,12 +760,18 @@ export function applyOverlayPatches(overlays, patches) {
 
     cblcarsLog.debug('[RulesEngine] 🎯 Applying patch to overlay:', {
       id: overlay.id,
+      type: overlay.type,
+      cellTarget: patch.cell_target || patch.cellTarget,
       originalStyle: overlay.style,
-      originalFinalStyle: overlay.finalStyle,
       patch: patch.style
     });
 
-    // FIXED: Apply patches to BOTH style and finalStyle
+    // Handle cell-specific patches for status_grid overlays
+    if (overlay.type === 'status_grid' && (patch.cell_target || patch.cellTarget)) {
+      return applyStatusGridCellPatch(overlay, patch);
+    }
+
+    // Standard overlay-level patches
     const patchedOverlay = {
       ...overlay,
       style: {
@@ -782,4 +792,95 @@ export function applyOverlayPatches(overlays, patches) {
 
     return patchedOverlay;
   });
+}
+
+/**
+ * Apply cell-specific patches to status_grid overlays
+ * @private
+ */
+function applyStatusGridCellPatch(overlay, patch) {
+  const cellTarget = patch.cell_target || patch.cellTarget;
+
+  cblcarsLog.debug('[RulesEngine] 🔲 Applying status_grid cell patch:', {
+    overlayId: overlay.id,
+    cellTarget,
+    cellPatch: patch.style
+  });
+
+  // Clone the overlay to avoid mutations
+  const patchedOverlay = {
+    ...overlay,
+    cells: overlay.cells ? [...overlay.cells] : []
+  };
+
+  // Find and patch the target cell(s)
+  if (patchedOverlay.cells) {
+    patchedOverlay.cells = patchedOverlay.cells.map(cell => {
+      // Check if this cell matches the target
+      const isTargetCell = matchesStatusGridCellTarget(cell, cellTarget);
+
+      if (isTargetCell) {
+        cblcarsLog.debug('[RulesEngine] 🎯 Patching cell:', {
+          cellId: cell.id,
+          position: [cell.row, cell.col],
+          patch: patch.style
+        });
+
+        return {
+          ...cell,
+          // Apply cell-level style overrides
+          color: patch.style.color || cell.color,
+          radius: patch.style.radius !== undefined ? patch.style.radius : cell.radius,
+          font_size: patch.style.font_size !== undefined ? patch.style.font_size : cell.font_size,
+          // Support content override
+          content: patch.content !== undefined ? patch.content : cell.content,
+          label: patch.label !== undefined ? patch.label : cell.label,
+          // Support visibility control
+          visible: patch.visible !== undefined ? patch.visible : (cell.visible !== undefined ? cell.visible : true)
+        };
+      }
+
+      return cell;
+    });
+  }
+
+  // Also apply any overlay-level styles
+  if (patch.style && Object.keys(patch.style).length > 0) {
+    patchedOverlay.style = {
+      ...overlay.style,
+      ...patch.style
+    };
+    patchedOverlay.finalStyle = {
+      ...(overlay.finalStyle || overlay.style || {}),
+      ...patch.style
+    };
+  }
+
+  return patchedOverlay;
+}
+
+/**
+ * Check if a cell matches the targeting criteria
+ * @private
+ */
+function matchesStatusGridCellTarget(cell, cellTarget) {
+  // Target by cell ID
+  if (cellTarget.cell_id && cell.id === cellTarget.cell_id) {
+    return true;
+  }
+
+  // Target by position [row, col]
+  if (cellTarget.position && Array.isArray(cellTarget.position)) {
+    const [targetRow, targetCol] = cellTarget.position;
+    return cell.row === targetRow && cell.col === targetCol;
+  }
+
+  // Target by row/column individually
+  if (cellTarget.row !== undefined && cellTarget.row === cell.row) {
+    if (cellTarget.col === undefined || cellTarget.col === cell.col) {
+      return true;
+    }
+  }
+
+  return false;
 }

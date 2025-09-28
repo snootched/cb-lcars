@@ -553,6 +553,18 @@ rules:
           style:               # Style properties to apply
             property: value    # CSS property: value pairs
 
+          # Status Grid Cell Targeting
+          cell_target:         # Optional: Target specific cells in status_grid overlays
+            cell_id: string    # Target by cell ID
+            position: [row, col] # Target by position [row, column]
+            row: number        # Target by row (all columns)
+            col: number        # Target by column (all rows)
+
+          # Cell Content Override
+          content: string      # Override cell content
+          label: string        # Override cell label
+          visible: boolean     # Show/hide cell
+
       profiles_add: [string]   # Optional: Profiles to activate
       profiles_remove: [string] # Optional: Profiles to deactivate
       animations: [object]     # Optional: Animations to trigger
@@ -986,7 +998,108 @@ rules:
       profiles_add: ["debug_mode"]
 ```
 
-### Example 4: Complex Conditional Logic
+### Example 4: Status Grid Cell Targeting
+```yaml
+rules:
+  # Critical system alert - target specific reactor cell
+  - id: reactor_critical_alert
+    priority: 1000
+    when:
+      entity: reactor_temp.transformations.celsius
+      above: 90
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            position: [0, 0]     # Target reactor cell at row 0, col 0
+          style:
+            color: "var(--lcars-red)"
+            radius: 0            # Square corners for urgency
+            font_size: 14        # Larger font
+          content: "⚠️ CRITICAL" # Override cell content
+          visible: true          # Ensure cell is visible
+
+  # Shield status by cell ID
+  - id: shields_low
+    priority: 800
+    when:
+      entity: shields.strength
+      below: 25
+    apply:
+      overlays:
+        - id: bridge_status_grid
+          cell_target:
+            cell_id: "shields_cell"  # Target by specific cell ID
+          style:
+            color: "var(--lcars-yellow)"
+            glow:
+              color: "var(--lcars-yellow)"
+              intensity: 0.8
+          label: "SHIELDS LOW"
+
+  # Highlight entire weapons row when armed
+  - id: weapons_armed
+    priority: 600
+    when:
+      entity: weapons.status
+      equals: "armed"
+    apply:
+      overlays:
+        - id: tactical_grid
+          cell_target:
+            row: 1               # Target entire row 1 (all weapons)
+          style:
+            color: "var(--lcars-orange)"
+            border_color: "var(--lcars-red)"
+
+  # Hide offline systems column
+  - id: hide_offline_column
+    priority: 400
+    when:
+      entity: power.backup_systems
+      equals: "offline"
+    apply:
+      overlays:
+        - id: systems_grid
+          cell_target:
+            col: 3               # Hide column 3 (backup systems)
+          visible: false         # Hide entire column
+
+  # Multi-cell conditional styling
+  - id: emergency_mode_grid
+    priority: 900
+    when:
+      all:
+        - entity: alert_level
+          equals: "red"
+        - entity: ship_status
+          equals: "battle_stations"
+    apply:
+      overlays:
+        # Style multiple cells in same grid
+        - id: command_grid
+          cell_target:
+            position: [0, 0]     # Command center
+          style:
+            color: "var(--lcars-red)"
+            animation: "pulse 1s infinite"
+
+        - id: command_grid
+          cell_target:
+            position: [0, 1]     # Communications
+          style:
+            color: "var(--lcars-red)"
+          content: "EMERGENCY"
+
+        - id: command_grid
+          cell_target:
+            row: 2               # All tactical systems
+          style:
+            color: "var(--lcars-orange)"
+            font_weight: "bold"
+```
+
+### Example 6: Complex Conditional Logic
 ```yaml
 rules:
   # Nested conditional example

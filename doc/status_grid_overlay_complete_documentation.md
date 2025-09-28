@@ -198,6 +198,25 @@ style:
   # Manual cell sizing (overrides auto-calculation)
   cell_width: 40                  # Fixed cell width
   cell_height: 30                 # Fixed cell height
+
+  # Proportional sizing - Powerful CSS Grid alternative with intelligent detection
+  row_sizes: [1, 2, 1]           # Relative row heights (ratios)
+  column_sizes: [1, 3, 2, 1]     # Relative column widths (ratios)
+
+  # Alternative naming (same functionality)
+  row_heights: [1, 2, 1]         # Relative row heights (ratios)
+  column_widths: [1, 3, 2, 1]    # Relative column widths (ratios)
+
+  # Percentage-based sizing (auto-detected by % suffix)
+  row_heights: ["25%", "50%", "25%"]      # Percentage heights
+  column_widths: ["15%", "45%", "30%", "10%"] # Percentage widths
+
+  # Pixel-based sizing (auto-detected when values exceed available space)
+  row_heights: [30, 60, 30]       # Fixed pixel heights (scaled if needed)
+  column_widths: [40, 120, 80, 40] # Fixed pixel widths (scaled if needed)
+
+  # Mixed sizing (advanced)
+  column_widths: ["20%", 120, 2, "10%"] # Mix percentages, pixels, and ratios
 ```
 
 ### Cell Appearance
@@ -207,6 +226,10 @@ style:
   cell_color: "var(--lcars-blue)" # Default cell fill color
   cell_opacity: 0.9               # Cell transparency
   cell_radius: 4                  # Corner radius
+
+  # Advanced radius normalization (NEW)
+  normalize_radius: true          # Auto-adjust radius for consistent visual appearance (default: true)
+  match_ha_radius: true           # Use HA's card radius for all cells (default: true)
 
   # Cell borders
   cell_border: true               # Enable borders
@@ -223,12 +246,19 @@ style:
   # Label display
   show_labels: true               # Show cell labels
   label_color: "var(--lcars-white)" # Label text color
-  font_size: 11                   # Label font size
-  font_family: "Orbitron, monospace" # Font family
+  label_font_size: 11             # Label font size (individual control)
+  font_size: 11                   # Global font size (fallback)
+  font_family: "var(--lcars-font-family, Antonio)" # Font family with CSS variable support
 
   # Value display
   show_values: true               # Show cell values
   value_color: "var(--lcars-cyan)" # Value text color
+  value_font_size: 9              # Value font size (individual control)
+
+  # Text positioning and spacing
+  text_spacing: 4                 # Vertical spacing between label and value
+  label_offset_y: -2              # Label vertical offset from cell center
+  value_offset_y: 8               # Value vertical offset from cell center
 ```
 
 ### Grid Lines & Background
@@ -238,6 +268,102 @@ style:
   show_grid_lines: true           # Show lines between cells
   grid_line_color: "var(--lcars-gray)" # Grid line color
   grid_line_opacity: 0.4          # Grid line transparency
+  grid_line_width: 1              # Grid line thickness (pixels)
+```
+
+---
+
+## Radius Normalization & HA Integration
+
+### Visual Consistency Across Cell Sizes
+The Status Grid includes intelligent radius normalization to ensure consistent visual appearance across proportionally-sized cells, perfect for the clean LCARS aesthetic.
+
+#### Default Behavior (Recommended)
+```yaml
+style:
+  # These are the new defaults (automatic unless explicitly disabled)
+  normalize_radius: true          # Enable smart radius calculation
+  match_ha_radius: true           # Use Home Assistant's card radius
+
+  # With proportional sizing
+  column_sizes: [2, 1, 1]         # Different sized cells
+  row_sizes: [1, 2]               # Different sized rows
+
+  # Result: ALL cells get identical corner radius matching your HA theme!
+```
+
+#### How It Works
+1. **🏠 HA Theme Detection**: Automatically detects your Home Assistant theme's card border radius from CSS variables (`--ha-card-border-radius`, `--card-border-radius`, etc.)
+2. **📐 Consistent Application**: When `match_ha_radius: true`, ALL cells use the exact same radius regardless of size
+3. **✨ Perfect Integration**: Status Grid cells visually match other HA cards and MSD controls
+
+#### Configuration Options
+
+**Option 1: Full HA Integration (Default)**
+```yaml
+style:
+  normalize_radius: true          # Default: true
+  match_ha_radius: true           # Default: true
+  # Result: All cells use HA's card radius (e.g., 34px for Mushroom theme)
+```
+
+**Option 2: Proportional Scaling**
+```yaml
+style:
+  normalize_radius: true
+  match_ha_radius: false          # Use proportional scaling instead
+  # Result: Radius scales with cell size but maintains visual consistency
+```
+
+**Option 3: Explicit Radius (Overrides Everything)**
+```yaml
+style:
+  cell_radius: 8                  # All cells get exactly 8px radius
+  # normalize_radius settings are ignored when explicit radius is set
+```
+
+**Option 4: Disable Normalization**
+```yaml
+style:
+  normalize_radius: false         # Disable all smart radius features
+  cell_radius: 4                  # Uses fixed radius without any scaling
+```
+
+#### Visual Comparison
+
+**Before Normalization (inconsistent appearance):**
+- Small cell (48px height): 7px radius → looks very square
+- Large cell (144px height): 22px radius → looks very rounded
+- **Problem**: Different visual "roundness" across cells
+
+**After HA Matching (consistent appearance):**
+- Small cell (48px height): 34px radius → matches HA cards perfectly
+- Large cell (144px height): 34px radius → matches HA cards perfectly
+- **Result**: Identical visual appearance across all cells and HA interface
+
+#### CSS Variables Detected
+The system automatically detects these HA theme variables in order:
+- `--ha-card-border-radius` (most common)
+- `--card-border-radius`
+- `--border-radius`
+- `--mdc-shape-small`
+
+Fallback: 12px if no variables found
+
+#### Per-Cell Overrides
+Cell-level radius overrides still work and bypass all normalization:
+
+```yaml
+cells:
+  - position: [0, 0]
+    source: critical_system
+    label: "CRITICAL"
+    radius: 0                     # Square corners for urgency (overrides all defaults)
+
+  - position: [0, 1]
+    source: normal_system
+    label: "NORMAL"
+    # Uses normalized radius (HA matching or proportional)
 ```
 
 ---
@@ -355,6 +481,127 @@ style:
 
 ---
 
+## Rules Engine Integration
+
+### Cell-Level Rule Targeting
+The Status Grid integrates with the MSD Rules Engine for dynamic cell-level styling and content updates based on conditions.
+
+```yaml
+rules:
+  # Target specific cell by position
+  - id: reactor_critical
+    when:
+      entity: reactor_temp
+      above: 90
+    apply:
+      overlays:
+        - id: ship_systems_grid
+          cell_target:
+            position: [0, 0]     # Target reactor cell at row 0, col 0
+          style:
+            color: "var(--lcars-red)"
+            radius: 0            # Square corners for urgency
+            font_size: 14        # Larger font
+          content: "⚠️ CRITICAL" # Override cell content
+
+  # Target by cell ID
+  - id: shields_low
+    when:
+      entity: shields.strength
+      below: 25
+    apply:
+      overlays:
+        - id: bridge_grid
+          cell_target:
+            cell_id: "shields_cell"
+          style:
+            color: "var(--lcars-yellow)"
+          label: "LOW SHIELDS"
+
+  # Target entire row or column
+  - id: weapons_armed
+    when:
+      entity: weapons.status
+      equals: "armed"
+    apply:
+      overlays:
+        - id: tactical_grid
+          cell_target:
+            row: 1               # Target all cells in row 1
+          style:
+            color: "var(--lcars-orange)"
+```
+
+### Rule Targeting Options
+```yaml
+cell_target:
+  # Target by cell ID
+  cell_id: "reactor_cell"        # Target specific cell by ID
+
+  # Target by position
+  position: [0, 1]               # Target cell at [row, column]
+
+  # Target by row/column
+  row: 2                         # Target entire row (all columns)
+  col: 1                         # Target entire column (all rows)
+```
+
+### Dynamic Content Override
+```yaml
+rules:
+  - id: system_status_override
+    when:
+      entity: system.emergency_mode
+      equals: true
+    apply:
+      overlays:
+        - id: status_grid
+          cell_target:
+            position: [0, 0]
+          content: "EMERGENCY"     # Override cell content
+          label: "ALERT"           # Override cell label
+          visible: true            # Show/hide cell
+```
+
+### Priority and Stop Semantics
+Rules targeting the same Status Grid cells follow priority order and stop semantics:
+
+```yaml
+rules:
+  # High priority emergency rule
+  - id: critical_alert
+    priority: 1000
+    stop: true                   # Stops lower priority rules
+    when:
+      entity: emergency_status
+      equals: "critical"
+    apply:
+      overlays:
+        - id: main_grid
+          cell_target:
+            position: [0, 0]
+          style:
+            color: "var(--lcars-red)"
+          content: "CRITICAL"
+
+  # Lower priority rule (may be stopped)
+  - id: warning_alert
+    priority: 500
+    when:
+      entity: warning_status
+      equals: "warning"
+    apply:
+      overlays:
+        - id: main_grid
+          cell_target:
+            position: [0, 0]     # Same cell
+          style:
+            color: "var(--lcars-yellow)"
+          content: "WARNING"
+```
+
+---
+
 ## LCARS Features
 
 ### LCARS-Style Brackets
@@ -431,10 +678,20 @@ overlays:
       cell_height: number         # Cell height (default: 0 = auto)
       cell_gap: number            # Gap between cells (default: 2)
 
+      # Proportional Sizing
+      row_sizes: [number, ...]    # Relative row heights (ratios)
+      column_sizes: [number, ...] # Relative column widths (ratios)
+      row_heights: [string|number, ...] # Row heights (%, px, or ratios)
+      column_widths: [string|number, ...] # Column widths (%, px, or ratios)
+
       # Cell Appearance
       cell_color: string          # Default cell color (default: "var(--lcars-blue)")
       cell_opacity: number        # Cell opacity (default: 1.0)
       cell_radius: number         # Corner radius (default: 2)
+
+      # Radius Normalization (NEW)
+      normalize_radius: boolean   # Auto-adjust radius for consistent appearance (default: true)
+      match_ha_radius: boolean    # Use HA's card radius for all cells (default: true)
 
       # Cell Borders
       cell_border: boolean        # Show borders (default: true)
@@ -446,8 +703,15 @@ overlays:
       show_values: boolean        # Show cell values (default: false)
       label_color: string         # Label color (default: "var(--lcars-white)")
       value_color: string         # Value color (default: "var(--lcars-white)")
-      font_size: number           # Font size (default: 10)
-      font_family: string         # Font family (default: "monospace")
+      font_size: number           # Global font size (default: 10)
+      font_family: string         # Font family (default: "var(--lcars-font-family, Antonio)")
+
+      # Individual Text Sizing & Positioning
+      label_font_size: number     # Label font size (default: font_size)
+      value_font_size: number     # Value font size (default: font_size * 0.9)
+      text_spacing: number        # Vertical spacing between label/value (default: 4)
+      label_offset_y: number      # Label vertical offset from center (default: -2)
+      value_offset_y: number      # Value vertical offset from center (default: 8)
 
       # Status Detection
       status_mode: string         # auto|ranges|custom (default: "auto")
@@ -458,6 +722,7 @@ overlays:
       show_grid_lines: boolean    # Show grid lines (default: false)
       grid_line_color: string     # Grid line color (default: "var(--lcars-gray)")
       grid_line_opacity: number   # Grid line opacity (default: 0.3)
+      grid_line_width: number     # Grid line thickness (default: 1)
 
       # Effects
       gradient: object            # Gradient definition
@@ -495,12 +760,13 @@ cells:
     position: [number, number]    # Required: [row, column] position
     source: string                # Optional: DataSource reference
     label: string                 # Optional: Cell label text
+    content: string               # Optional: Template string content (e.g., "{source:.1f}°C")
     value: any                    # Optional: Static cell value
 
-    # Cell-specific styling overrides
-    color: string                 # Override cell color
-    radius: number                # Override corner radius
-    font_size: number             # Override font size
+    # Cell-specific styling overrides (override global grid styles)
+    color: string                 # Override cell color (e.g., "var(--lcars-red)")
+    radius: number                # Override corner radius (e.g., 0 for square, 5 for rounded)
+    font_size: number             # Override font size for both label and value (e.g., 8)
 ```
 
 ### Status Range Definition
@@ -901,7 +1167,171 @@ overlays:
       status_indicator: true
 ```
 
-### Example 5: Environmental Sensor Matrix
+### Example 5: Advanced Text Positioning & Cell Overrides
+```yaml
+data_sources:
+  priority_systems:
+    type: entity
+    entity: sensor.priority_systems
+
+overlays:
+  - id: advanced_positioning_grid
+    type: status_grid
+    position: [50, 400]
+    size: [300, 150]
+
+    cells:
+      # Critical system with custom styling
+      - position: [0, 0]
+        source: priority_systems.critical_reactor
+        label: "REACTOR"
+        content: "{priority_systems.critical_reactor:.0f}%"
+        color: "var(--lcars-red)"     # Cell-level color override
+        radius: 0                     # Square corners for critical system
+        font_size: 12                 # Larger font for critical system
+
+      # Warning system with custom radius
+      - position: [0, 1]
+        source: priority_systems.life_support
+        label: "LIFE SUP"
+        content: "{priority_systems.life_support:.0f}%"
+        radius: 8                     # More rounded for life support
+
+      # Normal system with default styling
+      - position: [0, 2]
+        source: priority_systems.navigation
+        label: "NAV"
+        content: "{priority_systems.navigation:.0f}%"
+
+      # Status indicator with custom color
+      - position: [1, 0]
+        source: priority_systems.shields
+        label: "SHIELDS"
+        content: "{priority_systems.shields:.0f}%"
+        color: "var(--lcars-blue)"
+
+    style:
+      rows: 2
+      columns: 3
+      cell_gap: 4
+
+      # Advanced text positioning
+      show_labels: true
+      show_values: true
+      label_font_size: 10           # Labels at 10px
+      value_font_size: 14           # Values larger at 14px
+      label_offset_y: -8            # Labels higher up
+      value_offset_y: 6             # Values lower down
+      text_spacing: 6               # More spacing between text elements
+
+      # Grid styling
+      show_grid_lines: true
+      grid_line_width: 2            # Thick grid lines
+      grid_line_color: "var(--lcars-orange)"
+      grid_line_opacity: 0.5
+
+      # LCARS features
+      lcars_corners: true           # LCARS corners (overridden by cell-level radius)
+      bracket_style: true
+      bracket_color: "var(--lcars-orange)"
+
+      # Font family with CSS variable
+      font_family: "var(--lcars-font-family, Antonio)"
+```
+
+### Example 6: Proportional Grid Layout
+```yaml
+data_sources:
+  ship_systems:
+    type: entity
+    entity: sensor.ship_systems
+
+overlays:
+  - id: command_console_grid
+    type: status_grid
+    position: [50, 50]
+    size: [400, 300]
+
+    cells:
+      # Main display (spans multiple proportional units)
+      - position: [0, 0]
+        source: ship_systems.main_display
+        label: "MAIN DISPLAY"
+
+      - position: [0, 1]
+        source: ship_systems.tactical
+        label: "TACTICAL"
+
+      - position: [0, 2]
+        source: ship_systems.navigation
+        label: "NAV"
+
+      # Critical systems row
+      - position: [1, 0]
+        source: ship_systems.reactor
+        label: "REACTOR"
+        color: "var(--lcars-red)"
+
+      - position: [1, 1]
+        source: ship_systems.life_support
+        label: "LIFE SUPPORT"
+
+      - position: [1, 2]
+        source: ship_systems.shields
+        label: "SHIELDS"
+
+      # Status indicators (smaller row)
+      - position: [2, 0]
+        source: ship_systems.comms
+        label: "COMMS"
+
+      - position: [2, 1]
+        source: ship_systems.sensors
+        label: "SENSORS"
+
+      - position: [2, 2]
+        source: ship_systems.weapons
+        label: "WEAPONS"
+
+    style:
+      rows: 3
+      columns: 3
+
+      # Proportional sizing - creates unequal layouts
+      row_sizes: [3, 2, 1]        # Main display row is 3x, critical systems 2x, status 1x
+      column_sizes: [2, 1, 1]     # Left column is 2x wider than others
+
+      # Alternative percentage approach
+      # row_heights: ["50%", "33%", "17%"]     # Explicit percentages
+      # column_widths: ["50%", "25%", "25%"]   # Explicit percentages
+
+      cell_gap: 4
+
+      # LCARS styling
+      lcars_corners: true
+      bracket_style: true
+      bracket_color: "var(--lcars-orange)"
+
+      show_labels: true
+      show_values: false
+      font_size: 10
+
+      # Status ranges
+      status_ranges:
+        - value: "online"
+          color: "var(--lcars-green)"
+        - value: "offline"
+          color: "var(--lcars-red)"
+        - value: "maintenance"
+          color: "var(--lcars-yellow)"
+
+      # Animation
+      cascade_speed: 1.5
+      cascade_direction: "row"
+      reveal_animation: true
+```
+
+### Example 7: Environmental Sensor Matrix
 ```yaml
 data_sources:
   environmental:

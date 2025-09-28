@@ -83,10 +83,18 @@ export class StatusGridRenderer {
       cell_height: Number(style.cell_height || style.cellHeight || 0), // 0 = auto
       cell_gap: Number(style.cell_gap || style.cellGap || 2),
 
+      // Proportional sizing configuration
+      row_sizes: style.row_sizes || style.rowSizes || null,
+      column_sizes: style.column_sizes || style.columnSizes || null,
+      row_heights: style.row_heights || style.rowHeights || null,
+      column_widths: style.column_widths || style.columnWidths || null,
+
       // Cell appearance (using standardized colors)
       cell_color: standardStyles.colors.primaryColor,
       cell_opacity: standardStyles.layout.opacity,
       cell_radius: Number(style.cell_radius || style.cellRadius || standardStyles.layout.borderRadius || 2),
+      normalize_radius: style.normalize_radius !== false && style.normalizeRadius !== false, // Default true unless explicitly set to false
+      match_ha_radius: style.match_ha_radius !== false && style.matchHaRadius !== false, // Default true unless explicitly set to false
 
       // Border (using standardized layout)
       cell_border: style.cell_border || style.cellBorder !== false,
@@ -239,9 +247,8 @@ export class StatusGridRenderer {
    * @private
    */
   _renderEnhancedStatusGrid(overlay, x, y, width, height, cells, gridStyle, animationAttributes) {
-    // Calculate cell dimensions
-    const cellWidth = gridStyle.cell_width || (width / gridStyle.columns);
-    const cellHeight = gridStyle.cell_height || (height / gridStyle.rows);
+    // Calculate cell dimensions with proportional sizing support
+    const { cellWidths, cellHeights } = this._calculateProportionalCellDimensions(width, height, gridStyle);
     const gap = gridStyle.cell_gap;
 
     // Start building the grid SVG
@@ -263,14 +270,22 @@ export class StatusGridRenderer {
 
     // Render each cell
     cells.forEach(cell => {
-      const cellX = cell.col * (cellWidth + gap);
-      const cellY = cell.row * (cellHeight + gap);
+      // Calculate cell position using proportional sizing
+      const cellX = this._calculateCellX(cell.col, cellWidths, gap);
+      const cellY = this._calculateCellY(cell.row, cellHeights, gap);
+      const cellWidth = cellWidths[cell.col];
+      const cellHeight = cellHeights[cell.row];
 
       // Determine cell color based on status or cell-level override
       const cellColor = cell.cellOverrides?.color || this._determineCellColor(cell, gridStyle);
 
       // Determine cell corner radius (cell override, LCARS corners, or regular)
       let cellCornerRadius = cell.cellOverrides?.radius !== null ? cell.cellOverrides?.radius : gridStyle.cell_radius;
+
+      // Apply radius normalization for consistent visual appearance across different cell sizes
+      if (gridStyle.normalize_radius && cell.cellOverrides?.radius === null) {
+        cellCornerRadius = this._calculateNormalizedRadius(cellWidth, cellHeight, gridStyle.cell_radius, gridStyle.match_ha_radius);
+      }
 
       // Apply LCARS corners if enabled and no cell-level radius override
       if (gridStyle.lcars_corners && cell.cellOverrides?.radius === null) {
@@ -284,12 +299,17 @@ export class StatusGridRenderer {
         else if (isTopRow && isRightCol) cellCornerRadius = 0; // Top-right corner cut
         else if (isBottomRow && isLeftCol) cellCornerRadius = 0; // Bottom-left corner cut
         else if (isBottomRow && isRightCol) cellCornerRadius = 0; // Bottom-right corner cut
-        else cellCornerRadius = Math.min(gridStyle.cell_radius, 2); // Interior cells get small radius
+        else {
+          // For interior cells, use normalized radius if enabled, otherwise small radius
+          cellCornerRadius = gridStyle.normalize_radius ?
+            this._calculateNormalizedRadius(cellWidth, cellHeight, 2, gridStyle.match_ha_radius) :
+            Math.min(gridStyle.cell_radius, 2);
+        }
       }
 
-      // Render cell rectangle
+      // Render cell rectangle (don't subtract gap - it's handled in positioning)
       gridMarkup += `<rect x="${cellX}" y="${cellY}"
-                     width="${cellWidth - gap}" height="${cellHeight - gap}"
+                     width="${cellWidth}" height="${cellHeight}"
                      fill="${cellColor}"
                      stroke="${gridStyle.border_color}"
                      stroke-width="${gridStyle.border_width}"
@@ -301,8 +321,8 @@ export class StatusGridRenderer {
 
       // Render cell label if enabled
       if (gridStyle.show_labels && cell.label) {
-        const labelX = cellX + (cellWidth - gap) / 2;
-        const labelY = cellY + (cellHeight - gap) / 2 + gridStyle.label_offset_y;
+        const labelX = cellX + cellWidth / 2;
+        const labelY = cellY + cellHeight / 2 + gridStyle.label_offset_y;
         const labelFontSize = cell.cellOverrides?.font_size || gridStyle.label_font_size;
 
         gridMarkup += `<text x="${labelX}" y="${labelY}"
@@ -318,8 +338,8 @@ export class StatusGridRenderer {
 
       // Render cell content/value if enabled
       if (gridStyle.show_values && cell.content) {
-        const valueX = cellX + (cellWidth - gap) / 2;
-        const valueY = cellY + (cellHeight - gap) / 2 + gridStyle.value_offset_y;
+        const valueX = cellX + cellWidth / 2;
+        const valueY = cellY + cellHeight / 2 + gridStyle.value_offset_y;
 
         gridMarkup += `<text x="${valueX}" y="${valueY}"
                        text-anchor="middle" dominant-baseline="middle"
@@ -376,6 +396,311 @@ export class StatusGridRenderer {
 
     // Fallback to default cell color
     return gridStyle.cell_color;
+  }
+
+  /**
+   * Calculate proportional cell dimensions based on grid configuration
+   * @private
+   */
+  _calculateProportionalCellDimensions(totalWidth, totalHeight, gridStyle) {
+    const rows = gridStyle.rows;
+    const columns = gridStyle.columns;
+    const gap = gridStyle.cell_gap;
+
+    // Calculate available space after gaps (ensure non-negative)
+    const gapWidth = gap * Math.max(0, columns - 1);
+    const gapHeight = gap * Math.max(0, rows - 1);
+    const availableWidth = Math.max(0, totalWidth - gapWidth);
+    const availableHeight = Math.max(0, totalHeight - gapHeight);
+
+    // Debug space calculations
+    cblcarsLog.debug(`[StatusGridRenderer] Space calculation:`, {
+      totalWidth,
+      totalHeight,
+      gap,
+      gapWidth,
+      gapHeight,
+      availableWidth,
+      availableHeight,
+      rows,
+      columns
+    });
+
+    // Get sizing configuration - prioritize specific keys over fallbacks
+    const columnSizing = gridStyle.column_sizes || gridStyle.column_widths;
+    const rowSizing = gridStyle.row_sizes || gridStyle.row_heights;
+
+    // Calculate cell widths
+    const cellWidths = this._calculateDimensions(availableWidth, columns, columnSizing);
+
+    // Calculate cell heights
+    const cellHeights = this._calculateDimensions(availableHeight, rows, rowSizing);
+
+    // Debug logging for proportional sizing
+    if (columnSizing) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using column sizing:`, columnSizing, '→ widths:', cellWidths);
+    }
+    if (rowSizing) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using row sizing:`, rowSizing, '→ heights:', cellHeights);
+    }
+
+    // Validate calculated dimensions
+    const hasNegativeWidths = cellWidths.some(w => w <= 0);
+    const hasNegativeHeights = cellHeights.some(h => h <= 0);
+
+    if (hasNegativeWidths || hasNegativeHeights) {
+      cblcarsLog.error(`[StatusGridRenderer] ❌ Calculated negative dimensions:`, {
+        cellWidths,
+        cellHeights,
+        availableWidth,
+        availableHeight,
+        gap,
+        columnSizing,
+        rowSizing
+      });
+
+      // Fallback to equal sizing
+      const fallbackWidth = Math.max(1, availableWidth / columns);
+      const fallbackHeight = Math.max(1, availableHeight / rows);
+
+      return {
+        cellWidths: Array(columns).fill(fallbackWidth),
+        cellHeights: Array(rows).fill(fallbackHeight)
+      };
+    }
+
+    return { cellWidths, cellHeights };
+  }
+
+  /**
+   * Calculate dimensions for rows or columns based on sizing configuration
+   * @private
+   */
+  _calculateDimensions(totalSpace, count, sizing) {
+    if (!sizing || !Array.isArray(sizing)) {
+      // Equal sizing - divide space equally
+      const size = totalSpace / count;
+      return Array(count).fill(size);
+    }
+
+    // Validate array length matches expected count
+    if (sizing.length !== count) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Sizing array length (${sizing.length}) doesn't match expected count (${count}). Using equal sizing.`);
+      const size = totalSpace / count;
+      return Array(count).fill(size);
+    }
+
+    // Check if sizing uses percentages
+    if (sizing.some(s => typeof s === 'string' && s.includes('%'))) {
+      const result = sizing.map((s, index) => {
+        if (typeof s === 'string' && s.includes('%')) {
+          const percentage = parseFloat(s.replace('%', ''));
+          return (totalSpace * percentage) / 100;
+        }
+        // Handle mixed percentage/number arrays
+        return parseFloat(s) || 0;
+      });
+
+      // Validate percentages don't exceed 100%
+      const totalPercentage = sizing.reduce((sum, s) => {
+        if (typeof s === 'string' && s.includes('%')) {
+          return sum + parseFloat(s.replace('%', ''));
+        }
+        return sum;
+      }, 0);
+
+      if (totalPercentage > 100) {
+        cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total percentages (${totalPercentage}%) exceed 100%. Normalizing.`);
+        return result.map(val => (val / totalPercentage) * totalSpace);
+      }
+
+      return result;
+    }
+
+    // Convert all values to numbers for proportional calculation
+    const numericValues = sizing.map(s => parseFloat(s) || 0);
+    const totalValue = numericValues.reduce((sum, val) => sum + val, 0);
+
+    // Check if we should treat as pixels or ratios
+    // If values sum to significantly more than available space, treat as pixels and scale down
+    if (totalValue > totalSpace * 1.2) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total pixel values (${totalValue}px) exceed available space (${totalSpace}px). Scaling down.`);
+      const scale = totalSpace / totalValue;
+      return numericValues.map(val => val * scale);
+    }
+
+    // Otherwise treat as proportional ratios (most common case for [2, 1] etc.)
+    if (totalValue === 0) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ All ratio values are zero or invalid. Using equal sizing.`);
+      const size = totalSpace / count;
+      return Array(count).fill(size);
+    }
+
+    // Convert ratios to actual pixel dimensions
+    const result = numericValues.map(ratio => {
+      const normalizedRatio = ratio / totalValue;
+      return totalSpace * normalizedRatio;
+    });
+
+    cblcarsLog.debug(`[StatusGridRenderer] Calculated proportional dimensions:`, {
+      input: sizing,
+      numericValues,
+      totalValue,
+      totalSpace,
+      result
+    });
+
+    return result;
+  }
+
+  /**
+   * Calculate cumulative X position for a column
+   * @private
+   */
+  _calculateCellX(colIndex, cellWidths, gap) {
+    let x = 0;
+    for (let i = 0; i < colIndex; i++) {
+      x += cellWidths[i] + gap;
+    }
+    return x;
+  }
+
+  /**
+   * Calculate cumulative Y position for a row
+   * @private
+   */
+  _calculateCellY(rowIndex, cellHeights, gap) {
+    let y = 0;
+    for (let i = 0; i < rowIndex; i++) {
+      y += cellHeights[i] + gap;
+    }
+    return y;
+  }
+
+  /**
+   * Calculate normalized radius for consistent visual appearance across different cell sizes
+   * Uses HA theme variables as baseline and intelligent clamping for LCARS aesthetic
+   * @private
+   * @param {number} cellWidth - Width of the cell
+   * @param {number} cellHeight - Height of the cell
+   * @param {number} baseRadius - Base radius value from configuration
+   * @param {boolean} matchHaRadius - Whether to clamp minimum radius to HA's card radius
+   * @returns {number} Normalized radius value
+   */
+  _calculateNormalizedRadius(cellWidth, cellHeight, baseRadius, matchHaRadius = false) {
+    // Use the smaller dimension to maintain proportional rounding
+    const cellMinDimension = Math.min(cellWidth, cellHeight);
+
+    // Get HA's card border radius as reference (typically 12px in most themes)
+    // This ensures our cells look consistent with the overall HA card design
+    const haCardRadius = this._getHACardRadius();
+
+    // If matchHaRadius is true, use HA's card radius directly for all cells
+    if (matchHaRadius) {
+      // Use HA's card radius directly for perfect visual consistency
+      const result = Math.round(haCardRadius);
+
+      // Debug logging for HA radius matching
+      cblcarsLog.debug(`[StatusGridRenderer] Radius normalization (HA match):`, {
+        cellSize: `${cellWidth}x${cellHeight}`,
+        cellMinDimension,
+        haCardRadius,
+        baseRadius,
+        matchHaRadius,
+        result
+      });
+
+      return result;
+    }
+
+    // Otherwise, use proportional scaling with intelligent clamping
+    const intelligentMinRadius = Math.max(
+      haCardRadius * 0.5,        // At least half of HA's card radius
+      cellMinDimension * 0.08,   // Or 8% of cell dimension (less aggressive than 15%)
+      4                          // But never less than 4px for visual consistency
+    );
+
+    // Define maximum to prevent over-rounding
+    const maxRadius = Math.min(
+      cellMinDimension * 0.20,   // Max 20% of cell dimension
+      haCardRadius * 1.5         // Or 1.5x HA's card radius
+    );
+
+    // Calculate proportional radius based on cell size
+    // Use a reference size that makes sense for typical card layouts
+    const referenceSize = haCardRadius * 4; // ~48px for typical 12px card radius
+    const scaleFactor = cellMinDimension / referenceSize;
+    let normalizedRadius = baseRadius * scaleFactor;
+
+    // Apply intelligent clamping
+    normalizedRadius = Math.max(normalizedRadius, intelligentMinRadius);
+    normalizedRadius = Math.min(normalizedRadius, maxRadius);    // Round to avoid fractional pixel values
+    const result = Math.round(normalizedRadius);
+
+    // Debug logging to help tune the algorithm
+    cblcarsLog.debug(`[StatusGridRenderer] Radius normalization:`, {
+      cellSize: `${cellWidth}x${cellHeight}`,
+      cellMinDimension,
+      haCardRadius,
+      baseRadius,
+      matchHaRadius,
+      scaleFactor: scaleFactor.toFixed(2),
+      intelligentMinRadius: intelligentMinRadius.toFixed(1),
+      maxRadius: maxRadius.toFixed(1),
+      result
+    });
+
+    // Debug logging for proportional scaling
+    cblcarsLog.debug(`[StatusGridRenderer] Radius normalization (proportional):`, {
+      cellSize: `${cellWidth}x${cellHeight}`,
+      cellMinDimension,
+      haCardRadius,
+      baseRadius,
+      matchHaRadius,
+      scaleFactor: scaleFactor.toFixed(2),
+      intelligentMinRadius: intelligentMinRadius.toFixed(1),
+      maxRadius: maxRadius.toFixed(1),
+      result
+    });
+
+    return result;
+  }
+
+  /**
+   * Get Home Assistant's card border radius from CSS variables
+   * Falls back to sensible default if not available
+   * @private
+   * @returns {number} HA card border radius in pixels
+   */
+  _getHACardRadius() {
+    // Try to get HA's card border radius from CSS variables
+    if (typeof window !== 'undefined' && window.getComputedStyle) {
+      const rootStyles = window.getComputedStyle(document.documentElement);
+
+      // Try various HA CSS variables that might contain card radius
+      const haVariables = [
+        '--ha-card-border-radius',
+        '--card-border-radius',
+        '--border-radius',
+        '--mdc-shape-small'
+      ];
+
+      for (const variable of haVariables) {
+        const value = rootStyles.getPropertyValue(variable).trim();
+        if (value && value.includes('px')) {
+          const radius = parseFloat(value.replace('px', ''));
+          if (!isNaN(radius) && radius > 0) {
+            cblcarsLog.debug(`[StatusGridRenderer] Using HA card radius: ${radius}px from ${variable}`);
+            return radius;
+          }
+        }
+      }
+    }
+
+    // Fallback to typical HA default
+    const fallbackRadius = 12;
+    cblcarsLog.debug(`[StatusGridRenderer] Using fallback card radius: ${fallbackRadius}px`);
+    return fallbackRadius;
   }
 
   /**
