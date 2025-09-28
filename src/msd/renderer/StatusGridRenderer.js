@@ -86,21 +86,28 @@ export class StatusGridRenderer {
       // Cell appearance (using standardized colors)
       cell_color: standardStyles.colors.primaryColor,
       cell_opacity: standardStyles.layout.opacity,
-      cell_radius: standardStyles.layout.borderRadius || 2,
+      cell_radius: Number(style.cell_radius || style.cellRadius || standardStyles.layout.borderRadius || 2),
 
       // Border (using standardized layout)
       cell_border: style.cell_border || style.cellBorder !== false,
       border_color: standardStyles.colors.borderColor,
       border_width: standardStyles.layout.borderWidth,
 
-      // Text (using standardized text styles)
+      // Text (using standardized text styles with proper fallbacks)
       show_labels: style.show_labels !== false,
-      show_values: style.show_values || false,
-      label_color: standardStyles.text.labelColor,
-      value_color: standardStyles.text.valueColor,
-      font_size: standardStyles.text.fontSize,
-      font_family: standardStyles.text.fontFamily,
-      font_weight: standardStyles.text.fontWeight,
+      show_values: style.show_values || false, // Default to false per documentation
+      label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || 'var(--lcars-white)',
+      value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || 'var(--lcars-white)',
+      font_size: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 10),
+      font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || 'var(--lcars-font-family, Antonio)',
+      font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || 'normal',
+
+      // Line spacing and positioning controls
+      label_font_size: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 10),
+      value_font_size: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 9),
+      text_spacing: Number(style.text_spacing || style.textSpacing || 4), // Vertical spacing between label and value
+      label_offset_y: Number(style.label_offset_y || style.labelOffsetY || -2), // Label vertical offset from center
+      value_offset_y: Number(style.value_offset_y || style.valueOffsetY || 8), // Value vertical offset from center
 
       // Status coloring
       status_mode: (style.status_mode || style.statusMode || 'auto').toLowerCase(),
@@ -111,6 +118,7 @@ export class StatusGridRenderer {
       show_grid_lines: style.show_grid_lines || style.showGridLines || false,
       grid_line_color: style.grid_line_color || style.gridLineColor || standardStyles.colors.borderColor,
       grid_line_opacity: Number(style.grid_line_opacity || style.gridLineOpacity || 0.3),
+      grid_line_width: Number(style.grid_line_width || style.gridLineWidth || 1), // Added missing grid line width control
 
       // Effects (using standardized effect parsing)
       gradient: standardStyles.gradient,
@@ -250,7 +258,7 @@ export class StatusGridRenderer {
     if (gridStyle.show_grid_lines) {
       gridMarkup += `<rect width="${width}" height="${height}"
                      fill="none" stroke="${gridStyle.grid_line_color}"
-                     stroke-width="1" opacity="${gridStyle.grid_line_opacity}"/>`;
+                     stroke-width="${gridStyle.grid_line_width}" opacity="${gridStyle.grid_line_opacity}"/>`;
     }
 
     // Render each cell
@@ -258,8 +266,26 @@ export class StatusGridRenderer {
       const cellX = cell.col * (cellWidth + gap);
       const cellY = cell.row * (cellHeight + gap);
 
-      // Determine cell color based on status
-      const cellColor = this._determineCellColor(cell, gridStyle);
+      // Determine cell color based on status or cell-level override
+      const cellColor = cell.cellOverrides?.color || this._determineCellColor(cell, gridStyle);
+
+      // Determine cell corner radius (cell override, LCARS corners, or regular)
+      let cellCornerRadius = cell.cellOverrides?.radius !== null ? cell.cellOverrides?.radius : gridStyle.cell_radius;
+
+      // Apply LCARS corners if enabled and no cell-level radius override
+      if (gridStyle.lcars_corners && cell.cellOverrides?.radius === null) {
+        const isTopRow = cell.row === 0;
+        const isBottomRow = cell.row === gridStyle.rows - 1;
+        const isLeftCol = cell.col === 0;
+        const isRightCol = cell.col === gridStyle.columns - 1;
+
+        // LCARS corners only on outer edges
+        if (isTopRow && isLeftCol) cellCornerRadius = 0; // Top-left corner cut
+        else if (isTopRow && isRightCol) cellCornerRadius = 0; // Top-right corner cut
+        else if (isBottomRow && isLeftCol) cellCornerRadius = 0; // Bottom-left corner cut
+        else if (isBottomRow && isRightCol) cellCornerRadius = 0; // Bottom-right corner cut
+        else cellCornerRadius = Math.min(gridStyle.cell_radius, 2); // Interior cells get small radius
+      }
 
       // Render cell rectangle
       gridMarkup += `<rect x="${cellX}" y="${cellY}"
@@ -267,21 +293,24 @@ export class StatusGridRenderer {
                      fill="${cellColor}"
                      stroke="${gridStyle.border_color}"
                      stroke-width="${gridStyle.border_width}"
-                     rx="${gridStyle.cell_radius}"
+                     rx="${cellCornerRadius}"
                      data-cell-id="${cell.id}"
                      data-cell-row="${cell.row}"
-                     data-cell-col="${cell.col}"/>`;
+                     data-cell-col="${cell.col}"
+                     data-lcars-corner="${gridStyle.lcars_corners && (cell.row === 0 || cell.row === gridStyle.rows - 1) && (cell.col === 0 || cell.col === gridStyle.columns - 1)}"/>`;
 
       // Render cell label if enabled
       if (gridStyle.show_labels && cell.label) {
         const labelX = cellX + (cellWidth - gap) / 2;
-        const labelY = cellY + (cellHeight - gap) / 2 - (gridStyle.font_size / 4);
+        const labelY = cellY + (cellHeight - gap) / 2 + gridStyle.label_offset_y;
+        const labelFontSize = cell.cellOverrides?.font_size || gridStyle.label_font_size;
 
         gridMarkup += `<text x="${labelX}" y="${labelY}"
                        text-anchor="middle" dominant-baseline="middle"
                        fill="${gridStyle.label_color}"
-                       font-size="${gridStyle.font_size * 0.7}"
+                       font-size="${labelFontSize}"
                        font-family="${gridStyle.font_family}"
+                       font-weight="${gridStyle.font_weight}"
                        data-cell-label="${cell.id}">
                        ${this._escapeXml(cell.label)}
                      </text>`;
@@ -290,13 +319,14 @@ export class StatusGridRenderer {
       // Render cell content/value if enabled
       if (gridStyle.show_values && cell.content) {
         const valueX = cellX + (cellWidth - gap) / 2;
-        const valueY = cellY + (cellHeight - gap) / 2 + (gridStyle.font_size / 4);
+        const valueY = cellY + (cellHeight - gap) / 2 + gridStyle.value_offset_y;
 
         gridMarkup += `<text x="${valueX}" y="${valueY}"
                        text-anchor="middle" dominant-baseline="middle"
                        fill="${gridStyle.value_color}"
-                       font-size="${gridStyle.font_size * 0.6}"
+                       font-size="${gridStyle.value_font_size}"
                        font-family="${gridStyle.font_family}"
+                       font-weight="${gridStyle.font_weight}"
                        data-cell-content="${cell.id}">
                        ${this._escapeXml(cell.content || String(cell.data.value))}
                      </text>`;
@@ -411,7 +441,8 @@ export class StatusGridRenderer {
                 <rect width="${width}" height="${height}"
                       fill="none" stroke="${color}" stroke-width="2"/>
                 <text x="${width / 2}" y="${height / 2}" text-anchor="middle"
-                      fill="${color}" font-size="12" dominant-baseline="middle">
+                      fill="${color}" font-size="12" dominant-baseline="middle"
+                      font-family="var(--lcars-font-family, Antonio)">
                   Status Grid Error
                 </text>
               </g>
@@ -498,7 +529,13 @@ export class StatusGridRenderer {
           animationDelay: index * (gridStyle.cascade_speed || 50),
           _raw: cellConfig._raw || cellConfig,
           // Store original content for updates
-          _originalContent: rawCellContent !== cellContent ? rawCellContent : null
+          _originalContent: rawCellContent !== cellContent ? rawCellContent : null,
+          // Cell-specific styling overrides (as documented)
+          cellOverrides: {
+            color: cellConfig.color || null, // Override cell color
+            radius: cellConfig.radius !== undefined ? Number(cellConfig.radius) : null, // Override corner radius
+            font_size: cellConfig.font_size !== undefined ? Number(cellConfig.font_size) : null // Override font size
+          }
         };
 
         cells.push(cell);

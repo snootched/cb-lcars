@@ -500,7 +500,7 @@ export class SparklineRenderer {
                   font-size="${fontSize}"
                   text-anchor="start"
                   dominant-baseline="middle"
-                  font-family="var(--lcars-font-family, monospace)"
+                  font-family="var(--lcars-font-family, Antonio)"
                   data-feature="value-label">
               ${formattedValue}
             </text>`;
@@ -970,13 +970,13 @@ export class SparklineRenderer {
        </rect>`,
       `<text x="${width / 2}" y="${height / 2}"
              fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
-             font-family="var(--lcars-font-family, monospace)"
+             font-family="var(--lcars-font-family, Antonio)"
              font-size="${fontSize}" font-weight="bold">
         ${indicatorText}
        </text>`,
       width > 120 ? `<text x="${width / 2}" y="${height / 2 + fontSize + 4}"
                            fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
-                           font-family="var(--lcars-font-family, monospace)"
+                           font-family="var(--lcars-font-family, Antonio)"
                            font-size="${Math.max(8, fontSize * 0.6)}" opacity="0.7">
                       ${overlay.source || 'NO SOURCE ID'}
                      </text>` : ''

@@ -497,7 +497,7 @@ export class RendererUtils {
     return {
       // Core text properties
       fontSize: Number(style.font_size || style.fontSize || 12),
-      fontFamily: style.font_family || style.fontFamily || 'monospace',
+      fontFamily: style.font_family || style.fontFamily || 'Antonio', // Changed from 'monospace' to 'Antonio' for LCARS
       fontWeight: style.font_weight || style.fontWeight || 'normal',
       fontStyle: style.font_style || style.fontStyle || 'normal',
 

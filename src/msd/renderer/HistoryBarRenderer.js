@@ -124,14 +124,14 @@ export class HistoryBarRenderer {
       // Label styling
       label_color: style.label_color || style.labelColor || 'var(--lcars-white)',
       label_font_size: Number(style.label_font_size || style.labelFontSize || 10),
-      label_font_family: style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, monospace)',
+      label_font_family: style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, Antonio)',
       label_font_weight: style.label_font_weight || style.labelFontWeight || 'normal',
       label_opacity: Number(style.label_opacity || style.labelOpacity || 1),
 
       // Value label styling
       value_color: style.value_color || style.valueColor || style.label_color || style.labelColor || 'var(--lcars-white)',
       value_font_size: Number(style.value_font_size || style.valueFontSize || 8),
-      value_font_family: style.value_font_family || style.valueFontFamily || style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, monospace)',
+      value_font_family: style.value_font_family || style.valueFontFamily || style.label_font_family || style.labelFontFamily || 'var(--lcars-font-family, Antonio)',
       value_font_weight: style.value_font_weight || style.valueFontWeight || 'bold',
       value_opacity: Number(style.value_opacity || style.valueOpacity || 0.8),
       value_format: style.value_format || style.valueFormat || '{value}', // Template for value display
@@ -1444,13 +1444,13 @@ export class HistoryBarRenderer {
        </rect>`,
       `<text x="${width / 2}" y="${height / 2}"
              fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
-             font-family="var(--lcars-font-family, monospace)"
+             font-family="var(--lcars-font-family, Antonio)"
              font-size="${fontSize}" font-weight="bold">
         ${indicatorText}
        </text>`,
       width > 120 ? `<text x="${width / 2}" y="${height / 2 + fontSize + 4}"
                            fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
-                           font-family="var(--lcars-font-family, monospace)"
+                           font-family="var(--lcars-font-family, Antonio)"
                            font-size="${Math.max(8, fontSize * 0.6)}" opacity="0.7">
                       ${overlay.source || 'NO SOURCE ID'}
                      </text>` : ''
