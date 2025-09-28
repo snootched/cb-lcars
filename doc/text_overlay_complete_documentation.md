@@ -42,6 +42,29 @@ overlays:
     content: "Hello World"
 ```
 
+### Interactive Text Overlay with Actions
+```yaml
+overlays:
+  - id: interactive_text
+    type: text
+    position: [100, 50]
+    content: "Temperature: 23°C"
+
+    # Actions make text interactive
+    tap_action:
+      action: more-info
+      entity: sensor.temperature
+    hold_action:
+      action: toggle
+      entity: switch.fan
+    double_tap_action:
+      action: call-service
+      service: climate.set_temperature
+      service_data:
+        entity_id: climate.living_room
+        temperature: 22
+```
+
 ### Complete Basic Configuration
 ```yaml
 overlays:
@@ -217,6 +240,129 @@ style:
 
 ---
 
+## Interactive Actions
+
+Text overlays support full Home Assistant actions for creating interactive labels and controls, making your text elements clickable and functional.
+
+### Simple Actions
+```yaml
+overlays:
+  - type: text
+    id: temperature_display
+    position: [50, 100]
+    text: "Living Room: 23°C"
+
+    # Tap to show more info
+    tap_action:
+      action: more-info
+      entity: sensor.living_room_temperature
+
+    # Hold to toggle fan
+    hold_action:
+      action: toggle
+      entity: switch.living_room_fan
+
+    # Double-tap to adjust temperature
+    double_tap_action:
+      action: call-service
+      service: climate.set_temperature
+      service_data:
+        entity_id: climate.living_room
+        temperature: 22
+```
+
+### Navigation and URL Actions
+```yaml
+overlays:
+  - type: text
+    id: room_label
+    position: [50, 100]
+    text: "Living Room"
+
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/living-room
+
+    hold_action:
+      action: url
+      url_path: https://home-assistant.io
+      new_tab: true
+```
+
+### Data Source Integration with Actions
+
+Combine dynamic data with interactive actions:
+
+```yaml
+overlays:
+  - type: text
+    id: climate_control
+    position: [50, 100]
+    data_source: sensor.thermostat_temperature
+    style:
+      value_format: "Current: {value}°C"
+
+    # Action references same entity as data source
+    tap_action:
+      action: more-info
+      entity: climate.thermostat
+
+    hold_action:
+      action: call-service
+      service: climate.set_temperature
+      service_data:
+        entity_id: climate.thermostat
+        temperature: 21
+```
+
+### Template Actions
+```yaml
+overlays:
+  - type: text
+    id: dynamic_control
+    position: [50, 100]
+    content: "{sensor.living_room_temperature.value}°C"
+    data_source: sensor.living_room_temperature
+
+    tap_action:
+      action: call-service
+      service: climate.set_temperature
+      service_data:
+        entity_id: climate.living_room
+        # Template: Set to current temp + 1
+        temperature: "{{ states('sensor.living_room_temperature') | float + 1 }}"
+```
+
+### Action Types Reference
+
+All standard Home Assistant action types are supported:
+
+- **`toggle`** - Toggle entity state
+- **`more-info`** - Show entity more-info dialog
+- **`call-service`** - Call any Home Assistant service
+- **`navigate`** - Navigate to dashboard path
+- **`url`** - Open URL (internal or external)
+- **`fire-dom-event`** - Fire custom DOM events
+
+### Action Best Practices
+
+#### Action Design
+- **Use intuitive actions**: Tap for primary, hold for secondary
+- **Provide visual feedback**: Actions automatically add pointer cursor
+- **Test thoroughly**: Verify actions work with your entities
+
+#### Performance
+- **Minimize complex templates**: Keep action templates simple
+- **Use entity references**: Prefer entity IDs over complex service calls
+- **Test on mobile**: Ensure hold actions work well on touch devices
+
+#### User Experience
+- **Clear labeling**: Make it obvious what actions do
+- **Consistent patterns**: Use similar actions across similar text elements
+- **Fallback content**: Ensure text is useful even without actions
+
+---
+
 ## Advanced Features
 
 ### Multi-line Text
@@ -315,6 +461,11 @@ overlays:
     content: string                   # Static text content
     text: string                      # Alternative to content
     data_source: string               # DataSource reference for dynamic content
+
+    # Interactive Actions (optional)
+    tap_action: object                # Action on tap/click
+    hold_action: object               # Action on hold/long press
+    double_tap_action: object         # Action on double-tap
 
     style:                            # Optional: Styling configuration
       # Content & Value Processing
@@ -470,6 +621,15 @@ console.log('Source data:', dsm.getSource('temperature_sensor').getCurrentData()
 - Verify container and SVG scaling
 - Test with different text anchor settings
 - Debug with browser developer tools
+
+#### 6. Actions Not Working
+**Symptoms**: Text clicks/taps don't trigger actions
+**Solutions**:
+- Check console logs for action attachment messages
+- Verify card instance is available for action processing
+- Ensure proper YAML syntax in action definitions
+- Test with simple actions first (like `toggle` or `more-info`)
+- Confirm entities exist in Home Assistant
 
 ### Debug Commands
 
@@ -729,7 +889,41 @@ overlays:
       status_indicator_position: "top"
 ```
 
-### Example 5: Real-time Data Formatting
+### Example 5: Interactive Text with Multi-line Actions
+```yaml
+overlays:
+  - type: text
+    id: system_status_interactive
+    position: [50, 100]
+    multiline: true
+    content: |
+      System Status
+      CPU: 45%
+      Memory: 67%
+      Uptime: 2d 14h
+
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/system
+
+    hold_action:
+      action: call-service
+      service: homeassistant.restart
+      confirmation:
+        text: "Are you sure you want to restart Home Assistant?"
+
+    style:
+      color: "var(--lcars-white)"
+      font_family: "monospace"
+      font_size: 12
+      multiline: true
+      line_height: 1.3
+      bracket_style: true
+      highlight: "var(--lcars-blue-dark)"
+      highlight_opacity: 0.2
+```
+
+### Example 6: Real-time Data Formatting
 ```yaml
 data_sources:
   sensor_array:
@@ -764,6 +958,10 @@ overlays:
       value_format: "Custom format: {value:.2f} units"
 ```
 
+### Additional Action Documentation
+
+For complete action system documentation including troubleshooting, advanced examples, and integration with other overlay types, see the main [MSD Actions Documentation](./msd-actions.md).
+
 ---
 
-This completes the comprehensive Text overlay documentation covering all features, DataSource integration, styling options, and practical examples. The system provides powerful text rendering capabilities with dynamic content support and rich visual styling options.
+This completes the comprehensive Text overlay documentation covering all features, DataSource integration, styling options, interactive actions, and practical examples. The system provides powerful text rendering capabilities with dynamic content support, rich visual styling options, and full Home Assistant action integration.

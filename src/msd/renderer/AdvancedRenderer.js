@@ -529,7 +529,10 @@ export class AdvancedRenderer {
         // Update (in case dynamic overlays later): recompute & refresh map
         const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
         if (ap) this.textAttachmentPoints.set(overlay.id, ap);
-        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
+
+        // Get card instance for action support (same pattern as status grid)
+        const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
+        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':
@@ -541,17 +544,17 @@ export class AdvancedRenderer {
         cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
         return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
       case 'status_grid':
-    // Get card instance from systems manager for action support
-    const cardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
-    cblcarsLog.debug('[AdvancedRenderer] Resolved card instance for status grid:', {
-      hasCardInstance: !!cardInstance,
-      cardType: cardInstance?.tagName,
-      hasHandleAction: typeof cardInstance?._handleAction
-    });
-    const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);        // Store action info for post-processing if needed
-        if (result.needsActionAttachment) {
-          StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
-        }
+        // Get card instance from systems manager for action support
+        const cardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
+        cblcarsLog.debug('[AdvancedRenderer] Resolved card instance for status grid:', {
+          hasCardInstance: !!cardInstance,
+          cardType: cardInstance?.tagName,
+          hasHandleAction: typeof cardInstance?._handleAction
+        });
+        const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);        // Store action info for post-processing if needed
+            if (result.needsActionAttachment) {
+              StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
+            }
 
         return result.markup;
       case 'history_bar':

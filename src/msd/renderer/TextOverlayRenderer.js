@@ -7,6 +7,7 @@ import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
+import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class TextOverlayRenderer {
@@ -22,14 +23,15 @@ export class TextOverlayRenderer {
    * @param {Object} overlay - Text overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
    * @returns {string} Complete SVG markup for the styled text
    */
-  static render(overlay, anchors, viewBox, svgContainer) {
+  static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
     // Create instance for non-static methods
     const instance = new TextOverlayRenderer();
     instance.container = svgContainer; // Set the container for the instance
     instance.viewBox = viewBox; // Also store viewBox for reference
-    return instance.renderText(overlay, anchors, viewBox);
+    return instance.renderText(overlay, anchors, viewBox, cardInstance);
   }
 
   /**
@@ -37,9 +39,10 @@ export class TextOverlayRenderer {
    * @param {Object} overlay - Text overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Object} cardInstance - Card instance for action handling
    * @returns {string} Complete SVG markup for the styled text
    */
-  renderText(overlay, anchors, viewBox) {
+  renderText(overlay, anchors, viewBox, cardInstance = null) {
 
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
@@ -92,7 +95,41 @@ export class TextOverlayRenderer {
         this._buildEffects(textContent, x, y, textStyle, overlay.id)
       ].filter(Boolean);
 
-      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`);
+      // Check if overlay has actions and process them using ActionHelpers
+      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
+
+      if (hasActions && cardInstance) {
+        const actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
+        if (actionInfo) {
+          // Use the same pattern as StatusGrid for action attachment
+          setTimeout(() => {
+            // Try card shadow root first, then document
+            let textElement = null;
+            const card = window.cb_lcars_card_instance;
+            if (card && card.shadowRoot) {
+              textElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlay.id}"]`);
+            }
+            if (!textElement) {
+              textElement = document.querySelector(`[data-overlay-id="${overlay.id}"]`);
+            }
+
+            if (textElement) {
+              cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Attaching actions to text overlay ${overlay.id}`);
+              ActionHelpers.attachActions(textElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
+            } else {
+              cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ Could not find text overlay element for action attachment: ${overlay.id}`);
+            }
+          }, 100);
+        }
+      }
+
+      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`, {
+        hasActions,
+        hasCardInstance: !!cardInstance,
+        tapAction: overlay.tap_action,
+        holdAction: overlay.hold_action,
+        doubleTapAction: overlay.double_tap_action
+      });
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
@@ -104,7 +141,8 @@ export class TextOverlayRenderer {
                   data-font-size="${textStyle.fontSize}"
                   data-dominant-baseline="${textStyle.dominantBaseline}"
                   data-text-anchor="${textStyle.textAnchor}"
-                  data-font-stabilized="0">
+                  data-font-stabilized="0"
+                  style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
                 ${svgParts.join('\n')}
               </g>`;
     } catch (error) {
@@ -456,6 +494,9 @@ export class TextOverlayRenderer {
     if (textStyle.fontStyle !== 'normal') {
       attributes.push(`font-style="${textStyle.fontStyle}"`);
     }
+
+    // Ensure text elements inherit pointer events and cursor from parent
+    attributes.push(`style="pointer-events: inherit; cursor: inherit; user-select: none;"`);
 
     // Text alignment
     if (textStyle.textAnchor !== 'start') {

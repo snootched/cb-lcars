@@ -26,6 +26,7 @@ The MSD Status Grid overlay provides sophisticated multi-entity status visualiza
 - **Multi-entity monitoring** with configurable grid layouts (rows × columns)
 - **Real-time DataSource integration** with individual cell data binding
 - **Intelligent status detection** with automatic state mapping and custom ranges
+- **Interactive actions** with overlay-level and cell-level Home Assistant actions
 - **LCARS cascade animations** with directional control perfect for anime.js
 - **Comprehensive styling** with per-cell customization and global themes
 - **Interactive features** with hover effects and real-time updates
@@ -80,6 +81,17 @@ overlays:
       # Status detection
       status_mode: "auto"          # auto, ranges, custom
       unknown_color: "var(--lcars-gray)" # Color for unknown states
+
+    # Interactive Actions (optional)
+    tap_action:                    # Action on tap/click
+      action: navigate
+      navigation_path: /lovelace/system
+    hold_action:                   # Action on hold/long press
+      action: more-info
+      entity: binary_sensor.system_health
+    double_tap_action:             # Action on double-tap
+      action: call-service
+      service: homeassistant.restart
 ```
 
 ---
@@ -180,6 +192,214 @@ overlays:
         label: "CPU Peak"
         content: "{cpu.aggregations.max_5m:.0f}%"
 ```
+
+---
+
+## Interactive Actions
+
+Status Grid overlays support comprehensive Home Assistant actions at both overlay and cell levels, making your grids fully interactive control interfaces.
+
+### Overlay-Level Actions
+Apply actions to the entire status grid:
+
+```yaml
+overlays:
+  - type: status_grid
+    id: system_status
+    position: [100, 100]
+    size: [300, 200]
+
+    # Actions apply to entire grid
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/system
+    hold_action:
+      action: more-info
+      entity: binary_sensor.system_health
+    double_tap_action:
+      action: call-service
+      service: homeassistant.restart
+      confirmation:
+        text: "Are you sure you want to restart Home Assistant?"
+
+    cells:
+      - id: cpu_cell
+        position: [0, 0]
+        label: "CPU"
+        content: "45%"
+      - id: memory_cell
+        position: [0, 1]
+        label: "Memory"
+        content: "78%"
+```
+
+### Cell-Level Actions (Preferred Method)
+Define actions directly on individual cells for granular control:
+
+```yaml
+overlays:
+  - type: status_grid
+    id: device_grid
+    position: [100, 100]
+    size: [300, 200]
+
+    cells:
+      - id: light_cell
+        position: [0, 0]
+        label: "Living Room"
+        content: "ON"
+        source: light.living_room
+        # Cell-specific actions
+        tap_action:
+          action: toggle
+          entity: light.living_room
+        hold_action:
+          action: more-info
+          entity: light.living_room
+
+      - id: fan_cell
+        position: [0, 1]
+        label: "Ceiling Fan"
+        content: "OFF"
+        source: fan.ceiling_fan
+        # Different actions for this cell
+        tap_action:
+          action: toggle
+          entity: fan.ceiling_fan
+        double_tap_action:
+          action: call-service
+          service: fan.set_speed
+          service_data:
+            entity_id: fan.ceiling_fan
+            speed: high
+
+      - id: temp_cell
+        position: [0, 2]
+        label: "Temperature"
+        content: "23°C"
+        source: sensor.temperature
+        # No actions - this cell is display-only
+
+    style:
+      rows: 1
+      columns: 3
+```
+
+### Mixed Actions
+Combine overlay and cell actions - cell actions take priority:
+
+```yaml
+overlays:
+  - type: status_grid
+    id: mixed_grid
+    position: [100, 100]
+    size: [300, 200]
+
+    # Default action for cells without specific actions
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/devices
+
+    cells:
+      - id: controllable_light
+        position: [0, 0]
+        label: "Kitchen Light"
+        content: "ON"
+        # This cell has its own action (overrides overlay default)
+        tap_action:
+          action: toggle
+          entity: light.kitchen
+
+      - id: display_only_sensor
+        position: [0, 1]
+        label: "Temperature"
+        content: "23°C"
+        # This cell will use the overlay default action
+
+    style:
+      rows: 1
+      columns: 2
+```
+
+### Legacy Cell Actions (Still Supported)
+The older `style.actions.cells` format still works but is deprecated:
+
+```yaml
+overlays:
+  - type: status_grid
+    id: legacy_grid
+    position: [100, 100]
+    size: [300, 200]
+
+    style:
+      actions:
+        cells:
+          - cell_id: light_cell
+            tap_action:
+              action: toggle
+              entity: light.living_room
+
+    cells:
+      - id: light_cell
+        position: [0, 0]
+        label: "Living Room"
+        content: "ON"
+```
+
+### Template Actions
+Actions support templates for dynamic behavior:
+
+```yaml
+cells:
+  - id: climate_cell
+    position: [0, 0]
+    label: "Thermostat"
+    content: "{climate.house}°F"
+    tap_action:
+      action: call-service
+      service: climate.set_temperature
+      service_data:
+        entity_id: climate.house
+        # Template: Increase temp by 2 degrees
+        temperature: "{{ states('climate.house') | float + 2 }}"
+    hold_action:
+      action: call-service
+      service: "{{ 'climate.turn_on' if states('climate.house') == 'off' else 'climate.turn_off' }}"
+      service_data:
+        entity_id: climate.house
+```
+
+### Action Types Reference
+
+All standard Home Assistant action types are supported:
+
+- **`toggle`** - Toggle entity state
+- **`more-info`** - Show entity more-info dialog
+- **`call-service`** - Call any Home Assistant service
+- **`navigate`** - Navigate to dashboard path
+- **`url`** - Open URL (internal or external)
+- **`fire-dom-event`** - Fire custom DOM events
+
+### Action Best Practices
+
+#### Performance
+- **Use cell-level actions** instead of legacy `style.actions.cells` format
+- **Minimize complex templates** in action configurations
+- **Test actions** with simple configurations first
+
+#### User Experience
+- **Provide visual feedback** - Actions automatically add pointer cursor
+- **Use intuitive actions** - tap for primary action, hold for secondary
+- **Consider accessibility** - Provide alternative access methods for complex actions
+
+#### Maintainability
+- **Consistent action patterns** across similar cells
+- **Clear entity references** - use descriptive entity IDs
+- **Document complex actions** in YAML comments
+
+### Additional Action Documentation
+
+For complete action system documentation including troubleshooting, advanced examples, and integration with other overlay types, see the main [MSD Actions Documentation](./msd-actions.md).
 
 ---
 
@@ -670,6 +890,11 @@ overlays:
     cells: array                  # Method 1: Explicit cell definitions
     sources: array                # Method 2: Auto-generate from source list
 
+    # Interactive Actions (optional)
+    tap_action: object            # Action on tap/click
+    hold_action: object           # Action on hold/long press
+    double_tap_action: object     # Action on double-tap
+
     style:                        # Optional: Styling configuration
       # Grid Layout
       rows: number                # Number of rows (default: 3)
@@ -762,6 +987,11 @@ cells:
     label: string                 # Optional: Cell label text
     content: string               # Optional: Template string content (e.g., "{source:.1f}°C")
     value: any                    # Optional: Static cell value
+
+    # Interactive Actions (optional - cell-level actions override overlay-level)
+    tap_action: object            # Cell-specific tap action
+    hold_action: object           # Cell-specific hold action
+    double_tap_action: object     # Cell-specific double-tap action
 
     # Cell-specific styling overrides (override global grid styles)
     color: string                 # Override cell color (e.g., "var(--lcars-red)")

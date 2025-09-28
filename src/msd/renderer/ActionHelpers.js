@@ -656,105 +656,130 @@ export class ActionHelpers {
   }
 
   /**
-   * INTEGRATION PATTERN: How other overlay renderers should integrate actions
+   * INTEGRATION PATTERN: How overlay renderers integrate actions
    *
-   * This universal action system works with any overlay type. Follow this pattern:
+   * The MSD action system supports two integration patterns:
+   *
+   * ===== PATTERN 1: SIMPLE OVERLAYS (TextOverlay) =====
+   * For overlays that are single clickable elements:
    *
    * ```javascript
-   * // ===== IN YOUR OVERLAY RENDERER =====
-   *
-   * // 1. Import ActionHelpers
+   * // 1. Import ActionHelpers and accept cardInstance
    * import { ActionHelpers } from './ActionHelpers.js';
    *
-   * // 2. In your render method, process actions
-   * renderMyOverlay(overlay, anchors, viewBox, cardInstance = null) {
-   *   // ... your rendering logic ...
+   * static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
+   *   // ... rendering logic ...
    *
-   *   // Process actions using the universal method
+   *   // 2. Check for actions and make element actionable
+   *   const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
+   *
+   *   if (hasActions && cardInstance) {
+   *     const actionInfo = ActionHelpers.processOverlayActions(overlay, resolvedStyle, cardInstance);
+   *     if (actionInfo) {
+   *       // 3. Schedule post-DOM action attachment
+   *       setTimeout(() => {
+   *         const element = findOverlayElement(overlay.id);
+   *         if (element) {
+   *           ActionHelpers.attachActions(element, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
+   *         }
+   *       }, 100);
+   *     }
+   *   }
+   *
+   *   // 4. Return markup with pointer events enabled for actions
+   *   return `<g data-overlay-id="${overlay.id}"
+   *              style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
+   *             ${overlayContent}
+   *           </g>`;
+   * }
+   * ```
+   *
+   * ===== PATTERN 2: COMPLEX OVERLAYS (StatusGrid) =====
+   * For overlays with multiple interactive elements:
+   *
+   * ```javascript
+   * // 1. Use renderWithActions pattern for complex return data
+   * static renderWithActions(overlay, anchors, viewBox, cardInstance = null) {
+   *   // ... complex rendering with cell actions ...
+   *
    *   const actionInfo = ActionHelpers.processOverlayActions(overlay, resolvedStyle, cardInstance);
    *
-   *   // Return markup with action metadata
    *   return {
-   *     markup: overlayMarkup,
+   *     markup: svgMarkup,
    *     actions: actionInfo,
    *     needsActionAttachment: !!actionInfo
    *   };
    * }
    *
-   * // 3. In your main static render method, handle post-DOM processing
-   * static render(overlay, anchors, viewBox, cardInstance = null) {
-   *   const result = MyRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);
-   *
-   *   // Store action info for post-DOM-insertion processing
-   *   if (result.needsActionAttachment) {
-   *     MyRenderer._storeActionInfo(overlay.id, result.actions);
-   *     setTimeout(() => MyRenderer._tryManualActionProcessing(overlay.id), 100);
-   *   }
-   *
-   *   return result.markup; // Backwards compatible
-   * }
-   *
-   * // 4. Create action attachment method (copy from StatusGridRenderer)
-   * static attachMyOverlayActions(overlayElement, actionInfo) {
-   *   if (!overlayElement || !actionInfo) return;
-   *
-   *   // Delegate to ActionHelpers - it handles everything!
-   *   if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
-   *     ActionHelpers.attachActions(overlayElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
-   *   }
-   * }
-   *
-   * // 5. Set up DOM observation (copy pattern from StatusGridRenderer)
-   * static _setupActionProcessing() {
-   *   // ... MutationObserver setup to detect your overlay type ...
-   *   // Query for '[data-overlay-type="your_overlay_type"]'
+   * // 2. Handle complex action attachment with observers
+   * static _storeActionInfo(overlayId, actionInfo) {
+   *   // Store for later DOM attachment
    * }
    * ```
    *
-   * ===== CONFIGURATION SUPPORT =====
+   * ===== SUPPORTED CONFIGURATIONS =====
    *
-   * Your overlay configuration supports these action formats:
+   * All overlays support standard Home Assistant actions:
    *
-   * Simple Actions (entire overlay clickable):
    * ```yaml
+   * # Simple overlay actions (text, sparkline, etc.)
    * overlays:
-   *   - type: my_overlay
+   *   - type: text
+   *     id: temperature
+   *     text: "23°C"
    *     tap_action:
-   *       action: toggle
-   *       entity: light.example
-   *     hold_action:
    *       action: more-info
-   *       entity: light.example
+   *       entity: sensor.temperature
+   *     hold_action:
+   *       action: toggle
+   *       entity: switch.fan
    *     double_tap_action:
    *       action: call-service
-   *       service: light.turn_on
+   *       service: climate.set_temperature
    *       service_data:
-   *         entity_id: light.example
-   *         brightness: 255
+   *         entity_id: climate.living_room
+   *         temperature: 22
+   *
+   * # Status grid with cell-level actions (preferred)
+   * overlays:
+   *   - type: status_grid
+   *     id: device_grid
+   *     cells:
+   *       - id: light_cell
+   *         label: "Kitchen"
+   *         content: "ON"
+   *         tap_action:
+   *           action: toggle
+   *           entity: light.kitchen
+   *         hold_action:
+   *           action: more-info
+   *           entity: light.kitchen
+   *       - id: temp_cell
+   *         label: "Temperature"
+   *         content: "23°C"
+   *         # No actions - display only
+   *
+   * # Status grid with overlay-level actions (fallback)
+   * overlays:
+   *   - type: status_grid
+   *     id: system_grid
+   *     tap_action:
+   *       action: navigate
+   *       navigation_path: /lovelace/system
+   *     cells:
+   *       - id: cpu_cell
+   *         label: "CPU"
+   *         content: "45%"
+   *         # Uses overlay default action
    * ```
    *
-   * Enhanced Actions (element-specific):
-   * ```yaml
-   Enhanced Actions (element-specific):
- * ```yaml
- * # For status grids - actions directly on cells (preferred):
- * overlays:
- *   - type: status_grid
- *     cells:
- *       - id: cell-1
- *         tap_action: { action: toggle, entity: light.example }
- *         hold_action: { action: more-info, entity: light.example }
- *
- * # Legacy format (still supported):
- * overlays:
- *   - type: status_grid
- *     style:
- *       actions:
- *         cells:
- *           - cell_id: cell-1
- *             tap_action: { action: toggle, entity: light.example }
- * ```
-   * ```
+   * ===== CURRENT IMPLEMENTATION STATUS =====
+   *
+   * ✅ StatusGrid: Full action support (overlay + cell level)
+   * ✅ TextOverlay: Full action support (overlay level)
+   * 🔄 SparklineOverlay: Planned
+   * 🔄 BarChartOverlay: Planned
+   * 🔄 HistoryBarOverlay: Planned
    */  /**
    * Resolve card instance for action handling from global context
    * Utility method for overlay renderers
