@@ -1,13 +1,13 @@
 /**
- * ActionHelpers -    cblcarsLog.debug(`[ActionHelpers] Attaching actions via button-card bridge to overlay ${overlay.id}:`, actionConfig);
-
-    // Handle simple actions (tap, hold, double_tap) using button-card bridge
-    if (actionConfig.simple) {
-      // Tap action
-      if (actionConfig.simple.tap_action) {
-        element.addEventListener('click', (event) => {tion System Abstraction Layer
- * Provides unified action handling across all interactive overlays
- * Leverages custom-button-card's existing action infrastructure
+ * ActionHelpers - Universal action system for MSD overlay elements
+ * 🌉 Provides a bridge to button-card's proven action system for full compatibility
+ *
+ * Features:
+ * - Works with any overlay type (status grids, sparklines, etc.)
+ * - Button-card bridge pattern for full action support (toggle, call-service, navigate, etc.)
+ * - Template evaluation, sounds, confirmations via button-card
+ * - Non-reactive config injection to prevent MSD card re-renders
+ * - Fallback to direct HASS calls when bridge unavailable
  */
 
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
@@ -15,7 +15,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 export class ActionHelpers {
 
   /**
-   * Attach actions to an overlay element using button-card bridge pattern
+   * Attach actions to any overlay element using button-card bridge pattern
    * @param {Element} element - The DOM element to attach actions to
    * @param {Object} overlay - Overlay configuration
    * @param {Object} actionConfig - Action configuration
@@ -28,7 +28,7 @@ export class ActionHelpers {
       return;
     }
 
-    cblcarsLog.debug(`[ActionHelpers] Attaching actions via button-card bridge to overlay ${overlay.id}:`, actionConfig);
+    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching actions to ${overlay.type || 'overlay'} ${overlay.id}`);
 
     // Handle simple actions (tap, hold, double_tap) using button-card bridge
     if (actionConfig.simple) {
@@ -86,14 +86,14 @@ export class ActionHelpers {
       }
     }
 
-    // Handle enhanced actions (cell-level or multi-target)
+    // Handle enhanced actions (element-specific or multi-target)
     if (actionConfig.enhanced) {
-      // TODO: Implement enhanced action handling
-      // This would handle cell-specific actions in status grids
-      cblcarsLog.debug(`[ActionHelpers] Enhanced actions not yet implemented:`, actionConfig.enhanced);
+      // TODO: Implement enhanced action handling for complex overlays
+      // This would handle element-specific actions (e.g., cell-level in grids)
+      cblcarsLog.debug(`[ActionHelpers] 📋 Enhanced actions not yet implemented for ${overlay.type || 'overlay'}:`, actionConfig.enhanced);
     }
 
-    cblcarsLog.debug(`[ActionHelpers] ✅ Actions attached successfully to overlay ${overlay.id}`);
+    cblcarsLog.debug(`[ActionHelpers] ✅ Actions attached to ${overlay.type || 'overlay'} ${overlay.id}`);
   }
 
   /**
@@ -528,6 +528,113 @@ export class ActionHelpers {
     overlayElement.style.cursor = '';
 
     cblcarsLog.debug(`[ActionHelpers] Actions detached from overlay element`);
+  }
+
+  /**
+   * Process action configuration for any overlay type
+   * Generic method that extracts actions from overlay configuration
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Resolved overlay styling (may contain enhanced actions)
+   * @param {Object} cardInstance - Card instance for action handling
+   * @returns {Object|null} Action configuration ready for attachActions()
+   * @static
+   */
+  static processOverlayActions(overlay, style = {}, cardInstance = null) {
+    if (!cardInstance) {
+      cblcarsLog.debug(`[ActionHelpers] No card instance available for ${overlay.type || 'overlay'} ${overlay.id}`);
+      return null;
+    }
+
+    // Check for simple overlay actions (tap, hold, double_tap)
+    const hasSimpleActions = overlay.tap_action || overlay.hold_action || overlay.double_tap_action;
+
+    // Check for enhanced actions in style block
+    const hasEnhancedActions = style.actions;
+
+    if (!hasSimpleActions && !hasEnhancedActions) {
+      return null;
+    }
+
+    // Build action configuration
+    const actionConfig = {};
+
+    // Simple actions (treat entire overlay as single clickable element)
+    if (hasSimpleActions) {
+      actionConfig.simple = {
+        tap_action: overlay.tap_action,
+        hold_action: overlay.hold_action,
+        double_tap_action: overlay.double_tap_action
+      };
+    }
+
+    // Enhanced actions (element-specific actions)
+    if (hasEnhancedActions) {
+      actionConfig.enhanced = style.actions;
+    }
+
+    return {
+      config: actionConfig,
+      overlay: overlay,
+      cardInstance: cardInstance
+    };
+  }
+
+  /**
+   * EXAMPLE: How other overlay renderers should integrate actions
+   *
+   * ```javascript
+   * // In any overlay renderer (SparklineRenderer, GaugeRenderer, etc.):
+   *
+   * // 1. Process actions during rendering
+   * const actionInfo = ActionHelpers.processOverlayActions(overlay, resolvedStyle, cardInstance);
+   *
+   * // 2. Return action metadata with markup
+   * return {
+   *   markup: overlayMarkup,
+   *   actions: actionInfo,
+   *   needsActionAttachment: !!actionInfo
+   * };
+   *
+   * // 3. In the main renderer, attach actions after DOM insertion
+   * if (result.needsActionAttachment) {
+   *   // Store for post-DOM processing
+   *   SomeRenderer._storeActionInfo(overlay.id, result.actions);
+   *   setTimeout(() => SomeRenderer._tryAttachActions(overlay.id), 100);
+   * }
+   *
+   * // 4. When DOM is ready, attach actions
+   * static attachOverlayActions(overlayElement, actionInfo) {
+   *   ActionHelpers.attachActions(overlayElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
+   * }
+   * ```
+   */
+
+  /**
+   * Resolve card instance for action handling from global context
+   * Utility method for overlay renderers
+   * @returns {Object|null} Card instance or null if not found
+   * @static
+   */
+  static resolveCardInstance() {
+    // Try various methods to get the card instance
+
+    // Method 1: From MSD pipeline if available
+    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
+      return window.__msdDebug.pipelineInstance.cardInstance;
+    }
+
+    // Method 2: From global MSD context
+    if (window._msdCardInstance) {
+      return window._msdCardInstance;
+    }
+
+    // Method 3: From CB-LCARS global context
+    if (window.cb_lcars_card_instance) {
+      return window.cb_lcars_card_instance;
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] Could not resolve card instance from global context`);
+    return null;
   }
 }
 

@@ -300,16 +300,6 @@ export class StatusGridRenderer {
     // Check if overlay has actions (actions should now be preserved in main overlay by ModelBuilder)
     const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action || gridStyle.actions);
 
-    cblcarsLog.debug(`[StatusGridRenderer] Action detection for ${overlay.id}:`, {
-      tap_action: !!overlay.tap_action,
-      hold_action: !!overlay.hold_action,
-      double_tap_action: !!overlay.double_tap_action,
-      gridStyle_actions: !!gridStyle.actions,
-      hasActions: hasActions,
-      overlay_keys: Object.keys(overlay),
-      tap_action_content: overlay.tap_action
-    });
-
     // Start building the grid SVG
     let gridMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="status_grid"
@@ -662,16 +652,6 @@ export class StatusGridRenderer {
       // Use HA's card radius directly for perfect visual consistency
       const result = Math.round(haCardRadius);
 
-      // Debug logging for HA radius matching
-      cblcarsLog.debug(`[StatusGridRenderer] Radius normalization (HA match):`, {
-        cellSize: `${cellWidth}x${cellHeight}`,
-        cellMinDimension,
-        haCardRadius,
-        baseRadius,
-        matchHaRadius,
-        result
-      });
-
       return result;
     }
 
@@ -696,34 +676,9 @@ export class StatusGridRenderer {
 
     // Apply intelligent clamping
     normalizedRadius = Math.max(normalizedRadius, intelligentMinRadius);
-    normalizedRadius = Math.min(normalizedRadius, maxRadius);    // Round to avoid fractional pixel values
+    normalizedRadius = Math.min(normalizedRadius, maxRadius);
+
     const result = Math.round(normalizedRadius);
-
-    // Debug logging to help tune the algorithm
-    cblcarsLog.debug(`[StatusGridRenderer] Radius normalization:`, {
-      cellSize: `${cellWidth}x${cellHeight}`,
-      cellMinDimension,
-      haCardRadius,
-      baseRadius,
-      matchHaRadius,
-      scaleFactor: scaleFactor.toFixed(2),
-      intelligentMinRadius: intelligentMinRadius.toFixed(1),
-      maxRadius: maxRadius.toFixed(1),
-      result
-    });
-
-    // Debug logging for proportional scaling
-    cblcarsLog.debug(`[StatusGridRenderer] Radius normalization (proportional):`, {
-      cellSize: `${cellWidth}x${cellHeight}`,
-      cellMinDimension,
-      haCardRadius,
-      baseRadius,
-      matchHaRadius,
-      scaleFactor: scaleFactor.toFixed(2),
-      intelligentMinRadius: intelligentMinRadius.toFixed(1),
-      maxRadius: maxRadius.toFixed(1),
-      result
-    });
 
     return result;
   }
@@ -828,54 +783,11 @@ export class StatusGridRenderer {
   _processStatusGridActions(overlay, gridStyle, cardInstance) {
     // Try to get card instance from various sources
     if (!cardInstance) {
-      cardInstance = StatusGridRenderer._resolveCardInstance();
+      cardInstance = ActionHelpers.resolveCardInstance();
     }
 
-    if (!cardInstance) {
-      cblcarsLog.debug(`[StatusGridRenderer] No card instance available - skipping action processing for ${overlay.id}`);
-      return null;
-    }
-
-    // Check for Tier 1: Simple overlay actions (actions should now be preserved in main overlay)
-    const hasSimpleActions = overlay.tap_action || overlay.hold_action || overlay.double_tap_action;
-
-    // Check for Tier 2: Enhanced actions (in style block)
-    const hasEnhancedActions = gridStyle.actions;
-
-    if (!hasSimpleActions && !hasEnhancedActions) {
-      cblcarsLog.debug(`[StatusGridRenderer] No actions configured for status grid ${overlay.id}`);
-      return null;
-    }
-
-    cblcarsLog.debug(`[StatusGridRenderer] Processing actions for status grid ${overlay.id}:`, {
-      hasSimpleActions,
-      hasEnhancedActions,
-      simpleActions: hasSimpleActions ? { tap: overlay.tap_action, hold: overlay.hold_action } : null,
-      enhancedActions: hasEnhancedActions ? gridStyle.actions : null
-    });
-
-    // Build action configuration for ActionHelpers
-    const actionConfig = {};
-
-    // Tier 1: Simple actions (treat entire grid as single clickable element)
-    if (hasSimpleActions) {
-      actionConfig.simple = {
-        tap_action: overlay.tap_action,
-        hold_action: overlay.hold_action,
-        double_tap_action: overlay.double_tap_action
-      };
-    }
-
-    // Tier 2: Enhanced actions (cell-level actions)
-    if (hasEnhancedActions) {
-      actionConfig.enhanced = gridStyle.actions;
-    }
-
-    return {
-      config: actionConfig,
-      overlay: overlay,
-      cardInstance: cardInstance
-    };
+    // Use the generic ActionHelpers method for consistency
+    return ActionHelpers.processOverlayActions(overlay, gridStyle, cardInstance);
   }
 
   _renderFallbackStatusGrid(overlay, x, y, width, height) {
@@ -1375,33 +1287,16 @@ export class StatusGridRenderer {
       return;
     }
 
-    cblcarsLog.debug(`[StatusGridRenderer] Delegating action attachment to ActionHelpers for overlay ${actionInfo.overlay.id}`);
-
-    try {
-      // Delegate to ActionHelpers for clean separation of concerns
-      if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
-        ActionHelpers.attachActions(
-          overlayElement,
-          actionInfo.overlay,
-          actionInfo.config,
-          actionInfo.cardInstance
-        );
-        cblcarsLog.debug(`[StatusGridRenderer] ✅ Actions delegated successfully to ActionHelpers for ${actionInfo.overlay.id}`);
-      } else {
-        cblcarsLog.warn(`[StatusGridRenderer] ❌ ActionHelpers.attachActions not available for overlay ${actionInfo.overlay.id}`);
-
-        // Fallback: Add basic click listener that reports the issue
-        overlayElement.addEventListener('click', (event) => {
-          cblcarsLog.error(`[StatusGridRenderer] 🚫 Status grid clicked but ActionHelpers unavailable for ${actionInfo.overlay.id}`);
-        });
-      }
-    } catch (error) {
-      cblcarsLog.error(`[StatusGridRenderer] ❌ Error delegating actions to ActionHelpers:`, error);
-
-      // Fallback: Add error-reporting click listener
-      overlayElement.addEventListener('click', (event) => {
-        cblcarsLog.error(`[StatusGridRenderer] 🚫 Status grid clicked but action delegation failed for ${actionInfo.overlay.id}:`, error);
-      });
+    // Delegate to ActionHelpers for clean separation of concerns
+    if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
+      ActionHelpers.attachActions(
+        overlayElement,
+        actionInfo.overlay,
+        actionInfo.config,
+        actionInfo.cardInstance
+      );
+    } else {
+      cblcarsLog.warn(`[StatusGridRenderer] ActionHelpers not available for overlay ${actionInfo.overlay.id}`);
     }
   }
 
