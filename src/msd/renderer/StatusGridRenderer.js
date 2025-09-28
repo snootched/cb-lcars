@@ -10,6 +10,12 @@ import { BracketRenderer } from './BracketRenderer.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
+// Debug: Ensure ActionHelpers is imported correctly
+cblcarsLog.debug(`[StatusGridRenderer] ActionHelpers imported:`, {
+  ActionHelpers: !!ActionHelpers,
+  methods: ActionHelpers ? Object.getOwnPropertyNames(ActionHelpers) : 'not available'
+});
+
 export class StatusGridRenderer {
   constructor() {
     // Note: Caches removed as they were not being used in practice
@@ -91,6 +97,11 @@ export class StatusGridRenderer {
 
       // Process actions if available
       const actionInfo = this._processStatusGridActions(overlay, gridStyle, cardInstance);
+
+      // Add cells to action info for cell-level action processing
+      if (actionInfo) {
+        actionInfo.cells = cells;
+      }
 
       // Return both markup and action metadata for post-processing
       return {
@@ -357,18 +368,32 @@ export class StatusGridRenderer {
         }
       }
 
-      // Render cell rectangle (don't subtract gap - it's handled in positioning)
+      // Debug: Check if this cell has specific actions
+      const cellHasActions = !!(cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action));
+
+      cblcarsLog.debug(`[StatusGridRenderer] 🔲 Rendering cell ${cell.id}:`, {
+        cellHasActions: cellHasActions,
+        cellActions: cell.actions,
+        position: [cellX, cellY],
+        size: [cellWidth, cellHeight]
+      });
+
+      // ENHANCED: Wrap cell and its content in a group for unified action handling
+      gridMarkup += `<g data-cell-id="${cell.id}"
+                        data-cell-row="${cell.row}"
+                        data-cell-col="${cell.col}"
+                        data-has-cell-actions="${cellHasActions}"
+                        style="pointer-events: ${hasActions || cellHasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions || cellHasActions ? 'pointer' : 'default'};">`;
+
+      // Render cell rectangle (simplified - group handles the actions)
       gridMarkup += `<rect x="${cellX}" y="${cellY}"
                      width="${cellWidth}" height="${cellHeight}"
                      fill="${cellColor}"
                      stroke="${gridStyle.border_color}"
                      stroke-width="${gridStyle.border_width}"
                      rx="${cellCornerRadius}"
-                     data-cell-id="${cell.id}"
-                     data-cell-row="${cell.row}"
-                     data-cell-col="${cell.col}"
                      data-lcars-corner="${gridStyle.lcars_corners && (cell.row === 0 || cell.row === gridStyle.rows - 1) && (cell.col === 0 || cell.col === gridStyle.columns - 1)}"
-                     style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};"
+                     style="pointer-events: inherit;"
                      />`;
 
       // Render cell label if enabled
@@ -383,6 +408,7 @@ export class StatusGridRenderer {
                        font-size="${labelFontSize}"
                        font-family="${gridStyle.font_family}"
                        font-weight="${gridStyle.font_weight}"
+                       style="pointer-events: inherit; user-select: none; cursor: inherit;"
                        data-cell-label="${cell.id}">
                        ${this._escapeXml(cell.label)}
                      </text>`;
@@ -399,10 +425,14 @@ export class StatusGridRenderer {
                        font-size="${gridStyle.value_font_size}"
                        font-family="${gridStyle.font_family}"
                        font-weight="${gridStyle.font_weight}"
+                       style="pointer-events: inherit; user-select: none; cursor: inherit;"
                        data-cell-content="${cell.id}">
                        ${this._escapeXml(cell.content || String(cell.data.value))}
                      </text>`;
       }
+
+      // Close the cell group after all cell content is added
+      gridMarkup += `</g>`;
     });
 
     gridMarkup += '</g>';
@@ -415,7 +445,21 @@ export class StatusGridRenderer {
       }
     }
 
+    // Make text elements clickable as part of their parent cells
+    gridMarkup = StatusGridRenderer._makeTextElementsClickable(gridMarkup, cells);
+
     return gridMarkup;
+  }
+
+  /**
+   * Close cell group in grid markup
+   * @param {string} gridMarkup - Current grid markup
+   * @returns {string} Markup with cell group closed
+   * @private
+   * @static
+   */
+  static _closeCellGroup(gridMarkup) {
+    return gridMarkup + `</g>`;
   }
 
   /**
@@ -872,6 +916,20 @@ export class StatusGridRenderer {
         const rawCellContent = this._getCellContentFromSources(cellConfig);
         const cellContent = this._resolveUnifiedCellContent(rawCellContent);
 
+        // Debug: Log cell config parsing
+        const cellActions = {
+          tap_action: cellConfig.tap_action || null,
+          hold_action: cellConfig.hold_action || null,
+          double_tap_action: cellConfig.double_tap_action || null
+        };
+
+        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Parsing cell ${cellConfig.id || `cell-${index}`}:`, {
+          cellConfig: cellConfig,
+          extractedActions: cellActions,
+          hasTapAction: !!cellConfig.tap_action,
+          hasHoldAction: !!cellConfig.hold_action
+        });
+
         const cell = {
           id: cellConfig.id || `cell-${index}`,
           row: cellConfig.position ? cellConfig.position[0] : Math.floor(index / gridStyle.columns),
@@ -895,7 +953,9 @@ export class StatusGridRenderer {
             color: cellConfig.color || null, // Override cell color
             radius: cellConfig.radius !== undefined ? Number(cellConfig.radius) : null, // Override corner radius
             font_size: cellConfig.font_size !== undefined ? Number(cellConfig.font_size) : null // Override font size
-          }
+          },
+          // Cell actions (directly on the cell - much cleaner!)
+          actions: cellActions
         };
 
         cells.push(cell);
@@ -1288,7 +1348,36 @@ export class StatusGridRenderer {
     }
 
     // Delegate to ActionHelpers for clean separation of concerns
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 ActionHelpers availability:`, {
+      ActionHelpersExists: !!ActionHelpers,
+      attachActionsExists: !!(ActionHelpers && typeof ActionHelpers.attachActions === 'function'),
+      attachCellActionsExists: !!(ActionHelpers && typeof ActionHelpers.attachCellActionsFromConfigs === 'function')
+    });
+
     if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
+      // ENHANCED: Attach cell-level actions FIRST (higher priority)
+      if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
+        cblcarsLog.debug(`[StatusGridRenderer] 🔲 Attaching cell-level actions first for priority`);
+        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Cells being passed to ActionHelpers:`, {
+          cellCount: actionInfo.cells.length,
+          cellsWithActions: actionInfo.cells.filter(c => c.actions && (c.actions.tap_action || c.actions.hold_action || c.actions.double_tap_action)),
+          allCells: actionInfo.cells.map(c => ({ id: c.id, actions: c.actions }))
+        });
+
+        ActionHelpers.attachCellActionsFromConfigs(
+          overlayElement,
+          actionInfo.cells,
+          actionInfo.cardInstance
+        );
+      } else {
+        cblcarsLog.warn(`[StatusGridRenderer] 🚫 No cells or invalid cells array for action attachment:`, {
+          hasCells: !!actionInfo.cells,
+          isArray: Array.isArray(actionInfo.cells),
+          cellsLength: actionInfo.cells?.length
+        });
+      }
+
+      // Attach overlay-level actions AFTER (lower priority, will be blocked by cell actions)
       ActionHelpers.attachActions(
         overlayElement,
         actionInfo.overlay,
@@ -1427,6 +1516,31 @@ export class StatusGridRenderer {
       cardInstanceAvailable: !!StatusGridRenderer._resolveCardInstance(),
       actionHelpersAvailable: !!window.ActionHelpers
     };
+  }
+
+  /**
+   * Make text elements within cells clickable and part of their parent cell for actions
+   * @param {string} gridMarkup - The grid markup to process
+   * @param {Array} cells - Array of cell configurations
+   * @returns {string} Updated markup with clickable text elements
+   * @private
+   * @static
+   */
+  static _makeTextElementsClickable(gridMarkup, cells) {
+    // Replace pointer-events: none with pointer-events: visiblePainted for text elements
+    // and add necessary data attributes
+    return gridMarkup.replace(
+      /(<text[^>]*data-cell-part="([^"]*)"[^>]*style="[^"]*pointer-events:\s*none[^"]*")([^>]*>)/g,
+      (match, beforeStyle, cellId, afterStyle) => {
+        // Find the cell configuration
+        const cell = cells.find(c => c.id === cellId);
+        const cellHasActions = !!(cell && cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action));
+
+        // Replace the style and add data attributes
+        const newStyle = beforeStyle.replace('pointer-events: none', 'pointer-events: visiblePainted; cursor: pointer');
+        return `${newStyle} data-cell-id="${cellId}" data-has-cell-actions="${cellHasActions}"${afterStyle}`;
+      }
+    );
   }
 }
 

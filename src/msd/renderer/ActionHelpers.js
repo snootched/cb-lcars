@@ -14,86 +14,134 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class ActionHelpers {
 
-  /**
-   * Attach actions to any overlay element using button-card bridge pattern
+    /**
+   * Attach simple actions (tap, hold, double-tap) to overlay element
+   * Fixed version with unified event handling like cells but for overlays
    * @param {Element} element - The DOM element to attach actions to
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} actionConfig - Action configuration
+   * @param {Object} simpleActions - Simple actions configuration
    * @param {Object} cardInstance - Card instance for action handling
+   * @private
    * @static
    */
-  static attachActions(element, overlay, actionConfig, cardInstance) {
-    if (!element || !actionConfig || !cardInstance) {
-      cblcarsLog.debug(`[ActionHelpers] Missing required parameters for action attachment`);
-      return;
-    }
+  static _attachSimpleActions(element, simpleActions, cardInstance) {
+    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching overlay actions to element`, {
+      elementType: element.tagName,
+      overlayId: element.getAttribute('data-overlay-id'),
+      actions: simpleActions
+    });
+    // Track action state to prevent conflicts (same as cell system)
+    let isHolding = false;
+    let holdTimer = null;
+    let lastTap = 0;
 
-    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching actions to ${overlay.type || 'overlay'} ${overlay.id}`);
-
-    // Handle simple actions (tap, hold, double_tap) using button-card bridge
-    if (actionConfig.simple) {
-      // Tap action
-      if (actionConfig.simple.tap_action) {
-        element.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          ActionHelpers.executeActionViaButtonCardBridge(actionConfig.simple.tap_action, cardInstance, 'tap');
-        });
+    // Handle mouse/touch events with proper coordination
+    const handlePointerDown = (event) => {
+      // Check if we're clicking on a cell that has its own actions
+      // This includes the cell rect AND any text elements belonging to the cell
+      const targetCell = event.target.closest('[data-has-cell-actions="true"]') ||
+                         (event.target.hasAttribute('data-cell-id') &&
+                          event.target.getAttribute('data-has-cell-actions') === 'true');
+      if (targetCell) {
+        const cellId = targetCell.getAttribute('data-cell-id') || event.target.getAttribute('data-cell-id');
+        cblcarsLog.debug(`[ActionHelpers] 🚫 Overlay ignoring event - clicked on cell with own actions:`, cellId);
+        return; // Don't handle overlay actions on cells with their own actions
       }
 
-      // Hold action (long press)
-      if (actionConfig.simple.hold_action) {
-        let holdTimer;
-        let isHolding = false;
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay pointer down - starting hold timer`);
+      event.preventDefault();
+      event.stopImmediatePropagation();
 
-        const startHold = () => {
-          holdTimer = setTimeout(() => {
-            isHolding = true;
-            ActionHelpers.executeActionViaButtonCardBridge(actionConfig.simple.hold_action, cardInstance, 'hold');
-          }, 500); // 500ms hold time
-        };
+      if (simpleActions.hold_action) {
+        isHolding = false;
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay setting hold timer for 500ms`);
+        holdTimer = setTimeout(() => {
+          isHolding = true;
+          cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay HOLD ACTION TRIGGERED after 500ms`);
+          ActionHelpers.executeActionViaButtonCardBridge(simpleActions.hold_action, cardInstance, 'hold');
+        }, 500);
+      }
+    };
 
-        const endHold = () => {
-          clearTimeout(holdTimer);
-          isHolding = false;
-        };
-
-        // Mouse events
-        element.addEventListener('mousedown', startHold);
-        element.addEventListener('mouseup', endHold);
-        element.addEventListener('mouseleave', endHold);
-
-        // Touch events
-        element.addEventListener('touchstart', startHold);
-        element.addEventListener('touchend', endHold);
-        element.addEventListener('touchcancel', endHold);
+    const handlePointerUp = (event) => {
+      // Check if we're clicking on a cell that has its own actions
+      const targetCell = event.target.closest('[data-has-cell-actions="true"]') ||
+                         (event.target.hasAttribute('data-cell-id') &&
+                          event.target.getAttribute('data-has-cell-actions') === 'true');
+      if (targetCell) {
+        const cellId = targetCell.getAttribute('data-cell-id') || event.target.getAttribute('data-cell-id');
+        cblcarsLog.debug(`[ActionHelpers] 🚫 Overlay ignoring up event - clicked on cell with own actions:`, cellId);
+        return; // Don't handle overlay actions on cells with their own actions
       }
 
-      // Double tap action
-      if (actionConfig.simple.double_tap_action) {
-        let lastTap = 0;
-        element.addEventListener('click', (event) => {
-          const now = Date.now();
-          if (now - lastTap < 300) { // 300ms double tap window
-            event.preventDefault();
-            event.stopPropagation();
-            ActionHelpers.executeActionViaButtonCardBridge(actionConfig.simple.double_tap_action, cardInstance, 'double_tap');
-            lastTap = 0;
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay pointer up, wasHolding: ${isHolding}, hadTimer: ${!!holdTimer}`);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      // Clear hold timer if it exists
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay cleared hold timer`);
+      }
+
+      // Only process tap/double-tap if we weren't holding
+      if (!isHolding) {
+        const now = Date.now();
+
+        // Check for double-tap first
+        if (simpleActions.double_tap_action && (now - lastTap < 300) && lastTap > 0) {
+          cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay DOUBLE-TAP ACTION TRIGGERED`);
+          ActionHelpers.executeActionViaButtonCardBridge(simpleActions.double_tap_action, cardInstance, 'double_tap');
+          lastTap = 0; // Reset to prevent triple-tap and single-tap
+          return; // CRITICAL: Exit early to prevent single-tap logic
+        }
+
+        if (simpleActions.tap_action) {
+          lastTap = now;
+          // Set up single tap with delay to allow for double-tap
+          if (simpleActions.double_tap_action) {
+            // Wait to see if double-tap comes
+            const tapTimestamp = now;
+            setTimeout(() => {
+              if (lastTap === tapTimestamp) { // No double-tap happened (lastTap wasn't reset)
+                cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay SINGLE TAP ACTION TRIGGERED (delayed)`);
+                ActionHelpers.executeActionViaButtonCardBridge(simpleActions.tap_action, cardInstance, 'tap');
+              } else {
+                cblcarsLog.debug(`[ActionHelpers] 🚫 Overlay single tap cancelled (double-tap occurred)`);
+              }
+            }, 300);
           } else {
-            lastTap = now;
+            // No double-tap action, execute immediately
+            cblcarsLog.debug(`[ActionHelpers] 🎯 Overlay SINGLE TAP ACTION TRIGGERED (immediate)`);
+            ActionHelpers.executeActionViaButtonCardBridge(simpleActions.tap_action, cardInstance, 'tap');
           }
-        });
+        }
+      } else {
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay hold was completed, skipping tap processing`);
       }
-    }
 
-    // Handle enhanced actions (element-specific or multi-target)
-    if (actionConfig.enhanced) {
-      // TODO: Implement enhanced action handling for complex overlays
-      // This would handle element-specific actions (e.g., cell-level in grids)
-      cblcarsLog.debug(`[ActionHelpers] 📋 Enhanced actions not yet implemented for ${overlay.type || 'overlay'}:`, actionConfig.enhanced);
-    }
+      // Reset hold state
+      isHolding = false;
+    };
 
-    cblcarsLog.debug(`[ActionHelpers] ✅ Actions attached to ${overlay.type || 'overlay'} ${overlay.id}`);
+    const handlePointerLeave = (event) => {
+      // Always clear timers on leave, regardless of target
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Overlay pointer leave - clearing hold timer`);
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      isHolding = false;
+    };
+
+    // Attach unified pointer events for overlay with lower priority (normal phase, not capture)
+    // This ensures cell events (capture phase) are handled first
+    element.addEventListener('mousedown', handlePointerDown, { capture: false });
+    element.addEventListener('mouseup', handlePointerUp, { capture: false });
+    element.addEventListener('mouseleave', handlePointerLeave, { capture: false });
+    element.addEventListener('touchstart', handlePointerDown, { capture: false });
+    element.addEventListener('touchend', handlePointerUp, { capture: false });
+    element.addEventListener('touchcancel', handlePointerLeave, { capture: false });
   }
 
   /**
@@ -344,6 +392,7 @@ export class ActionHelpers {
 
         // FIXED: Use non-reactive config injection to avoid triggering re-renders
         const originalConfig = cardInstance._config;
+        const originalHass = cardInstance.hass;
         const actionKey = `${actionType}_action`;
 
         // Create temporary config object without triggering LitElement reactivity
@@ -352,8 +401,13 @@ export class ActionHelpers {
           [actionKey]: action
         };
 
-        // Directly assign to internal property to avoid setter/getter reactivity
+        // Ensure we have the freshest HASS object available
+        const freshHass = ActionHelpers._getFreshestHass(cardInstance);
+
+        // Directly assign to internal properties to avoid setter/getter reactivity
         const configDescriptor = Object.getOwnPropertyDescriptor(cardInstance, '_config');
+        const hassDescriptor = Object.getOwnPropertyDescriptor(cardInstance, 'hass');
+
         Object.defineProperty(cardInstance, '_config', {
           value: tempConfig,
           writable: true,
@@ -361,13 +415,21 @@ export class ActionHelpers {
           configurable: true
         });
 
-        try {
+        // Temporarily inject fresh HASS to prevent stale state in more-info dialogs
+        if (freshHass && freshHass !== originalHass) {
+          Object.defineProperty(cardInstance, 'hass', {
+            value: freshHass,
+            writable: true,
+            enumerable: true,
+            configurable: true
+          });
+        }        try {
           // Call button-card's action handler
           const result = cardInstance._handleAction(mockEvent);
           cblcarsLog.debug(`[ActionHelpers] ✅ Button-card bridge execution completed:`, result);
           return true;
         } finally {
-          // Always restore original config using the same non-reactive approach
+          // Always restore original config and hass using the same non-reactive approach
           if (configDescriptor) {
             Object.defineProperty(cardInstance, '_config', configDescriptor);
           } else {
@@ -377,6 +439,20 @@ export class ActionHelpers {
               enumerable: true,
               configurable: true
             });
+          }
+
+          // Restore original HASS if we changed it
+          if (freshHass && freshHass !== originalHass) {
+            if (hassDescriptor) {
+              Object.defineProperty(cardInstance, 'hass', hassDescriptor);
+            } else {
+              Object.defineProperty(cardInstance, 'hass', {
+                value: originalHass,
+                writable: true,
+                enumerable: true,
+                configurable: true
+              });
+            }
           }
         }
       }
@@ -580,36 +656,106 @@ export class ActionHelpers {
   }
 
   /**
-   * EXAMPLE: How other overlay renderers should integrate actions
+   * INTEGRATION PATTERN: How other overlay renderers should integrate actions
+   *
+   * This universal action system works with any overlay type. Follow this pattern:
    *
    * ```javascript
-   * // In any overlay renderer (SparklineRenderer, GaugeRenderer, etc.):
+   * // ===== IN YOUR OVERLAY RENDERER =====
    *
-   * // 1. Process actions during rendering
-   * const actionInfo = ActionHelpers.processOverlayActions(overlay, resolvedStyle, cardInstance);
+   * // 1. Import ActionHelpers
+   * import { ActionHelpers } from './ActionHelpers.js';
    *
-   * // 2. Return action metadata with markup
-   * return {
-   *   markup: overlayMarkup,
-   *   actions: actionInfo,
-   *   needsActionAttachment: !!actionInfo
-   * };
+   * // 2. In your render method, process actions
+   * renderMyOverlay(overlay, anchors, viewBox, cardInstance = null) {
+   *   // ... your rendering logic ...
    *
-   * // 3. In the main renderer, attach actions after DOM insertion
-   * if (result.needsActionAttachment) {
-   *   // Store for post-DOM processing
-   *   SomeRenderer._storeActionInfo(overlay.id, result.actions);
-   *   setTimeout(() => SomeRenderer._tryAttachActions(overlay.id), 100);
+   *   // Process actions using the universal method
+   *   const actionInfo = ActionHelpers.processOverlayActions(overlay, resolvedStyle, cardInstance);
+   *
+   *   // Return markup with action metadata
+   *   return {
+   *     markup: overlayMarkup,
+   *     actions: actionInfo,
+   *     needsActionAttachment: !!actionInfo
+   *   };
    * }
    *
-   * // 4. When DOM is ready, attach actions
-   * static attachOverlayActions(overlayElement, actionInfo) {
-   *   ActionHelpers.attachActions(overlayElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
+   * // 3. In your main static render method, handle post-DOM processing
+   * static render(overlay, anchors, viewBox, cardInstance = null) {
+   *   const result = MyRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);
+   *
+   *   // Store action info for post-DOM-insertion processing
+   *   if (result.needsActionAttachment) {
+   *     MyRenderer._storeActionInfo(overlay.id, result.actions);
+   *     setTimeout(() => MyRenderer._tryManualActionProcessing(overlay.id), 100);
+   *   }
+   *
+   *   return result.markup; // Backwards compatible
+   * }
+   *
+   * // 4. Create action attachment method (copy from StatusGridRenderer)
+   * static attachMyOverlayActions(overlayElement, actionInfo) {
+   *   if (!overlayElement || !actionInfo) return;
+   *
+   *   // Delegate to ActionHelpers - it handles everything!
+   *   if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
+   *     ActionHelpers.attachActions(overlayElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
+   *   }
+   * }
+   *
+   * // 5. Set up DOM observation (copy pattern from StatusGridRenderer)
+   * static _setupActionProcessing() {
+   *   // ... MutationObserver setup to detect your overlay type ...
+   *   // Query for '[data-overlay-type="your_overlay_type"]'
    * }
    * ```
-   */
-
-  /**
+   *
+   * ===== CONFIGURATION SUPPORT =====
+   *
+   * Your overlay configuration supports these action formats:
+   *
+   * Simple Actions (entire overlay clickable):
+   * ```yaml
+   * overlays:
+   *   - type: my_overlay
+   *     tap_action:
+   *       action: toggle
+   *       entity: light.example
+   *     hold_action:
+   *       action: more-info
+   *       entity: light.example
+   *     double_tap_action:
+   *       action: call-service
+   *       service: light.turn_on
+   *       service_data:
+   *         entity_id: light.example
+   *         brightness: 255
+   * ```
+   *
+   * Enhanced Actions (element-specific):
+   * ```yaml
+   Enhanced Actions (element-specific):
+ * ```yaml
+ * # For status grids - actions directly on cells (preferred):
+ * overlays:
+ *   - type: status_grid
+ *     cells:
+ *       - id: cell-1
+ *         tap_action: { action: toggle, entity: light.example }
+ *         hold_action: { action: more-info, entity: light.example }
+ *
+ * # Legacy format (still supported):
+ * overlays:
+ *   - type: status_grid
+ *     style:
+ *       actions:
+ *         cells:
+ *           - cell_id: cell-1
+ *             tap_action: { action: toggle, entity: light.example }
+ * ```
+   * ```
+   */  /**
    * Resolve card instance for action handling from global context
    * Utility method for overlay renderers
    * @returns {Object|null} Card instance or null if not found
@@ -635,6 +781,330 @@ export class ActionHelpers {
 
     cblcarsLog.debug(`[ActionHelpers] Could not resolve card instance from global context`);
     return null;
+  }
+
+  /**
+   * Attach enhanced actions (element-specific) to overlay
+   * @param {Element} overlayElement - The overlay DOM element
+   * @param {Object} enhancedActions - Enhanced actions configuration
+   * @param {Object} cardInstance - Card instance for action handling
+   * @private
+   * @static
+   */
+  static _attachEnhancedActions(overlayElement, enhancedActions, cardInstance) {
+    cblcarsLog.debug(`[ActionHelpers] 🎯 Attaching enhanced actions:`, enhancedActions);
+
+    // LEGACY: Handle old-style cell actions (style.actions.cells) for backward compatibility
+    if (enhancedActions.cells && Array.isArray(enhancedActions.cells)) {
+      cblcarsLog.debug(`[ActionHelpers] ⚠️ Using legacy cell action format - consider moving actions to cell configs`);
+
+      enhancedActions.cells.forEach(cellAction => {
+        const cellId = cellAction.cell_id;
+        if (!cellId) {
+          cblcarsLog.warn(`[ActionHelpers] Cell action missing cell_id:`, cellAction);
+          return;
+        }
+
+        // Find the cell element within the overlay
+        const cellElement = overlayElement.querySelector(`[data-cell-id="${cellId}"]`);
+        if (!cellElement) {
+          cblcarsLog.warn(`[ActionHelpers] Cell element not found for ${cellId}`);
+          return;
+        }
+
+        ActionHelpers._attachCellActions(cellElement, cellAction, cardInstance, cellId);
+      });
+    }
+
+    // Handle other element-specific actions (for future overlay types)
+    if (enhancedActions.elements && Array.isArray(enhancedActions.elements)) {
+      // TODO: Implement generic element-specific actions for other overlay types
+      cblcarsLog.debug(`[ActionHelpers] � Generic element actions not yet implemented`);
+    }
+  }
+
+  /**
+   * Attach actions directly from cell configurations (preferred method)
+   * @param {Element} overlayElement - The overlay DOM element
+   * @param {Array} cells - Array of cell configurations with actions
+   * @param {Object} cardInstance - Card instance for action handling
+   * @static
+   */
+  static attachCellActionsFromConfigs(overlayElement, cells, cardInstance) {
+    if (!cells || !Array.isArray(cells)) {
+      cblcarsLog.debug(`[ActionHelpers] No cells provided for action attachment`);
+      return;
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] 🔍 Processing ${cells.length} cells for action attachment`);
+
+    // Log the full cells array for debugging
+    cblcarsLog.debug(`[ActionHelpers] 🔍 Full cells array for action processing:`, cells.map(c => ({
+      id: c.id,
+      hasActions: !!(c.actions && (c.actions.tap_action || c.actions.hold_action || c.actions.double_tap_action)),
+      actions: c.actions
+    })));
+
+    cells.forEach(cell => {
+      cblcarsLog.debug(`[ActionHelpers] 🔍 Checking cell ${cell.id} for actions:`, {
+        hasActionsObject: !!cell.actions,
+        actionsObject: cell.actions,
+        hasTapAction: !!(cell.actions && cell.actions.tap_action),
+        hasHoldAction: !!(cell.actions && cell.actions.hold_action),
+        hasDoubleTapAction: !!(cell.actions && cell.actions.double_tap_action),
+        fullCellObject: cell
+      });
+
+      if (!cell.actions || (!cell.actions.tap_action && !cell.actions.hold_action && !cell.actions.double_tap_action)) {
+        cblcarsLog.debug(`[ActionHelpers] No actions on cell ${cell.id}`);
+        return; // No actions on this cell
+      }
+
+      // Find the cell element within the overlay
+      const cellElement = overlayElement.querySelector(`[data-cell-id="${cell.id}"]`);
+      if (!cellElement) {
+        const availableCells = Array.from(overlayElement.querySelectorAll('[data-cell-id]')).map(el => el.getAttribute('data-cell-id'));
+        cblcarsLog.error(`[ActionHelpers] ❌ Cell element not found for "${cell.id}"`, {
+          searchedFor: cell.id,
+          availableCells: availableCells,
+          overlayId: overlayElement.getAttribute('data-overlay-id'),
+          totalCellsInDOM: availableCells.length,
+          cellConfig: cell
+        });
+        return;
+      }
+
+      // CRITICAL: Attach actions to ALL elements that belong to this cell (rect, text elements, etc.)
+      const cellParts = overlayElement.querySelectorAll(`[data-cell-id="${cell.id}"]`);
+      cblcarsLog.debug(`[ActionHelpers] 🔍 Found ${cellParts.length} elements for cell ${cell.id}`);
+
+      cellParts.forEach((element, index) => {
+        const elementType = element.tagName.toLowerCase();
+        const elementDesc = elementType === 'rect' ? 'cell-rect' :
+                           elementType === 'text' ? 'cell-text' :
+                           `cell-${elementType}`;
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Attaching actions to ${elementDesc} ${index + 1}/${cellParts.length} for ${cell.id}`);
+        ActionHelpers._attachCellActions(element, cell.actions, cardInstance, `${cell.id}-${elementDesc}`);
+      });
+    });
+  }
+
+  /**
+   * Helper method to attach actions to a specific cell element
+   * @param {Element} cellElement - The cell DOM element
+   * @param {Object} actions - Actions configuration
+   * @param {Object} cardInstance - Card instance for action handling
+   * @param {string} cellId - Cell ID for logging
+   * @private
+   * @static
+   */
+  static _attachCellActions(cellElement, actions, cardInstance, cellId) {
+    cblcarsLog.debug(`[ActionHelpers] 🔲 Attaching cell actions to ${cellId}:`, actions);
+
+    // Track action state to prevent conflicts
+    let isHolding = false;
+    let holdTimer = null;
+    let lastTap = 0;
+
+    // Handle mouse/touch events with proper coordination
+    const handlePointerDown = (event) => {
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer down - starting hold timer`);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      if (actions.hold_action) {
+        isHolding = false;
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} setting hold timer for 500ms`);
+        holdTimer = setTimeout(() => {
+          isHolding = true;
+          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} HOLD ACTION TRIGGERED after 500ms`);
+          ActionHelpers.executeActionViaButtonCardBridge(actions.hold_action, cardInstance, 'hold');
+        }, 500);
+      }
+    };
+
+    const handlePointerUp = (event) => {
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer up, wasHolding: ${isHolding}, hadTimer: ${!!holdTimer}`);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      // Clear hold timer if it exists
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} cleared hold timer`);
+      }
+
+      // Only process tap/double-tap if we weren't holding
+      if (!isHolding) {
+        const now = Date.now();
+
+        // Check for double-tap first
+        if (actions.double_tap_action && (now - lastTap < 300) && lastTap > 0) {
+          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} DOUBLE-TAP ACTION TRIGGERED`);
+          ActionHelpers.executeActionViaButtonCardBridge(actions.double_tap_action, cardInstance, 'double_tap');
+          lastTap = 0; // Reset to prevent triple-tap and single-tap
+          return; // CRITICAL: Exit early to prevent single-tap logic
+        }
+
+        if (actions.tap_action) {
+          lastTap = now;
+          // Set up single tap with delay to allow for double-tap
+          if (actions.double_tap_action) {
+            // Wait to see if double-tap comes
+            const tapTimestamp = now;
+            setTimeout(() => {
+              if (lastTap === tapTimestamp) { // No double-tap happened (lastTap wasn't reset)
+                cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} SINGLE TAP ACTION TRIGGERED (delayed)`);
+                ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
+              } else {
+                cblcarsLog.debug(`[ActionHelpers] 🚫 Cell ${cellId} single tap cancelled (double-tap occurred)`);
+              }
+            }, 300);
+          } else {
+            // No double-tap action, execute immediately
+            cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} SINGLE TAP ACTION TRIGGERED (immediate)`);
+            ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
+          }
+        }
+      } else {
+        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} hold was completed, skipping tap processing`);
+      }
+
+      // Reset hold state
+      isHolding = false;
+    };
+
+    const handlePointerLeave = (event) => {
+      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer leave - clearing hold timer`);
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      isHolding = false;
+    };
+
+    // Attach unified pointer events with proper event blocking
+    cellElement.addEventListener('mousedown', handlePointerDown, { capture: true });
+    cellElement.addEventListener('mouseup', handlePointerUp, { capture: true });
+    cellElement.addEventListener('mouseleave', handlePointerLeave, { capture: true });
+    cellElement.addEventListener('touchstart', handlePointerDown, { capture: true });
+    cellElement.addEventListener('touchend', handlePointerUp, { capture: true });
+    cellElement.addEventListener('touchcancel', handlePointerLeave, { capture: true });
+
+    // CRITICAL: Block click events on this cell to prevent overlay actions
+    // Note: We already block mousedown/mouseup/etc in our handlers above
+    cellElement.addEventListener('click', (event) => {
+      cblcarsLog.debug(`[ActionHelpers] 🚫 Blocking click event on cell ${cellId} to prevent overlay action`);
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      // Don't execute anything - this is just to block overlay events
+    }, { capture: true });    // Attach hold action
+    if (actions.hold_action) {
+      let holdTimer;
+
+      const startHold = () => {
+        holdTimer = setTimeout(() => {
+          ActionHelpers.executeActionViaButtonCardBridge(actions.hold_action, cardInstance, 'hold');
+        }, 500);
+      };
+
+      const endHold = (event) => {
+        if (event) event.stopImmediatePropagation();
+        clearTimeout(holdTimer);
+      };
+
+      cellElement.addEventListener('mousedown', startHold, { capture: true });
+      cellElement.addEventListener('mouseup', endHold, { capture: true });
+      cellElement.addEventListener('mouseleave', endHold, { capture: true });
+      cellElement.addEventListener('touchstart', startHold, { capture: true });
+      cellElement.addEventListener('touchend', endHold, { capture: true });
+      cellElement.addEventListener('touchcancel', endHold, { capture: true });
+    }
+
+    // Attach double tap action with higher priority
+    if (actions.double_tap_action) {
+      let lastTap = 0;
+      cellElement.addEventListener('click', (event) => {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} double-tap action triggered`);
+          event.preventDefault();
+          event.stopImmediatePropagation(); // Stop ALL other listeners
+          ActionHelpers.executeActionViaButtonCardBridge(actions.double_tap_action, cardInstance, 'double_tap');
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      }, { capture: true });
+    }
+
+    // Make sure cell is clickable if it has actions
+    if (actions.tap_action || actions.hold_action || actions.double_tap_action) {
+      cellElement.style.pointerEvents = 'visiblePainted';
+      cellElement.style.cursor = 'pointer';
+    }
+  }  /**
+   * Get the freshest HASS object available to prevent stale state in dialogs
+   * @param {Object} cardInstance - Card instance
+   * @returns {Object} Freshest HASS object available
+   * @private
+   * @static
+   */
+  static _getFreshestHass(cardInstance) {
+    // Try to get the freshest HASS from various sources, in order of freshness
+
+    // 1. From MSD SystemsManager (most up-to-date)
+    if (window.__msdDebug?.systemsManager?._originalHass) {
+      return window.__msdDebug.systemsManager._originalHass;
+    }
+
+    // 2. From card instance (might be stale)
+    if (cardInstance.hass) {
+      return cardInstance.hass;
+    }
+
+    // 3. From global MSD context
+    if (window._msdCurrentHass) {
+      return window._msdCurrentHass;
+    }
+
+    // 4. From Home Assistant's global hass
+    if (window.hassConnection?.hass) {
+      return window.hassConnection.hass;
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] Using card instance HASS (no fresher source found)`);
+    return cardInstance.hass;
+  }
+
+  /**
+   * Attach actions to any overlay element using button-card bridge pattern
+   * @param {Element} element - The DOM element to attach actions to
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} actionConfig - Action configuration
+   * @param {Object} cardInstance - Card instance for action handling
+   * @static
+   */
+  static attachActions(element, overlay, actionConfig, cardInstance) {
+    if (!element || !actionConfig || !cardInstance) {
+      cblcarsLog.debug(`[ActionHelpers] Missing required parameters for action attachment`);
+      return;
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] 🔗 Attaching actions to ${overlay.type || 'overlay'} ${overlay.id}`);
+
+    // Attach simple actions (tap, hold, double_tap)
+    if (actionConfig.simple) {
+      ActionHelpers._attachSimpleActions(element, actionConfig.simple, cardInstance);
+    }
+
+    // Handle enhanced actions (element-specific or multi-target)
+    if (actionConfig.enhanced) {
+      ActionHelpers._attachEnhancedActions(element, actionConfig.enhanced, cardInstance);
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] ✅ Actions attached to ${overlay.type || 'overlay'} ${overlay.id}`);
   }
 }
 
