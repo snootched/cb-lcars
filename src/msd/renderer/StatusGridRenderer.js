@@ -10,11 +10,7 @@ import { BracketRenderer } from './BracketRenderer.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
-// Debug: Ensure ActionHelpers is imported correctly
-cblcarsLog.debug(`[StatusGridRenderer] ActionHelpers imported:`, {
-  ActionHelpers: !!ActionHelpers,
-  methods: ActionHelpers ? Object.getOwnPropertyNames(ActionHelpers) : 'not available'
-});
+
 
 export class StatusGridRenderer {
   constructor() {
@@ -1358,32 +1354,23 @@ export class StatusGridRenderer {
       // ENHANCED: Attach cell-level actions FIRST (higher priority)
       if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
         cblcarsLog.debug(`[StatusGridRenderer] 🔲 Attaching cell-level actions first for priority`);
-        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Cells being passed to ActionHelpers:`, {
-          cellCount: actionInfo.cells.length,
-          cellsWithActions: actionInfo.cells.filter(c => c.actions && (c.actions.tap_action || c.actions.hold_action || c.actions.double_tap_action)),
-          allCells: actionInfo.cells.map(c => ({ id: c.id, actions: c.actions }))
-        });
+
 
         ActionHelpers.attachCellActionsFromConfigs(
           overlayElement,
           actionInfo.cells,
           actionInfo.cardInstance
         );
-      } else {
-        cblcarsLog.warn(`[StatusGridRenderer] 🚫 No cells or invalid cells array for action attachment:`, {
-          hasCells: !!actionInfo.cells,
-          isArray: Array.isArray(actionInfo.cells),
-          cellsLength: actionInfo.cells?.length
-        });
-      }
 
-      // Attach overlay-level actions AFTER (lower priority, will be blocked by cell actions)
-      ActionHelpers.attachActions(
-        overlayElement,
-        actionInfo.overlay,
-        actionInfo.config,
-        actionInfo.cardInstance
-      );
+
+        // Attach overlay-level actions AFTER (lower priority, will be blocked by cell actions)
+        ActionHelpers.attachActions(
+          overlayElement,
+          actionInfo.overlay,
+          actionInfo.config,
+          actionInfo.cardInstance
+        );
+      }
     } else {
       cblcarsLog.warn(`[StatusGridRenderer] ActionHelpers not available for overlay ${actionInfo.overlay.id}`);
     }

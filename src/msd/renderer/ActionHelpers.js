@@ -838,22 +838,8 @@ export class ActionHelpers {
 
     cblcarsLog.debug(`[ActionHelpers] 🔍 Processing ${cells.length} cells for action attachment`);
 
-    // Log the full cells array for debugging
-    cblcarsLog.debug(`[ActionHelpers] 🔍 Full cells array for action processing:`, cells.map(c => ({
-      id: c.id,
-      hasActions: !!(c.actions && (c.actions.tap_action || c.actions.hold_action || c.actions.double_tap_action)),
-      actions: c.actions
-    })));
-
     cells.forEach(cell => {
-      cblcarsLog.debug(`[ActionHelpers] 🔍 Checking cell ${cell.id} for actions:`, {
-        hasActionsObject: !!cell.actions,
-        actionsObject: cell.actions,
-        hasTapAction: !!(cell.actions && cell.actions.tap_action),
-        hasHoldAction: !!(cell.actions && cell.actions.hold_action),
-        hasDoubleTapAction: !!(cell.actions && cell.actions.double_tap_action),
-        fullCellObject: cell
-      });
+
 
       if (!cell.actions || (!cell.actions.tap_action && !cell.actions.hold_action && !cell.actions.double_tap_action)) {
         cblcarsLog.debug(`[ActionHelpers] No actions on cell ${cell.id}`);
