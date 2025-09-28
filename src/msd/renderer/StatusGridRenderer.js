@@ -7,6 +7,7 @@ import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
+import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class StatusGridRenderer {
@@ -19,12 +20,38 @@ export class StatusGridRenderer {
    * @param {Object} overlay - Status grid overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
-   * @returns {string} Complete SVG markup for the styled status grid
+   * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
+   * @returns {string} Complete SVG markup for the styled status grid (backwards compatible)
    */
-  static render(overlay, anchors, viewBox) {
+  static render(overlay, anchors, viewBox, cardInstance = null) {
+    const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);
+
+    // Store action info for post-DOM-insertion processing
+    if (result.needsActionAttachment) {
+      StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
+
+      // Add fallback - try to process actions after a short delay
+      setTimeout(() => {
+        StatusGridRenderer._tryManualActionProcessing(overlay.id);
+      }, 100);
+    }
+
+    return result.markup; // Return just markup for backwards compatibility
+  }
+
+  /**
+   * Render status grid with action metadata (enhanced version)
+   * @param {Object} overlay - Status grid overlay configuration with resolved styles
+   * @param {Object} anchors - Anchor positions
+   * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
+   * @returns {Object} Object with markup, actions, and metadata
+   * @static
+   */
+  static renderWithActions(overlay, anchors, viewBox, cardInstance = null) {
     // Create instance for non-static methods
     const instance = new StatusGridRenderer();
-    return instance.renderStatusGrid(overlay, anchors, viewBox);
+    return instance.renderStatusGrid(overlay, anchors, viewBox, cardInstance);
   }
 
   /**
@@ -32,9 +59,10 @@ export class StatusGridRenderer {
    * @param {Object} overlay - Status grid overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
    * @returns {string} Complete SVG markup for the styled status grid
    */
-  renderStatusGrid(overlay, anchors, viewBox) {
+  renderStatusGrid(overlay, anchors, viewBox, cardInstance = null) {
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[StatusGridRenderer] ⚠️ Status grid overlay position could not be resolved:', overlay.id);
@@ -56,14 +84,28 @@ export class StatusGridRenderer {
       cblcarsLog.debug(`[StatusGridRenderer] 🔲 Rendering ${cells.length} cells for grid ${overlay.id}`);
 
       // Render enhanced status grid
-      return this._renderEnhancedStatusGrid(
+      const gridMarkup = this._renderEnhancedStatusGrid(
         overlay, x, y, width, height, cells,
         gridStyle, animationAttributes
       );
 
+      // Process actions if available
+      const actionInfo = this._processStatusGridActions(overlay, gridStyle, cardInstance);
+
+      // Return both markup and action metadata for post-processing
+      return {
+        markup: gridMarkup,
+        actions: actionInfo,
+        needsActionAttachment: !!actionInfo
+      };
+
     } catch (error) {
       cblcarsLog.error(`[StatusGridRenderer] ❌ Enhanced rendering failed for status grid ${overlay.id}:`, error);
-      return this._renderFallbackStatusGrid(overlay, x, y, width, height);
+      return {
+        markup: this._renderFallbackStatusGrid(overlay, x, y, width, height),
+        actions: null,
+        needsActionAttachment: false
+      };
     }
   }
 
@@ -172,6 +214,9 @@ export class StatusGridRenderer {
       reveal_animation: standardStyles.animation.revealAnimation,
       pulse_on_change: standardStyles.animation.pulseOnChange,
 
+      // Actions (NEW - Tier 2 Enhanced Actions)
+      actions: style.actions || null,               // Enhanced multi-target actions block
+
       // Performance options
       update_throttle: Number(style.update_throttle || style.updateThrottle || 100),
 
@@ -199,6 +244,7 @@ export class StatusGridRenderer {
     if (gridStyle.cascade_speed > 0) gridStyle.features.push('cascade');
     if (gridStyle.reveal_animation) gridStyle.features.push('reveal');
     if (gridStyle.pulse_on_change) gridStyle.features.push('pulse');
+    if (gridStyle.actions) gridStyle.features.push('actions');
 
     return gridStyle;
   }  /**
@@ -251,6 +297,19 @@ export class StatusGridRenderer {
     const { cellWidths, cellHeights } = this._calculateProportionalCellDimensions(width, height, gridStyle);
     const gap = gridStyle.cell_gap;
 
+    // Check if overlay has actions (actions should now be preserved in main overlay by ModelBuilder)
+    const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action || gridStyle.actions);
+
+    cblcarsLog.debug(`[StatusGridRenderer] Action detection for ${overlay.id}:`, {
+      tap_action: !!overlay.tap_action,
+      hold_action: !!overlay.hold_action,
+      double_tap_action: !!overlay.double_tap_action,
+      gridStyle_actions: !!gridStyle.actions,
+      hasActions: hasActions,
+      overlay_keys: Object.keys(overlay),
+      tap_action_content: overlay.tap_action
+    });
+
     // Start building the grid SVG
     let gridMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="status_grid"
@@ -259,6 +318,7 @@ export class StatusGridRenderer {
                 data-grid-features="${gridStyle.features.join(',')}"
                 data-animation-ready="${!!animationAttributes.hasAnimations}"
                 data-cascade-direction="${gridStyle.cascade_direction}"
+                style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};"
                 transform="translate(${x}, ${y})">`;
 
     // Render grid background if enabled
@@ -317,7 +377,9 @@ export class StatusGridRenderer {
                      data-cell-id="${cell.id}"
                      data-cell-row="${cell.row}"
                      data-cell-col="${cell.col}"
-                     data-lcars-corner="${gridStyle.lcars_corners && (cell.row === 0 || cell.row === gridStyle.rows - 1) && (cell.col === 0 || cell.col === gridStyle.columns - 1)}"/>`;
+                     data-lcars-corner="${gridStyle.lcars_corners && (cell.row === 0 || cell.row === gridStyle.rows - 1) && (cell.col === 0 || cell.col === gridStyle.columns - 1)}"
+                     style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};"
+                     />`;
 
       // Render cell label if enabled
       if (gridStyle.show_labels && cell.label) {
@@ -755,6 +817,67 @@ export class StatusGridRenderer {
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
 
+  /**
+   * Process action configuration for status grid
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} gridStyle - Resolved grid styling
+   * @param {Object} cardInstance - Card instance for action handling
+   * @returns {Object|null} Action configuration for ActionHelpers
+   */
+  _processStatusGridActions(overlay, gridStyle, cardInstance) {
+    // Try to get card instance from various sources
+    if (!cardInstance) {
+      cardInstance = StatusGridRenderer._resolveCardInstance();
+    }
+
+    if (!cardInstance) {
+      cblcarsLog.debug(`[StatusGridRenderer] No card instance available - skipping action processing for ${overlay.id}`);
+      return null;
+    }
+
+    // Check for Tier 1: Simple overlay actions (actions should now be preserved in main overlay)
+    const hasSimpleActions = overlay.tap_action || overlay.hold_action || overlay.double_tap_action;
+
+    // Check for Tier 2: Enhanced actions (in style block)
+    const hasEnhancedActions = gridStyle.actions;
+
+    if (!hasSimpleActions && !hasEnhancedActions) {
+      cblcarsLog.debug(`[StatusGridRenderer] No actions configured for status grid ${overlay.id}`);
+      return null;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Processing actions for status grid ${overlay.id}:`, {
+      hasSimpleActions,
+      hasEnhancedActions,
+      simpleActions: hasSimpleActions ? { tap: overlay.tap_action, hold: overlay.hold_action } : null,
+      enhancedActions: hasEnhancedActions ? gridStyle.actions : null
+    });
+
+    // Build action configuration for ActionHelpers
+    const actionConfig = {};
+
+    // Tier 1: Simple actions (treat entire grid as single clickable element)
+    if (hasSimpleActions) {
+      actionConfig.simple = {
+        tap_action: overlay.tap_action,
+        hold_action: overlay.hold_action,
+        double_tap_action: overlay.double_tap_action
+      };
+    }
+
+    // Tier 2: Enhanced actions (cell-level actions)
+    if (hasEnhancedActions) {
+      actionConfig.enhanced = gridStyle.actions;
+    }
+
+    return {
+      config: actionConfig,
+      overlay: overlay,
+      cardInstance: cardInstance
+    };
+  }
+
   _renderFallbackStatusGrid(overlay, x, y, width, height) {
     const style = overlay.finalStyle || overlay.style || {};
     const color = style.cell_color || style.color || 'var(--lcars-gray)';
@@ -1095,6 +1218,194 @@ export class StatusGridRenderer {
   }
 
   /**
+   * Store action info for later attachment after DOM insertion
+   * @private
+   * @static
+   */
+  static _storeActionInfo(overlayId, actionInfo) {
+    if (!window._msdStatusGridActions) {
+      window._msdStatusGridActions = new Map();
+    }
+
+    window._msdStatusGridActions.set(overlayId, actionInfo);
+    cblcarsLog.debug(`[StatusGridRenderer] Stored action info for overlay ${overlayId}`);
+
+    // Set up automatic processing when DOM is ready
+    StatusGridRenderer._setupActionProcessing();
+  }
+
+  /**
+   * Set up automatic action processing using DOM observation
+   * @private
+   * @static
+   */
+  static _setupActionProcessing() {
+    // Prevent multiple observers
+    if (window._msdStatusGridObserver) return;
+
+    // Use MutationObserver to detect when status grids are added to DOM
+    window._msdStatusGridObserver = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            StatusGridRenderer._processNewElements(node);
+          }
+        });
+      });
+    });
+
+    // Find appropriate container to observe - try card shadow root first
+    let observeTarget = document.body;
+
+    // Try to find CB-LCARS card shadow root
+    const card = window.cb_lcars_card_instance;
+    if (card && card.shadowRoot) {
+      observeTarget = card.shadowRoot;
+      cblcarsLog.debug(`[StatusGridRenderer] Using card shadow root as observation target`);
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] Using document.body as observation target (no card shadow root found)`);
+    }
+
+    // Start observing for status grid additions
+    window._msdStatusGridObserver.observe(observeTarget, {
+      childList: true,
+      subtree: true
+    });
+
+    cblcarsLog.debug(`[StatusGridRenderer] Action processing observer activated`);
+  }
+
+  /**
+   * Process newly added elements for status grid action attachment
+   * @private
+   * @static
+   */
+  static _processNewElements(element) {
+    // Find status grid overlays in the added element
+    const statusGrids = element.querySelectorAll ?
+      element.querySelectorAll('[data-overlay-type="status_grid"]') : [];
+
+    // Also check if the element itself is a status grid
+    const allGrids = [...statusGrids];
+    if (element.getAttribute && element.getAttribute('data-overlay-type') === 'status_grid') {
+      allGrids.push(element);
+    }
+
+    allGrids.forEach(gridElement => {
+      const overlayId = gridElement.getAttribute('data-overlay-id');
+      if (overlayId && window._msdStatusGridActions?.has(overlayId)) {
+        const actionInfo = window._msdStatusGridActions.get(overlayId);
+
+        cblcarsLog.debug(`[StatusGridRenderer] Auto-attaching actions to status grid ${overlayId}`);
+        StatusGridRenderer.attachStatusGridActions(gridElement, actionInfo);
+
+        // Clean up processed action info
+        window._msdStatusGridActions.delete(overlayId);
+      }
+    });
+  }
+
+  /**
+   * Resolve card instance for action handling from global context
+   * @private
+   * @static
+   */
+  static _resolveCardInstance() {
+    // Try various methods to get the card instance
+
+    // Method 1: From MSD pipeline if available
+    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
+      return window.__msdDebug.pipelineInstance.cardInstance;
+    }
+
+    // Method 2: From global MSD context
+    if (window._msdCardInstance) {
+      return window._msdCardInstance;
+    }
+
+    // Method 3: From CB-LCARS global context
+    if (window.cb_lcars_card_instance) {
+      return window.cb_lcars_card_instance;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Could not resolve card instance from global context`);
+    return null;
+  }
+
+  /**
+   * Set the global card instance for action handling
+   * @param {Object} cardInstance - The custom-button-card instance
+   * @static
+   */
+  static setCardInstance(cardInstance) {
+    window._msdCardInstance = cardInstance;
+    cblcarsLog.debug(`[StatusGridRenderer] Card instance set for action handling`);
+  }
+
+  /**
+   * Manually process all pending status grid actions (fallback method)
+   * @param {Element} containerElement - Container to search for status grids
+   * @static
+   */
+  static processAllPendingActions(containerElement = document.body) {
+    if (!window._msdStatusGridActions || window._msdStatusGridActions.size === 0) {
+      return;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Processing ${window._msdStatusGridActions.size} pending actions`);
+
+    window._msdStatusGridActions.forEach((actionInfo, overlayId) => {
+      const overlayElement = containerElement.querySelector(`[data-overlay-id="${overlayId}"]`);
+      if (overlayElement) {
+        StatusGridRenderer.attachStatusGridActions(overlayElement, actionInfo);
+        window._msdStatusGridActions.delete(overlayId);
+      }
+    });
+  }
+
+  /**
+   * Attach actions to a rendered status grid overlay
+   * @param {Element} overlayElement - The rendered status grid DOM element
+   * @param {Object} actionInfo - Action information from render method
+   * @static
+   */
+  static attachStatusGridActions(overlayElement, actionInfo) {
+    if (!overlayElement || !actionInfo) {
+      cblcarsLog.debug(`[StatusGridRenderer] Skipping action attachment - missing element or action info`);
+      return;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Delegating action attachment to ActionHelpers for overlay ${actionInfo.overlay.id}`);
+
+    try {
+      // Delegate to ActionHelpers for clean separation of concerns
+      if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
+        ActionHelpers.attachActions(
+          overlayElement,
+          actionInfo.overlay,
+          actionInfo.config,
+          actionInfo.cardInstance
+        );
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Actions delegated successfully to ActionHelpers for ${actionInfo.overlay.id}`);
+      } else {
+        cblcarsLog.warn(`[StatusGridRenderer] ❌ ActionHelpers.attachActions not available for overlay ${actionInfo.overlay.id}`);
+
+        // Fallback: Add basic click listener that reports the issue
+        overlayElement.addEventListener('click', (event) => {
+          cblcarsLog.error(`[StatusGridRenderer] 🚫 Status grid clicked but ActionHelpers unavailable for ${actionInfo.overlay.id}`);
+        });
+      }
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] ❌ Error delegating actions to ActionHelpers:`, error);
+
+      // Fallback: Add error-reporting click listener
+      overlayElement.addEventListener('click', (event) => {
+        cblcarsLog.error(`[StatusGridRenderer] 🚫 Status grid clicked but action delegation failed for ${actionInfo.overlay.id}:`, error);
+      });
+    }
+  }
+
+  /**
    * Update status grid overlay content dynamically using renderer delegation pattern
    * @param {Element} overlayElement - Cached DOM element for the overlay
    * @param {Object} overlay - Overlay configuration object
@@ -1156,9 +1467,79 @@ export class StatusGridRenderer {
       return false;
     }
   }
+
+  /**
+   * Clean up action system resources
+   * @static
+   */
+  static cleanup() {
+    // Disconnect observer
+    if (window._msdStatusGridObserver) {
+      window._msdStatusGridObserver.disconnect();
+      delete window._msdStatusGridObserver;
+    }
+
+    // Clear pending actions
+    if (window._msdStatusGridActions) {
+      window._msdStatusGridActions.clear();
+      delete window._msdStatusGridActions;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Action system cleaned up`);
+  }
+
+  /**
+   * Try manual action processing for a specific overlay
+   * @private
+   * @static
+   */
+  static _tryManualActionProcessing(overlayId) {
+    if (!window._msdStatusGridActions?.has(overlayId)) {
+      return;
+    }
+
+    // Try to find the status grid element in card shadow DOM
+    let gridElement = null;
+
+    const card = window.cb_lcars_card_instance;
+    if (card && card.shadowRoot) {
+      gridElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
+    }
+
+    // Fallback to document search
+    if (!gridElement) {
+      gridElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
+    }
+
+    if (gridElement) {
+      const actionInfo = window._msdStatusGridActions.get(overlayId);
+      cblcarsLog.debug(`[StatusGridRenderer] 🎯 Manual action processing for ${overlayId}`);
+      StatusGridRenderer.attachStatusGridActions(gridElement, actionInfo);
+      window._msdStatusGridActions.delete(overlayId);
+    } else {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Could not find status grid element for manual action processing: ${overlayId}`);
+    }
+  }
+
+  /**
+   * Get debug information about the action system
+   * @static
+   */
+  static getActionDebugInfo() {
+    return {
+      observerActive: !!window._msdStatusGridObserver,
+      pendingActions: window._msdStatusGridActions ? Array.from(window._msdStatusGridActions.keys()) : [],
+      cardInstanceAvailable: !!StatusGridRenderer._resolveCardInstance(),
+      actionHelpersAvailable: !!window.ActionHelpers
+    };
+  }
 }
 
 // Expose StatusGridRenderer to window for console debugging
 if (typeof window !== 'undefined') {
   window.StatusGridRenderer = StatusGridRenderer;
+
+  // Add debug helpers for action system
+  window._debugStatusGridActions = () => StatusGridRenderer.getActionDebugInfo();
+  window._processStatusGridActions = () => StatusGridRenderer.processAllPendingActions();
 }

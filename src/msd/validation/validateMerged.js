@@ -22,6 +22,7 @@ export function validateMerged(config) {
   validateAnchors(config, issues);
   validateOverlays(config, issues);
   validateRules(config, issues);
+  validateActions(config, issues);
   validateAnimations(config, issues);
   validateProfiles(config, issues);
   validatePalettes(config, issues);
@@ -458,5 +459,163 @@ function validateCoordinateArray(coords, issues, context) {
       });
     }
   });
+}
+
+function validateActions(config, issues) {
+  // Validate overlay-level actions (Tier 1 & 2)
+  if (config.overlays) {
+    config.overlays.forEach(overlay => {
+      validateOverlayActions(overlay, issues);
+    });
+  }
+
+  // Validate rules-based actions (Tier 3)
+  if (config.rules) {
+    config.rules.forEach(rule => {
+      validateRuleActions(rule, issues);
+    });
+  }
+}
+
+function validateOverlayActions(overlay, issues) {
+  if (!overlay.id) return; // Skip if no overlay ID (already validated elsewhere)
+
+  // Validate simple actions (Tier 1 - standard HA card actions)
+  ['tap_action', 'hold_action', 'double_tap_action'].forEach(actionType => {
+    if (overlay[actionType]) {
+      validateActionDefinition(overlay[actionType], issues, `Overlay '${overlay.id}' ${actionType}`);
+    }
+  });
+
+  // Validate enhanced actions block (Tier 2 - for multi-target overlays)
+  if (overlay.actions) {
+    validateEnhancedActions(overlay.actions, issues, `Overlay '${overlay.id}' actions`);
+  }
+}
+
+function validateRuleActions(rule, issues) {
+  if (!rule.apply?.actions) return;
+
+  rule.apply.actions.forEach((action, index) => {
+    // Validate action targeting
+    if (!action.target) {
+      issues.errors.push({
+        code: 'rule.action.target.missing',
+        rule_id: rule.id,
+        message: `Rule '${rule.id}' action ${index} missing required target field`
+      });
+    }
+
+    // Validate action definitions
+    ['tap_action', 'hold_action', 'double_tap_action'].forEach(actionType => {
+      if (action[actionType]) {
+        validateActionDefinition(action[actionType], issues, `Rule '${rule.id}' action ${index} ${actionType}`);
+      }
+    });
+  });
+}
+
+function validateEnhancedActions(actions, issues, context) {
+  // Validate default actions
+  if (actions.default_tap && typeof actions.default_tap === 'object') {
+    validateActionDefinition(actions.default_tap, issues, `${context} default_tap`);
+  }
+
+  if (actions.default_hold && typeof actions.default_hold === 'object') {
+    validateActionDefinition(actions.default_hold, issues, `${context} default_hold`);
+  }
+
+  // Validate cell overrides for status_grid
+  if (actions.cell_overrides && Array.isArray(actions.cell_overrides)) {
+    actions.cell_overrides.forEach((override, index) => {
+      if (!override.cell_id && !override.position) {
+        issues.errors.push({
+          code: 'action.cell_override.target.missing',
+          message: `${context} cell_override ${index} missing cell_id or position field`
+        });
+      }
+
+      ['tap_action', 'hold_action'].forEach(actionType => {
+        if (override[actionType]) {
+          validateActionDefinition(override[actionType], issues, `${context} cell_override ${index} ${actionType}`);
+        }
+      });
+    });
+  }
+}
+
+function validateActionDefinition(action, issues, context) {
+  if (!action || typeof action !== 'object') {
+    issues.errors.push({
+      code: 'action.invalid',
+      message: `${context} must be an object`
+    });
+    return;
+  }
+
+  if (!action.action) {
+    issues.errors.push({
+      code: 'action.type.missing',
+      message: `${context} missing required action type`
+    });
+    return;
+  }
+
+  const validActions = [
+    'toggle', 'call-service', 'navigate', 'more-info',
+    'none', 'confirm', 'fire-dom-event', 'url'
+  ];
+
+  if (!validActions.includes(action.action)) {
+    issues.warnings.push({
+      code: 'action.type.unknown',
+      message: `${context} has unknown action type '${action.action}' - may not work as expected`
+    });
+  }
+
+  // Validate action-specific requirements
+  switch (action.action) {
+    case 'call-service':
+      if (!action.service) {
+        issues.errors.push({
+          code: 'action.service.missing',
+          message: `${context} call-service action missing required service field`
+        });
+      } else if (typeof action.service !== 'string' || !action.service.includes('.')) {
+        issues.errors.push({
+          code: 'action.service.invalid',
+          message: `${context} service must be in format 'domain.service_name'`
+        });
+      }
+      break;
+
+    case 'navigate':
+      if (!action.navigation_path) {
+        issues.errors.push({
+          code: 'action.navigation_path.missing',
+          message: `${context} navigate action missing required navigation_path field`
+        });
+      }
+      break;
+
+    case 'url':
+      if (!action.url_path) {
+        issues.errors.push({
+          code: 'action.url_path.missing',
+          message: `${context} url action missing required url_path field`
+        });
+      }
+      break;
+
+    case 'more-info':
+    case 'toggle':
+      if (!action.entity) {
+        issues.warnings.push({
+          code: 'action.entity.missing',
+          message: `${context} ${action.action} action missing entity field - may not work as expected`
+        });
+      }
+      break;
+  }
 }
 

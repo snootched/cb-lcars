@@ -360,6 +360,14 @@ cb-lcars-msd:
 
               const realHass = this.___hass || hass;
 
+              // CRITICAL: Set card instance BEFORE pipeline initialization
+              // Store in multiple locations so StatusGridRenderer can find it during initial render
+              window.cb_lcars_card_instance = this;
+              window._currentCardInstance = this;
+              if (!window.__msdDebug) window.__msdDebug = {};
+              window.__msdDebug.cardInstance = this;
+              console.log('[MSD DEBUG] 🎯 Card instance stored in multiple global locations BEFORE pipeline init:', this);
+
               window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
 
                 console.log('[MSD DEBUG] ✅ Pipeline initialized successfully:', pipeline);
@@ -370,6 +378,14 @@ cb-lcars-msd:
                 // ADDED: Set original HASS for controls
                 if (realHass && pipeline.systemsManager) {
                     pipeline.systemsManager.setOriginalHass(realHass);
+                }
+
+                // ADDITIONAL: Set card instance via pipeline API too (for consistency)
+                if (pipeline.setCardInstance && typeof pipeline.setCardInstance === 'function') {
+                    pipeline.setCardInstance(this);
+                    console.log('[MSD DEBUG] 🔧 Card instance also set via pipeline API');
+                } else {
+                    console.warn('[MSD DEBUG] ⚠️ setCardInstance method not available on pipeline');
                 }
 
                 const resolvedModel = pipeline.getResolvedModel?.();

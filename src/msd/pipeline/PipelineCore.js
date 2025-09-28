@@ -4,6 +4,7 @@ import { ModelBuilder } from './ModelBuilder.js';
 import { setupDebugInterface } from '../debug/DebugInterface.js';
 import { buildCardModel } from '../model/CardModel.js';
 import { MsdApi } from '../api/MsdApi.js';
+import { StatusGridRenderer } from '../renderer/StatusGridRenderer.js';
 import { exportCollapsed, exportCollapsedJson } from '../export/exportCollapsed.js';
 import { exportFullSnapshot, exportFullSnapshotJson } from '../export/exportFullSnapshot.js';
 import { diffItem } from '../export/diffItem.js';
@@ -50,6 +51,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   if (hass) {
       systemsManager.setOriginalHass(hass);
   }
+
+
 
   // CRITICAL FIX: Ensure essential subsystems are available for overlay rendering
   if (typeof window !== 'undefined') {
@@ -370,7 +373,21 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
     },
 
     getDataSourceManager: () => systemsManager.dataSourceManager,
-    _reRenderCallback: reRender
+    _reRenderCallback: reRender,
+
+    // Action system methods
+    setCardInstance: (cardInstance) => {
+      cblcarsLog.debug('[PipelineCore] Setting card instance:', {
+        hasCardInstance: !!cardInstance,
+        cardType: cardInstance?.tagName,
+        hasHandleAction: typeof cardInstance?._handleAction,
+        hasHass: !!cardInstance?.hass
+      });
+      StatusGridRenderer.setCardInstance(cardInstance);
+      // Store in SystemsManager too for broader access
+      systemsManager.cardInstance = cardInstance;
+      cblcarsLog.debug('[PipelineCore] Card instance set via API for action system');
+    }
   };
 
   return api;

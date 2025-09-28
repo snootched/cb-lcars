@@ -243,6 +243,10 @@ export class AdvancedRenderer {
     if (!group) {
       group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       group.setAttribute('id', 'msd-overlay-container');
+      // FIXED: Let individual overlay children control their own pointer events
+      // The container should not interfere with event propagation
+      // Allow pointer events to reach children but don't capture at this level
+      group.style.pointerEvents = 'auto';  // Allow child elements to handle events
       svg.appendChild(group);
     }
     return group;
@@ -504,10 +508,20 @@ export class AdvancedRenderer {
       cblcarsLog.info('[AdvancedRenderer] SVG element not found in container for overlay:', overlay.id);
     }
 
-    // ADDED: Ensure SVG doesn't interfere with control events
+    // ADDED: Configure SVG for proper event handling
     if (svg) {
-      svg.style.pointerEvents = 'auto';
+      svg.style.pointerEvents = 'auto';  // Allow events to reach SVG elements
       svg.style.zIndex = '0'; // Keep SVG in background
+
+      // Ensure the SVG itself doesn't capture all events - let children handle them
+      svg.addEventListener('click', (e) => {
+        // Only handle if no child element handled it
+        if (e.target === svg) {
+          // This is a click on the SVG background itself, not an overlay
+          e.stopPropagation();
+        }
+        // Let overlay elements handle their own events
+      }, { capture: false, passive: false });
     }
 
     switch (overlay.type) {
@@ -527,7 +541,19 @@ export class AdvancedRenderer {
         cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
         return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
       case 'status_grid':
-        return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
+    // Get card instance from systems manager for action support
+    const cardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
+    cblcarsLog.debug('[AdvancedRenderer] Resolved card instance for status grid:', {
+      hasCardInstance: !!cardInstance,
+      cardType: cardInstance?.tagName,
+      hasHandleAction: typeof cardInstance?._handleAction
+    });
+    const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);        // Store action info for post-processing if needed
+        if (result.needsActionAttachment) {
+          StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
+        }
+
+        return result.markup;
       case 'history_bar':
         return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
       default:

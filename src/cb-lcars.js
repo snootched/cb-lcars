@@ -1096,6 +1096,19 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
             return Promise.resolve(); // Block the MSD card from re-rendering
         }
 
+        // ENHANCED: Block _config updates that come from action bridge execution
+        if (name === '_config') {
+            const stackTrace = new Error().stack;
+            const isActionTriggered = stackTrace.includes('_handleAction') ||
+                                    stackTrace.includes('executeActionViaButtonCardBridge') ||
+                                    stackTrace.includes('ActionHelpers');
+
+            if (isActionTriggered) {
+                cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] 🚫 BLOCKED requestUpdate() for action-triggered _config change');
+                return Promise.resolve(); // Block action-triggered config changes
+            }
+        }
+
         cblcarsLog.debug('[CBLCARSMSDCard.requestUpdate()] ✅ Allowing requestUpdate() for:', name);
         return super.requestUpdate(name, oldValue, options);
     }

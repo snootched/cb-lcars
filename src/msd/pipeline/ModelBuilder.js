@@ -125,7 +125,7 @@ export class ModelBuilder {
           anchor_gap: o.raw?.anchor_gap,
           attach_gap: o.raw?.attach_gap,
           position: o.raw?.position,
-          size: o.raw?.size
+          size: o.raw?.size,
         };
 
         // Preserve data source and routing properties
@@ -135,6 +135,24 @@ export class ModelBuilder {
 
         if (o.raw?.route) {
           resolvedOverlay.route = o.raw.route;
+        }
+
+        // CRITICAL: Preserve action properties for ActionHelpers
+        if (o.raw?.tap_action) {
+          resolvedOverlay.tap_action = o.raw.tap_action;
+        }
+
+        if (o.raw?.hold_action) {
+          resolvedOverlay.hold_action = o.raw.hold_action;
+        }
+
+        if (o.raw?.double_tap_action) {
+          resolvedOverlay.double_tap_action = o.raw.double_tap_action;
+        }
+
+        // Preserve cells for status grids
+        if (o.raw?.cells) {
+          resolvedOverlay.cells = o.raw.cells;
         }
 
         return resolvedOverlay;
