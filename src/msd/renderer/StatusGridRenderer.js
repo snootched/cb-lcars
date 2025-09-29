@@ -155,16 +155,43 @@ export class StatusGridRenderer {
       show_values: style.show_values || false, // Default to false per documentation
       label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || 'var(--lcars-white)',
       value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || 'var(--lcars-white)',
-      font_size: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 10),
+      font_size: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 14),
       font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || 'var(--lcars-font-family, Antonio)',
       font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || 'normal',
 
-      // Line spacing and positioning controls
-      label_font_size: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 10),
-      value_font_size: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 9),
-      text_spacing: Number(style.text_spacing || style.textSpacing || 4), // Vertical spacing between label and value
-      label_offset_y: Number(style.label_offset_y || style.labelOffsetY || -2), // Label vertical offset from center
-      value_offset_y: Number(style.value_offset_y || style.valueOffsetY || 8), // Value vertical offset from center
+      // Enhanced text sizing and positioning system
+      label_font_size: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 14),
+      value_font_size: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 12),
+
+      // PHASE 1: Smart font-relative defaults (fixes collision issues)
+      // Calculate intelligent defaults based on actual font sizes to prevent overlap
+      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 14),
+      _labelFontSize: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 14),
+      _valueFontSize: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 12),
+
+      // PHASE 2: Enhanced positioning system - allows CB-LCARS button card recreation
+      text_layout: style.text_layout || style.textLayout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
+      text_alignment: style.text_alignment || style.textAlignment || 'center', // center, top, bottom, custom
+      text_justify: style.text_justify || style.textJustify || 'center', // left, center, right
+
+      // Flexible positioning - supports both predefined and custom positions
+      label_position: style.label_position || style.labelPosition || 'center-top', // Predefined or custom object
+      value_position: style.value_position || style.valuePosition || 'center-bottom', // Predefined or custom object
+
+      // Legacy positioning (backward compatible but calculated intelligently)
+      text_spacing: this._calculateSmartTextSpacing(style), // Intelligent spacing calculation
+      label_offset_y: this._calculateSmartLabelOffset(style), // Smart label positioning
+      value_offset_y: this._calculateSmartValueOffset(style), // Smart value positioning
+
+      // PHASE 3: Advanced layout options
+      text_padding: Number(style.text_padding || style.textPadding || 4), // Padding from cell edges
+      text_margin: Number(style.text_margin || style.textMargin || 2), // Margin between text elements
+      text_wrap: style.text_wrap || style.textWrap || false, // Enable text wrapping
+      max_text_width: style.max_text_width || style.maxTextWidth || '90%', // Max width as percentage
+      text_overflow: style.text_overflow || style.textOverflow || 'ellipsis', // ellipsis, clip, none
+
+      // CB-LCARS specific positioning presets
+      lcars_text_preset: style.lcars_text_preset || style.lcarsTextPreset || null, // lozenge, bullet, corner, etc.
 
       // Status coloring
       status_mode: (style.status_mode || style.statusMode || 'auto').toLowerCase(),
@@ -255,6 +282,68 @@ export class StatusGridRenderer {
 
     return gridStyle;
   }  /**
+   * Calculate intelligent text spacing based on font sizes (Phase 1: Collision Fix)
+   * @private
+   * @param {Object} style - Style configuration
+   * @returns {number} Calculated text spacing in pixels
+   */
+  _calculateSmartTextSpacing(style) {
+    // If explicitly set, use that value
+    if (style.text_spacing !== undefined || style.textSpacing !== undefined) {
+      return Number(style.text_spacing || style.textSpacing);
+    }
+
+    // Calculate based on font sizes
+    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 14);
+    const valueFontSize = Number(style.value_font_size || style.valueFontSize || (labelFontSize * 0.9));
+
+    // Use the larger font size as basis for spacing (prevents overlap)
+    const maxFontSize = Math.max(labelFontSize, valueFontSize);
+
+    // Intelligent spacing: 30% of the larger font size, minimum 4px
+    return Math.max(4, Math.round(maxFontSize * 0.3));
+  }
+
+  /**
+   * Calculate intelligent label positioning based on font size (Phase 1: Collision Fix)
+   * @private
+   * @param {Object} style - Style configuration
+   * @returns {number} Calculated label offset in pixels
+   */
+  _calculateSmartLabelOffset(style) {
+    // If explicitly set, use that value
+    if (style.label_offset_y !== undefined || style.labelOffsetY !== undefined) {
+      return Number(style.label_offset_y || style.labelOffsetY);
+    }
+
+    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 14);
+    const spacing = this._calculateSmartTextSpacing(style);
+
+    // Position label above center by half spacing + 20% of font size
+    return -(spacing * 0.5 + labelFontSize * 0.2);
+  }
+
+  /**
+   * Calculate intelligent value positioning based on font size (Phase 1: Collision Fix)
+   * @private
+   * @param {Object} style - Style configuration
+   * @returns {number} Calculated value offset in pixels
+   */
+  _calculateSmartValueOffset(style) {
+    // If explicitly set, use that value
+    if (style.value_offset_y !== undefined || style.valueOffsetY !== undefined) {
+      return Number(style.value_offset_y || style.valueOffsetY);
+    }
+
+    const valueFontSize = Number(style.value_font_size || style.valueFontSize ||
+                                (style.font_size || style.fontSize || 14) * 0.9);
+    const spacing = this._calculateSmartTextSpacing(style);
+
+    // Position value below center by half spacing + 40% of font size
+    return spacing * 0.5 + valueFontSize * 0.4;
+  }
+
+  /**
    * Parse status ranges configuration
    * @private
    */
@@ -270,6 +359,259 @@ export class StatusGridRenderer {
       value: range.value || null,
       state: range.state || null
     }));
+  }
+
+  /**
+   * Calculate text position based on enhanced positioning system
+   * @private
+   * @param {string|Object} position - Position specification ('center-top', 'bottom-left', or {x: '20%', y: '80%'})
+   * @param {number} cellX - Cell X coordinate
+   * @param {number} cellY - Cell Y coordinate
+   * @param {number} cellWidth - Cell width
+   * @param {number} cellHeight - Cell height
+   * @param {Object} gridStyle - Grid styling configuration
+   * @param {string} textType - 'label' or 'value' for context-aware positioning
+   * @returns {Object} {x, y, anchor, baseline} positioning information
+   */
+  _calculateEnhancedTextPosition(position, cellX, cellY, cellWidth, cellHeight, gridStyle, textType = 'label') {
+    const basePadding = gridStyle.text_padding || 6; // Increased default
+
+    // Get effective cell radius and calculate smart padding
+    const cornerRadius = this._getEffectiveCellRadius(gridStyle, cellWidth, cellHeight);
+    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 14) : (gridStyle.value_font_size || 12);
+    const padding = this._calculateSmartPadding(basePadding, cornerRadius, fontSize);
+
+    // Handle LCARS presets first
+    if (gridStyle.lcars_text_preset) {
+      return this._calculateLCARSPresetPosition(gridStyle.lcars_text_preset, cellX, cellY, cellWidth, cellHeight, gridStyle, textType);
+    }
+
+    // Custom position object (Phase 2)
+    if (typeof position === 'object' && position !== null) {
+      const x = this._parsePositionValue(position.x || '50%', cellWidth, cellX);
+      const y = this._parsePositionValue(position.y || '50%', cellHeight, cellY);
+      return {
+        x: x + cellX,
+        y: y + cellY,
+        anchor: position.anchor || 'middle',
+        baseline: position.baseline || 'middle'
+      };
+    }
+
+    // Predefined position strings (Phase 2)
+    const positionMap = {
+      // Center positions
+      'center': { x: '50%', y: '50%', anchor: 'middle', baseline: 'middle' },
+      'center-top': { x: '50%', y: padding + 'px', anchor: 'middle', baseline: 'hanging' },
+      'center-bottom': { x: '50%', y: (cellHeight - padding) + 'px', anchor: 'middle', baseline: 'baseline' },
+
+      // Corner positions (perfect for LCARS lozenge/bullet styles)
+      'top-left': { x: padding + 'px', y: padding + 'px', anchor: 'start', baseline: 'hanging' },
+      'top-right': { x: (cellWidth - padding) + 'px', y: padding + 'px', anchor: 'end', baseline: 'hanging' },
+      'bottom-left': { x: padding + 'px', y: (cellHeight - padding) + 'px', anchor: 'start', baseline: 'baseline' },
+      'bottom-right': { x: (cellWidth - padding) + 'px', y: (cellHeight - padding) + 'px', anchor: 'end', baseline: 'baseline' },
+
+      // Edge centers
+      'left': { x: padding + 'px', y: '50%', anchor: 'start', baseline: 'middle' },
+      'right': { x: (cellWidth - padding) + 'px', y: '50%', anchor: 'end', baseline: 'middle' },
+      'top': { x: '50%', y: padding + 'px', anchor: 'middle', baseline: 'hanging' },
+      'bottom': { x: '50%', y: (cellHeight - padding) + 'px', anchor: 'middle', baseline: 'baseline' },
+
+      // CB-LCARS specific positions for button card compatibility
+      'south-east': { x: (cellWidth - padding) + 'px', y: (cellHeight - padding) + 'px', anchor: 'end', baseline: 'baseline' },
+      'north-west': { x: padding + 'px', y: padding + 'px', anchor: 'start', baseline: 'hanging' },
+      'south-west': { x: padding + 'px', y: (cellHeight - padding) + 'px', anchor: 'start', baseline: 'baseline' },
+      'north-east': { x: (cellWidth - padding) + 'px', y: padding + 'px', anchor: 'end', baseline: 'hanging' },
+    };
+
+    const positionSpec = positionMap[position] || positionMap['center'];
+
+    return {
+      x: cellX + this._parsePositionValue(positionSpec.x, cellWidth, 0),
+      y: cellY + this._parsePositionValue(positionSpec.y, cellHeight, 0),
+      anchor: positionSpec.anchor,
+      baseline: positionSpec.baseline
+    };
+  }
+
+  /**
+   * Get the effective corner radius that will be applied to a cell
+   * @private
+   * @param {Object} gridStyle - Grid styling configuration
+   * @param {number} cellWidth - Cell width
+   * @param {number} cellHeight - Cell height
+   * @returns {number} Effective corner radius in pixels
+   */
+  _getEffectiveCellRadius(gridStyle, cellWidth, cellHeight) {
+    let radius = gridStyle.cell_radius;
+
+    // Apply radius normalization if enabled
+    if (gridStyle.normalize_radius) {
+      radius = this._calculateNormalizedRadius(cellWidth, cellHeight, radius, gridStyle.match_ha_radius);
+    }
+
+    return radius;
+  }
+
+  /**
+   * Calculate intelligent padding that respects corner radius to prevent text cutoff
+   * @private
+   * @param {number} basePadding - Base padding value
+   * @param {number} cornerRadius - Corner radius of the cell
+   * @param {number} fontSize - Font size for text clearance
+   * @returns {number} Adjusted padding value
+   */
+  _calculateSmartPadding(basePadding, cornerRadius, fontSize = 14) {
+    // For rounded corners, we need extra padding to avoid text cutoff
+    // The corner radius creates a "dead zone" where text shouldn't be placed
+
+    // Calculate the "safe zone" distance from corner
+    // This is roughly 70% of the radius (trigonometric approximation)
+    const cornerClearance = cornerRadius * 0.7;
+
+    // Add extra padding for font clearance (about 20% of font size)
+    const fontClearance = fontSize * 0.2;
+
+    // Use the larger of: base padding, corner clearance, or minimum for font
+    return Math.max(basePadding, cornerClearance + fontClearance, fontSize * 0.3);
+  }
+
+  /**
+   * Calculate LCARS preset positions (lozenge, bullet, etc.)
+   * @private
+   * @param {string} preset - LCARS preset name
+   * @param {number} cellX - Cell X coordinate
+   * @param {number} cellY - Cell Y coordinate
+   * @param {number} cellWidth - Cell width
+   * @param {number} cellHeight - Cell height
+   * @param {Object} gridStyle - Grid styling configuration
+   * @param {string} textType - 'label' or 'value'
+   * @returns {Object} Position information
+   */
+  _calculateLCARSPresetPosition(preset, cellX, cellY, cellWidth, cellHeight, gridStyle, textType) {
+    const basePadding = gridStyle.text_padding || 6; // Increased default from 4 to 6
+    const margin = gridStyle.text_margin || 2;
+
+    // Get the actual corner radius that will be applied to this cell
+    const cornerRadius = this._getEffectiveCellRadius(gridStyle, cellWidth, cellHeight);
+
+    // Calculate smart padding that respects corner radius
+    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 14) : (gridStyle.value_font_size || 12);
+    const smartPadding = this._calculateSmartPadding(basePadding, cornerRadius, fontSize);
+
+    switch (preset) {
+      case 'lozenge':
+        // Lozenge style: label top-left, value bottom-right
+        if (textType === 'label') {
+          return {
+            x: cellX + smartPadding,
+            y: cellY + smartPadding + fontSize * 0.8,
+            anchor: 'start',
+            baseline: 'hanging'
+          };
+        } else {
+          return {
+            x: cellX + cellWidth - smartPadding,
+            y: cellY + cellHeight - smartPadding,
+            anchor: 'end',
+            baseline: 'baseline'
+          };
+        }
+
+      case 'bullet':
+        // Bullet style: label left, value right (side by side)
+        if (textType === 'label') {
+          return {
+            x: cellX + smartPadding,
+            y: cellY + cellHeight / 2,
+            anchor: 'start',
+            baseline: 'middle'
+          };
+        } else {
+          return {
+            x: cellX + cellWidth - smartPadding,
+            y: cellY + cellHeight / 2,
+            anchor: 'end',
+            baseline: 'middle'
+          };
+        }
+
+      case 'corner':
+        // Corner style: both in south-east corner, stacked
+        const cornerX = cellX + cellWidth - smartPadding;
+
+        if (textType === 'label') {
+          return {
+            x: cornerX,
+            y: cellY + cellHeight - smartPadding - fontSize - margin,
+            anchor: 'end',
+            baseline: 'baseline'
+          };
+        } else {
+          return {
+            x: cornerX,
+            y: cellY + cellHeight - smartPadding,
+            anchor: 'end',
+            baseline: 'baseline'
+          };
+        }
+
+      case 'badge':
+        // Badge style: label top-center, value center
+        if (textType === 'label') {
+          return {
+            x: cellX + cellWidth / 2,
+            y: cellY + smartPadding + fontSize * 0.8,
+            anchor: 'middle',
+            baseline: 'hanging'
+          };
+        } else {
+          return {
+            x: cellX + cellWidth / 2,
+            y: cellY + cellHeight / 2,
+            anchor: 'middle',
+            baseline: 'middle'
+          };
+        }
+
+      default:
+        // Fallback to center positioning
+        return {
+          x: cellX + cellWidth / 2,
+          y: cellY + cellHeight / 2,
+          anchor: 'middle',
+          baseline: 'middle'
+        };
+    }
+  }
+
+  /**
+   * Parse position value (percentage, pixel, or relative)
+   * @private
+   * @param {string|number} value - Position value ('50%', '10px', or number)
+   * @param {number} dimension - Container dimension (width or height)
+   * @param {number} offset - Base offset
+   * @returns {number} Calculated position in pixels
+   */
+  _parsePositionValue(value, dimension, offset = 0) {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    const stringValue = String(value);
+
+    if (stringValue.includes('%')) {
+      const percentage = parseFloat(stringValue.replace('%', ''));
+      return (dimension * percentage) / 100;
+    }
+
+    if (stringValue.includes('px')) {
+      return parseFloat(stringValue.replace('px', ''));
+    }
+
+    // Try to parse as number
+    const numValue = parseFloat(stringValue);
+    return isNaN(numValue) ? 0 : numValue;
   }
 
   /**
@@ -392,14 +734,29 @@ export class StatusGridRenderer {
                      style="pointer-events: inherit;"
                      />`;
 
-      // Render cell label if enabled
+      // Render cell label if enabled using enhanced positioning
       if (gridStyle.show_labels && cell.label) {
-        const labelX = cellX + cellWidth / 2;
-        const labelY = cellY + cellHeight / 2 + gridStyle.label_offset_y;
         const labelFontSize = cell.cellOverrides?.font_size || gridStyle.label_font_size;
 
-        gridMarkup += `<text x="${labelX}" y="${labelY}"
-                       text-anchor="middle" dominant-baseline="middle"
+        // Use enhanced positioning system or legacy fallback
+        let labelPosition;
+        if (gridStyle.lcars_text_preset || (gridStyle.label_position && gridStyle.label_position !== 'center-top')) {
+          // Enhanced positioning system
+          labelPosition = this._calculateEnhancedTextPosition(
+            gridStyle.label_position, cellX, cellY, cellWidth, cellHeight, gridStyle, 'label'
+          );
+        } else {
+          // Legacy positioning for backward compatibility
+          labelPosition = {
+            x: cellX + cellWidth / 2,
+            y: cellY + cellHeight / 2 + gridStyle.label_offset_y,
+            anchor: 'middle',
+            baseline: 'middle'
+          };
+        }
+
+        gridMarkup += `<text x="${labelPosition.x}" y="${labelPosition.y}"
+                       text-anchor="${labelPosition.anchor}" dominant-baseline="${labelPosition.baseline}"
                        fill="${gridStyle.label_color}"
                        font-size="${labelFontSize}"
                        font-family="${gridStyle.font_family}"
@@ -410,13 +767,27 @@ export class StatusGridRenderer {
                      </text>`;
       }
 
-      // Render cell content/value if enabled
+      // Render cell content/value if enabled using enhanced positioning
       if (gridStyle.show_values && cell.content) {
-        const valueX = cellX + cellWidth / 2;
-        const valueY = cellY + cellHeight / 2 + gridStyle.value_offset_y;
+        // Use enhanced positioning system or legacy fallback
+        let valuePosition;
+        if (gridStyle.lcars_text_preset || (gridStyle.value_position && gridStyle.value_position !== 'center-bottom')) {
+          // Enhanced positioning system
+          valuePosition = this._calculateEnhancedTextPosition(
+            gridStyle.value_position, cellX, cellY, cellWidth, cellHeight, gridStyle, 'value'
+          );
+        } else {
+          // Legacy positioning for backward compatibility
+          valuePosition = {
+            x: cellX + cellWidth / 2,
+            y: cellY + cellHeight / 2 + gridStyle.value_offset_y,
+            anchor: 'middle',
+            baseline: 'middle'
+          };
+        }
 
-        gridMarkup += `<text x="${valueX}" y="${valueY}"
-                       text-anchor="middle" dominant-baseline="middle"
+        gridMarkup += `<text x="${valuePosition.x}" y="${valuePosition.y}"
+                       text-anchor="${valuePosition.anchor}" dominant-baseline="${valuePosition.baseline}"
                        fill="${gridStyle.value_color}"
                        font-size="${gridStyle.value_font_size}"
                        font-family="${gridStyle.font_family}"
