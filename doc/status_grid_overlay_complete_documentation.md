@@ -403,6 +403,174 @@ For complete action system documentation including troubleshooting, advanced exa
 
 ---
 
+## Text Positioning & Layout
+
+The Status Grid provides comprehensive text positioning capabilities to recreate CB-LCARS button card styles and create custom layouts.
+
+### Smart Font-Relative Positioning (Default)
+
+By default, the system calculates intelligent positioning based on font sizes to prevent text overlap and corner radius clipping:
+
+```yaml
+style:
+  font_size: 30                     # Large font size (default: 16)
+  cell_radius: 12                   # Corner radius
+  # System automatically calculates:
+  # - text_spacing: 9px (30% of font size)
+  # - label_offset_y: -10.5px (prevents overlap)
+  # - value_offset_y: 16.5px (prevents overlap)
+  # - text_padding: ~10px (smart padding = max(base_padding, corner_clearance, font_clearance))
+```
+
+#### Smart Corner-Aware Padding
+The system automatically adjusts padding to prevent text from being clipped by rounded corners:
+- **Corner clearance**: ~70% of corner radius
+- **Font clearance**: ~20% of font size
+- **Minimum clearance**: 30% of font size
+- **Final padding**: Uses the largest of base padding, corner clearance, or font clearance
+
+### Enhanced Positioning System
+
+Use flexible positioning options for full control over text placement:
+
+```yaml
+style:
+  # CB-LCARS preset styles (recreate button card layouts)
+  lcars_text_preset: "lozenge"      # lozenge, bullet, corner, badge
+
+  # OR custom positioning
+  label_position: "top-left"        # Predefined positions
+  value_position: "bottom-right"
+
+  # OR percentage-based positioning
+  label_position:
+    x: "10%"                        # 10% from left edge
+    y: "20%"                        # 20% from top edge
+    anchor: "start"                 # text anchor
+    baseline: "hanging"             # text baseline
+
+  # Advanced layout options (smart corner-aware padding)
+  text_padding: 6                   # Base padding from cell edges (auto-adjusted for corner radius)
+  text_margin: 3                    # Margin between text elements
+  text_layout: "side-by-side"       # Layout mode
+  text_alignment: "top"             # Vertical alignment
+  text_justify: "left"              # Horizontal justification
+```
+
+### CB-LCARS Preset Styles
+
+Recreate your CB-LCARS button card styles with preset configurations:
+
+#### Lozenge Style
+```yaml
+style:
+  lcars_text_preset: "lozenge"
+  # Result: label top-left, value bottom-right
+  text_padding: 8
+```
+
+#### Bullet Style
+```yaml
+style:
+  lcars_text_preset: "bullet"
+  # Result: label left, value right (side by side)
+  text_padding: 6
+```
+
+#### Corner Style
+```yaml
+style:
+  lcars_text_preset: "corner"
+  # Result: both text elements in south-east corner, stacked
+  text_padding: 4
+  text_margin: 2
+```
+
+#### Badge Style
+```yaml
+style:
+  lcars_text_preset: "badge"
+  # Result: label top-center, value centered
+  text_padding: 6
+```
+
+### Predefined Positions
+
+Use predefined position names for consistent placement:
+
+```yaml
+style:
+  # Corner positions (perfect for LCARS styles)
+  label_position: "top-left"        # north-west corner
+  value_position: "bottom-right"    # south-east corner
+
+  # Available positions:
+  # - center, center-top, center-bottom
+  # - top-left, top-right, bottom-left, bottom-right
+  # - left, right, top, bottom
+  # - north-west, north-east, south-west, south-east
+```
+
+### Custom Position Objects
+
+Define precise positioning with custom objects:
+
+```yaml
+style:
+  label_position:
+    x: "15%"                        # X position (percentage or pixels)
+    y: "25%"                        # Y position (percentage or pixels)
+    anchor: "start"                 # SVG text-anchor: start, middle, end
+    baseline: "hanging"             # SVG dominant-baseline
+
+  value_position:
+    x: "85%"
+    y: "75%"
+    anchor: "end"
+    baseline: "baseline"
+```
+
+### Layout Modes
+
+Control overall text arrangement within cells:
+
+```yaml
+style:
+  text_layout: "stacked"            # Default: label above, value below
+  # text_layout: "side-by-side"     # Label left, value right
+  # text_layout: "label-only"       # Only show labels
+  # text_layout: "value-only"       # Only show values
+  # text_layout: "custom"           # Use custom positioning
+```
+
+### Text Alignment Options
+
+Fine-tune text positioning within the layout:
+
+```yaml
+style:
+  text_alignment: "center"          # Vertical: top, center, bottom
+  text_justify: "center"            # Horizontal: left, center, right
+  text_padding: 4                   # Distance from cell edges
+  text_margin: 2                    # Space between label and value
+```
+
+### Advanced Text Features
+
+Additional text formatting and overflow handling:
+
+```yaml
+style:
+  # Text wrapping (future feature)
+  text_wrap: true                   # Enable text wrapping
+  max_text_width: "90%"            # Maximum text width
+  text_overflow: "ellipsis"        # Overflow handling: ellipsis, clip, none
+
+  # Individual font sizing
+  label_font_size: 12              # Override label font size
+  value_font_size: 16              # Override value font size
+```
+
 ## Grid Layout & Styling
 
 ### Grid Dimensions & Spacing
@@ -931,12 +1099,35 @@ overlays:
       font_size: number           # Global font size (default: 10)
       font_family: string         # Font family (default: "var(--lcars-font-family, Antonio)")
 
-      # Individual Text Sizing & Positioning
+      # Enhanced Text Positioning System
       label_font_size: number     # Label font size (default: font_size)
       value_font_size: number     # Value font size (default: font_size * 0.9)
-      text_spacing: number        # Vertical spacing between label/value (default: 4)
-      label_offset_y: number      # Label vertical offset from center (default: -2)
-      value_offset_y: number      # Value vertical offset from center (default: 8)
+
+      # LCARS Preset Styles (recreate CB-LCARS button card layouts)
+      lcars_text_preset: string   # Preset style: lozenge, bullet, corner, badge (default: null)
+
+      # Flexible Positioning (predefined or custom objects)
+      label_position: string|object # Label position: 'top-left', 'center', {x: '20%', y: '30%'} (default: 'center-top')
+      value_position: string|object # Value position: 'bottom-right', 'center', {x: '80%', y: '70%'} (default: 'center-bottom')
+
+      # Layout Control
+      text_layout: string         # Layout mode: stacked, side-by-side, label-only, value-only, custom (default: 'stacked')
+      text_alignment: string      # Vertical alignment: top, center, bottom (default: 'center')
+      text_justify: string        # Horizontal justification: left, center, right (default: 'center')
+
+      # Spacing & Padding (Smart Corner-Aware System)
+      text_padding: number        # Base padding from cell edges (default: 6, auto-adjusted for corner radius)
+      text_margin: number         # Margin between text elements (default: 2)
+
+      # Legacy positioning (auto-calculated for collision prevention)
+      text_spacing: number        # Vertical spacing between label/value (smart default)
+      label_offset_y: number      # Label vertical offset from center (smart default)
+      value_offset_y: number      # Value vertical offset from center (smart default)
+
+      # Advanced Text Features
+      text_wrap: boolean          # Enable text wrapping (default: false)
+      max_text_width: string      # Maximum text width: '90%', '120px' (default: '90%')
+      text_overflow: string       # Overflow handling: ellipsis, clip, none (default: 'ellipsis')
 
       # Status Detection
       status_mode: string         # auto|ranges|custom (default: "auto")
@@ -1561,7 +1752,193 @@ overlays:
       reveal_animation: true
 ```
 
-### Example 7: Environmental Sensor Matrix
+### Example 7: CB-LCARS Preset Styles Showcase
+```yaml
+data_sources:
+  ship_systems:
+    type: entity
+    entity: sensor.ship_systems
+
+overlays:
+  # Lozenge style grid - classic LCARS look
+  - id: lozenge_style_grid
+    type: status_grid
+    position: [50, 50]
+    size: [200, 150]
+
+    cells:
+      - position: [0, 0]
+        source: ship_systems.warp_core
+        label: "WARP"
+        content: "ONLINE"
+
+      - position: [0, 1]
+        source: ship_systems.shields
+        label: "SHIELDS"
+        content: "85%"
+
+      - position: [1, 0]
+        source: ship_systems.weapons
+        label: "WEAPONS"
+        content: "ARMED"
+
+      - position: [1, 1]
+        source: ship_systems.life_support
+        label: "LIFE"
+        content: "NOMINAL"
+
+    style:
+      rows: 2
+      columns: 2
+
+      # Lozenge preset: label top-left, value bottom-right
+      lcars_text_preset: "lozenge"
+      text_padding: 8
+
+      show_labels: true
+      show_values: true
+      font_size: 12
+      cell_color: "var(--lcars-blue)"
+      lcars_corners: true
+
+  # Bullet style grid - side-by-side text
+  - id: bullet_style_grid
+    type: status_grid
+    position: [300, 50]
+    size: [200, 150]
+
+    cells:
+      - position: [0, 0]
+        label: "TEMP"
+        content: "23°C"
+
+      - position: [0, 1]
+        label: "PRESS"
+        content: "1013"
+
+    style:
+      rows: 1
+      columns: 2
+
+      # Bullet preset: label left, value right
+      lcars_text_preset: "bullet"
+      text_padding: 6
+
+      show_labels: true
+      show_values: true
+      font_size: 10
+      cell_color: "var(--lcars-orange)"
+
+  # Corner style grid - both text elements in corner
+  - id: corner_style_grid
+    type: status_grid
+    position: [50, 250]
+    size: [200, 100]
+
+    cells:
+      - position: [0, 0]
+        label: "STATUS"
+        content: "OK"
+
+      - position: [0, 1]
+        label: "POWER"
+        content: "100%"
+
+    style:
+      rows: 1
+      columns: 2
+
+      # Corner preset: both in south-east corner, stacked
+      lcars_text_preset: "corner"
+      text_padding: 4
+      text_margin: 2
+
+      show_labels: true
+      show_values: true
+      font_size: 9
+      cell_color: "var(--lcars-red)"
+
+  # Custom positioning - recreate specific button card layout
+  - id: custom_positioning_grid
+    type: status_grid
+    position: [300, 250]
+    size: [180, 120]
+
+    cells:
+      - position: [0, 0]
+        label: "REACTOR"
+        content: "STABLE"
+
+      - position: [0, 1]
+        label: "COOLANT"
+        content: "FLOWING"
+
+    style:
+      rows: 1
+      columns: 2
+
+      # Custom positioning: label north-west, value south-east
+      label_position: "north-west"
+      value_position: "south-east"
+      text_padding: 6
+
+      show_labels: true
+      show_values: true
+      font_size: 11
+      label_font_size: 10
+      value_font_size: 12
+      cell_color: "var(--lcars-yellow)"
+      lcars_corners: true
+```
+
+### Example 8: Advanced Custom Positioning
+```yaml
+overlays:
+  - id: percentage_positioning_grid
+    type: status_grid
+    position: [50, 400]
+    size: [300, 120]
+
+    cells:
+      - position: [0, 0]
+        label: "SYSTEM"
+        content: "ACTIVE"
+
+      - position: [0, 1]
+        label: "MODE"
+        content: "AUTO"
+
+      - position: [0, 2]
+        label: "STATUS"
+        content: "GREEN"
+
+    style:
+      rows: 1
+      columns: 3
+
+      # Percentage-based custom positioning
+      label_position:
+        x: "20%"                      # 20% from left edge
+        y: "30%"                      # 30% from top
+        anchor: "start"               # Left-aligned text
+        baseline: "hanging"           # Top-aligned text
+
+      value_position:
+        x: "80%"                      # 80% from left edge
+        y: "70%"                      # 70% from top
+        anchor: "end"                 # Right-aligned text
+        baseline: "baseline"          # Bottom-aligned text
+
+      text_padding: 4
+      show_labels: true
+      show_values: true
+      font_size: 14
+      label_color: "var(--lcars-cyan)"
+      value_color: "var(--lcars-white)"
+      cell_color: "var(--lcars-blue-dark)"
+```
+
+### Example 9: Environmental Sensor Matrix
 ```yaml
 data_sources:
   environmental:

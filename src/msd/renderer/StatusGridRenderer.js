@@ -155,19 +155,19 @@ export class StatusGridRenderer {
       show_values: style.show_values || false, // Default to false per documentation
       label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || 'var(--lcars-white)',
       value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || 'var(--lcars-white)',
-      font_size: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 14),
+      font_size: Number(style.font_size || style.fontSize) || Math.max(standardStyles.text.fontSize || 12, 18),
       font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || 'var(--lcars-font-family, Antonio)',
       font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || 'normal',
 
-      // Enhanced text sizing and positioning system
-      label_font_size: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 14),
-      value_font_size: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 12),
+      // Enhanced text sizing and positioning system (force better defaults)
+      label_font_size: Number(style.label_font_size || style.labelFontSize) || Number(style.font_size || style.fontSize) || 18, // Force 18px minimum
+      value_font_size: Number(style.value_font_size || style.valueFontSize) || (Number(style.font_size || style.fontSize) ? Number(style.font_size || style.fontSize) * 0.9 : 16), // Force 16px minimum
 
       // PHASE 1: Smart font-relative defaults (fixes collision issues)
       // Calculate intelligent defaults based on actual font sizes to prevent overlap
-      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 14),
-      _labelFontSize: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 14),
-      _valueFontSize: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 12),
+      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 18),
+      _labelFontSize: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 18),
+      _valueFontSize: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 16),
 
       // PHASE 2: Enhanced positioning system - allows CB-LCARS button card recreation
       text_layout: style.text_layout || style.textLayout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
@@ -184,7 +184,7 @@ export class StatusGridRenderer {
       value_offset_y: this._calculateSmartValueOffset(style), // Smart value positioning
 
       // PHASE 3: Advanced layout options
-      text_padding: Number(style.text_padding || style.textPadding || 4), // Padding from cell edges
+      text_padding: Number(style.text_padding || style.textPadding || 8), // Increased base padding from 4 to 8
       text_margin: Number(style.text_margin || style.textMargin || 2), // Margin between text elements
       text_wrap: style.text_wrap || style.textWrap || false, // Enable text wrapping
       max_text_width: style.max_text_width || style.maxTextWidth || '90%', // Max width as percentage
@@ -294,7 +294,7 @@ export class StatusGridRenderer {
     }
 
     // Calculate based on font sizes
-    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 14);
+    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 18);
     const valueFontSize = Number(style.value_font_size || style.valueFontSize || (labelFontSize * 0.9));
 
     // Use the larger font size as basis for spacing (prevents overlap)
@@ -316,7 +316,7 @@ export class StatusGridRenderer {
       return Number(style.label_offset_y || style.labelOffsetY);
     }
 
-    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 14);
+    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 18);
     const spacing = this._calculateSmartTextSpacing(style);
 
     // Position label above center by half spacing + 20% of font size
@@ -336,7 +336,7 @@ export class StatusGridRenderer {
     }
 
     const valueFontSize = Number(style.value_font_size || style.valueFontSize ||
-                                (style.font_size || style.fontSize || 14) * 0.9);
+                                (style.font_size || style.fontSize || 18) * 0.9);
     const spacing = this._calculateSmartTextSpacing(style);
 
     // Position value below center by half spacing + 40% of font size
@@ -374,11 +374,11 @@ export class StatusGridRenderer {
    * @returns {Object} {x, y, anchor, baseline} positioning information
    */
   _calculateEnhancedTextPosition(position, cellX, cellY, cellWidth, cellHeight, gridStyle, textType = 'label') {
-    const basePadding = gridStyle.text_padding || 6; // Increased default
+    const basePadding = gridStyle.text_padding || 8; // Increased default
 
     // Get effective cell radius and calculate smart padding
     const cornerRadius = this._getEffectiveCellRadius(gridStyle, cellWidth, cellHeight);
-    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 14) : (gridStyle.value_font_size || 12);
+    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 18) : (gridStyle.value_font_size || 16);
     const padding = this._calculateSmartPadding(basePadding, cornerRadius, fontSize);
 
     // Handle LCARS presets first
@@ -461,7 +461,7 @@ export class StatusGridRenderer {
    * @param {number} fontSize - Font size for text clearance
    * @returns {number} Adjusted padding value
    */
-  _calculateSmartPadding(basePadding, cornerRadius, fontSize = 14) {
+  _calculateSmartPadding(basePadding, cornerRadius, fontSize = 18) {
     // For rounded corners, we need extra padding to avoid text cutoff
     // The corner radius creates a "dead zone" where text shouldn't be placed
 
@@ -489,14 +489,14 @@ export class StatusGridRenderer {
    * @returns {Object} Position information
    */
   _calculateLCARSPresetPosition(preset, cellX, cellY, cellWidth, cellHeight, gridStyle, textType) {
-    const basePadding = gridStyle.text_padding || 6; // Increased default from 4 to 6
+    const basePadding = gridStyle.text_padding || 8; // Increased default to match main default
     const margin = gridStyle.text_margin || 2;
 
     // Get the actual corner radius that will be applied to this cell
     const cornerRadius = this._getEffectiveCellRadius(gridStyle, cellWidth, cellHeight);
 
     // Calculate smart padding that respects corner radius
-    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 14) : (gridStyle.value_font_size || 12);
+    const fontSize = textType === 'label' ? (gridStyle.label_font_size || 18) : (gridStyle.value_font_size || 16);
     const smartPadding = this._calculateSmartPadding(basePadding, cornerRadius, fontSize);
 
     switch (preset) {
@@ -510,9 +510,12 @@ export class StatusGridRenderer {
             baseline: 'hanging'
           };
         } else {
+          // FIXED: Better responsive positioning for bottom-right value
+          // Use proportional positioning instead of edge-based for better balance
+          const proportionalY = cellY + cellHeight * 0.85; // 85% down from top, not edge-based
           return {
             x: cellX + cellWidth - smartPadding,
-            y: cellY + cellHeight - smartPadding,
+            y: proportionalY,
             anchor: 'end',
             baseline: 'baseline'
           };
