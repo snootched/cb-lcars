@@ -46,6 +46,37 @@ function validateStructure(config, issues) {
     });
   }
 
+  // Base SVG validation
+  if (config.base_svg !== undefined) {
+    if (typeof config.base_svg === 'string') {
+      // Simple string format: "builtin:template-name"
+      if (!config.base_svg.startsWith('builtin:') && !config.base_svg.startsWith('/local/')) {
+        issues.warnings.push({
+          code: 'base_svg.format.unknown',
+          message: 'base_svg should start with "builtin:" or "/local/" for known formats'
+        });
+      }
+    } else if (typeof config.base_svg === 'object') {
+      // Object format: { source: "builtin:template-name" }
+      if (!config.base_svg.source) {
+        issues.errors.push({
+          code: 'base_svg.source.missing',
+          message: 'base_svg object must have a source property'
+        });
+      } else if (typeof config.base_svg.source !== 'string') {
+        issues.errors.push({
+          code: 'base_svg.source.invalid',
+          message: 'base_svg.source must be a string'
+        });
+      }
+    } else {
+      issues.errors.push({
+        code: 'base_svg.invalid',
+        message: 'base_svg must be a string or object with source property'
+      });
+    }
+  }
+
   // View box validation
   if (config.view_box !== undefined) {
     const vb = config.view_box;

@@ -74,6 +74,7 @@ async function processSinglePass(layers) {
     timelines: [],
     routing: {},
     data_sources: {},
+    base_svg: null, // Initialize base_svg
     active_profiles: ['normal'],
     __provenance: {
       anchors: {},
@@ -141,7 +142,10 @@ async function loadBuiltinPack(packName) {
           id: 'normal',
           defaults: {
             line: { color: 'var(--lcars-orange)', width: 2 },
-            text: { color: 'var(--lcars-orange)', font_size: 14 }
+            text: {
+              color: 'var(--lcars-orange)',
+              font_size: { value: 14, scale: 'viewbox', unit: 'px' } // Use scalable defaults
+            }
           }
         }
       ],
@@ -617,6 +621,22 @@ async function processLayer(merged, layer) {
     merged.data_sources = { ...merged.data_sources, ...layer.data.data_sources };
   }
 
+  // ADDED: Process base_svg configuration
+  if (layer.data.base_svg !== undefined) {
+    merged.base_svg = layer.data.base_svg;
+
+    // Track base_svg provenance
+    if (!merged.__provenance.base_svg) {
+      merged.__provenance.base_svg = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.base_svg.overridden = true;
+      merged.__provenance.base_svg.override_layer = layer.pack;
+    }
+  }
+
   // Process debug configuration
   if (layer.data.debug) {
     merged.debug = { ...merged.debug, ...layer.data.debug };
@@ -687,7 +707,7 @@ export function exportCollapsed(userMsd) {
   const keep = [
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
     'rules', 'profiles', 'timelines', 'palettes', 'routing',
-    'active_profiles', 'remove', 'debug'
+    'active_profiles', 'remove', 'debug', 'base_svg'
   ];
 
   keep.forEach(k => {

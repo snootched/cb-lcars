@@ -37,6 +37,20 @@ export class AdvancedRenderer {
       return { svgMarkup: '', overlayCount: 0 };
     }
     const { overlays = [], anchors = {}, viewBox } = resolvedModel;
+
+    console.log('[AdvancedRenderer] Render called with resolvedModel viewBox:', viewBox);
+
+    // Check actual SVG viewBox for comparison
+    const actualSvg = this.mountEl?.querySelector('svg');
+    if (actualSvg) {
+      const actualViewBox = actualSvg.viewBox.baseVal;
+      console.log('[AdvancedRenderer] Actual SVG viewBox:', [actualViewBox.x, actualViewBox.y, actualViewBox.width, actualViewBox.height]);
+
+      // Use the actual SVG viewBox instead of the wrong one from resolvedModel
+      const correctedViewBox = [actualViewBox.x, actualViewBox.y, actualViewBox.width, actualViewBox.height];
+      console.log('[AdvancedRenderer] Using corrected viewBox for text overlays:', correctedViewBox);
+    }
+
     cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering ${overlays.length} overlays, ${Object.keys(anchors).length} anchors`);
     this.overlayElements.clear();
     // Phase rendering requires live SVG early
@@ -532,7 +546,13 @@ export class AdvancedRenderer {
 
         // Get card instance for action support (same pattern as status grid)
         const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
-        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
+
+        // Use the correct SVG viewBox instead of the wrong one from resolvedModel
+        const svg = svgContainer?.querySelector('svg');
+        const actualViewBox = svg ? [svg.viewBox.baseVal.x, svg.viewBox.baseVal.y, svg.viewBox.baseVal.width, svg.viewBox.baseVal.height] : viewBox;
+        console.log('[AdvancedRenderer] Text overlay using viewBox:', actualViewBox);
+
+        return TextOverlayRenderer.render(overlay, anchors, actualViewBox, svgContainer, textCardInstance);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':

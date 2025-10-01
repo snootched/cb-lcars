@@ -7,14 +7,15 @@ This document defines the standardized styling system used across all MSD overla
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Text Styling](#text-styling)
-3. [Color System](#color-system)
-4. [Layout & Spacing](#layout--spacing)
-5. [Interaction Styles](#interaction-styles)
-6. [Animation Properties](#animation-properties)
-7. [Effect Systems](#effect-systems)
-8. [Property Mapping](#property-mapping)
-9. [Usage Examples](#usage-examples)
+2. [MSD Defaults System](#msd-defaults-system)
+3. [Text Styling](#text-styling)
+4. [Color System](#color-system)
+5. [Layout & Spacing](#layout--spacing)
+6. [Interaction Styles](#interaction-styles)
+7. [Animation Properties](#animation-properties)
+8. [Effect Systems](#effect-systems)
+9. [Property Mapping](#property-mapping)
+10. [Usage Examples](#usage-examples)
 
 ---
 
@@ -37,16 +38,112 @@ The MSD Unified Styling System provides consistent property naming and behavior 
 
 ---
 
+## MSD Defaults System
+
+The MSD defaults system provides automatic scaling and consistent styling through profile-based configuration. This system ensures that text and other elements scale properly with different viewBox dimensions while maintaining design consistency.
+
+### **How It Works**
+- **Profiles** define scalable defaults using object notation
+- **ViewBox scaling** automatically adjusts sizes based on SVG dimensions
+- **Inheritance** allows overlays to inherit or override profile defaults
+- **Flexible overrides** support both scaled and fixed values
+
+### **Profile Configuration**
+```yaml
+profiles:
+  - id: responsive_design
+    defaults:
+      text:
+        # Scalable font size (recommended)
+        font_size:
+          value: 14                 # Base size in pixels
+          scale: "viewbox"          # Scale with SVG viewBox
+          unit: "px"                # Unit specification
+        color: "var(--lcars-orange)" # Default text color
+        font_family: "Orbitron"    # Default font family
+
+      line:
+        color: "var(--lcars-blue)"  # Default line color
+        width: 2                    # Default line width
+
+active_profiles: ["responsive_design"]  # Apply this profile
+```
+
+### **Scaling Modes**
+- **`viewbox`**: Scale based on SVG viewBox dimensions (recommended)
+- **`container`**: Scale based on container size
+- **`none`**: No automatic scaling
+
+### **Value Formats**
+
+#### **Scalable Values** (Object Format)
+```yaml
+font_size:
+  value: 16                         # Base value
+  scale: "viewbox"                  # Scaling mode
+  unit: "px"                        # Output unit
+```
+
+#### **Fixed Values** (Simple Format)
+```yaml
+font_size: 16                       # No scaling applied
+```
+
+### **Override Behavior**
+```yaml
+overlays:
+  - type: text
+    id: inherits_scaling
+    text: "Inherits profile scaling"
+    # Uses profile's scalable font_size
+
+  - type: text
+    id: custom_scaling
+    text: "Custom scaling"
+    style:
+      font_size:                    # Override with different scaling
+        value: 20
+        scale: "viewbox"
+        unit: "px"
+
+  - type: text
+    id: fixed_size
+    text: "Fixed size"
+    style:
+      font_size: 18                 # Override with fixed size
+```
+
+### **ViewBox Scaling Example**
+With a profile default of `{value: 14, scale: "viewbox"}`:
+- **ViewBox [0, 0, 400, 300]**: Font renders at ~14px
+- **ViewBox [0, 0, 800, 600]**: Font renders at ~28px (2× scaling)
+- **ViewBox [0, 0, 1920, 1200]**: Font renders at ~56px (4× scaling)
+
+### **Benefits**
+- **🎯 Consistent scaling** across all overlay types
+- **📱 Responsive design** that adapts to different screen sizes
+- **🎨 Design flexibility** with easy override options
+- **⚡ Performance** through intelligent caching
+- **🔧 Maintainability** with centralized defaults
+
+---
+
 ## Text Styling
 
 ### **Core Text Properties**
 ```yaml
 style:
   # Font properties
-  font_size: 14                   # Font size in pixels
+  font_size: 14                   # Font size in pixels (simple, no scaling)
   font_family: "Orbitron"         # Font family name
   font_weight: "bold"             # normal, bold, lighter, bolder, 100-900
   font_style: "normal"            # normal, italic, oblique
+
+  # Scalable font size (recommended for responsive design)
+  font_size:                      # Object format enables viewBox scaling
+    value: 14                     # Base size value
+    scale: "viewbox"              # Scaling mode: viewbox, container, none
+    unit: "px"                    # Unit: px, em, rem
 
   # Text alignment
   text_align: "center"            # left, center, right, start, end
@@ -55,6 +152,42 @@ style:
   # Text spacing
   line_height: 1.4                # Line height multiplier
   letter_spacing: "0.1em"         # Letter spacing (CSS units)
+```
+
+### **Font Scaling with MSD Defaults System**
+The MSD defaults system provides automatic font scaling based on SVG viewBox dimensions:
+
+```yaml
+# Profile-based scaling (recommended)
+profiles:
+  - id: responsive
+    defaults:
+      text:
+        font_size:                # Scalable default
+          value: 14               # Base size
+          scale: "viewbox"        # Scale with viewBox
+          unit: "px"
+
+overlays:
+  - type: text
+    id: auto_scaled_text
+    text: "Scales automatically!"
+    # Inherits scalable font_size from profile
+
+  - type: text
+    id: custom_scaled_text
+    text: "Custom scaling"
+    style:
+      font_size:                  # Override with custom scaling
+        value: 20
+        scale: "viewbox"
+        unit: "px"
+
+  - type: text
+    id: fixed_size_text
+    text: "Fixed size"
+    style:
+      font_size: 16               # Simple number = no scaling
 ```
 
 ### **Text Colors**

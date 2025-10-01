@@ -10,6 +10,10 @@ import { RendererUtils } from './RendererUtils.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
+/**
+ * Enhanced Text Overlay Renderer with MSD Defaults Integration
+ * Phase 1 implementation for testing the defaults system
+ */
 export class TextOverlayRenderer {
   constructor() {
     // Pre-defined caches for performance optimization
@@ -31,10 +35,9 @@ export class TextOverlayRenderer {
     const instance = new TextOverlayRenderer();
     instance.container = svgContainer; // Set the container for the instance
     instance.viewBox = viewBox; // Also store viewBox for reference
-    return instance.renderText(overlay, anchors, viewBox, cardInstance);
-  }
 
-  /**
+    return instance.renderText(overlay, anchors, viewBox, cardInstance);
+  }  /**
    * Instance method for comprehensive text rendering
    * @param {Object} overlay - Text overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
@@ -54,7 +57,9 @@ export class TextOverlayRenderer {
     try {
       const style = overlay.finalStyle || overlay.style || {};
 
-      const textStyle = this._resolveTextStyles(style, overlay.id);
+      // Ensure we have the correct viewBox for scaling context
+      // Use parameter viewBox as fallback if this.viewBox is not set
+      const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
 
       // NEW: adopt computed font when 'inherit' (prevents initial fallback mismatch)
       if (this.container && typeof window !== 'undefined') {
@@ -156,17 +161,53 @@ export class TextOverlayRenderer {
    * @private
    * @param {Object} style - Final resolved style object
    * @param {string} overlayId - Overlay ID for unique identifiers
+   * @param {Array} fallbackViewBox - ViewBox to use if instance viewBox not available
    * @returns {Object} Complete text style configuration
    */
-  _resolveTextStyles(style, overlayId) {
+  _resolveTextStyles(style, overlayId, fallbackViewBox = null) {
+    // Get defaults manager
+    const defaults = this._getDefaultsManager();
+
+    // Create scaling context if we have container/viewBox info
+    // Pass fallbackViewBox to ensure we always have correct viewBox
+    const scalingContext = this._getScalingContext(fallbackViewBox);
+
     // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
+    // Process font size with proper object handling
+    let resolvedFontSize;
+    const styleFontSize = style.font_size || style.fontSize;
+    const fallbackFontSize = standardStyles.text.fontSize;
+
+    if (styleFontSize && typeof styleFontSize === 'object' && 'value' in styleFontSize) {
+      // Handle scalable font size object from profiles - use the public API
+      if (defaults && scalingContext.viewBox) {
+        // Create a temporary defaults entry and resolve it
+        const tempPath = 'temp.font_size';
+        defaults.set('user', tempPath, styleFontSize);
+        resolvedFontSize = defaults.resolve(tempPath, scalingContext);
+        // Clean up temporary entry
+        defaults.layers.get('user').delete(tempPath);
+        console.log(`[TextOverlayRenderer] Scaled profile font size: ${styleFontSize.value} → ${resolvedFontSize}`);
+      } else {
+        // Fallback without scaling
+        resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
+        console.log(`[TextOverlayRenderer] Using unscaled profile font size: ${resolvedFontSize}`);
+      }
+    } else if (styleFontSize && typeof styleFontSize === 'number') {
+      // Handle simple numeric font size
+      resolvedFontSize = styleFontSize;
+    } else {
+      // Fall back to defaults system
+      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, fallbackFontSize || 16);
+    }
+
     const textStyle = {
-      // Core text properties (enhanced with unified styling)
-      color: standardStyles.text.textColor || style.fill || 'var(--lcars-orange)',
-      fontSize: standardStyles.text.fontSize,
-      fontFamily: standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily || 'inherit'),
+      // Core text properties (enhanced with unified styling + defaults)
+      color: standardStyles.text.textColor || style.fill || this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
+      fontSize: resolvedFontSize,
+      fontFamily: standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily || this._resolveDefault('text.font_family', scalingContext, defaults, 'inherit')),
       fontWeight: standardStyles.text.fontWeight,
       fontStyle: standardStyles.text.fontStyle,
 
@@ -269,6 +310,45 @@ export class TextOverlayRenderer {
     if (textStyle.highlight) textStyle.features.push('highlight');
 
     return textStyle;
+  }
+
+  /**
+   * Get the defaults manager from global namespace
+   * @private
+   * @returns {Object|null} Defaults manager or null if not available
+   */
+  _getDefaultsManager() {
+    return (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
+  }
+
+  /**
+   * Get scaling context for defaults resolution
+   * @private
+   * @param {Array} fallbackViewBox - ViewBox to use if instance viewBox not available
+   * @returns {Object} Scaling context object
+   */
+  _getScalingContext(fallbackViewBox = null) {
+    const viewBox = this.viewBox || fallbackViewBox || [0, 0, 400, 200];
+
+    return {
+      viewBox: viewBox,
+      containerElement: this.container
+    };
+  }  /**
+   * Resolve a default value with fallback
+   * @private
+   * @param {string} path - Defaults path
+   * @param {Object} context - Scaling context
+   * @param {Object} defaults - Defaults manager
+   * @param {any} fallback - Fallback value
+   * @returns {any} Resolved value
+   */
+  _resolveDefault(path, context, defaults, fallback) {
+    if (defaults) {
+      const resolved = defaults.resolve(path, context);
+      return resolved !== null ? resolved : fallback;
+    }
+    return fallback;
   }
 
   /**
@@ -1251,7 +1331,9 @@ export class TextOverlayRenderer {
     if (!position) return null;
     const [x, y] = position;
     const instance = new TextOverlayRenderer();
+    instance.container = container; // Set container for scaling context
     const style = overlay.finalStyle || overlay.style || {};
+
     const textStyle = instance._resolveTextStyles(style, overlay.id);
     const textContent = instance._resolveTextContent(overlay, style);
     if (!textContent) return null;
@@ -1284,9 +1366,7 @@ export class TextOverlayRenderer {
       x,
       y
     };
-  }
-
-  // NEW: consolidated measurement helper (mirrors bracket/highlight logic)
+  }  // NEW: consolidated measurement helper (mirrors bracket/highlight logic)
   _measureTextBlock(textContent, x, y, textStyle) {
     try {
       const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
@@ -1313,4 +1393,41 @@ export class TextOverlayRenderer {
       return { width: 0, height: 0 };
     }
   }
+
+  /**
+   * Demo method to show scaling effects with different viewBoxes
+   * @param {Object} overlay - Text overlay configuration
+   * @returns {Object} Demo data showing scaling effects
+   */
+  static demonstrateScaling2(overlay = {}) {
+    const defaults = (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
+    if (!defaults) {
+      return { error: 'Defaults manager not available' };
+    }
+
+    const testViewBoxes = [
+      { name: 'Small', viewBox: [0, 0, 200, 150] },
+      { name: 'Reference', viewBox: [0, 0, 400, 300] },
+      { name: 'Large', viewBox: [0, 0, 800, 600] },
+      { name: 'Wide', viewBox: [0, 0, 1200, 300] }
+    ];
+
+    const results = testViewBoxes.map(test => {
+      const fontSize = defaults.resolve('text.font_size', { viewBox: test.viewBox });
+      return {
+        ...test,
+        fontSize,
+        scaleFactor: parseFloat(fontSize) / 14 // Relative to base 14px
+      };
+    });
+
+    return {
+      overlay,
+      results,
+      originalFontSize: '14px',
+      message: 'Font sizes scaled for different viewBox dimensions'
+    };
+  }
 }
+
+export default TextOverlayRenderer;

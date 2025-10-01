@@ -6,6 +6,8 @@ import { DataSourceManager } from '../data/DataSourceManager.js';
 import { RouterCore } from '../routing/RouterCore.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
+import { MsdDefaultsManager } from './MsdDefaultsManager.js';
+import './MsdDefaultsExample.js'; // Import examples to make them available globally
 
 import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
@@ -23,6 +25,7 @@ export class SystemsManager {
     this.rulesEngine = null;
     this.debugManager = new DebugManager();
     this.overlayUpdater = null; // ADDED: Unified overlay update system
+    this.defaultsManager = null; // ADDED: MSD defaults manager
     this._renderTimeout = null;
     this._reRenderCallback = null;
     this._queuedReRender = false; // ADDED: Flag for queued renders
@@ -70,6 +73,16 @@ export class SystemsManager {
 
     // ADDED: Store HASS context immediately
     this._currentHass = hass;
+
+    // ADDED: Initialize MSD defaults manager
+    this.defaultsManager = new MsdDefaultsManager();
+
+    // ADDED: Store in global CB-LCARS namespace for easy access
+    if (typeof window !== 'undefined') {
+      window.cblcars = window.cblcars || {};
+      window.cblcars.defaults = this.defaultsManager;
+      console.log('🔧 MSD Defaults Manager initialized');
+    }
 
     // ENHANCED: Initialize debug manager early with config and better logging
     const debugConfig = mergedConfig.debug || {};

@@ -16,6 +16,33 @@ overlays:
     text: "Hello World"
 ```
 
+### Responsive Text with MSD Defaults
+```yaml
+# Profile-based scaling (recommended)
+profiles:
+  - id: responsive
+    defaults:
+      text:
+        font_size:
+          value: 14              # Base size
+          scale: "viewbox"       # Scales with SVG dimensions
+          unit: "px"
+
+overlays:
+  - type: text
+    id: scaled_text
+    position: [100, 50]
+    text: "This text scales automatically!"
+    # Inherits scalable font_size from profile
+
+  - type: text
+    id: fixed_text
+    position: [100, 80]
+    text: "Fixed size text"
+    style:
+      font_size: 16              # Simple number = no scaling
+```
+
 ## Interactive Text Overlays
 
 Text overlays support full Home Assistant actions for creating interactive labels and controls:

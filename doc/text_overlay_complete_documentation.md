@@ -183,15 +183,63 @@ style:
 style:
   # Font configuration
   font_family: "Orbitron, monospace"  # Font stack
-  font_size: 18                       # Size in pixels
+  font_size: 18                       # Size in pixels (simple numeric)
   font_weight: "bold"                 # Weight: normal, bold, 100-900
   font_style: "italic"                # Style: normal, italic, oblique
+
+  # Scalable font size (viewBox-aware)
+  font_size:                          # Object format for scaling
+    value: 16                         # Base size value
+    scale: "viewbox"                  # Scaling mode: viewbox, container, none
+    unit: "px"                        # Unit: px, em, rem
 
   # Advanced typography
   letter_spacing: "0.1em"             # Letter spacing
   word_spacing: "0.2em"               # Word spacing
   text_decoration: "underline"        # none, underline, overline, line-through
 ```
+
+### Font Scaling with Profiles
+The MSD defaults system provides automatic font scaling based on SVG viewBox dimensions:
+
+```yaml
+# Profile-based scaling (recommended approach)
+profiles:
+  - id: responsive
+    defaults:
+      text:
+        font_size:                    # Scalable default
+          value: 14                   # Base size at reference viewBox
+          scale: "viewbox"            # Scale with viewBox dimensions
+          unit: "px"
+
+overlays:
+  - type: text
+    id: auto_scaled_text
+    text: "This text scales automatically!"
+    # Inherits scalable font_size from profile
+
+  - type: text
+    id: custom_scaled_text
+    text: "Custom scaled text"
+    style:
+      font_size:                      # Override with custom scaling
+        value: 20
+        scale: "viewbox"
+        unit: "px"
+
+  - type: text
+    id: fixed_size_text
+    text: "Fixed size text"
+    style:
+      font_size: 16                   # Simple number = no scaling
+```
+
+### Scaling Behavior
+- **Profile defaults**: Provide consistent scalable typography across all overlays
+- **Object format**: `{value: 14, scale: "viewbox", unit: "px"}` enables automatic scaling
+- **Simple numbers**: `font_size: 16` bypasses scaling for fixed-size text
+- **Inheritance**: Overlays inherit scalable defaults from active profiles
 
 ### Text Alignment & Positioning
 ```yaml
@@ -475,7 +523,7 @@ overlays:
 
       # Core Typography
       color: string                   # Text color (default: "var(--lcars-orange)")
-      font_size: number               # Font size in pixels (default: 16)
+      font_size: number|object        # Font size in pixels or scalable object (default: 16)
       font_family: string             # Font family (default: "inherit")
       font_weight: string|number      # Font weight (default: "normal")
       font_style: string              # Font style (default: "normal")
@@ -533,6 +581,14 @@ overlays:
 
 ### Effect Definitions
 ```yaml
+# Font Size Definitions
+font_size: 16                         # Simple numeric format (no scaling)
+
+font_size:                            # Object format (enables scaling)
+  value: 16                           # Base size value
+  scale: "viewbox"                    # Scaling mode: viewbox, container, none
+  unit: "px"                          # Output unit: px, em, rem
+
 # Gradient Definition
 gradient:
   type: "linear"                      # linear|radial

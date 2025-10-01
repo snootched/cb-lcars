@@ -168,7 +168,7 @@ export class MsdIntrospection {
       }
     }
 
-    return [0, 0, 400, 200]; // fallback
+    return [0, 0, 400, 200]; // fallback - should extract from actual SVG
   }
 
   // Helper methods for point/size resolution
