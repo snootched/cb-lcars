@@ -73,7 +73,9 @@ export class TextOverlayRenderer {
               // Update fontSize if defaulted / unreasonable
               if ((!style.font_size && !style.fontSize) && cs.fontSize) {
                 const px = parseFloat(cs.fontSize);
+                const fallbackSize = this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
                 if (!isNaN(px) && px > 0) textStyle.fontSize = px;
+                else textStyle.fontSize = fallbackSize;
               }
             }
         } catch (_) {}
@@ -237,7 +239,7 @@ export class TextOverlayRenderer {
       }
     } else {
       // Fall back to defaults system
-      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, fallbackFontSize || 16);
+      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, this._resolveDefault('text.fallback_font_size', {}, defaults, 16));
     }    const textStyle = {
       // Core text properties (enhanced with unified styling + defaults)
       color: standardStyles.text.textColor || style.fill || this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
@@ -303,24 +305,24 @@ export class TextOverlayRenderer {
       status_indicator_padding: typeof style.status_indicator_padding === 'number' ? style.status_indicator_padding : null,
       bracket_style: style.bracket_style || null,
       bracket_color: style.bracket_color || null,
-      bracket_width: Number(style.bracket_width || 2),
-      bracket_gap: Number(style.bracket_gap || 4),
-      bracket_extension: Number(style.bracket_extension || 8),
-      bracket_opacity: Number(style.bracket_opacity || 1),
+      bracket_width: Number(style.bracket_width || this._resolveDefault('text.bracket.width', scalingContext, defaults, 2)),
+      bracket_gap: Number(style.bracket_gap || this._resolveDefault('text.bracket.gap', scalingContext, defaults, 4)),
+      bracket_extension: Number(style.bracket_extension || this._resolveDefault('text.bracket.extension', scalingContext, defaults, 8)),
+      bracket_opacity: Number(style.bracket_opacity || this._resolveDefault('text.bracket.opacity', scalingContext, defaults, 1)),
       bracket_corners: style.bracket_corners || 'both',
       bracket_sides: style.bracket_sides || 'both',
       // Enhanced bg-grid style bracket options
-      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || 8),
-      bracket_height: style.bracket_height || '70%',
-      bracket_radius: Number(style.bracket_radius || 4),
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || this._resolveDefault('text.bracket.physical_width', scalingContext, defaults, 8)),
+      bracket_height: style.bracket_height || this._resolveDefault('text.bracket.height', scalingContext, defaults, '70%'),
+      bracket_radius: Number(style.bracket_radius || this._resolveDefault('text.bracket.radius', scalingContext, defaults, 4)),
       // LCARS container/border options
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
       border_right: Number(style.border_right || 0),
       border_bottom: Number(style.border_bottom || 0),
       border_color: style.border_color || null,
-      border_radius: Number(style.border_radius || 8),
-      inner_factor: Number(style.inner_factor || 2),
+      border_radius: Number(style.border_radius || this._resolveDefault('text.bracket.border_radius', scalingContext, defaults, 8)),
+      inner_factor: Number(style.inner_factor || this._resolveDefault('text.bracket.inner_factor', scalingContext, defaults, 2)),
       hybrid_mode: style.hybrid_mode || false,
       highlight: style.highlight || false,
 
@@ -876,9 +878,10 @@ export class TextOverlayRenderer {
       );
     }
 
-    // Get properly scaled padding
+    // Get properly scaled padding from defaults
+    const defaultHighlightPadding = this._resolveDefault('text.highlight.padding', {}, this._getDefaultsManager(), 2);
     const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
-    const padding = transformInfo ? transformInfo.pixelToViewBox(2) : 2;
+    const padding = transformInfo ? transformInfo.pixelToViewBox(defaultHighlightPadding) : defaultHighlightPadding;
 
     const highlightX = bbox.left - padding;
     const highlightY = bbox.top - padding;
@@ -888,7 +891,7 @@ export class TextOverlayRenderer {
     const highlightColor = typeof textStyle.highlight === 'string' ?
       textStyle.highlight : 'var(--lcars-blue-light)';
     const highlightOpacity = typeof textStyle.highlight_opacity === 'number' ?
-      textStyle.highlight_opacity : 0.3;
+      textStyle.highlight_opacity : this._resolveDefault('text.highlight.opacity', {}, this._getDefaultsManager(), 0.3);
 
     return `<rect x="${highlightX}" y="${highlightY}"
                   width="${highlightWidth}" height="${highlightHeight}"
@@ -909,14 +912,16 @@ export class TextOverlayRenderer {
     // Parse fontSize to get numeric value for calculations
     const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
 
-    // Allow override of indicator size, otherwise use default 40% of font size
+    // Allow override of indicator size, otherwise use defaults system
+    const defaultSizeRatio = this._resolveDefault('text.status_indicator.size_ratio', {}, this._getDefaultsManager(), 0.3);
     const indicatorSize = textStyle.status_indicator_size !== null ?
       textStyle.status_indicator_size :
-      fontSizeValue * 0.3; // Reduced from 0.4 to 0.3 for better proportions
+      fontSizeValue * defaultSizeRatio;
 
+    const defaultColor = this._resolveDefault('text.status_indicator.color', {}, this._getDefaultsManager(), 'var(--lcars-green)');
     const statusColor = typeof textStyle.status_indicator === 'string'
       ? textStyle.status_indicator
-      : 'var(--lcars-green)';
+      : defaultColor;
 
     const position = textStyle.status_indicator_position || 'left-center';    // Replace base font with measurement-adjusted font
     const textContent = textStyle._cachedContent || textStyle.value || '';
@@ -1005,9 +1010,10 @@ export class TextOverlayRenderer {
     let indicatorX = x, indicatorY = y;
 
     // Use configurable padding - this is the gap between text edge and circle edge
+    const defaultPadding = this._resolveDefault('text.status_indicator.padding', {}, this._getDefaultsManager(), 8);
     const pixelPadding = textStyle.status_indicator_padding !== null ?
       textStyle.status_indicator_padding :
-      8; // 8px gap between text and circle edge
+      defaultPadding; // Gap between text and circle edge
 
     const padding = transformInfo ?
       transformInfo.pixelToViewBox(pixelPadding) :
@@ -1131,14 +1137,17 @@ export class TextOverlayRenderer {
 
     if (typeof patternConfig === 'string') {
       // Simple pattern types
+      const dotsSize = this._resolveDefault('text.pattern.dots.size', {}, this._getDefaultsManager(), 8);
+      const linesSize = this._resolveDefault('text.pattern.lines.size', {}, this._getDefaultsManager(), 4);
+
       switch (patternConfig) {
         case 'dots':
-          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="8" height="8">
-                    <circle cx="4" cy="4" r="1" fill="currentColor"/>
+          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${dotsSize}" height="${dotsSize}">
+                    <circle cx="${dotsSize/2}" cy="${dotsSize/2}" r="1" fill="currentColor"/>
                   </pattern>`;
         case 'lines':
-          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="4" height="4">
-                    <path d="M 0,4 l 4,-4 M -1,1 l 2,-2 M 3,5 l 2,-2" stroke="currentColor" stroke-width="1"/>
+          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${linesSize}" height="${linesSize}">
+                    <path d="M 0,${linesSize} l ${linesSize},-${linesSize} M -1,1 l 2,-2 M ${linesSize-1},${linesSize+1} l 2,-2" stroke="currentColor" stroke-width="1"/>
                   </pattern>`;
         default:
           return '';
@@ -1146,8 +1155,8 @@ export class TextOverlayRenderer {
     }
 
     // Advanced pattern configuration
-    const width = patternConfig.width || 10;
-    const height = patternConfig.height || 10;
+    const width = patternConfig.width || this._resolveDefault('text.pattern.default.width', {}, this._getDefaultsManager(), 10);
+    const height = patternConfig.height || this._resolveDefault('text.pattern.default.height', {}, this._getDefaultsManager(), 10);
     const patternUnits = patternConfig.patternUnits || 'userSpaceOnUse';
 
     return `<pattern id="${patternId}" patternUnits="${patternUnits}" width="${width}" height="${height}">
@@ -1165,12 +1174,12 @@ export class TextOverlayRenderer {
     let color, blur, intensity;
     if (typeof glowConfig === 'string') {
       color = glowConfig;
-      blur = 3;
-      intensity = 1;
+      blur = this._resolveDefault('text.effects.glow.blur', {}, this._getDefaultsManager(), 3);
+      intensity = this._resolveDefault('text.effects.glow.intensity', {}, this._getDefaultsManager(), 1);
     } else {
       color = glowConfig.color || 'var(--lcars-orange)';
-      blur = Number(glowConfig.blur || 3);
-      intensity = Number(glowConfig.intensity || 1);
+      blur = Number(glowConfig.blur || this._resolveDefault('text.effects.glow.blur', {}, this._getDefaultsManager(), 3));
+      intensity = Number(glowConfig.intensity || this._resolveDefault('text.effects.glow.intensity', {}, this._getDefaultsManager(), 1));
     }
 
     return `<filter id="${filterId}">
@@ -1194,15 +1203,15 @@ export class TextOverlayRenderer {
     let offsetX, offsetY, blur, color;
     if (typeof shadowConfig === 'string') {
       [offsetX, offsetY, blur, color] = shadowConfig.split(' ');
-      offsetX = Number(offsetX) || 2;
-      offsetY = Number(offsetY) || 2;
-      blur = Number(blur) || 2;
-      color = color || 'rgba(0,0,0,0.5)';
+      offsetX = Number(offsetX) || this._resolveDefault('text.effects.shadow.offset_x', {}, this._getDefaultsManager(), 2);
+      offsetY = Number(offsetY) || this._resolveDefault('text.effects.shadow.offset_y', {}, this._getDefaultsManager(), 2);
+      blur = Number(blur) || this._resolveDefault('text.effects.shadow.blur', {}, this._getDefaultsManager(), 2);
+      color = color || this._resolveDefault('text.effects.shadow.color', {}, this._getDefaultsManager(), 'rgba(0,0,0,0.5)');
     } else {
-      offsetX = Number(shadowConfig.offsetX || 2);
-      offsetY = Number(shadowConfig.offsetY || 2);
-      blur = Number(shadowConfig.blur || 2);
-      color = shadowConfig.color || 'rgba(0,0,0,0.5)';
+      offsetX = Number(shadowConfig.offsetX || this._resolveDefault('text.effects.shadow.offset_x', {}, this._getDefaultsManager(), 2));
+      offsetY = Number(shadowConfig.offsetY || this._resolveDefault('text.effects.shadow.offset_y', {}, this._getDefaultsManager(), 2));
+      blur = Number(shadowConfig.blur || this._resolveDefault('text.effects.shadow.blur', {}, this._getDefaultsManager(), 2));
+      color = shadowConfig.color || this._resolveDefault('text.effects.shadow.color', {}, this._getDefaultsManager(), 'rgba(0,0,0,0.5)');
     }
 
     return `<filter id="${filterId}">
@@ -1270,7 +1279,7 @@ export class TextOverlayRenderer {
     const style = overlay.finalStyle || overlay.style || {};
     const text = style.value || overlay.text || '';
     const color = style.color || 'var(--lcars-orange)';
-    const fontSize = style.font_size || style.fontSize || 16;
+    const fontSize = style.font_size || style.fontSize || this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
 
     cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ Using fallback rendering for text ${overlay.id}`);
 
@@ -1450,11 +1459,13 @@ export class TextOverlayRenderer {
     if (textStyle.status_indicator) {
       try {
         const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
-        const indicatorSize = fontSizeValue * 0.4;
+        const defaultSizeRatio = instance._getDefaultsManager()?.resolve('text.attachment.status_size_ratio', {}) || 0.3;
+        const indicatorSize = fontSizeValue * defaultSizeRatio;
 
         // Get transform info for proper padding calculation
         const transformInfo = RendererUtils._getSvgTransformInfo ? RendererUtils._getSvgTransformInfo(container) : null;
-        const pixelPadding = 8;
+        const defaultPadding = instance._getDefaultsManager()?.resolve('text.status_indicator.padding', {}) || 8;
+        const pixelPadding = defaultPadding;
         const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
 
         const position = textStyle.status_indicator_position || 'left-center';

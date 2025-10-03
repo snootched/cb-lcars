@@ -1,7 +1,8 @@
 /**
  * MSD Defaults Manager - Phase 1 Implementation
- * Handles layered defaults with viewBox-aware scaling for consistent visual appearance
- * across different SVG coordinate systems.
+ * Handles layered    // Attachment point calculation defaults
+    this.set('builtin', 'text.attachment.status_size_ratio', 0.3); // Status indicator size ratio for attachment calculations (matches main ratio)efaults with optional viewBox-aware scaling for specific values
+ * that require scaling (like padding), while keeping most values simple for compatibility.
  *
  * @version 1.0.0
  * @author CB-LCARS MSD Team
@@ -30,31 +31,56 @@ export class MsdDefaultsManager {
    * @private
    */
   _registerBuiltinDefaults() {
-    // Text defaults
-    this.set('builtin', 'text.font_size', {
-      value: 14,
-      scale: 'viewbox',
-      unit: 'px'
-    });
-
+    // Text defaults - using simple values for better compatibility
+    this.set('builtin', 'text.font_size', 14); // Simple numeric value, no auto-scaling
     this.set('builtin', 'text.font_family', 'var(--lcars-font-family, Antonio)');
-
-    this.set('builtin', 'text.line_height', {
-      value: 1.2,
-      scale: 'none',
-      unit: 'em'
-    });
-
+    this.set('builtin', 'text.line_height', 1.2);
     this.set('builtin', 'text.color', 'var(--lcars-white, #ffffff)');
+    this.set('builtin', 'text.fallback_font_size', 16); // Fallback when font size cannot be determined
 
-    // Overlay defaults
+    // Text decoration defaults
+    this.set('builtin', 'text.status_indicator.size_ratio', 0.3); // Ratio of font size for status indicator
+    this.set('builtin', 'text.status_indicator.padding', 8); // Pixels between text edge and indicator edge
+    this.set('builtin', 'text.status_indicator.color', 'var(--lcars-green, #00ff00)'); // Default status indicator color
+    this.set('builtin', 'text.highlight.padding', 2); // Pixels of padding around text for highlight
+    this.set('builtin', 'text.highlight.opacity', 0.3); // Default highlight opacity
+
+    // Text bracket defaults
+    this.set('builtin', 'text.bracket.width', 2); // Default bracket stroke width
+    this.set('builtin', 'text.bracket.gap', 4); // Default gap between text and bracket
+    this.set('builtin', 'text.bracket.extension', 8); // Default bracket extension beyond text
+    this.set('builtin', 'text.bracket.opacity', 1); // Default bracket opacity
+    this.set('builtin', 'text.bracket.physical_width', 8); // Default physical bracket width
+    this.set('builtin', 'text.bracket.height', '70%'); // Default bracket height as percentage
+    this.set('builtin', 'text.bracket.radius', 4); // Default bracket corner radius
+    this.set('builtin', 'text.bracket.border_radius', 8); // Default border radius for containers
+    this.set('builtin', 'text.bracket.inner_factor', 2); // Default inner factor for hybrid mode
+
+    // Text effect defaults
+    this.set('builtin', 'text.effects.glow.blur', 3); // Default glow blur radius
+    this.set('builtin', 'text.effects.glow.intensity', 1); // Default glow intensity
+    this.set('builtin', 'text.effects.shadow.offset_x', 2); // Default shadow X offset
+    this.set('builtin', 'text.effects.shadow.offset_y', 2); // Default shadow Y offset
+    this.set('builtin', 'text.effects.shadow.blur', 2); // Default shadow blur
+    this.set('builtin', 'text.effects.shadow.color', 'rgba(0,0,0,0.5)'); // Default shadow color
+
+    // Text pattern defaults
+    this.set('builtin', 'text.pattern.dots.size', 8); // Default dots pattern size
+    this.set('builtin', 'text.pattern.lines.size', 4); // Default lines pattern size
+    this.set('builtin', 'text.pattern.default.width', 10); // Default pattern width
+    this.set('builtin', 'text.pattern.default.height', 10); // Default pattern height
+
+    // Attachment point calculation defaults
+    this.set('builtin', 'text.attachment.status_size_ratio', 0.3); // Status indicator size ratio for attachment calculations
+
+    // Overlay defaults - keep scalable objects for padding that needs viewBox scaling
     this.set('builtin', 'overlay.padding', {
       value: 8,
       scale: 'viewbox',
       unit: 'px'
     });
 
-    // Sparkline defaults (for future expansion)
+    // Sparkline defaults
     this.set('builtin', 'sparkline.stroke_width', {
       value: 2,
       scale: 'viewbox',
@@ -83,7 +109,6 @@ export class MsdDefaultsManager {
       }
     }
 
-    console.warn(`MSD Defaults: No default found for path '${path}'`);
     return null;
   }
 
@@ -92,13 +117,6 @@ export class MsdDefaultsManager {
    * @private
    */
   _processValue(value, context, path) {
-    console.log(`[MsdDefaultsManager] Processing value for ${path}:`, {
-      value,
-      context,
-      hasViewBox: !!context.viewBox,
-      viewBoxValue: context.viewBox
-    });
-
     // Handle CSS custom properties (var(--name))
     if (typeof value === 'string' && value.includes('var(')) {
       return this._resolveCssVariable(value);
@@ -106,9 +124,7 @@ export class MsdDefaultsManager {
 
     // Handle scalable values (objects with value, scale, unit)
     if (value && typeof value === 'object' && 'value' in value) {
-      const result = this._scaleAndConvertValue(value, context, path);
-      console.log(`[MsdDefaultsManager] Scaled result for ${path}:`, result);
-      return result;
+      return this._scaleAndConvertValue(value, context, path);
     }
 
     // Return simple values as-is
@@ -129,7 +145,7 @@ export class MsdDefaultsManager {
         return resolved || fallback || value;
       }
     } catch (e) {
-      console.warn('MSD Defaults: Failed to resolve CSS variable:', value, e);
+      // Silent fallback for CSS variable resolution
     }
     return value;
   }
@@ -287,7 +303,7 @@ export class MsdDefaultsManager {
       this.scaleCache.clear();
       this.unitCache.clear();
     } else {
-      console.warn(`MSD Defaults: Unknown layer '${layer}'`);
+      // Note: Unknown layer
     }
   }
 
