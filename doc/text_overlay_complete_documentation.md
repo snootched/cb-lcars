@@ -478,13 +478,40 @@ style:
   # Status indicator
   status_indicator: "var(--lcars-green)" # Status dot color
   status_indicator_position: "left-center" # Positioning
+  status_indicator_size: 8            # NEW: Override size (pixels, default: 30% of font size)
+  status_indicator_padding: 12        # NEW: Gap from text edge to circle edge (pixels, default: 8px)
 
   # Highlight background
   highlight: "var(--lcars-blue-light)" # Highlight color
   highlight_opacity: 0.3              # Highlight opacity
 ```
 
-### Status Indicator Positions
+### Status Indicator Configuration
+The status indicator is a small circular dot that can be positioned around text to show status or importance.
+
+#### Basic Usage
+```yaml
+style:
+  status_indicator: "var(--lcars-green)"           # Enable with color
+  status_indicator_position: "right-center"       # Position around text
+```
+
+#### Advanced Configuration
+```yaml
+style:
+  status_indicator: "var(--lcars-red)"            # Status color
+  status_indicator_position: "top-right"          # Positioning (see positions below)
+  status_indicator_size: 6                        # Custom size in pixels (default: 30% of font size)
+  status_indicator_padding: 15                    # Gap between text and indicator edge (default: 8px)
+```
+
+#### Size and Spacing Control
+- **Default size**: 30% of the text's font size (automatically scales)
+- **Custom size**: Override with exact pixel value using `status_indicator_size`
+- **Padding**: Distance from text edge to indicator edge (not center)
+- **Font-aware**: Automatically updates when fonts stabilize during rendering
+
+#### Status Indicator Positions
 ```yaml
 style:
   status_indicator_position: "left-center"   # Default
@@ -492,6 +519,29 @@ style:
   # - top-left, top, top-right
   # - left-center, center, right-center
   # - bottom-left, bottom, bottom-right
+```
+
+#### Examples
+```yaml
+# Small, close indicator
+style:
+  status_indicator: "var(--lcars-yellow)"
+  status_indicator_size: 4
+  status_indicator_padding: 4
+  status_indicator_position: "top-right"
+
+# Large, distant indicator
+style:
+  status_indicator: "var(--lcars-red)"
+  status_indicator_size: 15
+  status_indicator_padding: 20
+  status_indicator_position: "left-center"
+
+# Default automatic sizing
+style:
+  status_indicator: "var(--lcars-green)"
+  status_indicator_position: "right-center"
+  # Size and padding use intelligent defaults
 ```
 
 ---
@@ -569,6 +619,8 @@ overlays:
       bracket_color: string           # Bracket color
       status_indicator: boolean|string # Status indicator (default: null)
       status_indicator_position: string # Status position (default: "left-center")
+      status_indicator_size: number   # Status indicator size in pixels (default: 30% of font size)
+      status_indicator_padding: number # Gap from text edge to circle edge in pixels (default: 8px)
       highlight: boolean|string       # Highlight background (default: false)
       highlight_opacity: number       # Highlight opacity (default: 0.3)
 
@@ -856,6 +908,8 @@ overlays:
       line_height: 1.4
       status_indicator: "var(--lcars-green)"
       status_indicator_position: "left-center"
+      status_indicator_size: 8                        # Custom smaller size
+      status_indicator_padding: 12                    # Increased gap from text
 
   - id: power_panel_gradient_text
     type: text

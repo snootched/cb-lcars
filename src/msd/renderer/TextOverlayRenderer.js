@@ -143,7 +143,7 @@ export class TextOverlayRenderer {
                   data-text-width="${measure.width || 0}"
                   data-text-height="${measure.height || 0}"
                   data-font-family="${textStyle.fontFamily}"
-                  data-font-size="${textStyle.fontSize}"
+                  data-font-size="${parseFloat(textStyle.fontSize) || 16}"
                   data-dominant-baseline="${textStyle.dominantBaseline}"
                   data-text-anchor="${textStyle.textAnchor}"
                   data-font-stabilized="0"
@@ -168,9 +168,23 @@ export class TextOverlayRenderer {
     // Get defaults manager
     const defaults = this._getDefaultsManager();
 
+    // EMERGENCY FALLBACK: If we don't have viewBox, try to get it from pipeline
+    let effectiveFallbackViewBox = fallbackViewBox;
+    if (!this.viewBox && !fallbackViewBox) {
+      try {
+        const pipeline = window.__msdDebug?.pipelineInstance;
+        const resolvedModel = pipeline?.getResolvedModel?.();
+        if (resolvedModel?.viewBox && Array.isArray(resolvedModel.viewBox)) {
+          effectiveFallbackViewBox = resolvedModel.viewBox;
+        }
+      } catch (e) {
+        // Ignore errors, use hardcoded fallback
+      }
+    }
+
     // Create scaling context if we have container/viewBox info
-    // Pass fallbackViewBox to ensure we always have correct viewBox
-    const scalingContext = this._getScalingContext(fallbackViewBox);
+    // Pass effectiveFallbackViewBox to ensure we always have correct viewBox
+    const scalingContext = this._getScalingContext(effectiveFallbackViewBox);
 
     // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
@@ -180,30 +194,51 @@ export class TextOverlayRenderer {
     const styleFontSize = style.font_size || style.fontSize;
     const fallbackFontSize = standardStyles.text.fontSize;
 
+    // Process font size with automatic pixel-perfect scaling
     if (styleFontSize && typeof styleFontSize === 'object' && 'value' in styleFontSize) {
-      // Handle scalable font size object from profiles - use the public API
-      if (defaults && scalingContext.viewBox) {
-        // Create a temporary defaults entry and resolve it
+      // Handle scalable font size object - default to pixel-perfect scaling
+      const scaleMode = styleFontSize.scale || 'viewbox'; // Default to pixel-perfect
+
+      if (scaleMode === 'viewbox' && this.container && this.viewBox) {
+        // PIXEL-PERFECT SCALING: Convert user pixels to SVG coordinates
+        try {
+          const userPixels = styleFontSize.value;
+          const containerRect = this.container.getBoundingClientRect();
+          const svgToRealPixelRatio = containerRect.width / this.viewBox[2];
+          const svgCoordinates = userPixels / svgToRealPixelRatio;
+
+          resolvedFontSize = `${svgCoordinates}px`;
+        } catch (e) {
+          resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
+        }
+      } else if (scaleMode === 'legacy' && defaults && scalingContext.viewBox) {
+        // LEGACY MSD SCALING: Use old defaults manager approach
         const tempPath = 'temp.font_size';
         defaults.set('user', tempPath, styleFontSize);
         resolvedFontSize = defaults.resolve(tempPath, scalingContext);
-        // Clean up temporary entry
         defaults.layers.get('user').delete(tempPath);
-        console.log(`[TextOverlayRenderer] Scaled profile font size: ${styleFontSize.value} → ${resolvedFontSize}`);
       } else {
-        // Fallback without scaling
+        // NO SCALING: Use direct pixel value
         resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
-        console.log(`[TextOverlayRenderer] Using unscaled profile font size: ${resolvedFontSize}`);
       }
     } else if (styleFontSize && typeof styleFontSize === 'number') {
-      // Handle simple numeric font size
-      resolvedFontSize = styleFontSize;
+      // Handle simple numeric font size - apply pixel-perfect scaling by default
+      if (this.container && this.viewBox) {
+        try {
+          const containerRect = this.container.getBoundingClientRect();
+          const svgToRealPixelRatio = containerRect.width / this.viewBox[2];
+          const svgCoordinates = styleFontSize / svgToRealPixelRatio;
+          resolvedFontSize = `${svgCoordinates}px`;
+        } catch (e) {
+          resolvedFontSize = styleFontSize;
+        }
+      } else {
+        resolvedFontSize = styleFontSize;
+      }
     } else {
       // Fall back to defaults system
       resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, fallbackFontSize || 16);
-    }
-
-    const textStyle = {
+    }    const textStyle = {
       // Core text properties (enhanced with unified styling + defaults)
       color: standardStyles.text.textColor || style.fill || this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
       fontSize: resolvedFontSize,
@@ -264,6 +299,8 @@ export class TextOverlayRenderer {
       // LCARS-specific features (enhanced with unified colors)
       status_indicator: style.status_indicator || null,
       status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
+      status_indicator_size: typeof style.status_indicator_size === 'number' ? style.status_indicator_size : null,
+      status_indicator_padding: typeof style.status_indicator_padding === 'number' ? style.status_indicator_padding : null,
       bracket_style: style.bracket_style || null,
       bracket_color: style.bracket_color || null,
       bracket_width: Number(style.bracket_width || 2),
@@ -524,7 +561,8 @@ export class TextOverlayRenderer {
    */
   _buildMultilineText(textContent, x, y, textStyle, overlayId, animationAttributes) {
     const lines = textContent.split('\n');
-    const lineHeight = textStyle.fontSize * textStyle.lineHeight;
+    const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
+    const lineHeight = fontSizeValue * textStyle.lineHeight;
     const tspanElements = [];
 
     lines.forEach((line, index) => {
@@ -698,8 +736,14 @@ export class TextOverlayRenderer {
 
     cblcarsLog.debug(`[TextOverlayRenderer] 📐 Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
 
+    // Create measurement style with numeric fontSize for accurate measurements
+    const measurementStyle = {
+      ...textStyle,
+      fontSize: parseFloat(textStyle.fontSize) || 16
+    };
+
     // Measure text to get accurate dimensions
-    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
+    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
     let bbox;
 
     if (textStyle.multiline) {
@@ -777,7 +821,13 @@ export class TextOverlayRenderer {
    * @private
    */
   _buildHighlight(textContent, x, y, textStyle, overlayId) {
-    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
+    // Create measurement style with numeric fontSize
+    const measurementStyle = {
+      ...textStyle,
+      fontSize: parseFloat(textStyle.fontSize) || 16
+    };
+
+    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
     let bbox;
 
     if (textStyle.multiline) {
@@ -856,16 +906,28 @@ export class TextOverlayRenderer {
    * @returns {string} SVG markup for status indicator
    */
   _buildStatusIndicator(x, y, textStyle, overlayId) {
-    const indicatorSize = textStyle.fontSize * 0.4;
+    // Parse fontSize to get numeric value for calculations
+    const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
+
+    // Allow override of indicator size, otherwise use default 40% of font size
+    const indicatorSize = textStyle.status_indicator_size !== null ?
+      textStyle.status_indicator_size :
+      fontSizeValue * 0.3; // Reduced from 0.4 to 0.3 for better proportions
+
     const statusColor = typeof textStyle.status_indicator === 'string'
       ? textStyle.status_indicator
       : 'var(--lcars-green)';
 
-    const position = textStyle.status_indicator_position || 'left-center';
-
-    // Replace base font with measurement-adjusted font
+    const position = textStyle.status_indicator_position || 'left-center';    // Replace base font with measurement-adjusted font
     const textContent = textStyle._cachedContent || textStyle.value || '';
-    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
+
+    // Create measurement style with numeric fontSize
+    const measurementStyle = {
+      ...textStyle,
+      fontSize: parseFloat(textStyle.fontSize) || 16
+    };
+
+    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
 
     // Get the SVG transform info for debugging and padding calculation
     const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
@@ -942,45 +1004,48 @@ export class TextOverlayRenderer {
     // Calculate indicator position based on actual text bounds (already in correct coordinate space)
     let indicatorX = x, indicatorY = y;
 
-    // Use a consistent padding value - transform pixel padding to viewBox coordinates only once
-    const pixelPadding = 8; // 8 pixel padding
+    // Use configurable padding - this is the gap between text edge and circle edge
+    const pixelPadding = textStyle.status_indicator_padding !== null ?
+      textStyle.status_indicator_padding :
+      8; // 8px gap between text and circle edge
+
     const padding = transformInfo ?
       transformInfo.pixelToViewBox(pixelPadding) :
       indicatorSize; // Fallback to indicator size if no transform info
 
     switch (position) {
       case 'top-left':
-        indicatorX = bbox.left - padding;
-        indicatorY = bbox.top - padding;
+        indicatorX = bbox.left - padding - indicatorSize;  // Add indicator size to put padding at circle edge
+        indicatorY = bbox.top - padding - indicatorSize;
         break;
       case 'top-right':
-        indicatorX = bbox.right + padding;
-        indicatorY = bbox.top - padding;
+        indicatorX = bbox.right + padding + indicatorSize; // Add indicator size to put padding at circle edge
+        indicatorY = bbox.top - padding - indicatorSize;
         break;
       case 'bottom-left':
-        indicatorX = bbox.left - padding;
-        indicatorY = bbox.bottom + padding;
+        indicatorX = bbox.left - padding - indicatorSize;
+        indicatorY = bbox.bottom + padding + indicatorSize;
         break;
       case 'bottom-right':
-        indicatorX = bbox.right + padding;
-        indicatorY = bbox.bottom + padding;
+        indicatorX = bbox.right + padding + indicatorSize;
+        indicatorY = bbox.bottom + padding + indicatorSize;
         break;
       case 'top':
         indicatorX = bbox.centerX;
-        indicatorY = bbox.top - padding;
+        indicatorY = bbox.top - padding - indicatorSize;
         break;
       case 'bottom':
         indicatorX = bbox.centerX;
-        indicatorY = bbox.bottom + padding;
+        indicatorY = bbox.bottom + padding + indicatorSize;
         break;
       case 'left-center':
       case 'left':
-        indicatorX = bbox.left - padding;
+        indicatorX = bbox.left - padding - indicatorSize;
         indicatorY = bbox.centerY;
         break;
       case 'right-center':
       case 'right':
-        indicatorX = bbox.right + padding;
+        indicatorX = bbox.right + padding + indicatorSize; // Add indicator size to put padding at circle edge
         indicatorY = bbox.centerY;
         break;
       case 'center':
@@ -989,11 +1054,9 @@ export class TextOverlayRenderer {
         break;
       default:
         // fallback to left-center
-        indicatorX = bbox.left - padding;
+        indicatorX = bbox.left - padding - indicatorSize;
         indicatorY = bbox.centerY;
-    }
-
-    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator final position for ${overlayId}:`, {
+    }    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator final position for ${overlayId}:`, {
       indicatorX,
       indicatorY,
       padding,
@@ -1325,21 +1388,37 @@ export class TextOverlayRenderer {
    * Compute attachment points & bbox for a text overlay without rendering (used by line routing).
    * Returns null if position or content invalid.
    */
-  static computeAttachmentPoints(overlay, anchors, container) {
+  static computeAttachmentPoints(overlay, anchors, container, viewBox = null) {
     if (!overlay || overlay.type !== 'text') return null;
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) return null;
     const [x, y] = position;
     const instance = new TextOverlayRenderer();
     instance.container = container; // Set container for scaling context
+
+    // CRITICAL FIX: Set the viewBox on the instance if provided
+    if (viewBox && Array.isArray(viewBox)) {
+      instance.viewBox = viewBox;
+    }
+
     const style = overlay.finalStyle || overlay.style || {};
 
-    const textStyle = instance._resolveTextStyles(style, overlay.id);
+    const textStyle = instance._resolveTextStyles(style, overlay.id, viewBox);
     const textContent = instance._resolveTextContent(overlay, style);
     if (!textContent) return null;
+
+    // FIXED: Create a normalized textStyle with numeric fontSize for measurements
+    const measurementStyle = {
+      ...textStyle,
+      fontSize: parseFloat(textStyle.fontSize) || 16, // Convert to number for measurement
+      fontSizeString: textStyle.fontSize // Keep original for SVG output
+    };
+
     // Measurement font (correct inherited font + scaling)
-    const font = RendererUtils.buildMeasurementFontString(textStyle, container);
-    const bbox = RendererUtils.getTextBoundingBox(
+    const font = RendererUtils.buildMeasurementFontString(measurementStyle, container);
+
+    // Get text-only bounding box first
+    const textBbox = RendererUtils.getTextBoundingBox(
       textContent,
       x,
       y,
@@ -1348,6 +1427,85 @@ export class TextOverlayRenderer {
       textStyle.dominantBaseline,
       container
     );
+
+    // Safety check: ensure textBbox is valid
+    if (!textBbox || typeof textBbox.left !== 'number' || typeof textBbox.right !== 'number') {
+      cblcarsLog.warn(`[TextOverlayRenderer] Invalid textBbox for ${overlay.id}:`, textBbox);
+      return null;
+    }
+
+    // CRITICAL FIX: Expand bbox to include decorations (status indicator, etc.)
+    let expandedBbox = {
+      left: textBbox.left,
+      right: textBbox.right,
+      top: textBbox.top,
+      bottom: textBbox.bottom,
+      width: textBbox.width,
+      height: textBbox.height,
+      centerX: textBbox.centerX,
+      centerY: textBbox.centerY
+    };
+
+    // Check for status indicator and expand bbox if needed
+    if (textStyle.status_indicator) {
+      try {
+        const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
+        const indicatorSize = fontSizeValue * 0.4;
+
+        // Get transform info for proper padding calculation
+        const transformInfo = RendererUtils._getSvgTransformInfo ? RendererUtils._getSvgTransformInfo(container) : null;
+        const pixelPadding = 8;
+        const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
+
+        const position = textStyle.status_indicator_position || 'left-center';
+
+        // Expand bbox based on indicator position
+        switch (position) {
+          case 'left':
+          case 'left-center':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
+            break;
+          case 'right':
+          case 'right-center':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
+            break;
+          case 'top':
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
+            break;
+          case 'bottom':
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
+            break;
+          case 'top-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
+            break;
+          case 'top-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
+            break;
+          case 'bottom-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
+            break;
+          case 'bottom-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
+            break;
+        }
+
+        // Recalculate dimensions
+        expandedBbox.width = expandedBbox.right - expandedBbox.left;
+        expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
+        expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
+        expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
+      } catch (error) {
+        cblcarsLog.warn(`[TextOverlayRenderer] Error expanding bbox for status indicator:`, error);
+        // Fall back to original bbox
+        expandedBbox = textBbox;
+      }
+    }
+
+    // Get text attachment points
     const points = RendererUtils.getTextAttachmentPoints(
       textContent,
       x,
@@ -1357,11 +1515,36 @@ export class TextOverlayRenderer {
       textStyle.dominantBaseline,
       container
     );
+
+    // Safety check: ensure points is valid
+    if (!points || !points.center) {
+      cblcarsLog.warn(`[TextOverlayRenderer] Invalid attachment points for ${overlay.id}:`, points);
+      return null;
+    }
+
+    // CRITICAL FIX: Use expanded bbox for attachment points when decorations exist
+    if (textStyle.status_indicator && expandedBbox !== textBbox) {
+      try {
+        // Recalculate attachment points based on expanded bbox
+        points.center = [expandedBbox.centerX, expandedBbox.centerY];
+        points.left = [expandedBbox.left, expandedBbox.centerY];
+        points.right = [expandedBbox.right, expandedBbox.centerY];
+        points.top = [expandedBbox.centerX, expandedBbox.top];
+        points.bottom = [expandedBbox.centerX, expandedBbox.bottom];
+        points.topLeft = [expandedBbox.left, expandedBbox.top];
+        points.topRight = [expandedBbox.right, expandedBbox.top];
+        points.bottomLeft = [expandedBbox.left, expandedBbox.bottom];
+        points.bottomRight = [expandedBbox.right, expandedBbox.bottom];
+      } catch (error) {
+        cblcarsLog.warn(`[TextOverlayRenderer] Error recalculating attachment points:`, error);
+      }
+    }
+
     return {
       id: overlay.id,
       center: points.center,
       points,
-      bbox,
+      bbox: expandedBbox, // Use expanded bbox that includes decorations
       textStyle,
       x,
       y
@@ -1369,7 +1552,13 @@ export class TextOverlayRenderer {
   }  // NEW: consolidated measurement helper (mirrors bracket/highlight logic)
   _measureTextBlock(textContent, x, y, textStyle) {
     try {
-      const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
+      // Create measurement style with numeric fontSize
+      const measurementStyle = {
+        ...textStyle,
+        fontSize: parseFloat(textStyle.fontSize) || 16
+      };
+
+      const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
       if (textStyle.multiline) {
         const mm = RendererUtils.measureMultilineText(
           textContent,

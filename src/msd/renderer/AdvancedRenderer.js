@@ -38,19 +38,6 @@ export class AdvancedRenderer {
     }
     const { overlays = [], anchors = {}, viewBox } = resolvedModel;
 
-    console.log('[AdvancedRenderer] Render called with resolvedModel viewBox:', viewBox);
-
-    // Check actual SVG viewBox for comparison
-    const actualSvg = this.mountEl?.querySelector('svg');
-    if (actualSvg) {
-      const actualViewBox = actualSvg.viewBox.baseVal;
-      console.log('[AdvancedRenderer] Actual SVG viewBox:', [actualViewBox.x, actualViewBox.y, actualViewBox.width, actualViewBox.height]);
-
-      // Use the actual SVG viewBox instead of the wrong one from resolvedModel
-      const correctedViewBox = [actualViewBox.x, actualViewBox.y, actualViewBox.width, actualViewBox.height];
-      console.log('[AdvancedRenderer] Using corrected viewBox for text overlays:', correctedViewBox);
-    }
-
     cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering ${overlays.length} overlays, ${Object.keys(anchors).length} anchors`);
     this.overlayElements.clear();
     // Phase rendering requires live SVG early
@@ -69,17 +56,24 @@ export class AdvancedRenderer {
     this.overlayAttachmentPoints.clear();
     this.textAttachmentPoints.clear(); // Keep for backward compatibility
 
-    overlays.forEach(ov => {
-      const attachmentPoints = this.computeAttachmentPointsForType(ov, anchors, this.mountEl);
-      if (attachmentPoints) {
-        this.overlayAttachmentPoints.set(ov.id, attachmentPoints);
+    // CRITICAL FIX: Only compute attachment points if we have the resolved model with proper viewBox
+    // Otherwise, defer until the model is available
+    if (viewBox && Array.isArray(viewBox) && viewBox.length === 4) {
+      overlays.forEach(ov => {
+        const attachmentPoints = this.computeAttachmentPointsForType(ov, anchors, this.mountEl, viewBox);
+        if (attachmentPoints) {
+          this.overlayAttachmentPoints.set(ov.id, attachmentPoints);
 
-        // BACKWARD COMPATIBILITY: Also populate textAttachmentPoints for text overlays
-        if (ov.type === 'text') {
-          this.textAttachmentPoints.set(ov.id, attachmentPoints);
+          // BACKWARD COMPATIBILITY: Also populate textAttachmentPoints for text overlays
+          if (ov.type === 'text') {
+            this.textAttachmentPoints.set(ov.id, attachmentPoints);
+          }
         }
-      }
-    });
+      });
+    } else {
+      cblcarsLog.warn('[AdvancedRenderer] Invalid or missing viewBox - deferring attachment point computation:', viewBox);
+      // We'll compute attachment points during the main render when viewBox is available
+    }
 
     this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
@@ -173,25 +167,33 @@ export class AdvancedRenderer {
    * @param {Object} overlay - Overlay configuration
    * @param {Object} anchors - Available anchors
    * @param {Element} container - Container element for measurements
+   * @param {Array} viewBox - ViewBox dimensions for proper scaling
    * @returns {Object|null} Attachment points object or null if not computable
    */
-  computeAttachmentPointsForType(overlay, anchors, container) {
+  computeAttachmentPointsForType(overlay, anchors, container, viewBox = null) {
     if (!overlay || !overlay.type || !overlay.id) {
       return null;
+    }
+
+    // Use provided viewBox or try to get from resolved model
+    let effectiveViewBox = viewBox;
+    if (!effectiveViewBox) {
+      const resolvedModel = this._getResolvedModel();
+      effectiveViewBox = resolvedModel?.viewBox || [0, 0, 400, 200];
     }
 
     try {
       switch (overlay.type) {
         case 'text':
-          return this._computeTextAttachmentPoints(overlay, anchors, container);
+          return this._computeTextAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'sparkline':
-          return this._computeSparklineAttachmentPoints(overlay, anchors, container);
+          return this._computeSparklineAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'history_bar':
-          return this._computeHistoryBarAttachmentPoints(overlay, anchors, container);
+          return this._computeHistoryBarAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'status_grid':
-          return this._computeStatusGridAttachmentPoints(overlay, anchors, container);
+          return this._computeStatusGridAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'control':
-          return this._computeControlAttachmentPoints(overlay, anchors, container);
+          return this._computeControlAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'line':
           // Lines don't have attachment points (they attach to others, not vice versa)
           return null;
@@ -203,28 +205,26 @@ export class AdvancedRenderer {
       cblcarsLog.warn(`[AdvancedRenderer] Failed to compute attachment points for ${overlay.id}:`, error);
       return null;
     }
+  }  // Individual attachment point computation methods for each overlay type
+
+  _computeTextAttachmentPoints(overlay, anchors, container, viewBox) {
+    // Use existing TextOverlayRenderer method with viewBox
+    return TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, container, viewBox);
   }
 
-  // Individual attachment point computation methods for each overlay type
-
-  _computeTextAttachmentPoints(overlay, anchors, container) {
-    // Use existing TextOverlayRenderer method
-    return TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, container);
-  }
-
-  _computeSparklineAttachmentPoints(overlay, anchors, container) {
+  _computeSparklineAttachmentPoints(overlay, anchors, container, viewBox) {
     return SparklineRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
-  _computeHistoryBarAttachmentPoints(overlay, anchors, container) {
+  _computeHistoryBarAttachmentPoints(overlay, anchors, container, viewBox) {
     return HistoryBarRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
-  _computeStatusGridAttachmentPoints(overlay, anchors, container) {
+  _computeStatusGridAttachmentPoints(overlay, anchors, container, viewBox) {
     return StatusGridRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
-  _computeControlAttachmentPoints(overlay, anchors, container) {
+  _computeControlAttachmentPoints(overlay, anchors, container, viewBox) {
     return MsdControlsRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
@@ -418,6 +418,9 @@ export class AdvancedRenderer {
               newGroup.setAttribute('data-text-width', String(bb2.width));
               newGroup.setAttribute('data-text-height', String(bb2.height));
               this._updateStatusIndicatorPosition(newGroup, bb2);
+
+              // ARCHITECTURAL FIX: Update attachment points after font stabilization
+              this._updateTextAttachmentPointsAfterStabilization(ov, newGroup, bb2, viewBox);
             }
             changedTargets.add(ov.id);
             anyUnstable = true;
@@ -432,6 +435,8 @@ export class AdvancedRenderer {
             group.setAttribute('data-font-stabilized','1');
           }
           this._updateTextAttachmentPointsFromDom(ov, group, bb);
+          // NEW: also update attachment points after stabilization (even without re-render)
+          this._updateTextAttachmentPointsAfterStabilization(ov, group, bb, viewBox);
           // NEW: always update status indicator position even without re-render
           this._updateStatusIndicatorPosition(group, bb);
         }
@@ -547,12 +552,7 @@ export class AdvancedRenderer {
         // Get card instance for action support (same pattern as status grid)
         const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
 
-        // Use the correct SVG viewBox instead of the wrong one from resolvedModel
-        const svg = svgContainer?.querySelector('svg');
-        const actualViewBox = svg ? [svg.viewBox.baseVal.x, svg.viewBox.baseVal.y, svg.viewBox.baseVal.width, svg.viewBox.baseVal.height] : viewBox;
-        console.log('[AdvancedRenderer] Text overlay using viewBox:', actualViewBox);
-
-        return TextOverlayRenderer.render(overlay, anchors, actualViewBox, svgContainer, textCardInstance);
+        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
       case 'sparkline':
         return SparklineRenderer.render(overlay, anchors, viewBox);
       case 'line':
@@ -776,6 +776,142 @@ export class AdvancedRenderer {
     this.textAttachmentPoints.set(overlay.id, ap);
   }
 
+  /**
+   * ARCHITECTURAL FIX: Update attachment points after font stabilization using actual DOM measurements
+   * This ensures attachment points reflect the final rendered text size, not the initial estimate
+   * @private
+   */
+  _updateTextAttachmentPointsAfterStabilization(overlay, groupEl, textBbox, viewBox) {
+    if (!overlay || !groupEl || !textBbox) return;
+
+    try {
+      // Create expanded bbox that includes decorations (status indicator, etc.)
+      let expandedBbox = {
+        left: textBbox.left,
+        right: textBbox.right,
+        top: textBbox.top,
+        bottom: textBbox.bottom,
+        width: textBbox.width,
+        height: textBbox.height,
+        centerX: textBbox.centerX,
+        centerY: textBbox.centerY
+      };
+
+      // Check for status indicator and expand bbox
+      const statusIndicator = groupEl.querySelector('[data-decoration="status-indicator"]');
+      if (statusIndicator) {
+        const fontSizeAttr = groupEl.getAttribute('data-font-size');
+        const fontSize = parseFloat(fontSizeAttr) || 16;
+
+        // Read actual configuration from overlay style
+        const overlayStyle = overlay.finalStyle || overlay.style || {};
+        const configuredSize = overlayStyle.status_indicator_size;
+        const configuredPadding = overlayStyle.status_indicator_padding;
+
+        const indicatorSize = configuredSize !== null && configuredSize !== undefined ?
+          configuredSize : fontSize * 0.3;
+
+        // Get proper padding calculation - gap between text edge and circle edge
+        const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
+        const pixelPadding = configuredPadding !== null && configuredPadding !== undefined ?
+          configuredPadding : 8;
+        const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
+
+        const position = statusIndicator.getAttribute('data-status-pos') || 'left-center';
+
+        // Expand bbox based on indicator position - need padding + (indicatorSize * 2) for full diameter
+        const totalSpace = padding + (indicatorSize * 2); // Use full diameter, not just radius
+        switch (position) {
+          case 'left':
+          case 'left-center':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            break;
+          case 'right':
+          case 'right-center':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            break;
+          case 'top':
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'bottom':
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+          case 'top-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'top-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'bottom-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+          case 'bottom-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+        }
+
+        // Recalculate dimensions
+        expandedBbox.width = expandedBbox.right - expandedBbox.left;
+        expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
+        expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
+        expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
+
+        cblcarsLog.debug(`[AdvancedRenderer] 🔄 Status indicator bbox expansion for ${overlay.id}:`, {
+          textBbox: { right: textBbox.right, centerY: textBbox.centerY },
+          expandedBbox: { right: expandedBbox.right, centerY: expandedBbox.centerY },
+          indicatorConfig: { size: indicatorSize, padding: pixelPadding, fontSize },
+          position
+        });
+      }
+
+      // Create updated attachment points using the expanded bbox
+      const updatedAttachmentPoints = {
+        id: overlay.id,
+        center: [expandedBbox.centerX, expandedBbox.centerY],
+        bbox: expandedBbox,
+        points: {
+          center: [expandedBbox.centerX, expandedBbox.centerY],
+          top: [expandedBbox.centerX, expandedBbox.top],
+          bottom: [expandedBbox.centerX, expandedBbox.bottom],
+          left: [expandedBbox.left, expandedBbox.centerY],
+          right: [expandedBbox.right, expandedBbox.centerY],
+          topLeft: [expandedBbox.left, expandedBbox.top],
+          topRight: [expandedBbox.right, expandedBbox.top],
+          bottomLeft: [expandedBbox.left, expandedBbox.bottom],
+          bottomRight: [expandedBbox.right, expandedBbox.bottom]
+        }
+      };
+
+      // Update both attachment point maps
+      this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+      this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+
+      // CRITICAL: Also update the line renderer's attachment points immediately
+      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+
+      // CRITICAL: Invalidate routing cache so lines re-compute with new attachment points
+      if (this.lineRenderer && this.lineRenderer.routingCache) {
+        this.lineRenderer.routingCache.invalidate('anchors', { anchorIds: [overlay.id] });
+      }
+      // Also invalidate the router core cache if available
+      if (this.lineRenderer && this.lineRenderer.router && typeof this.lineRenderer.router.invalidate === 'function') {
+        this.lineRenderer.router.invalidate(overlay.id);
+      }
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔄 Updated attachment points after font stabilization for ${overlay.id}:`, {
+        hasStatusIndicator: !!statusIndicator,
+        newCenter: updatedAttachmentPoints.center
+      });
+
+    } catch (error) {
+      cblcarsLog.warn(`[AdvancedRenderer] Error updating attachment points after stabilization for ${overlay.id}:`, error);
+    }
+  }
+
   _rerenderDependentLines(changedSet, overlays, anchorsRef, viewBox) {
     if (!changedSet || !changedSet.size) return;
     const toRerender = new Set();
@@ -834,34 +970,41 @@ export class AdvancedRenderer {
       if (!groupEl) return;
       const circle = groupEl.querySelector('circle[data-decoration="status-indicator"]');
       if (!circle) return;
+
       // Read required data
       const pos = circle.getAttribute('data-status-pos') || 'left-center';
-      const fontSize = Number(groupEl.getAttribute('data-font-size') || 16);
-      const indicatorSize = fontSize * 0.4;
-      // Padding calculation (mirror TextOverlayRenderer)
+      const fontSizeAttr = groupEl.getAttribute('data-font-size');
+
+      // Use the safe method to set circle radius
+      this._safeSetCircleRadius(circle, fontSizeAttr, 0.3);
+
+      // Get the numeric value for positioning calculations
+      const fontSize = parseFloat(fontSizeAttr) || 16;
+
+      // Read overlay configuration for custom padding - TODO: Pass overlay config to this method
       const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
-      const pixelPadding = 8;
-      const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
+      const pixelPadding = 8; // Default padding - ideally read from overlay config
+      const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : fontSize * 0.3;
+      const indicatorSize = fontSize * 0.3;
 
       const bbox = textBBox; // has left/right/top/bottom/centerX/centerY
       let cx = bbox.centerX, cy = bbox.centerY;
       switch (pos) {
-        case 'top-left':     cx = bbox.left - padding;  cy = bbox.top - padding; break;
-        case 'top-right':    cx = bbox.right + padding; cy = bbox.top - padding; break;
-        case 'bottom-left':  cx = bbox.left - padding;  cy = bbox.bottom + padding; break;
-        case 'bottom-right': cx = bbox.right + padding; cy = bbox.bottom + padding; break;
-        case 'top':          cx = bbox.centerX;         cy = bbox.top - padding; break;
-        case 'bottom':       cx = bbox.centerX;         cy = bbox.bottom + padding; break;
+        case 'top-left':     cx = bbox.left - padding - indicatorSize;  cy = bbox.top - padding - indicatorSize; break;
+        case 'top-right':    cx = bbox.right + padding + indicatorSize; cy = bbox.top - padding - indicatorSize; break;
+        case 'bottom-left':  cx = bbox.left - padding - indicatorSize;  cy = bbox.bottom + padding + indicatorSize; break;
+        case 'bottom-right': cx = bbox.right + padding + indicatorSize; cy = bbox.bottom + padding + indicatorSize; break;
+        case 'top':          cx = bbox.centerX;         cy = bbox.top - padding - indicatorSize; break;
+        case 'bottom':       cx = bbox.centerX;         cy = bbox.bottom + padding + indicatorSize; break;
         case 'left':
-        case 'left-center':  cx = bbox.left - padding;  cy = bbox.centerY; break;
+        case 'left-center':  cx = bbox.left - padding - indicatorSize;  cy = bbox.centerY; break;
         case 'right':
-        case 'right-center': cx = bbox.right + padding; cy = bbox.centerY; break;
+        case 'right-center': cx = bbox.right + padding + indicatorSize; cy = bbox.centerY; break;
         case 'center':       cx = bbox.centerX;         cy = bbox.centerY; break;
-        default:             cx = bbox.left - padding;  cy = bbox.centerY;
+        default:             cx = bbox.left - padding - indicatorSize;  cy = bbox.centerY;
       }
       circle.setAttribute('cx', cx);
       circle.setAttribute('cy', cy);
-      circle.setAttribute('r', indicatorSize);
     } catch(_) {
       // silent
     }
@@ -1011,6 +1154,21 @@ export class AdvancedRenderer {
           attach_gap: processedOverlay._raw?.attach_gap
         }
       });
+    }
+  }
+
+  /**
+   * Safe method to set circle radius, preventing NaN errors
+   * @private
+   */
+  _safeSetCircleRadius(circleElement, fontSize, multiplier = 0.3) {
+    const parsedSize = parseFloat(fontSize);
+    if (!isNaN(parsedSize) && parsedSize > 0) {
+      const radius = parsedSize * multiplier;
+      circleElement.setAttribute('r', radius);
+    } else {
+      cblcarsLog.warn(`[AdvancedRenderer] Invalid fontSize for circle radius: "${fontSize}", using fallback`);
+      circleElement.setAttribute('r', '6'); // Safe fallback radius
     }
   }
 }

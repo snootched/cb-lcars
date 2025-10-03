@@ -92,6 +92,39 @@ overlays:
       new_tab: true
 ```
 
+## Advanced Styling
+
+### Status Indicators
+```yaml
+overlays:
+  - type: text
+    id: status_text
+    position: [50, 100]
+    text: "System Online"
+    style:
+      color: "var(--lcars-green)"
+      # Status indicator configuration
+      status_indicator: "var(--lcars-green)"          # Enable with color
+      status_indicator_position: "right-center"       # Position around text
+      status_indicator_size: 8                        # Custom size (default: 30% of font size)
+      status_indicator_padding: 12                    # Gap from text edge (default: 8px)
+```
+
+### LCARS Decorations
+```yaml
+overlays:
+  - type: text
+    id: decorated_text
+    position: [50, 100]
+    text: "LCARS Interface"
+    style:
+      color: "var(--lcars-orange)"
+      bracket_style: true                             # LCARS brackets
+      status_indicator: "var(--lcars-red)"            # Status dot
+      status_indicator_position: "top-right"          # Position options:
+      # top-left, top, top-right, left-center, center, right-center, bottom-left, bottom, bottom-right
+```
+
 ## Data Source Integration with Actions
 
 Combine dynamic data with interactive actions:
