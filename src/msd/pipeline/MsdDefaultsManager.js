@@ -355,19 +355,154 @@ export class MsdDefaultsManager {
   }
 
   /**
-   * Static method to create and initialize a global instance
-   * @returns {MsdDefaultsManager} Initialized defaults manager
+   * Debug command: Display all defaults in console tables
+   * Shows layered priority (user → pack → theme → builtin)
+   * Usage: window.cblcars.defaults.debug()
    */
-  static createGlobalInstance() {
-    const manager = new MsdDefaultsManager();
+  debug() {
+    console.log('[MsdDefaultsManager] 🎛️ CB-LCARS MSD Defaults Manager - Debug Starting...');
 
-    // Attach to global CB-LCARS namespace (consistent with existing conventions)
-    if (typeof window !== 'undefined') {
-      window.cblcars = window.cblcars || {};
-      window.cblcars.defaults = manager;
+    try {
+      console.group('[MsdDefaultsManager] 🎛️ CB-LCARS MSD Defaults Manager');
+
+      // Show layer priority explanation
+      console.log('[MsdDefaultsManager] 📋 Layer Priority: user → pack → theme → builtin (higher priority overrides lower)');
+      console.log('');
+
+      // Show each layer with counts
+      const layerOrder = ['user', 'pack', 'theme', 'builtin'];
+      let totalDefaults = 0;
+
+      layerOrder.forEach(layerName => {
+        const layer = this.layers.get(layerName);
+        const entries = Array.from(layer.entries());
+        const count = entries.length;
+        totalDefaults += count;
+
+        console.group(`[MsdDefaultsManager] ${this._getLayerIcon(layerName)} ${layerName.toUpperCase()} Layer (${count} defaults)`);
+
+        if (count > 0) {
+          // Convert to table-friendly format
+          const tableData = entries.map(([path, value]) => ({
+            'Path': path,
+            'Value': this._formatValueForTable(value),
+            'Type': this._getValueType(value)
+          }));
+
+          console.table(tableData);
+        } else {
+          console.log('[MsdDefaultsManager] (empty)');
+        }
+
+        console.groupEnd();
+      });
+
+      // Show cache statistics
+      console.group('[MsdDefaultsManager] 📊 Cache Statistics');
+      console.table({
+        'Scale Cache': { 'Entries': this.scaleCache.size, 'Status': this.scaleCache.size > 0 ? '✅ Active' : '⚪ Empty' },
+        'Unit Cache': { 'Entries': this.unitCache.size, 'Status': this.unitCache.size > 0 ? '✅ Active' : '⚪ Empty' }
+      });
+      console.groupEnd();
+
+      // Show resolution examples
+      console.group('[MsdDefaultsManager] 🔍 Resolution Examples');
+      const examples = [
+        'text.font_size',
+        'text.status_indicator.color',
+        'text.bracket.width',
+        'sparkline.color'
+      ];
+
+      const exampleData = examples.map(path => {
+        const resolved = this.resolve(path);
+        return {
+          'Path': path,
+          'Resolved Value': resolved || '(not found)',
+          'Source Layer': this._findSourceLayer(path) || '(none)'
+        };
+      });
+
+      console.table(exampleData);
+      console.groupEnd();
+
+      // Summary
+      console.log(`[MsdDefaultsManager] 📈 Summary: ${totalDefaults} total defaults across ${layerOrder.length} layers`);
+      console.log('[MsdDefaultsManager] 💡 Tip: Use window.cblcars.defaults.resolve("path") to test resolution');
+
+      console.groupEnd();
+
+    } catch (error) {
+      console.error('[MsdDefaultsManager] 🚨 Debug method failed:', error);
+      console.groupEnd();
     }
+  }  /**
+   * Helper: Get icon for layer type
+   * @private
+   */
+  _getLayerIcon(layerName) {
+    const icons = {
+      'user': '👤',
+      'pack': '📦',
+      'theme': '🎨',
+      'builtin': '⚙️'
+    };
+    return icons[layerName] || '❓';
+  }
 
-    return manager;
+  /**
+   * Helper: Format value for table display
+   * @private
+   */
+  _formatValueForTable(value) {
+    if (typeof value === 'object' && value !== null) {
+      if ('value' in value) {
+        // Scalable object
+        const { value: val, scale = 'none', unit = 'px' } = value;
+        return `${val}${unit} (${scale})`;
+      } else {
+        // Other object
+        return JSON.stringify(value);
+      }
+    } else if (typeof value === 'string' && value.length > 50) {
+      // Truncate long strings
+      return value.substring(0, 47) + '...';
+    } else {
+      return String(value);
+    }
+  }
+
+  /**
+   * Helper: Get value type for table display
+   * @private
+   */
+  _getValueType(value) {
+    if (typeof value === 'object' && value !== null && 'value' in value) {
+      return 'Scalable';
+    } else if (typeof value === 'string' && value.includes('var(')) {
+      return 'CSS Variable';
+    } else if (typeof value === 'string') {
+      return 'String';
+    } else if (typeof value === 'number') {
+      return 'Number';
+    } else if (Array.isArray(value)) {
+      return 'Array';
+    } else {
+      return typeof value;
+    }
+  }
+
+  /**
+   * Helper: Find which layer provides a value
+   * @private
+   */
+  _findSourceLayer(path) {
+    for (const layer of ['user', 'pack', 'theme', 'builtin']) {
+      if (this.layers.get(layer).has(path)) {
+        return layer;
+      }
+    }
+    return null;
   }
 }
 

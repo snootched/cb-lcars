@@ -81,7 +81,7 @@ export class SystemsManager {
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
       window.cblcars.defaults = this.defaultsManager;
-      console.log('🔧 MSD Defaults Manager initialized');
+      cblcarsLog.debug('[SystemsManager] 🔧 MSD Defaults Manager initialized');
     }
 
     // ENHANCED: Initialize debug manager early with config and better logging
