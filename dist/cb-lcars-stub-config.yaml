@@ -67,4 +67,24 @@ cb-lcars-multimeter-card:
   hold_action:
     action: none
   show_label: false
-
+cb-lcars-msd-card:
+  enable_resize_observer: true
+  variables:
+    card:
+      border:
+        left:
+          size: 0
+        right:
+          size: 0
+        top:
+          size: 0
+        bottom:
+          size: 0
+    msd:
+      base_svg: builtin:ncc-1701-blue
+  tap_action:
+    action: none
+  double_tap_action:
+    action: none
+  hold_action:
+    action: none
