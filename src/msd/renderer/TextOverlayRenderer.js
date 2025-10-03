@@ -16,10 +16,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
  */
 export class TextOverlayRenderer {
   constructor() {
-    // Pre-defined caches for performance optimization
-    this.gradientCache = new Map();
-    this.patternCache = new Map();
-    this.filterCache = new Map();
+    // Reserved for future use
   }
 
   /**
@@ -1295,15 +1292,6 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Update text styling dynamically (for future real-time updates)
-   * @public
-   */
-  updateTextStyle(overlayId, newStyle) {
-    // Future: Update existing text styles without full re-render
-    cblcarsLog.debug(`[TextOverlayRenderer] Style update requested for text ${overlayId}`);
-  }
-
-  /**
    * Update text overlay content dynamically using renderer delegation pattern
    * @param {Element} overlayElement - Cached DOM element for the overlay
    * @param {Object} overlay - Overlay configuration object
@@ -1362,14 +1350,6 @@ export class TextOverlayRenderer {
       strokeText: true,
       advanced: true
     };
-  }
-
-  /**
-   * Instance method for XML escaping
-   * @private
-   */
-  escapeXml(text) {
-    return TextOverlayRenderer.escapeXml(text);
   }
 
   /**
@@ -1592,41 +1572,6 @@ export class TextOverlayRenderer {
     } catch (_) {
       return { width: 0, height: 0 };
     }
-  }
-
-  /**
-   * Demo method to show scaling effects with different viewBoxes
-   * @param {Object} overlay - Text overlay configuration
-   * @returns {Object} Demo data showing scaling effects
-   */
-  static demonstrateScaling2(overlay = {}) {
-    const defaults = (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
-    if (!defaults) {
-      return { error: 'Defaults manager not available' };
-    }
-
-    const testViewBoxes = [
-      { name: 'Small', viewBox: [0, 0, 200, 150] },
-      { name: 'Reference', viewBox: [0, 0, 400, 300] },
-      { name: 'Large', viewBox: [0, 0, 800, 600] },
-      { name: 'Wide', viewBox: [0, 0, 1200, 300] }
-    ];
-
-    const results = testViewBoxes.map(test => {
-      const fontSize = defaults.resolve('text.font_size', { viewBox: test.viewBox });
-      return {
-        ...test,
-        fontSize,
-        scaleFactor: parseFloat(fontSize) / 14 // Relative to base 14px
-      };
-    });
-
-    return {
-      overlay,
-      results,
-      originalFontSize: '14px',
-      message: 'Font sizes scaled for different viewBox dimensions'
-    };
   }
 }
 

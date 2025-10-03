@@ -396,9 +396,13 @@ export class AdvancedRenderer {
     const EXTRA_PASSES = 5; // safety extra passes after fonts load
     const TOL = 0.01;
     let pass = 0;
+    let globalStabilizationNeeded = true; // Track if we need comprehensive updates
+
     const run = () => {
       const changedTargets = new Set();
       let anyUnstable = false;
+      let anyFontChanges = false;
+
       overlays.filter(o=>o.type==='text').forEach(ov => {
         const group = this.overlayElementCache.get(ov.id);
         if (!group) return;
@@ -424,15 +428,18 @@ export class AdvancedRenderer {
             }
             changedTargets.add(ov.id);
             anyUnstable = true;
+            anyFontChanges = true;
           }
         } else {
           if (diffW > 0 || diffH > 0) {
             group.setAttribute('data-text-width', String(bb.width));
             group.setAttribute('data-text-height', String(bb.height));
             changedTargets.add(ov.id);
+            anyFontChanges = true;
           }
           if (group.getAttribute('data-font-stabilized') !== '1') {
             group.setAttribute('data-font-stabilized','1');
+            anyFontChanges = true;
           }
           this._updateTextAttachmentPointsFromDom(ov, group, bb);
           // NEW: also update attachment points after stabilization (even without re-render)
@@ -442,11 +449,19 @@ export class AdvancedRenderer {
         }
       });
 
+      // CRITICAL: Update line renderer with new attachment points
       this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
-      if (changedTargets.size) {
+      // ENHANCED: Force comprehensive update after font stabilization
+      if (anyFontChanges || changedTargets.size) {
+        // Update dynamic anchors for changed text overlays
         this._updateDynamicAnchorsForOverlays(changedTargets, overlays, this._dynamicAnchors);
-        this._rerenderDependentLines(changedTargets, overlays, this._dynamicAnchors, viewBox);
+
+        // Re-render ALL dependent lines, not just immediate dependencies
+        this._rerenderAllDependentOverlays(overlays, this._dynamicAnchors, viewBox);
+
+        // CRITICAL: Also update virtual anchors since attachment points changed
+        this._rebuildVirtualAnchorsFromChangedOverlays(changedTargets, overlays, this._dynamicAnchors);
       }
 
       pass++;
@@ -454,9 +469,18 @@ export class AdvancedRenderer {
       if ((changedTargets.size || anyUnstable) && morePassesAllowed) {
         requestAnimationFrame(run);
       } else {
-        if (changedTargets.size) {
-          this._scheduleDeferredLineRefresh(overlays, this._dynamicAnchors, viewBox);
+        // FINAL COMPREHENSIVE UPDATE: Force one last update to catch any remaining issues
+        if (globalStabilizationNeeded) {
+          globalStabilizationNeeded = false;
+          this._performFinalStabilizationUpdate(overlays, this._dynamicAnchors, viewBox);
         }
+
+        cblcarsLog.debug('[AdvancedRenderer] Font stabilization complete', {
+          passes: pass,
+          changed: Array.from(changedTargets),
+          hadFontChanges: anyFontChanges
+        });
+
         // Final safety delayed pass in case font finished loading just after loop
         setTimeout(() => {
           const remaining = overlays.filter(o=>o.type==='text')
@@ -467,10 +491,10 @@ export class AdvancedRenderer {
           if (remaining) {
             cblcarsLog.debug('[AdvancedRenderer] 🔤 Running safety stabilization pass');
             pass = 0;
+            globalStabilizationNeeded = true;
             requestAnimationFrame(run);
           }
         }, 180);
-        cblcarsLog.debug('[AdvancedRenderer] Font stabilization complete', { passes: pass, changed: Array.from(changedTargets) });
       }
     };
 
@@ -941,6 +965,112 @@ export class AdvancedRenderer {
       });
       cblcarsLog.debug('[AdvancedRenderer] Rerendered dependent lines after font stabilization', { count: toRerender.size });
     });
+  }
+
+  /**
+   * Enhanced method to re-render ALL overlays that might depend on changed text overlays
+   * This includes not just direct line dependencies, but also overlays that use virtual anchors
+   * @private
+   */
+  _rerenderAllDependentOverlays(overlays, anchorsRef, viewBox) {
+    const allLinesToRerender = new Set();
+
+    // Find all line overlays that might be affected
+    overlays.filter(o => o.type === 'line').forEach(lineOverlay => {
+      const raw = lineOverlay._raw || lineOverlay.raw || {};
+      const anchor = raw.anchor;
+      const attachTo = raw.attach_to || raw.attachTo;
+
+      // Check if this line uses any virtual anchor that might have changed
+      if (anchor && anchor.includes('.')) {
+        // This line uses a virtual anchor (overlayId.side format)
+        allLinesToRerender.add(lineOverlay.id);
+      }
+
+      if (attachTo) {
+        // This line attaches to another overlay
+        allLinesToRerender.add(lineOverlay.id);
+      }
+    });
+
+    if (allLinesToRerender.size === 0) return;
+
+    requestAnimationFrame(() => {
+      allLinesToRerender.forEach(lineId => {
+        const overlay = overlays.find(o => o.id === lineId);
+        if (!overlay) return;
+        const existingEl = this.overlayElementCache.get(lineId);
+        if (!existingEl) return;
+
+        try {
+          const newMarkup = this.lineRenderer.render(overlay, anchorsRef, viewBox);
+          if (!newMarkup) return;
+
+          const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          temp.innerHTML = newMarkup.trim();
+          const newEl = temp.firstElementChild;
+          if (!newEl) return;
+
+          existingEl.replaceWith(newEl);
+          this.overlayElementCache.set(lineId, newEl);
+        } catch(e) {
+          cblcarsLog.info('[AdvancedRenderer] All-dependent line re-render failed', lineId, e);
+        }
+      });
+
+      cblcarsLog.debug('[AdvancedRenderer] 🔄 Rerendered all dependent overlays after font stabilization', {
+        count: allLinesToRerender.size,
+        overlays: Array.from(allLinesToRerender)
+      });
+    });
+  }
+
+  /**
+   * Rebuild virtual anchors for overlays that have changed
+   * @private
+   */
+  _rebuildVirtualAnchorsFromChangedOverlays(changedOverlayIds, overlays, anchorMap) {
+    if (!changedOverlayIds || changedOverlayIds.size === 0) return;
+
+    changedOverlayIds.forEach(overlayId => {
+      const overlay = overlays.find(o => o.id === overlayId);
+      if (!overlay || overlay.type === 'line') return;
+
+      const attachmentPoints = this.overlayAttachmentPoints.get(overlayId);
+      if (!attachmentPoints || !attachmentPoints.points) return;
+
+      // Update virtual anchors for each attachment point of this overlay
+      Object.entries(attachmentPoints.points).forEach(([side, point]) => {
+        const virtualAnchorId = `${overlayId}.${side}`;
+        anchorMap[virtualAnchorId] = point;
+      });
+
+      // Also update the default virtual anchor using the center point
+      anchorMap[overlayId] = attachmentPoints.center;
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔄 Rebuilt virtual anchors for changed overlay ${overlayId}`);
+    });
+  }
+
+  /**
+   * Perform final comprehensive stabilization update
+   * @private
+   */
+  _performFinalStabilizationUpdate(overlays, anchorsRef, viewBox) {
+    try {
+      // Force a complete rebuild of virtual anchors from all overlays
+      this._buildVirtualAnchorsFromAllOverlays(overlays, anchorsRef);
+
+      // Force update of line renderer attachment points
+      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+
+      // Force re-render of all lines to ensure they use the latest attachment points
+      this._rerenderAllDependentOverlays(overlays, anchorsRef, viewBox);
+
+      cblcarsLog.debug('[AdvancedRenderer] 🎯 Performed final comprehensive stabilization update');
+    } catch (error) {
+      cblcarsLog.warn('[AdvancedRenderer] Error in final stabilization update:', error);
+    }
   }
 
   _reRenderSingleTextOverlay(overlay, anchorsRef, viewBox) {
