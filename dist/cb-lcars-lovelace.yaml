@@ -1,5 +1,5 @@
 cblcars:
-  version: 2025.10.2-beta7
+  version: 2025.10.2-beta8
   manage_config: true
 cblcars_card_templates:
   cb-lcars-label-picard:
