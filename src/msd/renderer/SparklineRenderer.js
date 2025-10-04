@@ -12,6 +12,20 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 export class SparklineRenderer {
   constructor() {
     // Note: Caches removed as they were not being used in practice
+
+    // Get defaults manager from global namespace
+    this.defaults = (typeof window !== 'undefined') ? window.cblcars?.defaults : null;
+  }
+
+  /**
+   * Get a default value with fallback
+   * @private
+   */
+  _getDefault(path, fallback = null, context = {}) {
+    if (this.defaults) {
+      return this.defaults.resolve(path, context) || fallback;
+    }
+    return fallback;
   }
 
   /**
@@ -43,7 +57,10 @@ export class SparklineRenderer {
     }
 
     const [x, y] = position;
-    const size = overlay.size || [200, 60];
+    const size = overlay.size || [
+      this._getDefault('sparkline.size.width', 200),
+      this._getDefault('sparkline.size.height', 60)
+    ];
     const [width, height] = size;
 
     try {
@@ -94,14 +111,14 @@ export class SparklineRenderer {
   _resolveSparklineStyles(style, overlayId) {
     const sparklineStyle = {
       // Core line properties
-      color: style.color || style.stroke || 'var(--lcars-yellow)',
-      width: Number(style.width || style.stroke_width || style.strokeWidth || 2),
-      opacity: Number(style.opacity || 1),
+      color: style.color || style.stroke || this._getDefault('sparkline.color', 'var(--lcars-yellow)'),
+      width: Number(style.width || style.stroke_width || style.strokeWidth || this._getDefault('sparkline.stroke_width', 2)),
+      opacity: Number(style.opacity || this._getDefault('sparkline.opacity', 1)),
 
       // Advanced stroke styling
-      lineCap: (style.line_cap || style.lineCap || style.strokeLinecap || 'round').toLowerCase(),
-      lineJoin: (style.line_join || style.lineJoin || style.strokeLinejoin || 'round').toLowerCase(),
-      miterLimit: Number(style.miter_limit || style.miterLimit || 4),
+      lineCap: (style.line_cap || style.lineCap || style.strokeLinecap || this._getDefault('sparkline.line_cap', 'round')).toLowerCase(),
+      lineJoin: (style.line_join || style.lineJoin || style.strokeLinejoin || this._getDefault('sparkline.line_join', 'round')).toLowerCase(),
+      miterLimit: Number(style.miter_limit || style.miterLimit || this._getDefault('sparkline.miter_limit', 4)),
 
       // Dash patterns
       dashArray: style.dash_array || style.dashArray || style.strokeDasharray || null,
@@ -110,11 +127,11 @@ export class SparklineRenderer {
       // Path generation options
       smoothing_mode: (style.smoothing_mode || style.smoothingMode || 'none').toLowerCase(),
       interpolation: (style.interpolation || 'linear').toLowerCase(),
-      path_precision: Number(style.path_precision || style.pathPrecision || 2),
+      path_precision: Number(style.path_precision || style.pathPrecision || this._getDefault('sparkline.path_precision', 2)),
 
       // Area fill properties
       fill: style.fill || 'none',
-      fillOpacity: Number(style.fill_opacity || style.fillOpacity || 0.2),
+      fillOpacity: Number(style.fill_opacity || style.fillOpacity || this._getDefault('sparkline.fill_opacity', 0.2)),
       fillGradient: this._parseGradientConfig(style.fill_gradient || style.fillGradient),
 
       // Advanced styling
@@ -123,7 +140,7 @@ export class SparklineRenderer {
 
       // Data visualization features
       show_points: style.show_points || style.showPoints || false,
-      point_size: Number(style.point_size || style.pointSize || 3),
+      point_size: Number(style.point_size || style.pointSize || this._getDefault('sparkline.point_size', 3)),
       point_color: style.point_color || style.pointColor || null,
       show_last_value: style.show_last_value || style.showLastValue || false,
       value_format: style.value_format || style.valueFormat || null,
@@ -131,7 +148,7 @@ export class SparklineRenderer {
       // Threshold and reference lines
       thresholds: this._parseThresholds(style.thresholds),
       zero_line: style.zero_line || style.zeroLine || false,
-      zero_line_color: style.zero_line_color || style.zeroLineColor || 'var(--lcars-gray)',
+      zero_line_color: style.zero_line_color || style.zeroLineColor || this._getDefault('sparkline.zero_line.color', 'var(--lcars-gray)'),
 
       // Value range control
       min_value: style.min_value !== undefined ? Number(style.min_value) : null,
@@ -145,36 +162,36 @@ export class SparklineRenderer {
 
       // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
-      bracket_width: Number(style.bracket_width || style.bracketWidth || 2), // Configurable bracket stroke width
-      bracket_color: style.bracket_color || style.bracketColor || null, // Separate bracket color
-      bracket_gap: Number(style.bracket_gap || style.bracketGap || 6), // Distance from sparkline
-      bracket_extension: Number(style.bracket_extension || style.bracketExtension || 8), // Length of bracket arms
-      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || 1), // Bracket transparency
-      bracket_corners: style.bracket_corners || style.bracketCorners || 'both', // Corner display
-      bracket_sides: style.bracket_sides || style.bracketSides || 'both', // Side display
+      bracket_width: Number(style.bracket_width || style.bracketWidth || this._getDefault('sparkline.bracket.width', 2)),
+      bracket_color: style.bracket_color || style.bracketColor || null,
+      bracket_gap: Number(style.bracket_gap || style.bracketGap || this._getDefault('sparkline.bracket.gap', 6)),
+      bracket_extension: Number(style.bracket_extension || style.bracketExtension || this._getDefault('sparkline.bracket.extension', 8)),
+      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || this._getDefault('sparkline.bracket.opacity', 1)),
+      bracket_corners: style.bracket_corners || style.bracketCorners || 'both',
+      bracket_sides: style.bracket_sides || style.bracketSides || 'both',
       // Enhanced bg-grid style bracket options
-      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || 8),
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || this._getDefault('sparkline.bracket.physical_width', 8)),
       bracket_height: style.bracket_height || style.bracketHeight || '100%',
-      bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
+      bracket_radius: Number(style.bracket_radius || style.bracketRadius || this._getDefault('sparkline.bracket.radius', 4)),
       // LCARS container/border options
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
       border_right: Number(style.border_right || 0),
       border_bottom: Number(style.border_bottom || 0),
       border_color: style.border_color || null,
-      border_radius: Number(style.border_radius || 8),
-      inner_factor: Number(style.inner_factor || 2),
+      border_radius: Number(style.border_radius || this._getDefault('sparkline.bracket.border_radius', 8)),
+      inner_factor: Number(style.inner_factor || this._getDefault('sparkline.bracket.inner_factor', 2)),
       hybrid_mode: style.hybrid_mode || false,
 
       status_indicator: style.status_indicator || style.statusIndicator || false,
       scan_line: style.scan_line || style.scanLine || false,
 
       grid_lines: style.grid_lines || style.gridLines || false,
-      grid_color: style.grid_color || style.gridColor || 'var(--lcars-gray)',
-      grid_opacity: Number(style.grid_opacity || style.gridOpacity || 0.4), // Increased default opacity
-      grid_stroke_width: Number(style.grid_stroke_width || style.gridStrokeWidth || 1), // Configurable grid stroke width
-      grid_horizontal_count: Number(style.grid_horizontal_count || style.gridHorizontalCount || 3),
-      grid_vertical_count: Number(style.grid_vertical_count || style.gridVerticalCount || 5),
+      grid_color: style.grid_color || style.gridColor || this._getDefault('sparkline.grid.color', 'var(--lcars-gray)'),
+      grid_opacity: Number(style.grid_opacity || style.gridOpacity || this._getDefault('sparkline.grid.opacity', 0.4)),
+      grid_stroke_width: Number(style.grid_stroke_width || style.gridStrokeWidth || this._getDefault('sparkline.grid.stroke_width', 1)),
+      grid_horizontal_count: Number(style.grid_horizontal_count || style.gridHorizontalCount || this._getDefault('sparkline.grid.horizontal_count', 3)),
+      grid_vertical_count: Number(style.grid_vertical_count || style.gridVerticalCount || this._getDefault('sparkline.grid.vertical_count', 5)),
 
       // Animation states (for future anime.js integration)
       animatable: style.animatable !== false,
@@ -183,7 +200,7 @@ export class SparklineRenderer {
 
       // Performance options
       decimation: Number(style.decimation || 0), // 0 = no decimation
-      max_points: Number(style.max_points || style.maxPoints || 1000),
+      max_points: Number(style.max_points || style.maxPoints || this._getDefault('sparkline.decimation_threshold', 1000)),
 
       // Track enabled features for optimization
       features: []
@@ -491,8 +508,9 @@ export class SparklineRenderer {
       this._formatValue(lastValue, sparklineStyle.value_format) :
       lastValue.toFixed(1);
 
-    const fontSize = Math.min(width / 10, height / 3, 12);
-    const labelX = width + 4;
+    const fontSizeFromWidth = width * this._getDefault('sparkline.value_label.font_size_ratio', 0.1);
+    const fontSize = Math.min(fontSizeFromWidth, height / 3, this._getDefault('sparkline.value_label.max_font_size', 12));
+    const labelX = width + this._getDefault('sparkline.value_label.offset_x', 4);
     const labelY = height / 2;
 
     return `<text x="${labelX}" y="${labelY}"
@@ -500,7 +518,7 @@ export class SparklineRenderer {
                   font-size="${fontSize}"
                   text-anchor="start"
                   dominant-baseline="middle"
-                  font-family="var(--lcars-font-family, Antonio)"
+                  font-family="${this._getDefault('sparkline.value_label.font_family', 'var(--lcars-font-family, Antonio)')}"
                   data-feature="value-label">
               ${formattedValue}
             </text>`;
@@ -549,11 +567,12 @@ export class SparklineRenderer {
   _buildStatusIndicator(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.status_indicator) return '';
 
-    const indicatorSize = 4;
+    const indicatorSize = this._getDefault('sparkline.status_indicator.size', 4);
+    const indicatorOffset = this._getDefault('sparkline.status_indicator.offset', 4);
     const indicatorColor = typeof sparklineStyle.status_indicator === 'string' ?
-      sparklineStyle.status_indicator : 'var(--lcars-green)';
+      sparklineStyle.status_indicator : this._getDefault('sparkline.status_indicator.color', 'var(--lcars-green)');
 
-    return `<circle cx="${-indicatorSize - 4}" cy="${height / 2}" r="${indicatorSize}"
+    return `<circle cx="${-indicatorSize - indicatorOffset}" cy="${height / 2}" r="${indicatorSize}"
                     fill="${indicatorColor}"
                     data-feature="status-indicator"/>`;
   }
@@ -565,12 +584,18 @@ export class SparklineRenderer {
   _buildScanLine(width, height, sparklineStyle, overlayId) {
     if (!sparklineStyle.scan_line) return '';
 
+    const duration = this._getDefault('sparkline.scan_line.duration', 3);
+    const strokeWidth = this._getDefault('sparkline.scan_line.width', 1);
+    const opacity = this._getDefault('sparkline.scan_line.opacity', 0.8);
+
     return `<line x1="0" y1="0" x2="0" y2="${height}"
-                  stroke="${sparklineStyle.color}" stroke-width="1" opacity="0.8"
+                  stroke="${sparklineStyle.color}"
+                  stroke-width="${strokeWidth}"
+                  opacity="${opacity}"
                   data-feature="scan-line"
                   data-scan-speed="${sparklineStyle.tracer_speed || 2}">
-              <animate attributeName="x1" values="0;${width};0" dur="3s" repeatCount="indefinite"/>
-              <animate attributeName="x2" values="0;${width};0" dur="3s" repeatCount="indefinite"/>
+              <animate attributeName="x1" values="0;${width};0" dur="${duration}s" repeatCount="indefinite"/>
+              <animate attributeName="x2" values="0;${width};0" dur="${duration}s" repeatCount="indefinite"/>
             </line>`;
   }
 
@@ -695,7 +720,8 @@ export class SparklineRenderer {
     let smoothedPoints = [...points];
 
     // Apply Chaikin subdivision iterations
-    for (let iteration = 0; iteration < 2; iteration++) {
+    const iterations = this._getDefault('sparkline.smoothing.chaikin_iterations', 2);
+    for (let iteration = 0; iteration < iterations; iteration++) {
       const newPoints = [];
 
       for (let i = 0; i < smoothedPoints.length - 1; i++) {
@@ -786,7 +812,7 @@ export class SparklineRenderer {
       const p3 = points[i + 2];
 
       // Catmull-Rom spline - generate multiple points along the curve
-      const segments = 10; // Number of segments between each pair of points
+      const segments = this._getDefault('sparkline.smoothing.spline_segments', 10); // Number of segments between each pair of points
       for (let t = 0; t <= segments; t++) {
         const u = t / segments;
         const u2 = u * u;
@@ -927,13 +953,13 @@ export class SparklineRenderer {
    */
   _renderEnhancedStatusIndicator(overlay, x, y, width, height, dataResult, sparklineStyle, animationAttributes) {
     const statusColors = {
-      'NO_SOURCE': 'var(--lcars-red)',
-      'MANAGER_NOT_AVAILABLE': 'var(--lcars-blue)',
-      'SOURCE_NOT_FOUND': 'var(--lcars-orange)',
-      'NO_BUFFER': 'var(--lcars-orange)',
-      'EMPTY_BUFFER': 'var(--lcars-blue)',
-      'INSUFFICIENT_DATA': 'var(--lcars-blue)',
-      'ERROR': 'var(--lcars-red)'
+      'NO_SOURCE': this._getDefault('sparkline.status.no_source.color', 'var(--lcars-red)'),
+      'MANAGER_NOT_AVAILABLE': this._getDefault('sparkline.status.loading.color', 'var(--lcars-blue)'),
+      'SOURCE_NOT_FOUND': this._getDefault('sparkline.status.not_found.color', 'var(--lcars-orange)'),
+      'NO_BUFFER': this._getDefault('sparkline.status.not_found.color', 'var(--lcars-orange)'),
+      'EMPTY_BUFFER': this._getDefault('sparkline.status.loading.color', 'var(--lcars-blue)'),
+      'INSUFFICIENT_DATA': this._getDefault('sparkline.status.loading.color', 'var(--lcars-blue)'),
+      'ERROR': this._getDefault('sparkline.status.error.color', 'var(--lcars-red)')
     };
 
     const statusMessages = {
@@ -948,7 +974,10 @@ export class SparklineRenderer {
 
     const indicatorColor = statusColors[dataResult.status] || sparklineStyle.color;
     const indicatorText = statusMessages[dataResult.status] || 'UNKNOWN';
-    const fontSize = Math.min(width / 8, height / 3, 14);
+    const fontSize = Math.min(width * this._getDefault('sparkline.status.font_size_ratio', 0.125), height / 3, 14);
+    const strokeWidth = this._getDefault('sparkline.status.stroke_width', 2);
+    const opacity = this._getDefault('sparkline.status.opacity', 0.6);
+    const minWidthForSource = this._getDefault('sparkline.status.min_width_for_source', 120);
 
     // Enhanced status with LCARS styling
     const loadingStates = ['MANAGER_NOT_AVAILABLE', 'INSUFFICIENT_DATA'];
@@ -964,8 +993,8 @@ export class SparklineRenderer {
       this._buildDefinitions(sparklineStyle, overlay.id),
       sparklineStyle.bracket_style ? this._buildBrackets(width, height, { ...sparklineStyle, color: indicatorColor }, overlay.id) : '',
       `<rect width="${width}" height="${height}"
-             fill="none" stroke="${indicatorColor}" stroke-width="2"
-             stroke-dasharray="${isLoading ? '4,2' : '8,4'}" opacity="0.6">
+             fill="none" stroke="${indicatorColor}" stroke-width="${strokeWidth}"
+             stroke-dasharray="${isLoading ? '4,2' : '8,4'}" opacity="${opacity}">
         ${animationProps}
        </rect>`,
       `<text x="${width / 2}" y="${height / 2}"
@@ -974,7 +1003,7 @@ export class SparklineRenderer {
              font-size="${fontSize}" font-weight="bold">
         ${indicatorText}
        </text>`,
-      width > 120 ? `<text x="${width / 2}" y="${height / 2 + fontSize + 4}"
+      width > minWidthForSource ? `<text x="${width / 2}" y="${height / 2 + fontSize + 4}"
                            fill="${indicatorColor}" text-anchor="middle" dominant-baseline="middle"
                            font-family="var(--lcars-font-family, Antonio)"
                            font-size="${Math.max(8, fontSize * 0.6)}" opacity="0.7">
@@ -1025,9 +1054,9 @@ export class SparklineRenderer {
 
     return thresholds.map(threshold => ({
       value: Number(threshold.value || threshold),
-      color: threshold.color || 'var(--lcars-orange)',
-      width: Number(threshold.width || 1),
-      opacity: Number(threshold.opacity || 0.7),
+      color: threshold.color || this._getDefault('sparkline.threshold.color', 'var(--lcars-orange)'),
+      width: Number(threshold.width || this._getDefault('sparkline.threshold.width', 1)),
+      opacity: Number(threshold.opacity || this._getDefault('sparkline.threshold.opacity', 0.7)),
       dash: threshold.dash || false,
       label: threshold.label || null
     }));
@@ -1479,8 +1508,14 @@ export class SparklineRenderer {
    * @static
    */
   static computeAttachmentPoints(overlay, anchors, container) {
-    // Set default size for SparklineRenderer
-    if (!overlay.size) overlay.size = [200, 60];
+    // Set default size for SparklineRenderer using defaults manager
+    if (!overlay.size) {
+      const instance = new SparklineRenderer();
+      overlay.size = [
+        instance._getDefault('sparkline.size.width', 200),
+        instance._getDefault('sparkline.size.height', 60)
+      ];
+    }
 
     const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
 

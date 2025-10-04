@@ -86,8 +86,157 @@ export class MsdDefaultsManager {
       scale: 'viewbox',
       unit: 'px'
     });
-
     this.set('builtin', 'sparkline.color', 'var(--lcars-yellow, #ffcc00)');
+    this.set('builtin', 'sparkline.size.width', 200); // Default sparkline width
+    this.set('builtin', 'sparkline.size.height', 60); // Default sparkline height
+    this.set('builtin', 'sparkline.opacity', 1); // Default sparkline opacity
+    this.set('builtin', 'sparkline.line_cap', 'round'); // Default line cap style
+    this.set('builtin', 'sparkline.line_join', 'round'); // Default line join style
+    this.set('builtin', 'sparkline.miter_limit', 4); // Default miter limit
+    this.set('builtin', 'sparkline.path_precision', 2); // Default path precision for coordinates
+    this.set('builtin', 'sparkline.fill_opacity', 0.2); // Default area fill opacity
+    this.set('builtin', 'sparkline.point_size', 3); // Default data point marker size
+    this.set('builtin', 'sparkline.decimation_threshold', 1000); // Default max points before decimation
+
+    // Grid defaults for sparklines
+    this.set('builtin', 'sparkline.grid.color', 'var(--lcars-gray, #666666)');
+    this.set('builtin', 'sparkline.grid.opacity', 0.4);
+    this.set('builtin', 'sparkline.grid.stroke_width', 1);
+    this.set('builtin', 'sparkline.grid.horizontal_count', 3);
+    this.set('builtin', 'sparkline.grid.vertical_count', 5);
+
+    // Threshold line defaults
+    this.set('builtin', 'sparkline.threshold.color', 'var(--lcars-orange, #ff9900)');
+    this.set('builtin', 'sparkline.threshold.width', 1);
+    this.set('builtin', 'sparkline.threshold.opacity', 0.7);
+
+    // Zero line defaults
+    this.set('builtin', 'sparkline.zero_line.color', 'var(--lcars-gray, #666666)');
+    this.set('builtin', 'sparkline.zero_line.width', 1);
+    this.set('builtin', 'sparkline.zero_line.opacity', 0.5);
+
+    // Bracket defaults for sparklines
+    this.set('builtin', 'sparkline.bracket.width', 2);
+    this.set('builtin', 'sparkline.bracket.gap', 6);
+    this.set('builtin', 'sparkline.bracket.extension', 8);
+    this.set('builtin', 'sparkline.bracket.opacity', 1);
+    this.set('builtin', 'sparkline.bracket.physical_width', 8);
+    this.set('builtin', 'sparkline.bracket.radius', 4);
+    this.set('builtin', 'sparkline.bracket.border_radius', 8);
+    this.set('builtin', 'sparkline.bracket.inner_factor', 2);
+
+    // Status indicator defaults
+    this.set('builtin', 'sparkline.status_indicator.size', 4);
+    this.set('builtin', 'sparkline.status_indicator.offset', 4);
+    this.set('builtin', 'sparkline.status_indicator.color', 'var(--lcars-green, #00ff00)');
+
+    // Animation defaults
+    this.set('builtin', 'sparkline.scan_line.duration', 3); // Scan line animation duration in seconds
+    this.set('builtin', 'sparkline.scan_line.width', 1);
+    this.set('builtin', 'sparkline.scan_line.opacity', 0.8);
+
+    // Chaikin smoothing defaults
+    this.set('builtin', 'sparkline.smoothing.chaikin_iterations', 2);
+    this.set('builtin', 'sparkline.smoothing.bezier_control_factor', 0.5);
+    this.set('builtin', 'sparkline.smoothing.constrained_control_factor', 0.25);
+    this.set('builtin', 'sparkline.smoothing.spline_segments', 10); // Segments between spline points
+
+    // Value label defaults
+    this.set('builtin', 'sparkline.value_label.offset_x', 4);
+    this.set('builtin', 'sparkline.value_label.font_size_ratio', 0.1); // Ratio of width for font size
+    this.set('builtin', 'sparkline.value_label.max_font_size', 12);
+    this.set('builtin', 'sparkline.value_label.font_family', 'var(--lcars-font-family, Antonio)');
+
+    // Enhanced status colors for different states
+    this.set('builtin', 'sparkline.status.no_source.color', 'var(--lcars-red, #ff0000)');
+    this.set('builtin', 'sparkline.status.loading.color', 'var(--lcars-blue, #0088ff)');
+    this.set('builtin', 'sparkline.status.not_found.color', 'var(--lcars-orange, #ff9900)');
+    this.set('builtin', 'sparkline.status.error.color', 'var(--lcars-red, #ff0000)');
+    this.set('builtin', 'sparkline.status.font_size_ratio', 0.125); // Font size ratio for status text
+    this.set('builtin', 'sparkline.status.min_width_for_source', 120); // Minimum width to show source name
+    this.set('builtin', 'sparkline.status.stroke_width', 2);
+    this.set('builtin', 'sparkline.status.opacity', 0.6);
+
+    // Status Grid defaults
+    // Core Grid Properties
+    this.set('builtin', 'status_grid.rows', 3); // Number of rows
+    this.set('builtin', 'status_grid.columns', 4); // Number of columns
+    this.set('builtin', 'status_grid.cell_gap', 2); // Gap between cells
+    this.set('builtin', 'status_grid.cell_color', 'var(--lcars-blue, #0088ff)'); // Default cell color
+    this.set('builtin', 'status_grid.cell_opacity', 1.0); // Cell opacity
+    this.set('builtin', 'status_grid.cell_radius', 2); // Corner radius
+
+    // Border & Layout
+    this.set('builtin', 'status_grid.border_color', 'var(--lcars-gray, #666666)'); // Border color
+    this.set('builtin', 'status_grid.border_width', 1); // Border width
+    this.set('builtin', 'status_grid.unknown_color', 'var(--lcars-gray, #666666)'); // Color for unknown states
+
+    // Text Styling (Supports Scaling)
+    this.set('builtin', 'status_grid.font_size', 12); // Base font size
+    this.set('builtin', 'status_grid.label_font_size', {
+      value: 18,
+      scale: 'none', // Default to no scaling unless explicitly set
+      unit: 'px'
+    }); // Label font size - supports scaling
+    this.set('builtin', 'status_grid.value_font_size', {
+      value: 16,
+      scale: 'none', // Default to no scaling unless explicitly set
+      unit: 'px'
+    }); // Value font size - supports scaling
+    this.set('builtin', 'status_grid.font_family', 'var(--lcars-font-family, Antonio)'); // Font family
+    this.set('builtin', 'status_grid.font_weight', 'normal'); // Font weight
+    this.set('builtin', 'status_grid.label_color', 'var(--lcars-white, #ffffff)'); // Label text color
+    this.set('builtin', 'status_grid.value_color', 'var(--lcars-white, #ffffff)'); // Value text color
+
+    // Text Layout & Positioning
+    this.set('builtin', 'status_grid.text_layout', 'stacked'); // Layout mode
+    this.set('builtin', 'status_grid.text_alignment', 'center'); // Vertical alignment
+    this.set('builtin', 'status_grid.text_justify', 'center'); // Horizontal justification
+    this.set('builtin', 'status_grid.label_position', 'center-top'); // Label position
+    this.set('builtin', 'status_grid.value_position', 'center-bottom'); // Value position
+    this.set('builtin', 'status_grid.text_padding', {
+      value: 8,
+      scale: 'none', // Default to no scaling unless explicitly set
+      unit: 'px'
+    }); // Padding from cell edges - supports scaling
+    this.set('builtin', 'status_grid.text_margin', 2); // Margin between text elements
+    this.set('builtin', 'status_grid.max_text_width', '90%'); // Maximum text width
+    this.set('builtin', 'status_grid.text_overflow', 'ellipsis'); // Overflow handling
+
+    // Status Detection
+    this.set('builtin', 'status_grid.status_mode', 'auto'); // Status detection mode
+
+    // Grid Features
+    this.set('builtin', 'status_grid.grid_line_color', 'var(--lcars-gray, #666666)'); // Grid line color
+    this.set('builtin', 'status_grid.grid_line_opacity', 0.3); // Grid line opacity
+    this.set('builtin', 'status_grid.grid_line_width', 1); // Grid line width
+
+    // LCARS Features
+    this.set('builtin', 'status_grid.bracket_color', null); // Bracket color (null = use primary color)
+    this.set('builtin', 'status_grid.bracket_width', 2); // Bracket stroke width
+    this.set('builtin', 'status_grid.bracket_gap', 4); // Distance from grid
+    this.set('builtin', 'status_grid.bracket_extension', 8); // Bracket arm length
+    this.set('builtin', 'status_grid.bracket_opacity', 1); // Bracket opacity
+    this.set('builtin', 'status_grid.bracket_corners', 'both'); // Which corners
+    this.set('builtin', 'status_grid.bracket_sides', 'both'); // Which sides
+    this.set('builtin', 'status_grid.bracket_physical_width', 8); // Physical bracket width
+    this.set('builtin', 'status_grid.bracket_height', '100%'); // Bracket height
+    this.set('builtin', 'status_grid.bracket_radius', 4); // Bracket corner radius
+    this.set('builtin', 'status_grid.border_radius', 8); // Container border radius
+    this.set('builtin', 'status_grid.inner_factor', 2); // Inner spacing factor
+
+    // Interaction
+    this.set('builtin', 'status_grid.hover_color', 'var(--lcars-yellow, #ffcc00)'); // Hover color
+    this.set('builtin', 'status_grid.hover_scale', 1.05); // Hover scale factor
+
+    // Animation
+    this.set('builtin', 'status_grid.cascade_speed', 0); // Cascade animation speed
+    this.set('builtin', 'status_grid.cascade_direction', 'row'); // Cascade direction
+    this.set('builtin', 'status_grid.reveal_animation', false); // Initial reveal animation
+    this.set('builtin', 'status_grid.pulse_on_change', false); // Pulse on data change
+
+    // Performance
+    this.set('builtin', 'status_grid.update_throttle', 100); // Update throttling in ms
   }
 
   /**

@@ -1,6 +1,6 @@
 # Status Grid Overlay - Complete Documentation & Schema
 
-This document provides comprehensive documentation for the MSD Status Grid overlay system, including configuration options, styling features, DataSource integration, and multi-entity status visualization capabilities.
+This document provides comprehensive documentation for the MSD Status Grid overlay system, including configuration options, styling features, DataSource integration, Defaults Manager integration, and multi-entity status visualization capabilities.
 
 ---
 
@@ -8,14 +8,15 @@ This document provides comprehensive documentation for the MSD Status Grid overl
 
 1. [Overview](#overview)
 2. [Basic Configuration](#basic-configuration)
-3. [DataSource Integration](#datasource-integration)
-4. [Grid Layout & Styling](#grid-layout--styling)
-5. [Status Detection & Color Coding](#status-detection--color-coding)
-6. [Animation & Cascade Effects](#animation--cascade-effects)
-7. [LCARS Features](#lcars-features)
-8. [Configuration Schema](#configuration-schema)
-9. [Troubleshooting](#troubleshooting)
-10. [Examples](#examples)
+3. [MSD Defaults System Integration](#msd-defaults-system-integration)
+4. [DataSource Integration](#datasource-integration)
+5. [Grid Layout & Styling](#grid-layout--styling)
+6. [Status Detection & Color Coding](#status-detection--color-coding)
+7. [Animation & Cascade Effects](#animation--cascade-effects)
+8. [LCARS Features](#lcars-features)
+9. [Configuration Schema](#configuration-schema)
+10. [Troubleshooting](#troubleshooting)
+11. [Examples](#examples)
 
 ---
 
@@ -25,6 +26,7 @@ The MSD Status Grid overlay provides sophisticated multi-entity status visualiza
 
 - **Multi-entity monitoring** with configurable grid layouts (rows × columns)
 - **Real-time DataSource integration** with individual cell data binding
+- **MSD Defaults Manager integration** for centralized configuration and responsive scaling
 - **Intelligent status detection** with automatic state mapping and custom ranges
 - **Interactive actions** with overlay-level and cell-level Home Assistant actions
 - **LCARS cascade animations** with directional control perfect for anime.js
@@ -92,6 +94,209 @@ overlays:
     double_tap_action:             # Action on double-tap
       action: call-service
       service: homeassistant.restart
+```
+
+---
+
+## MSD Defaults System Integration
+
+The Status Grid overlay is fully integrated with the MSD Defaults Manager for centralized configuration management, responsive scaling, and consistent theming across all status grids.
+
+### Centralized Configuration
+
+All default values are managed through the defaults system with layer-based overrides:
+
+```yaml
+# Global defaults (lowest priority)
+defaults:
+  status_grid:
+    rows: 3
+    columns: 4
+    cell_gap: 2
+    cell_color: "var(--lcars-blue)"
+    label_font_size:
+      value: 18
+      scale: "viewbox"
+      unit: "px"
+    text_padding: 8
+
+# Theme-level overrides
+themes:
+  - id: tactical
+    defaults:
+      status_grid:
+        cell_color: "var(--lcars-red)"
+        bracket_style: true
+        lcars_corners: true
+
+# User-level overrides (highest priority)
+profiles:
+  - id: my_setup
+    defaults:
+      status_grid:
+        cascade_speed: 1.5
+        reveal_animation: true
+```
+
+### Available Default Paths
+
+#### Core Grid Properties
+- `status_grid.rows` - Number of rows (default: 3)
+- `status_grid.columns` - Number of columns (default: 4)
+- `status_grid.cell_gap` - Gap between cells (default: 2)
+- `status_grid.cell_color` - Default cell color (default: 'var(--lcars-blue)')
+- `status_grid.cell_opacity` - Cell opacity (default: 1.0)
+- `status_grid.cell_radius` - Corner radius (default: 2)
+
+#### Border & Layout
+- `status_grid.border_color` - Border color (default: 'var(--lcars-gray)')
+- `status_grid.border_width` - Border width (default: 1)
+- `status_grid.unknown_color` - Color for unknown states (default: 'var(--lcars-gray)')
+
+#### Text Styling (Supports Scaling)
+- `status_grid.font_size` - Base font size (default: 12)
+- `status_grid.label_font_size` - Label font size (default: 18, supports scaling)
+- `status_grid.value_font_size` - Value font size (default: 16, supports scaling)
+- `status_grid.font_family` - Font family (default: 'var(--lcars-font-family, Antonio)')
+- `status_grid.font_weight` - Font weight (default: 'normal')
+- `status_grid.label_color` - Label text color (default: 'var(--lcars-white)')
+- `status_grid.value_color` - Value text color (default: 'var(--lcars-white)')
+
+#### Text Layout & Positioning
+- `status_grid.text_layout` - Layout mode (default: 'stacked')
+- `status_grid.text_alignment` - Vertical alignment (default: 'center')
+- `status_grid.text_justify` - Horizontal justification (default: 'center')
+- `status_grid.label_position` - Label position (default: 'center-top')
+- `status_grid.value_position` - Value position (default: 'center-bottom')
+- `status_grid.text_padding` - Padding from cell edges (default: 8)
+- `status_grid.text_margin` - Margin between text elements (default: 2)
+- `status_grid.max_text_width` - Maximum text width (default: '90%')
+- `status_grid.text_overflow` - Overflow handling (default: 'ellipsis')
+
+#### Status Detection
+- `status_grid.status_mode` - Status detection mode (default: 'auto')
+
+#### Grid Features
+- `status_grid.grid_line_color` - Grid line color (default: 'var(--lcars-gray)')
+- `status_grid.grid_line_opacity` - Grid line opacity (default: 0.3)
+- `status_grid.grid_line_width` - Grid line width (default: 1)
+
+#### LCARS Features
+- `status_grid.bracket_color` - Bracket color (default: null)
+- `status_grid.bracket_width` - Bracket stroke width (default: 2)
+- `status_grid.bracket_gap` - Distance from grid (default: 4)
+- `status_grid.bracket_extension` - Bracket arm length (default: 8)
+- `status_grid.bracket_opacity` - Bracket opacity (default: 1)
+- `status_grid.bracket_corners` - Which corners (default: 'both')
+- `status_grid.bracket_sides` - Which sides (default: 'both')
+- `status_grid.bracket_physical_width` - Physical bracket width (default: 8)
+- `status_grid.bracket_height` - Bracket height (default: '100%')
+- `status_grid.bracket_radius` - Bracket corner radius (default: 4)
+- `status_grid.border_radius` - Container border radius (default: 8)
+- `status_grid.inner_factor` - Inner spacing factor (default: 2)
+
+#### Interaction
+- `status_grid.hover_color` - Hover color (default: 'var(--lcars-yellow)')
+- `status_grid.hover_scale` - Hover scale factor (default: 1.05)
+
+#### Animation
+- `status_grid.cascade_speed` - Cascade animation speed (default: 0)
+- `status_grid.cascade_direction` - Cascade direction (default: 'row')
+- `status_grid.reveal_animation` - Initial reveal animation (default: false)
+- `status_grid.pulse_on_change` - Pulse on data change (default: false)
+
+#### Performance
+- `status_grid.update_throttle` - Update throttling in ms (default: 100)
+
+### Responsive Scaling with ViewBox
+
+Status grids support responsive scaling for consistent appearance across different screen sizes:
+
+```yaml
+profiles:
+  - id: responsive
+    defaults:
+      status_grid:
+        # Font sizes with viewbox scaling
+        label_font_size:
+          value: 18
+          scale: "viewbox"
+          unit: "px"
+        value_font_size:
+          value: 16
+          scale: "viewbox"
+          unit: "px"
+
+        # Consistent padding that scales
+        text_padding:
+          value: 8
+          scale: "viewbox"
+          unit: "px"
+
+overlays:
+  - type: status_grid
+    id: responsive_grid
+    position: [50, 50]
+    size: [300, 200]
+    # Inherits all responsive scaling from profile
+```
+
+### Runtime Configuration
+
+Override defaults programmatically:
+
+```javascript
+// Set user-level defaults
+window.cblcars.defaults.set('user', 'status_grid.cell_color', '#00ffff');
+window.cblcars.defaults.set('user', 'status_grid.cascade_speed', 2.0);
+
+// Set theme-level defaults
+window.cblcars.defaults.set('theme', 'status_grid.bracket_style', true);
+window.cblcars.defaults.set('theme', 'status_grid.lcars_corners', true);
+
+// View current resolved defaults
+const resolvedDefaults = window.cblcars.defaults.resolve('status_grid');
+console.log('Current status grid defaults:', resolvedDefaults);
+
+// Debug all layers
+window.cblcars.defaults.debug();
+```
+
+### Layer Priority (Highest to Lowest)
+
+1. **Overlay-specific style** - Individual overlay configuration
+2. **User layer** - User preferences and customizations
+3. **Pack layer** - Card pack specific settings
+4. **Theme layer** - Theme-specific styling
+5. **Global layer** - System defaults
+
+### Migration from Static Defaults
+
+When upgrading existing configurations, static values are automatically preserved:
+
+```yaml
+# Before (static)
+overlays:
+  - type: status_grid
+    style:
+      cell_color: "var(--lcars-red)"
+      font_size: 16
+
+# After (can use defaults with scaling)
+profiles:
+  - id: my_theme
+    defaults:
+      status_grid:
+        cell_color: "var(--lcars-red)"
+        font_size:
+          value: 16
+          scale: "viewbox"
+          unit: "px"
+
+overlays:
+  - type: status_grid
+    # Inherits from defaults, scales responsively
+```
 ```
 
 ---

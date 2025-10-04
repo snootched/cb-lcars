@@ -60,6 +60,44 @@ overlays:
       cell_color: "var(--lcars-blue)"
 ```
 
+### Responsive Status Grid with MSD Defaults
+```yaml
+# Profile-based scaling (recommended)
+profiles:
+  - id: responsive
+    defaults:
+      status_grid:
+        label_font_size:
+          value: 18              # Base label size
+          scale: "viewbox"       # Scales with SVG dimensions
+          unit: "px"
+        value_font_size:
+          value: 16              # Base value size
+          scale: "viewbox"       # Scales with SVG dimensions
+          unit: "px"
+        text_padding:
+          value: 8               # Corner-aware padding
+          scale: "viewbox"       # Scales with dimensions
+          unit: "px"
+        cell_color: "var(--lcars-blue)"
+        cascade_speed: 1.5
+
+overlays:
+  - type: status_grid
+    id: scaled_grid
+    position: [100, 50]
+    size: [300, 200]
+    # Inherits scalable fonts and styling from profile
+
+  - type: status_grid
+    id: fixed_grid
+    position: [100, 300]
+    size: [300, 200]
+    style:
+      cell_color: "var(--lcars-red)"  # Override specific properties
+      label_font_size: 20             # Simple number = no scaling
+```
+
 ### DataSource Integration
 ```yaml
 overlays:
@@ -179,3 +217,65 @@ cells:
 ```
 
 For complete documentation including all configuration options, advanced examples, and troubleshooting, see the [complete documentation](./status_grid_overlay_complete_documentation.md).
+
+## Default Value Overrides
+
+### Global Defaults
+```yaml
+# Override system defaults globally
+defaults:
+  status_grid:
+    cell_color: "var(--lcars-cyan)"
+    rows: 4
+    columns: 6
+    label_font_size:
+      value: 20
+      scale: "viewbox"
+    text_padding: 10
+```
+
+### Layer-Based Customization
+```javascript
+// Via JavaScript (runtime)
+window.cblcars.defaults.set('user', 'status_grid.cell_color', '#00ffff');
+window.cblcars.defaults.set('user', 'status_grid.cascade_speed', 2.0);
+window.cblcars.defaults.set('theme', 'status_grid.bracket_style', true);
+
+// Check current defaults
+window.cblcars.defaults.debug();
+```
+
+## Available Default Paths
+
+Key defaults you can override:
+
+### Core Grid Properties
+- `status_grid.rows` - Number of rows (3)
+- `status_grid.columns` - Number of columns (4)
+- `status_grid.cell_gap` - Gap between cells (2)
+- `status_grid.cell_color` - Default cell color
+- `status_grid.cell_radius` - Corner radius (2)
+
+### Text Styling (Supports Scaling)
+- `status_grid.label_font_size` - Label font size (18, supports scaling)
+- `status_grid.value_font_size` - Value font size (16, supports scaling)
+- `status_grid.font_family` - Font family
+- `status_grid.label_color` - Label text color
+- `status_grid.value_color` - Value text color
+- `status_grid.text_padding` - Padding from cell edges (8)
+
+### LCARS Features
+- `status_grid.bracket_width` - Bracket stroke width (2)
+- `status_grid.bracket_gap` - Distance from grid (4)
+- `status_grid.bracket_extension` - Bracket arm length (8)
+- `status_grid.grid_line_color` - Grid line color
+- `status_grid.grid_line_opacity` - Grid transparency (0.3)
+
+### Animation
+- `status_grid.cascade_speed` - Cascade animation speed (0)
+- `status_grid.cascade_direction` - Direction (row)
+- `status_grid.reveal_animation` - Initial reveal (false)
+- `status_grid.pulse_on_change` - Pulse on data change (false)
+
+### Performance
+- `status_grid.update_throttle` - Update throttling in ms (100)
