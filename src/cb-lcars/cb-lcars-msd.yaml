@@ -278,9 +278,129 @@ cb-lcars-msd:
             const msdConfig = this._config?.msd || this.config?.msd;
             console.log('[MSD DEBUG] 📋 MSD config:', msdConfig);
 
+            // ENHANCED: Always check for preview mode first, even without SVG
+            const realHass = this.___hass || hass;
+
+            // Set card instance BEFORE any processing
+            window.cb_lcars_card_instance = this;
+            window._currentCardInstance = this;
+            if (!window.__msdDebug) window.__msdDebug = {};
+            window.__msdDebug.cardInstance = this;
+
+            // Check for preview mode early
+            const mount = this.shadowRoot || this;
+            const isPreview = window.__msdDebug.MsdInstanceManager.detectPreviewMode(mount);
+
+            if (isPreview) {
+              console.log('[MSD DEBUG] 🔍 Preview mode detected - showing preview content');
+              // Use MsdInstanceManager to create preview content
+              const previewResult = window.__msdDebug.MsdInstanceManager._createPreviewContent(msdConfig || {}, mount);
+              return previewResult.html;
+            }
+
+            // If not preview mode, continue with normal SVG processing
+            if (!msdConfig?.base_svg?.source) {
+              console.warn('[MSD DEBUG] ⚠️ No base_svg defined in config');
+              return `
+                <div style="
+                  color: orange;
+                  padding: 20px;
+                  text-align: center;
+                  border: 2px dashed #ff9900;
+                  border-radius: 8px;
+                  background: rgba(255, 153, 0, 0.1);
+                  font-family: monospace;
+                ">
+                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    🎯 No Base SVG Configured
+                  </div>
+                  <div style="font-size: 14px; margin-bottom: 8px;">
+                    Add a base_svg.source to your MSD config:
+                  </div>
+                  <div style="
+                    background: rgba(0,0,0,0.3);
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    color: #ffcc00;
+                  ">
+                    base_svg:<br/>
+                    &nbsp;&nbsp;source: builtin:ncc-1701-a-blue
+                  </div>
+                </div>
+              `;
+            }
+
             // Process SVG and anchors (use let instead of const to avoid conflicts)
-            let svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
-            if (!svgContent) return `<div style="color:orange;">Loading MSD v1 SVG...</div>`;
+            let svgContent;
+            let svgError = null;
+
+            try {
+              svgContent = window.cblcars.getSvgContent(msdConfig.base_svg.source);
+            } catch (error) {
+              svgError = error;
+              console.error('[MSD DEBUG] ❌ SVG loading error:', error);
+            }
+
+            if (!svgContent) {
+              const source = msdConfig.base_svg.source;
+              const isBuiltin = source.startsWith('builtin:');
+              const isUrl = source.startsWith('http');
+              const isLocal = source.startsWith('/') || source.startsWith('./');
+
+              let errorMessage = 'Unknown SVG loading error';
+              let suggestion = 'Check your base_svg.source configuration';
+
+              if (svgError) {
+                errorMessage = svgError.message || svgError.toString();
+              } else if (isBuiltin) {
+                const svgName = source.replace('builtin:', '');
+                errorMessage = `Builtin SVG "${svgName}" not found`;
+                suggestion = 'Available builtin SVGs: ncc-1701-a-blue, ncc-1701-d, nx-01, etc.';
+              } else if (isUrl) {
+                errorMessage = `Failed to load SVG from URL: ${source}`;
+                suggestion = 'Check URL is accessible and returns valid SVG content';
+              } else if (isLocal) {
+                errorMessage = `Failed to load local SVG: ${source}`;
+                suggestion = 'Check file path exists and is accessible to Home Assistant';
+              } else {
+                errorMessage = `Invalid SVG source: ${source}`;
+                suggestion = 'Use builtin:name, http://url, or /local/path format';
+              }
+
+              console.warn('[MSD DEBUG] ⚠️ SVG content not available:', { source, isBuiltin, isUrl, isLocal, svgError });
+
+              return `
+                <div style="
+                  color: #ff6666;
+                  padding: 20px;
+                  text-align: center;
+                  border: 2px solid #ff6666;
+                  border-radius: 8px;
+                  background: rgba(255, 102, 102, 0.1);
+                  font-family: monospace;
+                ">
+                  <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    ❌ SVG Loading Failed
+                  </div>
+                  <div style="font-size: 14px; margin-bottom: 8px; color: #ffcccc;">
+                    ${errorMessage}
+                  </div>
+                  <div style="font-size: 12px; margin-bottom: 12px; opacity: 0.8;">
+                    Source: ${source}
+                  </div>
+                  <div style="
+                    background: rgba(0,0,0,0.3);
+                    padding: 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                    color: #ffcc99;
+                  ">
+                    💡 ${suggestion}
+                  </div>
+                </div>
+              `;
+            }
 
             const viewBox = window.cblcars.getSvgViewBox(svgContent);
             const aspect = window.cblcars.getSvgAspectRatio(viewBox);
