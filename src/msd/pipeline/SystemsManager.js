@@ -77,6 +77,22 @@ export class SystemsManager {
     // ADDED: Initialize MSD defaults manager
     this.defaultsManager = new MsdDefaultsManager();
 
+    // CRITICAL: Load pack defaults into defaults manager if mergedConfig has pack provenance
+    if (mergedConfig && mergedConfig.__provenance && mergedConfig.__provenance.merge_order) {
+      const packLayers = mergedConfig.__provenance.merge_order.filter(layer => layer.type === 'builtin');
+      if (packLayers.length > 0) {
+        cblcarsLog.debug('[SystemsManager] 📦 Loading pack defaults from merged config provenance');
+
+        // Import pack loading function and load the packs used in merge
+        const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
+        const packNames = packLayers.map(layer => layer.pack);
+        const packs = loadBuiltinPacks(packNames);
+
+        this.defaultsManager.loadFromPacks(packs);
+        cblcarsLog.debug('[SystemsManager] ✅ Loaded pack defaults:', packNames);
+      }
+    }
+
     // ADDED: Store in global CB-LCARS namespace for easy access
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};

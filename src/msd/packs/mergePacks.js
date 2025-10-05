@@ -1,14 +1,23 @@
 import { computeCanonicalChecksum } from '../util/checksum.js';
 import { perfTime, perfTimeAsync, perfCount } from '../util/performance.js';
+import { loadBuiltinPacks } from './loadBuiltinPacks.js';
 
 /**
  * Single consolidated merge algorithm - COMPLETE REPLACEMENT
  * Removes all legacy dual merge logic per Milestone 1.1
  */
-export async function mergePacks(userConfig) {
+export async function mergePacks(userConfig, defaultsManager = null) {
   return await perfTimeAsync('merge.total', async () => {
     const layers = await perfTimeAsync('merge.loadLayers', () => loadAllLayers(userConfig));
     const merged = await perfTimeAsync('merge.processSingle', () => processSinglePass(layers));
+
+    // CRITICAL: Load pack defaults into defaults manager if provided
+    if (defaultsManager && typeof defaultsManager.loadFromPacks === 'function') {
+      const packLayers = layers.filter(layer => layer.type === 'builtin' || layer.type === 'external');
+      const packsData = packLayers.map(layer => layer.data);
+      defaultsManager.loadFromPacks(packsData);
+      console.log(`[MSD] Loaded ${packsData.length} packs into defaults manager:`, packsData.map(p => p.id));
+    }
 
     return merged;
   }, {
@@ -22,19 +31,20 @@ export async function mergePacks(userConfig) {
 async function loadAllLayers(userConfig) {
   const layers = [];
 
-  // Load builtin packs first
-  const builtinPacks = userConfig.use_packs?.builtin || ['core'];
-  for (const packName of builtinPacks) {
-    const pack = await loadBuiltinPack(packName);
+  // Load builtin packs first - USE OUR ACTUAL PACK LOADING FUNCTION
+  const builtinPackNames = userConfig.use_packs?.builtin || ['core'];
+  const builtinPacks = loadBuiltinPacks(builtinPackNames);
+
+  builtinPacks.forEach((pack, index) => {
     if (pack) {
       layers.push({
         type: 'builtin',
-        pack: packName,
+        pack: pack.id,
         data: pack,
-        priority: 100
+        priority: 100 + index
       });
     }
-  }
+  });
 
   // Load external packs with timeout
   if (userConfig.use_packs?.external?.length > 0) {
@@ -75,7 +85,7 @@ async function processSinglePass(layers) {
     routing: {},
     data_sources: {},
     base_svg: null, // Initialize base_svg
-    active_profiles: ['normal'],
+    active_profiles: [],
     __provenance: {
       anchors: {},
       palettes: {},

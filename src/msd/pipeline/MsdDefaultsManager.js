@@ -457,6 +457,67 @@ export class MsdDefaultsManager {
   }
 
   /**
+   * Load defaults from pack profiles
+   * @param {Array} packs - Array of pack objects to process
+   */
+  loadFromPacks(packs) {
+    if (!Array.isArray(packs)) return;
+
+    packs.forEach(pack => {
+      if (pack && pack.profiles && Array.isArray(pack.profiles)) {
+        pack.profiles.forEach(profile => {
+          if (profile.defaults) {
+            this._processPackDefaults(profile.defaults, pack.id);
+          }
+        });
+      }
+    });
+
+    // Clear caches after loading pack defaults
+    this.clearCaches();
+  }
+
+  /**
+   * Process defaults from a pack profile
+   * @private
+   * @param {Object} defaults - Defaults object from pack profile
+   * @param {string} packId - Pack identifier for debugging
+   */
+  _processPackDefaults(defaults, packId) {
+    // Flatten the defaults object into dot-notation paths
+    const flatDefaults = this._flattenDefaults(defaults);
+
+    for (const [path, value] of Object.entries(flatDefaults)) {
+      this.set('pack', path, value);
+    }
+  }
+
+  /**
+   * Flatten nested defaults object into dot-notation paths
+   * @private
+   * @param {Object} obj - Object to flatten
+   * @param {string} prefix - Current path prefix
+   * @returns {Object} Flattened object with dot-notation keys
+   */
+  _flattenDefaults(obj, prefix = '') {
+    const flattened = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      const path = prefix ? `${prefix}.${key}` : key;
+
+      if (value && typeof value === 'object' && !Array.isArray(value) && !('value' in value)) {
+        // Nested object - recurse
+        Object.assign(flattened, this._flattenDefaults(value, path));
+      } else {
+        // Leaf value - store it
+        flattened[path] = value;
+      }
+    }
+
+    return flattened;
+  }
+
+  /**
    * Get a raw default value without processing (for debugging)
    * @param {string} layer - Layer name
    * @param {string} path - Dot-notation path
