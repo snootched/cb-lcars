@@ -15,32 +15,6 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 export class StatusGridRenderer {
   constructor() {
     // Note: Caches removed as they were not being used in practice
-
-    // Get defaults manager from global namespace
-    this.defaults = (typeof window !== 'undefined') ? window.cblcars?.defaults : null;
-  }
-
-  /**
-   * Get a default value with fallback and scaling context
-   * @private
-   */
-  _getDefault(path, fallback = null, context = {}) {
-    if (this.defaults) {
-      return this.defaults.resolve(path, context) || fallback;
-    }
-    return fallback;
-  }
-
-  /**
-   * Get scaling context for defaults resolution
-   * @private
-   */
-  _getScalingContext(viewBox = null) {
-    return {
-      viewBox: viewBox || [0, 0, 400, 300], // Default viewBox if not provided
-      scaleMode: 'viewbox', // Use viewBox scaling for responsive values
-      preferredUnit: 'px'
-    };
   }
 
   /**
@@ -146,20 +120,17 @@ export class StatusGridRenderer {
    * Resolve comprehensive status grid styling from configuration
    * @private
    */
-  _resolveStatusGridStyles(style, overlayId, overlay = null, viewBox = null) {
+  _resolveStatusGridStyles(style, overlayId, overlay = null) {
     // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
-    // Get scaling context for responsive defaults
-    const scalingContext = this._getScalingContext(viewBox);
-
     const gridStyle = {
       // Grid layout - Following documentation schema: rows/columns are in style
-      rows: Number(style.rows || this._getDefault('status_grid.rows', 3)),
-      columns: Number(style.columns || this._getDefault('status_grid.columns', 4)),
+      rows: Number(style.rows || 3),
+      columns: Number(style.columns || 4),
       cell_width: Number(style.cell_width || style.cellWidth || 0), // 0 = auto
       cell_height: Number(style.cell_height || style.cellHeight || 0), // 0 = auto
-      cell_gap: Number(style.cell_gap || style.cellGap || this._getDefault('status_grid.cell_gap', 2)),
+      cell_gap: Number(style.cell_gap || style.cellGap || 2),
 
       // Proportional sizing configuration
       row_sizes: style.row_sizes || style.rowSizes || null,
@@ -167,71 +138,71 @@ export class StatusGridRenderer {
       row_heights: style.row_heights || style.rowHeights || null,
       column_widths: style.column_widths || style.columnWidths || null,
 
-      // Cell appearance (using standardized colors with defaults fallbacks)
-      cell_color: standardStyles.colors.primaryColor || this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
-      cell_opacity: standardStyles.layout.opacity || this._getDefault('status_grid.cell_opacity', 1.0),
-      cell_radius: Number(style.cell_radius || style.cellRadius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
+      // Cell appearance (using standardized colors)
+      cell_color: standardStyles.colors.primaryColor,
+      cell_opacity: standardStyles.layout.opacity,
+      cell_radius: Number(style.cell_radius || style.cellRadius || standardStyles.layout.borderRadius || 2),
       normalize_radius: style.normalize_radius !== false && style.normalizeRadius !== false, // Default true unless explicitly set to false
       match_ha_radius: style.match_ha_radius !== false && style.matchHaRadius !== false, // Default true unless explicitly set to false
 
-      // Border (using standardized layout with defaults)
+      // Border (using standardized layout)
       cell_border: style.cell_border || style.cellBorder !== false,
-      border_color: standardStyles.colors.borderColor || this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
-      border_width: standardStyles.layout.borderWidth || this._getDefault('status_grid.border_width', 1),
+      border_color: standardStyles.colors.borderColor,
+      border_width: standardStyles.layout.borderWidth,
 
-      // Text (using standardized text styles with proper fallbacks and defaults)
+      // Text (using standardized text styles with proper fallbacks)
       show_labels: style.show_labels !== false,
       show_values: style.show_values || false, // Default to false per documentation
-      label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || this._getDefault('status_grid.label_color', 'var(--lcars-white)'),
-      value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || this._getDefault('status_grid.value_color', 'var(--lcars-white)'),
-      font_size: Number(style.font_size || style.fontSize) || Math.max(standardStyles.text.fontSize || this._getDefault('status_grid.font_size', 12), 18),
-      font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || this._getDefault('status_grid.font_family', 'var(--lcars-font-family, Antonio)'),
-      font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || this._getDefault('status_grid.font_weight', 'normal'),
+      label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || 'var(--lcars-white)',
+      value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || 'var(--lcars-white)',
+      font_size: Number(style.font_size || style.fontSize) || Math.max(standardStyles.text.fontSize || 12, 18),
+      font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || 'var(--lcars-font-family, Antonio)',
+      font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || 'normal',
 
-      // Enhanced text sizing with scaling support
-      label_font_size: this._resolveScalableValue(style.label_font_size || style.labelFontSize, 'status_grid.label_font_size', 18, scalingContext),
-      value_font_size: this._resolveScalableValue(style.value_font_size || style.valueFontSize, 'status_grid.value_font_size', 16, scalingContext),
+      // Enhanced text sizing and positioning system (force better defaults)
+      label_font_size: Number(style.label_font_size || style.labelFontSize) || Number(style.font_size || style.fontSize) || 18, // Force 18px minimum
+      value_font_size: Number(style.value_font_size || style.valueFontSize) || (Number(style.font_size || style.fontSize) ? Number(style.font_size || style.fontSize) * 0.9 : 16), // Force 16px minimum
 
       // PHASE 1: Smart font-relative defaults (fixes collision issues)
       // Calculate intelligent defaults based on actual font sizes to prevent overlap
-      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || this._getDefault('status_grid.font_size', 18)),
-      _labelFontSize: this._parseNumericValue(this._resolveScalableValue(style.label_font_size || style.labelFontSize, 'status_grid.label_font_size', 18, scalingContext)),
-      _valueFontSize: this._parseNumericValue(this._resolveScalableValue(style.value_font_size || style.valueFontSize, 'status_grid.value_font_size', 16, scalingContext)),
+      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 18),
+      _labelFontSize: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 18),
+      _valueFontSize: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 16),
 
       // PHASE 2: Enhanced positioning system - allows CB-LCARS button card recreation
-      text_layout: style.text_layout || style.textLayout || this._getDefault('status_grid.text_layout', 'stacked'), // stacked, side-by-side, label-only, value-only, custom
-      text_alignment: style.text_alignment || style.textAlignment || this._getDefault('status_grid.text_alignment', 'center'), // center, top, bottom, custom
-      text_justify: style.text_justify || style.textJustify || this._getDefault('status_grid.text_justify', 'center'), // left, center, right
+      text_layout: style.text_layout || style.textLayout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
+      text_alignment: style.text_alignment || style.textAlignment || 'center', // center, top, bottom, custom
+      text_justify: style.text_justify || style.textJustify || 'center', // left, center, right
 
       // Flexible positioning - supports both predefined and custom positions
-      label_position: style.label_position || style.labelPosition || this._getDefault('status_grid.label_position', 'center-top'), // Predefined or custom object
-      value_position: style.value_position || style.valuePosition || this._getDefault('status_grid.value_position', 'center-bottom'), // Predefined or custom object
+      label_position: style.label_position || style.labelPosition || 'center-top', // Predefined or custom object
+      value_position: style.value_position || style.valuePosition || 'center-bottom', // Predefined or custom object
 
       // Legacy positioning (backward compatible but calculated intelligently)
       text_spacing: this._calculateSmartTextSpacing(style), // Intelligent spacing calculation
       label_offset_y: this._calculateSmartLabelOffset(style), // Smart label positioning
       value_offset_y: this._calculateSmartValueOffset(style), // Smart value positioning
 
-      // PHASE 3: Advanced layout options with scaling support
-      text_padding: this._resolveScalableValue(style.text_padding || style.textPadding, 'status_grid.text_padding', 8, scalingContext),
-      text_margin: Number(style.text_margin || style.textMargin || this._getDefault('status_grid.text_margin', 2)), // Margin between text elements
+      // PHASE 3: Advanced layout options
+      text_padding: Number(style.text_padding || style.textPadding || 8), // Increased base padding from 4 to 8
+      text_margin: Number(style.text_margin || style.textMargin || 2), // Margin between text elements
       text_wrap: style.text_wrap || style.textWrap || false, // Enable text wrapping
-      max_text_width: style.max_text_width || style.maxTextWidth || this._getDefault('status_grid.max_text_width', '90%'), // Max width as percentage
-      text_overflow: style.text_overflow || style.textOverflow || this._getDefault('status_grid.text_overflow', 'ellipsis'), // ellipsis, clip, none
+      max_text_width: style.max_text_width || style.maxTextWidth || '90%', // Max width as percentage
+      text_overflow: style.text_overflow || style.textOverflow || 'ellipsis', // ellipsis, clip, none
 
       // CB-LCARS specific positioning presets
       lcars_text_preset: style.lcars_text_preset || style.lcarsTextPreset || null, // lozenge, bullet, corner, etc.
 
       // Status coloring
-      status_mode: (style.status_mode || style.statusMode || this._getDefault('status_grid.status_mode', 'auto')).toLowerCase(),
+      status_mode: (style.status_mode || style.statusMode || 'auto').toLowerCase(),
       status_ranges: this._parseStatusRanges(style.status_ranges || style.statusRanges),
-      unknown_color: standardStyles.colors.disabledColor || this._getDefault('status_grid.unknown_color', 'var(--lcars-gray)'),
+      unknown_color: standardStyles.colors.disabledColor,
 
       // Grid features
       show_grid_lines: style.show_grid_lines || style.showGridLines || false,
-      grid_line_color: style.grid_line_color || style.gridLineColor || standardStyles.colors.borderColor || this._getDefault('status_grid.grid_line_color', 'var(--lcars-gray)'),
-      grid_line_opacity: Number(style.grid_line_opacity || style.gridLineOpacity || this._getDefault('status_grid.grid_line_opacity', 0.3)),
-      grid_line_width: Number(style.grid_line_width || style.gridLineWidth || this._getDefault('status_grid.grid_line_width', 1)), // Added missing grid line width control
+      grid_line_color: style.grid_line_color || style.gridLineColor || standardStyles.colors.borderColor,
+      grid_line_opacity: Number(style.grid_line_opacity || style.gridLineOpacity || 0.3),
+      grid_line_width: Number(style.grid_line_width || style.gridLineWidth || 1), // Added missing grid line width control
 
       // Effects (using standardized effect parsing)
       gradient: standardStyles.gradient,
@@ -240,48 +211,48 @@ export class StatusGridRenderer {
       shadow: standardStyles.shadow,
       blur: standardStyles.blur,
 
-      // LCARS-specific features with defaults
+      // LCARS-specific features
       bracket_style: style.bracket_style || style.bracketStyle || false,
-      bracket_color: style.bracket_color || style.bracketColor || standardStyles.colors.primaryColor || this._getDefault('status_grid.bracket_color', null),
-      bracket_width: Number(style.bracket_width || style.bracketWidth || this._getDefault('status_grid.bracket_width', 2)),
-      bracket_gap: Number(style.bracket_gap || style.bracketGap || this._getDefault('status_grid.bracket_gap', 4)),
-      bracket_extension: Number(style.bracket_extension || style.bracketExtension || this._getDefault('status_grid.bracket_extension', 8)),
-      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || this._getDefault('status_grid.bracket_opacity', 1)),
-      bracket_corners: style.bracket_corners || style.bracketCorners || this._getDefault('status_grid.bracket_corners', 'both'),
-      bracket_sides: style.bracket_sides || style.bracketSides || this._getDefault('status_grid.bracket_sides', 'both'),
+      bracket_color: style.bracket_color || style.bracketColor || standardStyles.colors.primaryColor,
+      bracket_width: Number(style.bracket_width || style.bracketWidth || 2),
+      bracket_gap: Number(style.bracket_gap || style.bracketGap || 4),
+      bracket_extension: Number(style.bracket_extension || style.bracketExtension || 8),
+      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || 1),
+      bracket_corners: style.bracket_corners || style.bracketCorners || 'both',
+      bracket_sides: style.bracket_sides || style.bracketSides || 'both',
       // Enhanced bg-grid style bracket options
-      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || this._getDefault('status_grid.bracket_physical_width', 8)),
-      bracket_height: style.bracket_height || style.bracketHeight || this._getDefault('status_grid.bracket_height', '100%'),
-      bracket_radius: Number(style.bracket_radius || style.bracketRadius || this._getDefault('status_grid.bracket_radius', 4)),
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || 8),
+      bracket_height: style.bracket_height || style.bracketHeight || '100%',
+      bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
       // LCARS container/border options
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
       border_right: Number(style.border_right || 0),
       border_bottom: Number(style.border_bottom || 0),
       border_color: style.border_color || null,
-      border_radius: Number(style.border_radius || this._getDefault('status_grid.border_radius', 8)),
-      inner_factor: Number(style.inner_factor || this._getDefault('status_grid.inner_factor', 2)),
+      border_radius: Number(style.border_radius || 8),
+      inner_factor: Number(style.inner_factor || 2),
       hybrid_mode: style.hybrid_mode || false,
       status_indicator: style.status_indicator || style.statusIndicator || false,
       lcars_corners: style.lcars_corners || style.lcarsCorners || false,
 
       // Interaction (using standardized interaction styles)
       hover_enabled: standardStyles.interaction.hoverEnabled,
-      hover_color: standardStyles.colors.hoverColor || this._getDefault('status_grid.hover_color', 'var(--lcars-yellow)'),
-      hover_scale: standardStyles.interaction.hoverScale || this._getDefault('status_grid.hover_scale', 1.05),
+      hover_color: standardStyles.colors.hoverColor,
+      hover_scale: standardStyles.interaction.hoverScale,
 
       // Animation (using standardized animation styles)
       animatable: standardStyles.animation.animatable,
-      cascade_speed: standardStyles.animation.cascadeSpeed || this._getDefault('status_grid.cascade_speed', 0),
-      cascade_direction: standardStyles.animation.cascadeDirection || this._getDefault('status_grid.cascade_direction', 'row'),
-      reveal_animation: standardStyles.animation.revealAnimation || this._getDefault('status_grid.reveal_animation', false),
-      pulse_on_change: standardStyles.animation.pulseOnChange || this._getDefault('status_grid.pulse_on_change', false),
+      cascade_speed: standardStyles.animation.cascadeSpeed,
+      cascade_direction: standardStyles.animation.cascadeDirection,
+      reveal_animation: standardStyles.animation.revealAnimation,
+      pulse_on_change: standardStyles.animation.pulseOnChange,
 
       // Actions (NEW - Tier 2 Enhanced Actions)
       actions: style.actions || null,               // Enhanced multi-target actions block
 
       // Performance options
-      update_throttle: Number(style.update_throttle || style.updateThrottle || this._getDefault('status_grid.update_throttle', 100)),
+      update_throttle: Number(style.update_throttle || style.updateThrottle || 100),
 
       // Track enabled features for optimization
       features: [],
@@ -1253,45 +1224,593 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Resolve a scalable value (either from style or defaults)
+   * Get raw cell content from various sources with consistent priority
    * @private
+   * @param {Object} cell - Cell configuration object
+   * @returns {string} Raw content (may contain templates/conditionals)
    */
-  _resolveScalableValue(styleValue, defaultPath, fallbackValue, scalingContext) {
-    // If explicitly provided in style, use it directly
-    if (styleValue !== undefined && styleValue !== null) {
-      return this._parseNumericValue(styleValue);
-    }
-
-    // Try to get from defaults with scaling context
-    const defaultValue = this._getDefault(defaultPath, null, scalingContext);
-    if (defaultValue !== null) {
-      return this._parseNumericValue(defaultValue);
-    }
-
-    // Final fallback
-    return fallbackValue;
+  _getCellContentFromSources(cell) {
+    // Unified content source priority:
+    // 1. _originalContent (for updates)
+    // 2. _raw.content (preferred source)
+    // 3. _raw.label (fallback)
+    // 4. content (direct)
+    // 5. label (final fallback)
+    return cell._originalContent ||
+           cell._raw?.content ||
+           cell._raw?.label ||
+           cell.content ||
+           cell.label ||
+           '';
   }
 
   /**
-   * Parse numeric value from various formats (string with unit, object with value, plain number)
+   * UNIFIED: Resolve cell content for both initial render and updates
+   * Handles both standard DataSource templates and conditional expressions
+   * @private
+   * @param {string} cellContent - Raw cell content (may contain templates/conditionals)
+   * @param {Object} [updateDataSourceData] - Fresh DataSource data (for updates)
+   * @returns {string} Resolved content ready for rendering
+   */
+  _resolveUnifiedCellContent(cellContent, updateDataSourceData = null) {
+    if (!cellContent || typeof cellContent !== 'string') {
+      return cellContent || '';
+    }
+
+    // No templates - return as-is
+    if (!cellContent.includes('{')) {
+      return cellContent;
+    }
+
+    // Check if this is a conditional expression
+    if (cellContent.includes('?') && cellContent.includes(':')) {
+      return this._processConditionalWithDataSourceMixin(cellContent, updateDataSourceData);
+    }
+
+    // Standard DataSource template - use DataSourceMixin
+    return DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
+  }
+
+  // Cell configuration resolution with DataSource integration
+  _resolveCellConfigurations(overlay, gridStyle) {
+    const cells = [];
+
+    // ENHANCED: Check multiple sources for cells configuration
+    const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+
+    // Use explicit cell definitions if provided
+    if (cellsConfig && Array.isArray(cellsConfig)) {
+      cellsConfig.forEach((cellConfig, index) => {
+
+        // UNIFIED: Get raw content and resolve it
+        const rawCellContent = this._getCellContentFromSources(cellConfig);
+        const cellContent = this._resolveUnifiedCellContent(rawCellContent);
+
+        // Debug: Log cell config parsing
+        const cellActions = {
+          tap_action: cellConfig.tap_action || null,
+          hold_action: cellConfig.hold_action || null,
+          double_tap_action: cellConfig.double_tap_action || null
+        };
+
+        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Parsing cell ${cellConfig.id || `cell-${index}`}:`, {
+          cellConfig: cellConfig,
+          extractedActions: cellActions,
+          hasTapAction: !!cellConfig.tap_action,
+          hasHoldAction: !!cellConfig.hold_action
+        });
+
+        const cell = {
+          id: cellConfig.id || `cell-${index}`,
+          row: cellConfig.position ? cellConfig.position[0] : Math.floor(index / gridStyle.columns),
+          col: cellConfig.position ? cellConfig.position[1] : index % gridStyle.columns,
+          index,
+          source: cellConfig.source || cellConfig.data_source,
+          label: cellConfig.label || `Cell ${index + 1}`,
+          content: cellContent, // Use unified content resolution
+          data: {
+            value: cellConfig.value || cellContent || null,
+            state: cellConfig.state || 'unknown',
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now(),
+          animationDelay: index * (gridStyle.cascade_speed || 50),
+          _raw: cellConfig._raw || cellConfig,
+          // Store original content for updates
+          _originalContent: rawCellContent !== cellContent ? rawCellContent : null,
+          // Cell-specific styling overrides (as documented)
+          cellOverrides: {
+            color: cellConfig.color || null, // Override cell color
+            radius: cellConfig.radius !== undefined ? Number(cellConfig.radius) : null, // Override corner radius
+            font_size: cellConfig.font_size !== undefined ? Number(cellConfig.font_size) : null // Override font size
+          },
+          // Cell actions (directly on the cell - much cleaner!)
+          actions: cellActions
+        };
+
+        cells.push(cell);
+      });
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] No explicit cells found, generating ${gridStyle.rows}x${gridStyle.columns} grid`);
+
+      // Generate grid cells based on rows/columns
+      const totalCells = gridStyle.rows * gridStyle.columns;
+      for (let i = 0; i < totalCells; i++) {
+        const row = Math.floor(i / gridStyle.columns);
+        const col = i % gridStyle.columns;
+
+        cells.push({
+          id: `cell-${row}-${col}`,
+          row,
+          col,
+          index: i,
+          source: null,
+          label: `${String.fromCharCode(65 + row)}${col + 1}`,
+          content: null,
+          data: {
+            value: Math.random() > 0.5 ? 'ONLINE' : 'OFFLINE',
+            state: Math.random() > 0.5 ? 'good' : 'bad',
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now(),
+          animationDelay: i * (gridStyle.cascade_speed || 50)
+        });
+      }
+    }
+
+    return cells;
+  }
+
+  /**
+   * Resolve cell content with updated DataSource data (for dynamic updates)
+   * @public - Used by BaseOverlayUpdater for real-time status grid updates
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @param {Object} newDataSourceData - Updated DataSource data
+   * @returns {Array} Updated cell configurations with new data
+   */
+  updateCellsWithData(overlay, style, newDataSourceData) {
+    cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
+
+    const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
+    const cells = this._resolveCellConfigurations(overlay, gridStyle);
+
+    // Update cells that have template content
+    const updatedCells = cells.map(cell => {
+      // Get raw content using unified method
+      const rawCellContent = this._getCellContentFromSources(cell);
+
+      if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
+        // UNIFIED: Use single method for all template processing with fresh data
+        const processedContent = this._resolveUnifiedCellContent(rawCellContent, newDataSourceData);
+
+        // Ensure we don't return [object Object]
+        const safeContent = (typeof processedContent === 'object') ?
+          JSON.stringify(processedContent) : String(processedContent);
+
+        return {
+          ...cell,
+          label: processedContent === rawCellContent ? cell.label : safeContent, // Only update label if content changed
+          content: safeContent,
+          data: {
+            ...cell.data,
+            value: this._extractValueFromTemplate(safeContent, newDataSourceData),
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now()
+        };
+      }
+
+      return cell;
+    });
+
+    return updatedCells;
+  }
+
+  /**
+   * Extract numeric value from processed template for status calculations
    * @private
    */
-  _parseNumericValue(value) {
-    if (typeof value === 'number') {
-      return value;
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
     }
 
-    if (typeof value === 'string') {
-      // Remove 'px' suffix if present
-      const numericValue = parseFloat(value.replace('px', ''));
-      return isNaN(numericValue) ? 0 : numericValue;
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
     }
 
-    if (typeof value === 'object' && value !== null && 'value' in value) {
-      return this._parseNumericValue(value.value);
+    // Fallback to processed content as string
+    return processedContent;
+  }
+
+  /**
+   * Process conditional expression by extracting DataSource references and using DataSourceMixin
+   * @private
+   * @param {string} conditionalTemplate - Template with conditional expression
+   * @param {Object} [updateDataSourceData] - Updated DataSource data to use (for updates)
+   * @returns {string} Resolved conditional or original template
+   */
+  _processConditionalWithDataSourceMixin(conditionalTemplate, updateDataSourceData = null) {
+    try {
+      // Extract the conditional expression from the template
+      const templateMatch = conditionalTemplate.match(/\{([^}]+)\}/);
+      if (!templateMatch) return conditionalTemplate;
+
+      const expression = templateMatch[1];
+
+      // Parse the conditional: "path operator value ? trueValue : falseValue"
+      const conditionMatch = expression.match(/^(.+?)\s*([><=!]+)\s*(.+?)\s*\?\s*'(.+?)'\s*:\s*'(.+?)'$/);
+      if (!conditionMatch) {
+        cblcarsLog.warn(`[StatusGridRenderer] Could not parse conditional: ${expression}`);
+        return conditionalTemplate;
+      }
+
+      const [, leftPath, operator, rightValue, trueValue, falseValue] = conditionMatch;
+
+      // Create a simple template with just the DataSource reference
+      const dataSourceTemplate = `{${leftPath.trim()}}`;
+
+      let resolvedValue;
+
+      // If we have update data, try to extract the value directly first
+      if (updateDataSourceData) {
+        resolvedValue = this._extractValueFromUpdateData(leftPath.trim(), updateDataSourceData);
+      }
+
+      // If we couldn't extract from update data, fall back to DataSourceMixin
+      if (resolvedValue === null || resolvedValue === undefined) {
+        resolvedValue = DataSourceMixin.processEnhancedTemplateStringsWithFallback(dataSourceTemplate, 'StatusGridRenderer');
+      }
+
+      // If DataSourceMixin couldn't resolve it, return original
+      if (resolvedValue === dataSourceTemplate) {
+        return conditionalTemplate;
+      }
+
+      // Parse the resolved value and apply conditional logic
+      const leftVal = parseFloat(resolvedValue);
+      const rightVal = parseFloat(rightValue.trim());
+
+      if (isNaN(leftVal) || isNaN(rightVal)) {
+        cblcarsLog.warn(`[StatusGridRenderer] Could not parse numeric values: left="${resolvedValue}" (${leftVal}), right="${rightValue.trim()}" (${rightVal})`);
+        return conditionalTemplate;
+      }
+
+      // Evaluate condition
+      let result = false;
+      switch (operator.trim()) {
+        case '>': result = leftVal > rightVal; break;
+        case '<': result = leftVal < rightVal; break;
+        case '>=': result = leftVal >= rightVal; break;
+        case '<=': result = leftVal <= rightVal; break;
+        case '==': result = leftVal == rightVal; break;
+        case '!=': result = leftVal != rightVal; break;
+        default:
+          cblcarsLog.warn(`[StatusGridRenderer] Unknown operator: ${operator}`);
+          return conditionalTemplate;
+      }
+
+      const finalValue = result ? trueValue : falseValue;
+      cblcarsLog.debug(`[StatusGridRenderer] Conditional result: ${leftVal} ${operator} ${rightVal} = ${result} → "${finalValue}"`);
+      return finalValue;
+
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] Error processing conditional with DataSourceMixin:`, error);
+      return conditionalTemplate;
+    }
+  }
+
+  /**
+   * Extract value from update DataSource data based on path
+   * @private
+   * @param {string} path - DataSource path (e.g., "temperature_enhanced.transformations.celsius")
+   * @param {Object} updateData - Updated DataSource data
+   * @returns {*} Extracted value or null if not found
+   */
+  _extractValueFromUpdateData(path, updateData) {
+    const pathParts = path.split('.');
+
+    // For simple paths, use the raw value
+    if (pathParts.length === 1) {
+      return updateData?.v || updateData?.value || null;
     }
 
-    return 0;
+    // For complex paths like "temperature_enhanced.transformations.celsius"
+    let value = updateData;
+
+    // Skip the first part (source name) and navigate the rest
+    for (let i = 1; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] Path "${part}" not found in update data, falling back to DataSourceMixin`);
+        return null;
+      }
+    }
+
+    return value;
+  }
+
+  /**
+   * Compute attachment points for status grid overlay
+   * @param {Object} overlay - Status grid overlay configuration
+   * @param {Object} anchors - Available anchors
+   * @param {Element} container - Container element for measurements
+   * @returns {Object|null} Attachment points object
+   * @static
+   */
+  static computeAttachmentPoints(overlay, anchors, container) {
+    const attachmentPoints = OverlayUtils.computeAttachmentPoints(overlay, anchors);
+
+    if (!attachmentPoints) {
+      cblcarsLog.debug(`[StatusGridRenderer] Cannot compute attachment points for ${overlay.id}: missing position or size`);
+      return null;
+    }
+
+    // TODO: Future enhancement - add individual grid cell attachment points
+    // This would allow attaching lines to specific cells: grid.cell_0_0, grid.cell_1_2, etc.
+
+    return attachmentPoints;
+  }
+
+  /**
+   * Store action info for later attachment after DOM insertion
+   * @private
+   * @static
+   */
+  static _storeActionInfo(overlayId, actionInfo) {
+    if (!window._msdStatusGridActions) {
+      window._msdStatusGridActions = new Map();
+    }
+
+    window._msdStatusGridActions.set(overlayId, actionInfo);
+    cblcarsLog.debug(`[StatusGridRenderer] Stored action info for overlay ${overlayId}`);
+
+    // Set up automatic processing when DOM is ready
+    StatusGridRenderer._setupActionProcessing();
+  }
+
+  /**
+   * Set up automatic action processing using DOM observation
+   * @private
+   * @static
+   */
+  static _setupActionProcessing() {
+    // Prevent multiple observers
+    if (window._msdStatusGridObserver) return;
+
+    // Use MutationObserver to detect when status grids are added to DOM
+    window._msdStatusGridObserver = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            StatusGridRenderer._processNewElements(node);
+          }
+        });
+      });
+    });
+
+    // Find appropriate container to observe - try card shadow root first
+    let observeTarget = document.body;
+
+    // Try to find CB-LCARS card shadow root
+    const card = window.cb_lcars_card_instance;
+    if (card && card.shadowRoot) {
+      observeTarget = card.shadowRoot;
+      cblcarsLog.debug(`[StatusGridRenderer] Using card shadow root as observation target`);
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] Using document.body as observation target (no card shadow root found)`);
+    }
+
+    // Start observing for status grid additions
+    window._msdStatusGridObserver.observe(observeTarget, {
+      childList: true,
+      subtree: true
+    });
+
+    cblcarsLog.debug(`[StatusGridRenderer] Action processing observer activated`);
+  }
+
+  /**
+   * Process newly added elements for status grid action attachment
+   * @private
+   * @static
+   */
+  static _processNewElements(element) {
+    // Find status grid overlays in the added element
+    const statusGrids = element.querySelectorAll ?
+      element.querySelectorAll('[data-overlay-type="status_grid"]') : [];
+
+    // Also check if the element itself is a status grid
+    const allGrids = [...statusGrids];
+    if (element.getAttribute && element.getAttribute('data-overlay-type') === 'status_grid') {
+      allGrids.push(element);
+    }
+
+    allGrids.forEach(gridElement => {
+      const overlayId = gridElement.getAttribute('data-overlay-id');
+      if (overlayId && window._msdStatusGridActions?.has(overlayId)) {
+        const actionInfo = window._msdStatusGridActions.get(overlayId);
+
+        cblcarsLog.debug(`[StatusGridRenderer] Auto-attaching actions to status grid ${overlayId}`);
+        StatusGridRenderer.attachStatusGridActions(gridElement, actionInfo);
+
+        // Clean up processed action info
+        window._msdStatusGridActions.delete(overlayId);
+      }
+    });
+  }
+
+  /**
+   * Resolve card instance for action handling from global context
+   * @private
+   * @static
+   */
+  static _resolveCardInstance() {
+    // Try various methods to get the card instance
+
+    // Method 1: From MSD pipeline if available
+    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
+      return window.__msdDebug.pipelineInstance.cardInstance;
+    }
+
+    // Method 2: From global MSD context
+    if (window._msdCardInstance) {
+      return window._msdCardInstance;
+    }
+
+    // Method 3: From CB-LCARS global context
+    if (window.cb_lcars_card_instance) {
+      return window.cb_lcars_card_instance;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Could not resolve card instance from global context`);
+    return null;
+  }
+
+  /**
+   * Set the global card instance for action handling
+   * @param {Object} cardInstance - The custom-button-card instance
+   * @static
+   */
+  static setCardInstance(cardInstance) {
+    window._msdCardInstance = cardInstance;
+    cblcarsLog.debug(`[StatusGridRenderer] Card instance set for action handling`);
+  }
+
+  /**
+   * Manually process all pending status grid actions (fallback method)
+   * @param {Element} containerElement - Container to search for status grids
+   * @static
+   */
+  static processAllPendingActions(containerElement = document.body) {
+    if (!window._msdStatusGridActions || window._msdStatusGridActions.size === 0) {
+      return;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] Processing ${window._msdStatusGridActions.size} pending actions`);
+
+    window._msdStatusGridActions.forEach((actionInfo, overlayId) => {
+      const overlayElement = containerElement.querySelector(`[data-overlay-id="${overlayId}"]`);
+      if (overlayElement) {
+        StatusGridRenderer.attachStatusGridActions(overlayElement, actionInfo);
+        window._msdStatusGridActions.delete(overlayId);
+      }
+    });
+  }
+
+  /**
+   * Attach actions to a rendered status grid overlay
+   * @param {Element} overlayElement - The rendered status grid DOM element
+   * @param {Object} actionInfo - Action information from render method
+   * @static
+   */
+  static attachStatusGridActions(overlayElement, actionInfo) {
+    if (!overlayElement || !actionInfo) {
+      cblcarsLog.debug(`[StatusGridRenderer] Skipping action attachment - missing element or action info`);
+      return;
+    }
+
+    // Delegate to ActionHelpers for clean separation of concerns
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 ActionHelpers availability:`, {
+      ActionHelpersExists: !!ActionHelpers,
+      attachActionsExists: !!(ActionHelpers && typeof ActionHelpers.attachActions === 'function'),
+      attachCellActionsExists: !!(ActionHelpers && typeof ActionHelpers.attachCellActionsFromConfigs === 'function')
+    });
+
+    if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
+      // ENHANCED: Attach cell-level actions FIRST (higher priority)
+      if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
+        cblcarsLog.debug(`[StatusGridRenderer] 🔲 Attaching cell-level actions first for priority`);
+
+
+        ActionHelpers.attachCellActionsFromConfigs(
+          overlayElement,
+          actionInfo.cells,
+          actionInfo.cardInstance
+        );
+
+
+        // Attach overlay-level actions AFTER (lower priority, will be blocked by cell actions)
+        ActionHelpers.attachActions(
+          overlayElement,
+          actionInfo.overlay,
+          actionInfo.config,
+          actionInfo.cardInstance
+        );
+      }
+    } else {
+      cblcarsLog.warn(`[StatusGridRenderer] ActionHelpers not available for overlay ${actionInfo.overlay.id}`);
+    }
+  }
+
+  /**
+   * Update status grid overlay content dynamically using renderer delegation pattern
+   * @param {Element} overlayElement - Cached DOM element for the overlay
+   * @param {Object} overlay - Overlay configuration object
+   * @param {Object} sourceData - New DataSource data
+   * @returns {boolean} True if content was updated, false if unchanged
+   * @static
+   */
+  static updateGridData(overlayElement, overlay, sourceData) {
+    try {
+      cblcarsLog.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+
+      // Create renderer instance for content resolution
+      const renderer = new StatusGridRenderer();
+
+      // Get updated cells with processed template content
+      const style = overlay.finalStyle || overlay.style || {};
+      const updatedCells = renderer.updateCellsWithData(overlay, style, sourceData);
+
+      cblcarsLog.debug(`[StatusGridRenderer] Processing ${updatedCells.length} updated cells for grid ${overlay.id}`);
+
+      let updatedCount = 0;
+
+      // Update each cell's content in the DOM using the cached overlay element
+      updatedCells.forEach(cell => {
+        // Use the cached overlay element for scoped queries (much faster)
+        const cellContentElement = overlayElement.querySelector(`[data-cell-content="${cell.id}"]`);
+
+        if (cellContentElement && cell.content !== undefined) {
+          const oldContent = cellContentElement.textContent?.trim();
+          let newContent = cell.content;
+
+          // Handle [object Object] issue - ensure content is always a string
+          if (typeof newContent === 'object') {
+            cblcarsLog.warn(`[StatusGridRenderer] Cell ${cell.id} has object content, converting to string`);
+            newContent = newContent !== null ? String(newContent) : 'N/A';
+          }
+
+          // Ensure newContent is a string
+          newContent = String(newContent);
+
+          if (newContent !== oldContent) {
+            cblcarsLog.debug(`[StatusGridRenderer] Updating cell ${cell.id}: "${oldContent}" → "${newContent}"`);
+            cellContentElement.textContent = newContent;
+            updatedCount++;
+          }
+        }
+      });
+
+      if (updatedCount > 0) {
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Status grid ${overlay.id} updated successfully (${updatedCount} cells changed)`);
+        return true;
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] Status grid ${overlay.id} content unchanged`);
+        return false;
+      }
+
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] Error updating status grid ${overlay.id}:`, error);
+      return false;
+    }
   }
 
   /**
@@ -1361,163 +1880,28 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Store action information for later processing
+   * Make text elements within cells clickable and part of their parent cell for actions
+   * @param {string} gridMarkup - The grid markup to process
+   * @param {Array} cells - Array of cell configurations
+   * @returns {string} Updated markup with clickable text elements
    * @private
    * @static
    */
-  static _storeActionInfo(overlayId, actionInfo) {
-    if (!window._msdStatusGridActions) {
-      window._msdStatusGridActions = new Map();
-    }
+  static _makeTextElementsClickable(gridMarkup, cells) {
+    // Replace pointer-events: none with pointer-events: visiblePainted for text elements
+    // and add necessary data attributes
+    return gridMarkup.replace(
+      /(<text[^>]*data-cell-part="([^"]*)"[^>]*style="[^"]*pointer-events:\s*none[^"]*")([^>]*>)/g,
+      (match, beforeStyle, cellId, afterStyle) => {
+        // Find the cell configuration
+        const cell = cells.find(c => c.id === cellId);
+        const cellHasActions = !!(cell && cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action));
 
-    window._msdStatusGridActions.set(overlayId, actionInfo);
-    cblcarsLog.debug(`[StatusGridRenderer] 📦 Stored action info for ${overlayId}`);
-
-    // Set up observer if not already active
-    if (!window._msdStatusGridObserver) {
-      StatusGridRenderer._setupActionObserver();
-    }
-  }
-
-  /**
-   * Set up DOM observer for automatic action attachment
-   * @private
-   * @static
-   */
-  static _setupActionObserver() {
-    if (typeof MutationObserver === 'undefined') {
-      cblcarsLog.warn('[StatusGridRenderer] ⚠️ MutationObserver not available');
-      return;
-    }
-
-    window._msdStatusGridObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            const statusGrids = node.querySelectorAll ?
-              node.querySelectorAll('[data-overlay-type="status_grid"]') : [];
-
-            statusGrids.forEach((grid) => {
-              const overlayId = grid.getAttribute('data-overlay-id');
-              if (overlayId && window._msdStatusGridActions?.has(overlayId)) {
-                const actionInfo = window._msdStatusGridActions.get(overlayId);
-                StatusGridRenderer.attachStatusGridActions(grid, actionInfo);
-                window._msdStatusGridActions.delete(overlayId);
-              }
-            });
-          }
-        });
-      });
-    });
-
-    // Observe changes to document body
-    window._msdStatusGridObserver.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
-
-    cblcarsLog.debug('[StatusGridRenderer] 👀 Action observer set up');
-  }
-
-  /**
-   * Attach actions to a status grid element
-   * @static
-   */
-  static attachStatusGridActions(gridElement, actionInfo) {
-    if (!gridElement || !actionInfo) {
-      return;
-    }
-
-    cblcarsLog.debug(`[StatusGridRenderer] 🎯 Attaching actions to status grid:`, actionInfo);
-
-    // Use ActionHelpers to attach actions
-    if (window.ActionHelpers && window.ActionHelpers.attachOverlayActions) {
-      window.ActionHelpers.attachOverlayActions(gridElement, actionInfo);
-    } else {
-      cblcarsLog.warn('[StatusGridRenderer] ⚠️ ActionHelpers not available for action attachment');
-    }
-  }
-
-  /**
-   * Process all pending actions manually
-   * @static
-   */
-  static processAllPendingActions() {
-    if (!window._msdStatusGridActions || window._msdStatusGridActions.size === 0) {
-      cblcarsLog.debug('[StatusGridRenderer] No pending actions to process');
-      return;
-    }
-
-    const pendingIds = Array.from(window._msdStatusGridActions.keys());
-    cblcarsLog.debug(`[StatusGridRenderer] 🔄 Processing ${pendingIds.length} pending actions`);
-
-    pendingIds.forEach(overlayId => {
-      StatusGridRenderer._tryManualActionProcessing(overlayId);
-    });
-  }
-
-  /**
-   * Resolve cell configurations from overlay definition
-   * @private
-   */
-  _resolveCellConfigurations(overlay, gridStyle) {
-    const cells = [];
-    const totalCells = gridStyle.rows * gridStyle.columns;
-
-    // If overlay has explicit cells configuration, use that
-    if (overlay.cells && Array.isArray(overlay.cells)) {
-      overlay.cells.forEach((cell, index) => {
-        if (index < totalCells) {
-          const row = Math.floor(index / gridStyle.columns);
-          const col = index % gridStyle.columns;
-
-          cells.push({
-            id: cell.id || `cell_${row}_${col}`,
-            row,
-            col,
-            position: [row, col],
-            label: cell.label || cell.name || '',
-            content: cell.content || cell.value || '',
-            data: {
-              value: cell.value || cell.data?.value || '',
-              state: cell.state || cell.data?.state || 'unknown'
-            },
-            cellOverrides: {
-              color: cell.color || null,
-              radius: cell.radius || null,
-              font_size: cell.font_size || null
-            },
-            actions: cell.actions || null
-          });
-        }
-      });
-    } else {
-      // Generate default cells
-      for (let row = 0; row < gridStyle.rows; row++) {
-        for (let col = 0; col < gridStyle.columns; col++) {
-          cells.push({
-            id: `cell_${row}_${col}`,
-            row,
-            col,
-            position: [row, col],
-            label: `${row},${col}`,
-            content: '',
-            data: {
-              value: '',
-              state: 'unknown'
-            },
-            cellOverrides: {
-              color: null,
-              radius: null,
-              font_size: null
-            },
-            actions: null
-          });
-        }
+        // Replace the style and add data attributes
+        const newStyle = beforeStyle.replace('pointer-events: none', 'pointer-events: visiblePainted; cursor: pointer');
+        return `${newStyle} data-cell-id="${cellId}" data-has-cell-actions="${cellHasActions}"${afterStyle}`;
       }
-    }
-
-    return cells;
+    );
   }
 }
 
