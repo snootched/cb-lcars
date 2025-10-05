@@ -571,7 +571,12 @@ export class MsdInstanceManager {
             if (isBuiltin) {
               const svgName = source.replace('builtin:', '');
               errorMsg = `Builtin SVG "${svgName}" not found`;
-              suggestion = 'Available: ncc-1701-a-blue, ncc-1701-d, nx-01';
+
+              // Get actual available SVG templates
+              const availableTemplates = MsdInstanceManager._getAvailableSvgTemplates();
+              suggestion = availableTemplates.length > 0
+                ? `Available: ${availableTemplates.join(', ')}`
+                : 'Available: ncc-1701-a-blue, ncc-1701-d, nx-01';
             } else if (isUrl) {
               errorMsg = 'Failed to load SVG from URL';
               suggestion = 'Check URL accessibility and content type';
@@ -661,7 +666,7 @@ export class MsdInstanceManager {
       preview: true,
       html: `
         <div style="
-          width: 100%;
+          width: 99%;
           height: 400px;
           background: linear-gradient(135deg, #001122 0%, #000611 100%);
           border: 2px solid var(--lcars-cyan, #00ffff);
@@ -870,6 +875,26 @@ export class MsdInstanceManager {
     const parentInfo = parentTag && parentTag !== 'div' ? ` in ${parentTag}` : '';
 
     return `${tagName}${id}${classes}${preview}${parentInfo}`;
+  }
+
+  /**
+   * Get list of available SVG templates from the global registry
+   * @private
+   */
+  static _getAvailableSvgTemplates() {
+    try {
+      // Access the SVG templates from window.cblcars.msd.svg_templates
+      const svgTemplates = window?.cblcars?.msd?.svg_templates;
+      if (svgTemplates && typeof svgTemplates === 'object') {
+        return Object.keys(svgTemplates).sort();
+      }
+
+      // Fallback to known templates if registry not available
+      return ['ncc-1701-a-blue', 'ncc-1701-d', 'nx-01'];
+    } catch (error) {
+      cblcarsLog.debug('[MsdInstanceManager] Could not access SVG templates registry:', error);
+      return ['ncc-1701-a-blue', 'ncc-1701-d', 'nx-01'];
+    }
   }
 }
 

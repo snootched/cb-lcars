@@ -244,10 +244,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 }
 
 function createDisabledPipeline(mergedConfig, issues, provenance) {
+  // Create styled error content
+  const errorHtml = createValidationErrorDisplay(issues, mergedConfig);
+
   const disabledPipeline = {
     enabled: false,
     errors: issues.errors,
     warnings: issues.warnings,
+    html: errorHtml, // ADDED: HTML content for rendering
     getResolvedModel: () => null,
     ingestHass: () => {},
     updateEntities: () => {},
@@ -271,6 +275,191 @@ function createDisabledPipeline(mergedConfig, issues, provenance) {
     window.__msdDebug._provenance = provenance;
   }
   return disabledPipeline;
+}
+
+/**
+ * Create styled error display for validation failures
+ * @private
+ */
+function createValidationErrorDisplay(issues, mergedConfig) {
+  const errorCount = issues.errors.length;
+  const warningCount = issues.warnings.length;
+
+  // Group errors by type for better display
+  const groupedErrors = {};
+  issues.errors.forEach(error => {
+    const category = error.code?.split('.')[0] || 'general';
+    if (!groupedErrors[category]) groupedErrors[category] = [];
+    groupedErrors[category].push(error);
+  });
+
+  let errorsHtml = '';
+  Object.entries(groupedErrors).forEach(([category, categoryErrors]) => {
+    errorsHtml += `
+      <div style="margin-bottom: 16px;">
+        <h4 style="
+          color: #ff6666;
+          font-size: 16px;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        ">${category} (${categoryErrors.length})</h4>
+        ${categoryErrors.slice(0, 5).map(error => `
+          <div style="
+            margin: 6px 0;
+            padding: 8px;
+            background: rgba(255, 102, 102, 0.1);
+            border-left: 3px solid #ff6666;
+            border-radius: 0 4px 4px 0;
+          ">
+            <div style="font-weight: bold; font-size: 14px; color: #ffcccc;">
+              ${error.code || 'VALIDATION_ERROR'}
+            </div>
+            <div style="font-size: 13px; margin-top: 2px; line-height: 1.3;">
+              ${error.message || error.msg || 'Unknown validation error'}
+            </div>
+            ${error.overlay ? `<div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">Overlay: ${error.overlay}</div>` : ''}
+            ${error.anchor ? `<div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">Anchor: ${error.anchor}</div>` : ''}
+          </div>
+        `).join('')}
+        ${categoryErrors.length > 5 ? `
+          <div style="font-size: 12px; opacity: 0.6; text-align: center; margin-top: 4px;">
+            ... ${categoryErrors.length - 5} more ${category} errors
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  // Show some warnings if we have space
+  let warningsHtml = '';
+  if (warningCount > 0 && errorCount < 10) {
+    warningsHtml = `
+      <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #444;">
+        <h4 style="
+          color: #ffaa00;
+          font-size: 14px;
+          margin: 0 0 8px 0;
+          text-transform: uppercase;
+        ">Warnings (${warningCount})</h4>
+        ${issues.warnings.slice(0, 3).map(warning => `
+          <div style="
+            margin: 4px 0;
+            padding: 6px;
+            background: rgba(255, 170, 0, 0.1);
+            border-left: 2px solid #ffaa00;
+            border-radius: 0 3px 3px 0;
+            font-size: 12px;
+          ">
+            ${warning.message || warning.msg || 'Unknown warning'}
+          </div>
+        `).join('')}
+        ${warningCount > 3 ? `
+          <div style="font-size: 12px; opacity: 0.6; text-align: center;">
+            ... ${warningCount - 3} more warnings
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  return `
+    <div style="
+      width: 99%;
+      height: 400px;
+      background: linear-gradient(135deg, #220011 0%, #110006 100%);
+      border: 2px solid #ff6666;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      color: #ff6666;
+      font-family: 'Antonio', monospace;
+      position: relative;
+      overflow: hidden;
+    ">
+      <!-- Background pattern -->
+      <div style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-image:
+          radial-gradient(circle at 20% 20%, rgba(255,102,102,0.1) 0%, transparent 50%),
+          radial-gradient(circle at 80% 80%, rgba(255,170,0,0.1) 0%, transparent 50%);
+        z-index: 0;
+      "></div>
+
+      <!-- Header -->
+      <div style="
+        z-index: 1;
+        text-align: center;
+        padding: 20px 20px 16px 20px;
+        border-bottom: 1px solid #444;
+      ">
+        <div style="font-size: 24px; font-weight: bold; margin-bottom: 8px;">
+          ❌ MSD Configuration Error
+        </div>
+        <div style="font-size: 14px; color: #ffcccc;">
+          ${errorCount} validation ${errorCount === 1 ? 'error' : 'errors'} must be fixed
+        </div>
+        ${warningCount > 0 ? `
+          <div style="font-size: 13px; color: #ffcc99; margin-top: 4px;">
+            ${warningCount} ${warningCount === 1 ? 'warning' : 'warnings'} detected
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Content -->
+      <div style="
+        z-index: 1;
+        flex: 1;
+        padding: 16px 20px;
+        overflow-y: auto;
+        max-height: calc(100% - 120px);
+      ">
+        ${errorsHtml}
+        ${warningsHtml}
+      </div>
+
+      <!-- Footer -->
+      <div style="
+        z-index: 1;
+        text-align: center;
+        padding: 12px;
+        border-top: 1px solid #444;
+        background: rgba(0,0,0,0.3);
+      ">
+        <div style="font-size: 12px; opacity: 0.8;">
+          Fix configuration errors to enable MSD rendering
+        </div>
+      </div>
+
+      <!-- Corner accents -->
+      <div style="
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        border-top: 2px solid #ff6666;
+        border-right: 2px solid #ff6666;
+        border-radius: 0 6px 0 0;
+        z-index: 1;
+      "></div>
+      <div style="
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        width: 30px;
+        height: 30px;
+        border-bottom: 2px solid #ff6666;
+        border-left: 2px solid #ff6666;
+        border-radius: 0 0 0 6px;
+        z-index: 1;
+      "></div>
+    </div>
+  `;
 }
 
 /**
