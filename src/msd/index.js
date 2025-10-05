@@ -2,6 +2,7 @@ import { initMsdPipeline, initMsdHud } from './pipeline/PipelineCore.js';
 import { processMsdConfig } from './pipeline/ConfigProcessor.js';
 import { mergePacks, validateMerged } from './pipeline/ConfigProcessor.js';
 import { buildCardModel } from './model/CardModel.js';
+import { MsdInstanceManager } from './pipeline/MsdInstanceManager.js';
 
 import "./hud/hudService.js";
 
@@ -19,7 +20,8 @@ export { mergePacks, validateMerged };
   Object.assign(window.__msdDebug, {
     mergePacks,
     buildCardModel,
-    initMsdPipeline
+    initMsdPipeline,
+    MsdInstanceManager
   });
 
   // Enhanced debug interface

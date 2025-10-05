@@ -1140,10 +1140,11 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
 
     disconnectedCallback() {
         cblcarsLog.debug('[CBLCARSMSDCard.disconnectedCallback] MSD card disconnected from DOM');
-        //if (this.msdSystem) {
-        //    cblcarsLog.debug('[CBLCARSMSDCard.disconnectedCallback] Cleaning up MSD system');
-            // Don't destroy the MSD system here in case it's just a temporary disconnect
-        //}
+
+        // Don't automatically destroy the MSD instance on disconnect since it could be
+        // a temporary disconnect during view changes. The MsdInstanceManager will handle
+        // cleanup when needed or when a conflicting instance is created.
+
         super.disconnectedCallback();
     }
 }

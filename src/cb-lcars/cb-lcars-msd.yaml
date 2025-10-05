@@ -269,9 +269,9 @@ cb-lcars-msd:
               return `<div style="color:red;padding:10px;">MSD v1 system not loaded</div>`;
             }
 
-            if (!window.__msdDebug.initMsdPipeline) {
-              console.error('[MSD DEBUG] ❌ initMsdPipeline not found');
-              return `<div style="color:red;padding:10px;">initMsdPipeline not available</div>`;
+            if (!window.__msdDebug.MsdInstanceManager) {
+              console.error('[MSD DEBUG] ❌ MsdInstanceManager not found');
+              return `<div style="color:red;padding:10px;">MsdInstanceManager not available</div>`;
             }
 
             this._msdV1ComprehensiveBoot = true;
@@ -351,7 +351,7 @@ cb-lcars-msd:
                 return;
               }
 
-              console.log('[MSD DEBUG] 🚀 CALLING initMsdPipeline...');
+              console.log('[MSD DEBUG] 🚀 Using MsdInstanceManager for pipeline initialization...');
 
               const enhancedConfig = { ...msdConfig };
               if (window._msdTestAnchors && Object.keys(window._msdTestAnchors).length > 5) {
@@ -361,16 +361,44 @@ cb-lcars-msd:
               const realHass = this.___hass || hass;
 
               // CRITICAL: Set card instance BEFORE pipeline initialization
-              // Store in multiple locations so StatusGridRenderer can find it during initial render
               window.cb_lcars_card_instance = this;
               window._currentCardInstance = this;
               if (!window.__msdDebug) window.__msdDebug = {};
               window.__msdDebug.cardInstance = this;
               console.log('[MSD DEBUG] 🎯 Card instance stored in multiple global locations BEFORE pipeline init:', this);
 
-              window.__msdDebug.initMsdPipeline(enhancedConfig, mount, realHass).then(pipeline => {
+              // Detect preview mode
+              const isPreview = window.__msdDebug.MsdInstanceManager.detectPreviewMode(mount);
 
-                console.log('[MSD DEBUG] ✅ Pipeline initialized successfully:', pipeline);
+              // Use MsdInstanceManager instead of direct initMsdPipeline
+              window.__msdDebug.MsdInstanceManager.requestInstance(enhancedConfig, mount, realHass, isPreview).then(pipelineResult => {
+
+                if (pipelineResult.preview) {
+                  console.log('[MSD DEBUG] 📋 Preview mode detected - updating wrapper with preview content');
+                  const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+                  if (wrapper) {
+                    wrapper.innerHTML = pipelineResult.html;
+                  }
+                  return; // Preview content is now displayed
+                }
+
+                if (!pipelineResult.enabled) {
+                  if (pipelineResult.blocked) {
+                    console.warn('[MSD DEBUG] 🚫 MSD instance blocked:', pipelineResult.reason);
+                    // Update the wrapper content with blocked message
+                    const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
+                    if (wrapper) {
+                      wrapper.innerHTML = pipelineResult.html;
+                    }
+                    return;
+                  }
+                  console.error('[MSD DEBUG] ❌ MSD initialization failed');
+                  return;
+                }
+
+                // Normal pipeline initialization completed
+                const pipeline = pipelineResult;
+                console.log('[MSD DEBUG] ✅ Pipeline initialized successfully via MsdInstanceManager:', pipeline);
 
                 // Store pipeline reference for HASS updates
                 this._msdPipeline = pipeline;
@@ -408,8 +436,8 @@ cb-lcars-msd:
                 }
                 */
               }).catch(err => {
-                console.error('[MSD DEBUG] ❌ Pipeline init FAILED:', err);
-                console.error('[MSD DEBUG] ❌ Pipeline error stack:', err.stack);
+                console.error('[MSD DEBUG] ❌ MsdInstanceManager initialization FAILED:', err);
+                console.error('[MSD DEBUG] ❌ Error stack:', err.stack);
               });
             };
 
