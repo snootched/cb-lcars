@@ -79,6 +79,29 @@ Comprehensive schema validation:
 - Rules and animation validation
 - Duplicate ID detection
 
+### 6.1 **Defaults Management System (`src/msd/pipeline/MsdDefaultsManager.js`)**
+**NEW** - Layered defaults system with pack integration:
+
+```javascript
+const defaultsManager = new MsdDefaultsManager();
+defaultsManager.loadFromPacks(packs); // Loads pack profiles into 'pack' layer
+
+// Layer priority (high to low):
+// 1. User Layer - explicit user defaults
+// 2. Pack Layer - loaded pack defaults (CB-LCARS, etc.)
+// 3. Theme Layer - theme-specific defaults
+// 4. Builtin Layer - core MSD defaults
+
+const value = defaultsManager.resolve('status_grid.text_padding');
+// Returns: 12 (from CB-LCARS pack) instead of 8 (from builtin)
+```
+
+**Integration Points:**
+- **SystemsManager**: Loads pack defaults during initialization
+- **StatusGridRenderer**: Uses `_getDefault()` to resolve values with fallbacks
+- **Button Presets**: Override defaults for specific styling patterns
+- **Global Access**: Available via `window.cblcars.defaults`
+
 ## Data Management
 
 ### 7. **Data Sources (`src/msd/data/`)**

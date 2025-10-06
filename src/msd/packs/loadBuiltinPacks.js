@@ -1,11 +1,317 @@
-// Core builtin pack (minimal). Extend with real defaults in Phase A.
+// Core builtin pack - Contains all system defaults
 const CORE_PACK = {
   id: 'core',
   version: '1.0.0',
   animations: [],
   timelines: [],
   rules: [],
-  profiles: [],
+  profiles: [
+    {
+      id: 'core_defaults',
+      description: 'Standard system defaults for all MSD components',
+      defaults: {
+        // Text defaults - using simple values for better compatibility
+        text: {
+          font_size: 14, // Simple numeric value, no auto-scaling
+          font_family: 'var(--lcars-font-family, Antonio)',
+          line_height: 1.2,
+          color: 'var(--lcars-white, #ffffff)',
+          fallback_font_size: 16, // Fallback when font size cannot be determined
+
+          // Text decoration defaults
+          status_indicator: {
+            size_ratio: 0.3, // Ratio of font size for status indicator
+            padding: 8, // Pixels between text edge and indicator edge
+            color: 'var(--lcars-green, #00ff00)' // Default status indicator color
+          },
+
+          highlight: {
+            padding: 2, // Pixels of padding around text for highlight
+            opacity: 0.3 // Default highlight opacity
+          },
+
+          // Text bracket defaults
+          bracket: {
+            width: 2, // Default bracket stroke width
+            gap: 4, // Default gap between text and bracket
+            extension: 8, // Default bracket extension beyond text
+            opacity: 1, // Default bracket opacity
+            physical_width: 8, // Default physical bracket width
+            height: '70%', // Default bracket height as percentage
+            radius: 4, // Default bracket corner radius
+            border_radius: 8, // Default border radius for containers
+            inner_factor: 2 // Default inner factor for hybrid mode
+          },
+
+          // Text effect defaults
+          effects: {
+            glow: {
+              blur: 3, // Default glow blur radius
+              intensity: 1 // Default glow intensity
+            },
+            shadow: {
+              offset_x: 2, // Default shadow X offset
+              offset_y: 2, // Default shadow Y offset
+              blur: 2, // Default shadow blur
+              color: 'rgba(0,0,0,0.5)' // Default shadow color
+            }
+          },
+
+          // Text pattern defaults
+          pattern: {
+            dots: { size: 8 }, // Default dots pattern size
+            lines: { size: 4 }, // Default lines pattern size
+            default: {
+              width: 10, // Default pattern width
+              height: 10 // Default pattern height
+            }
+          },
+
+          // Attachment point calculation defaults
+          attachment: {
+            status_size_ratio: 0.3 // Status indicator size ratio for attachment calculations
+          }
+        },
+
+        // Overlay defaults - keep scalable objects for padding that needs viewBox scaling
+        overlay: {
+          padding: {
+            value: 8,
+            scale: 'viewbox',
+            unit: 'px'
+          }
+        },
+
+        // Sparkline defaults
+        sparkline: {
+          stroke_width: {
+            value: 2,
+            scale: 'viewbox',
+            unit: 'px'
+          },
+          color: 'var(--lcars-yellow, #ffcc00)',
+          size: {
+            width: 200, // Default sparkline width
+            height: 60 // Default sparkline height
+          },
+          opacity: 1, // Default sparkline opacity
+          line_cap: 'round', // Default line cap style
+          line_join: 'round', // Default line join style
+          miter_limit: 4, // Default miter limit
+          path_precision: 2, // Default path precision for coordinates
+          fill_opacity: 0.2, // Default area fill opacity
+          point_size: 3, // Default data point marker size
+          decimation_threshold: 1000, // Default max points before decimation
+
+          // Grid defaults for sparklines
+          grid: {
+            color: 'var(--lcars-gray, #666666)',
+            opacity: 0.4,
+            stroke_width: 1,
+            horizontal_count: 3,
+            vertical_count: 5
+          },
+
+          // Threshold line defaults
+          threshold: {
+            color: 'var(--lcars-orange, #ff9900)',
+            width: 1,
+            opacity: 0.7
+          },
+
+          // Zero line defaults
+          zero_line: {
+            color: 'var(--lcars-gray, #666666)',
+            width: 1,
+            opacity: 0.5
+          },
+
+          // Bracket defaults for sparklines
+          bracket: {
+            width: 2,
+            gap: 6,
+            extension: 8,
+            opacity: 1,
+            physical_width: 8,
+            radius: 4,
+            border_radius: 8,
+            inner_factor: 2
+          },
+
+          // Status indicator defaults
+          status_indicator: {
+            size: 4,
+            offset: 4,
+            color: 'var(--lcars-green, #00ff00)'
+          },
+
+          // Animation defaults
+          scan_line: {
+            duration: 3, // Scan line animation duration in seconds
+            width: 1,
+            opacity: 0.8
+          },
+
+          // Chaikin smoothing defaults
+          smoothing: {
+            chaikin_iterations: 2,
+            bezier_control_factor: 0.5,
+            constrained_control_factor: 0.25,
+            spline_segments: 10 // Segments between spline points
+          },
+
+          // Value label defaults
+          value_label: {
+            offset_x: 4,
+            font_size_ratio: 0.1, // Ratio of width for font size
+            max_font_size: 12,
+            font_family: 'var(--lcars-font-family, Antonio)'
+          },
+
+          // Enhanced status colors for different states
+          status: {
+            no_source: { color: 'var(--lcars-red, #ff0000)' },
+            loading: { color: 'var(--lcars-blue, #0088ff)' },
+            not_found: { color: 'var(--lcars-orange, #ff9900)' },
+            error: { color: 'var(--lcars-red, #ff0000)' },
+            font_size_ratio: 0.125, // Font size ratio for status text
+            min_width_for_source: 120, // Minimum width to show source name
+            stroke_width: 2,
+            opacity: 0.6
+          }
+        },
+
+        // Status Grid defaults
+        status_grid: {
+          // Core Grid Properties
+          rows: 3, // Number of rows
+          columns: 4, // Number of columns
+          cell_gap: 2, // Gap between cells
+          cell_color: 'var(--lcars-blue, #0088ff)', // Default cell color
+          cell_opacity: 1.0, // Cell opacity
+          cell_radius: 2, // Corner radius
+
+          // Border & Layout
+          border_color: 'var(--lcars-gray, #666666)', // Border color
+          border_width: 1, // Border width
+          unknown_color: 'var(--lcars-gray, #666666)', // Color for unknown states
+
+          // Text Styling (Supports Scaling)
+          font_size: 12, // Base font size
+          label_font_size: {
+            value: 18,
+            scale: 'none', // Default to no scaling unless explicitly set
+            unit: 'px'
+          }, // Label font size - supports scaling
+          value_font_size: {
+            value: 16,
+            scale: 'none', // Default to no scaling unless explicitly set
+            unit: 'px'
+          }, // Value font size - supports scaling
+          font_family: 'var(--lcars-font-family, Antonio)', // Font family
+          font_weight: 'normal', // Font weight
+          label_color: 'var(--lcars-white, #ffffff)', // Label text color
+          value_color: 'var(--lcars-white, #ffffff)', // Value text color
+
+          // Text Layout & Positioning
+          text_layout: 'stacked', // Layout mode
+          text_alignment: 'center', // Vertical alignment
+          text_justify: 'center', // Horizontal justification
+          label_position: 'center-top', // Label position
+          value_position: 'center-bottom', // Value position
+          text_padding: {
+            value: 8,
+            scale: 'none', // Default to no scaling unless explicitly set
+            unit: 'px'
+          }, // Padding from cell edges - supports scaling
+          text_margin: 2, // Margin between text elements
+          max_text_width: '90%', // Maximum text width
+          text_overflow: 'ellipsis', // Overflow handling
+
+          // Status Detection
+          status_mode: 'auto', // Status detection mode
+
+          // Grid Features
+          grid_line_color: 'var(--lcars-gray, #666666)', // Grid line color
+          grid_line_opacity: 0.3, // Grid line opacity
+          grid_line_width: 1, // Grid line width
+
+          // LCARS Features
+          bracket_color: null, // Bracket color (null = use primary color)
+          bracket_width: 2, // Bracket stroke width
+          bracket_gap: 4, // Distance from grid
+          bracket_extension: 8, // Bracket arm length
+          bracket_opacity: 1, // Bracket opacity
+          bracket_corners: 'both', // Which corners
+          bracket_sides: 'both', // Which sides
+          bracket_physical_width: 8, // Physical bracket width
+          bracket_height: '100%', // Bracket height
+          bracket_radius: 4, // Bracket corner radius
+          border_radius: 8, // Container border radius
+          inner_factor: 2, // Inner spacing factor
+
+          // Interaction
+          hover_color: 'var(--lcars-yellow, #ffcc00)', // Hover color
+          hover_scale: 1.05, // Hover scale factor
+
+          // Animation
+          cascade_speed: 0, // Cascade animation speed
+          cascade_direction: 'row', // Cascade direction
+          reveal_animation: false, // Initial reveal animation
+          pulse_on_change: false, // Pulse on data change
+
+          // Performance
+          update_throttle: 100 // Update throttling in ms
+        }
+      }
+    },
+    {
+      id: 'minimal',
+      description: 'Minimal defaults for lightweight configurations',
+      defaults: {
+        text: {
+          font_size: 12,
+          font_family: 'var(--lcars-font-family, Antonio)',
+          line_height: 1.1,
+          color: 'var(--lcars-white, #ffffff)'
+        },
+        status_grid: {
+          rows: 2,
+          columns: 3,
+          cell_gap: 1,
+          text_padding: { value: 4, scale: 'none', unit: 'px' },
+          font_size: 10,
+          label_font_size: { value: 12, scale: 'none', unit: 'px' },
+          value_font_size: { value: 10, scale: 'none', unit: 'px' }
+        }
+      }
+    },
+    {
+      id: 'performance',
+      description: 'Performance-optimized defaults with minimal visual effects',
+      defaults: {
+        text: {
+          font_size: 14,
+          font_family: 'var(--lcars-font-family, Antonio)',
+          line_height: 1.0
+        },
+        status_grid: {
+          cell_radius: 0, // No rounded corners for performance
+          border_width: 1,
+          text_padding: { value: 6, scale: 'none', unit: 'px' },
+          update_throttle: 200, // Slower updates
+          cascade_speed: 0, // No animations
+          reveal_animation: false,
+          pulse_on_change: false
+        },
+        sparkline: {
+          opacity: 0.8, // Reduced opacity for performance
+          decimation_threshold: 500, // More aggressive decimation
+          path_precision: 1 // Lower precision
+        }
+      }
+    }
+  ],
   overlays: [],
   palettes: {},
   anchors: {},

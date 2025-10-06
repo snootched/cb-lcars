@@ -86,14 +86,26 @@ export class SystemsManager {
         // Import pack loading function and load the packs used in merge
         const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
         const packNames = packLayers.map(layer => layer.pack);
+
+        // Ensure 'core' pack is always loaded for builtin defaults
+        if (!packNames.includes('core')) {
+          packNames.unshift('core');
+          cblcarsLog.debug('[SystemsManager] 📦 Added core pack for builtin defaults');
+        }
+
         const packs = loadBuiltinPacks(packNames);
 
-        this.defaultsManager.loadFromPacks(packs);
-        cblcarsLog.debug('[SystemsManager] ✅ Loaded pack defaults:', packNames);
+        this.defaultsManager.loadFromPacks(packs, mergedConfig.active_profile || mergedConfig.active_profiles);
+        cblcarsLog.debug('[SystemsManager] ✅ Loaded pack defaults:', packNames, (mergedConfig.active_profile || mergedConfig.active_profiles) ? `(profile: ${JSON.stringify(mergedConfig.active_profile || mergedConfig.active_profiles)})` : '(all profiles)');
       }
-    }
-
-    // ADDED: Store in global CB-LCARS namespace for easy access
+    } else {
+      // Fallback: Always load core pack for basic defaults if no pack provenance
+      cblcarsLog.debug('[SystemsManager] 📦 No pack provenance, loading core pack for basic defaults');
+      const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
+      const corePacks = loadBuiltinPacks(['core']);
+      this.defaultsManager.loadFromPacks(corePacks, userConfig?.active_profile || userConfig?.active_profiles);
+      cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults', (userConfig?.active_profile || userConfig?.active_profiles) ? `(profile: ${JSON.stringify(userConfig.active_profile || userConfig.active_profiles)})` : '(all profiles)');
+    }    // ADDED: Store in global CB-LCARS namespace for easy access
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
       window.cblcars.defaults = this.defaultsManager;

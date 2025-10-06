@@ -666,6 +666,38 @@ async function processLayer(merged, layer) {
   if (Array.isArray(layer.data.active_profiles)) {
     merged.active_profiles = [...layer.data.active_profiles];
   }
+
+  // Process active_profile configuration (singular) - preferred format
+  if (layer.data.active_profile !== undefined) {
+    merged.active_profile = layer.data.active_profile;
+
+    // Track active_profile provenance
+    if (!merged.__provenance.active_profile) {
+      merged.__provenance.active_profile = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.active_profile.overridden = true;
+      merged.__provenance.active_profile.override_layer = layer.pack;
+    }
+  }
+
+  // COMPATIBILITY: Handle active_profiles (plural) as alias for active_profile
+  if (layer.data.active_profiles !== undefined && !Array.isArray(layer.data.active_profiles)) {
+    merged.active_profile = layer.data.active_profiles;
+
+    // Track active_profile provenance (same as above)
+    if (!merged.__provenance.active_profile) {
+      merged.__provenance.active_profile = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.active_profile.overridden = true;
+      merged.__provenance.active_profile.override_layer = layer.pack;
+    }
+  }
 }
 
 function determineAnchorOriginType(layer, anchorId) {
@@ -717,7 +749,7 @@ export function exportCollapsed(userMsd) {
   const keep = [
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
     'rules', 'profiles', 'timelines', 'palettes', 'routing',
-    'active_profiles', 'remove', 'debug', 'base_svg'
+    'active_profiles', 'active_profile', 'remove', 'debug', 'base_svg'
   ];
 
   keep.forEach(k => {

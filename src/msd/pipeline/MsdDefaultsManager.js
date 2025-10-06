@@ -1,7 +1,6 @@
 /**
  * MSD Defaults Manager - Phase 1 Implementation
- * Handles layered    // Attachment point calculation defaults
-    this.set('builtin', 'text.attachment.status_size_ratio', 0.3); // Status indicator size ratio for attachment calculations (matches main ratio)efaults with optional viewBox-aware scaling for specific values
+ * Handles layered defaults with optional viewBox-aware scaling for specific values
  * that require scaling (like padding), while keeping most values simple for compatibility.
  *
  * @version 1.0.0
@@ -22,221 +21,8 @@ export class MsdDefaultsManager {
     this.scaleCache = new Map();
     this.unitCache = new Map();
 
-    // Initialize built-in defaults
-    this._registerBuiltinDefaults();
-  }
-
-  /**
-   * Register system built-in defaults
-   * @private
-   */
-  _registerBuiltinDefaults() {
-    // Text defaults - using simple values for better compatibility
-    this.set('builtin', 'text.font_size', 14); // Simple numeric value, no auto-scaling
-    this.set('builtin', 'text.font_family', 'var(--lcars-font-family, Antonio)');
-    this.set('builtin', 'text.line_height', 1.2);
-    this.set('builtin', 'text.color', 'var(--lcars-white, #ffffff)');
-    this.set('builtin', 'text.fallback_font_size', 16); // Fallback when font size cannot be determined
-
-    // Text decoration defaults
-    this.set('builtin', 'text.status_indicator.size_ratio', 0.3); // Ratio of font size for status indicator
-    this.set('builtin', 'text.status_indicator.padding', 8); // Pixels between text edge and indicator edge
-    this.set('builtin', 'text.status_indicator.color', 'var(--lcars-green, #00ff00)'); // Default status indicator color
-    this.set('builtin', 'text.highlight.padding', 2); // Pixels of padding around text for highlight
-    this.set('builtin', 'text.highlight.opacity', 0.3); // Default highlight opacity
-
-    // Text bracket defaults
-    this.set('builtin', 'text.bracket.width', 2); // Default bracket stroke width
-    this.set('builtin', 'text.bracket.gap', 4); // Default gap between text and bracket
-    this.set('builtin', 'text.bracket.extension', 8); // Default bracket extension beyond text
-    this.set('builtin', 'text.bracket.opacity', 1); // Default bracket opacity
-    this.set('builtin', 'text.bracket.physical_width', 8); // Default physical bracket width
-    this.set('builtin', 'text.bracket.height', '70%'); // Default bracket height as percentage
-    this.set('builtin', 'text.bracket.radius', 4); // Default bracket corner radius
-    this.set('builtin', 'text.bracket.border_radius', 8); // Default border radius for containers
-    this.set('builtin', 'text.bracket.inner_factor', 2); // Default inner factor for hybrid mode
-
-    // Text effect defaults
-    this.set('builtin', 'text.effects.glow.blur', 3); // Default glow blur radius
-    this.set('builtin', 'text.effects.glow.intensity', 1); // Default glow intensity
-    this.set('builtin', 'text.effects.shadow.offset_x', 2); // Default shadow X offset
-    this.set('builtin', 'text.effects.shadow.offset_y', 2); // Default shadow Y offset
-    this.set('builtin', 'text.effects.shadow.blur', 2); // Default shadow blur
-    this.set('builtin', 'text.effects.shadow.color', 'rgba(0,0,0,0.5)'); // Default shadow color
-
-    // Text pattern defaults
-    this.set('builtin', 'text.pattern.dots.size', 8); // Default dots pattern size
-    this.set('builtin', 'text.pattern.lines.size', 4); // Default lines pattern size
-    this.set('builtin', 'text.pattern.default.width', 10); // Default pattern width
-    this.set('builtin', 'text.pattern.default.height', 10); // Default pattern height
-
-    // Attachment point calculation defaults
-    this.set('builtin', 'text.attachment.status_size_ratio', 0.3); // Status indicator size ratio for attachment calculations
-
-    // Overlay defaults - keep scalable objects for padding that needs viewBox scaling
-    this.set('builtin', 'overlay.padding', {
-      value: 8,
-      scale: 'viewbox',
-      unit: 'px'
-    });
-
-    // Sparkline defaults
-    this.set('builtin', 'sparkline.stroke_width', {
-      value: 2,
-      scale: 'viewbox',
-      unit: 'px'
-    });
-    this.set('builtin', 'sparkline.color', 'var(--lcars-yellow, #ffcc00)');
-    this.set('builtin', 'sparkline.size.width', 200); // Default sparkline width
-    this.set('builtin', 'sparkline.size.height', 60); // Default sparkline height
-    this.set('builtin', 'sparkline.opacity', 1); // Default sparkline opacity
-    this.set('builtin', 'sparkline.line_cap', 'round'); // Default line cap style
-    this.set('builtin', 'sparkline.line_join', 'round'); // Default line join style
-    this.set('builtin', 'sparkline.miter_limit', 4); // Default miter limit
-    this.set('builtin', 'sparkline.path_precision', 2); // Default path precision for coordinates
-    this.set('builtin', 'sparkline.fill_opacity', 0.2); // Default area fill opacity
-    this.set('builtin', 'sparkline.point_size', 3); // Default data point marker size
-    this.set('builtin', 'sparkline.decimation_threshold', 1000); // Default max points before decimation
-
-    // Grid defaults for sparklines
-    this.set('builtin', 'sparkline.grid.color', 'var(--lcars-gray, #666666)');
-    this.set('builtin', 'sparkline.grid.opacity', 0.4);
-    this.set('builtin', 'sparkline.grid.stroke_width', 1);
-    this.set('builtin', 'sparkline.grid.horizontal_count', 3);
-    this.set('builtin', 'sparkline.grid.vertical_count', 5);
-
-    // Threshold line defaults
-    this.set('builtin', 'sparkline.threshold.color', 'var(--lcars-orange, #ff9900)');
-    this.set('builtin', 'sparkline.threshold.width', 1);
-    this.set('builtin', 'sparkline.threshold.opacity', 0.7);
-
-    // Zero line defaults
-    this.set('builtin', 'sparkline.zero_line.color', 'var(--lcars-gray, #666666)');
-    this.set('builtin', 'sparkline.zero_line.width', 1);
-    this.set('builtin', 'sparkline.zero_line.opacity', 0.5);
-
-    // Bracket defaults for sparklines
-    this.set('builtin', 'sparkline.bracket.width', 2);
-    this.set('builtin', 'sparkline.bracket.gap', 6);
-    this.set('builtin', 'sparkline.bracket.extension', 8);
-    this.set('builtin', 'sparkline.bracket.opacity', 1);
-    this.set('builtin', 'sparkline.bracket.physical_width', 8);
-    this.set('builtin', 'sparkline.bracket.radius', 4);
-    this.set('builtin', 'sparkline.bracket.border_radius', 8);
-    this.set('builtin', 'sparkline.bracket.inner_factor', 2);
-
-    // Status indicator defaults
-    this.set('builtin', 'sparkline.status_indicator.size', 4);
-    this.set('builtin', 'sparkline.status_indicator.offset', 4);
-    this.set('builtin', 'sparkline.status_indicator.color', 'var(--lcars-green, #00ff00)');
-
-    // Animation defaults
-    this.set('builtin', 'sparkline.scan_line.duration', 3); // Scan line animation duration in seconds
-    this.set('builtin', 'sparkline.scan_line.width', 1);
-    this.set('builtin', 'sparkline.scan_line.opacity', 0.8);
-
-    // Chaikin smoothing defaults
-    this.set('builtin', 'sparkline.smoothing.chaikin_iterations', 2);
-    this.set('builtin', 'sparkline.smoothing.bezier_control_factor', 0.5);
-    this.set('builtin', 'sparkline.smoothing.constrained_control_factor', 0.25);
-    this.set('builtin', 'sparkline.smoothing.spline_segments', 10); // Segments between spline points
-
-    // Value label defaults
-    this.set('builtin', 'sparkline.value_label.offset_x', 4);
-    this.set('builtin', 'sparkline.value_label.font_size_ratio', 0.1); // Ratio of width for font size
-    this.set('builtin', 'sparkline.value_label.max_font_size', 12);
-    this.set('builtin', 'sparkline.value_label.font_family', 'var(--lcars-font-family, Antonio)');
-
-    // Enhanced status colors for different states
-    this.set('builtin', 'sparkline.status.no_source.color', 'var(--lcars-red, #ff0000)');
-    this.set('builtin', 'sparkline.status.loading.color', 'var(--lcars-blue, #0088ff)');
-    this.set('builtin', 'sparkline.status.not_found.color', 'var(--lcars-orange, #ff9900)');
-    this.set('builtin', 'sparkline.status.error.color', 'var(--lcars-red, #ff0000)');
-    this.set('builtin', 'sparkline.status.font_size_ratio', 0.125); // Font size ratio for status text
-    this.set('builtin', 'sparkline.status.min_width_for_source', 120); // Minimum width to show source name
-    this.set('builtin', 'sparkline.status.stroke_width', 2);
-    this.set('builtin', 'sparkline.status.opacity', 0.6);
-
-    // Status Grid defaults
-    // Core Grid Properties
-    this.set('builtin', 'status_grid.rows', 3); // Number of rows
-    this.set('builtin', 'status_grid.columns', 4); // Number of columns
-    this.set('builtin', 'status_grid.cell_gap', 2); // Gap between cells
-    this.set('builtin', 'status_grid.cell_color', 'var(--lcars-blue, #0088ff)'); // Default cell color
-    this.set('builtin', 'status_grid.cell_opacity', 1.0); // Cell opacity
-    this.set('builtin', 'status_grid.cell_radius', 2); // Corner radius
-
-    // Border & Layout
-    this.set('builtin', 'status_grid.border_color', 'var(--lcars-gray, #666666)'); // Border color
-    this.set('builtin', 'status_grid.border_width', 1); // Border width
-    this.set('builtin', 'status_grid.unknown_color', 'var(--lcars-gray, #666666)'); // Color for unknown states
-
-    // Text Styling (Supports Scaling)
-    this.set('builtin', 'status_grid.font_size', 12); // Base font size
-    this.set('builtin', 'status_grid.label_font_size', {
-      value: 18,
-      scale: 'none', // Default to no scaling unless explicitly set
-      unit: 'px'
-    }); // Label font size - supports scaling
-    this.set('builtin', 'status_grid.value_font_size', {
-      value: 16,
-      scale: 'none', // Default to no scaling unless explicitly set
-      unit: 'px'
-    }); // Value font size - supports scaling
-    this.set('builtin', 'status_grid.font_family', 'var(--lcars-font-family, Antonio)'); // Font family
-    this.set('builtin', 'status_grid.font_weight', 'normal'); // Font weight
-    this.set('builtin', 'status_grid.label_color', 'var(--lcars-white, #ffffff)'); // Label text color
-    this.set('builtin', 'status_grid.value_color', 'var(--lcars-white, #ffffff)'); // Value text color
-
-    // Text Layout & Positioning
-    this.set('builtin', 'status_grid.text_layout', 'stacked'); // Layout mode
-    this.set('builtin', 'status_grid.text_alignment', 'center'); // Vertical alignment
-    this.set('builtin', 'status_grid.text_justify', 'center'); // Horizontal justification
-    this.set('builtin', 'status_grid.label_position', 'center-top'); // Label position
-    this.set('builtin', 'status_grid.value_position', 'center-bottom'); // Value position
-    this.set('builtin', 'status_grid.text_padding', {
-      value: 8,
-      scale: 'none', // Default to no scaling unless explicitly set
-      unit: 'px'
-    }); // Padding from cell edges - supports scaling
-    this.set('builtin', 'status_grid.text_margin', 2); // Margin between text elements
-    this.set('builtin', 'status_grid.max_text_width', '90%'); // Maximum text width
-    this.set('builtin', 'status_grid.text_overflow', 'ellipsis'); // Overflow handling
-
-    // Status Detection
-    this.set('builtin', 'status_grid.status_mode', 'auto'); // Status detection mode
-
-    // Grid Features
-    this.set('builtin', 'status_grid.grid_line_color', 'var(--lcars-gray, #666666)'); // Grid line color
-    this.set('builtin', 'status_grid.grid_line_opacity', 0.3); // Grid line opacity
-    this.set('builtin', 'status_grid.grid_line_width', 1); // Grid line width
-
-    // LCARS Features
-    this.set('builtin', 'status_grid.bracket_color', null); // Bracket color (null = use primary color)
-    this.set('builtin', 'status_grid.bracket_width', 2); // Bracket stroke width
-    this.set('builtin', 'status_grid.bracket_gap', 4); // Distance from grid
-    this.set('builtin', 'status_grid.bracket_extension', 8); // Bracket arm length
-    this.set('builtin', 'status_grid.bracket_opacity', 1); // Bracket opacity
-    this.set('builtin', 'status_grid.bracket_corners', 'both'); // Which corners
-    this.set('builtin', 'status_grid.bracket_sides', 'both'); // Which sides
-    this.set('builtin', 'status_grid.bracket_physical_width', 8); // Physical bracket width
-    this.set('builtin', 'status_grid.bracket_height', '100%'); // Bracket height
-    this.set('builtin', 'status_grid.bracket_radius', 4); // Bracket corner radius
-    this.set('builtin', 'status_grid.border_radius', 8); // Container border radius
-    this.set('builtin', 'status_grid.inner_factor', 2); // Inner spacing factor
-
-    // Interaction
-    this.set('builtin', 'status_grid.hover_color', 'var(--lcars-yellow, #ffcc00)'); // Hover color
-    this.set('builtin', 'status_grid.hover_scale', 1.05); // Hover scale factor
-
-    // Animation
-    this.set('builtin', 'status_grid.cascade_speed', 0); // Cascade animation speed
-    this.set('builtin', 'status_grid.cascade_direction', 'row'); // Cascade direction
-    this.set('builtin', 'status_grid.reveal_animation', false); // Initial reveal animation
-    this.set('builtin', 'status_grid.pulse_on_change', false); // Pulse on data change
-
-    // Performance
-    this.set('builtin', 'status_grid.update_throttle', 100); // Update throttling in ms
+    // Note: Built-in defaults are now loaded from the 'core' pack via loadFromPacks()
+    // This allows all defaults to be centralized in pack definitions
   }
 
   /**
@@ -457,15 +243,19 @@ export class MsdDefaultsManager {
   }
 
   /**
-   * Load defaults from pack profiles
+   * Load defaults from pack profiles with optional profile selection
    * @param {Array} packs - Array of pack objects to process
+   * @param {string|Object} activeProfile - Profile selection strategy
    */
-  loadFromPacks(packs) {
+  loadFromPacks(packs, activeProfile = null) {
     if (!Array.isArray(packs)) return;
 
     packs.forEach(pack => {
       if (pack && pack.profiles && Array.isArray(pack.profiles)) {
-        pack.profiles.forEach(profile => {
+        // Determine which profiles to load based on activeProfile setting
+        const profilesToLoad = this._selectProfiles(pack.profiles, activeProfile, pack.id);
+
+        profilesToLoad.forEach(profile => {
           if (profile.defaults) {
             this._processPackDefaults(profile.defaults, pack.id);
           }
@@ -478,6 +268,37 @@ export class MsdDefaultsManager {
   }
 
   /**
+   * Select which profiles to load based on active profile configuration
+   * @private
+   * @param {Array} profiles - Available profiles in the pack
+   * @param {string|Object} activeProfile - Profile selection strategy
+   * @param {string} packId - Pack identifier
+   * @returns {Array} Profiles to load
+   */
+  _selectProfiles(profiles, activeProfile, packId) {
+    // If no active profile specified, load all profiles (current behavior)
+    if (!activeProfile) {
+      return profiles;
+    }
+
+    // String profile name - load that specific profile from all packs
+    if (typeof activeProfile === 'string') {
+      const matchedProfile = profiles.find(p => p.id === activeProfile);
+      return matchedProfile ? [matchedProfile] : profiles; // Fallback to all if not found
+    }
+
+    // Object with per-pack profile selection
+    if (typeof activeProfile === 'object' && activeProfile[packId]) {
+      const requestedProfileId = activeProfile[packId];
+      const matchedProfile = profiles.find(p => p.id === requestedProfileId);
+      return matchedProfile ? [matchedProfile] : profiles; // Fallback to all if not found
+    }
+
+    // Default: load all profiles
+    return profiles;
+  }
+
+  /**
    * Process defaults from a pack profile
    * @private
    * @param {Object} defaults - Defaults object from pack profile
@@ -487,8 +308,11 @@ export class MsdDefaultsManager {
     // Flatten the defaults object into dot-notation paths
     const flatDefaults = this._flattenDefaults(defaults);
 
+    // Determine target layer based on pack ID
+    const targetLayer = packId === 'core' ? 'builtin' : 'pack';
+
     for (const [path, value] of Object.entries(flatDefaults)) {
-      this.set('pack', path, value);
+      this.set(targetLayer, path, value);
     }
   }
 
@@ -646,7 +470,9 @@ export class MsdDefaultsManager {
       console.error('[MsdDefaultsManager] 🚨 Debug method failed:', error);
       console.groupEnd();
     }
-  }  /**
+  }
+
+  /**
    * Helper: Get icon for layer type
    * @private
    */
