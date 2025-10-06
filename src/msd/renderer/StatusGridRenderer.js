@@ -160,6 +160,132 @@ export class StatusGridRenderer {
   }
 
   /**
+   * Check if we should wait for pipeline to be ready before rendering
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {boolean} True if we should wait
+   */
+  _shouldWaitForPipeline(overlay) {
+    // Only wait if the overlay uses presets that require pack data
+    const style = overlay.finalStyle || overlay.style || {};
+    const hasPreset = !!(style.lcars_button_preset || style.lcars_text_preset);
+
+    if (!hasPreset) {
+      cblcarsLog.debug(`[StatusGridRenderer] No presets found, rendering immediately for ${overlay.id}`);
+      return false; // No presets, no need to wait
+    }
+
+    // Check if pipeline is ready
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    const isReady = !!(pipelineInstance?.config?.__provenance);
+
+    cblcarsLog.debug(`[StatusGridRenderer] Pipeline check for ${overlay.id}:`, {
+      hasPreset,
+      pipelineExists: !!pipelineInstance,
+      configExists: !!(pipelineInstance?.config),
+      provenanceExists: !!(pipelineInstance?.config?.__provenance),
+      isReady
+    });
+
+    // Don't wait more than 2 seconds max (failsafe)
+    if (!isReady) {
+      const waitStart = Date.now();
+      const maxWaitTime = 2000; // 2 seconds max
+
+      if (!this._waitStartTime) {
+        this._waitStartTime = waitStart;
+      }
+
+      const waitedTime = waitStart - this._waitStartTime;
+      if (waitedTime > maxWaitTime) {
+        cblcarsLog.warn(`[StatusGridRenderer] ⏰ Timeout waiting for pipeline (${waitedTime}ms), rendering with fallback for ${overlay.id}`);
+        return false; // Timeout, render anyway
+      }
+    } else {
+      // Reset wait timer when ready
+      this._waitStartTime = null;
+    }
+
+    return !isReady; // Wait if not ready
+  }
+
+  /**
+   * Render a placeholder while waiting for pipeline
+   * @private
+   */
+  _renderPlaceholder(overlay, x, y, width, height) {
+    return `<g data-overlay-id="${overlay.id}" data-overlay-type="status_grid" data-placeholder="true">
+              <g transform="translate(${x}, ${y})">
+                <rect width="${width}" height="${height}"
+                      fill="rgba(0,136,255,0.1)" stroke="rgba(0,136,255,0.3)" stroke-width="1"
+                      rx="4"/>
+                <text x="${width / 2}" y="${height / 2}" text-anchor="middle"
+                      fill="rgba(0,136,255,0.6)" font-size="10" dominant-baseline="middle"
+                      font-family="var(--lcars-font-family, Antonio)">
+                  Loading...
+                </text>
+              </g>
+            </g>`;
+  }
+
+  /**
+   * Schedule rendering when pipeline is ready
+   * @private
+   */
+  _scheduleRenderWhenReady(overlay, anchors, viewBox, cardInstance) {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      cblcarsLog.warn(`[StatusGridRenderer] No pipeline instance, rendering immediately for ${overlay.id}`);
+      // No pipeline, trigger immediate re-render
+      setTimeout(() => {
+        const cardInstance = window.cb_lcars_card_instance;
+        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
+          cardInstance.requestUpdate();
+        }
+      }, 10);
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 200; // 200 * 10ms = 2 seconds max
+
+    // Check if pipeline is ready periodically (faster polling)
+    const checkReady = () => {
+      attempts++;
+
+      if (pipelineInstance.config && pipelineInstance.config.__provenance) {
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Pipeline ready after ${attempts * 10}ms, triggering immediate re-render for ${overlay.id}`);
+
+        // Trigger immediate card update
+        const cardInstance = window.cb_lcars_card_instance;
+        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
+          cardInstance.requestUpdate();
+        }
+
+        return; // Stop checking
+      }
+
+      if (attempts >= maxAttempts) {
+        cblcarsLog.warn(`[StatusGridRenderer] ⏰ Timeout waiting for pipeline after ${attempts * 10}ms, forcing re-render for ${overlay.id}`);
+
+        // Force re-render even without pipeline ready
+        const cardInstance = window.cb_lcars_card_instance;
+        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
+          cardInstance.requestUpdate();
+        }
+
+        return; // Stop checking
+      }
+
+      // Check again very quickly
+      setTimeout(checkReady, 10); // Much faster polling
+    };
+
+    // Start checking immediately
+    setTimeout(checkReady, 5);
+  }
+
+  /**
    * Resolve comprehensive status grid styling from configuration
    * @private
    */
@@ -171,55 +297,55 @@ export class StatusGridRenderer {
       // Grid layout - Following documentation schema: rows/columns are in style
       rows: Number(style.rows || this._getDefault('status_grid.rows', 3)),
       columns: Number(style.columns || this._getDefault('status_grid.columns', 4)),
-      cell_width: Number(style.cell_width || style.cellWidth || 0), // 0 = auto
-      cell_height: Number(style.cell_height || style.cellHeight || 0), // 0 = auto
-      cell_gap: Number(style.cell_gap || style.cellGap || this._getDefault('status_grid.cell_gap', 2)),
+      cell_width: Number(style.cell_width || 0), // 0 = auto
+      cell_height: Number(style.cell_height || 0), // 0 = auto
+      cell_gap: Number(style.cell_gap || this._getDefault('status_grid.cell_gap', 2)),
 
       // Proportional sizing configuration
-      row_sizes: style.row_sizes || style.rowSizes || null,
-      column_sizes: style.column_sizes || style.columnSizes || null,
-      row_heights: style.row_heights || style.rowHeights || null,
-      column_widths: style.column_widths || style.columnWidths || null,
+      row_sizes: style.row_sizes || null,
+      column_sizes: style.column_sizes || null,
+      row_heights: style.row_heights || null,
+      column_widths: style.column_widths || null,
 
       // Cell appearance (using standardized colors with defaults manager fallbacks)
       cell_color: standardStyles.colors.primaryColor || this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
       cell_opacity: standardStyles.layout.opacity || this._getDefault('status_grid.cell_opacity', 1.0),
-      cell_radius: Number(style.cell_radius || style.cellRadius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
-      normalize_radius: style.normalize_radius !== false && style.normalizeRadius !== false, // Default true unless explicitly set to false
-      match_ha_radius: style.match_ha_radius !== false && style.matchHaRadius !== false, // Default true unless explicitly set to false
+      cell_radius: Number(style.cell_radius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
+      normalize_radius: style.normalize_radius !== false, // Default true unless explicitly set to false
+      match_ha_radius: style.match_ha_radius !== false, // Default true unless explicitly set to false
 
       // Border (using standardized layout with defaults manager fallbacks)
-      cell_border: style.cell_border || style.cellBorder !== false,
+      cell_border: style.cell_border !== false,
       border_color: standardStyles.colors.borderColor || this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
       border_width: standardStyles.layout.borderWidth || this._getDefault('status_grid.border_width', 1),
 
       // Text (using standardized text styles with defaults manager fallbacks)
       show_labels: style.show_labels !== false,
       show_values: style.show_values || false, // Default to false per documentation
-      label_color: standardStyles.text.labelColor || style.label_color || style.labelColor || this._getDefault('status_grid.label_color', 'var(--lcars-white)'),
-      value_color: standardStyles.text.valueColor || style.value_color || style.valueColor || this._getDefault('status_grid.value_color', 'var(--lcars-white)'),
-      font_size: Number(style.font_size || style.fontSize) || Math.max(standardStyles.text.fontSize || 12, this._getDefault('status_grid.font_size', 18)),
-      font_family: standardStyles.text.fontFamily || style.font_family || style.fontFamily || this._getDefault('status_grid.font_family', 'var(--lcars-font-family, Antonio)'),
-      font_weight: standardStyles.text.fontWeight || style.font_weight || style.fontWeight || this._getDefault('status_grid.font_weight', 'normal'),
+      label_color: standardStyles.text.labelColor || style.label_color || this._getDefault('status_grid.label_color', 'var(--lcars-white)'),
+      value_color: standardStyles.text.valueColor || style.value_color || this._getDefault('status_grid.value_color', 'var(--lcars-white)'),
+      font_size: Number(style.font_size) || Math.max(standardStyles.text.fontSize || 12, this._getDefault('status_grid.font_size', 18)),
+      font_family: standardStyles.text.fontFamily || style.font_family || this._getDefault('status_grid.font_family', 'var(--lcars-font-family, Antonio)'),
+      font_weight: standardStyles.text.fontWeight || style.font_weight || this._getDefault('status_grid.font_weight', 'normal'),
 
       // Enhanced text sizing and positioning system (using defaults manager)
-      label_font_size: Number(style.label_font_size || style.labelFontSize) || Number(style.font_size || style.fontSize) || this._getDefault('status_grid.label_font_size', 18),
-      value_font_size: Number(style.value_font_size || style.valueFontSize) || (Number(style.font_size || style.fontSize) ? Number(style.font_size || style.fontSize) * 0.9 : this._getDefault('status_grid.value_font_size', 16)),
+      label_font_size: Number(style.label_font_size) || Number(style.font_size) || this._getDefault('status_grid.label_font_size', 18),
+      value_font_size: Number(style.value_font_size) || (Number(style.font_size) ? Number(style.font_size) * 0.9 : this._getDefault('status_grid.value_font_size', 16)),
 
       // PHASE 1: Smart font-relative defaults (fixes collision issues)
       // Calculate intelligent defaults based on actual font sizes to prevent overlap
-      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || style.fontSize || 18),
-      _labelFontSize: Number(style.label_font_size || style.labelFontSize || standardStyles.text.fontSize || 18),
-      _valueFontSize: Number(style.value_font_size || style.valueFontSize || (standardStyles.text.fontSize * 0.9) || 16),
+      _baseFontSize: standardStyles.text.fontSize || Number(style.font_size || 18),
+      _labelFontSize: Number(style.label_font_size || standardStyles.text.fontSize || 18),
+      _valueFontSize: Number(style.value_font_size || (standardStyles.text.fontSize * 0.9) || 16),
 
       // PHASE 2: Enhanced positioning system - allows CB-LCARS button card recreation
-      text_layout: style.text_layout || style.textLayout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
-      text_alignment: style.text_alignment || style.textAlignment || 'center', // center, top, bottom, custom
-      text_justify: style.text_justify || style.textJustify || 'center', // left, center, right
+      text_layout: style.text_layout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
+      text_alignment: style.text_alignment || 'center', // center, top, bottom, custom
+      text_justify: style.text_justify || 'center', // left, center, right
 
       // Flexible positioning - supports both predefined and custom positions
-      label_position: style.label_position || style.labelPosition || 'center-top', // Predefined or custom object
-      value_position: style.value_position || style.valuePosition || 'center-bottom', // Predefined or custom object
+      label_position: style.label_position || 'center-top', // Predefined or custom object
+      value_position: style.value_position || 'center-bottom', // Predefined or custom object
 
       // Legacy positioning (backward compatible but calculated intelligently)
       text_spacing: this._calculateSmartTextSpacing(style), // Intelligent spacing calculation
@@ -227,28 +353,28 @@ export class StatusGridRenderer {
       value_offset_y: this._calculateSmartValueOffset(style), // Smart value positioning
 
       // PHASE 3: Advanced layout options (using defaults manager)
-      text_padding: Number(style.text_padding || style.textPadding || this._getDefault('status_grid.text_padding', 8)),
-      text_margin: Number(style.text_margin || style.textMargin || this._getDefault('status_grid.text_margin', 2)),
-      text_wrap: style.text_wrap || style.textWrap || false, // Enable text wrapping
-      max_text_width: style.max_text_width || style.maxTextWidth || '90%', // Max width as percentage
-      text_overflow: style.text_overflow || style.textOverflow || 'ellipsis', // ellipsis, clip, none
+      text_padding: Number(style.text_padding || this._getDefault('status_grid.text_padding', 8)),
+      text_margin: Number(style.text_margin || this._getDefault('status_grid.text_margin', 2)),
+      text_wrap: style.text_wrap || false, // Enable text wrapping
+      max_text_width: style.max_text_width || '90%', // Max width as percentage
+      text_overflow: style.text_overflow || 'ellipsis', // ellipsis, clip, none
 
       // CB-LCARS specific positioning presets
-      lcars_text_preset: style.lcars_text_preset || style.lcarsTextPreset || null, // lozenge, bullet, corner, etc.
+      lcars_text_preset: style.lcars_text_preset || null, // lozenge, bullet, corner, etc.
 
       // CB-LCARS Button Presets (NEW - Phase 2)
-      lcars_button_preset: style.lcars_button_preset || style.lcarsButtonPreset || null, // lozenge, bullet, picard-filled, etc.
+      lcars_button_preset: style.lcars_button_preset || null, // lozenge, bullet, picard-filled, etc.
 
       // Status coloring
-      status_mode: (style.status_mode || style.statusMode || 'auto').toLowerCase(),
-      status_ranges: this._parseStatusRanges(style.status_ranges || style.statusRanges),
+      status_mode: (style.status_mode || 'auto').toLowerCase(),
+      status_ranges: this._parseStatusRanges(style.status_ranges),
       unknown_color: standardStyles.colors.disabledColor,
 
       // Grid features
-      show_grid_lines: style.show_grid_lines || style.showGridLines || false,
-      grid_line_color: style.grid_line_color || style.gridLineColor || standardStyles.colors.borderColor,
-      grid_line_opacity: Number(style.grid_line_opacity || style.gridLineOpacity || 0.3),
-      grid_line_width: Number(style.grid_line_width || style.gridLineWidth || 1), // Added missing grid line width control
+      show_grid_lines: style.show_grid_lines || false,
+      grid_line_color: style.grid_line_color || standardStyles.colors.borderColor,
+      grid_line_opacity: Number(style.grid_line_opacity || 0.3),
+      grid_line_width: Number(style.grid_line_width || 1), // Added missing grid line width control
 
       // Effects (using standardized effect parsing)
       gradient: standardStyles.gradient,
@@ -258,18 +384,18 @@ export class StatusGridRenderer {
       blur: standardStyles.blur,
 
       // LCARS-specific features
-      bracket_style: style.bracket_style || style.bracketStyle || false,
-      bracket_color: style.bracket_color || style.bracketColor || standardStyles.colors.primaryColor,
-      bracket_width: Number(style.bracket_width || style.bracketWidth || 2),
-      bracket_gap: Number(style.bracket_gap || style.bracketGap || 4),
-      bracket_extension: Number(style.bracket_extension || style.bracketExtension || 8),
-      bracket_opacity: Number(style.bracket_opacity || style.bracketOpacity || 1),
-      bracket_corners: style.bracket_corners || style.bracketCorners || 'both',
-      bracket_sides: style.bracket_sides || style.bracketSides || 'both',
+      bracket_style: style.bracket_style || false,
+      bracket_color: style.bracket_color || standardStyles.colors.primaryColor,
+      bracket_width: Number(style.bracket_width || 2),
+      bracket_gap: Number(style.bracket_gap || 4),
+      bracket_extension: Number(style.bracket_extension || 8),
+      bracket_opacity: Number(style.bracket_opacity || 1),
+      bracket_corners: style.bracket_corners || 'both',
+      bracket_sides: style.bracket_sides || 'both',
       // Enhanced bg-grid style bracket options
-      bracket_physical_width: Number(style.bracket_physical_width || style.bracketPhysicalWidth || style.bracket_extension || 8),
-      bracket_height: style.bracket_height || style.bracketHeight || '100%',
-      bracket_radius: Number(style.bracket_radius || style.bracketRadius || 4),
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_extension || 8),
+      bracket_height: style.bracket_height || '100%',
+      bracket_radius: Number(style.bracket_radius || 4),
       // LCARS container/border options
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
@@ -279,8 +405,8 @@ export class StatusGridRenderer {
       border_radius: Number(style.border_radius || 8),
       inner_factor: Number(style.inner_factor || 2),
       hybrid_mode: style.hybrid_mode || false,
-      status_indicator: style.status_indicator || style.statusIndicator || false,
-      lcars_corners: style.lcars_corners || style.lcarsCorners || false,
+      status_indicator: style.status_indicator || false,
+      lcars_corners: style.lcars_corners || false,
 
       // Interaction (using standardized interaction styles)
       hover_enabled: standardStyles.interaction.hoverEnabled,
@@ -298,7 +424,7 @@ export class StatusGridRenderer {
       actions: style.actions || null,               // Enhanced multi-target actions block
 
       // Performance options
-      update_throttle: Number(style.update_throttle || style.updateThrottle || 100),
+      update_throttle: Number(style.update_throttle || 100),
 
       // Track enabled features for optimization
       features: [],
@@ -344,6 +470,7 @@ export class StatusGridRenderer {
    */
   _applyButtonPreset(gridStyle, presetName, originalStyle = {}) {
     cblcarsLog.debug(`[StatusGridRenderer] 🎨 Applying CB-LCARS button preset: ${presetName}`);
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 Original style before preset:`, originalStyle);
 
     // Load preset directly from pack data (synchronous)
     const presetStyles = this._loadPresetFromPacks('status_grid', presetName);
@@ -352,6 +479,10 @@ export class StatusGridRenderer {
       cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Button preset '${presetName}' not found in loaded packs`);
       return;
     }
+
+    cblcarsLog.debug(`[StatusGridRenderer] 📦 Loaded preset styles for '${presetName}':`, presetStyles);
+
+    cblcarsLog.debug(`[StatusGridRenderer] 📦 Loaded preset styles:`, presetStyles);
 
     // Apply ALL preset properties (no restrictions)
     this._applyPresetStyles(gridStyle, presetStyles, originalStyle);
@@ -365,39 +496,19 @@ export class StatusGridRenderer {
    */
   _applyPresetStyles(gridStyle, presetStyles, originalStyle = {}) {
     Object.entries(presetStyles).forEach(([property, value]) => {
-      // Check if user provided explicit value (with camelCase alias support)
-      const aliases = this._getPropertyAliases(property);
-      const userProvided = originalStyle[property] !== undefined ||
-                          aliases.some(alias => originalStyle[alias] !== undefined);
-
-      if (!userProvided) {
+      // Only set value if user didn't explicitly provide it
+      if (originalStyle[property] === undefined) {
         gridStyle[property] = value;
         cblcarsLog.debug(`[StatusGridRenderer] 📝 Preset set ${property}: ${value}`);
       } else {
-        cblcarsLog.debug(`[StatusGridRenderer] 🚫 User value for ${property}, skipping preset`);
+        cblcarsLog.debug(`[StatusGridRenderer] 🚫 User explicit value for ${property}, skipping preset`);
       }
     });
+
+    cblcarsLog.debug(`[StatusGridRenderer] ✅ Applied preset styles with user override protection`);
   }
 
   /**
-   * Get property aliases (snake_case <-> camelCase)
-   * @private
-   */
-  _getPropertyAliases(property) {
-    const aliasMap = {
-      'cell_radius': ['cellRadius'],
-      'text_padding': ['textPadding'],
-      'text_margin': ['textMargin'],
-      'cell_gap': ['cellGap'],
-      'label_font_size': ['labelFontSize'],
-      'value_font_size': ['valueFontSize'],
-      'font_size': ['fontSize'],
-      'cell_color': ['cellColor'],
-      'label_color': ['labelColor'],
-      'value_color': ['valueColor']
-    };
-    return aliasMap[property] || [];
-  }  /**
    * Load preset from loaded packs via merge provenance
    * @private
    * @param {string} overlayType - Type of overlay (e.g., 'status_grid')
@@ -405,7 +516,7 @@ export class StatusGridRenderer {
    * @returns {Object|null} Preset configuration or null if not found
    */
   _loadPresetFromPacks(overlayType, presetName) {
-    // Try to access pack data through pipeline instance
+    // Try to access pack data through pipeline instance first (preferred)
     const pipelineInstance = window.__msdDebug?.pipelineInstance;
 
     if (pipelineInstance && pipelineInstance.config && pipelineInstance.config.__provenance) {
@@ -415,7 +526,6 @@ export class StatusGridRenderer {
       for (const layer of mergeOrder) {
         if (layer.type === 'builtin') {
           try {
-            // Try to load the pack again to get style_presets
             const { loadBuiltinPacks } = window.loadBuiltinPacksModule || {};
             if (loadBuiltinPacks) {
               const packs = loadBuiltinPacks([layer.pack]);
@@ -424,7 +534,7 @@ export class StatusGridRenderer {
               if (pack && pack.style_presets && pack.style_presets[overlayType]) {
                 const preset = pack.style_presets[overlayType][presetName];
                 if (preset) {
-                  cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${layer.pack}`);
+                  cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${layer.pack} (pipeline)`);
                   return preset;
                 }
               }
@@ -436,100 +546,32 @@ export class StatusGridRenderer {
       }
     }
 
-    // Fallback: Try to access directly from global pack registry
+    // Fallback: Direct pack loading (always try this if pipeline method fails)
+    cblcarsLog.debug(`[StatusGridRenderer] Trying direct pack loading for preset ${presetName}`);
+
     try {
-      // This is a bit of a hack, but we can try to reconstruct pack access
-      const packRegistry = this._getPackRegistry();
-      if (packRegistry && packRegistry.cb_lcars_buttons) {
-        const pack = packRegistry.cb_lcars_buttons;
-        if (pack.style_presets && pack.style_presets[overlayType]) {
-          const preset = pack.style_presets[overlayType][presetName];
-          if (preset) {
-            cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in global pack registry`);
-            return preset;
-          }
-        }
-      }
-    } catch (error) {
-      cblcarsLog.debug(`[StatusGridRenderer] Could not access global pack registry:`, error.message);
-    }
+      const { loadBuiltinPacks } = window.loadBuiltinPacksModule || {};
+      if (loadBuiltinPacks) {
+        // Load the default packs directly
+        const packs = loadBuiltinPacks(['core', 'cb_lcars_buttons']);
 
-    return null;
-  }
-
-  /**
-   * Get pack registry (hardcoded for now, could be made dynamic)
-   * @private
-   */
-  _getPackRegistry() {
-    // This is a temporary solution - in the future we might want a better way to access pack data
-    return {
-      cb_lcars_buttons: {
-        style_presets: {
-          status_grid: {
-            lozenge: {
-              text_layout: 'diagonal',
-              label_position: 'top-left',
-              value_position: 'bottom-right',
-              cell_radius: 12,
-              text_padding: 10,
-              text_margin: 3,
-              normalize_radius: true,
-              show_labels: true,
-              show_values: true,
-              lcars_text_preset: 'lozenge'
-            },
-            bullet: {
-              text_layout: 'side-by-side',
-              label_position: 'left',
-              value_position: 'right',
-              cell_radius: 8,
-              text_padding: 8,
-              normalize_radius: true,
-              show_labels: true,
-              show_values: true,
-              lcars_text_preset: 'bullet'
-            },
-            'picard-filled': {
-              text_layout: 'stacked',
-              label_position: 'south-east',
-              value_position: 'south-east',
-              cell_radius: 0,
-              text_padding: 12,
-              lcars_corners: true,
-              normalize_radius: false,
-              show_labels: true,
-              show_values: true,
-              lcars_text_preset: 'corner'
-            },
-            badge: {
-              text_layout: 'stacked',
-              label_position: 'center-top',
-              value_position: 'center',
-              cell_radius: 16,
-              text_padding: 8,
-              normalize_radius: true,
-              show_labels: true,
-              show_values: true,
-              lcars_text_preset: 'badge'
-            },
-            compact: {
-              text_layout: 'stacked',
-              label_position: 'center-top',
-              value_position: 'center-bottom',
-              cell_radius: 4,
-              text_padding: 6,
-              text_margin: 1,
-              cell_gap: 1,
-              label_font_size: 14,
-              value_font_size: 12,
-              show_labels: true,
-              show_values: true
+        for (const pack of packs) {
+          if (pack && pack.style_presets && pack.style_presets[overlayType]) {
+            const preset = pack.style_presets[overlayType][presetName];
+            if (preset) {
+              cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${pack.id} (direct)`);
+              return preset;
             }
           }
         }
       }
-    };
+    } catch (error) {
+      cblcarsLog.debug(`[StatusGridRenderer] Direct pack loading failed:`, error.message);
+    }
+
+    // If we get here, preset wasn't found anywhere
+    cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Preset ${presetName} not found in any packs`);
+    return null;
   }
 
   /**
@@ -540,69 +582,21 @@ export class StatusGridRenderer {
    * @param {Object} originalStyle - Original user style for checking explicit values
    */
   _applyPresetStyles(gridStyle, presetStyles, originalStyle = {}) {
-    // Helper function to only set value if user didn't explicitly provide it
-    const setIfNotExplicit = (property, value, aliases = []) => {
-      const userProvided = originalStyle[property] !== undefined ||
-                          aliases.some(alias => originalStyle[alias] !== undefined);
-
-      if (!userProvided) {
+    // Apply all preset styles, respecting user overrides
+    Object.entries(presetStyles).forEach(([property, value]) => {
+      // Only set value if user didn't explicitly provide it
+      if (originalStyle[property] === undefined) {
         gridStyle[property] = value;
         cblcarsLog.debug(`[StatusGridRenderer] 📝 Preset set ${property}: ${value}`);
       } else {
         cblcarsLog.debug(`[StatusGridRenderer] 🚫 User explicit value for ${property}, skipping preset`);
       }
-    };
-
-    // Apply all preset styles, respecting user overrides
-    Object.entries(presetStyles).forEach(([property, value]) => {
-      // Handle property aliases (e.g., cell_radius <-> cellRadius)
-      const aliases = this._getPropertyAliases(property);
-      setIfNotExplicit(property, value, aliases);
     });
 
     cblcarsLog.debug(`[StatusGridRenderer] ✅ Applied preset styles with user override protection`);
   }
 
   /**
-   * Get property aliases for checking user overrides
-   * @private
-   * @param {string} property - Property name
-   * @returns {Array} Array of alias property names
-   */
-  _getPropertyAliases(property) {
-    const aliasMap = {
-      'cell_radius': ['cellRadius'],
-      'text_padding': ['textPadding'],
-      'text_margin': ['textMargin'],
-      'cell_gap': ['cellGap'],
-      'label_font_size': ['labelFontSize'],
-      'value_font_size': ['valueFontSize'],
-      'font_size': ['fontSize'],
-      'show_labels': ['showLabels'],
-      'show_values': ['showValues']
-    };
-
-    return aliasMap[property] || [];
-  }
-
-  /**
-   * Apply hardcoded preset (fallback when pack presets not available)
-   * @private
-   * @param {Object} gridStyle - Grid style object to modify
-   * @param {string} presetName - Name of the button preset
-   * @param {Object} originalStyle - Original user style for checking explicit values
-   */
-  _applyHardcodedPreset(gridStyle, presetName, originalStyle = {}) {
-    // This is the old hardcoded implementation as fallback
-    const hardcodedPresets = this._getPackRegistry().cb_lcars_buttons.style_presets.status_grid;
-    const preset = hardcodedPresets[presetName];
-
-    if (preset) {
-      this._applyPresetStyles(gridStyle, preset, originalStyle);
-    } else {
-      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Unknown button preset: ${presetName}`);
-    }
-  }  /**
    * Calculate intelligent text spacing based on font sizes (Phase 1: Collision Fix)
    * @private
    * @param {Object} style - Style configuration
@@ -610,13 +604,13 @@ export class StatusGridRenderer {
    */
   _calculateSmartTextSpacing(style) {
     // If explicitly set, use that value
-    if (style.text_spacing !== undefined || style.textSpacing !== undefined) {
-      return Number(style.text_spacing || style.textSpacing);
+    if (style.text_spacing !== undefined) {
+      return Number(style.text_spacing);
     }
 
     // Calculate based on font sizes
-    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 18);
-    const valueFontSize = Number(style.value_font_size || style.valueFontSize || (labelFontSize * 0.9));
+    const labelFontSize = Number(style.label_font_size || style.font_size || 18);
+    const valueFontSize = Number(style.value_font_size || (labelFontSize * 0.9));
 
     // Use the larger font size as basis for spacing (prevents overlap)
     const maxFontSize = Math.max(labelFontSize, valueFontSize);
@@ -633,11 +627,11 @@ export class StatusGridRenderer {
    */
   _calculateSmartLabelOffset(style) {
     // If explicitly set, use that value
-    if (style.label_offset_y !== undefined || style.labelOffsetY !== undefined) {
-      return Number(style.label_offset_y || style.labelOffsetY);
+    if (style.label_offset_y !== undefined) {
+      return Number(style.label_offset_y);
     }
 
-    const labelFontSize = Number(style.label_font_size || style.labelFontSize || style.font_size || style.fontSize || 18);
+    const labelFontSize = Number(style.label_font_size || style.font_size || 18);
     const spacing = this._calculateSmartTextSpacing(style);
 
     // Position label above center by half spacing + 20% of font size
@@ -652,12 +646,11 @@ export class StatusGridRenderer {
    */
   _calculateSmartValueOffset(style) {
     // If explicitly set, use that value
-    if (style.value_offset_y !== undefined || style.valueOffsetY !== undefined) {
-      return Number(style.value_offset_y || style.valueOffsetY);
+    if (style.value_offset_y !== undefined) {
+      return Number(style.value_offset_y);
     }
 
-    const valueFontSize = Number(style.value_font_size || style.valueFontSize ||
-                                (style.font_size || style.fontSize || 18) * 0.9);
+    const valueFontSize = Number(style.value_font_size || (style.font_size || 18) * 0.9);
     const spacing = this._calculateSmartTextSpacing(style);
 
     // Position value below center by half spacing + 40% of font size
@@ -1120,9 +1113,7 @@ export class StatusGridRenderer {
                        data-cell-content="${cell.id}">
                        ${this._escapeXml(cell.content || String(cell.data.value))}
                      </text>`;
-      }
-
-      // Close the cell group after all cell content is added
+      }      // Close the cell group after all cell content is added
       gridMarkup += `</g>`;
     });
 

@@ -393,16 +393,37 @@ const CB_LCARS_BUTTONS_PACK = {
   style_presets: {
     status_grid: {
       lozenge: {
-        text_layout: 'diagonal',
-        label_position: 'top-left',
-        value_position: 'bottom-right',
-        cell_radius: 12,
-        text_padding: 10,
-        text_margin: 3,
-        normalize_radius: true,
-        show_labels: true,
-        show_values: true,
-        lcars_text_preset: 'lozenge'
+        // Layout & Positioning (lcars_text_preset takes precedence)
+        text_layout: 'diagonal',           // ⚠️ Parsed but not used yet
+        label_position: 'top-left',        // ✅ Works (fallback if no lcars_text_preset)
+        value_position: 'bottom-right',    // ✅ Works (fallback if no lcars_text_preset)
+        lcars_text_preset: 'lozenge',      // ✅ Works (overrides positions above)
+
+        // Cell Appearance
+        cell_radius: 12,                   // ✅ Works
+        cell_color: 'var(--lcars-blue)',   // ✅ Works
+        cell_gap: 2,                       // ✅ Works
+        normalize_radius: true,            // ✅ Works
+        lcars_corners: false,              // ✅ Works
+
+        // Text Styling
+        text_padding: 10,                  // ✅ Works (smart padding)
+        text_margin: 3,                    // ✅ Works
+        label_font_size: 16,               // ✅ Works
+        value_font_size: 14,               // ✅ Works
+        label_color: 'var(--lcars-white)', // ✅ Works
+        value_color: 'var(--lcars-orange)', // ✅ Works
+        font_family: 'Antonio',            // ✅ Works
+        font_weight: 'bold',               // ✅ Works
+
+        // Visibility
+        show_labels: true,                 // ✅ Works
+        show_values: true,                 // ✅ Works
+
+        // Border & Effects
+        border_width: 2,                   // ✅ Works
+        border_color: 'var(--lcars-gray)', // ✅ Works
+        cell_opacity: 0.9                 // ✅ Works
       },
       bullet: {
         text_layout: 'side-by-side',
@@ -487,7 +508,7 @@ const BUILTIN_REGISTRY = {
   cb_lcars_buttons: CB_LCARS_BUTTONS_PACK
 };
 
-export function loadBuiltinPacks(requested = ['core']) {
+export function loadBuiltinPacks(requested = ['core', 'cb_lcars_buttons']) {
   return requested.map(id => BUILTIN_REGISTRY[id]).filter(Boolean);
 }
 
