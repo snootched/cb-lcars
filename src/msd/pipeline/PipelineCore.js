@@ -13,8 +13,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 /**
  * Initialize the MSD processing/rendering pipeline.
- * Handles config merge/validation, system initialization, initial render,
- * debug interface binding, and exposes a unified pipeline API.
+ * ENHANCED: Ensures pack loading and defaults management complete before overlay processing
  *
  * @param {Object} userMsdConfig - User supplied MSD config.
  * @param {HTMLElement|ShadowRoot} mountEl - Mount/root element (may be a shadowRoot).
@@ -22,16 +21,97 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
  * @returns {Promise<Object>} Pipeline API
  */
 export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
-  // Process and validate configuration
+  cblcarsLog.debug('[PipelineCore] 🚀 Starting MSD pipeline initialization with enhanced sequencing');
+
+  // PHASE 1: Configuration processing and pack merging
+  cblcarsLog.debug('[PipelineCore] 📋 Phase 1: Processing and validating configuration');
   const { mergedConfig, issues, provenance } = await processAndValidateConfig(userMsdConfig);
 
-  // Handle validation errors
+  // Handle validation errors early
   if (issues.errors.length) {
     cblcarsLog.error('[PipelineCore] Validation errors – pipeline disabled', issues.errors);
     return createDisabledPipeline(mergedConfig, issues, provenance);
   }
 
-  // Build card model
+  // PHASE 2: Initialize SystemsManager with defaults loading BEFORE any overlay processing
+  cblcarsLog.debug('[PipelineCore] 🔧 Phase 2: Initializing SystemsManager and loading pack defaults');
+  const systemsManager = new SystemsManager();
+
+  // CRITICAL: Initialize systems with pack defaults loading before overlay processing
+  try {
+    await systemsManager.initializeSystemsWithPacksFirst(mergedConfig, mountEl, hass);
+  } catch (error) {
+    cblcarsLog.error('[PipelineCore] ❌ SystemsManager initialization failed:', error);
+    throw new Error(`SystemsManager initialization failed: ${error.message}`);
+  }
+
+  // Verify defaults manager is ready with enhanced validation
+  if (!systemsManager.defaultsManager) {
+    throw new Error('DefaultsManager initialization failed - cannot proceed with overlay rendering');
+  }
+
+  // Validate essential packs are loaded
+  const introspectionData = systemsManager.defaultsManager.getIntrospectionData();
+
+  cblcarsLog.debug('[PipelineCore] 🔍 Pack validation - full introspection:', introspectionData);
+
+  // The introspection data structure should be checked more carefully
+  // We need to look for actual pack names, not configuration paths
+  let packsFound = [];
+  let corePackFound = false;
+
+  // Check if introspection has a packs section or similar
+  if (introspectionData.layers && introspectionData.layers.pack) {
+    // The pack layers might be structured differently
+    const packData = introspectionData.layers.pack;
+
+    // Try different ways to extract pack information
+    if (typeof packData === 'object') {
+      // If it's an object, we need to find actual pack references
+      const keys = Object.keys(packData);
+
+      // Look for pack metadata or check if these are actually pack names
+      for (const key of keys) {
+        if (typeof key === 'string') {
+          // Check if this looks like a pack name (no dots) vs a setting path (has dots)
+          if (!key.includes('.')) {
+            packsFound.push(key);
+            if (key === 'core') corePackFound = true;
+          }
+        }
+      }
+
+      // If we didn't find pack names, try to extract from the provenance
+      if (packsFound.length === 0 && mergedConfig.__provenance) {
+        const provenancePackLayers = mergedConfig.__provenance.merge_order?.filter(layer => layer.type === 'builtin') || [];
+        packsFound = provenancePackLayers.map(layer => layer.pack);
+        corePackFound = packsFound.includes('core');
+
+        cblcarsLog.debug('[PipelineCore] 🔍 Extracted pack names from provenance:', packsFound);
+      }
+    }
+  }
+
+  cblcarsLog.debug('[PipelineCore] 🔍 Pack validation results:', {
+    introspectionStructure: typeof introspectionData.layers?.pack,
+    packsFound,
+    corePackFound,
+    introspectionKeys: introspectionData.layers?.pack ? Object.keys(introspectionData.layers.pack).slice(0, 5) : []
+  });
+
+  if (!corePackFound) {
+    cblcarsLog.warn('[PipelineCore] ⚠️ Core pack not found in defaults manager - some features may not work');
+    cblcarsLog.debug('[PipelineCore] Available packs:', packsFound);
+  } else {
+    cblcarsLog.debug('[PipelineCore] ✅ Core pack validated in defaults manager');
+  }  cblcarsLog.debug('[PipelineCore] ✅ Pack defaults loaded and ready:', {
+    hasDefaultsManager: !!systemsManager.defaultsManager,
+    packsLoaded: packsFound,
+    totalPackDefaults: packsFound.length
+  });
+
+  // PHASE 3: Build card model (now safe to process overlays)
+  cblcarsLog.debug('[PipelineCore] 🏗️ Phase 3: Building card model');
   const cardModel = await buildCardModel(mergedConfig);
 
   // Ensure anchors are available
@@ -43,18 +123,23 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     }
   }
 
-  // Initialize all systems
-  const systemsManager = new SystemsManager();
-  await systemsManager.initializeSystems(mergedConfig, cardModel, mountEl, hass);
+  // PHASE 4: Complete systems initialization with card model
+  cblcarsLog.debug('[PipelineCore] ⚙️ Phase 4: Completing systems initialization');
+  try {
+    await systemsManager.completeSystems(mergedConfig, cardModel, mountEl);
+  } catch (error) {
+    cblcarsLog.error('[PipelineCore] ❌ Systems completion failed:', error);
+    throw new Error(`Systems completion failed: ${error.message}`);
+  }
 
   // ADDED: Set original HASS for clean controls separation
   if (hass) {
-      systemsManager.setOriginalHass(hass);
+    systemsManager.setOriginalHass(hass);
   }
 
 
-
-  // CRITICAL FIX: Ensure essential subsystems are available for overlay rendering
+  // PHASE 5: Early debug and routing setup
+  cblcarsLog.debug('[PipelineCore] 🔍 Phase 5: Setting up debug infrastructure');
   if (typeof window !== 'undefined') {
     window.__msdDebug = window.__msdDebug || {};
     window.__msdDebug.debugManager = systemsManager.debugManager;
@@ -63,37 +148,20 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     // Make core systems available BEFORE any overlay rendering
     window.__msdDebug.pipelineInstance = {
       systemsManager: systemsManager,
-      dataSourceManager: systemsManager.dataSourceManager
+      dataSourceManager: systemsManager.dataSourceManager,
+      config: mergedConfig,
+      defaultsManager: systemsManager.defaultsManager
     };
 
     cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
       hasSystemsManager: !!systemsManager,
       hasDataSourceManager: !!systemsManager.dataSourceManager,
+      hasDefaultsManager: !!systemsManager.defaultsManager,
+      hasRouter: !!systemsManager.router,
       dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
     });
-  }
 
-  // VALIDATION: Don't proceed with overlay rendering if essential systems aren't ready
-  if (!systemsManager.dataSourceManager) {
-    cblcarsLog.warn('[PipelineCore] DataSourceManager not available - overlay template processing will be limited');
-  }
-
-  // EARLY DEBUG BOOTSTRAP (Before first render):
-  // Provide a minimal __msdDebug object so debug renderers that run during the first render
-  // can access routing / perf safely. This prevents timing race warnings for routing guides.
-  if (typeof window !== 'undefined') {
-    window.__msdDebug = window.__msdDebug || {};
-    // Only set if not already present to avoid clobbering previous instrumentation
-    if (!window.__msdDebug.routing) {
-      window.__msdDebug.routing = systemsManager.router;
-    }
-    if (!window.__msdDebug.getPerf) {
-      window.__msdDebug.getPerf = () => perfGetAll();
-    }
-    if (!window.__msdDebug.systemsManager) {
-      window.__msdDebug.systemsManager = systemsManager;
-    }
-    // Dispatch an event so listeners (e.g., MsdDebugRenderer) can react when routing is ready.
+    // Dispatch routing ready event
     try {
       window.dispatchEvent(new CustomEvent('msd-routing-ready'));
     } catch (e) {
@@ -101,10 +169,11 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     }
   }
 
-  // Initialize model builder
+  // PHASE 6: Initialize model builder (now everything is ready)
+  cblcarsLog.debug('[PipelineCore] 🏭 Phase 6: Initializing model builder');
   const modelBuilder = new ModelBuilder(mergedConfig, cardModel, systemsManager);
 
-  // ADDED: Store ModelBuilder reference in SystemsManager for accessibility
+  // Store ModelBuilder reference in SystemsManager for accessibility
   systemsManager.modelBuilder = modelBuilder;
 
   /**
@@ -116,8 +185,14 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     cblcarsLog.debug('[PipelineCore] 🔄 reRender() ENTRY', {
       timestamp: new Date().toISOString(),
       renderInProgress: systemsManager._renderInProgress,
-      stackTrace: new Error().stack.split('\n').slice(1, 4).join('\n')
+      defaultsManagerReady: !!systemsManager.defaultsManager
     });
+
+    // ENHANCED: Verify defaults manager is still available
+    if (!systemsManager.defaultsManager) {
+      cblcarsLog.error('[PipelineCore] ❌ DefaultsManager not available during re-render - aborting');
+      return { success: false, error: 'DefaultsManager not available' };
+    }
 
     // IMPROVED: Queue renders instead of blocking them
     if (systemsManager._renderInProgress) {
@@ -192,8 +267,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // Connect reRender callback to systems
   systemsManager.setReRenderCallback(reRender);
 
-  // Initial render - CHANGED: Make async
-  cblcarsLog.debug('[PipelineCore] Computing initial resolved model');
+  // PHASE 7: Initial render - now everything is properly sequenced
+  cblcarsLog.debug('[PipelineCore] 🎬 Phase 7: Performing initial render');
   cblcarsLog.debug('[PipelineCore] DataSourceManager status:', {
     sourcesCount: systemsManager.dataSourceManager?.getAllSources?.()?.length || 0,
     entityCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
@@ -206,7 +281,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     errors: initialRenderResult?.errors || 0
   });
 
-  // Create pipeline API
+  // PHASE 8: Create pipeline API and finalize
+  cblcarsLog.debug('[PipelineCore] 🔌 Phase 8: Creating pipeline API');
   const pipelineApi = createPipelineApi(
     mergedConfig, cardModel, systemsManager, modelBuilder, reRender
   );
@@ -239,7 +315,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     }
   }
 
-  cblcarsLog.debug('[PipelineCore] Pipeline initialization complete');
+  cblcarsLog.debug('[PipelineCore] ✅ Pipeline initialization complete with enhanced sequencing');
   return pipelineApi;
 }
 

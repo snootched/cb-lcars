@@ -21,27 +21,64 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Resolve defaults manager from global context
+   * Resolve defaults manager from various sources
    * @private
-   * @returns {Object|null} Defaults manager instance or null
+   * @returns {Object|null} Defaults manager instance
    */
   _resolveDefaultsManager() {
-    // Try various global locations for defaults manager
-    if (typeof window !== 'undefined') {
-      // Method 1: From CB-LCARS global context
-      if (window.cblcars?.defaults) {
-        cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via window.cblcars.defaults');
-        return window.cblcars.defaults;
-      }
+    // Try multiple resolution paths with enhanced logging
 
-      // Method 2: From MSD pipeline debug context
-      if (window.__msdDebug?.pipelineInstance?.defaultsManager) {
-        cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via MSD pipeline debug context');
-        return window.__msdDebug.pipelineInstance.defaultsManager;
-      }
+    // 1. Global CB-LCARS namespace (preferred)
+    if (window.cblcars?.defaults) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via window.cblcars.defaults');
+      return window.cblcars.defaults;
     }
 
-    cblcarsLog.debug('[StatusGridRenderer] ⚠️ Defaults manager not found, using fallback values');
+    // 2. Pipeline instance
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (pipelineInstance?.systemsManager?.defaultsManager) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via pipeline systemsManager');
+      return pipelineInstance.systemsManager.defaultsManager;
+    }
+
+    // 3. Direct pipeline access
+    if (pipelineInstance?.defaultsManager) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via pipeline direct');
+      return pipelineInstance.defaultsManager;
+    }
+
+    // 4. Systems manager global reference
+    const systemsManager = window.__msdDebug?.systemsManager;
+    if (systemsManager?.defaultsManager) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to defaults manager via global systemsManager');
+      return systemsManager.defaultsManager;
+    }
+
+    cblcarsLog.debug('[StatusGridRenderer] ⚠️ No defaults manager found in any resolution path');
+    return null;
+  }
+
+  /**
+   * Resolve style preset manager from various sources
+   * @private
+   * @returns {Object|null} Style preset manager instance
+   */
+  _resolveStylePresetManager() {
+    // 1. Pipeline instance (preferred)
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (pipelineInstance?.systemsManager?.stylePresetManager) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to style preset manager via pipeline systemsManager');
+      return pipelineInstance.systemsManager.stylePresetManager;
+    }
+
+    // 2. Systems manager global reference
+    const systemsManager = window.__msdDebug?.systemsManager;
+    if (systemsManager?.stylePresetManager) {
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to style preset manager via global systemsManager');
+      return systemsManager.stylePresetManager;
+    }
+
+    cblcarsLog.debug('[StatusGridRenderer] ⚠️ No style preset manager found');
     return null;
   }
 
@@ -119,7 +156,7 @@ export class StatusGridRenderer {
     const [width, height] = size;
 
     try {
-      // Extract comprehensive styling
+      // Extract comprehensive styling - defaults should now always be available
       const style = overlay.finalStyle || overlay.style || {};
       const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
@@ -157,132 +194,6 @@ export class StatusGridRenderer {
         needsActionAttachment: false
       };
     }
-  }
-
-  /**
-   * Check if we should wait for pipeline to be ready before rendering
-   * @private
-   * @param {Object} overlay - Overlay configuration
-   * @returns {boolean} True if we should wait
-   */
-  _shouldWaitForPipeline(overlay) {
-    // Only wait if the overlay uses presets that require pack data
-    const style = overlay.finalStyle || overlay.style || {};
-    const hasPreset = !!(style.lcars_button_preset || style.lcars_text_preset);
-
-    if (!hasPreset) {
-      cblcarsLog.debug(`[StatusGridRenderer] No presets found, rendering immediately for ${overlay.id}`);
-      return false; // No presets, no need to wait
-    }
-
-    // Check if pipeline is ready
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    const isReady = !!(pipelineInstance?.config?.__provenance);
-
-    cblcarsLog.debug(`[StatusGridRenderer] Pipeline check for ${overlay.id}:`, {
-      hasPreset,
-      pipelineExists: !!pipelineInstance,
-      configExists: !!(pipelineInstance?.config),
-      provenanceExists: !!(pipelineInstance?.config?.__provenance),
-      isReady
-    });
-
-    // Don't wait more than 2 seconds max (failsafe)
-    if (!isReady) {
-      const waitStart = Date.now();
-      const maxWaitTime = 2000; // 2 seconds max
-
-      if (!this._waitStartTime) {
-        this._waitStartTime = waitStart;
-      }
-
-      const waitedTime = waitStart - this._waitStartTime;
-      if (waitedTime > maxWaitTime) {
-        cblcarsLog.warn(`[StatusGridRenderer] ⏰ Timeout waiting for pipeline (${waitedTime}ms), rendering with fallback for ${overlay.id}`);
-        return false; // Timeout, render anyway
-      }
-    } else {
-      // Reset wait timer when ready
-      this._waitStartTime = null;
-    }
-
-    return !isReady; // Wait if not ready
-  }
-
-  /**
-   * Render a placeholder while waiting for pipeline
-   * @private
-   */
-  _renderPlaceholder(overlay, x, y, width, height) {
-    return `<g data-overlay-id="${overlay.id}" data-overlay-type="status_grid" data-placeholder="true">
-              <g transform="translate(${x}, ${y})">
-                <rect width="${width}" height="${height}"
-                      fill="rgba(0,136,255,0.1)" stroke="rgba(0,136,255,0.3)" stroke-width="1"
-                      rx="4"/>
-                <text x="${width / 2}" y="${height / 2}" text-anchor="middle"
-                      fill="rgba(0,136,255,0.6)" font-size="10" dominant-baseline="middle"
-                      font-family="var(--lcars-font-family, Antonio)">
-                  Loading...
-                </text>
-              </g>
-            </g>`;
-  }
-
-  /**
-   * Schedule rendering when pipeline is ready
-   * @private
-   */
-  _scheduleRenderWhenReady(overlay, anchors, viewBox, cardInstance) {
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (!pipelineInstance) {
-      cblcarsLog.warn(`[StatusGridRenderer] No pipeline instance, rendering immediately for ${overlay.id}`);
-      // No pipeline, trigger immediate re-render
-      setTimeout(() => {
-        const cardInstance = window.cb_lcars_card_instance;
-        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
-          cardInstance.requestUpdate();
-        }
-      }, 10);
-      return;
-    }
-
-    let attempts = 0;
-    const maxAttempts = 200; // 200 * 10ms = 2 seconds max
-
-    // Check if pipeline is ready periodically (faster polling)
-    const checkReady = () => {
-      attempts++;
-
-      if (pipelineInstance.config && pipelineInstance.config.__provenance) {
-        cblcarsLog.debug(`[StatusGridRenderer] ✅ Pipeline ready after ${attempts * 10}ms, triggering immediate re-render for ${overlay.id}`);
-
-        // Trigger immediate card update
-        const cardInstance = window.cb_lcars_card_instance;
-        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
-          cardInstance.requestUpdate();
-        }
-
-        return; // Stop checking
-      }
-
-      if (attempts >= maxAttempts) {
-        cblcarsLog.warn(`[StatusGridRenderer] ⏰ Timeout waiting for pipeline after ${attempts * 10}ms, forcing re-render for ${overlay.id}`);
-
-        // Force re-render even without pipeline ready
-        const cardInstance = window.cb_lcars_card_instance;
-        if (cardInstance && typeof cardInstance.requestUpdate === 'function') {
-          cardInstance.requestUpdate();
-        }
-
-        return; // Stop checking
-      }
-
-      // Check again very quickly
-      setTimeout(checkReady, 10); // Much faster polling
-    };
-
-    // Start checking immediately
-    setTimeout(checkReady, 5);
   }
 
   /**
@@ -462,7 +373,7 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Apply CB-LCARS button preset by loading directly from pack data
+   * Apply CB-LCARS button preset using StylePresetManager
    * @private
    * @param {Object} gridStyle - Grid style object to modify
    * @param {string} presetName - Name of the button preset
@@ -472,17 +383,21 @@ export class StatusGridRenderer {
     cblcarsLog.debug(`[StatusGridRenderer] 🎨 Applying CB-LCARS button preset: ${presetName}`);
     cblcarsLog.debug(`[StatusGridRenderer] 🔍 Original style before preset:`, originalStyle);
 
-    // Load preset directly from pack data (synchronous)
-    const presetStyles = this._loadPresetFromPacks('status_grid', presetName);
+    // ENHANCED: Use StylePresetManager first (clean approach)
+    let presetStyles = this._loadPresetFromStylePresetManager('status_grid', presetName);
+
+    // FALLBACK: Use legacy pack loading if StylePresetManager doesn't work
+    if (!presetStyles) {
+      cblcarsLog.debug(`[StatusGridRenderer] StylePresetManager didn't find preset, trying legacy approach`);
+      presetStyles = this._loadPresetFromPacksLegacy('status_grid', presetName);
+    }
 
     if (!presetStyles) {
-      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Button preset '${presetName}' not found in loaded packs`);
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Button preset '${presetName}' not found in any preset manager`);
       return;
     }
 
     cblcarsLog.debug(`[StatusGridRenderer] 📦 Loaded preset styles for '${presetName}':`, presetStyles);
-
-    cblcarsLog.debug(`[StatusGridRenderer] 📦 Loaded preset styles:`, presetStyles);
 
     // Apply ALL preset properties (no restrictions)
     this._applyPresetStyles(gridStyle, presetStyles, originalStyle);
@@ -509,32 +424,122 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Load preset from loaded packs via merge provenance
+   * Load preset from loaded packs via pipeline defaults manager
    * @private
    * @param {string} overlayType - Type of overlay (e.g., 'status_grid')
    * @param {string} presetName - Name of the preset
    * @returns {Object|null} Preset configuration or null if not found
    */
   _loadPresetFromPacks(overlayType, presetName) {
-    // Try to access pack data through pipeline instance first (preferred)
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 Loading preset ${presetName} for ${overlayType}`);
 
+    // ENHANCED: Always check defaults manager first (should be loaded by now)
+    const defaultsManager = this._resolveDefaultsManager();
+    if (defaultsManager) {
+      // Try to get preset through defaults system with enhanced path resolution
+      const presetPaths = [
+        `${overlayType}.presets.${presetName}`,
+        `presets.${overlayType}.${presetName}`,
+        `style_presets.${overlayType}.${presetName}`
+      ];
+
+      for (const presetPath of presetPaths) {
+        try {
+          const preset = defaultsManager.resolve(presetPath);
+          if (preset) {
+            cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} via defaults manager (path: ${presetPath})`);
+            return preset;
+          }
+        } catch (error) {
+          cblcarsLog.debug(`[StatusGridRenderer] Failed to resolve preset at path ${presetPath}:`, error.message);
+        }
+      }
+
+      // Enhanced introspection to understand what's available
+      try {
+        const introspection = defaultsManager.getIntrospectionData();
+        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Defaults manager introspection for ${presetName}:`, {
+          hasStylePresets: !!(introspection.layers?.pack && Object.keys(introspection.layers.pack).some(pack =>
+            introspection.layers.pack[pack]?.style_presets
+          )),
+          availablePacks: Object.keys(introspection.layers?.pack || {}),
+          samplePack: Object.keys(introspection.layers?.pack || {})[0]
+        });
+      } catch (error) {
+        cblcarsLog.debug(`[StatusGridRenderer] Could not introspect defaults manager:`, error.message);
+      }
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] ⚠️ No defaults manager available`);
+    }
+  }
+  /**
+   * Load preset from StylePresetManager (NEW - clean approach)
+   * @private
+   * @param {string} overlayType - Type of overlay (e.g., 'status_grid')
+   * @param {string} presetName - Name of the preset
+   * @returns {Object|null} Preset configuration or null if not found
+   */
+  _loadPresetFromStylePresetManager(overlayType, presetName) {
+    const stylePresetManager = this._resolveStylePresetManager();
+
+    if (stylePresetManager) {
+      cblcarsLog.debug(`[StatusGridRenderer] 🔍 StylePresetManager found, checking for preset ${presetName}:`, {
+        initialized: stylePresetManager.initialized,
+        packCount: stylePresetManager.loadedPacks?.length,
+        cacheSize: stylePresetManager.presetCache?.size
+      });
+
+      const preset = stylePresetManager.getPreset(overlayType, presetName);
+      if (preset) {
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} via StylePresetManager`);
+        return preset;
+      } else {
+        cblcarsLog.debug(`[StatusGridRenderer] ❌ StylePresetManager returned null for ${overlayType}.${presetName}`);
+      }
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] ❌ No StylePresetManager available`);
+    }
+
+    return null;
+  }  /**
+   * LEGACY: Load preset from loaded packs via pipeline instance (fallback)
+   * @private
+   * @param {string} overlayType - Type of overlay (e.g., 'status_grid')
+   * @param {string} presetName - Name of the preset
+   * @returns {Object|null} Preset configuration or null if not found
+   */
+  _loadPresetFromPacksLegacy(overlayType, presetName) {
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 Loading preset ${presetName} for ${overlayType} (legacy)`);
+
+    // FALLBACK: Try to access pack data through pipeline instance
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
     if (pipelineInstance && pipelineInstance.config && pipelineInstance.config.__provenance) {
+      cblcarsLog.debug(`[StatusGridRenderer] 🔍 Checking pipeline instance for style presets`);
+
       const mergeOrder = pipelineInstance.config.__provenance.merge_order;
 
       // Check pack layers for style presets
       for (const layer of mergeOrder) {
         if (layer.type === 'builtin') {
           try {
+            // Use the global loadBuiltinPacks function
             const { loadBuiltinPacks } = window.loadBuiltinPacksModule || {};
             if (loadBuiltinPacks) {
               const packs = loadBuiltinPacks([layer.pack]);
               const pack = packs.find(p => p.id === layer.pack);
 
+              cblcarsLog.debug(`[StatusGridRenderer] 🔍 Checking pack ${layer.pack} for style presets:`, {
+                packFound: !!pack,
+                hasStylePresets: !!(pack && pack.style_presets),
+                hasOverlayType: !!(pack && pack.style_presets && pack.style_presets[overlayType]),
+                overlayType,
+                availablePresets: pack?.style_presets?.[overlayType] ? Object.keys(pack.style_presets[overlayType]) : []
+              });
+
               if (pack && pack.style_presets && pack.style_presets[overlayType]) {
                 const preset = pack.style_presets[overlayType][presetName];
                 if (preset) {
-                  cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${layer.pack} (pipeline)`);
+                  cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${layer.pack} (pipeline fallback)`);
                   return preset;
                 }
               }
@@ -546,9 +551,8 @@ export class StatusGridRenderer {
       }
     }
 
-    // Fallback: Direct pack loading (always try this if pipeline method fails)
+    // LAST RESORT: Direct pack loading (should rarely be needed now)
     cblcarsLog.debug(`[StatusGridRenderer] Trying direct pack loading for preset ${presetName}`);
-
     try {
       const { loadBuiltinPacks } = window.loadBuiltinPacksModule || {};
       if (loadBuiltinPacks) {
@@ -559,7 +563,7 @@ export class StatusGridRenderer {
           if (pack && pack.style_presets && pack.style_presets[overlayType]) {
             const preset = pack.style_presets[overlayType][presetName];
             if (preset) {
-              cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${pack.id} (direct)`);
+              cblcarsLog.debug(`[StatusGridRenderer] ✅ Found preset ${presetName} in pack ${pack.id} (direct fallback)`);
               return preset;
             }
           }
@@ -572,9 +576,7 @@ export class StatusGridRenderer {
     // If we get here, preset wasn't found anywhere
     cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Preset ${presetName} not found in any packs`);
     return null;
-  }
-
-  /**
+  }  /**
    * Apply preset styles to grid style object, respecting user overrides
    * @private
    * @param {Object} gridStyle - Grid style object to modify

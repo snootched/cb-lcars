@@ -13,8 +13,21 @@ import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
 import { BaseOverlayUpdater } from '../renderer/BaseOverlayUpdater.js';
 
+// ENHANCED: Import new pack management systems
+import { StylePresetManager } from '../presets/StylePresetManager.js';
+import { PackRegistry } from '../packs/PackRegistry.js';
+
 export class SystemsManager {
   constructor() {
+    // Initialize core managers
+    this.defaultsManager = new MsdDefaultsManager();
+
+    // ENHANCED: Initialize new pack management systems (will be initialized with packs later)
+    this.stylePresetManager = new StylePresetManager();
+    this.packRegistry = new PackRegistry();
+    this.stylePresetManager = new StylePresetManager();
+    this.packRegistry = new PackRegistry();
+
     this.dataSourceManager = null;
     this.renderer = null;
     this.debugRenderer = null;
@@ -65,19 +78,24 @@ export class SystemsManager {
     });
   }
 
-  async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
-    cblcarsLog.debug('[SystemsManager] Initializing runtime systems');
+  /**
+   * ENHANCED: Initialize systems with pack defaults loading FIRST
+   * This ensures defaults are available before any overlay processing
+   */
+  async initializeSystemsWithPacksFirst(mergedConfig, mountEl, hass) {
+    cblcarsLog.debug('[SystemsManager] 🚀 Enhanced initialization: packs and defaults first');
 
-    // Store config for later use
+    // Store config and HASS context immediately
     this.mergedConfig = mergedConfig;
-
-    // ADDED: Store HASS context immediately
     this._currentHass = hass;
 
-    // ADDED: Initialize MSD defaults manager
+    // PHASE 1: Initialize defaults manager and load pack defaults FIRST
+    cblcarsLog.debug('[SystemsManager] 📦 Phase 1: Loading pack defaults');
     this.defaultsManager = new MsdDefaultsManager();
 
-    // CRITICAL: Load pack defaults into defaults manager if mergedConfig has pack provenance
+    let packs;
+
+    // Load pack defaults from merged config provenance
     if (mergedConfig && mergedConfig.__provenance && mergedConfig.__provenance.merge_order) {
       const packLayers = mergedConfig.__provenance.merge_order.filter(layer => layer.type === 'builtin');
       if (packLayers.length > 0) {
@@ -93,34 +111,114 @@ export class SystemsManager {
           cblcarsLog.debug('[SystemsManager] 📦 Added core pack for builtin defaults');
         }
 
-        const packs = loadBuiltinPacks(packNames);
+        // Validate pack loading with timeout protection
+        try {
+          const packLoadPromise = Promise.resolve(loadBuiltinPacks(packNames));
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Pack loading timeout')), 10000)
+          );
+          packs = await Promise.race([packLoadPromise, timeoutPromise]);
+
+          if (!packs || !Array.isArray(packs)) {
+            throw new Error('Invalid pack loading result');
+          }
+        } catch (error) {
+          cblcarsLog.error('[SystemsManager] ❌ Pack loading failed:', error);
+          throw new Error(`Pack loading failed: ${error.message}`);
+        }
 
         this.defaultsManager.loadFromPacks(packs, mergedConfig.active_profile || mergedConfig.active_profiles);
         cblcarsLog.debug('[SystemsManager] ✅ Loaded pack defaults:', packNames, (mergedConfig.active_profile || mergedConfig.active_profiles) ? `(profile: ${JSON.stringify(mergedConfig.active_profile || mergedConfig.active_profiles)})` : '(all profiles)');
+
+        // Validate essential packs were loaded
+        const introspectionData = this.defaultsManager.getIntrospectionData();
+
+        // Extract actual pack names rather than configuration paths
+        let loadedPackNames = [];
+        if (introspectionData.layers && introspectionData.layers.pack) {
+          const packData = introspectionData.layers.pack;
+          const keys = Object.keys(packData);
+
+          // Distinguish between pack names and setting paths
+          loadedPackNames = keys.filter(key => !key.includes('.'));
+
+          // If no pack names found, fall back to provenance
+          if (loadedPackNames.length === 0) {
+            loadedPackNames = packNames; // Use the names we tried to load
+          }
+        }
+
+        if (!loadedPackNames.includes('core')) {
+          cblcarsLog.warn('[SystemsManager] ⚠️ Core pack was not loaded successfully');
+          cblcarsLog.debug('[SystemsManager] Pack loading attempt:', {
+            requestedPacks: packNames,
+            introspectionKeys: Object.keys(introspectionData.layers?.pack || {}),
+            extractedPackNames: loadedPackNames
+          });
+        } else {
+          cblcarsLog.debug('[SystemsManager] ✅ Core pack loaded successfully along with:', loadedPackNames);
+        }
       }
     } else {
       // Fallback: Always load core pack for basic defaults if no pack provenance
       cblcarsLog.debug('[SystemsManager] 📦 No pack provenance, loading core pack for basic defaults');
-      const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
-      const corePacks = loadBuiltinPacks(['core']);
-      this.defaultsManager.loadFromPacks(corePacks, userConfig?.active_profile || userConfig?.active_profiles);
-      cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults', (userConfig?.active_profile || userConfig?.active_profiles) ? `(profile: ${JSON.stringify(userConfig.active_profile || userConfig.active_profiles)})` : '(all profiles)');
-    }    // ADDED: Store in global CB-LCARS namespace for easy access
+      try {
+        const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
+        const corePacks = loadBuiltinPacks(['core']);
+        this.defaultsManager.loadFromPacks(corePacks, mergedConfig?.active_profile || mergedConfig?.active_profiles);
+        cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults', (mergedConfig?.active_profile || mergedConfig?.active_profiles) ? `(profile: ${JSON.stringify(mergedConfig.active_profile || mergedConfig.active_profiles)})` : '(all profiles)');
+      } catch (error) {
+        cblcarsLog.error('[SystemsManager] ❌ Core pack fallback loading failed:', error);
+        throw new Error(`Core pack loading failed: ${error.message}`);
+      }
+    }
+
+    // Store in global CB-LCARS namespace for immediate access
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
       window.cblcars.defaults = this.defaultsManager;
-      cblcarsLog.debug('[SystemsManager] 🔧 MSD Defaults Manager initialized');
+      cblcarsLog.debug('[SystemsManager] 🔧 MSD Defaults Manager initialized and globally accessible');
     }
 
-    // ENHANCED: Initialize debug manager early with config and better logging
-    const debugConfig = mergedConfig.debug || {};
-    cblcarsLog.debug('[SystemsManager] Raw debug config from mergedConfig:', debugConfig);
+    // PHASE 2: Initialize other critical systems that overlays might need
+    cblcarsLog.debug('[SystemsManager] ⚙️ Phase 2: Initializing critical systems');
 
+    // Initialize debug manager early with config
+    const debugConfig = mergedConfig.debug || {};
     this.debugManager.init(debugConfig);
     cblcarsLog.debug('[SystemsManager] DebugManager initialized with config:', debugConfig);
 
-    // Initialize data source manager FIRST
+    // Initialize data source manager FIRST (overlays may reference it)
     await this._initializeDataSources(hass, mergedConfig);
+
+    // CRITICAL FIX: Initialize StylePresetManager and PackRegistry with loaded packs
+    // This needs to happen right after DefaultsManager initialization
+    cblcarsLog.debug('[SystemsManager] 🎨 CRITICAL: Initializing StylePresetManager and PackRegistry');
+    cblcarsLog.debug('[SystemsManager] Available packs:', packs.map(p => ({ id: p.id, hasStylePresets: !!p.style_presets })));
+
+    if (this.stylePresetManager && !this.stylePresetManager.initialized) {
+      await this.stylePresetManager.initialize(packs);
+      cblcarsLog.debug('[SystemsManager] ✅ StylePresetManager initialized:', {
+        initialized: this.stylePresetManager.initialized,
+        packCount: this.stylePresetManager.loadedPacks?.length,
+        cacheSize: this.stylePresetManager.presetCache?.size
+      });
+    }
+
+    if (this.packRegistry && !this.packRegistry.initialized) {
+      await this.packRegistry.initialize(packs);
+      cblcarsLog.debug('[SystemsManager] ✅ PackRegistry initialized');
+    }
+
+    cblcarsLog.debug('[SystemsManager] ✅ Critical systems ready for overlay processing');
+  }
+
+  /**
+   * Complete systems initialization after card model is built
+   * This is the second phase that happens after overlays can safely be processed
+   */
+  async completeSystems(mergedConfig, cardModel, mountEl) {
+    cblcarsLog.debug('[SystemsManager] 🔧 Completing systems initialization');
 
     // Initialize rules engine AFTER DataSourceManager with proper connection
     this.rulesEngine = new RulesEngine(mergedConfig.rules, this.dataSourceManager);
@@ -142,7 +240,7 @@ export class SystemsManager {
 
     // Initialize rendering systems
     this.router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
-    this.renderer = new AdvancedRenderer(mountEl, this.router, this); // ADDED: Pass 'this' as systemsManager
+    this.renderer = new AdvancedRenderer(mountEl, this.router, this); // Pass 'this' as systemsManager
     this.debugRenderer = new MsdDebugRenderer();
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
 
@@ -173,8 +271,16 @@ export class SystemsManager {
     this.overlayUpdater = new BaseOverlayUpdater(this);
     cblcarsLog.debug('[SystemsManager] BaseOverlayUpdater initialized for unified overlay updates');
 
-    cblcarsLog.debug('[SystemsManager] All systems initialized successfully');
-    return this;
+    cblcarsLog.debug('[SystemsManager] ✅ All systems initialization complete');
+  }
+
+  // Keep the original initializeSystems method for backward compatibility but mark it deprecated
+  async initializeSystems(mergedConfig, cardModel, mountEl, hass) {
+    cblcarsLog.warn('[SystemsManager] ⚠️ initializeSystems is deprecated, use initializeSystemsWithPacksFirst + completeSystems');
+
+    // Use the new sequenced approach
+    await this.initializeSystemsWithPacksFirst(mergedConfig, mountEl, hass);
+    await this.completeSystems(mergedConfig, cardModel, mountEl);
   }
 
   setReRenderCallback(callback) {

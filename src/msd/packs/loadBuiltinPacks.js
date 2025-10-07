@@ -401,7 +401,7 @@ const CB_LCARS_BUTTONS_PACK = {
 
         // Cell Appearance
         cell_radius: 12,                   // ✅ Works
-        cell_color: 'var(--lcars-blue)',   // ✅ Works
+        cell_color: 'var(--lcars-red)',   // ✅ Works
         cell_gap: 2,                       // ✅ Works
         normalize_radius: true,            // ✅ Works
         lcars_corners: false,              // ✅ Works
