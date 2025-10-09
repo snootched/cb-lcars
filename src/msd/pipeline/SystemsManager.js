@@ -217,13 +217,27 @@ export class SystemsManager {
    * Complete systems initialization after card model is built
    * This is the second phase that happens after overlays can safely be processed
    */
-  async completeSystems(mergedConfig, cardModel, mountEl) {
+  async completeSystems(mergedConfig, cardModel, mountEl, hass) {
     cblcarsLog.debug('[SystemsManager] 🔧 Completing systems initialization');
 
     // Initialize rules engine AFTER DataSourceManager with proper connection
     this.rulesEngine = new RulesEngine(mergedConfig.rules, this.dataSourceManager);
     this.rulesEngine.markAllDirty();
     this._instrumentRulesEngine(mergedConfig);
+
+    // NEW: Set up rules engine HASS monitoring
+    if (hass) {
+      await this.rulesEngine.setupHassMonitoring(hass);
+
+      // Connect re-evaluation to render pipeline
+      this.rulesEngine.setReEvaluationCallback(() => {
+        if (this._reRenderCallback) {
+          this._scheduleFullReRender();
+        }
+      });
+
+      cblcarsLog.debug('[SystemsManager] Rules Engine HASS monitoring configured');
+    }
 
     // Connect data source manager to rules engine for entity changes
     if (this.dataSourceManager) {
@@ -636,7 +650,12 @@ export class SystemsManager {
   }
   */
 
-  destroy() {
+  async destroy() {
+    // Clean up rules engine first
+    if (this.rulesEngine) {
+      await this.rulesEngine.destroy();
+    }
+
     // Stop all subscriptions and clean up resources
     this.dataSourceManager?.destroy();
     this.animRegistry?.clear();

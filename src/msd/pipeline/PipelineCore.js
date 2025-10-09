@@ -126,7 +126,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   // PHASE 4: Complete systems initialization with card model
   cblcarsLog.debug('[PipelineCore] ⚙️ Phase 4: Completing systems initialization');
   try {
-    await systemsManager.completeSystems(mergedConfig, cardModel, mountEl);
+    await systemsManager.completeSystems(mergedConfig, cardModel, mountEl, hass);
   } catch (error) {
     cblcarsLog.error('[PipelineCore] ❌ Systems completion failed:', error);
     throw new Error(`Systems completion failed: ${error.message}`);
@@ -614,7 +614,13 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
       return true;
     },
 
-    ingestHass: (hass) => systemsManager.ingestHass(hass),
+    async ingestHass(hass) {
+      // Distribute HASS to SystemsManager (which will handle Rules Engine)
+      if (this.systemsManager) {
+        this.systemsManager.ingestHass(hass);
+      }
+    },
+
     updateEntities: (map) => systemsManager.updateEntities(map),
     listEntities: () => systemsManager.entityRuntime.listIds(),
     getEntity: (id) => systemsManager.entityRuntime.getEntity(id),

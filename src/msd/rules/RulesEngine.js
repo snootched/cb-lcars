@@ -28,6 +28,11 @@ export class RulesEngine {
       skipped: 0
     };
 
+    // NEW: HASS subscription management
+    this.hassUnsubscribe = null;
+    this._reEvaluationCallback = null;
+    this._hassEntities = new Set(); // Cached entity list for performance
+
     this.buildRulesIndex();
     this.buildDependencyIndex();
     this.markAllDirty(); // Initial state
@@ -60,6 +65,15 @@ export class RulesEngine {
 
     this.dependencyIndex = { entityToRules, ruleToEntities };
 
+    // Update cached entity list for performance
+    if (this.hassUnsubscribe) {
+      const ruleEntities = Array.from(this.dependencyIndex?.entityToRules.keys() || [])
+        .filter(entityId => !entityId.includes('.'));
+      this._hassEntities = new Set(ruleEntities);
+
+      cblcarsLog.debug(`[RulesEngine] Updated monitored entities: ${ruleEntities.length} entities`);
+    }
+
     // Debug exposure
     try {
       const debugNamespace = (typeof window !== 'undefined') ? window : global;
@@ -88,22 +102,30 @@ export class RulesEngine {
     conditions.forEach(condition => {
       // Direct entity reference
       if (condition.entity) {
-        // Check if this is a DataSource reference
-        if (condition.entity.includes('.') && this.dataSourceManager) {
+        // FIXED: Better DataSource detection and filtering
+        if (condition.entity.includes('.')) {
+          // This looks like a DataSource reference (e.g., "temperature_enhanced.transformations.celsius")
           const sourceName = condition.entity.split('.')[0];
-          const dataSource = this.dataSourceManager.getSource(sourceName);
-          if (dataSource) {
-            // Add the DataSource itself to dependencies
-            entities.add(sourceName);
-            // Also add the full reference for more granular tracking
-            entities.add(condition.entity);
+
+          // Check if this is actually a DataSource by consulting the DataSourceManager
+          if (this.dataSourceManager && this.dataSourceManager.getSource(sourceName)) {
+            cblcarsLog.debug(`[RulesEngine] Skipping DataSource reference in rule monitoring: ${condition.entity}`);
+            // Don't add DataSource references to HASS entity monitoring
+            // The DataSourceManager already handles these entities via its own subscriptions
+            return;
           } else {
-            // Treat as regular entity if DataSource not found
-            entities.add(condition.entity);
+            // Not a DataSource, might be an entity with attribute reference (e.g., "sensor.temp.state")
+            // Extract just the entity ID part
+            const entityId = condition.entity.split('.')[0] + '.' + condition.entity.split('.')[1];
+            if (entityId.includes('.') && entityId.split('.').length === 2) {
+              entities.add(entityId);
+              cblcarsLog.debug(`[RulesEngine] Added entity with attribute to monitoring: ${entityId} (from ${condition.entity})`);
+            }
           }
         } else {
-          // Regular Home Assistant entity
+          // Regular Home Assistant entity (no dots)
           entities.add(condition.entity);
+          cblcarsLog.debug(`[RulesEngine] Added regular entity to monitoring: ${condition.entity}`);
         }
       }
 
@@ -530,7 +552,9 @@ export class RulesEngine {
       cblcarsLog.warn(`[RulesEngine] ⚠️ Error resolving DataSource reference '${dataSourceRef}':`, error);
       return null;
     }
-  }  determineMatch(when, conditions) {
+  }
+
+  determineMatch(when, conditions) {
     if (!when) return false;
 
     let allMatch = true;
@@ -670,6 +694,156 @@ export class RulesEngine {
     };
   }
 
+  /**
+   * Set up HASS state monitoring for rule entities
+   * @param {Object} hass - Home Assistant instance
+   * @returns {Promise<void>}
+   */
+  async setupHassMonitoring(hass) {
+    if (!hass?.connection?.subscribeEvents || this.hassUnsubscribe) {
+      cblcarsLog.debug('[RulesEngine] HASS monitoring already set up or unavailable');
+      return;
+    }
+
+    // Extract all HASS entities referenced in rules (exclude DataSource references)
+    const allEntityReferences = Array.from(this.dependencyIndex?.entityToRules.keys() || []);
+    cblcarsLog.debug('[RulesEngine] 🔍 All entity references from dependency index:', allEntityReferences);
+
+    // Filter out DataSource references
+    const ruleEntities = allEntityReferences.filter(entityId => {
+      // Skip DataSource references (contain dots and match DataSource pattern)
+      if (entityId.includes('.')) {
+        const sourceName = entityId.split('.')[0];
+        if (this.dataSourceManager?.getSource(sourceName)) {
+          cblcarsLog.debug(`[RulesEngine] 🚫 Filtered out DataSource reference: ${entityId}`);
+          return false;
+        }
+      }
+      cblcarsLog.debug(`[RulesEngine] ✅ Including HASS entity: ${entityId}`);
+      return true;
+    });
+
+    cblcarsLog.debug(`[RulesEngine] 📊 HASS entity monitoring summary:`, {
+      totalReferences: allEntityReferences.length,
+      dataSourceReferences: allEntityReferences.length - ruleEntities.length,
+      hassEntities: ruleEntities.length,
+      hassEntityList: ruleEntities
+    });
+
+    if (ruleEntities.length === 0) {
+      cblcarsLog.debug('[RulesEngine] No HASS entities found in rules for monitoring (all references are DataSources)');
+      return;
+    }
+
+    // Cache entity list for performance
+    this._hassEntities = new Set(ruleEntities);
+
+    cblcarsLog.debug(`[RulesEngine] Setting up monitoring for ${ruleEntities.length} rule entities:`, ruleEntities);
+
+    // Direct subscription - following DataSource pattern
+    try {
+      this.hassUnsubscribe = await hass.connection.subscribeEvents((event) => {
+        if (event.event_type === 'state_changed' && event.data?.entity_id) {
+          const entityId = event.data.entity_id;
+
+          // Performance: Use cached Set for O(1) lookup
+          if (this._hassEntities.has(entityId)) {
+            this._handleRuleEntityChange(entityId, event.data);
+          }
+        }
+      }, 'state_changed');
+
+      cblcarsLog.debug('[RulesEngine] ✅ HASS state monitoring enabled');
+    } catch (error) {
+      cblcarsLog.error('[RulesEngine] ❌ Failed to set up HASS monitoring:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle state change for rule-referenced entities
+   * @private
+   * @param {string} entityId - Changed entity ID
+   * @param {Object} eventData - State change event data
+   */
+  _handleRuleEntityChange(entityId, eventData) {
+    cblcarsLog.debug(`[RulesEngine] Processing entity change: ${entityId} -> ${eventData.new_state?.state}`);
+
+    // Mark affected rules as dirty using existing infrastructure
+    const affectedRules = this.markEntitiesDirty([entityId]);
+
+    if (affectedRules > 0) {
+      cblcarsLog.debug(`[RulesEngine] Entity ${entityId} changed, marked ${affectedRules} rules dirty`);
+
+      // Trigger re-evaluation if callback is set
+      if (this._reEvaluationCallback) {
+        try {
+          this._reEvaluationCallback();
+        } catch (error) {
+          cblcarsLog.error('[RulesEngine] Re-evaluation callback failed:', error);
+        }
+      }
+    }
+  }
+
+  /**
+   * Set callback for when rules need re-evaluation
+   * @param {Function} callback - Re-evaluation callback function
+   */
+  setReEvaluationCallback(callback) {
+    if (typeof callback !== 'function') {
+      cblcarsLog.warn('[RulesEngine] Re-evaluation callback must be a function');
+      return;
+    }
+
+    this._reEvaluationCallback = callback;
+    cblcarsLog.debug('[RulesEngine] Re-evaluation callback set');
+  }
+
+  /**
+   * Clean up HASS subscription and resources
+   * @returns {Promise<void>}
+   */
+  async destroy() {
+    if (this.hassUnsubscribe) {
+      try {
+        this.hassUnsubscribe();
+        this.hassUnsubscribe = null;
+        this._hassEntities.clear();
+        cblcarsLog.debug('[RulesEngine] HASS subscription cleaned up');
+      } catch (error) {
+        cblcarsLog.warn('[RulesEngine] Error cleaning up HASS subscription:', error);
+      }
+    }
+
+    this._reEvaluationCallback = null;
+  }
+
+  /**
+   * Set the DataSourceManager reference (for cases where it wasn't available during construction)
+   * @param {Object} dataSourceManager - DataSourceManager instance
+   */
+  setDataSourceManager(dataSourceManager) {
+    cblcarsLog.debug(`[RulesEngine] Setting DataSourceManager with ${Object.keys(dataSourceManager?.sources || {}).length} sources`);
+    this.dataSourceManager = dataSourceManager;
+
+    // Rebuild dependency index to include DataSource references
+    this.buildDependencyIndex();
+
+    // Mark all rules dirty since DataSource conditions might now be evaluable
+    this.markAllDirty();
+
+    cblcarsLog.debug(`[RulesEngine] DataSourceManager set, rebuilt dependencies and marked ${this.dirtyRules.size} rules dirty`);
+  }
+
+  getRuleDependencies(ruleId) {
+    return this.dependencyIndex?.ruleToEntities.get(ruleId) || [];
+  }
+
+  getEntityDependents(entityId) {
+    return Array.from(this.dependencyIndex?.entityToRules.get(entityId) || []);
+  }
+
   // Enhanced debug and introspection methods
   getTrace() {
     const baseTrace = {
@@ -706,31 +880,6 @@ export class RulesEngine {
   clearTrace() {
     this.traceBuffer.clear();
     perfCount('rules.trace.cleared', 1);
-  }
-
-  /**
-   * Set the DataSourceManager reference (for cases where it wasn't available during construction)
-   * @param {Object} dataSourceManager - DataSourceManager instance
-   */
-  setDataSourceManager(dataSourceManager) {
-    cblcarsLog.debug(`[RulesEngine] Setting DataSourceManager with ${Object.keys(dataSourceManager?.sources || {}).length} sources`);
-    this.dataSourceManager = dataSourceManager;
-
-    // Rebuild dependency index to include DataSource references
-    this.buildDependencyIndex();
-
-    // Mark all rules dirty since DataSource conditions might now be evaluable
-    this.markAllDirty();
-
-    cblcarsLog.debug(`[RulesEngine] DataSourceManager set, rebuilt dependencies and marked ${this.dirtyRules.size} rules dirty`);
-  }
-
-  getRuleDependencies(ruleId) {
-    return this.dependencyIndex?.ruleToEntities.get(ruleId) || [];
-  }
-
-  getEntityDependents(entityId) {
-    return Array.from(this.dependencyIndex?.entityToRules.get(entityId) || []);
   }
 }
 

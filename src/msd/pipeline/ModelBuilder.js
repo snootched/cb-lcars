@@ -126,6 +126,9 @@ export class ModelBuilder {
           attach_gap: o.raw?.attach_gap,
           position: o.raw?.position,
           size: o.raw?.size,
+          // CRITICAL: Preserve grid layout properties for status_grid overlays
+          rows: o.raw?.rows,
+          columns: o.raw?.columns,
         };
 
         // Preserve data source and routing properties
