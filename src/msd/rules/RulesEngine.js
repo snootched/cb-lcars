@@ -205,14 +205,36 @@ export class RulesEngine {
     return perfTime('rules.evaluate', () => {
       let { getEntity } = context;
 
-      // NEW: Use DataSourceManager's enhanced getEntity if available
-      if (!getEntity && this.dataSourceManager) {
+      // ENHANCED: Always prioritize original HASS states for rule evaluation
+      // regardless of the context or provided getEntity function
+      if (this.dataSourceManager || this.systemsManager) {
+        const originalGetEntity = getEntity;
+
         getEntity = (entityId) => {
-          // Check if this is a DataSource reference
+          cblcarsLog.debug(`[RulesEngine] getEntity called for: ${entityId}`);
+
+          // PRIORITY 1: Try to get original HASS state from SystemsManager
+          if (this.systemsManager) {
+            const originalHass = this.systemsManager.getOriginalHass();
+            if (originalHass && originalHass.states && originalHass.states[entityId]) {
+              const originalState = originalHass.states[entityId].state;
+              cblcarsLog.debug(`[RulesEngine] Found original HASS state for ${entityId}: ${originalState}`);
+
+              return {
+                entity_id: entityId,
+                state: originalState,
+                attributes: originalHass.states[entityId].attributes || {},
+                last_changed: originalHass.states[entityId].last_changed,
+                last_updated: originalHass.states[entityId].last_updated
+              };
+            }
+          }
+
+          // PRIORITY 2: Check if this is a DataSource reference (contains dots)
           if (entityId.includes('.') && this.dataSourceManager) {
             const value = this.resolveDataSourceValue(entityId);
             if (value !== null) {
-              // Return entity-like object for DataSource values
+              cblcarsLog.debug(`[RulesEngine] Found DataSource reference value for ${entityId}: ${value}`);
               return {
                 entity_id: entityId,
                 state: String(value),
@@ -221,18 +243,46 @@ export class RulesEngine {
             }
           }
 
-          // Try DataSourceManager's getEntity method
-          if (this.dataSourceManager.getEntity) {
+          // PRIORITY 3: Try auto-created template DataSource with original entity preservation
+          const templateDataSourceName = `template_${entityId.replace(/\./g, '_')}`;
+          if (this.dataSourceManager) {
+            const templateDataSource = this.dataSourceManager.getSource(templateDataSourceName);
+            if (templateDataSource) {
+              const currentData = templateDataSource.getCurrentData();
+              if (currentData && currentData.entity && currentData.entity.state !== undefined) {
+                const originalState = currentData.entity.state;
+                cblcarsLog.debug(`[RulesEngine] Found auto-DataSource original state for ${entityId}: ${originalState}`);
+
+                return {
+                  entity_id: entityId,
+                  state: originalState,
+                  attributes: currentData.entity.attributes || {},
+                  last_changed: currentData.entity.last_changed,
+                  last_updated: currentData.entity.last_updated
+                };
+              }
+            }
+          }
+
+          // PRIORITY 4: Fall back to provided getEntity function (but warn about potential conversion)
+          if (originalGetEntity) {
+            const entity = originalGetEntity(entityId);
+            if (entity) {
+              cblcarsLog.warn(`[RulesEngine] Using fallback getEntity for ${entityId} - state may be converted: ${entity.state}`);
+              return entity;
+            }
+          }
+
+          // PRIORITY 5: Try DataSourceManager's getEntity method as last resort
+          if (this.dataSourceManager && this.dataSourceManager.getEntity) {
             const entity = this.dataSourceManager.getEntity(entityId);
-            if (entity) return entity;
+            if (entity) {
+              cblcarsLog.warn(`[RulesEngine] Using DataSourceManager getEntity for ${entityId} - state may be converted: ${entity.state}`);
+              return entity;
+            }
           }
 
-          // Fallback: try entity index directly
-          if (this.dataSourceManager.entityIndex) {
-            const entity = this.dataSourceManager.entityIndex.get(entityId);
-            if (entity) return entity;
-          }
-
+          cblcarsLog.warn(`[RulesEngine] No entity data found for ${entityId}`);
           return null;
         };
       }
@@ -378,52 +428,100 @@ export class RulesEngine {
     try {
       // Entity state condition (supports both HA entities and DataSource references)
       if (condition.entity) {
-        // Check if this is a DataSource reference (contains dots) - handle it directly
-        if (condition.entity.includes('.') && this.dataSourceManager) {
-          const dataSourceValue = this.resolveDataSourceValue(condition.entity);
-          if (dataSourceValue === null) {
-            result.error = `DataSource ${condition.entity} not found or no data`;
-            return result;
-          }
+        // ENHANCED: Check for auto-created template DataSources first
+        let entityData = null;
+        let entityValue = null;
 
-          result.value = dataSourceValue;
-
-          // Numeric comparisons for DataSource values
-          if (condition.above !== undefined) {
-            const numValue = parseFloat(dataSourceValue);
-            result.matched = !isNaN(numValue) && numValue > condition.above;
-          } else if (condition.below !== undefined) {
-            const numValue = parseFloat(dataSourceValue);
-            result.matched = !isNaN(numValue) && numValue < condition.below;
-          } else if (condition.equals !== undefined) {
-            result.matched = dataSourceValue == condition.equals;
-          } else {
-            result.matched = true; // DataSource exists and has data
-          }
-
-          return result; // Return immediately for DataSource conditions
+        // Try to get entity data directly first (for regular HA entities)
+        const entity = getEntity(condition.entity);
+        if (entity) {
+          entityData = entity;
+          entityValue = entity.state;
+          cblcarsLog.debug(`[RulesEngine] Found direct entity data for ${condition.entity}:`, entityValue);
         } else {
-          // Standard Home Assistant entity
-          const entity = getEntity(condition.entity);
-          if (!entity) {
-            result.error = `Entity ${condition.entity} not found`;
-            return result;
-          }
+          // If not found as direct entity, check if there's an auto-created DataSource
+          const templateDataSourceName = `template_${condition.entity.replace(/\./g, '_')}`;
 
-          result.value = entity.state;
+          if (this.dataSourceManager) {
+            const templateDataSource = this.dataSourceManager.getSource(templateDataSourceName);
+            if (templateDataSource) {
+              const currentData = templateDataSource.getCurrentData();
+              if (currentData && currentData.entity) {
+                entityData = currentData.entity;
+                // FIXED: For rule evaluation, always use the original HASS state, not the converted value
+                // This preserves string states like "on"/"off" for proper rule matching
+                const originalState = currentData.entity.state;
+                entityValue = originalState;
 
-          // Numeric comparisons for entity state
-          if (condition.above !== undefined) {
-            const numValue = parseFloat(entity.state);
-            result.matched = !isNaN(numValue) && numValue > condition.above;
-          } else if (condition.below !== undefined) {
-            const numValue = parseFloat(entity.state);
-            result.matched = !isNaN(numValue) && numValue < condition.below;
-          } else if (condition.equals !== undefined) {
-            result.matched = entity.state == condition.equals;
-          } else {
-            result.matched = true; // Entity exists
+                cblcarsLog.debug(`[RulesEngine] Found auto-created DataSource ${templateDataSourceName} for ${condition.entity}:`, {
+                  dataSourceConvertedValue: currentData.v,
+                  originalEntityState: originalState,
+                  usingForRules: originalState,
+                  entityData: currentData.entity
+                });
+              } else {
+                cblcarsLog.debug(`[RulesEngine] Auto-created DataSource ${templateDataSourceName} exists but has no current data`);
+              }
+            } else {
+              cblcarsLog.debug(`[RulesEngine] No auto-created DataSource found: ${templateDataSourceName}`);
+            }
           }
+        }
+
+        // If still no data found, check if this is a DataSource reference with dots
+        if (!entityData && condition.entity.includes('.') && this.dataSourceManager) {
+          const dataSourceValue = this.resolveDataSourceValue(condition.entity);
+          if (dataSourceValue !== null) {
+            entityValue = dataSourceValue;
+            entityData = {
+              entity_id: condition.entity,
+              state: String(dataSourceValue),
+              attributes: {}
+            };
+            cblcarsLog.debug(`[RulesEngine] Found DataSource reference value for ${condition.entity}:`, entityValue);
+          }
+        }
+
+        // If we still have no data, return error
+        if (!entityData && entityValue === null) {
+          result.error = `Entity ${condition.entity} not found in HASS or DataSources`;
+          cblcarsLog.debug(`[RulesEngine] Entity ${condition.entity} not found anywhere`);
+          return result;
+        }
+
+        result.value = entityValue;
+
+        // ENHANCED: Handle different condition types with proper logging
+        if (condition.state !== undefined) {
+          // Direct state comparison
+          const conditionState = String(condition.state);
+          const actualState = String(entityValue);
+          result.matched = actualState === conditionState;
+
+          cblcarsLog.debug(`[RulesEngine] State comparison for ${condition.entity}:`, {
+            actualState: actualState,
+            conditionState: conditionState,
+            matched: result.matched,
+            comparison: `"${actualState}" === "${conditionState}"`
+          });
+        } else if (condition.above !== undefined) {
+          // Numeric comparison - above
+          const numValue = parseFloat(entityValue);
+          result.matched = !isNaN(numValue) && numValue > condition.above;
+          cblcarsLog.debug(`[RulesEngine] Above comparison for ${condition.entity}: ${numValue} > ${condition.above} = ${result.matched}`);
+        } else if (condition.below !== undefined) {
+          // Numeric comparison - below
+          const numValue = parseFloat(entityValue);
+          result.matched = !isNaN(numValue) && numValue < condition.below;
+          cblcarsLog.debug(`[RulesEngine] Below comparison for ${condition.entity}: ${numValue} < ${condition.below} = ${result.matched}`);
+        } else if (condition.equals !== undefined) {
+          // Equals comparison
+          result.matched = entityValue == condition.equals;
+          cblcarsLog.debug(`[RulesEngine] Equals comparison for ${condition.entity}: ${entityValue} == ${condition.equals} = ${result.matched}`);
+        } else {
+          // Default: entity exists and has a value
+          result.matched = true;
+          cblcarsLog.debug(`[RulesEngine] Default existence check for ${condition.entity}: ${result.matched}`);
         }
       }
 
@@ -440,6 +538,7 @@ export class RulesEngine {
 
     } catch (error) {
       result.error = error.message;
+      cblcarsLog.error(`[RulesEngine] Error evaluating condition for ${condition.entity}:`, error);
     }
 
     return result;
