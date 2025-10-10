@@ -12,6 +12,7 @@ import './MsdDefaultsExample.js'; // Import examples to make them available glob
 import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
 import { BaseOverlayUpdater } from '../renderer/BaseOverlayUpdater.js';
+import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js';
 
 // ENHANCED: Import new pack management systems
 import { StylePresetManager } from '../presets/StylePresetManager.js';
@@ -316,6 +317,19 @@ export class SystemsManager {
               renderInProgress: !!this._renderInProgress
           });
 
+          // DIAGNOSTIC: Check DataSource state immediately when entity changes
+          changedIds.forEach(entityId => {
+            if (this.dataSourceManager) {
+              const entity = this.dataSourceManager.getEntity(entityId);
+              cblcarsLog.debug(`[SystemsManager] 🔍 DataSource entity ${entityId} current state:`, {
+                hasEntity: !!entity,
+                state: entity?.state,
+                attributes: entity?.attributes,
+                lastUpdated: entity?.last_updated
+              });
+            }
+          });
+
           // STEP 1: Handle controls with FRESH CURRENT HASS (restored logic)
           const controlEntities = this._extractControlEntities(this.mergedConfig);
           const controlChangedIds = changedIds.filter(id => controlEntities.includes(id));
@@ -387,7 +401,13 @@ export class SystemsManager {
           // STEP 2.5: ENHANCED - Update overlays with DataSource changes using unified system
           if (this.overlayUpdater) {
               cblcarsLog.debug('[SystemsManager] 🔄 Using BaseOverlayUpdater for overlay updates');
-              this.overlayUpdater.updateOverlaysForDataSourceChanges(changedIds);
+
+              // DIAGNOSTIC: Add small delay to ensure DataSource has processed the change
+              setTimeout(() => {
+                cblcarsLog.debug('[SystemsManager] 🔄 Executing delayed overlay updates for:', changedIds);
+                this.overlayUpdater.updateOverlaysForDataSourceChanges(changedIds);
+              }, 10); // 10ms delay to allow DataSource processing
+
           } else {
               cblcarsLog.debug('[SystemsManager] ⚠️ BaseOverlayUpdater not available, skipping overlay updates');
           }
@@ -560,32 +580,35 @@ export class SystemsManager {
       return;
     }
 
-    // ENHANCED: Explicit-only data sources - no auto-creation
+    // ENHANCED: Create auto-DataSources for template entities before processing configured ones
     const configuredDataSources = mergedConfig.data_sources || {};
+    const dataSourcesWithTemplates = await this._createTemplateDataSources(mergedConfig, configuredDataSources);
 
-    cblcarsLog.debug('[SystemsManager] 🔍 Using explicit-only data sources mode');
+    cblcarsLog.debug('[SystemsManager] 🔍 Using explicit + auto-template data sources mode');
     cblcarsLog.debug('[SystemsManager] 🔍 Configured data sources:', Object.keys(configuredDataSources));
+    cblcarsLog.debug('[SystemsManager] 🔍 Total data sources (including auto-template):', Object.keys(dataSourcesWithTemplates));
 
     // Controls use direct HASS - no data sources needed
     const controlEntities = this._extractControlEntities(mergedConfig);
     cblcarsLog.debug('[SystemsManager] 🔍 Control entities (using direct HASS):', controlEntities);
 
-    // Use only explicitly configured data sources
-    const allDataSources = { ...configuredDataSources };
+    // Use configured + auto-created data sources
+    const allDataSources = { ...dataSourcesWithTemplates };
 
     cblcarsLog.debug('[SystemsManager] 📊 Data source summary:', {
       configured: Object.keys(configuredDataSources).length,
+      autoCreated: Object.keys(dataSourcesWithTemplates).length - Object.keys(configuredDataSources).length,
       total: Object.keys(allDataSources).length,
       allDataSourceIds: Object.keys(allDataSources)
     });
 
     if (Object.keys(allDataSources).length === 0) {
-      cblcarsLog.debug('[SystemsManager] No explicit data sources configured - DataSourceManager will not be initialized');
+      cblcarsLog.debug('[SystemsManager] No data sources configured or auto-created - DataSourceManager will not be initialized');
       cblcarsLog.debug('[SystemsManager] Note: Control overlays will use direct HASS (no data sources needed)');
       return;
     }
 
-    cblcarsLog.debug('[SystemsManager] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'explicit data sources');
+    cblcarsLog.debug('[SystemsManager] Initializing DataSourceManager with', Object.keys(allDataSources).length, 'data sources');
 
     try {
       this.dataSourceManager = new DataSourceManager(hass);
@@ -601,6 +624,68 @@ export class SystemsManager {
       cblcarsLog.error('[SystemsManager] Error details:', error.stack);
       this.dataSourceManager = null;
     }
+  }
+
+  /**
+   * Create auto-DataSources for entities referenced in templates
+   * @param {Object} mergedConfig - The merged MSD configuration
+   * @param {Object} configuredDataSources - Already configured DataSources
+   * @returns {Object} Configuration with auto-created DataSources added
+   * @private
+   */
+  async _createTemplateDataSources(mergedConfig, configuredDataSources) {
+    const templateEntities = new Set();
+
+    // Extract template entities from all overlays
+    if (mergedConfig.overlays) {
+      mergedConfig.overlays.forEach(overlay => {
+        try {
+          const entities = TemplateEntityExtractor.extractFromOverlay(overlay);
+          entities.forEach(entity => templateEntities.add(entity));
+        } catch (error) {
+          cblcarsLog.error('[SystemsManager] Error extracting entities from overlay:', overlay.id, error);
+        }
+      });
+    }
+
+    // Create auto-DataSources for entities not already configured
+    const autoDataSources = {};
+    let autoCreatedCount = 0;
+
+    templateEntities.forEach(entityId => {
+      // Check if entity already has a configured DataSource
+      const hasExistingDataSource = Object.values(configuredDataSources).some(ds =>
+        ds.entity === entityId
+      );
+
+      if (!hasExistingDataSource) {
+        const dataSourceName = `template_${entityId.replace(/\./g, '_')}`;
+
+        // Create lightweight DataSource config for template entity
+        autoDataSources[dataSourceName] = {
+          entity: entityId,
+          windowSeconds: 60,        // Small buffer for template updates
+          minEmitMs: 100,          // Responsive updates
+          coalesceMs: 50,          // Quick coalescing
+          history: { enabled: false }, // No history needed for templates
+          _autoCreated: true,      // Mark as auto-created
+          _templateEntity: true    // Mark as template entity
+        };
+
+        autoCreatedCount++;
+      }
+    });
+
+    if (autoCreatedCount > 0) {
+      cblcarsLog.info(`[SystemsManager] 📄 Auto-created ${autoCreatedCount} DataSources for template entities:`,
+        Array.from(templateEntities).join(', '));
+    }
+
+    // Merge auto-created DataSources with configured ones
+    return {
+      ...configuredDataSources,
+      ...autoDataSources
+    };
   }
 
   /**

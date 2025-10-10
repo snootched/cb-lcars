@@ -1,5 +1,6 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
+import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js';
 
 /**
  * [BaseOverlayUpdater] Base overlay update system - unified interface for dynamic overlay updates
@@ -81,62 +82,33 @@ export class BaseOverlayUpdater {
       if (dsChanged || haChanged) {
         let currentData = null;
 
-        // Try to provide DataSource data when applicable (DS path)
+        // ENHANCED: Try to provide DataSource data when applicable (DS path)
         const dsId = this._findDataSourceForEntity(changedIds[0]);
         if (dsId) {
           const ds = this.systemsManager.dataSourceManager.getSource(dsId);
           currentData = ds?.getCurrentData?.() || null;
+
+          // DIAGNOSTIC: Log the data we're about to use for the update
+          cblcarsLog.debug(`[BaseOverlayUpdater] 📊 DataSource ${dsId} data for overlay ${overlay.id}:`, {
+            hasCurrentData: !!currentData,
+            entityState: currentData?.entity?.state,
+            entityId: currentData?.entity?.entity_id,
+            timestamp: currentData?.timestamp,
+            changedEntity: changedIds[0]
+          });
+        } else {
+          cblcarsLog.debug(`[BaseOverlayUpdater] ⚠️ No DataSource found for entity ${changedIds[0]}`);
         }
 
         cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Updating ${overlay.type} overlay ${overlay.id} (dsChanged=${dsChanged}, haChanged=${haChanged})`);
+
+        // DIAGNOSTIC: Log overlay content before update
+        const overlayContent = overlay._raw?.content || overlay.content || overlay.text || '';
+        cblcarsLog.debug(`[BaseOverlayUpdater] 📝 Overlay ${overlay.id} content before update: "${overlayContent}"`);
+
         updater.update(overlay.id, overlay, currentData);
       }
     });
-  }
-
-  /**
-   * Check if overlay content contains template references
-   * @private
-   */
-  _hasTemplateContent(overlay) {
-    // Check main overlay content
-    const mainContent = overlay._raw?.content || overlay.content || overlay.text ||
-                        overlay._raw?.value_format || overlay.value_format || '';
-    if (mainContent && typeof mainContent === 'string' && this._hasAnyTemplateMarkers(mainContent)) {
-      return true;
-    }
-
-    // For status grids, also check cell configurations
-    if (overlay.type === 'status_grid') {
-      const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
-      if (cellsConfig && Array.isArray(cellsConfig)) {
-        return cellsConfig.some(cell => {
-          const cellContent = cell.content || cell.label || cell.value_format || '';
-          return cellContent && typeof cellContent === 'string' && this._hasAnyTemplateMarkers(cellContent);
-        });
-      }
-    }
-
-    // For history bars, check content property for templates
-    if (overlay.type === 'history_bar') {
-      const historyBarContent = overlay.content || overlay._raw?.content || '';
-      if (historyBarContent && typeof historyBarContent === 'string' && this._hasAnyTemplateMarkers(historyBarContent)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Detect any template markers (MSD {} or HA {{}})
-   * @private
-   */
-  _hasAnyTemplateMarkers(content) {
-    if (!content || typeof content !== 'string') return false;
-    if (content.includes('{{') && content.includes('}}')) return true;
-    if (content.includes('{')) return true;
-    return false;
   }
 
   /**
@@ -179,6 +151,83 @@ export class BaseOverlayUpdater {
     }
 
     return hasReference;
+  }
+
+  /**
+   * Check if overlay references any of the changed entities (using TemplateEntityExtractor)
+   * @private
+   */
+  _overlayReferencesChangedEntities(overlay, changedIds) {
+    try {
+      // Use TemplateEntityExtractor to get all entity references in this overlay
+      const overlayEntities = TemplateEntityExtractor.extractFromOverlay(overlay);
+
+      // Check if any overlay entities match changed entities
+      for (const overlayEntity of overlayEntities) {
+        if (changedIds.includes(overlayEntity)) {
+          cblcarsLog.debug(`[BaseOverlayUpdater] 🎯 Overlay ${overlay.id} references changed entity: ${overlayEntity}`);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      cblcarsLog.error(`[BaseOverlayUpdater] Error checking entity references for overlay ${overlay.id}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if overlay content contains template references (enhanced with TemplateEntityExtractor)
+   * @private
+   */
+  _hasTemplateContent(overlay) {
+    try {
+      // Use TemplateEntityExtractor to detect any entity references
+      const entities = TemplateEntityExtractor.extractFromOverlay(overlay);
+      return entities.size > 0;
+    } catch (error) {
+      cblcarsLog.error(`[BaseOverlayUpdater] Error checking template content for overlay ${overlay.id}:`, error);
+
+      // Fallback to original detection method
+      const mainContent = overlay._raw?.content || overlay.content || overlay.text ||
+                          overlay._raw?.value_format || overlay.value_format || '';
+      if (mainContent && typeof mainContent === 'string' && this._hasAnyTemplateMarkers(mainContent)) {
+        return true;
+      }
+
+      // For status grids, also check cell configurations
+      if (overlay.type === 'status_grid') {
+        const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+        if (cellsConfig && Array.isArray(cellsConfig)) {
+          return cellsConfig.some(cell => {
+            const cellContent = cell.content || cell.label || cell.value_format || '';
+            return cellContent && typeof cellContent === 'string' && this._hasAnyTemplateMarkers(cellContent);
+          });
+        }
+      }
+
+      // For history bars, check content property for templates
+      if (overlay.type === 'history_bar') {
+        const historyBarContent = overlay.content || overlay._raw?.content || '';
+        if (historyBarContent && typeof historyBarContent === 'string' && this._hasAnyTemplateMarkers(historyBarContent)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+  }
+
+  /**
+   * Detect any template markers (MSD {} or HA {{}})
+   * @private
+   */
+  _hasAnyTemplateMarkers(content) {
+    if (!content || typeof content !== 'string') return false;
+    if (content.includes('{{') && content.includes('}}')) return true;
+    if (content.includes('{')) return true;
+    return false;
   }
 
   /**
@@ -254,6 +303,16 @@ export class BaseOverlayUpdater {
    * @private
    */
   _updateTextOverlay(overlayId, overlay, sourceData) {
+    // DIAGNOSTIC: Log what data we're passing to the renderer
+    cblcarsLog.debug(`[BaseOverlayUpdater] 📝 Updating text overlay ${overlayId} with data:`, {
+      hasSourceData: !!sourceData,
+      entityState: sourceData?.entity?.state,
+      entityId: sourceData?.entity?.entity_id,
+      timestamp: sourceData?.timestamp,
+      hasRenderer: !!this.systemsManager.renderer,
+      hasUpdateMethod: !!this.systemsManager.renderer?.updateOverlayData
+    });
+
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateTextOverlay) {
@@ -268,12 +327,18 @@ export class BaseOverlayUpdater {
    * Status grid update logic with template processing
    * @private
    */
-    /**
-   * Status grid update logic with template processing
-   * @private
-   */
   _updateStatusGrid(overlayId, overlay, sourceData) {
     cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updating status grid ${overlayId} with template processing`);
+
+    // ENHANCED: Ensure renderer has updated HASS context before processing
+    const updatedHass = this.systemsManager.getCurrentHass();
+    if (updatedHass && this.systemsManager.renderer) {
+      // Update the renderer's HASS context before processing templates
+      if (this.systemsManager.renderer.setHass) {
+        this.systemsManager.renderer.setHass(updatedHass);
+        cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updated renderer HASS context for status grid ${overlayId}`);
+      }
+    }
 
     // Import StatusGridRenderer for template processing
     import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
@@ -284,10 +349,17 @@ export class BaseOverlayUpdater {
 
       cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Processed ${updatedCells.length} cells for status grid ${overlayId}`);
 
-      // SIMPLIFIED: Let the external renderer handle the actual DOM update
-      // We've done our job of processing the data - the external system will handle rendering
+      // ENHANCED: Pass updated overlay data to renderer with fresh HASS context
       if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-        this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+        // Create enhanced source data with updated HASS context
+        const enhancedSourceData = {
+          ...sourceData,
+          hass: updatedHass,
+          overlay: overlay
+        };
+
+        this.systemsManager.renderer.updateOverlayData(overlayId, enhancedSourceData);
+        cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Passed enhanced data with updated HASS to renderer for ${overlayId}`);
       } else {
         cblcarsLog.debug(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
       }
@@ -306,6 +378,8 @@ export class BaseOverlayUpdater {
       this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
     } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+    } else {
+      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for sparkline overlay ${overlayId}`);
     }
   }
 
