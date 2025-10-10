@@ -443,6 +443,12 @@ export class TextOverlayRenderer {
         content = style.value_format;
       }
 
+    // Unified processing (handles both {{ha}} and {msd})
+    if (typeof content === 'string') {
+      content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');
+      return content;
+    }
+
     // If we have basic content and it contains template strings, process them
     if (content && typeof content === 'string' && content.includes('{')) {
       content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');

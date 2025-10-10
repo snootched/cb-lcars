@@ -1774,18 +1774,20 @@ export class StatusGridRenderer {
       return cellContent || '';
     }
 
-    // No templates - return as-is
-    if (!cellContent.includes('{')) {
+    // Quick exit if no template markers at all
+    const hasMSD = cellContent.includes('{');
+    const hasHA = cellContent.includes('{{') && cellContent.includes('}}');
+    if (!hasMSD && !hasHA) {
       return cellContent;
     }
 
-    // Check if this is a conditional expression
-    if (cellContent.includes('?') && cellContent.includes(':')) {
+    // MSD-style inline conditional support stays (only for { ... ? ... : ... } style)
+    if (cellContent.includes('?') && cellContent.includes(':') && hasMSD) {
       return this._processConditionalWithDataSourceMixin(cellContent, updateDataSourceData);
     }
 
-    // Standard DataSource template - use DataSourceMixin
-    return DataSourceMixin.processEnhancedTemplateStringsWithFallback(cellContent, 'StatusGridRenderer');
+    // Unified processing (handles both HA {{}} and MSD {})
+    return DataSourceMixin.processUnifiedTemplateStrings(cellContent, 'StatusGridRenderer');
   }
 
   // Cell configuration resolution with DataSource integration

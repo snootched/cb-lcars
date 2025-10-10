@@ -1,4 +1,5 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { MsdTemplateEngine } from '../overlays/MsdTemplateEngine.js';
 
 /**
  * [DataSourceMixin] DataSource integration mixin - reusable DataSource integration methods
@@ -230,13 +231,11 @@ export class DataSourceMixin {
    * @returns {string} Processed content, gracefully handling unavailable DataSources
    */
   static processTemplateForInitialRender(content, rendererName = 'Renderer') {
-    if (!content || typeof content !== 'string' || !content.includes('{')) {
+    if (!content || typeof content !== 'string' || !this._hasTemplateMarkers(content)) {
       return content;
     }
-
-    // Try to process templates, but gracefully fall back to original content
-    const processed = this.processEnhancedTemplateStringsWithFallback(content, rendererName, true);
-
+    // Use unified processing for both HA and MSD templates
+    const processed = this.processUnifiedTemplateStrings(content, rendererName);
     return processed;
   }
 
@@ -333,6 +332,163 @@ export class DataSourceMixin {
       cblcarsLog.error(`[${rendererName}] ❌ Enhanced template processing failed:`, error);
       return fallbackToOriginal ? content : null;
     }
+  }
+
+  /**
+   * Process unified template strings supporting both HA and MSD syntax
+   * @param {string} content - Template string with mixed {references} and {{HA templates}}
+   * @param {string} rendererName - Name of the renderer for logging
+   * @returns {string} Processed content with resolved references
+   */
+  static processUnifiedTemplateStrings(content, rendererName = 'Renderer') {
+    try {
+      const cacheKey = `${rendererName}-${content}`;
+      let processedContent = content;
+
+      // Step 1: Process HA templates first ({{...}}) using MsdTemplateEngine
+      if (processedContent.includes('{{') && processedContent.includes('}}')) {
+        processedContent = this._processHATemplates(processedContent, rendererName, cacheKey);
+      }
+
+      // Step 2: Mask any remaining HA blocks so MSD parser won't touch them
+      const { text: maskedText, map } = this._maskHATemplates(processedContent);
+
+      // Step 3: Process MSD DataSource templates ({...}) only on masked text
+      let afterMsd = maskedText;
+      if (afterMsd.includes('{') && !afterMsd.includes('{{')) {
+        afterMsd = this.processEnhancedTemplateStringsWithFallback(afterMsd, rendererName, true);
+      }
+
+      // Step 4: Restore HA blocks exactly as they were
+      processedContent = this._unmaskHATemplates(afterMsd, map);
+
+      return processedContent;
+
+    } catch (error) {
+      cblcarsLog.error(`[${rendererName}] ❌ Unified template processing failed:`, error);
+      return content;
+    }
+  }
+
+  /**
+   * Process Home Assistant template syntax using MsdTemplateEngine
+   * Skips evaluation (and logs) if hass states are not available yet.
+   * @private
+   */
+  static _processHATemplates(content, rendererName, cacheKey) {
+    try {
+      const templateEngine = this._getTemplateEngine();
+      if (!templateEngine) return content;
+
+      // EARLY EXIT: avoid warnings if HASS not yet ready
+      const hassStates = templateEngine.getHassStates?.() || null;
+      if (!hassStates) {
+        return content;
+      }
+
+      // Use cache key for better performance
+      const templateId = cacheKey || `${rendererName}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Compile and evaluate the template
+      const compiled = templateEngine.compileTemplate(content, templateId);
+      const result = templateEngine.evaluateTemplate(compiled, hassStates);
+
+      cblcarsLog.debug(`[${rendererName}] 🏠 HA template processed:`, {
+        original: content,
+        result: result,
+        entityDependencies: compiled.entityDependencies
+      });
+
+      return result;
+
+    } catch (error) {
+      cblcarsLog.error(`[${rendererName}] ❌ HA template processing error:`, error);
+      return content;
+    }
+  }
+
+  /**
+   * Get MsdTemplateEngine instance with improved initialization
+   * @private
+   * @returns {Object|null} MsdTemplateEngine instance or null
+   */
+  static _getTemplateEngine() {
+    if (typeof window !== 'undefined' && window.__msdTemplateEngine) {
+      return window.__msdTemplateEngine;
+    }
+    try {
+      const engine = new MsdTemplateEngine();
+      if (typeof window !== 'undefined') {
+        window.__msdTemplateEngine = engine;
+      }
+      return engine;
+    } catch (error) {
+      cblcarsLog.error('[DataSourceMixin] Failed to create MsdTemplateEngine instance:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract HA entity dependencies from template content
+   */
+  static extractHAEntityDependencies(content) {
+    try {
+      if (!content || typeof content !== 'string' || !(content.includes('{{') && content.includes('}}'))) {
+        return [];
+      }
+      const engine = this._getTemplateEngine();
+      if (!engine) return [];
+      const tempId = `deps-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const compiled = engine.compileTemplate(content, tempId);
+      const deps = Array.isArray(compiled?.entityDependencies) ? compiled.entityDependencies : [];
+      try { engine.compiledTemplates?.delete?.(tempId); } catch (_) {}
+      return deps;
+    } catch (err) {
+      cblcarsLog.error('[DataSourceMixin] Error extracting HA entity dependencies:', err);
+      return [];
+    }
+  }
+
+  /**
+   * Detect if content contains either MSD or HA template markers
+   * @private
+   */
+  static _hasTemplateMarkers(content) {
+    if (!content || typeof content !== 'string') return false;
+    if (content.includes('{{') && content.includes('}}')) return true; // HA
+    if (content.includes('{')) return true; // MSD
+    return false;
+  }
+
+  /**
+   * Mask all HA {{...}} blocks to placeholders so MSD parser won't touch them.
+   * @private
+   */
+  static _maskHATemplates(str) {
+    if (typeof str !== 'string' || !str.includes('{{')) {
+      return { text: str, map: [] };
+    }
+    const map = [];
+    let idx = 0;
+    const text = str.replace(/\{\{[\s\S]*?\}\}/g, (m) => {
+      const token = `__HA_BLOCK_${idx++}__`;
+      map.push({ token, value: m });
+      return token;
+    });
+    return { text, map };
+  }
+
+  /**
+   * Restore masked HA placeholders back to their original {{...}} content.
+   * @private
+   */
+  static _unmaskHATemplates(str, map) {
+    if (!Array.isArray(map) || map.length === 0 || typeof str !== 'string') return str;
+    let out = str;
+    for (const { token, value } of map) {
+      out = out.split(token).join(value);
+    }
+    return out;
   }
 
   /**

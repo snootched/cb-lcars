@@ -1,4 +1,5 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { DataSourceMixin } from './DataSourceMixin.js';
 
 /**
  * [BaseOverlayUpdater] Base overlay update system - unified interface for dynamic overlay updates
@@ -61,7 +62,7 @@ export class BaseOverlayUpdater {
    * @public
    */
   updateOverlaysForDataSourceChanges(changedIds) {
-    cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Checking overlays for DataSource changes: ${changedIds.join(', ')}`);
+    cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Checking overlays for DataSource/HA changes: ${changedIds.join(', ')}`);
 
     const resolvedModel = this.systemsManager.modelBuilder?.getResolvedModel?.();
     if (!resolvedModel?.overlays) {
@@ -69,29 +70,26 @@ export class BaseOverlayUpdater {
       return;
     }
 
-    // Check each overlay type
     resolvedModel.overlays.forEach(overlay => {
       const updater = this.overlayUpdaters.get(overlay.type) || this.overlayUpdaters.get('default');
+      if (!updater.hasTemplates(overlay)) return;
 
-      if (updater.hasTemplates(overlay)) {
-        const needsUpdate = this._overlayReferencesChangedDataSources(overlay, changedIds);
+      // Detect if this overlay references changed DataSources OR HA entities
+      const dsChanged = this._overlayReferencesChangedDataSources(overlay, changedIds);
+      const haChanged = this._overlayReferencesChangedEntities(overlay, changedIds);
 
-        if (needsUpdate) {
-          const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
-          if (updatedDataSourceId) {
-            const dataSource = this.systemsManager.dataSourceManager.getSource(updatedDataSourceId);
-            if (dataSource) {
-              const currentData = dataSource.getCurrentData();
+      if (dsChanged || haChanged) {
+        let currentData = null;
 
-              cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Updating ${overlay.type} overlay ${overlay.id}`);
-              updater.update(overlay.id, overlay, currentData);
-            } else {
-              cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ DataSource ${updatedDataSourceId} not found`);
-            }
-          } else {
-            cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No DataSource found for entity ${changedIds[0]}`);
-          }
+        // Try to provide DataSource data when applicable (DS path)
+        const dsId = this._findDataSourceForEntity(changedIds[0]);
+        if (dsId) {
+          const ds = this.systemsManager.dataSourceManager.getSource(dsId);
+          currentData = ds?.getCurrentData?.() || null;
         }
+
+        cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Updating ${overlay.type} overlay ${overlay.id} (dsChanged=${dsChanged}, haChanged=${haChanged})`);
+        updater.update(overlay.id, overlay, currentData);
       }
     });
   }
@@ -103,19 +101,18 @@ export class BaseOverlayUpdater {
   _hasTemplateContent(overlay) {
     // Check main overlay content
     const mainContent = overlay._raw?.content || overlay.content || overlay.text ||
-                       overlay._raw?.value_format || overlay.value_format || '';
-
-    if (mainContent && typeof mainContent === 'string' && mainContent.includes('{')) {
+                        overlay._raw?.value_format || overlay.value_format || '';
+    if (mainContent && typeof mainContent === 'string' && this._hasAnyTemplateMarkers(mainContent)) {
       return true;
     }
 
-    // For status grids, also check cell configurations - ENHANCED to check multiple sources
+    // For status grids, also check cell configurations
     if (overlay.type === 'status_grid') {
       const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
       if (cellsConfig && Array.isArray(cellsConfig)) {
         return cellsConfig.some(cell => {
           const cellContent = cell.content || cell.label || cell.value_format || '';
-          return cellContent && typeof cellContent === 'string' && cellContent.includes('{');
+          return cellContent && typeof cellContent === 'string' && this._hasAnyTemplateMarkers(cellContent);
         });
       }
     }
@@ -123,11 +120,22 @@ export class BaseOverlayUpdater {
     // For history bars, check content property for templates
     if (overlay.type === 'history_bar') {
       const historyBarContent = overlay.content || overlay._raw?.content || '';
-      if (historyBarContent && typeof historyBarContent === 'string' && historyBarContent.includes('{')) {
+      if (historyBarContent && typeof historyBarContent === 'string' && this._hasAnyTemplateMarkers(historyBarContent)) {
         return true;
       }
     }
 
+    return false;
+  }
+
+  /**
+   * Detect any template markers (MSD {} or HA {{}})
+   * @private
+   */
+  _hasAnyTemplateMarkers(content) {
+    if (!content || typeof content !== 'string') return false;
+    if (content.includes('{{') && content.includes('}}')) return true;
+    if (content.includes('{')) return true;
     return false;
   }
 
