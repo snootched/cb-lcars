@@ -100,27 +100,6 @@ export class StatusGridRenderer {
    */
   static render(overlay, anchors, viewBox, cardInstance = null) {
     const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);
-
-    // Store action info for post-DOM-insertion processing
-    if (result.needsActionAttachment) {
-      StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
-
-      // CRITICAL: Use multiple timing strategies to ensure actions get attached
-      // Immediate attempt
-      setTimeout(() => {
-        StatusGridRenderer._tryManualActionProcessing(overlay.id);
-      }, 10);
-
-      // Fallback attempts
-      setTimeout(() => {
-        StatusGridRenderer._tryManualActionProcessing(overlay.id);
-      }, 100);
-
-      setTimeout(() => {
-        StatusGridRenderer._tryManualActionProcessing(overlay.id);
-      }, 500);
-    }
-
     return result.markup; // Return just markup for backwards compatibility
   }
 
@@ -138,54 +117,242 @@ export class StatusGridRenderer {
     const instance = new StatusGridRenderer();
     const result = instance.renderStatusGrid(overlay, anchors, viewBox, cardInstance);
 
-    // CRITICAL: If we have actions and can attach them immediately, do so
+    // FIXED: Use immediate action attachment like ButtonOverlay instead of deferred
     if (result.needsActionAttachment && result.actions) {
-      // Try to attach actions immediately if the renderer has a mount element
-      StatusGridRenderer._tryImmediateActionAttachment(overlay.id, result);
+      // Schedule immediate action attachment using the same pattern as ButtonOverlay
+      setTimeout(() => {
+        StatusGridRenderer._attachActionsImmediately(overlay.id, result.actions);
+      }, 0);
+
+      // Add multiple fallback attempts with the working timing
+      setTimeout(() => {
+        StatusGridRenderer._attachActionsImmediately(overlay.id, result.actions);
+      }, 10);
+
+      setTimeout(() => {
+        StatusGridRenderer._attachActionsImmediately(overlay.id, result.actions);
+      }, 100);
     }
 
     return result;
   }
 
   /**
-   * Try to attach actions immediately during render instead of later DOM search
+   * Attach actions immediately using the same pattern as ButtonOverlay
    * @private
    * @static
    */
-  static _tryImmediateActionAttachment(overlayId, renderResult) {
-    // Try to find the renderer instance that just created this
+  static _attachActionsImmediately(overlayId, actionInfo) {
+    // Try to find the grid element using the same search pattern as working overlays
+    let gridElement = null;
+
+    // Method 1: Use renderer mount element (same as ButtonOverlay)
     const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
-    if (!renderer || !renderer.mountEl) {
-      cblcarsLog.debug(`[StatusGridRenderer] 🔍 No renderer mount element found for immediate attachment`);
-      // Fall back to storing for later
-      StatusGridRenderer._storeActionInfo(overlayId, renderResult.actions);
-      return;
-    }
-
-    // The element should be in the overlay container we just rendered to
-    const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
-    if (!overlayGroup) {
-      cblcarsLog.debug(`[StatusGridRenderer] 🔍 No overlay container found for immediate attachment`);
-      StatusGridRenderer._storeActionInfo(overlayId, renderResult.actions);
-      return;
-    }
-
-    // CRITICAL: Use nextTick to let the DOM settle, then attach immediately
-    setTimeout(() => {
-      const gridElement = overlayGroup.querySelector(`[data-overlay-id="${overlayId}"]`);
-
-      if (gridElement) {
-        cblcarsLog.debug(`[StatusGridRenderer] 🎯 IMMEDIATE action attachment for ${overlayId}`);
-        StatusGridRenderer.attachStatusGridActions(gridElement, renderResult.actions);
-      } else {
-        cblcarsLog.debug(`[StatusGridRenderer] 🔍 Grid element not ready for immediate attachment, storing for later`);
-        StatusGridRenderer._storeActionInfo(overlayId, renderResult.actions);
-
-        // Add multiple fallback timers
-        setTimeout(() => StatusGridRenderer._tryManualActionProcessing(overlayId), 50);
-        setTimeout(() => StatusGridRenderer._tryManualActionProcessing(overlayId), 200);
+    if (renderer && renderer.mountEl) {
+      const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
+      if (overlayGroup) {
+        gridElement = overlayGroup.querySelector(`[data-overlay-id="${overlayId}"]`);
       }
-    }, 0);
+    }
+
+    // Method 2: Card shadow DOM fallback
+    if (!gridElement) {
+      const card = window.cb_lcars_card_instance;
+      if (card && card.shadowRoot) {
+        gridElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
+      }
+    }
+
+    // Method 3: Document search (last resort)
+    if (!gridElement) {
+      gridElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
+    }
+
+    if (gridElement && actionInfo) {
+      cblcarsLog.debug(`[StatusGridRenderer] 🎯 IMMEDIATE action attachment for ${overlayId}`);
+
+      // CRITICAL: Use the proven ActionHelpers pattern
+      if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
+        // Process each cell's actions individually using the same pattern as working buttons
+        actionInfo.cells.forEach(cell => {
+          if (cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action)) {
+            // Find ALL elements for this cell (rect, text, etc.) - same as working pattern
+            const cellElements = gridElement.querySelectorAll(`[data-cell-id="${cell.id}"]`);
+
+            cellElements.forEach(cellElement => {
+              // Use ActionHelpers individual cell attachment (proven to work)
+              StatusGridRenderer._attachSingleCellActions(cellElement, cell.actions, actionInfo.cardInstance, cell.id);
+            });
+          }
+        });
+      }
+
+      cblcarsLog.debug(`[StatusGridRenderer] ✅ Immediate action attachment completed for ${overlayId}`);
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] ⚠️ Could not find grid element for immediate attachment: ${overlayId}`);
+      // Store for later as fallback
+      StatusGridRenderer._storeActionInfo(overlayId, actionInfo);
+    }
+  }
+
+  /**
+   * Attach actions to a single cell element using the proven ActionHelpers pattern
+   * @private
+   * @static
+   */
+  static _attachSingleCellActions(cellElement, actions, cardInstance, cellId) {
+    if (!cellElement || !actions || !cardInstance) {
+      cblcarsLog.warn(`[StatusGridRenderer] Missing parameters for single cell action attachment: ${cellId}`);
+      return;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] 🔗 Attaching actions to single cell element ${cellId}:`, {
+      elementType: cellElement.tagName,
+      hasActions: !!actions,
+      hasTapAction: !!actions.tap_action,
+      hasCardInstance: !!cardInstance
+    });
+
+    // CRITICAL: Set pointer events and cursor (same as working buttons)
+    cellElement.style.pointerEvents = 'visiblePainted';
+    cellElement.style.cursor = 'pointer';
+
+    // CRITICAL: Use the same event attachment pattern as working ActionHelpers
+    if (actions.tap_action) {
+      const actionHandler = (event) => {
+        cblcarsLog.debug(`[StatusGridRenderer] 🎯 Cell tap action triggered for ${cellId}:`, actions.tap_action);
+
+        // Prevent event bubbling
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+
+        // Execute action via ActionHelpers bridge (same as working buttons)
+        if (window.ActionHelpers && typeof window.ActionHelpers.executeActionViaButtonCardBridge === 'function') {
+          window.ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
+        } else {
+          // Fallback to direct execution
+          StatusGridRenderer._executeActionDirect(actions.tap_action, cardInstance);
+        }
+
+        return false;
+      };
+
+      // Add multiple event listeners for reliability (same as working pattern)
+      cellElement.addEventListener('click', actionHandler, { capture: true, passive: false });
+      cellElement.addEventListener('click', actionHandler, { capture: false, passive: false });
+      cellElement.addEventListener('touchend', actionHandler, { capture: true, passive: false });
+    }
+
+    // Add hold action handler if present
+    if (actions.hold_action) {
+      StatusGridRenderer._attachHoldAction(cellElement, actions.hold_action, cardInstance);
+    }
+
+    // Add double-tap action handler if present
+    if (actions.double_tap_action) {
+      StatusGridRenderer._attachDoubleTapAction(cellElement, actions.double_tap_action, cardInstance);
+    }
+
+    // Mark as successfully attached
+    cellElement.setAttribute('data-actions-attached', 'true');
+    cellElement.setAttribute('data-action-attachment-time', Date.now().toString());
+
+    cblcarsLog.debug(`[StatusGridRenderer] ✅ Single cell action attachment completed for ${cellId}`);
+  }
+
+  /**
+   * Execute action directly as fallback
+   * @private
+   * @static
+   */
+  static _executeActionDirect(action, cardInstance) {
+    try {
+      if (cardInstance && typeof cardInstance._handleAction === 'function') {
+        cardInstance._handleAction(action);
+      } else if (cardInstance && typeof cardInstance.handleAction === 'function') {
+        cardInstance.handleAction(action);
+      } else {
+        cblcarsLog.warn(`[StatusGridRenderer] No action handler available on card instance`);
+      }
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] Error executing action directly:`, error);
+    }
+  }
+
+  /**
+   * Attach hold action using proven pattern
+   * @private
+   * @static
+   */
+  static _attachHoldAction(element, holdAction, cardInstance) {
+    let holdTimer = null;
+    let isHolding = false;
+
+    const startHold = (event) => {
+      isHolding = true;
+      holdTimer = setTimeout(() => {
+        if (isHolding) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          cblcarsLog.debug(`[StatusGridRenderer] ✋ Hold action triggered:`, holdAction);
+
+          if (window.ActionHelpers && typeof window.ActionHelpers.executeActionViaButtonCardBridge === 'function') {
+            window.ActionHelpers.executeActionViaButtonCardBridge(holdAction, cardInstance, 'hold');
+          } else {
+            StatusGridRenderer._executeActionDirect(holdAction, cardInstance);
+          }
+        }
+      }, 500);
+    };
+
+    const endHold = () => {
+      isHolding = false;
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+    };
+
+    element.addEventListener('mousedown', startHold);
+    element.addEventListener('mouseup', endHold);
+    element.addEventListener('mouseleave', endHold);
+    element.addEventListener('touchstart', startHold);
+    element.addEventListener('touchend', endHold);
+    element.addEventListener('touchcancel', endHold);
+  }
+
+  /**
+   * Attach double-tap action using proven pattern
+   * @private
+   * @static
+   */
+  static _attachDoubleTapAction(element, doubleTapAction, cardInstance) {
+    let lastTap = 0;
+
+    element.addEventListener('click', (event) => {
+      const now = Date.now();
+      const timeDiff = now - lastTap;
+
+      if (timeDiff < 300 && lastTap > 0) {
+        // Double-tap detected
+        event.preventDefault();
+        event.stopPropagation();
+
+        cblcarsLog.debug(`[StatusGridRenderer] 🖱️🖱️ Double-tap action triggered:`, doubleTapAction);
+
+        if (window.ActionHelpers && typeof window.ActionHelpers.executeActionViaButtonCardBridge === 'function') {
+          window.ActionHelpers.executeActionViaButtonCardBridge(doubleTapAction, cardInstance, 'double_tap');
+        } else {
+          StatusGridRenderer._executeActionDirect(doubleTapAction, cardInstance);
+        }
+
+        lastTap = 0; // Reset to prevent triple-tap
+      } else {
+        lastTap = now;
+      }
+    });
   }
 
   /**
@@ -1276,7 +1443,8 @@ export class StatusGridRenderer {
       {
         cellId: cell.id,
         gridContext: true, // Important: this is a grid cell context
-        cardInstance: this._resolveCardInstance()
+        cardInstance: this._resolveCardInstance(),
+        hasActions: cellHasActions // Pass action flag to ButtonRenderer
       }
     );
 
@@ -1703,6 +1871,88 @@ export class StatusGridRenderer {
   }
 
   /**
+   * Attach actions to a status grid overlay element
+   * @param {Element} gridElement - The grid element to attach actions to
+   * @param {Object} actionInfo - The action information object
+   * @static
+   */
+  static attachStatusGridActions(gridElement, actionInfo) {
+    if (!gridElement || !actionInfo) {
+      cblcarsLog.warn(`[StatusGridRenderer] Invalid arguments for attachStatusGridActions`);
+      return;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] 🎯 Attaching actions to grid ${gridElement.getAttribute('data-overlay-id')}:`, {
+      hasActionInfo: !!actionInfo,
+      hasCells: !!(actionInfo.cells),
+      cellCount: actionInfo.cells?.length || 0,
+      hasCardInstance: !!actionInfo.cardInstance
+    });
+
+    // Use proven ActionHelpers pattern
+    if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using ActionHelpers.attachCellActionsFromConfigs for ${actionInfo.cells.length} cells`);
+
+      // Use the proven ActionHelpers method that works for other overlays
+      window.ActionHelpers.attachCellActionsFromConfigs(gridElement, actionInfo.cells, actionInfo.cardInstance);
+
+      cblcarsLog.debug(`[StatusGridRenderer] ✅ Completed ActionHelpers cell action attachment`);
+    } else {
+      cblcarsLog.warn(`[StatusGridRenderer] No cells array found in actionInfo for grid action attachment`);
+    }
+
+    // Handle overlay-level actions if present
+    if (actionInfo.hasOverlayActions && actionInfo.overlay) {
+      cblcarsLog.debug(`[StatusGridRenderer] Processing overlay-level actions`);
+
+      const overlayActionConfig = window.ActionHelpers.processOverlayActions(
+        actionInfo.overlay,
+        actionInfo.gridStyle || {},
+        actionInfo.cardInstance
+      );
+
+      if (overlayActionConfig) {
+        window.ActionHelpers.attachActions(
+          gridElement,
+          actionInfo.overlay,
+          overlayActionConfig.config,
+          actionInfo.cardInstance
+        );
+        cblcarsLog.debug(`[StatusGridRenderer] ✅ Attached overlay-level actions`);
+      }
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] ✅ Completed action attachment for grid ${gridElement.getAttribute('data-overlay-id')}`);
+  }
+
+  /**
+   * Store action info for later attachment after DOM insertion
+   * @private
+   * @static
+   */
+  static _storeActionInfo(overlayId, actionInfo) {
+    if (!window._msdStatusGridActions) {
+      window._msdStatusGridActions = new Map();
+      cblcarsLog.debug(`[StatusGridRenderer] 📦 Initialized action storage map`);
+    }
+
+    if (!actionInfo) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Attempted to store null action info for ${overlayId}`);
+      return;
+    }
+
+    window._msdStatusGridActions.set(overlayId, actionInfo);
+    cblcarsLog.debug(`[StatusGridRenderer] 📦 STORED action info for overlay ${overlayId}:`, {
+      hasCells: !!(actionInfo?.cells),
+      cellCount: actionInfo?.cells?.length || 0,
+      hasCardInstance: !!actionInfo?.cardInstance,
+      hasOverlayActions: actionInfo?.hasOverlayActions,
+      hasCellActions: actionInfo?.hasCellActions,
+      storageMapSize: window._msdStatusGridActions.size
+    });
+  }
+
+  /**
    * Try manual action processing for a specific overlay
    * @private
    * @static
@@ -1765,821 +2015,669 @@ export class StatusGridRenderer {
         success: afterAttachment > 0
       });
 
-    // Remove from pending actions after successful attachment
-    window._msdStatusGridActions.delete(overlayId);
-  } else {
-    cblcarsLog.debug(`[StatusGridRenderer] ⚠️ Grid element not found for ${overlayId}, will retry later`);
-  }
-}
-
-/**
- * Attach actions to a status grid overlay element
- * @param {Element} gridElement - The grid element to attach actions to
- * @param {Object} actionInfo - The action information object
- * @static
- */
-static attachStatusGridActions(gridElement, actionInfo) {
-  if (!gridElement || !actionInfo) {
-    cblcarsLog.warn(`[StatusGridRenderer] Invalid arguments for attachStatusGridActions`);
-    return;
-  }
-
-  cblcarsLog.debug(`[StatusGridRenderer] 🎯 Attaching actions to grid ${gridElement.getAttribute('data-overlay-id')}:`, {
-    hasActionInfo: !!actionInfo,
-    hasCells: !!(actionInfo.cells),
-    cellCount: actionInfo.cells?.length || 0,
-    hasCardInstance: !!actionInfo.cardInstance
-  });
-
-  // FIXED: Use proven ActionHelpers pattern instead of custom logic
-  if (actionInfo.cells && Array.isArray(actionInfo.cells)) {
-    cblcarsLog.debug(`[StatusGridRenderer] Using ActionHelpers.attachCellActionsFromConfigs for ${actionInfo.cells.length} cells`);
-
-    // Use the proven ActionHelpers method that works for other overlays
-    window.ActionHelpers.attachCellActionsFromConfigs(gridElement, actionInfo.cells, actionInfo.cardInstance);
-
-    cblcarsLog.debug(`[StatusGridRenderer] ✅ Completed ActionHelpers cell action attachment`);
-  } else {
-    cblcarsLog.warn(`[StatusGridRenderer] No cells array found in actionInfo for grid action attachment`);
-  }
-
-  // Handle overlay-level actions if present
-  if (actionInfo.hasOverlayActions && actionInfo.overlay) {
-    cblcarsLog.debug(`[StatusGridRenderer] Processing overlay-level actions`);
-
-    const overlayActionConfig = window.ActionHelpers.processOverlayActions(
-      actionInfo.overlay,
-      actionInfo.gridStyle || {},
-      actionInfo.cardInstance
-    );
-
-    if (overlayActionConfig) {
-      window.ActionHelpers.attachActions(
-        gridElement,
-        actionInfo.overlay,
-        overlayActionConfig.config,
-        actionInfo.cardInstance
-      );
-      cblcarsLog.debug(`[StatusGridRenderer] ✅ Attached overlay-level actions`);
+      // Remove from pending actions after successful attachment
+      window._msdStatusGridActions.delete(overlayId);
+    } else {
+      cblcarsLog.debug(`[StatusGridRenderer] ⚠️ Grid element not found for ${overlayId}, will retry later`);
     }
   }
 
-  cblcarsLog.debug(`[StatusGridRenderer] ✅ Completed action attachment for grid ${gridElement.getAttribute('data-overlay-id')}`);
-}
+  /**
+   * Fallback method to attach basic cell actions when ActionHelpers is not available
+   * @private
+   * @static
+   */
+  static _attachBasicCellActions(cellElement, actions, cardInstance) {
+    cblcarsLog.warn(`[StatusGridRenderer] Using fallback action attachment - ActionHelpers should be available`);
 
-/**
- * Store action info for later attachment after DOM insertion
- * @private
- * @static
- */
-static _storeActionInfo(overlayId, actionInfo) {
-  if (!window._msdStatusGridActions) {
-    window._msdStatusGridActions = new Map();
-    cblcarsLog.debug(`[StatusGridRenderer] 📦 Initialized action storage map`);
-  }
-
-  if (!actionInfo) {
-    cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Attempted to store null action info for ${overlayId}`);
-    return;
-  }
-
-  window._msdStatusGridActions.set(overlayId, actionInfo);
-  cblcarsLog.debug(`[StatusGridRenderer] 📦 STORED action info for overlay ${overlayId}:`, {
-    hasCells: !!(actionInfo?.cells),
-    cellCount: actionInfo?.cells?.length || 0,
-    hasCardInstance: !!actionInfo?.cardInstance,
-    hasOverlayActions: actionInfo?.hasOverlayActions,
-    hasCellActions: actionInfo?.hasCellActions,
-    storageMapSize: window._msdStatusGridActions.size
-  });
-}
-
-/**
- * Try manual action processing for a specific overlay
- * @private
- * @static
- */
-static _tryManualActionProcessing(overlayId) {
-  if (!window._msdStatusGridActions?.has(overlayId)) {
-    cblcarsLog.debug(`[StatusGridRenderer] No stored actions for ${overlayId}`);
-    return;
-  }
-
-  const actionInfo = window._msdStatusGridActions.get(overlayId);
-
-  // ENHANCED: Try renderer-based search first (more reliable)
-  let gridElement = null;
-
-  // Method 1: Use the known renderer mount element
-  const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
-  if (renderer && renderer.mountEl) {
-    const overlayGroup = renderer.mountEl.querySelector('#msd-overlay-container');
-    if (overlayGroup) {
-      gridElement = overlayGroup.querySelector(`[data-overlay-id="${overlayId}"]`);
-      if (gridElement) {
-        cblcarsLog.debug(`[StatusGridRenderer] 🎯 Found grid element via renderer mount for ${overlayId}`);
-      }
+    // FIXED: Use ActionHelpers if available, otherwise fallback
+    if (window.ActionHelpers && typeof window.ActionHelpers.attachCellActions === 'function') {
+      window.ActionHelpers.attachCellActions(cellElement, actions, cardInstance);
+      return;
     }
-  }
 
-  // Method 2: Card shadow DOM (fallback)
-  if (!gridElement) {
-    const card = window.cb_lcars_card_instance;
-    if (card && card.shadowRoot) {
-      gridElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
-      if (gridElement) {
-        cblcarsLog.debug(`[StatusGridRenderer] 🎯 Found grid element in card shadow DOM for ${overlayId}`);
-      }
-    }
-  }
+    // Original fallback code only if ActionHelpers is not available
+    if (!cellElement || !actions) return;
 
-  // Method 3: Document search (last resort)
-  if (!gridElement) {
-    gridElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
-    if (gridElement) {
-      cblcarsLog.debug(`[StatusGridRenderer] 🎯 Found grid element in document for ${overlayId}`);
-    }
-  }
-
-  if (gridElement) {
-    cblcarsLog.debug(`[StatusGridRenderer] 🎯 Found grid element for ${overlayId}, attaching actions`);
-
-    // ENHANCED: Add debugging to track the attachment process
-    const beforeAttachment = gridElement.querySelectorAll('[data-has-cell-actions="true"]').length;
-
-    StatusGridRenderer.attachStatusGridActions(gridElement, actionInfo);
-
-    const afterAttachment = gridElement.querySelectorAll('[data-actions-attached="true"]').length;
-
-    cblcarsLog.debug(`[StatusGridRenderer] Action attachment summary for ${overlayId}:`, {
-      cellsWithActionsMarkup: beforeAttachment,
-      cellsWithActionsAttached: afterAttachment,
-      success: afterAttachment > 0
-    });
-
-    // Remove from pending actions after successful attachment
-    window._msdStatusGridActions.delete(overlayId);
-  } else {
-    cblcarsLog.debug(`[StatusGridRenderer] ⚠️ Grid element not found for ${overlayId}, will retry later`);
-  }
-}
-
-/**
- * Fallback method to attach basic cell actions when ActionHelpers is not available
- * @private
- * @static
- */
-static _attachBasicCellActions(cellElement, actions, cardInstance) {
-  cblcarsLog.warn(`[StatusGridRenderer] Using fallback action attachment - ActionHelpers should be available`);
-
-  // FIXED: Use ActionHelpers if available, otherwise fallback
-  if (window.ActionHelpers && typeof window.ActionHelpers.attachCellActions === 'function') {
-    window.ActionHelpers.attachCellActions(cellElement, actions, cardInstance);
-    return;
-  }
-
-  // Original fallback code only if ActionHelpers is not available
-  if (!cellElement || !actions) return;
-
-  // Add click handler for tap_action
-  if (actions.tap_action) {
-    cellElement.addEventListener('click', (event) => {
-      event.stopPropagation();
-      cblcarsLog.debug(`[StatusGridRenderer] 🖱️ Cell tap action triggered:`, actions.tap_action);
-
-      if (cardInstance && typeof cardInstance._handleAction === 'function') {
-        cardInstance._handleAction(actions.tap_action);
-      } else {
-        cblcarsLog.warn(`[StatusGridRenderer] No card instance available for action handling`);
-      }
-    });
-  }
-
-  // Add hold handler for hold_action
-  if (actions.hold_action) {
-    let holdTimer = null;
-
-    cellElement.addEventListener('mousedown', (event) => {
-      holdTimer = setTimeout(() => {
+    // Add click handler for tap_action
+    if (actions.tap_action) {
+      cellElement.addEventListener('click', (event) => {
         event.stopPropagation();
-        cblcarsLog.debug(`[StatusGridRenderer] ✋ Cell hold action triggered:`, actions.hold_action);
+        cblcarsLog.debug(`[StatusGridRenderer] 🖱️ Cell tap action triggered:`, actions.tap_action);
 
         if (cardInstance && typeof cardInstance._handleAction === 'function') {
-          cardInstance._handleAction(actions.hold_action);
+          cardInstance._handleAction(actions.tap_action);
+        } else {
+          cblcarsLog.warn(`[StatusGridRenderer] No card instance available for action handling`);
         }
-      }, 500); // 500ms hold threshold
-    });
-
-    cellElement.addEventListener('mouseup', () => {
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
-    });
-
-    cellElement.addEventListener('mouseleave', () => {
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
-    });
-  }
-
-  // Add double-click handler for double_tap_action
-  if (actions.double_tap_action) {
-    cellElement.addEventListener('dblclick', (event) => {
-      event.stopPropagation();
-      cblcarsLog.debug(`[StatusGridRenderer] 🖱️🖱️ Cell double-tap action triggered:`, actions.double_tap_action);
-
-      if (cardInstance && typeof cardInstance._handleAction === 'function') {
-        cardInstance._handleAction(actions.double_tap_action);
-      }
-    });
-  }
-
-  cblcarsLog.debug(`[StatusGridRenderer] ✅ Attached basic fallback actions to cell`);
-}
-
-/**
- * Get debug information about the action system
- * @static
- */
-static getActionDebugInfo() {
-  return {
-    observerActive: !!window._msdStatusGridObserver,
-    pendingActions: window._msdStatusGridActions ? Array.from(window._msdStatusGridActions.keys()) : [],
-    cardInstanceAvailable: !!StatusGridRenderer._resolveCardInstance(),
-    actionHelpersAvailable: !!window.ActionHelpers
-  };
-}
-
-/**
- * Make text elements within cells clickable and part of their parent cell for actions
- * @param {string} gridMarkup - The grid markup to process
- * @param {Array} cells - Array of cell configurations
- * @returns {string} Updated markup with clickable text elements
- * @private
- * @static
- */
-static _makeTextElementsClickable(gridMarkup, cells) {
-  // Replace pointer-events: none with pointer-events: visiblePainted for text elements
-  // and add necessary data attributes
-  return gridMarkup.replace(
-    /(<text[^>]*data-cell-part="([^"]*)"[^>]*style="[^"]*pointer-events:\s*none[^"]*")([^>]*>)/g,
-    (match, beforeStyle, cellId, afterStyle) => {
-      // Find the cell configuration
-      const cell = cells.find(c => c.id === cellId);
-      const cellHasActions = !!(cell && cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action));
-
-      // Replace the style and add data attributes
-      const newStyle = beforeStyle.replace('pointer-events: none', 'pointer-events: visiblePainted; cursor: pointer');
-      return `${newStyle} data-cell-id="${cellId}" data-has-cell-actions="${cellHasActions}"${afterStyle}`;
+      });
     }
-  );
-}
 
-/**
- * Calculate proportional cell dimensions based on grid configuration
- * @private
- */
-_calculateProportionalCellDimensions(totalWidth, totalHeight, gridStyle) {
-  const rows = gridStyle.rows;
-  const columns = gridStyle.columns;
-  const gap = gridStyle.cell_gap;
+    // Add hold handler for hold_action
+    if (actions.hold_action) {
+      let holdTimer = null;
 
-  cblcarsLog.debug(`[StatusGridRenderer] 📐 Grid dimensions: ${rows}x${columns}, total: ${totalWidth}x${totalHeight}, gap: ${gap}`);
+      cellElement.addEventListener('mousedown', (event) => {
+        holdTimer = setTimeout(() => {
+          event.stopPropagation();
+          cblcarsLog.debug(`[StatusGridRenderer] ✋ Cell hold action triggered:`, actions.hold_action);
 
-  // Calculate available space after gaps (ensure non-negative)
-  const gapWidth = gap * Math.max(0, columns - 1);
-  const gapHeight = gap * Math.max(0, rows - 1);
-  const availableWidth = Math.max(0, totalWidth - gapWidth);
-  const availableHeight = Math.max(0, totalHeight - gapHeight);
+          if (cardInstance && typeof cardInstance._handleAction === 'function') {
+            cardInstance._handleAction(actions.hold_action);
+          }
+        }, 500); // 500ms hold threshold
+      });
 
-  // Debug space calculations
-  cblcarsLog.debug(`[StatusGridRenderer] Space calculation:`, {
-    totalWidth,
-    totalHeight,
-    gap,
-    gapWidth,
-    gapHeight,
-    availableWidth,
-    availableHeight,
-    rows,
-    columns
-  });
+      cellElement.addEventListener('mouseup', () => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      });
 
-  // Get sizing configuration - prioritize specific keys over fallbacks
-  const columnSizing = gridStyle.column_sizes || gridStyle.column_widths;
-  const rowSizing = gridStyle.row_sizes || gridStyle.row_heights;
+      cellElement.addEventListener('mouseleave', () => {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+      });
+    }
 
-  // Calculate cell widths
-  const cellWidths = this._calculateDimensions(availableWidth, columns, columnSizing);
+    // Add double-click handler for double_tap_action
+    if (actions.double_tap_action) {
+      cellElement.addEventListener('dblclick', (event) => {
+        event.stopPropagation();
+        cblcarsLog.debug(`[StatusGridRenderer] 🖱️🖱️ Cell double-tap action triggered:`, actions.double_tap_action);
 
-  // Calculate cell heights
-  const cellHeights = this._calculateDimensions(availableHeight, rows, rowSizing);
+        if (cardInstance && typeof cardInstance._handleAction === 'function') {
+          cardInstance._handleAction(actions.double_tap_action);
+        }
+      });
+    }
 
-  // Debug logging for proportional sizing
-  if (columnSizing) {
-    cblcarsLog.debug(`[StatusGridRenderer] Using column sizing:`, columnSizing, '→ widths:', cellWidths);
-  }
-  if (rowSizing) {
-    cblcarsLog.debug(`[StatusGridRenderer] Using row sizing:`, rowSizing, '→ heights:', cellHeights);
+    cblcarsLog.debug(`[StatusGridRenderer] ✅ Attached basic fallback actions to cell`);
   }
 
-  cblcarsLog.debug(`[StatusGridRenderer] ✅ Final cell dimensions: widths=${cellWidths}, heights=${cellHeights}`);
-
-  // Validate calculated dimensions
-  const hasNegativeWidths = cellWidths.some(w => w <= 0);
-  const hasNegativeHeights = cellHeights.some(h => h <= 0);
-
-  if (hasNegativeWidths || hasNegativeHeights) {
-    cblcarsLog.error(`[StatusGridRenderer] ❌ Calculated negative dimensions:`, {
-      cellWidths,
-      cellHeights,
-      availableWidth,
-      availableHeight,
-      gap,
-      columnSizing,
-      rowSizing
-    });
-
-    // Fallback to equal sizing
-    const fallbackWidth = Math.max(1, availableWidth / columns);
-    const fallbackHeight = Math.max(1, availableHeight / rows);
-
+  /**
+   * Get debug information about the action system
+   * @static
+   */
+  static getActionDebugInfo() {
     return {
-      cellWidths: Array(columns).fill(fallbackWidth),
-      cellHeights: Array(rows).fill(fallbackHeight)
+      observerActive: !!window._msdStatusGridObserver,
+      pendingActions: window._msdStatusGridActions ? Array.from(window._msdStatusGridActions.keys()) : [],
+      cardInstanceAvailable: !!StatusGridRenderer._resolveCardInstance(),
+      actionHelpersAvailable: !!window.ActionHelpers
     };
   }
 
-  return { cellWidths, cellHeights };
-}
+  /**
+   * Make text elements within cells clickable and part of their parent cell for actions
+   * @param {string} gridMarkup - The grid markup to process
+   * @param {Array} cells - Array of cell configurations
+   * @returns {string} Updated markup with clickable text elements
+   * @private
+   * @static
+   */
+  static _makeTextElementsClickable(gridMarkup, cells) {
+    // Replace pointer-events: none with pointer-events: visiblePainted for text elements
+    // and add necessary data attributes
+    return gridMarkup.replace(
+      /(<text[^>]*data-cell-part="([^"]*)"[^>]*style="[^"]*pointer-events:\s*none[^"]*")([^>]*>)/g,
+      (match, beforeStyle, cellId, afterStyle) => {
+        // Find the cell configuration
+        const cell = cells.find(c => c.id === cellId);
+        const cellHasActions = !!(cell && cell.actions && (cell.actions.tap_action || cell.actions.hold_action || cell.actions.double_tap_action));
 
-/**
- * Calculate dimensions for rows or columns based on sizing configuration
- * @private
- */
-_calculateDimensions(totalSpace, count, sizing) {
-  cblcarsLog.debug(`[StatusGridRenderer] 📐 Calculating dimensions: totalSpace=${totalSpace}, count=${count}, sizing=`, sizing);
-
-  if (!sizing || !Array.isArray(sizing)) {
-    // Equal sizing - divide space equally
-    const size = totalSpace / count;
-    cblcarsLog.debug(`[StatusGridRenderer] ✅ Using equal sizing: ${size} per cell`);
-    return Array(count).fill(size);
-  }
-
-  // Validate array length matches expected count
-  if (sizing.length !== count) {
-    cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Sizing array length (${sizing.length}) doesn't match expected count (${count}). Using equal sizing.`);
-    const size = totalSpace / count;
-    return Array(count).fill(size);
-  }
-
-  // Check if sizing uses percentages
-  if (sizing.some(s => typeof s === 'string' && s.includes('%'))) {
-    const result = sizing.map((s, index) => {
-      if (typeof s === 'string' && s.includes('%')) {
-        const percentage = parseFloat(s.replace('%', ''));
-        return (totalSpace * percentage) / 100;
+        // Replace the style and add data attributes
+        const newStyle = beforeStyle.replace('pointer-events: none', 'pointer-events: visiblePainted; cursor: pointer');
+        return `${newStyle} data-cell-id="${cellId}" data-has-cell-actions="${cellHasActions}"${afterStyle}`;
       }
-      // Handle mixed percentage/number arrays
-      return parseFloat(s) || 0;
+    );
+  }
+
+  /**
+   * Calculate proportional cell dimensions based on grid configuration
+   * @private
+   */
+  _calculateProportionalCellDimensions(totalWidth, totalHeight, gridStyle) {
+    const rows = gridStyle.rows;
+    const columns = gridStyle.columns;
+    const gap = gridStyle.cell_gap;
+
+    cblcarsLog.debug(`[StatusGridRenderer] 📐 Grid dimensions: ${rows}x${columns}, total: ${totalWidth}x${totalHeight}, gap: ${gap}`);
+
+    // Calculate available space after gaps (ensure non-negative)
+    const gapWidth = gap * Math.max(0, columns - 1);
+    const gapHeight = gap * Math.max(0, rows - 1);
+    const availableWidth = Math.max(0, totalWidth - gapWidth);
+    const availableHeight = Math.max(0, totalHeight - gapHeight);
+
+    // Debug space calculations
+    cblcarsLog.debug(`[StatusGridRenderer] Space calculation:`, {
+      totalWidth,
+      totalHeight,
+      gap,
+      gapWidth,
+      gapHeight,
+      availableWidth,
+      availableHeight,
+      rows,
+      columns
     });
 
-    // Validate percentages don't exceed 100%
-    const totalPercentage = sizing.reduce((sum, s) => {
-      if (typeof s === 'string' && s.includes('%')) {
-        return sum + parseFloat(s.replace('%', ''));
-      }
-      return sum;
-    }, 0);
+    // Get sizing configuration - prioritize specific keys over fallbacks
+    const columnSizing = gridStyle.column_sizes || gridStyle.column_widths;
+    const rowSizing = gridStyle.row_sizes || gridStyle.row_heights;
 
-    if (totalPercentage > 100) {
-      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total percentages (${totalPercentage}%) exceed 100%. Normalizing.`);
-      return result.map(val => (val / totalPercentage) * totalSpace);
+    // Calculate cell widths
+    const cellWidths = this._calculateDimensions(availableWidth, columns, columnSizing);
+
+    // Calculate cell heights
+    const cellHeights = this._calculateDimensions(availableHeight, rows, rowSizing);
+
+    // Debug logging for proportional sizing
+    if (columnSizing) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using column sizing:`, columnSizing, '→ widths:', cellWidths);
+    }
+    if (rowSizing) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using row sizing:`, rowSizing, '→ heights:', cellHeights);
     }
 
+    cblcarsLog.debug(`[StatusGridRenderer] ✅ Final cell dimensions: widths=${cellWidths}, heights=${cellHeights}`);
+
+    // Validate calculated dimensions
+    const hasNegativeWidths = cellWidths.some(w => w <= 0);
+    const hasNegativeHeights = cellHeights.some(h => h <= 0);
+
+    if (hasNegativeWidths || hasNegativeHeights) {
+      cblcarsLog.error(`[StatusGridRenderer] ❌ Calculated negative dimensions:`, {
+        cellWidths,
+        cellHeights,
+        availableWidth,
+        availableHeight,
+        gap,
+        columnSizing,
+        rowSizing
+      });
+
+      // Fallback to equal sizing
+      const fallbackWidth = Math.max(1, availableWidth / columns);
+      const fallbackHeight = Math.max(1, availableHeight / rows);
+
+      return {
+        cellWidths: Array(columns).fill(fallbackWidth),
+        cellHeights: Array(rows).fill(fallbackHeight)
+      };
+    }
+
+    return { cellWidths, cellHeights };
+  }
+
+  /**
+   * Calculate dimensions for rows or columns based on sizing configuration
+   * @private
+   */
+  _calculateDimensions(totalSpace, count, sizing) {
+    cblcarsLog.debug(`[StatusGridRenderer] 📐 Calculating dimensions: totalSpace=${totalSpace}, count=${count}, sizing=`, sizing);
+
+    if (!sizing || !Array.isArray(sizing)) {
+      // Equal sizing - divide space equally
+      const size = totalSpace / count;
+      cblcarsLog.debug(`[StatusGridRenderer] ✅ Using equal sizing: ${size} per cell`);
+      return Array(count).fill(size);
+    }
+
+    // Validate array length matches expected count
+    if (sizing.length !== count) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Sizing array length (${sizing.length}) doesn't match expected count (${count}). Using equal sizing.`);
+      const size = totalSpace / count;
+      return Array(count).fill(size);
+    }
+
+    // Check if sizing uses percentages
+    if (sizing.some(s => typeof s === 'string' && s.includes('%'))) {
+      const result = sizing.map((s, index) => {
+        if (typeof s === 'string' && s.includes('%')) {
+          const percentage = parseFloat(s.replace('%', ''));
+          return (totalSpace * percentage) / 100;
+        }
+        // Handle mixed percentage/number arrays
+        return parseFloat(s) || 0;
+      });
+
+      // Validate percentages don't exceed 100%
+      const totalPercentage = sizing.reduce((sum, s) => {
+        if (typeof s === 'string' && s.includes('%')) {
+          return sum + parseFloat(s.replace('%', ''));
+        }
+        return sum;
+      }, 0);
+
+      if (totalPercentage > 100) {
+        cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total percentages (${totalPercentage}%) exceed 100%. Normalizing.`);
+        return result.map(val => (val / totalPercentage) * totalSpace);
+      }
+
+      return result;
+    }
+
+    // Convert all values to numbers for proportional calculation
+    const numericValues = sizing.map(s => parseFloat(s) || 0);
+    const totalValue = numericValues.reduce((sum, val) => sum + val, 0);
+
+    // Check if we should treat as pixels or ratios
+    // If values sum to significantly more than available space, treat as pixels and scale down
+    if (totalValue > totalSpace * 1.2) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total pixel values (${totalValue}px) exceed available space (${totalSpace}px). Scaling down.`);
+      const scale = totalSpace / totalValue;
+      return numericValues.map(val => val * scale);
+    }
+
+    // Otherwise treat as proportional ratios (most common case for [2, 1] etc.)
+    if (totalValue === 0) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ All ratio values are zero or invalid. Using equal sizing.`);
+      const size = totalSpace / count;
+      return Array(count).fill(size);
+    }
+
+    // Convert ratios to actual pixel dimensions
+    const result = numericValues.map(ratio => {
+      const normalizedRatio = ratio / totalValue;
+      return totalSpace * normalizedRatio;
+    });
+
+    cblcarsLog.debug(`[StatusGridRenderer] Calculated proportional dimensions:`, {
+      input: sizing,
+      numericValues,
+      totalValue,
+      totalSpace,
+      result
+    });
+
     return result;
   }
 
-  // Convert all values to numbers for proportional calculation
-  const numericValues = sizing.map(s => parseFloat(s) || 0);
-  const totalValue = numericValues.reduce((sum, val) => sum + val, 0);
-
-  // Check if we should treat as pixels or ratios
-  // If values sum to significantly more than available space, treat as pixels and scale down
-  if (totalValue > totalSpace * 1.2) {
-    cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Total pixel values (${totalValue}px) exceed available space (${totalSpace}px). Scaling down.`);
-    const scale = totalSpace / totalValue;
-    return numericValues.map(val => val * scale);
+  /**
+   * Calculate cumulative X position for a column
+   * @private
+   */
+  _calculateCellX(colIndex, cellWidths, gap) {
+    let x = 0;
+    for (let i = 0; i < colIndex; i++) {
+      x += cellWidths[i] + gap;
+    }
+    return x;
   }
 
-  // Otherwise treat as proportional ratios (most common case for [2, 1] etc.)
-  if (totalValue === 0) {
-    cblcarsLog.warn(`[StatusGridRenderer] ⚠️ All ratio values are zero or invalid. Using equal sizing.`);
-    const size = totalSpace / count;
-    return Array(count).fill(size);
+  /**
+   * Calculate cumulative Y position for a row
+   * @private
+   */
+  _calculateCellY(rowIndex, cellHeights, gap) {
+    let y = 0;
+    for (let i = 0; i < rowIndex; i++) {
+      y += cellHeights[i] + gap;
+    }
+    return y;
   }
 
-  // Convert ratios to actual pixel dimensions
-  const result = numericValues.map(ratio => {
-    const normalizedRatio = ratio / totalValue;
-    return totalSpace * normalizedRatio;
-  });
+  /**
+   * Calculate normalized radius for consistent visual appearance across different cell sizes
+   * Uses HA theme variables as baseline and intelligent clamping for LCARS aesthetic
+   * @private
+   * @param {number} cellWidth - Width of the cell
+   * @param {number} cellHeight - Height of the cell
+   * @param {number} baseRadius - Base radius value from configuration
+   * @param {boolean} matchHaRadius - Whether to clamp minimum radius to HA's card radius
+   * @returns {number} Normalized radius value
+   */
+  _calculateNormalizedRadius(cellWidth, cellHeight, baseRadius, matchHaRadius = false) {
+    // Use the smaller dimension to maintain proportional rounding
+    const cellMinDimension = Math.min(cellWidth, cellHeight);
 
-  cblcarsLog.debug(`[StatusGridRenderer] Calculated proportional dimensions:`, {
-    input: sizing,
-    numericValues,
-    totalValue,
-    totalSpace,
-    result
-  });
+    // Get HA's card border radius as reference (typically 12px in most themes)
+    // This ensures our cells look consistent with the overall HA card design
+    const haCardRadius = this._getHACardRadius();
 
-  return result;
-}
+    // If matchHaRadius is true, use HA's card radius directly for all cells
+    if (matchHaRadius) {
+      // Use HA's card radius directly for perfect visual consistency
+      const result = Math.round(haCardRadius);
 
-/**
- * Calculate cumulative X position for a column
- * @private
- */
-_calculateCellX(colIndex, cellWidths, gap) {
-  let x = 0;
-  for (let i = 0; i < colIndex; i++) {
-    x += cellWidths[i] + gap;
-  }
-  return x;
-}
+      return result;
+    }
 
-/**
- * Calculate cumulative Y position for a row
- * @private
- */
-_calculateCellY(rowIndex, cellHeights, gap) {
-  let y = 0;
-  for (let i = 0; i < rowIndex; i++) {
-    y += cellHeights[i] + gap;
-  }
-  return y;
-}
+    // Otherwise, use proportional scaling with intelligent clamping
+    const intelligentMinRadius = Math.max(
+      haCardRadius * 0.5,        // At least half of HA's card radius
+      cellMinDimension * 0.08,   // Or 8% of cell dimension (less aggressive than 15%)
+      4                          // But never less than 4px for visual consistency
+    );
 
-/**
- * Calculate normalized radius for consistent visual appearance across different cell sizes
- * Uses HA theme variables as baseline and intelligent clamping for LCARS aesthetic
- * @private
- * @param {number} cellWidth - Width of the cell
- * @param {number} cellHeight - Height of the cell
- * @param {number} baseRadius - Base radius value from configuration
- * @param {boolean} matchHaRadius - Whether to clamp minimum radius to HA's card radius
- * @returns {number} Normalized radius value
- */
-_calculateNormalizedRadius(cellWidth, cellHeight, baseRadius, matchHaRadius = false) {
-  // Use the smaller dimension to maintain proportional rounding
-  const cellMinDimension = Math.min(cellWidth, cellHeight);
+    // Define maximum to prevent over-rounding
+    const maxRadius = Math.min(
+      cellMinDimension * 0.20,   // Max 20% of cell dimension
+      haCardRadius * 1.5         // Or 1.5x HA's card radius
+    );
 
-  // Get HA's card border radius as reference (typically 12px in most themes)
-  // This ensures our cells look consistent with the overall HA card design
-  const haCardRadius = this._getHACardRadius();
+    // Calculate proportional radius based on cell size
+    // Use a reference size that makes sense for typical card layouts
+    const referenceSize = haCardRadius * 4; // ~48px for typical 12px card radius
+    const scaleFactor = cellMinDimension / referenceSize;
+    let normalizedRadius = baseRadius * scaleFactor;
 
-  // If matchHaRadius is true, use HA's card radius directly for all cells
-  if (matchHaRadius) {
-    // Use HA's card radius directly for perfect visual consistency
-    const result = Math.round(haCardRadius);
+    // Apply intelligent clamping
+    normalizedRadius = Math.max(normalizedRadius, intelligentMinRadius);
+    normalizedRadius = Math.min(normalizedRadius, maxRadius);
+
+    const result = Math.round(normalizedRadius);
 
     return result;
   }
 
-  // Otherwise, use proportional scaling with intelligent clamping
-  const intelligentMinRadius = Math.max(
-    haCardRadius * 0.5,        // At least half of HA's card radius
-    cellMinDimension * 0.08,   // Or 8% of cell dimension (less aggressive than 15%)
-    4                          // But never less than 4px for visual consistency
-  );
+  /**
+   * Get Home Assistant's card border radius from CSS variables
+   * Falls back to sensible default if not available
+   * @private
+   * @returns {number} HA card border radius in pixels
+   */
+  _getHACardRadius() {
+    // Try to get HA's card border radius from CSS variables
+    if (typeof window !== 'undefined' && window.getComputedStyle) {
+      const rootStyles = window.getComputedStyle(document.documentElement);
 
-  // Define maximum to prevent over-rounding
-  const maxRadius = Math.min(
-    cellMinDimension * 0.20,   // Max 20% of cell dimension
-    haCardRadius * 1.5         // Or 1.5x HA's card radius
-  );
+      // Try various HA CSS variables that might contain card radius
+      const haVariables = [
+        '--ha-card-border-radius',
+        '--card-border-radius',
+        '--border-radius',
+        '--mdc-shape-small'
+      ];
 
-  // Calculate proportional radius based on cell size
-  // Use a reference size that makes sense for typical card layouts
-  const referenceSize = haCardRadius * 4; // ~48px for typical 12px card radius
-  const scaleFactor = cellMinDimension / referenceSize;
-  let normalizedRadius = baseRadius * scaleFactor;
-
-  // Apply intelligent clamping
-  normalizedRadius = Math.max(normalizedRadius, intelligentMinRadius);
-  normalizedRadius = Math.min(normalizedRadius, maxRadius);
-
-  const result = Math.round(normalizedRadius);
-
-  return result;
-}
-
-/**
- * Get Home Assistant's card border radius from CSS variables
- * Falls back to sensible default if not available
- * @private
- * @returns {number} HA card border radius in pixels
- */
-_getHACardRadius() {
-  // Try to get HA's card border radius from CSS variables
-  if (typeof window !== 'undefined' && window.getComputedStyle) {
-    const rootStyles = window.getComputedStyle(document.documentElement);
-
-    // Try various HA CSS variables that might contain card radius
-    const haVariables = [
-      '--ha-card-border-radius',
-      '--card-border-radius',
-      '--border-radius',
-      '--mdc-shape-small'
-    ];
-
-    for (const variable of haVariables) {
-      const value = rootStyles.getPropertyValue(variable).trim();
-      if (value && value.includes('px')) {
-        const radius = parseFloat(value.replace('px', ''));
-        if (!isNaN(radius) && radius > 0) {
-          //cblcarsLog.debug(`[StatusGridRenderer] Using HA card radius: ${radius}px from ${variable}`);
-          return radius;
+      for (const variable of haVariables) {
+        const value = rootStyles.getPropertyValue(variable).trim();
+        if (value && value.includes('px')) {
+          const radius = parseFloat(value.replace('px', ''));
+          if (!isNaN(radius) && radius > 0) {
+            //cblcarsLog.debug(`[StatusGridRenderer] Using HA card radius: ${radius}px from ${variable}`);
+            return radius;
+          }
         }
       }
     }
+
+    // Fallback to typical HA default
+    const fallbackRadius = 12;
+    cblcarsLog.debug(`[StatusGridRenderer] Using fallback card radius: ${fallbackRadius}px`);
+    return fallbackRadius;
   }
 
-  // Fallback to typical HA default
-  const fallbackRadius = 12;
-  cblcarsLog.debug(`[StatusGridRenderer] Using fallback card radius: ${fallbackRadius}px`);
-  return fallbackRadius;
-}
+  /**
+   * Determine cell color based on status and configuration
+   * @private
+   */
+  _determineCellColor(cell, gridStyle) {
+    // Check status ranges first
+    if (gridStyle.status_ranges && gridStyle.status_ranges.length > 0) {
+      const value = typeof cell.data.value === 'number' ? cell.data.value : parseFloat(cell.data.value);
 
-/**
- * Determine cell color based on status and configuration
- * @private
- */
-_determineCellColor(cell, gridStyle) {
-  // Check status ranges first
-  if (gridStyle.status_ranges && gridStyle.status_ranges.length > 0) {
-    const value = typeof cell.data.value === 'number' ? cell.data.value : parseFloat(cell.data.value);
+      if (!isNaN(value)) {
+        for (const range of gridStyle.status_ranges) {
+          if (value >= range.min && value <= range.max) {
+            return range.color;
+          }
+        }
+      }
 
-    if (!isNaN(value)) {
+      // Check string/state matching
       for (const range of gridStyle.status_ranges) {
-        if (value >= range.min && value <= range.max) {
+        if (range.value && cell.data.value === range.value) {
+          return range.color;
+        }
+        if (range.state && cell.data.state === range.state) {
           return range.color;
         }
       }
     }
 
-    // Check string/state matching
-    for (const range of gridStyle.status_ranges) {
-      if (range.value && cell.data.value === range.value) {
-        return range.color;
-      }
-      if (range.state && cell.data.state === range.state) {
-        return range.color;
-      }
-    }
+    // Fallback to default cell color
+    return gridStyle.cell_color;
   }
 
-  // Fallback to default cell color
-  return gridStyle.cell_color;
-}
+  /**
+   * Update status grid overlay data when DataSource changes
+   * @param {Element} gridElement - DOM element for the status grid
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - New DataSource data
+   * @returns {boolean} True if content was updated
+   * @static
+   */
+  static updateGridData(gridElement, overlay, sourceData) {
+    try {
+      cblcarsLog.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
 
-/**
- * Update status grid overlay data when DataSource changes
- * @param {Element} gridElement - DOM element for the status grid
- * @param {Object} overlay - Overlay configuration
- * @param {Object} sourceData - New DataSource data
- * @returns {boolean} True if content was updated
- * @static
- */
-static updateGridData(gridElement, overlay, sourceData) {
-  try {
-    cblcarsLog.debug(`[StatusGridRenderer] Updating status grid ${overlay.id} with DataSource data`);
+      // Create instance for non-static methods
+      const instance = new StatusGridRenderer();
 
-    // Create instance for non-static methods
-    const instance = new StatusGridRenderer();
+      // Get updated cells with new data
+      const style = overlay.finalStyle || overlay.style || {};
+      const updatedCells = instance.updateCellsWithData(overlay, style, sourceData);
 
-    // Get updated cells with new data
-    const style = overlay.finalStyle || overlay.style || {};
-    const updatedCells = instance.updateCellsWithData(overlay, style, sourceData);
+      if (updatedCells && updatedCells.length > 0) {
+        // Update individual cell content in DOM using ButtonRenderer
+        let hasUpdates = false;
 
-    if (updatedCells && updatedCells.length > 0) {
-      // Update individual cell content in DOM using ButtonRenderer
-      let hasUpdates = false;
+        updatedCells.forEach(cell => {
+          const cellElement = gridElement.querySelector(`[data-button-id="${cell.id}"]`);
+          if (cellElement) {
+            const buttonConfig = {
+              id: cell.id,
+              label: cell.label,
+              content: cell.content,
+              _raw: cell._raw || cell.config,
+              _originalContent: cell._originalContent
+            };
 
-      updatedCells.forEach(cell => {
-        const cellElement = gridElement.querySelector(`[data-button-id="${cell.id}"]`);
-        if (cellElement) {
-          const buttonConfig = {
-            id: cell.id,
-            label: cell.label,
-            content: cell.content,
-            _raw: cell._raw || cell.config,
-            _originalContent: cell._originalContent
-          };
-
-          const updated = ButtonRenderer.updateButtonData(cellElement, buttonConfig, sourceData);
-          if (updated) {
-            hasUpdates = true;
+            const updated = ButtonRenderer.updateButtonData(cellElement, buttonConfig, sourceData);
+            if (updated) {
+              hasUpdates = true;
+            }
           }
-        }
-      });
+        });
 
-      if (hasUpdates) {
-        // Update grid timestamp
-        const timestamp = new Date().toISOString();
-        gridElement.setAttribute('data-last-update', timestamp);
-        cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${updatedCells.length} cells in grid ${overlay.id}`);
+        if (hasUpdates) {
+          // Update grid timestamp
+          const timestamp = new Date().toISOString();
+          gridElement.setAttribute('data-last-update', timestamp);
+          cblcarsLog.debug(`[StatusGridRenderer] ✅ Updated ${updatedCells.length} cells in grid ${overlay.id}`);
+        }
+
+        return hasUpdates;
       }
 
-      return hasUpdates;
+      return false;
+    } catch (error) {
+      cblcarsLog.error(`[StatusGridRenderer] Error updating grid data for ${overlay.id}:`, error);
+      return false;
     }
-
-    return false;
-  } catch (error) {
-    cblcarsLog.error(`[StatusGridRenderer] Error updating grid data for ${overlay.id}:`, error);
-    return false;
-  }
-}
-
-/**
- * Resolve cell content with updated DataSource data (for dynamic updates)
- * @public - Used by BaseOverlayUpdater for real-time status grid updates
- * @param {Object} overlay - Overlay configuration
- * @param {Object} style - Style configuration
- * @param {Object} newDataSourceData - Updated DataSource data
- * @returns {Array} Updated cell configurations with new data
- */
-updateCellsWithData(overlay, style, newDataSourceData) {
-  cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
-
-  const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
-  const cells = this._resolveCellConfigurations(overlay, gridStyle);
-
-  // Update cells that have template content
-  const updatedCells = cells.map(cell => {
-    // Get raw content using unified method
-    const rawCellContent = this._getCellContentFromSources(cell);
-
-    if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
-      // Use single method for all template processing with fresh data
-      const processedContent = this._resolveCellContent(rawCellContent, newDataSourceData);
-
-      // Ensure we don't return [object Object]
-      const safeContent = (typeof processedContent === 'object') ? JSON.stringify(processedContent) : String(processedContent);
-
-      return {
-        ...cell,
-        label: processedContent === rawCellContent ? cell.label : safeContent, // Only update label if content changed
-        content: safeContent,
-        data: {
-          ...cell.data,
-          value: this._extractValueFromTemplate(safeContent, newDataSourceData),
-          timestamp: Date.now()
-        },
-        lastUpdate: Date.now()
-      };
-    }
-  // If the processed content is purely numeric, return it
-    return cell;
-  });
-
-  return updatedCells;
-}
-
-/**
- * Extract numeric value from processed template for status calculations
- * @private
- */
-_extractValueFromTemplate(processedContent, dataSourceData) {
-  // If the processed content is purely numeric, return it
-  const numericValue = parseFloat(processedContent);
-  if (!isNaN(numericValue)) {
-    return numericValue;
   }
 
-  // Otherwise try to extract the raw value from dataSourceData
-  if (dataSourceData && typeof dataSourceData.v === 'number') {
-    return dataSourceData.v;
-  }
+  /**
+   * Resolve cell content with updated DataSource data (for dynamic updates)
+   * @public - Used by BaseOverlayUpdater for real-time status grid updates
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @param {Object} newDataSourceData - Updated DataSource data
+   * @returns {Array} Updated cell configurations with new data
+   */
+  updateCellsWithData(overlay, style, newDataSourceData) {
+    cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
 
-  // Fallback to processed content as string
-  return processedContent;
-}
+    const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
+    const cells = this._resolveCellConfigurations(overlay, gridStyle);
 
-/**
- * Process action configuration for status grid
- * @private
- * @param {Object} overlay - Overlay configuration
- * @param {Object} gridStyle - Resolved grid styling
- * @param {Object} cardInstance - Card instance for action handling
- * @returns {Object|null} Action configuration for ActionHelpers
- */
-_processStatusGridActions(overlay, gridStyle, cardInstance) {
-  // CRITICAL: Log what we're receiving for action processing
-  cblcarsLog.debug(`[StatusGridRenderer] 🎯 PROCESSING STATUS GRID ACTIONS for ${overlay.id}:`, {
-    hasOverlay: !!overlay,
-    overlayActions: {
-      tap_action: overlay.tap_action,
-      hold_action: overlay.hold_action,
-      double_tap_action: overlay.double_tap_action
-    },
-    gridStyleActions: gridStyle.actions,
-    hasCardInstance: !!cardInstance,
-    cardInstanceType: cardInstance?.constructor?.name
-  });
+    // Update cells that have template content
+    const updatedCells = cells.map(cell => {
+      // Get raw content using unified method
+      const rawCellContent = this._getCellContentFromSources(cell);
 
-  // Try to get card instance from various sources
-  if (!cardInstance) {
-    cardInstance = ActionHelpers.resolveCardInstance();
-    cblcarsLog.debug(`[StatusGridRenderer] 🔍 Resolved card instance from ActionHelpers: ${!!cardInstance}`);
-  }
+      if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
+        // Use single method for all template processing with fresh data
+        const processedContent = this._resolveCellContent(rawCellContent, newDataSourceData);
 
-  // ENHANCED: Check if ANY cells have actions before deciding to process
-  const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
-  let hasCellActions = false;
+        // Ensure we don't return [object Object]
+        const safeContent = (typeof processedContent === 'object') ? JSON.stringify(processedContent) : String(processedContent);
 
-  if (cellsConfig && Array.isArray(cellsConfig)) {
-    hasCellActions = cellsConfig.some(cell =>
-      cell.tap_action || cell.hold_action || cell.double_tap_action
-    );
-  }
-
-  cblcarsLog.debug(`[StatusGridRenderer] 🔍 Cell action analysis:`, {
-    cellsConfigLength: cellsConfig?.length || 0,
-    hasCellActions,
-    sampleCellActions: cellsConfig?.slice(0, 2).map(cell => ({
-      id: cell.id,
-      tap_action: !!cell.tap_action,
-      hold_action: !!cell.hold_action,
-      double_tap_action: !!cell.double_tap_action
-    }))
-  });
-
-  // If we have cell actions, create action info
-  if (hasCellActions || overlay.tap_action || overlay.hold_action || overlay.double_tap_action) {
-    const actionInfo = {
-      overlay: overlay,
-      gridStyle: gridStyle,
-      cardInstance: cardInstance,
-      hasOverlayActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action),
-      hasCellActions: hasCellActions,
-      cells: null // Will be populated by the calling method
-    };
-
-    cblcarsLog.debug(`[StatusGridRenderer] 🎯 CREATED ACTION INFO for ${overlay.id}:`, {
-      hasOverlayActions: actionInfo.hasOverlayActions,
-      hasCellActions: actionInfo.hasCellActions,
-      hasCardInstance: !!actionInfo.cardInstance
+        return {
+          ...cell,
+          label: processedContent === rawCellContent ? cell.label : safeContent, // Only update label if content changed
+          content: safeContent,
+          data: {
+            ...cell.data,
+            value: this._extractValueFromTemplate(safeContent, newDataSourceData),
+            timestamp: Date.now()
+          },
+          lastUpdate: Date.now()
+        };
+      }
+    // If the processed content is purely numeric, return it
+      return cell;
     });
 
-    return actionInfo;
+    return updatedCells;
   }
 
-  cblcarsLog.debug(`[StatusGridRenderer] 🚫 No actions found for ${overlay.id}`);
-  return null;
-}
+  /**
+   * Extract numeric value from processed template for status calculations
+   * @private
+   */
+  _extractValueFromTemplate(processedContent, dataSourceData) {
+    // If the processed content is purely numeric, return it
+    const numericValue = parseFloat(processedContent);
+    if (!isNaN(numericValue)) {
+      return numericValue;
+    }
 
-/**
- * Build LCARS-style brackets using the generalized BracketRenderer
- * @private
- */
-_buildBrackets(width, height, gridStyle, overlayId) {
-  if (!gridStyle.bracket_style) {
-    return '';
+    // Otherwise try to extract the raw value from dataSourceData
+    if (dataSourceData && typeof dataSourceData.v === 'number') {
+      return dataSourceData.v;
+    }
+
+    // Fallback to processed content as string
+    return processedContent;
   }
 
-  // Convert grid style properties to BracketRenderer format
-  const bracketConfig = {
-    enabled: true,
-    style: typeof gridStyle.bracket_style === 'string' ? gridStyle.bracket_style : 'lcars',
-    color: gridStyle.bracket_color,
-    width: gridStyle.bracket_width,
-    gap: gridStyle.bracket_gap,
-    extension: gridStyle.bracket_extension,
-    opacity: gridStyle.bracket_opacity,
-    corners: gridStyle.bracket_corners,
-    sides: gridStyle.bracket_sides,
-    // Enhanced bg-grid style options
-    bracket_width: gridStyle.bracket_physical_width,
-    bracket_height: gridStyle.bracket_height,
-    bracket_radius: gridStyle.bracket_radius,
-    // LCARS container options
-    border_top: gridStyle.border_top,
-    border_left: gridStyle.border_left,
-    border_right: gridStyle.border_right,
-    border_bottom: gridStyle.border_bottom,
-    border_color: gridStyle.border_color || gridStyle.bracket_color,
-    border_radius: gridStyle.border_radius,
-    inner_factor: gridStyle.inner_factor,
-    hybrid_mode: gridStyle.hybrid_mode
-  };
+  /**
+   * Process action configuration for status grid
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} gridStyle - Resolved grid styling
+   * @param {Object} cardInstance - Card instance for action handling
+   * @returns {Object|null} Action configuration for ActionHelpers
+   */
+  _processStatusGridActions(overlay, gridStyle, cardInstance) {
+    // CRITICAL: Log what we're receiving for action processing
+    cblcarsLog.debug(`[StatusGridRenderer] 🎯 PROCESSING STATUS GRID ACTIONS for ${overlay.id}:`, {
+      hasOverlay: !!overlay,
+      overlayActions: {
+        tap_action: overlay.tap_action,
+        hold_action: overlay.hold_action,
+        double_tap_action: overlay.double_tap_action
+      },
+      gridStyleActions: gridStyle.actions,
+      hasCardInstance: !!cardInstance,
+      cardInstanceType: cardInstance?.constructor?.name
+    });
 
-  return BracketRenderer.render(width, height, bracketConfig, overlayId);
-}
+    // Try to get card instance from various sources
+    if (!cardInstance) {
+      cardInstance = ActionHelpers.resolveCardInstance();
+      cblcarsLog.debug(`[StatusGridRenderer] 🔍 Resolved card instance from ActionHelpers: ${!!cardInstance}`);
+    }
+
+    // ENHANCED: Check if ANY cells have actions before deciding to process
+    const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
+    let hasCellActions = false;
+
+    if (cellsConfig && Array.isArray(cellsConfig)) {
+      hasCellActions = cellsConfig.some(cell =>
+        cell.tap_action || cell.hold_action || cell.double_tap_action
+      );
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] 🔍 Cell action analysis:`, {
+      cellsConfigLength: cellsConfig?.length || 0,
+      hasCellActions,
+      sampleCellActions: cellsConfig?.slice(0, 2).map(cell => ({
+        id: cell.id,
+        tap_action: !!cell.tap_action,
+        hold_action: !!cell.hold_action,
+        double_tap_action: !!cell.double_tap_action
+      }))
+    });
+
+    // If we have cell actions, create action info
+    if (hasCellActions || overlay.tap_action || overlay.hold_action || overlay.double_tap_action) {
+      const actionInfo = {
+        overlay: overlay,
+        gridStyle: gridStyle,
+        cardInstance: cardInstance,
+        hasOverlayActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action),
+        hasCellActions: hasCellActions,
+        cells: null // Will be populated by the calling method
+      };
+
+      cblcarsLog.debug(`[StatusGridRenderer] 🎯 CREATED ACTION INFO for ${overlay.id}:`, {
+        hasOverlayActions: actionInfo.hasOverlayActions,
+        hasCellActions: actionInfo.hasCellActions,
+        hasCardInstance: !!actionInfo.cardInstance
+      });
+
+      return actionInfo;
+    }
+
+    cblcarsLog.debug(`[StatusGridRenderer] 🚫 No actions found for ${overlay.id}`);
+    return null;
+  }
+
+  /**
+   * Build LCARS-style brackets using the generalized BracketRenderer
+   * @private
+   */
+  _buildBrackets(width, height, gridStyle, overlayId) {
+    if (!gridStyle.bracket_style) {
+      return '';
+    }
+
+    // Convert grid style properties to BracketRenderer format
+    const bracketConfig = {
+      enabled: true,
+      style: typeof gridStyle.bracket_style === 'string' ? gridStyle.bracket_style : 'lcars',
+      color: gridStyle.bracket_color,
+      width: gridStyle.bracket_width,
+      gap: gridStyle.bracket_gap,
+      extension: gridStyle.bracket_extension,
+      opacity: gridStyle.bracket_opacity,
+      corners: gridStyle.bracket_corners,
+      sides: gridStyle.bracket_sides,
+      // Enhanced bg-grid style options
+      bracket_width: gridStyle.bracket_physical_width,
+      bracket_height: gridStyle.bracket_height,
+      bracket_radius: gridStyle.bracket_radius,
+      // LCARS container options
+      border_top: gridStyle.border_top,
+      border_left: gridStyle.border_left,
+      border_right: gridStyle.border_right,
+      border_bottom: gridStyle.border_bottom,
+      border_color: gridStyle.border_color || gridStyle.bracket_color,
+      border_radius: gridStyle.border_radius,
+      inner_factor: gridStyle.inner_factor,
+      hybrid_mode: gridStyle.hybrid_mode
+    };
+
+    return BracketRenderer.render(width, height, bracketConfig, overlayId);
+  }
 }
 
 // Expose StatusGridRenderer to window for console debugging

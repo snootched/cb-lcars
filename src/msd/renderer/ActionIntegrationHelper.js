@@ -1,1 +1,0 @@
-// This file is no longer needed - integration completed directly in AdvancedRenderer.js
