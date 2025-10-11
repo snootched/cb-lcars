@@ -11,6 +11,7 @@ import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
 import { SparklineRenderer } from './SparklineRenderer.js';
 import { StatusGridRenderer } from './StatusGridRenderer.js';
+import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js'; // Add ButtonOverlayRenderer import
 import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
@@ -154,6 +155,9 @@ export class AdvancedRenderer {
     // NEW: schedule font stabilization pass (re-measure after real fonts load)
     this._scheduleFontStabilization(overlays, this._dynamicAnchors, viewBox);
 
+    // CRITICAL: Process all pending actions after DOM is complete
+    this._scheduleActionProcessing();
+
     this.lastRenderArgs = { resolvedModel, overlays, svg };
     return {
       svgMarkup: svgMarkupAccum,
@@ -257,11 +261,12 @@ export class AdvancedRenderer {
     if (!group) {
       group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       group.setAttribute('id', 'msd-overlay-container');
-      // FIXED: Let individual overlay children control their own pointer events
-      // The container should not interfere with event propagation
-      // Allow pointer events to reach children but don't capture at this level
-      group.style.pointerEvents = 'auto';  // Allow child elements to handle events
+      // CRITICAL: Use 'all' to ensure ALL events can reach child elements
+      group.style.pointerEvents = 'all';
       svg.appendChild(group);
+    } else {
+      // CRITICAL: Ensure existing container also has proper pointer events
+      group.style.pointerEvents = 'all';
     }
     return group;
   }
@@ -537,75 +542,47 @@ export class AdvancedRenderer {
     });
   }
 
-  renderOverlay(overlay, anchors, viewBox) {
-    if (!overlay || !overlay.type) {
-      cblcarsLog.warn('[AdvancedRenderer] ⚠️ Invalid overlay - missing type:', overlay);
-      return '';
-    }
+  /**
+   * Render individual overlay using appropriate renderer
+   * @private
+   */
+  renderOverlay(overlay, anchors, viewBox, svgContainer) {
+    try {
+      cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
 
-    // Ensure SVG container is available before rendering
-    const svgContainer = this.mountEl;
-    const svg = svgContainer?.querySelector('svg');
+      switch (overlay.type) {
+        case 'text':
+          // Update (in case dynamic overlays later): recompute & refresh map
+          const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
+          if (ap) this.textAttachmentPoints.set(overlay.id, ap);
 
-    if (!svg) {
-      cblcarsLog.info('[AdvancedRenderer] SVG element not found in container for overlay:', overlay.id);
-    }
+          // Get card instance for action support (same pattern as status grid)
+          const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
 
-    // ADDED: Configure SVG for proper event handling
-    if (svg) {
-      svg.style.pointerEvents = 'auto';  // Allow events to reach SVG elements
-      svg.style.zIndex = '0'; // Keep SVG in background
-
-      // Ensure the SVG itself doesn't capture all events - let children handle them
-      svg.addEventListener('click', (e) => {
-        // Only handle if no child element handled it
-        if (e.target === svg) {
-          // This is a click on the SVG background itself, not an overlay
-          e.stopPropagation();
-        }
-        // Let overlay elements handle their own events
-      }, { capture: false, passive: false });
-    }
-
-    switch (overlay.type) {
-      case 'text':
-        // Update (in case dynamic overlays later): recompute & refresh map
-        const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
-        if (ap) this.textAttachmentPoints.set(overlay.id, ap);
-
-        // Get card instance for action support (same pattern as status grid)
-        const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
-
-        return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
-      case 'sparkline':
-        return SparklineRenderer.render(overlay, anchors, viewBox);
-      case 'line':
-        // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
-        const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
-        return this.lineRenderer.render(overlay, completeAnchors, viewBox);
-      case 'control':
-        // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
-        cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
-        return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
-      case 'status_grid':
-        // Get card instance from systems manager for action support
-        const cardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
-        cblcarsLog.debug('[AdvancedRenderer] Resolved card instance for status grid:', {
-          hasCardInstance: !!cardInstance,
-          cardType: cardInstance?.tagName,
-          hasHandleAction: typeof cardInstance?._handleAction
-        });
-        const result = StatusGridRenderer.renderWithActions(overlay, anchors, viewBox, cardInstance);        // Store action info for post-processing if needed
-            if (result.needsActionAttachment) {
-              StatusGridRenderer._storeActionInfo(overlay.id, result.actions);
-            }
-
-        return result.markup;
-      case 'history_bar':
-        return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
-      default:
-        cblcarsLog.warn(`[AdvancedRenderer] Unknown overlay type: ${overlay.type}`);
-        return '';
+          return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
+        case 'sparkline':
+          return SparklineRenderer.render(overlay, anchors, viewBox);
+        case 'line':
+          // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
+          const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
+          return this.lineRenderer.render(overlay, completeAnchors, viewBox);
+        case 'control':
+          // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
+          cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
+          return ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
+        case 'status_grid':
+          return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
+        case 'button':
+          return ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
+        case 'history_bar':
+          return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
+        default:
+          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Unknown overlay type: ${overlay.type}`);
+          return '';
+      }
+    } catch (error) {
+      cblcarsLog.error(`[AdvancedRenderer] ❌ Error rendering overlay ${overlay.id}:`, error);
+      return this.renderFallbackOverlay(overlay);
     }
   }
 
@@ -699,9 +676,13 @@ export class AdvancedRenderer {
         break;
       case 'status_grid':
         cblcarsLog.debug(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);
-        // Use unified delegation pattern - delegate to StatusGridRenderer
-        StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
-        break;
+        // FIXED: Use the correct static method name
+        const gridUpdated = StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
+        if (gridUpdated) {
+          // Update any status indicators that might depend on the content
+          this.updateTextDecorations(overlayId, 'updated', overlay);
+        }
+        return gridUpdated;
       case 'history_bar':
         cblcarsLog.debug(`[AdvancedRenderer] Updating history_bar overlay: ${overlayId}`);
         const historyBarUpdated = HistoryBarRenderer.updateHistoryBarData(overlayElement, overlay, sourceData);
@@ -710,6 +691,14 @@ export class AdvancedRenderer {
           this.updateTextDecorations(overlayId, 'updated', overlay);
         }
         break;
+      case 'button':
+        cblcarsLog.debug(`[AdvancedRenderer] Updating button overlay: ${overlayId}`);
+        const updated = ButtonOverlayRenderer.updateButtonData(overlayElement, overlay, sourceData);
+        if (updated) {
+          // Handle any post-update logic if needed
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Button overlay ${overlayId} updated successfully`);
+        }
+        return updated;
       default:
         cblcarsLog.info(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
     }
@@ -1300,5 +1289,74 @@ export class AdvancedRenderer {
       cblcarsLog.warn(`[AdvancedRenderer] Invalid fontSize for circle radius: "${fontSize}", using fallback`);
       circleElement.setAttribute('r', '6'); // Safe fallback radius
     }
+  }
+
+  /**
+   * Render fallback overlay for error cases
+   * @private
+   */
+  renderFallbackOverlay(overlay) {
+    const position = overlay.position || [50, 50];
+    const size = overlay.size || [100, 40];
+    const [x, y] = position;
+    const [width, height] = size;
+    const color = 'var(--lcars-gray)';
+
+    cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Using fallback rendering for overlay ${overlay.id}`);
+
+    return `<g data-overlay-id="${overlay.id}" data-overlay-type="${overlay.type}" data-fallback="true">
+              <g transform="translate(${x}, ${y})">
+                <rect width="${width}" height="${height}"
+                      fill="none" stroke="${color}" stroke-width="2" rx="4"/>
+                <text x="${width / 2}" y="${height / 2}" text-anchor="middle"
+                      fill="${color}" font-size="12" dominant-baseline="middle"
+                      font-family="var(--lcars-font-family, Antonio)">
+                  ${overlay.type} Error
+                </text>
+              </g>
+            </g>`;
+  }
+
+  /**
+   * Schedule action processing for all overlay types after DOM is ready
+   * @private
+   */
+  _scheduleActionProcessing() {
+    // FIXED: Use direct ActionHelpers calls instead of ActionIntegrationHelper
+    const processActions = () => {
+      try {
+        cblcarsLog.debug(`[AdvancedRenderer] 🎯 Processing pending actions using ActionHelpers...`);
+
+        // Process status grid actions
+        if (window.StatusGridRenderer && typeof window.StatusGridRenderer.processAllPendingActions === 'function') {
+          window.StatusGridRenderer.processAllPendingActions();
+        }
+
+        // Process button overlay actions
+        if (window.ButtonOverlayRenderer && typeof window.ButtonOverlayRenderer._tryManualActionProcessing === 'function') {
+          // ButtonOverlayRenderer doesn't have a processAllPendingActions method, but we can check for pending actions
+          if (window._msdButtonActions && window._msdButtonActions.size > 0) {
+            window._msdButtonActions.forEach((actionInfo, overlayId) => {
+              window.ButtonOverlayRenderer._tryManualActionProcessing(overlayId);
+            });
+          }
+        }
+
+        // Process any other overlay type actions here as needed
+
+        cblcarsLog.debug(`[AdvancedRenderer] ✅ Direct ActionHelpers processing complete`);
+
+      } catch (error) {
+        cblcarsLog.error(`[AdvancedRenderer] Error processing actions:`, error);
+      }
+    };
+
+    // Use the same timing strategy as working overlays
+    setTimeout(processActions, 0);
+    setTimeout(processActions, 10);
+    setTimeout(processActions, 50);
+    setTimeout(processActions, 100);
+    setTimeout(processActions, 200);
+    setTimeout(processActions, 500);
   }
 }

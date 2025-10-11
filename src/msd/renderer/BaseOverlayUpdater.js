@@ -49,6 +49,13 @@ export class BaseOverlayUpdater {
       hasTemplates: (overlay) => this._hasTemplateContent(overlay) || this._historyBarNeedsDataUpdates(overlay)
     });
 
+    // Button overlay updater
+    this.overlayUpdaters.set('button', {
+      needsUpdate: (overlay, sourceData) => this._hasTemplateContent(overlay),
+      update: (overlayId, overlay, sourceData) => this._updateButtonOverlay(overlayId, overlay, sourceData),
+      hasTemplates: (overlay) => this._hasTemplateContent(overlay)
+    });
+
     // Generic updater for future overlay types
     this.overlayUpdaters.set('default', {
       needsUpdate: (overlay, sourceData) => this._hasTemplateContent(overlay),
@@ -340,32 +347,39 @@ export class BaseOverlayUpdater {
       }
     }
 
-    // Import StatusGridRenderer for template processing
-    import('./StatusGridRenderer.js').then(({ StatusGridRenderer }) => {
-      const renderer = new StatusGridRenderer();
+    // FIXED: Use direct import instead of dynamic import for StatusGridRenderer
+    try {
+      // Get the cached overlay element
+      const gridElement = this.systemsManager.renderer?.overlayElementCache?.get(overlayId);
 
-      // Process cell templates with new DataSource data
-      const updatedCells = renderer.updateCellsWithData(overlay, overlay.finalStyle || {}, sourceData);
+      if (gridElement && overlay) {
+        // Use the static updateGridData method
+        const { StatusGridRenderer } = require('./StatusGridRenderer.js');
+        const updated = StatusGridRenderer.updateGridData(gridElement, overlay, sourceData);
 
-      cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Processed ${updatedCells.length} cells for status grid ${overlayId}`);
-
-      // ENHANCED: Pass updated overlay data to renderer with fresh HASS context
-      if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-        // Create enhanced source data with updated HASS context
-        const enhancedSourceData = {
-          ...sourceData,
-          hass: updatedHass,
-          overlay: overlay
-        };
-
-        this.systemsManager.renderer.updateOverlayData(overlayId, enhancedSourceData);
-        cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Passed enhanced data with updated HASS to renderer for ${overlayId}`);
+        if (updated) {
+          cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Successfully updated status grid ${overlayId}`);
+        }
       } else {
-        cblcarsLog.debug(`[BaseOverlayUpdater] No external renderer available - data processed but not rendered`);
+        // Fallback to renderer's updateOverlayData method
+        if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+          const enhancedSourceData = {
+            ...sourceData,
+            hass: updatedHass,
+            overlay: overlay
+          };
+          this.systemsManager.renderer.updateOverlayData(overlayId, enhancedSourceData);
+          cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Used fallback renderer update for ${overlayId}`);
+        }
       }
-    }).catch(error => {
-      cblcarsLog.error(`[BaseOverlayUpdater] ❌ Failed to import StatusGridRenderer:`, error);
-    });
+    } catch (error) {
+      cblcarsLog.error(`[BaseOverlayUpdater] ❌ Failed to update status grid ${overlayId}:`, error);
+
+      // Final fallback to renderer
+      if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+        this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+      }
+    }
   }
 
   /**
@@ -392,6 +406,18 @@ export class BaseOverlayUpdater {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
     } else {
       cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for history_bar overlay ${overlayId}`);
+    }
+  }
+
+  /**
+   * Update button overlay with new DataSource data
+   * @private
+   */
+  _updateButtonOverlay(overlayId, overlay, sourceData) {
+    if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
+      this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
+    } else {
+      cblcarsLog.warn(`[BaseOverlayUpdater] No renderer method available for button overlay ${overlayId}`);
     }
   }
 

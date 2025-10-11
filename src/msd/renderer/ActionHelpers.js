@@ -910,152 +910,125 @@ export class ActionHelpers {
    * @static
    */
   static _attachCellActions(cellElement, actions, cardInstance, cellId) {
-    cblcarsLog.debug(`[ActionHelpers] 🔲 Attaching cell actions to ${cellId}:`, actions);
+    cblcarsLog.debug(`[ActionHelpers] 🔲 DETAILED ACTION ATTACHMENT for ${cellId}:`, {
+      hasActions: !!actions,
+      hasTapAction: !!actions?.tap_action,
+      hasHoldAction: !!actions?.hold_action,
+      hasDoubleAction: !!actions?.double_tap_action,
+      hasCardInstance: !!cardInstance,
+      elementType: cellElement?.tagName,
+      elementId: cellElement?.getAttribute('data-button-id'),
+      currentPointerEvents: cellElement?.style?.pointerEvents,
+      currentCursor: cellElement?.style?.cursor,
+      actionsObject: actions,
+      cardInstanceType: cardInstance?.constructor?.name
+    });
 
-    // Track action state to prevent conflicts
-    let isHolding = false;
-    let holdTimer = null;
-    let lastTap = 0;
+    if (!cellElement || !actions) {
+      cblcarsLog.warn(`[ActionHelpers] Missing cellElement or actions for ${cellId}:`, {
+        hasCellElement: !!cellElement,
+        hasActions: !!actions,
+        actionsContent: actions
+      });
+      return;
+    }
 
-    // Handle mouse/touch events with proper coordination
-    const handlePointerDown = (event) => {
-      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer down - starting hold timer`);
+    // CRITICAL: Ensure the cell element has the correct styles for actions
+    cellElement.style.pointerEvents = 'visiblePainted';
+    cellElement.style.cursor = 'pointer';
+
+    // CRITICAL: Add a comprehensive debug handler that executes actions immediately
+    const debugActionHandler = (event) => {
+      cblcarsLog.debug(`[ActionHelpers] 🎯 ACTION HANDLER TRIGGERED for ${cellId}:`, {
+        eventType: event.type,
+        eventPhase: event.eventPhase,
+        eventTarget: event.target?.tagName,
+        eventCurrentTarget: event.currentTarget?.tagName,
+        coordinates: { x: event.clientX, y: event.clientY },
+        timeStamp: event.timeStamp,
+        isTrusted: event.isTrusted,
+        hasPreventDefault: typeof event.preventDefault === 'function',
+        hasStopPropagation: typeof event.stopPropagation === 'function'
+      });
+
+      // CRITICAL: Prevent event bubbling
       event.preventDefault();
+      event.stopPropagation();
       event.stopImmediatePropagation();
 
-      if (actions.hold_action) {
-        isHolding = false;
-        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} setting hold timer for 500ms`);
-        holdTimer = setTimeout(() => {
-          isHolding = true;
-          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} HOLD ACTION TRIGGERED after 500ms`);
-          ActionHelpers.executeActionViaButtonCardBridge(actions.hold_action, cardInstance, 'hold');
-        }, 500);
-      }
-    };
+      // CRITICAL: Execute the tap action immediately if available
+      if (actions.tap_action) {
+        cblcarsLog.debug(`[ActionHelpers] 🚀 EXECUTING TAP ACTION for ${cellId}:`, {
+          action: actions.tap_action,
+          hasCardInstance: !!cardInstance,
+          cardInstanceMethods: cardInstance ? Object.getOwnPropertyNames(cardInstance).filter(name => typeof cardInstance[name] === 'function') : 'no card instance'
+        });
 
-    const handlePointerUp = (event) => {
-      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer up, wasHolding: ${isHolding}, hadTimer: ${!!holdTimer}`);
-      event.preventDefault();
-      event.stopImmediatePropagation();
-
-      // Clear hold timer if it exists
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} cleared hold timer`);
-      }
-
-      // Only process tap/double-tap if we weren't holding
-      if (!isHolding) {
-        const now = Date.now();
-
-        // Check for double-tap first
-        if (actions.double_tap_action && (now - lastTap < 300) && lastTap > 0) {
-          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} DOUBLE-TAP ACTION TRIGGERED`);
-          ActionHelpers.executeActionViaButtonCardBridge(actions.double_tap_action, cardInstance, 'double_tap');
-          lastTap = 0; // Reset to prevent triple-tap and single-tap
-          return; // CRITICAL: Exit early to prevent single-tap logic
-        }
-
-        if (actions.tap_action) {
-          lastTap = now;
-          // Set up single tap with delay to allow for double-tap
-          if (actions.double_tap_action) {
-            // Wait to see if double-tap comes
-            const tapTimestamp = now;
-            setTimeout(() => {
-              if (lastTap === tapTimestamp) { // No double-tap happened (lastTap wasn't reset)
-                cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} SINGLE TAP ACTION TRIGGERED (delayed)`);
-                ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
-              } else {
-                cblcarsLog.debug(`[ActionHelpers] 🚫 Cell ${cellId} single tap cancelled (double-tap occurred)`);
-              }
-            }, 300);
+        try {
+          // Try multiple execution methods
+          if (cardInstance && typeof cardInstance._handleAction === 'function') {
+            cblcarsLog.debug(`[ActionHelpers] Using cardInstance._handleAction for ${cellId}`);
+            cardInstance._handleAction(actions.tap_action);
+          } else if (cardInstance && typeof cardInstance.handleAction === 'function') {
+            cblcarsLog.debug(`[ActionHelpers] Using cardInstance.handleAction for ${cellId}`);
+            cardInstance.handleAction(actions.tap_action);
+          } else if (window.fireEvent) {
+            cblcarsLog.debug(`[ActionHelpers] Using window.fireEvent for ${cellId}`);
+            window.fireEvent('haptic', 'light');
+            // Try to execute action via HA event system
+            ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
           } else {
-            // No double-tap action, execute immediately
-            cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} SINGLE TAP ACTION TRIGGERED (immediate)`);
+            cblcarsLog.debug(`[ActionHelpers] Using fallback action execution for ${cellId}`);
             ActionHelpers.executeActionViaButtonCardBridge(actions.tap_action, cardInstance, 'tap');
           }
+
+          cblcarsLog.debug(`[ActionHelpers] ✅ TAP ACTION EXECUTED SUCCESSFULLY for ${cellId}`);
+        } catch (error) {
+          cblcarsLog.error(`[ActionHelpers] ❌ TAP ACTION EXECUTION FAILED for ${cellId}:`, error);
         }
       } else {
-        cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} hold was completed, skipping tap processing`);
+        cblcarsLog.warn(`[ActionHelpers] No tap_action available for ${cellId}`);
       }
 
-      // Reset hold state
-      isHolding = false;
+      return false; // Prevent any further event processing
     };
 
-    const handlePointerLeave = (event) => {
-      cblcarsLog.debug(`[ActionHelpers] 🔲 Cell ${cellId} pointer leave - clearing hold timer`);
-      if (holdTimer) {
-        clearTimeout(holdTimer);
-        holdTimer = null;
-      }
-      isHolding = false;
-    };
+    // CRITICAL: Add event listeners with multiple strategies
+    try {
+      // Strategy 1: Standard click listener
+      cellElement.addEventListener('click', debugActionHandler, {
+        capture: true,
+        passive: false
+      });
+      cblcarsLog.debug(`[ActionHelpers] ✅ Added standard click listener to ${cellId}`);
 
-    // Attach unified pointer events with proper event blocking
-    cellElement.addEventListener('mousedown', handlePointerDown, { capture: true });
-    cellElement.addEventListener('mouseup', handlePointerUp, { capture: true });
-    cellElement.addEventListener('mouseleave', handlePointerLeave, { capture: true });
-    cellElement.addEventListener('touchstart', handlePointerDown, { capture: true });
-    cellElement.addEventListener('touchend', handlePointerUp, { capture: true });
-    cellElement.addEventListener('touchcancel', handlePointerLeave, { capture: true });
+      // Strategy 2: Bubble phase listener as backup
+      cellElement.addEventListener('click', debugActionHandler, {
+        capture: false,
+        passive: false
+      });
+      cblcarsLog.debug(`[ActionHelpers] ✅ Added bubble click listener to ${cellId}`);
 
-    // CRITICAL: Block click events on this cell to prevent overlay actions
-    // Note: We already block mousedown/mouseup/etc in our handlers above
-    cellElement.addEventListener('click', (event) => {
-      cblcarsLog.debug(`[ActionHelpers] 🚫 Blocking click event on cell ${cellId} to prevent overlay action`);
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      // Don't execute anything - this is just to block overlay events
-    }, { capture: true });    // Attach hold action
-    if (actions.hold_action) {
-      let holdTimer;
+      // Strategy 3: Touch listeners for mobile
+      cellElement.addEventListener('touchend', debugActionHandler, {
+        capture: true,
+        passive: false
+      });
+      cblcarsLog.debug(`[ActionHelpers] ✅ Added touch listener to ${cellId}`);
 
-      const startHold = () => {
-        holdTimer = setTimeout(() => {
-          ActionHelpers.executeActionViaButtonCardBridge(actions.hold_action, cardInstance, 'hold');
-        }, 500);
-      };
-
-      const endHold = (event) => {
-        if (event) event.stopImmediatePropagation();
-        clearTimeout(holdTimer);
-      };
-
-      cellElement.addEventListener('mousedown', startHold, { capture: true });
-      cellElement.addEventListener('mouseup', endHold, { capture: true });
-      cellElement.addEventListener('mouseleave', endHold, { capture: true });
-      cellElement.addEventListener('touchstart', startHold, { capture: true });
-      cellElement.addEventListener('touchend', endHold, { capture: true });
-      cellElement.addEventListener('touchcancel', endHold, { capture: true });
+    } catch (error) {
+      cblcarsLog.error(`[ActionHelpers] ❌ Failed to add event listeners to ${cellId}:`, error);
     }
 
-    // Attach double tap action with higher priority
-    if (actions.double_tap_action) {
-      let lastTap = 0;
-      cellElement.addEventListener('click', (event) => {
-        const now = Date.now();
-        if (now - lastTap < 300) {
-          cblcarsLog.debug(`[ActionHelpers] 🎯 Cell ${cellId} double-tap action triggered`);
-          event.preventDefault();
-          event.stopImmediatePropagation(); // Stop ALL other listeners
-          ActionHelpers.executeActionViaButtonCardBridge(actions.double_tap_action, cardInstance, 'double_tap');
-          lastTap = 0;
-        } else {
-          lastTap = now;
-        }
-      }, { capture: true });
-    }
+    // CRITICAL: Mark as successfully attached
+    cellElement.setAttribute('data-actions-attached', 'true');
+    cellElement.setAttribute('data-debug-click-handlers', 'true');
+    cellElement.setAttribute('data-action-debug-time', Date.now().toString());
 
-    // Make sure cell is clickable if it has actions
-    if (actions.tap_action || actions.hold_action || actions.double_tap_action) {
-      cellElement.style.pointerEvents = 'visiblePainted';
-      cellElement.style.cursor = 'pointer';
-    }
-  }  /**
+    cblcarsLog.debug(`[ActionHelpers] ✅ COMPREHENSIVE action attachment completed for ${cellId}`);
+  }
+
+  /**
    * Get the freshest HASS object available to prevent stale state in dialogs
    * @param {Object} cardInstance - Card instance
    * @returns {Object} Freshest HASS object available
@@ -1116,6 +1089,160 @@ export class ActionHelpers {
     }
 
     cblcarsLog.debug(`[ActionHelpers] ✅ Actions attached to ${overlay.type || 'overlay'} ${overlay.id}`);
+  }
+
+  /**
+   * Attach actions to a grid cell element
+   * @param {Element} cellElement - The cell DOM element
+   * @param {Object} actions - Actions configuration {tap_action, hold_action, double_tap_action}
+   * @param {Object} cardInstance - Card instance for action handling
+   * @static
+   */
+  static attachCellActions(cellElement, actions, cardInstance) {
+    if (!cellElement || !actions) {
+      cblcarsLog.warn(`[ActionHelpers] Invalid arguments for attachCellActions`);
+      return;
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] 🎯 Attaching cell actions:`, actions);
+
+    // Ensure the cell element can receive events
+    cellElement.style.pointerEvents = 'visiblePainted';
+    cellElement.style.cursor = 'pointer';
+
+    // Add click handler for tap_action
+    if (actions.tap_action) {
+      cellElement.addEventListener('click', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+
+        cblcarsLog.debug(`[ActionHelpers] 🖱️ Cell tap action triggered:`, actions.tap_action);
+
+        if (cardInstance) {
+          ActionHelpers._executeAction(actions.tap_action, cardInstance);
+        } else {
+          cblcarsLog.warn(`[ActionHelpers] No card instance available for tap action`);
+        }
+      });
+    }
+
+    // Add hold handler for hold_action
+    if (actions.hold_action) {
+      ActionHelpers._attachHoldAction(cellElement, actions.hold_action, cardInstance);
+    }
+
+    // Add double-click handler for double_tap_action
+    if (actions.double_tap_action) {
+      cellElement.addEventListener('dblclick', (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+
+        cblcarsLog.debug(`[ActionHelpers] 🖱️🖱️ Cell double-tap action triggered:`, actions.double_tap_action);
+
+        if (cardInstance) {
+          ActionHelpers._executeAction(actions.double_tap_action, cardInstance);
+        }
+      });
+    }
+
+    cblcarsLog.debug(`[ActionHelpers] ✅ Cell actions attached successfully`);
+  }
+
+  /**
+   * Attach hold action with proper timing
+   * @private
+   * @static
+   */
+  static _attachHoldAction(element, holdAction, cardInstance) {
+    let holdTimer = null;
+    let isHolding = false;
+
+    const startHold = (event) => {
+      isHolding = true;
+      holdTimer = setTimeout(() => {
+        if (isHolding) {
+          event.stopPropagation();
+          event.preventDefault();
+
+          cblcarsLog.debug(`[ActionHelpers] ✋ Hold action triggered:`, holdAction);
+
+          if (cardInstance) {
+            ActionHelpers._executeAction(holdAction, cardInstance);
+          }
+        }
+      }, 500); // 500ms hold threshold
+    };
+
+    const endHold = () => {
+      isHolding = false;
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+    };
+
+    // Mouse events
+    element.addEventListener('mousedown', startHold);
+    element.addEventListener('mouseup', endHold);
+    element.addEventListener('mouseleave', endHold);
+
+    // Touch events for mobile
+    element.addEventListener('touchstart', startHold);
+    element.addEventListener('touchend', endHold);
+    element.addEventListener('touchcancel', endHold);
+  }
+
+  /**
+   * Execute an action using the card instance
+   * @private
+   * @static
+   */
+  static _executeAction(action, cardInstance) {
+    try {
+      if (typeof cardInstance._handleAction === 'function') {
+        cardInstance._handleAction(action);
+      } else if (typeof cardInstance.handleAction === 'function') {
+        cardInstance.handleAction(action);
+      } else if (cardInstance._hass && action.action) {
+        // Direct Home Assistant action handling
+        ActionHelpers._handleDirectAction(action, cardInstance._hass);
+      } else {
+        cblcarsLog.warn(`[ActionHelpers] No action handler available on card instance`);
+      }
+    } catch (error) {
+      cblcarsLog.error(`[ActionHelpers] Error executing action:`, error);
+    }
+  }
+
+  /**
+   * Handle action directly through Home Assistant
+   * @private
+   * @static
+   */
+  static _handleDirectAction(action, hass) {
+    if (!hass || !action.action) return;
+
+    switch (action.action) {
+      case 'toggle':
+        if (action.entity && hass.callService) {
+          const domain = action.entity.split('.')[0];
+          hass.callService(domain, 'toggle', {}, { entity_id: action.entity });
+        }
+        break;
+      case 'call-service':
+        if (action.service && hass.callService) {
+          const [domain, service] = action.service.split('.');
+          hass.callService(domain, service, action.service_data || {});
+        }
+        break;
+      case 'navigate':
+        if (action.navigation_path && history) {
+          history.pushState(null, '', action.navigation_path);
+        }
+        break;
+      default:
+        cblcarsLog.warn(`[ActionHelpers] Unknown action type: ${action.action}`);
+    }
   }
 }
 
