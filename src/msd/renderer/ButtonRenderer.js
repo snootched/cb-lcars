@@ -267,16 +267,12 @@ export class ButtonRenderer {
     const globalColor = standardStyles.colors.borderColor || style.border_color || this._getDefault('button.border_color', 'var(--lcars-gray)');
     const globalRadius = standardStyles.layout.borderRadius || style.border_radius || this._getDefault('button.border_radius', 8);
 
-    // FIXED: More thorough individual border detection
+    // FIXED: Check for individual border properties properly - ensure we convert to numbers
     const hasIndividualSides = !!(
-      style.border_top ||
-      style.border_right ||
-      style.border_bottom ||
-      style.border_left ||
-      (typeof style.border_top === 'object') ||
-      (typeof style.border_right === 'object') ||
-      (typeof style.border_bottom === 'object') ||
-      (typeof style.border_left === 'object')
+      style.border_top !== undefined ||
+      style.border_right !== undefined ||
+      style.border_bottom !== undefined ||
+      style.border_left !== undefined
     );
 
     const hasIndividualRadius = !!(
@@ -286,39 +282,61 @@ export class ButtonRenderer {
       style.border_radius_bottom_left !== undefined
     );
 
+    // FIXED: Safe resolution of individual border sides with proper fallbacks
+    const resolveBorderSide = (sideValue, fallbackWidth = globalWidth, fallbackColor = globalColor) => {
+      if (sideValue === undefined || sideValue === null) {
+        // No individual side specified - use global defaults
+        return {
+          width: Number(fallbackWidth) || 1,
+          color: fallbackColor || 'var(--lcars-gray)',
+          style: 'solid'
+        };
+      }
+
+      if (typeof sideValue === 'object') {
+        // Object format: { width: 2, color: 'red', style: 'dashed' }
+        return {
+          width: Number(sideValue.width !== undefined ? sideValue.width : fallbackWidth) || 1,
+          color: sideValue.color !== undefined ? sideValue.color : fallbackColor,
+          style: sideValue.style !== undefined ? sideValue.style : 'solid'
+        };
+      }
+
+      if (typeof sideValue === 'number') {
+        // Number format: just width, use global color
+        return {
+          width: Number(sideValue) || 1,
+          color: fallbackColor,
+          style: 'solid'
+        };
+      }
+
+      // String or other - treat as width
+      const numericWidth = parseFloat(sideValue);
+      return {
+        width: !isNaN(numericWidth) ? numericWidth : (Number(fallbackWidth) || 1),
+        color: fallbackColor,
+        style: 'solid'
+      };
+    };
+
     return {
-      // Global fallbacks
-      width: globalWidth,
-      color: globalColor,
-      radius: globalRadius,
+      // Global fallbacks - ensure they're numbers
+      width: Number(globalWidth) || 1,
+      color: globalColor || 'var(--lcars-gray)',
+      radius: Number(globalRadius) || 0,
 
-      // Individual side control - FIXED: Better object handling
-      top: {
-        width: (typeof style.border_top === 'object' ? style.border_top.width : style.border_top) || globalWidth,
-        color: (typeof style.border_top === 'object' ? style.border_top.color : null) || globalColor,
-        style: (typeof style.border_top === 'object' ? style.border_top.style : null) || 'solid'
-      },
-      right: {
-        width: (typeof style.border_right === 'object' ? style.border_right.width : style.border_right) || globalWidth,
-        color: (typeof style.border_right === 'object' ? style.border_right.color : null) || globalColor,
-        style: (typeof style.border_right === 'object' ? style.border_right.style : null) || 'solid'
-      },
-      bottom: {
-        width: (typeof style.border_bottom === 'object' ? style.border_bottom.width : style.border_bottom) || globalWidth,
-        color: (typeof style.border_bottom === 'object' ? style.border_bottom.color : null) || globalColor,
-        style: (typeof style.border_bottom === 'object' ? style.border_bottom.style : null) || 'solid'
-      },
-      left: {
-        width: (typeof style.border_left === 'object' ? style.border_left.width : style.border_left) || globalWidth,
-        color: (typeof style.border_left === 'object' ? style.border_left.color : null) || globalColor,
-        style: (typeof style.border_left === 'object' ? style.border_left.style : null) || 'solid'
-      },
+      // Individual side control with safe resolution
+      top: resolveBorderSide(style.border_top),
+      right: resolveBorderSide(style.border_right),
+      bottom: resolveBorderSide(style.border_bottom),
+      left: resolveBorderSide(style.border_left),
 
-      // Individual corner radius - FIXED: Check for undefined explicitly
-      topLeft: style.border_radius_top_left !== undefined ? style.border_radius_top_left : globalRadius,
-      topRight: style.border_radius_top_right !== undefined ? style.border_radius_top_right : globalRadius,
-      bottomRight: style.border_radius_bottom_right !== undefined ? style.border_radius_bottom_right : globalRadius,
-      bottomLeft: style.border_radius_bottom_left !== undefined ? style.border_radius_bottom_left : globalRadius,
+      // Individual corner radius with safe fallbacks - CRITICAL: ensure they're numbers
+      topLeft: Number(style.border_radius_top_left !== undefined ? style.border_radius_top_left : globalRadius) || 0,
+      topRight: Number(style.border_radius_top_right !== undefined ? style.border_radius_top_right : globalRadius) || 0,
+      bottomRight: Number(style.border_radius_bottom_right !== undefined ? style.border_radius_bottom_right : globalRadius) || 0,
+      bottomLeft: Number(style.border_radius_bottom_left !== undefined ? style.border_radius_bottom_left : globalRadius) || 0,
 
       // Convenience flags
       hasIndividualSides,
@@ -534,39 +552,47 @@ export class ButtonRenderer {
    * @returns {string} SVG path string
    */
   _generateComplexBorderPath(width, height, border) {
-    const { topLeft, topRight, bottomRight, bottomLeft } = border;
+    // FIXED: Ensure all radius values are valid numbers
+    const topLeft = Number(border.topLeft) || 0;
+    const topRight = Number(border.topRight) || 0;
+    const bottomRight = Number(border.bottomRight) || 0;
+    const bottomLeft = Number(border.bottomLeft) || 0;
+
+    // FIXED: Ensure width and height are valid numbers
+    const w = Number(width) || 100;
+    const h = Number(height) || 40;
 
     // Start from top-left corner, accounting for radius
     let path = `M ${topLeft} 0`;
 
     // Top edge to top-right corner
-    path += ` L ${width - topRight} 0`;
+    path += ` L ${w - topRight} 0`;
 
     // Top-right corner curve
     if (topRight > 0) {
-      path += ` Q ${width} 0 ${width} ${topRight}`;
+      path += ` Q ${w} 0 ${w} ${topRight}`;
     } else {
-      path += ` L ${width} 0`;
+      path += ` L ${w} 0`;
     }
 
     // Right edge to bottom-right corner
-    path += ` L ${width} ${height - bottomRight}`;
+    path += ` L ${w} ${h - bottomRight}`;
 
     // Bottom-right corner curve
     if (bottomRight > 0) {
-      path += ` Q ${width} ${height} ${width - bottomRight} ${height}`;
+      path += ` Q ${w} ${h} ${w - bottomRight} ${h}`;
     } else {
-      path += ` L ${width} ${height}`;
+      path += ` L ${w} ${h}`;
     }
 
     // Bottom edge to bottom-left corner
-    path += ` L ${bottomLeft} ${height}`;
+    path += ` L ${bottomLeft} ${h}`;
 
     // Bottom-left corner curve
     if (bottomLeft > 0) {
-      path += ` Q 0 ${height} 0 ${height - border.bottomLeft}`;
+      path += ` Q 0 ${h} 0 ${h - bottomLeft}`;
     } else {
-      path += ` L 0 ${height}`;
+      path += ` L 0 ${h}`;
     }
 
     // Left edge to top-left corner
@@ -591,49 +617,81 @@ export class ButtonRenderer {
   _renderIndividualBorderPaths(width, height, border, x, y, buttonId) {
     let borderMarkup = '';
 
-    // Top border
-    if (border.top.width > 0) {
-      const topRadius = Math.min(border.topLeft, border.topRight);
-      borderMarkup += `<path d="M ${border.topLeft} 0 L ${width - border.topRight} 0"
+    // FIXED: Safe access to border properties with fallbacks and ensure numeric values
+    const safeGetBorderWidth = (side, fallback = 1) => {
+      const sideWidth = (side && typeof side === 'object' && side.width !== undefined) ? side.width : (side || fallback);
+      return Number(sideWidth) || fallback;
+    };
+
+    const safeGetBorderColor = (side, fallback = 'var(--lcars-gray)') => {
+      return (side && typeof side === 'object' && side.color !== undefined) ? side.color : (border.color || fallback);
+    };
+
+    // FIXED: Ensure radius values are numbers
+    const topLeft = Number(border.topLeft) || 0;
+    const topRight = Number(border.topRight) || 0;
+    const bottomRight = Number(border.bottomRight) || 0;
+    const bottomLeft = Number(border.bottomLeft) || 0;
+
+    // FIXED: Ensure width and height are numbers
+    const w = Number(width) || 100;
+    const h = Number(height) || 40;
+
+    // FIXED: Determine line cap style based on corner radius
+    // Use square caps when radius is 0, round caps when radius > 0
+    const hasAnyRadius = topLeft > 0 || topRight > 0 || bottomRight > 0 || bottomLeft > 0;
+    const lineCap = hasAnyRadius ? 'round' : 'square';
+
+    // Top border - safe access
+    const topWidth = safeGetBorderWidth(border.top, border.width);
+    if (topWidth > 0) {
+      const topColor = safeGetBorderColor(border.top, border.color);
+      borderMarkup += `<path d="M ${topLeft} 0 L ${w - topRight} 0"
                         transform="translate(${x}, ${y})"
-                        stroke="${border.top.color}"
-                        stroke-width="${border.top.width}"
-                        stroke-linecap="round"
+                        stroke="${topColor}"
+                        stroke-width="${topWidth}"
+                        stroke-linecap="${lineCap}"
                         fill="none" />`;
     }
 
-    // Right border
-    if (border.right.width > 0) {
-      borderMarkup += `<path d="M ${width} ${border.topRight} L ${width} ${height - border.bottomRight}"
+    // Right border - safe access
+    const rightWidth = safeGetBorderWidth(border.right, border.width);
+    if (rightWidth > 0) {
+      const rightColor = safeGetBorderColor(border.right, border.color);
+      borderMarkup += `<path d="M ${w} ${topRight} L ${w} ${h - bottomRight}"
                         transform="translate(${x}, ${y})"
-                        stroke="${border.right.color}"
-                        stroke-width="${border.right.width}"
-                        stroke-linecap="round"
+                        stroke="${rightColor}"
+                        stroke-width="${rightWidth}"
+                        stroke-linecap="${lineCap}"
                         fill="none" />`;
     }
 
-    // Bottom border
-    if (border.bottom.width > 0) {
-      borderMarkup += `<path d="M ${width - border.bottomRight} ${height} L ${border.bottomLeft} ${height}"
+    // Bottom border - safe access
+    const bottomWidth = safeGetBorderWidth(border.bottom, border.width);
+    if (bottomWidth > 0) {
+      const bottomColor = safeGetBorderColor(border.bottom, border.color);
+      borderMarkup += `<path d="M ${w - bottomRight} ${h} L ${bottomLeft} ${h}"
                         transform="translate(${x}, ${y})"
-                        stroke="${border.bottom.color}"
-                        stroke-width="${border.bottom.width}"
-                        stroke-linecap="round"
+                        stroke="${bottomColor}"
+                        stroke-width="${bottomWidth}"
+                        stroke-linecap="${lineCap}"
                         fill="none" />`;
     }
 
-    // Left border
-    if (border.left.width > 0) {
-      borderMarkup += `<path d="M 0 ${height - border.bottomLeft} L 0 ${border.topLeft}"
+    // Left border - safe access
+    const leftWidth = safeGetBorderWidth(border.left, border.width);
+    if (leftWidth > 0) {
+      const leftColor = safeGetBorderColor(border.left, border.color);
+      borderMarkup += `<path d="M 0 ${h - bottomLeft} L 0 ${topLeft}"
                         transform="translate(${x}, ${y})"
-                        stroke="${border.left.color}"
-                        stroke-width="${border.left.width}"
-                        stroke-linecap="round"
+                        stroke="${leftColor}"
+                        stroke-width="${leftWidth}"
+                        stroke-linecap="${lineCap}"
                         fill="none" />`;
     }
 
     // Corner arcs if we have individual radii
-    if (border.hasIndividualRadius) {
+    if (border.hasIndividualRadius && hasAnyRadius) {
       borderMarkup += this._renderCornerArcs(width, height, border, x, y);
     }
 
@@ -647,56 +705,96 @@ export class ButtonRenderer {
   _renderCornerArcs(width, height, border, x, y) {
     let arcMarkup = '';
 
-    // Top-left corner
-    if (border.topLeft > 0) {
-      const topBorderColor = border.hasIndividualSides ? border.top.color : border.color;
-      const leftBorderColor = border.hasIndividualSides ? border.left.color : border.color;
-      // Use dominant color (top takes precedence)
-      const cornerColor = topBorderColor;
+    // FIXED: Safe access to border properties for corner colors and ensure numeric values
+    const safeGetBorderColor = (side, fallback = border.color || 'var(--lcars-gray)') => {
+      return (side && typeof side === 'object' && side.color !== undefined) ? side.color : fallback;
+    };
 
-      arcMarkup += `<path d="M 0 ${border.topLeft} Q 0 0 ${border.topLeft} 0"
+    const safeGetBorderWidth = (side, fallback = border.width || 1) => {
+      const sideWidth = (side && typeof side === 'object' && side.width !== undefined) ? side.width : (typeof side === 'number' ? side : fallback);
+      return Number(sideWidth) || fallback;
+    };
+
+    // FIXED: Ensure all radius and dimension values are numbers
+    const topLeft = Number(border.topLeft) || 0;
+    const topRight = Number(border.topRight) || 0;
+    const bottomRight = Number(border.bottomRight) || 0;
+    const bottomLeft = Number(border.bottomLeft) || 0;
+    const w = Number(width) || 100;
+    const h = Number(height) || 40;
+
+    // FIXED: Use square line caps for corner arcs too - they should match the straight borders
+    const lineCap = 'square';
+
+    // Top-left corner
+    if (topLeft > 0) {
+      const topColor = safeGetBorderColor(border.top);
+      const leftColor = safeGetBorderColor(border.left);
+      const cornerColor = topColor; // Use top color as primary
+
+      const topWidth = safeGetBorderWidth(border.top);
+      const leftWidth = safeGetBorderWidth(border.left);
+      const cornerWidth = Math.max(topWidth, leftWidth);
+
+      arcMarkup += `<path d="M 0 ${topLeft} Q 0 0 ${topLeft} 0"
                      transform="translate(${x}, ${y})"
                      stroke="${cornerColor}"
-                     stroke-width="${Math.max(border.top.width, border.left.width)}"
+                     stroke-width="${cornerWidth}"
+                     stroke-linecap="${lineCap}"
                      fill="none" />`;
     }
 
     // Top-right corner
-    if (border.topRight > 0) {
-      const topBorderColor = border.hasIndividualSides ? border.top.color : border.color;
-      const rightBorderColor = border.hasIndividualSides ? border.right.color : border.color;
-      const cornerColor = topBorderColor;
+    if (topRight > 0) {
+      const topColor = safeGetBorderColor(border.top);
+      const rightColor = safeGetBorderColor(border.right);
+      const cornerColor = topColor;
 
-      arcMarkup += `<path d="M ${width - border.topRight} 0 Q ${width} 0 ${width} ${border.topRight}"
+      const topWidth = safeGetBorderWidth(border.top);
+      const rightWidth = safeGetBorderWidth(border.right);
+      const cornerWidth = Math.max(topWidth, rightWidth);
+
+      arcMarkup += `<path d="M ${w - topRight} 0 Q ${w} 0 ${w} ${topRight}"
                      transform="translate(${x}, ${y})"
                      stroke="${cornerColor}"
-                     stroke-width="${Math.max(border.top.width, border.right.width)}"
+                     stroke-width="${cornerWidth}"
+                     stroke-linecap="${lineCap}"
                      fill="none" />`;
     }
 
     // Bottom-right corner
-    if (border.bottomRight > 0) {
-      const rightBorderColor = border.hasIndividualSides ? border.right.color : border.color;
-      const bottomBorderColor = border.hasIndividualSides ? border.bottom.color : border.color;
-      const cornerColor = rightBorderColor;
+    if (bottomRight > 0) {
+      const rightColor = safeGetBorderColor(border.right);
+      const bottomColor = safeGetBorderColor(border.bottom);
+      const cornerColor = rightColor;
 
-      arcMarkup += `<path d="M ${width} ${height - border.bottomRight} Q ${width} ${height} ${width - border.bottomRight} ${height}"
+      const rightWidth = safeGetBorderWidth(border.right);
+      const bottomWidth = safeGetBorderWidth(border.bottom);
+      const cornerWidth = Math.max(rightWidth, bottomWidth);
+
+      arcMarkup += `<path d="M ${w} ${h - bottomRight} Q ${w} ${h} ${w - bottomRight} ${h}"
                      transform="translate(${x}, ${y})"
                      stroke="${cornerColor}"
-                     stroke-width="${Math.max(border.right.width, border.bottom.width)}"
+                     stroke-width="${cornerWidth}"
+                     stroke-linecap="${lineCap}"
                      fill="none" />`;
     }
 
     // Bottom-left corner
-    if (border.bottomLeft > 0) {
-      const bottomBorderColor = border.hasIndividualSides ? border.bottom.color : border.color;
-      const leftBorderColor = border.hasIndividualSides ? border.left.color : border.color;
-      const cornerColor = bottomBorderColor;
+    if (bottomLeft > 0) {
+      const bottomColor = safeGetBorderColor(border.bottom);
+      const leftColor = safeGetBorderColor(border.left);
+      const cornerColor = bottomColor;
 
-      arcMarkup += `<path d="M ${border.bottomLeft} ${height} Q 0 ${height} 0 ${height - border.bottomLeft}"
+      const bottomWidth = safeGetBorderWidth(border.bottom);
+      const leftWidth = safeGetBorderWidth(border.left);
+      const cornerWidth = Math.max(bottomWidth, leftWidth);
+
+      arcMarkup += `<path d="M ${bottomLeft} ${h} Q 0 ${h} 0 ${h - bottomLeft}"
                      transform="translate(${x}, ${y})"
                      stroke="${cornerColor}"
-                     stroke-width="${Math.max(border.bottom.width, border.left.width)}"
+                     stroke-width="${cornerWidth}"
+                     stroke-linecap="${lineCap}"
                      fill="none" />`;
     }
 
