@@ -1,84 +1,79 @@
 /**
- * [TextOverlayRenderer] Text overlay renderer - advanced text rendering with comprehensive styling support
- * 📝 Provides rich text styling features with DataSource integration, brackets, and effects
+ * [TextOverlayRenderer] Text overlay renderer - MSD integration layer
+ * 📝 Handles MSD-specific concerns: positioning, DataSource, actions, lifecycle
+ *
+ * Responsibilities:
+ * - Position resolution from anchors
+ * - DataSource integration and template processing
+ * - Action attachment coordination
+ * - Style resolution with defaults
+ * - Delegates pure rendering to TextRenderer
  */
 
 import { DataSourceMixin } from './DataSourceMixin.js';
-import { BracketRenderer } from './BracketRenderer.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { ActionHelpers } from './ActionHelpers.js';
+import { TextRenderer } from './core/TextRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
-/**
- * Enhanced Text Overlay Renderer with MSD Defaults Integration
- * Phase 1 implementation for testing the defaults system
- */
 export class TextOverlayRenderer {
   constructor() {
-    // Reserved for future use
+    // Reserved for instance methods
   }
 
   /**
-   * Render a text overlay with full styling support
+   * Render a text overlay with MSD integration
    * @param {Object} overlay - Text overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Element} svgContainer - Container element
    * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
-   * @returns {string} Complete SVG markup for the styled text
+   * @returns {string} Complete SVG markup
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
     // Create instance for non-static methods
     const instance = new TextOverlayRenderer();
-    instance.container = svgContainer; // Set the container for the instance
-    instance.viewBox = viewBox; // Also store viewBox for reference
+    instance.container = svgContainer;
+    instance.viewBox = viewBox;
 
     return instance.renderText(overlay, anchors, viewBox, cardInstance);
-  }  /**
-   * Instance method for comprehensive text rendering
-   * @param {Object} overlay - Text overlay configuration with resolved styles
-   * @param {Object} anchors - Anchor positions
-   * @param {Array} viewBox - SVG viewBox dimensions
-   * @param {Object} cardInstance - Card instance for action handling
-   * @returns {string} Complete SVG markup for the styled text
+  }
+
+  /**
+   * Instance method for comprehensive text rendering with MSD integration
    */
   renderText(overlay, anchors, viewBox, cardInstance = null) {
-
+    // 1. MSD RESPONSIBILITY: Resolve position from anchors
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[TextOverlayRenderer] ⚠️ Text overlay position could not be resolved:', overlay.id);
       return '';
     }
-    const [x, y] = position;
 
     try {
       const style = overlay.finalStyle || overlay.style || {};
 
-      // Ensure we have the correct viewBox for scaling context
-      // Use parameter viewBox as fallback if this.viewBox is not set
+      // 2. MSD RESPONSIBILITY: Resolve styles with defaults system
       const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
 
-      // NEW: adopt computed font when 'inherit' (prevents initial fallback mismatch)
+      // NEW: Adopt computed font when 'inherit' to prevent initial fallback mismatch
       if (this.container && typeof window !== 'undefined') {
         try {
-          const host = this.container;
-          const cs = host ? getComputedStyle(host) : null;
-            if (cs) {
-              if (textStyle.fontFamily === 'inherit' && cs.fontFamily) {
-                textStyle.fontFamily = cs.fontFamily;
-              }
-              // Update fontSize if defaulted / unreasonable
-              if ((!style.font_size && !style.fontSize) && cs.fontSize) {
-                const px = parseFloat(cs.fontSize);
-                const fallbackSize = this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
-                if (!isNaN(px) && px > 0) textStyle.fontSize = px;
-                else textStyle.fontSize = fallbackSize;
-              }
+          const cs = getComputedStyle(this.container);
+          if (cs) {
+            if (textStyle.fontFamily === 'inherit' && cs.fontFamily) {
+              textStyle.fontFamily = cs.fontFamily;
             }
+            if ((!style.font_size && !style.fontSize) && cs.fontSize) {
+              const px = parseFloat(cs.fontSize);
+              if (!isNaN(px) && px > 0) textStyle.fontSize = `${px}px`;
+            }
+          }
         } catch (_) {}
       }
 
-      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
+      // 3. MSD RESPONSIBILITY: Resolve text content from DataSource/templates
       const textContent = this._resolveTextContent(overlay, style);
 
       cblcarsLog.debug(`[TextOverlayRenderer] Final text content for "${overlay.id}": "${textContent}"`);
@@ -87,27 +82,36 @@ export class TextOverlayRenderer {
         cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id}`);
         return '';
       }
-      textStyle._cachedContent = textContent;
 
-      // NEW: single early measurement (width/height) used by decorations & emitted as attributes
-      const measure = this._measureTextBlock(textContent, x, y, textStyle);
+      // 4. DELEGATE: Pure rendering to TextRenderer
+      const renderResult = TextRenderer.render(
+        {
+          content: textContent,
+          position,
+          size: overlay.size
+        },
+        textStyle,
+        {
+          viewBox,
+          container: this.container,
+          overlayId: overlay.id,
+          defaults: this._getDefaultsForRenderer() // NEW: Pass defaults configuration
+        }
+      );
 
-      const svgParts = [
-        this._buildDefinitions(textStyle, overlay.id),
-        this._buildMainText(textContent, x, y, textStyle, overlay.id, animationAttributes),
-        this._buildTextDecorations(textContent, x, y, textStyle, overlay.id),
-        this._buildEffects(textContent, x, y, textStyle, overlay.id)
-      ].filter(Boolean);
+      if (!renderResult || !renderResult.markup) {
+        cblcarsLog.warn(`[TextOverlayRenderer] TextRenderer returned empty markup for ${overlay.id}`);
+        return this._renderFallbackText(overlay, position[0], position[1]);
+      }
 
-      // Check if overlay has actions and process them using ActionHelpers
+      // 5. MSD RESPONSIBILITY: Handle actions
       const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
 
       if (hasActions && cardInstance) {
         const actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
         if (actionInfo) {
-          // Use the same pattern as StatusGrid for action attachment
+          // Schedule action attachment after DOM insertion
           setTimeout(() => {
-            // Try card shadow root first, then document
             let textElement = null;
             const card = window.cb_lcars_card_instance;
             if (card && card.shadowRoot) {
@@ -120,38 +124,38 @@ export class TextOverlayRenderer {
             if (textElement) {
               cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Attaching actions to text overlay ${overlay.id}`);
               ActionHelpers.attachActions(textElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
-            } else {
-              cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ Could not find text overlay element for action attachment: ${overlay.id}`);
             }
           }, 100);
         }
       }
 
-      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered enhanced text ${overlay.id} with ${textStyle.features.length} features`, {
+      // 6. MSD RESPONSIBILITY: Wrap in overlay group with metadata
+      const metadata = renderResult.metadata || {};
+      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
+
+      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered text ${overlay.id} via TextRenderer`, {
         hasActions,
-        hasCardInstance: !!cardInstance,
-        tapAction: overlay.tap_action,
-        holdAction: overlay.hold_action,
-        doubleTapAction: overlay.double_tap_action
+        hasMetadata: !!metadata.bounds
       });
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
                   data-text-features="${textStyle.features.join(',')}"
                   data-animation-ready="${!!animationAttributes.hasAnimations}"
-                  data-text-width="${measure.width || 0}"
-                  data-text-height="${measure.height || 0}"
+                  data-text-width="${metadata.bounds?.width || 0}"
+                  data-text-height="${metadata.bounds?.height || 0}"
                   data-font-family="${textStyle.fontFamily}"
-                  data-font-size="${parseFloat(textStyle.fontSize) || 16}"
+                  data-font-size="${metadata.fontSize || 16}"
                   data-dominant-baseline="${textStyle.dominantBaseline}"
                   data-text-anchor="${textStyle.textAnchor}"
                   data-font-stabilized="0"
                   style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
-                ${svgParts.join('\n')}
+                ${renderResult.markup}
               </g>`;
+
     } catch (error) {
-      cblcarsLog.error(`[TextOverlayRenderer] ❌ Enhanced rendering failed for text ${overlay.id}:`, error);
-      return this._renderFallbackText(overlay, x, y);
+      cblcarsLog.error(`[TextOverlayRenderer] ❌ Rendering failed for text ${overlay.id}:`, error);
+      return this._renderFallbackText(overlay, position[0], position[1]);
     }
   }
 
@@ -1298,41 +1302,26 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Update text overlay content dynamically using renderer delegation pattern
-   * @param {Element} overlayElement - Cached DOM element for the overlay
-   * @param {Object} overlay - Overlay configuration object
-   * @param {Object} sourceData - New DataSource data
-   * @returns {boolean} True if content was updated, false if unchanged
-   * @static
+   * Update text overlay content dynamically
    */
   static updateTextData(overlayElement, overlay, sourceData) {
     try {
-      // Find the text element within the overlay group
       const textElement = overlayElement.querySelector('text');
       if (!textElement) {
         cblcarsLog.warn(`[TextOverlayRenderer] Text element not found within overlay: ${overlay.id}`);
         return false;
       }
 
-      // Create renderer instance for content resolution
       const renderer = new TextOverlayRenderer();
-
-      // Resolve new text content using the same logic as initial rendering
       const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
 
       if (newContent && newContent !== textElement.textContent) {
-        cblcarsLog.debug(`[TextOverlayRenderer] Updating text overlay ${overlay.id}: "${textElement.textContent}" → "${newContent}"`);
-
-        // Update the text content with proper escaping
-        textElement.textContent = TextOverlayRenderer.escapeXml(newContent);
-
-        cblcarsLog.debug(`[TextOverlayRenderer] ✅ Text overlay ${overlay.id} updated successfully`);
+        cblcarsLog.debug(`[TextOverlayRenderer] Updating text overlay ${overlay.id}`);
+        textElement.textContent = TextRenderer._escapeXml(newContent);
         return true;
-      } else {
-        cblcarsLog.debug(`[TextOverlayRenderer] Text overlay ${overlay.id} content unchanged`);
-        return false;
       }
 
+      return false;
     } catch (error) {
       cblcarsLog.error(`[TextOverlayRenderer] ❌ Error updating text overlay ${overlay.id}:`, error);
       return false;
@@ -1340,245 +1329,68 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Get rendering capabilities and features supported
-   * @public
-   */
-  getCapabilities() {
-    return {
-      multiline: true,
-      gradients: true,
-      patterns: true,
-      effects: ['glow', 'shadow', 'blur'],
-      decorations: ['brackets', 'highlight', 'status'],
-      animations: ['pulse', 'fade', 'typewriter'], // Future implementation
-      textWrapping: true,
-      advancedTypography: true,
-      strokeText: true,
-      advanced: true
-    };
-  }
-
-  /**
-   * Get attachment points for line connectors with proper coordinate transformation
-   * @public
-   */
-  getAttachmentPoints(overlay, x, y) {
-    const textContent = this._resolveTextContent(overlay, overlay.finalStyle || {});
-    const textStyle = this._resolveTextStyles(overlay.finalStyle || {}, overlay.id);
-    // Use adjusted font for consistent connector attachment
-    const font = RendererUtils.buildMeasurementFontString(textStyle, this.container);
-
-    return RendererUtils.getTextAttachmentPoints(
-      textContent,
-      x,
-      y,
-      font,
-      textStyle.textAnchor,
-      textStyle.dominantBaseline,
-      this.container
-    );
-  }
-
-  /**
-   * Compute attachment points & bbox for a text overlay without rendering (used by line routing).
-   * Returns null if position or content invalid.
+   * Compute attachment points for line connectors
    */
   static computeAttachmentPoints(overlay, anchors, container, viewBox = null) {
     if (!overlay || overlay.type !== 'text') return null;
+
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) return null;
-    const [x, y] = position;
-    const instance = new TextOverlayRenderer();
-    instance.container = container; // Set container for scaling context
 
-    // CRITICAL FIX: Set the viewBox on the instance if provided
-    if (viewBox && Array.isArray(viewBox)) {
-      instance.viewBox = viewBox;
-    }
+    const instance = new TextOverlayRenderer();
+    instance.container = container;
+    instance.viewBox = viewBox;
 
     const style = overlay.finalStyle || overlay.style || {};
-
     const textStyle = instance._resolveTextStyles(style, overlay.id, viewBox);
     const textContent = instance._resolveTextContent(overlay, style);
+
     if (!textContent) return null;
 
-    // FIXED: Create a normalized textStyle with numeric fontSize for measurements
-    const measurementStyle = {
-      ...textStyle,
-      fontSize: parseFloat(textStyle.fontSize) || 16, // Convert to number for measurement
-      fontSizeString: textStyle.fontSize // Keep original for SVG output
-    };
-
-    // Measurement font (correct inherited font + scaling)
-    const font = RendererUtils.buildMeasurementFontString(measurementStyle, container);
-
-    // Get text-only bounding box first
-    const textBbox = RendererUtils.getTextBoundingBox(
-      textContent,
-      x,
-      y,
-      font,
-      textStyle.textAnchor,
-      textStyle.dominantBaseline,
-      container
+    // Use TextRenderer's metadata for attachment points
+    const renderResult = TextRenderer.render(
+      { content: textContent, position },
+      textStyle,
+      {
+        viewBox,
+        container,
+        overlayId: overlay.id,
+        defaults: instance._getDefaultsForRenderer() // NEW: Pass defaults configuration
+      }
     );
 
-    // Safety check: ensure textBbox is valid
-    if (!textBbox || typeof textBbox.left !== 'number' || typeof textBbox.right !== 'number') {
-      cblcarsLog.warn(`[TextOverlayRenderer] Invalid textBbox for ${overlay.id}:`, textBbox);
-      return null;
-    }
-
-    // CRITICAL FIX: Expand bbox to include decorations (status indicator, etc.)
-    let expandedBbox = {
-      left: textBbox.left,
-      right: textBbox.right,
-      top: textBbox.top,
-      bottom: textBbox.bottom,
-      width: textBbox.width,
-      height: textBbox.height,
-      centerX: textBbox.centerX,
-      centerY: textBbox.centerY
-    };
-
-    // Check for status indicator and expand bbox if needed
-    if (textStyle.status_indicator) {
-      try {
-        const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
-        const defaultSizeRatio = instance._getDefaultsManager()?.resolve('text.attachment.status_size_ratio', {}) || 0.3;
-        const indicatorSize = fontSizeValue * defaultSizeRatio;
-
-        // Get transform info for proper padding calculation
-        const transformInfo = RendererUtils._getSvgTransformInfo ? RendererUtils._getSvgTransformInfo(container) : null;
-        const defaultPadding = instance._getDefaultsManager()?.resolve('text.status_indicator.padding', {}) || 8;
-        const pixelPadding = defaultPadding;
-        const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
-
-        const position = textStyle.status_indicator_position || 'left-center';
-
-        // Expand bbox based on indicator position
-        switch (position) {
-          case 'left':
-          case 'left-center':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
-            break;
-          case 'right':
-          case 'right-center':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
-            break;
-          case 'top':
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
-            break;
-          case 'bottom':
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
-            break;
-          case 'top-left':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
-            break;
-          case 'top-right':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - padding - indicatorSize);
-            break;
-          case 'bottom-left':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - padding - indicatorSize);
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
-            break;
-          case 'bottom-right':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + padding + indicatorSize);
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + padding + indicatorSize);
-            break;
-        }
-
-        // Recalculate dimensions
-        expandedBbox.width = expandedBbox.right - expandedBbox.left;
-        expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
-        expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
-        expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
-      } catch (error) {
-        cblcarsLog.warn(`[TextOverlayRenderer] Error expanding bbox for status indicator:`, error);
-        // Fall back to original bbox
-        expandedBbox = textBbox;
-      }
-    }
-
-    // Get text attachment points
-    const points = RendererUtils.getTextAttachmentPoints(
-      textContent,
-      x,
-      y,
-      font,
-      textStyle.textAnchor,
-      textStyle.dominantBaseline,
-      container
-    );
-
-    // Safety check: ensure points is valid
-    if (!points || !points.center) {
-      cblcarsLog.warn(`[TextOverlayRenderer] Invalid attachment points for ${overlay.id}:`, points);
-      return null;
-    }
-
-    // CRITICAL FIX: Use expanded bbox for attachment points when decorations exist
-    if (textStyle.status_indicator && expandedBbox !== textBbox) {
-      try {
-        // Recalculate attachment points based on expanded bbox
-        points.center = [expandedBbox.centerX, expandedBbox.centerY];
-        points.left = [expandedBbox.left, expandedBbox.centerY];
-        points.right = [expandedBbox.right, expandedBbox.centerY];
-        points.top = [expandedBbox.centerX, expandedBbox.top];
-        points.bottom = [expandedBbox.centerX, expandedBbox.bottom];
-        points.topLeft = [expandedBbox.left, expandedBbox.top];
-        points.topRight = [expandedBbox.right, expandedBbox.top];
-        points.bottomLeft = [expandedBbox.left, expandedBbox.bottom];
-        points.bottomRight = [expandedBbox.right, expandedBbox.bottom];
-      } catch (error) {
-        cblcarsLog.warn(`[TextOverlayRenderer] Error recalculating attachment points:`, error);
-      }
-    }
+    if (!renderResult.metadata) return null;
 
     return {
       id: overlay.id,
-      center: points.center,
-      points,
-      bbox: expandedBbox, // Use expanded bbox that includes decorations
+      center: renderResult.metadata.attachmentPoints.center,
+      points: renderResult.metadata.attachmentPoints,
+      bbox: renderResult.metadata.bounds,
       textStyle,
-      x,
-      y
+      x: position[0],
+      y: position[1]
     };
-  }  // NEW: consolidated measurement helper (mirrors bracket/highlight logic)
-  _measureTextBlock(textContent, x, y, textStyle) {
-    try {
-      // Create measurement style with numeric fontSize
-      const measurementStyle = {
-        ...textStyle,
-        fontSize: parseFloat(textStyle.fontSize) || 16
-      };
-
-      const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
-      if (textStyle.multiline) {
-        const mm = RendererUtils.measureMultilineText(
-          textContent,
-          font,
-          textStyle.lineHeight,
-          true,
-          this.container
-        );
-        return {
-          width: mm.width,
-          height: mm.height
-        };
-      } else {
-        const m = RendererUtils.measureText(textContent, font, true, this.container);
-        return {
-          width: m.width,
-          height: m.height
-        };
-      }
-    } catch (_) {
-      return { width: 0, height: 0 };
-    }
   }
+
+  /**
+   * Get defaults configuration for TextRenderer
+   * @private
+   * @returns {Object} Defaults configuration object
+   */
+  _getDefaultsForRenderer() {
+    const defaults = this._getDefaultsManager();
+    const scalingContext = this._getScalingContext();
+
+    return {
+      highlight_padding: this._resolveDefault('text.highlight.padding', scalingContext, defaults, 2),
+      highlight_opacity: this._resolveDefault('text.highlight.opacity', scalingContext, defaults, 0.3),
+      status_indicator_size_ratio: this._resolveDefault('text.status_indicator.size_ratio', scalingContext, defaults, 0.3),
+      status_indicator_color: this._resolveDefault('text.status_indicator.color', scalingContext, defaults, 'var(--lcars-green)'),
+      status_indicator_padding: this._resolveDefault('text.status_indicator.padding', scalingContext, defaults, 8)
+    };
+  }
+
+  // ...existing code... (all MSD-specific helper methods remain unchanged)
 }
 
 export default TextOverlayRenderer;
