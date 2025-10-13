@@ -7,7 +7,7 @@
  * - DataSource integration and template processing
  * - Action attachment coordination
  * - Style resolution with defaults
- * - Delegates pure rendering to TextRenderer
+ * - Delegates pure rendering to core/TextRenderer
  */
 
 import { DataSourceMixin } from './DataSourceMixin.js';
@@ -32,7 +32,6 @@ export class TextOverlayRenderer {
    * @returns {string} Complete SVG markup
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
-    // Create instance for non-static methods
     const instance = new TextOverlayRenderer();
     instance.container = svgContainer;
     instance.viewBox = viewBox;
@@ -57,7 +56,7 @@ export class TextOverlayRenderer {
       // 2. MSD RESPONSIBILITY: Resolve styles with defaults system
       const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
 
-      // NEW: Adopt computed font when 'inherit' to prevent initial fallback mismatch
+      // Adopt computed font when 'inherit' to prevent initial fallback mismatch
       if (this.container && typeof window !== 'undefined') {
         try {
           const cs = getComputedStyle(this.container);
@@ -76,14 +75,12 @@ export class TextOverlayRenderer {
       // 3. MSD RESPONSIBILITY: Resolve text content from DataSource/templates
       const textContent = this._resolveTextContent(overlay, style);
 
-      cblcarsLog.debug(`[TextOverlayRenderer] Final text content for "${overlay.id}": "${textContent}"`);
-
       if (!textContent) {
         cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id}`);
         return '';
       }
 
-      // 4. DELEGATE: Pure rendering to TextRenderer
+      // 4. DELEGATE: Pure rendering to core/TextRenderer
       const renderResult = TextRenderer.render(
         {
           content: textContent,
@@ -95,12 +92,12 @@ export class TextOverlayRenderer {
           viewBox,
           container: this.container,
           overlayId: overlay.id,
-          defaults: this._getDefaultsForRenderer() // NEW: Pass defaults configuration
+          defaults: this._getDefaultsForRenderer()
         }
       );
 
       if (!renderResult || !renderResult.markup) {
-        cblcarsLog.warn(`[TextOverlayRenderer] TextRenderer returned empty markup for ${overlay.id}`);
+        cblcarsLog.warn(`[TextOverlayRenderer] Core renderer returned empty markup for ${overlay.id}`);
         return this._renderFallbackText(overlay, position[0], position[1]);
       }
 
@@ -110,7 +107,6 @@ export class TextOverlayRenderer {
       if (hasActions && cardInstance) {
         const actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
         if (actionInfo) {
-          // Schedule action attachment after DOM insertion
           setTimeout(() => {
             let textElement = null;
             const card = window.cb_lcars_card_instance;
@@ -122,7 +118,6 @@ export class TextOverlayRenderer {
             }
 
             if (textElement) {
-              cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Attaching actions to text overlay ${overlay.id}`);
               ActionHelpers.attachActions(textElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
             }
           }, 100);
@@ -132,11 +127,6 @@ export class TextOverlayRenderer {
       // 6. MSD RESPONSIBILITY: Wrap in overlay group with metadata
       const metadata = renderResult.metadata || {};
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
-
-      cblcarsLog.debug(`[TextOverlayRenderer] 📝 Rendered text ${overlay.id} via TextRenderer`, {
-        hasActions,
-        hasMetadata: !!metadata.bounds
-      });
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
@@ -160,18 +150,12 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Resolve comprehensive text styling from configuration using unified styling system
+   * Resolve comprehensive text styling from configuration
    * @private
-   * @param {Object} style - Final resolved style object
-   * @param {string} overlayId - Overlay ID for unique identifiers
-   * @param {Array} fallbackViewBox - ViewBox to use if instance viewBox not available
-   * @returns {Object} Complete text style configuration
    */
   _resolveTextStyles(style, overlayId, fallbackViewBox = null) {
-    // Get defaults manager
     const defaults = this._getDefaultsManager();
 
-    // EMERGENCY FALLBACK: If we don't have viewBox, try to get it from pipeline
     let effectiveFallbackViewBox = fallbackViewBox;
     if (!this.viewBox && !fallbackViewBox) {
       try {
@@ -185,47 +169,35 @@ export class TextOverlayRenderer {
       }
     }
 
-    // Create scaling context if we have container/viewBox info
-    // Pass effectiveFallbackViewBox to ensure we always have correct viewBox
     const scalingContext = this._getScalingContext(effectiveFallbackViewBox);
-
-    // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
-    // Process font size with proper object handling
+    // Process font size with automatic pixel-perfect scaling
     let resolvedFontSize;
     const styleFontSize = style.font_size || style.fontSize;
-    const fallbackFontSize = standardStyles.text.fontSize;
 
-    // Process font size with automatic pixel-perfect scaling
     if (styleFontSize && typeof styleFontSize === 'object' && 'value' in styleFontSize) {
-      // Handle scalable font size object - default to pixel-perfect scaling
-      const scaleMode = styleFontSize.scale || 'viewbox'; // Default to pixel-perfect
+      const scaleMode = styleFontSize.scale || 'viewbox';
 
       if (scaleMode === 'viewbox' && this.container && this.viewBox) {
-        // PIXEL-PERFECT SCALING: Convert user pixels to SVG coordinates
         try {
           const userPixels = styleFontSize.value;
           const containerRect = this.container.getBoundingClientRect();
           const svgToRealPixelRatio = containerRect.width / this.viewBox[2];
           const svgCoordinates = userPixels / svgToRealPixelRatio;
-
           resolvedFontSize = `${svgCoordinates}px`;
         } catch (e) {
           resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
         }
       } else if (scaleMode === 'legacy' && defaults && scalingContext.viewBox) {
-        // LEGACY MSD SCALING: Use old defaults manager approach
         const tempPath = 'temp.font_size';
         defaults.set('user', tempPath, styleFontSize);
         resolvedFontSize = defaults.resolve(tempPath, scalingContext);
         defaults.layers.get('user').delete(tempPath);
       } else {
-        // NO SCALING: Use direct pixel value
         resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
       }
     } else if (styleFontSize && typeof styleFontSize === 'number') {
-      // Handle simple numeric font size - apply pixel-perfect scaling by default
       if (this.container && this.viewBox) {
         try {
           const containerRect = this.container.getBoundingClientRect();
@@ -239,17 +211,18 @@ export class TextOverlayRenderer {
         resolvedFontSize = styleFontSize;
       }
     } else {
-      // Fall back to defaults system
-      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, this._resolveDefault('text.fallback_font_size', {}, defaults, 16));
-    }    const textStyle = {
-      // Core text properties (enhanced with unified styling + defaults)
+      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, 16);
+    }
+
+    const textStyle = {
+      // Core properties
       color: standardStyles.text.textColor || style.fill || this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
       fontSize: resolvedFontSize,
       fontFamily: standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily || this._resolveDefault('text.font_family', scalingContext, defaults, 'inherit')),
       fontWeight: standardStyles.text.fontWeight,
       fontStyle: standardStyles.text.fontStyle,
 
-      // Text positioning and alignment (enhanced with unified styling)
+      // Positioning and alignment
       textAnchor: (standardStyles.text.textAlign === 'left' ? 'start' :
                    standardStyles.text.textAlign === 'right' ? 'end' :
                    standardStyles.text.textAlign === 'center' ? 'middle' :
@@ -260,16 +233,16 @@ export class TextOverlayRenderer {
                         style.dominant_baseline || style.dominantBaseline || 'auto').toLowerCase(),
       alignmentBaseline: (style.alignment_baseline || style.alignmentBaseline || 'auto').toLowerCase(),
 
-      // Advanced text styling (enhanced with unified styling)
+      // Advanced styling
       letterSpacing: standardStyles.text.letterSpacing,
       wordSpacing: style.word_spacing || style.wordSpacing || 'normal',
       textDecoration: style.text_decoration || style.textDecoration || 'none',
 
-      // Opacity and visibility (using unified layout)
+      // Opacity/visibility
       opacity: standardStyles.layout.opacity,
       visibility: standardStyles.layout.visible ? 'visible' : 'hidden',
 
-      // Stroke properties for outlined text (enhanced with unified colors)
+      // Stroke properties
       stroke: style.stroke || null,
       strokeWidth: Number(style.stroke_width || style.strokeWidth || 0),
       strokeOpacity: Number(style.stroke_opacity || style.strokeOpacity || 1),
@@ -278,28 +251,28 @@ export class TextOverlayRenderer {
       strokeDasharray: style.stroke_dasharray || style.strokeDasharray || null,
       strokeDashoffset: Number(style.stroke_dashoffset || style.strokeDashoffset || 0),
 
-      // Advanced fill properties (using unified effects)
+      // Advanced fills
       gradient: standardStyles.gradient,
       pattern: standardStyles.pattern,
 
-      // Effects (using unified effects)
+      // Effects
       glow: standardStyles.glow,
       shadow: standardStyles.shadow,
       blur: standardStyles.blur,
 
-      // Multi-line text support (enhanced with unified styling)
+      // Multi-line support
       multiline: style.multiline || false,
       lineHeight: standardStyles.text.lineHeight,
       maxWidth: standardStyles.layout.maxWidth || Number(style.max_width || style.maxWidth || 0),
       textWrapping: style.text_wrapping || style.textWrapping || 'none',
 
-      // Animation states (using unified animation system)
+      // Animation
       animatable: standardStyles.animation.animatable,
       pulseSpeed: Number(style.pulse_speed || standardStyles.animation.pulseOnChange ? 1 : 0),
       fadeSpeed: Number(style.fade_speed || 0),
       typewriterSpeed: Number(style.typewriter_speed || 0),
 
-      // LCARS-specific features (enhanced with unified colors)
+      // LCARS features
       status_indicator: style.status_indicator || null,
       status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
       status_indicator_size: typeof style.status_indicator_size === 'number' ? style.status_indicator_size : null,
@@ -312,11 +285,9 @@ export class TextOverlayRenderer {
       bracket_opacity: Number(style.bracket_opacity || this._resolveDefault('text.bracket.opacity', scalingContext, defaults, 1)),
       bracket_corners: style.bracket_corners || 'both',
       bracket_sides: style.bracket_sides || 'both',
-      // Enhanced bg-grid style bracket options
       bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || this._resolveDefault('text.bracket.physical_width', scalingContext, defaults, 8)),
       bracket_height: style.bracket_height || this._resolveDefault('text.bracket.height', scalingContext, defaults, '70%'),
       bracket_radius: Number(style.bracket_radius || this._resolveDefault('text.bracket.radius', scalingContext, defaults, 4)),
-      // LCARS container/border options
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
       border_right: Number(style.border_right || 0),
@@ -327,14 +298,11 @@ export class TextOverlayRenderer {
       hybrid_mode: style.hybrid_mode || false,
       highlight: style.highlight || false,
 
-      // Store reference to standard styles for access to additional features
       standardStyles,
-
-      // Track enabled features for optimization
       features: []
     };
 
-    // Build feature list for conditional rendering
+    // Build feature list
     if (textStyle.gradient) textStyle.features.push('gradient');
     if (textStyle.pattern) textStyle.features.push('pattern');
     if (textStyle.stroke && textStyle.strokeWidth > 0) textStyle.features.push('stroke');
@@ -353,118 +321,62 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Get the defaults manager from global namespace
-   * @private
-   * @returns {Object|null} Defaults manager or null if not available
-   */
-  _getDefaultsManager() {
-    return (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
-  }
-
-  /**
-   * Get scaling context for defaults resolution
-   * @private
-   * @param {Array} fallbackViewBox - ViewBox to use if instance viewBox not available
-   * @returns {Object} Scaling context object
-   */
-  _getScalingContext(fallbackViewBox = null) {
-    const viewBox = this.viewBox || fallbackViewBox || [0, 0, 400, 200];
-
-    return {
-      viewBox: viewBox,
-      containerElement: this.container
-    };
-  }  /**
-   * Resolve a default value with fallback
-   * @private
-   * @param {string} path - Defaults path
-   * @param {Object} context - Scaling context
-   * @param {Object} defaults - Defaults manager
-   * @param {any} fallback - Fallback value
-   * @returns {any} Resolved value
-   */
-  _resolveDefault(path, context, defaults, fallback) {
-    if (defaults) {
-      const resolved = defaults.resolve(path, context);
-      return resolved !== null ? resolved : fallback;
-    }
-    return fallback;
-  }
-
-  /**
-   * Resolve text content from various sources including DataSource integration
+   * Resolve text content from DataSource/templates
    * @private
    */
   _resolveTextContent(overlay, style) {
-
-    // Start with basic content resolution
     let content = style.value || overlay.text || overlay.content || '';
 
-    // Check raw overlay configuration if content not found in standard properties
-    if (!content && overlay._raw?.content) {
-      content = overlay._raw.content;
-    }
-    if (!content && overlay._raw?.text) {
-      content = overlay._raw.text;
-    }
+    if (!content && overlay._raw?.content) content = overlay._raw.content;
+    if (!content && overlay._raw?.text) content = overlay._raw.text;
 
-      // Check if we have a value_format and a DataSource reference
-      let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
-      if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
-        // Try to resolve the DataSource value
-        const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
-        if (dataSourceContent !== null) {
-          // Check if the DataSource content is already formatted or if it's a raw value
-          const numericValue = parseFloat(dataSourceContent);
-          if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
-            // DataSource returned a raw numeric value, apply formatting using unified method
-            if (style.value_format.includes('{value')) {
-              content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
-                if (formatSpec) {
-                  // Use DataSourceMixin for unit-aware formatting
-                  const dsManager = DataSourceMixin.getDataSourceManager();
-                  const dataSource = dsManager?.getSource(dataSourceRef.split('.')[0]);
-                  const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
-                  return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
-                }
-                return String(numericValue);
-              });
-            } else {
-              content = style.value_format.replace('{value}', String(numericValue));
-            }
+    let dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
+
+    if (!content && style.value_format && typeof style.value_format === 'string' && dataSourceRef) {
+      const dataSourceContent = DataSourceMixin.resolveDataSourceContent(dataSourceRef, style, 'TextOverlayRenderer');
+      if (dataSourceContent !== null) {
+        const numericValue = parseFloat(dataSourceContent);
+        if (!isNaN(numericValue) && String(numericValue) === String(dataSourceContent).trim()) {
+          if (style.value_format.includes('{value')) {
+            content = style.value_format.replace(/\{value(?::([^}]+))?\}/g, (match, formatSpec) => {
+              if (formatSpec) {
+                const dsManager = DataSourceMixin.getDataSourceManager();
+                const dataSource = dsManager?.getSource(dataSourceRef.split('.')[0]);
+                const unitOfMeasurement = dataSource?.getCurrentData()?.unit_of_measurement;
+                return DataSourceMixin.applyNumberFormat(numericValue, formatSpec, unitOfMeasurement);
+              }
+              return String(numericValue);
+            });
           } else {
-            // DataSource returned already formatted content, use it directly
-            content = dataSourceContent;
+            content = style.value_format.replace('{value}', String(numericValue));
           }
           return content;
         } else {
-          // DataSource not available, show loading state with format context
-          content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
-          return content;
+          content = dataSourceContent;
         }
-      }    // Fallback: if we have a value_format but no DataSource, treat it as a template string
-      if (!content && style.value_format && typeof style.value_format === 'string') {
-        content = style.value_format;
+        return content;
+      } else {
+        content = style.value_format.replace(/\{value[^}]*\}/g, '[Loading...]');
+        return content;
       }
+    }
 
-    // Unified processing (handles both {{ha}} and {msd})
+    if (!content && style.value_format && typeof style.value_format === 'string') {
+      content = style.value_format;
+    }
+
     if (typeof content === 'string') {
       content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');
       return content;
     }
 
-    // If we have basic content and it contains template strings, process them
     if (content && typeof content === 'string' && content.includes('{')) {
       content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');
       return content;
     }
 
-    // If we have basic content without templates, return it
-    if (content) {
-      return content;
-    }
+    if (content) return content;
 
-    // No basic content found, try DataSource integration as fallback
     if (!dataSourceRef) {
       dataSourceRef = overlay.data_source || overlay._raw?.data_source || style.data_source;
     }
@@ -473,778 +385,34 @@ export class TextOverlayRenderer {
       if (dataSourceContent !== null) {
         return dataSourceContent;
       } else {
-        // If we have a DataSource reference but it's not available, show loading state
         return `[Loading: ${dataSourceRef}]`;
       }
     }
 
-    return content; // Return whatever we found (might be empty string)
+    return content;
   }
 
-  /**
-   * Escape XML special characters
-   * @private
-   */
-  static escapeXml(text) {
-    return String(text)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+  _getDefaultsManager() {
+    return (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
   }
 
-  /**
-   * Instance method for XML escaping
-   * @private
-   */
-  escapeXml(text) {
-    return TextOverlayRenderer.escapeXml(text);
-  }
-
-  /**
-   * Build SVG definitions for gradients, patterns, and effects
-   * @private
-   */
-  _buildDefinitions(textStyle, overlayId) {
-    const defs = [];
-
-    // Gradients
-    if (textStyle.gradient) {
-      defs.push(this._createGradientDefinition(textStyle.gradient, overlayId));
-    }
-
-    // Patterns
-    if (textStyle.pattern) {
-      defs.push(this._createPatternDefinition(textStyle.pattern, overlayId));
-    }
-
-    // Effects (filters)
-    if (textStyle.glow) {
-      defs.push(this._createGlowFilter(textStyle.glow, overlayId));
-    }
-
-    if (textStyle.shadow) {
-      defs.push(this._createShadowFilter(textStyle.shadow, overlayId));
-    }
-
-    if (textStyle.blur) {
-      defs.push(this._createBlurFilter(textStyle.blur, overlayId));
-    }
-
-    if (defs.length === 0) {
-      return '';
-    }
-
-    return `<defs>${defs.join('\n')}</defs>`;
-  }
-
-  /**
-   * Build the main text element with all styling
-   * @private
-   */
-  _buildMainText(textContent, x, y, textStyle, overlayId, animationAttributes) {
-    if (textStyle.multiline) {
-      return this._buildMultilineText(textContent, x, y, textStyle, overlayId, animationAttributes);
-    }
-
-    const attributes = [];
-
-    // Position
-    attributes.push(`x="${x}"`);
-    attributes.push(`y="${y}"`);
-
-    // Core text styling
-    this._applyTextAttributes(attributes, textStyle, overlayId);
-
-    // Animation attributes (for future anime.js integration)
-    attributes.push(...animationAttributes.textAttributes);
-
-    const escapedText = this.escapeXml(textContent);
-    return `<text ${attributes.join(' ')}>${escapedText}</text>`;
-  }
-
-  /**
-   * Build multiline text with proper line spacing
-   * @private
-   */
-  _buildMultilineText(textContent, x, y, textStyle, overlayId, animationAttributes) {
-    const lines = textContent.split('\n');
-    const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
-    const lineHeight = fontSizeValue * textStyle.lineHeight;
-    const tspanElements = [];
-
-    lines.forEach((line, index) => {
-      const dy = index === 0 ? 0 : lineHeight;
-      const escapedLine = this.escapeXml(line);
-      tspanElements.push(`<tspan x="${x}" dy="${dy}">${escapedLine}</tspan>`);
-    });
-
-    const attributes = [];
-
-    // Position (y for first line)
-    attributes.push(`y="${y}"`);
-
-    // Core text styling
-    this._applyTextAttributes(attributes, textStyle, overlayId);
-
-    // Animation attributes
-    attributes.push(...animationAttributes.textAttributes);
-
-    return `<text ${attributes.join(' ')}>${tspanElements.join('')}</text>`;
-  }
-
-  /**
-   * Apply common text attributes
-   * @private
-   */
-  _applyTextAttributes(attributes, textStyle, overlayId) {
-    // Fill styling
-    if (textStyle.gradient) {
-      attributes.push(`fill="url(#text-gradient-${overlayId})"`);
-    } else if (textStyle.pattern) {
-      attributes.push(`fill="url(#text-pattern-${overlayId})"`);
-    } else {
-      attributes.push(`fill="${textStyle.color}"`);
-    }
-
-    attributes.push(`fill-opacity="${textStyle.opacity}"`);
-
-    // Font styling
-    attributes.push(`font-size="${textStyle.fontSize}"`);
-    if (textStyle.fontFamily !== 'inherit') {
-      attributes.push(`font-family="${textStyle.fontFamily}"`);
-    }
-    if (textStyle.fontWeight !== 'normal') {
-      attributes.push(`font-weight="${textStyle.fontWeight}"`);
-    }
-    if (textStyle.fontStyle !== 'normal') {
-      attributes.push(`font-style="${textStyle.fontStyle}"`);
-    }
-
-    // Ensure text elements inherit pointer events and cursor from parent
-    attributes.push(`style="pointer-events: inherit; cursor: inherit; user-select: none;"`);
-
-    // Text alignment
-    if (textStyle.textAnchor !== 'start') {
-      attributes.push(`text-anchor="${textStyle.textAnchor}"`);
-    }
-    if (textStyle.dominantBaseline !== 'auto') {
-      attributes.push(`dominant-baseline="${textStyle.dominantBaseline}"`);
-    }
-    if (textStyle.alignmentBaseline !== 'auto') {
-      attributes.push(`alignment-baseline="${textStyle.alignmentBaseline}"`);
-    }
-
-    // Spacing
-    if (textStyle.letterSpacing !== 'normal') {
-      attributes.push(`letter-spacing="${textStyle.letterSpacing}"`);
-    }
-    if (textStyle.wordSpacing !== 'normal') {
-      attributes.push(`word-spacing="${textStyle.wordSpacing}"`);
-    }
-
-    // Text decoration
-    if (textStyle.textDecoration !== 'none') {
-      attributes.push(`text-decoration="${textStyle.textDecoration}"`);
-    }
-
-    // Stroke properties
-    if (textStyle.stroke && textStyle.strokeWidth > 0) {
-      attributes.push(`stroke="${textStyle.stroke}"`);
-      attributes.push(`stroke-width="${textStyle.strokeWidth}"`);
-      attributes.push(`stroke-opacity="${textStyle.strokeOpacity}"`);
-      attributes.push(`stroke-linecap="${textStyle.strokeLinecap}"`);
-      attributes.push(`stroke-linejoin="${textStyle.strokeLinejoin}"`);
-
-      if (textStyle.strokeDasharray) {
-        attributes.push(`stroke-dasharray="${textStyle.strokeDasharray}"`);
-        if (textStyle.strokeDashoffset !== 0) {
-          attributes.push(`stroke-dashoffset="${textStyle.strokeDashoffset}"`);
-        }
-      }
-    }
-
-    // Visibility
-    if (textStyle.visibility !== 'visible') {
-      attributes.push(`visibility="${textStyle.visibility}"`);
-    }
-
-    // Effects
-    const filters = [];
-    if (textStyle.glow) filters.push(`url(#text-glow-${overlayId})`);
-    if (textStyle.shadow) filters.push(`url(#text-shadow-${overlayId})`);
-    if (textStyle.blur) filters.push(`url(#text-blur-${overlayId})`);
-    if (filters.length > 0) {
-      attributes.push(`filter="${filters.join(' ')}"`);
-    }
-  }
-
-  /**
-   * Build text decoration elements (brackets, highlights, etc.)
-   * @private
-   */
-  _buildTextDecorations(textContent, x, y, textStyle, overlayId) {
-    const decorations = [];
-
-    // LCARS-style brackets
-    if (textStyle.bracket_style) {
-      decorations.push(this._buildBrackets(textContent, x, y, textStyle, overlayId));
-    }
-
-    // Highlight background
-    if (textStyle.highlight) {
-      decorations.push(this._buildHighlight(textContent, x, y, textStyle, overlayId));
-    }
-
-    // Status indicator
-    if (textStyle.status_indicator) {
-      decorations.push(this._buildStatusIndicator(x, y, textStyle, overlayId));
-    }
-
-    return decorations.filter(Boolean).join('\n');
-  }
-
-  /**
-   * Build special effects elements
-   * @private
-   */
-  _buildEffects(textContent, x, y, textStyle, overlayId) {
-    const effects = [];
-
-    // Future: Add text-specific animation elements
-    if (textStyle.features.includes('typewriter')) {
-      // Placeholder for typewriter animation elements
-    }
-
-    if (textStyle.features.includes('pulse')) {
-      // Placeholder for pulse animation elements
-    }
-
-    if (textStyle.features.includes('fade')) {
-      // Placeholder for fade animation elements
-    }
-
-    return effects.join('\n');
-  }
-
-  /**
-   * Build LCARS-style brackets using the generalized BracketRenderer
-   * @private
-   * @param {string} textContent - Text content for measurement
-   * @param {number} x - Text x position
-   * @param {number} y - Text y position
-   * @param {Object} textStyle - Resolved text style configuration
-   * @param {string} overlayId - Overlay ID for unique identification
-   * @returns {string} SVG markup for LCARS brackets
-   */
-  _buildBrackets(textContent, x, y, textStyle, overlayId) {
-    if (!textStyle.bracket_style) {
-      return '';
-    }
-
-    cblcarsLog.debug(`[TextOverlayRenderer] 📐 Building brackets for ${overlayId}: style=${textStyle.bracket_style}`);
-
-    // Create measurement style with numeric fontSize for accurate measurements
-    const measurementStyle = {
-      ...textStyle,
-      fontSize: parseFloat(textStyle.fontSize) || 16
+  _getScalingContext(fallbackViewBox = null) {
+    const viewBox = this.viewBox || fallbackViewBox || [0, 0, 400, 200];
+    return {
+      viewBox: viewBox,
+      containerElement: this.container
     };
-
-    // Measure text to get accurate dimensions
-    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
-    let bbox;
-
-    if (textStyle.multiline) {
-      // For multiline text, get comprehensive measurements
-      const multilineMetrics = RendererUtils.measureMultilineText(textContent, font, textStyle.lineHeight);
-      // Create bbox-like object from multiline measurements
-      let left = x;
-      if (textStyle.textAnchor === 'middle') {
-        left = x - multilineMetrics.width / 2;
-      } else if (textStyle.textAnchor === 'end') {
-        left = x - multilineMetrics.width;
-      }
-
-      let top = y - multilineMetrics.lineMetrics[0]?.ascent || 0;
-      if (textStyle.dominantBaseline === 'middle') {
-        top = y - multilineMetrics.height / 2;
-      } else if (textStyle.dominantBaseline === 'hanging') {
-        top = y;
-      }
-
-      bbox = {
-        left,
-        right: left + multilineMetrics.width,
-        top,
-        bottom: top + multilineMetrics.height,
-        width: multilineMetrics.width,
-        height: multilineMetrics.height
-      };
-    } else {
-      // Single line text - use standard bounding box
-      bbox = RendererUtils.getTextBoundingBox(
-        textContent,
-        x,
-        y,
-        font,
-        textStyle.textAnchor,
-        textStyle.dominantBaseline
-      );
-    }
-
-    // Convert text style properties to BracketRenderer format
-    const bracketConfig = {
-      enabled: true,
-      style: typeof textStyle.bracket_style === 'string' ? textStyle.bracket_style : 'lcars',
-      color: textStyle.bracket_color || textStyle.color,
-      width: textStyle.bracket_width,
-      gap: textStyle.bracket_gap,
-      extension: textStyle.bracket_extension,
-      opacity: textStyle.bracket_opacity,
-      corners: textStyle.bracket_corners,
-      sides: textStyle.bracket_sides,
-      // Enhanced bg-grid style options
-      bracket_width: textStyle.bracket_physical_width,
-      bracket_height: textStyle.bracket_height,
-      bracket_radius: textStyle.bracket_radius,
-      // LCARS container options
-      border_top: textStyle.border_top,
-      border_left: textStyle.border_left,
-      border_right: textStyle.border_right,
-      border_bottom: textStyle.border_bottom,
-      border_color: textStyle.border_color || textStyle.bracket_color || textStyle.color,
-      border_radius: textStyle.border_radius,
-      inner_factor: textStyle.inner_factor,
-      hybrid_mode: textStyle.hybrid_mode
-    };
-
-
-
-    // Use BracketRenderer with measured text dimensions
-    return BracketRenderer.render(bbox.width, bbox.height, bracketConfig, overlayId);
   }
 
-  /**
-   * Build highlight background with precise measurements and coordinate transformation
-   * @private
-   */
-  _buildHighlight(textContent, x, y, textStyle, overlayId) {
-    // Create measurement style with numeric fontSize
-    const measurementStyle = {
-      ...textStyle,
-      fontSize: parseFloat(textStyle.fontSize) || 16
-    };
-
-    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
-    let bbox;
-
-    if (textStyle.multiline) {
-      // For multiline text, get comprehensive measurements with coordinate transformation
-      const multilineMetrics = RendererUtils.measureMultilineText(
-        textContent,
-        font,
-        textStyle.lineHeight,
-        true,
-        this.container // Pass container for coordinate transformation
-      );
-
-      // Create bbox-like object from multiline measurements
-      let left = x;
-      if (textStyle.textAnchor === 'middle') {
-        left = x - multilineMetrics.width / 2;
-      } else if (textStyle.textAnchor === 'end') {
-        left = x - multilineMetrics.width;
-      }
-
-      let top = y - multilineMetrics.lineMetrics[0]?.ascent || 0;
-      if (textStyle.dominantBaseline === 'middle') {
-        top = y - multilineMetrics.height / 2;
-      } else if (textStyle.dominantBaseline === 'hanging') {
-        top = y;
-      }
-
-      bbox = {
-        left,
-        right: left + multilineMetrics.width,
-        top,
-        bottom: top + multilineMetrics.height,
-        width: multilineMetrics.width,
-        height: multilineMetrics.height
-      };
-    } else {
-      // Single line text - use standard bounding box with coordinate transformation
-      bbox = RendererUtils.getTextBoundingBox(
-        textContent,
-        x,
-        y,
-        font,
-        textStyle.textAnchor,
-        textStyle.dominantBaseline,
-        this.container // Pass container for coordinate transformation
-      );
+  _resolveDefault(path, context, defaults, fallback) {
+    if (defaults) {
+      const resolved = defaults.resolve(path, context);
+      return resolved !== null ? resolved : fallback;
     }
-
-    // Get properly scaled padding from defaults
-    const defaultHighlightPadding = this._resolveDefault('text.highlight.padding', {}, this._getDefaultsManager(), 2);
-    const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
-    const padding = transformInfo ? transformInfo.pixelToViewBox(defaultHighlightPadding) : defaultHighlightPadding;
-
-    const highlightX = bbox.left - padding;
-    const highlightY = bbox.top - padding;
-    const highlightWidth = bbox.width + (padding * 2);
-    const highlightHeight = bbox.height + (padding * 2);
-
-    const highlightColor = typeof textStyle.highlight === 'string' ?
-      textStyle.highlight : 'var(--lcars-blue-light)';
-    const highlightOpacity = typeof textStyle.highlight_opacity === 'number' ?
-      textStyle.highlight_opacity : this._resolveDefault('text.highlight.opacity', {}, this._getDefaultsManager(), 0.3);
-
-    return `<rect x="${highlightX}" y="${highlightY}"
-                  width="${highlightWidth}" height="${highlightHeight}"
-                  fill="${highlightColor}" fill-opacity="${highlightOpacity}"
-                  data-decoration="highlight"/>`;
+    return fallback;
   }
 
-  /**
-   * Build status indicator with precise positioning and proper coordinate transformation
-   * @private
-   * @param {number} x - Text x position
-   * @param {number} y - Text y position
-   * @param {Object} textStyle - Resolved text style configuration
-   * @param {string} overlayId - Overlay ID for unique identification
-   * @returns {string} SVG markup for status indicator
-   */
-  _buildStatusIndicator(x, y, textStyle, overlayId) {
-    // Parse fontSize to get numeric value for calculations
-    const fontSizeValue = parseFloat(textStyle.fontSize) || 16;
-
-    // Allow override of indicator size, otherwise use defaults system
-    const defaultSizeRatio = this._resolveDefault('text.status_indicator.size_ratio', {}, this._getDefaultsManager(), 0.3);
-    const indicatorSize = textStyle.status_indicator_size !== null ?
-      textStyle.status_indicator_size :
-      fontSizeValue * defaultSizeRatio;
-
-    const defaultColor = this._resolveDefault('text.status_indicator.color', {}, this._getDefaultsManager(), 'var(--lcars-green)');
-    const statusColor = typeof textStyle.status_indicator === 'string'
-      ? textStyle.status_indicator
-      : defaultColor;
-
-    const position = textStyle.status_indicator_position || 'left-center';    // Replace base font with measurement-adjusted font
-    const textContent = textStyle._cachedContent || textStyle.value || '';
-
-    // Create measurement style with numeric fontSize
-    const measurementStyle = {
-      ...textStyle,
-      fontSize: parseFloat(textStyle.fontSize) || 16
-    };
-
-    const font = RendererUtils.buildMeasurementFontString(measurementStyle, this.container);
-
-    // Get the SVG transform info for debugging and padding calculation
-    const transformInfo = RendererUtils._getSvgTransformInfo(this.container);
-
-    let bbox;
-    if (textStyle.multiline) {
-      // For multiline text, get measurements and let RendererUtils handle coordinate transformation
-      const multilineMetrics = RendererUtils.measureMultilineText(
-        textContent,
-        font,
-        textStyle.lineHeight,
-        true,
-        this.container // Let RendererUtils handle the transformation
-      );
-
-      // Use the already-transformed measurements directly
-      let left = x;
-      if (textStyle.textAnchor === 'middle') {
-        left = x - multilineMetrics.width / 2;
-      } else if (textStyle.textAnchor === 'end') {
-        left = x - multilineMetrics.width;
-      }
-
-      let top = y - (multilineMetrics.lineMetrics[0]?.ascent || 0);
-      if (textStyle.dominantBaseline === 'middle') {
-        top = y - multilineMetrics.height / 2;
-      } else if (textStyle.dominantBaseline === 'hanging') {
-        top = y;
-      }
-
-      bbox = {
-        left,
-        right: left + multilineMetrics.width,
-        top,
-        bottom: top + multilineMetrics.height,
-        width: multilineMetrics.width,
-        height: multilineMetrics.height,
-        centerX: left + multilineMetrics.width / 2,
-        centerY: top + multilineMetrics.height / 2
-      };
-    } else {
-      // Single line text - get measurements and let RendererUtils handle coordinate transformation
-      const textMetrics = RendererUtils.measureText(textContent, font, true, this.container);
-
-      // Use the already-transformed measurements directly
-      let left = x;
-      if (textStyle.textAnchor === 'middle') {
-        left = x - textMetrics.width / 2;
-      } else if (textStyle.textAnchor === 'end') {
-        left = x - textMetrics.width;
-      }
-
-      let top = y - textMetrics.ascent;
-      if (textStyle.dominantBaseline === 'middle') {
-        top = y - textMetrics.height / 2;
-      } else if (textStyle.dominantBaseline === 'hanging') {
-        top = y;
-      }
-
-      bbox = {
-        left,
-        right: left + textMetrics.width,
-        top,
-        bottom: top + textMetrics.height,
-        width: textMetrics.width,
-        height: textMetrics.height,
-        centerX: left + textMetrics.width / 2,
-        centerY: top + textMetrics.height / 2
-      };
-    }
-
-
-
-    // Calculate indicator position based on actual text bounds (already in correct coordinate space)
-    let indicatorX = x, indicatorY = y;
-
-    // Use configurable padding - this is the gap between text edge and circle edge
-    const defaultPadding = this._resolveDefault('text.status_indicator.padding', {}, this._getDefaultsManager(), 8);
-    const pixelPadding = textStyle.status_indicator_padding !== null ?
-      textStyle.status_indicator_padding :
-      defaultPadding; // Gap between text and circle edge
-
-    const padding = transformInfo ?
-      transformInfo.pixelToViewBox(pixelPadding) :
-      indicatorSize; // Fallback to indicator size if no transform info
-
-    switch (position) {
-      case 'top-left':
-        indicatorX = bbox.left - padding - indicatorSize;  // Add indicator size to put padding at circle edge
-        indicatorY = bbox.top - padding - indicatorSize;
-        break;
-      case 'top-right':
-        indicatorX = bbox.right + padding + indicatorSize; // Add indicator size to put padding at circle edge
-        indicatorY = bbox.top - padding - indicatorSize;
-        break;
-      case 'bottom-left':
-        indicatorX = bbox.left - padding - indicatorSize;
-        indicatorY = bbox.bottom + padding + indicatorSize;
-        break;
-      case 'bottom-right':
-        indicatorX = bbox.right + padding + indicatorSize;
-        indicatorY = bbox.bottom + padding + indicatorSize;
-        break;
-      case 'top':
-        indicatorX = bbox.centerX;
-        indicatorY = bbox.top - padding - indicatorSize;
-        break;
-      case 'bottom':
-        indicatorX = bbox.centerX;
-        indicatorY = bbox.bottom + padding + indicatorSize;
-        break;
-      case 'left-center':
-      case 'left':
-        indicatorX = bbox.left - padding - indicatorSize;
-        indicatorY = bbox.centerY;
-        break;
-      case 'right-center':
-      case 'right':
-        indicatorX = bbox.right + padding + indicatorSize; // Add indicator size to put padding at circle edge
-        indicatorY = bbox.centerY;
-        break;
-      case 'center':
-        indicatorX = bbox.centerX;
-        indicatorY = bbox.centerY;
-        break;
-      default:
-        // fallback to left-center
-        indicatorX = bbox.left - padding - indicatorSize;
-        indicatorY = bbox.centerY;
-    }    cblcarsLog.debug(`[TextOverlayRenderer] Status indicator final position for ${overlayId}:`, {
-      indicatorX,
-      indicatorY,
-      padding,
-      pixelPadding,
-      transformInfo: transformInfo ? 'present' : 'missing'
-    });
-
-    return `<circle cx="${indicatorX}" cy="${indicatorY}" r="${indicatorSize}"
-                    fill="${statusColor}"
-                    data-status-pos="${position}"
-                    data-decoration="status-indicator"/>`;
-  }
-
-
-  /**
-   * Create gradient definition for text
-   * @private
-   */
-  _createGradientDefinition(gradientConfig, overlayId) {
-    const gradientId = `text-gradient-${overlayId}`;
-
-    if (typeof gradientConfig === 'string') {
-      // Simple two-color gradient
-      const [color1, color2] = gradientConfig.split(',').map(c => c.trim());
-      return `<linearGradient id="${gradientId}">
-                <stop offset="0%" stop-color="${color1 || 'var(--lcars-orange)'}"/>
-                <stop offset="100%" stop-color="${color2 || 'var(--lcars-red)'}"/>
-              </linearGradient>`;
-    }
-
-    // Advanced gradient configuration
-    const type = gradientConfig.type || 'linear';
-    const stops = gradientConfig.stops || [
-      { offset: '0%', color: 'var(--lcars-orange)' },
-      { offset: '100%', color: 'var(--lcars-red)' }
-    ];
-
-    if (type === 'radial') {
-      const cx = gradientConfig.cx || '50%';
-      const cy = gradientConfig.cy || '50%';
-      const r = gradientConfig.r || '50%';
-
-      const stopElements = stops.map(stop =>
-        `<stop offset="${stop.offset}" stop-color="${stop.color}"/>`
-      ).join('');
-
-      return `<radialGradient id="${gradientId}" cx="${cx}" cy="${cy}" r="${r}">
-                ${stopElements}
-              </radialGradient>`;
-    } else {
-      const x1 = gradientConfig.x1 || '0%';
-      const y1 = gradientConfig.y1 || '0%';
-      const x2 = gradientConfig.x2 || '100%';
-      const y2 = gradientConfig.y2 || '0%';
-
-      const stopElements = stops.map(stop =>
-        `<stop offset="${stop.offset}" stop-color="${stop.color}"/>`
-      ).join('');
-
-      return `<linearGradient id="${gradientId}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
-                ${stopElements}
-              </linearGradient>`;
-    }
-  }
-
-  /**
-   * Create pattern definition for text
-   * @private
-   */
-  _createPatternDefinition(patternConfig, overlayId) {
-    const patternId = `text-pattern-${overlayId}`;
-
-    if (typeof patternConfig === 'string') {
-      // Simple pattern types
-      const dotsSize = this._resolveDefault('text.pattern.dots.size', {}, this._getDefaultsManager(), 8);
-      const linesSize = this._resolveDefault('text.pattern.lines.size', {}, this._getDefaultsManager(), 4);
-
-      switch (patternConfig) {
-        case 'dots':
-          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${dotsSize}" height="${dotsSize}">
-                    <circle cx="${dotsSize/2}" cy="${dotsSize/2}" r="1" fill="currentColor"/>
-                  </pattern>`;
-        case 'lines':
-          return `<pattern id="${patternId}" patternUnits="userSpaceOnUse" width="${linesSize}" height="${linesSize}">
-                    <path d="M 0,${linesSize} l ${linesSize},-${linesSize} M -1,1 l 2,-2 M ${linesSize-1},${linesSize+1} l 2,-2" stroke="currentColor" stroke-width="1"/>
-                  </pattern>`;
-        default:
-          return '';
-      }
-    }
-
-    // Advanced pattern configuration
-    const width = patternConfig.width || this._resolveDefault('text.pattern.default.width', {}, this._getDefaultsManager(), 10);
-    const height = patternConfig.height || this._resolveDefault('text.pattern.default.height', {}, this._getDefaultsManager(), 10);
-    const patternUnits = patternConfig.patternUnits || 'userSpaceOnUse';
-
-    return `<pattern id="${patternId}" patternUnits="${patternUnits}" width="${width}" height="${height}">
-              ${patternConfig.content || ''}
-            </pattern>`;
-  }
-
-  /**
-   * Create glow filter for text
-   * @private
-   */
-  _createGlowFilter(glowConfig, overlayId) {
-    const filterId = `text-glow-${overlayId}`;
-
-    let color, blur, intensity;
-    if (typeof glowConfig === 'string') {
-      color = glowConfig;
-      blur = this._resolveDefault('text.effects.glow.blur', {}, this._getDefaultsManager(), 3);
-      intensity = this._resolveDefault('text.effects.glow.intensity', {}, this._getDefaultsManager(), 1);
-    } else {
-      color = glowConfig.color || 'var(--lcars-orange)';
-      blur = Number(glowConfig.blur || this._resolveDefault('text.effects.glow.blur', {}, this._getDefaultsManager(), 3));
-      intensity = Number(glowConfig.intensity || this._resolveDefault('text.effects.glow.intensity', {}, this._getDefaultsManager(), 1));
-    }
-
-    return `<filter id="${filterId}">
-              <feGaussianBlur stdDeviation="${blur}" result="blur"/>
-              <feFlood flood-color="${color}" flood-opacity="${intensity}" result="color"/>
-              <feComposite in="color" in2="blur" operator="in" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>`;
-  }
-
-  /**
-   * Create shadow filter for text
-   * @private
-   */
-  _createShadowFilter(shadowConfig, overlayId) {
-    const filterId = `text-shadow-${overlayId}`;
-
-    let offsetX, offsetY, blur, color;
-    if (typeof shadowConfig === 'string') {
-      [offsetX, offsetY, blur, color] = shadowConfig.split(' ');
-      offsetX = Number(offsetX) || this._resolveDefault('text.effects.shadow.offset_x', {}, this._getDefaultsManager(), 2);
-      offsetY = Number(offsetY) || this._resolveDefault('text.effects.shadow.offset_y', {}, this._getDefaultsManager(), 2);
-      blur = Number(blur) || this._resolveDefault('text.effects.shadow.blur', {}, this._getDefaultsManager(), 2);
-      color = color || this._resolveDefault('text.effects.shadow.color', {}, this._getDefaultsManager(), 'rgba(0,0,0,0.5)');
-    } else {
-      offsetX = Number(shadowConfig.offsetX || this._resolveDefault('text.effects.shadow.offset_x', {}, this._getDefaultsManager(), 2));
-      offsetY = Number(shadowConfig.offsetY || this._resolveDefault('text.effects.shadow.offset_y', {}, this._getDefaultsManager(), 2));
-      blur = Number(shadowConfig.blur || this._resolveDefault('text.effects.shadow.blur', {}, this._getDefaultsManager(), 2));
-      color = shadowConfig.color || this._resolveDefault('text.effects.shadow.color', {}, this._getDefaultsManager(), 'rgba(0,0,0,0.5)');
-    }
-
-    return `<filter id="${filterId}">
-              <feDropShadow dx="${offsetX}" dy="${offsetY}" stdDeviation="${blur}" flood-color="${color}"/>
-            </filter>`;
-  }
-
-  /**
-   * Create blur filter for text
-   * @private
-   */
-  _createBlurFilter(blurConfig, overlayId) {
-    const filterId = `text-blur-${overlayId}`;
-    const blur = typeof blurConfig === 'number' ? blurConfig : (Number(blurConfig) || 1);
-
-    return `<filter id="${filterId}">
-              <feGaussianBlur stdDeviation="${blur}"/>
-            </filter>`;
-  }
-
-  /**
-   * Prepare animation attributes for future anime.js integration
-   * @private
-   */
   _prepareAnimationAttributes(overlay, style) {
-    // Use unified animation system
     const standardStyles = RendererUtils.parseStandardAnimationStyles(style);
 
     const animationAttributes = {
@@ -1252,14 +420,12 @@ export class TextOverlayRenderer {
       hasAnimations: false
     };
 
-    // Use standardized animation data attributes
     const animationDataAttrs = RendererUtils.createAnimationDataAttributes(standardStyles);
     if (animationDataAttrs) {
       animationAttributes.textAttributes.push(animationDataAttrs);
       animationAttributes.hasAnimations = true;
     }
 
-    // Legacy support for existing animation properties
     if (style.pulse_speed || style.pulseSpeed) {
       animationAttributes.textAttributes.push(`data-pulse-speed="${style.pulse_speed || style.pulseSpeed}"`);
       animationAttributes.hasAnimations = true;
@@ -1278,17 +444,11 @@ export class TextOverlayRenderer {
     return animationAttributes;
   }
 
-  /**
-   * Render a simple fallback text when enhanced rendering fails
-   * @private
-   */
   _renderFallbackText(overlay, x, y) {
     const style = overlay.finalStyle || overlay.style || {};
     const text = style.value || overlay.text || '';
     const color = style.color || 'var(--lcars-orange)';
     const fontSize = style.font_size || style.fontSize || this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
-
-    cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ Using fallback rendering for text ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
               <text x="${x}" y="${y}"
@@ -1296,7 +456,7 @@ export class TextOverlayRenderer {
                     font-size="${fontSize}"
                     text-anchor="start"
                     dominant-baseline="auto">
-                ${this.escapeXml(text)}
+                ${TextRenderer._escapeXml(text)}
               </text>
             </g>`;
   }
@@ -1307,16 +467,12 @@ export class TextOverlayRenderer {
   static updateTextData(overlayElement, overlay, sourceData) {
     try {
       const textElement = overlayElement.querySelector('text');
-      if (!textElement) {
-        cblcarsLog.warn(`[TextOverlayRenderer] Text element not found within overlay: ${overlay.id}`);
-        return false;
-      }
+      if (!textElement) return false;
 
       const renderer = new TextOverlayRenderer();
       const newContent = renderer._resolveTextContent(overlay, overlay.finalStyle || {});
 
       if (newContent && newContent !== textElement.textContent) {
-        cblcarsLog.debug(`[TextOverlayRenderer] Updating text overlay ${overlay.id}`);
         textElement.textContent = TextRenderer._escapeXml(newContent);
         return true;
       }
@@ -1347,7 +503,6 @@ export class TextOverlayRenderer {
 
     if (!textContent) return null;
 
-    // Use TextRenderer's metadata for attachment points
     const renderResult = TextRenderer.render(
       { content: textContent, position },
       textStyle,
@@ -1355,7 +510,7 @@ export class TextOverlayRenderer {
         viewBox,
         container,
         overlayId: overlay.id,
-        defaults: instance._getDefaultsForRenderer() // NEW: Pass defaults configuration
+        defaults: instance._getDefaultsForRenderer()
       }
     );
 
@@ -1372,11 +527,6 @@ export class TextOverlayRenderer {
     };
   }
 
-  /**
-   * Get defaults configuration for TextRenderer
-   * @private
-   * @returns {Object} Defaults configuration object
-   */
   _getDefaultsForRenderer() {
     const defaults = this._getDefaultsManager();
     const scalingContext = this._getScalingContext();
@@ -1389,8 +539,6 @@ export class TextOverlayRenderer {
       status_indicator_padding: this._resolveDefault('text.status_indicator.padding', scalingContext, defaults, 8)
     };
   }
-
-  // ...existing code... (all MSD-specific helper methods remain unchanged)
 }
 
 export default TextOverlayRenderer;
