@@ -4,7 +4,7 @@
  * Follows the exact MSD overlay integration pattern
  */
 
-import { ButtonRenderer } from './ButtonRenderer.js';
+import { ButtonRenderer } from './core/ButtonRenderer.js'; // FIXED: Import from core/
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';

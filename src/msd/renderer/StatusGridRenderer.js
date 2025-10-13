@@ -8,7 +8,7 @@ import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { BracketRenderer } from './BracketRenderer.js';
 import { ActionHelpers } from './ActionHelpers.js';
-import { ButtonRenderer } from './ButtonRenderer.js'; // Add ButtonRenderer import
+import { ButtonRenderer } from './core/ButtonRenderer.js'; // Add ButtonRenderer import
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 
