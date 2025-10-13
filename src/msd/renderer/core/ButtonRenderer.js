@@ -199,11 +199,10 @@ export class ButtonRenderer {
         fontFamily: textConfig.font_family || textConfig.fontFamily || buttonStyle.font_family,
         fontWeight: textConfig.font_weight || textConfig.fontWeight || buttonStyle.font_weight,
         color: textConfig.color || textConfig.fill || buttonStyle.label_color,
-        // CRITICAL FIX: Don't set default values - let inference happen in renderButtonTexts
         textAnchor: textConfig.text_anchor || textConfig.textAnchor || null,
         dominantBaseline: textConfig.dominant_baseline || textConfig.dominantBaseline || null,
         opacity: textConfig.opacity || 1,
-        // Store original for updates
+        textType: textConfig.text_type || 'custom', // NEW: Track text type
         _originalContent: textConfig.content || textConfig.text
       }));
     }
@@ -214,15 +213,15 @@ export class ButtonRenderer {
     if (buttonStyle.show_labels && config.label) {
       legacyTexts.push({
         content: config.label,
-        position: buttonStyle.label_position || 'top-left', // FIXED: Changed from center-top to top-left to match grid cells
+        position: buttonStyle.label_position || 'center-top', // FIXED: Correct fallback
         fontSize: buttonStyle.label_font_size,
         fontFamily: buttonStyle.font_family,
         fontWeight: buttonStyle.font_weight,
         color: buttonStyle.label_color,
-        // CRITICAL FIX: Use null instead of hardcoded values - let inference happen
         textAnchor: null,
         dominantBaseline: null,
         opacity: 1,
+        textType: 'label', // NEW: Mark as label
         _originalContent: config.label
       });
     }
@@ -230,15 +229,15 @@ export class ButtonRenderer {
     if (buttonStyle.show_values && config.content) {
       legacyTexts.push({
         content: config.content,
-        position: buttonStyle.value_position || 'bottom-right', // FIXED: Changed from center-bottom to bottom-right to match grid cells
+        position: buttonStyle.value_position || 'center-bottom', // FIXED: Correct fallback
         fontSize: buttonStyle.value_font_size,
         fontFamily: buttonStyle.font_family,
         fontWeight: buttonStyle.font_weight,
         color: buttonStyle.value_color,
-        // CRITICAL FIX: Use null instead of hardcoded values - let inference happen
         textAnchor: null,
         dominantBaseline: null,
         opacity: 1,
+        textType: 'value', // NEW: Mark as value
         _originalContent: config.content
       });
     }
@@ -264,28 +263,13 @@ export class ButtonRenderer {
 
     textsArray.forEach((textConfig, index) => {
       try {
-        // CRITICAL DEBUG: Log input parameters
-        cblcarsLog.debug(`[ButtonRenderer] 🔍 Processing text ${index} for ${config.id}:`, {
-          position: textConfig.position,
-          buttonBounds: { x, y, width, height },
-          padding: buttonStyle.text_padding
-        });
-
         // Calculate absolute position within button bounds
         const textPosition = this._calculateTextPositionInButton(
           textConfig.position,
           x, y, width, height,
-          buttonStyle
+          buttonStyle,
+          textConfig.textType // FIXED: Pass text type for LCARS presets
         );
-
-        // CRITICAL DEBUG: Log the calculated position
-        cblcarsLog.debug(`[ButtonRenderer] Text ${index} for ${config.id}:`, {
-          position: textConfig.position,
-          buttonBounds: { x, y, width, height },
-          calculatedPosition: textPosition,
-          textAnchor: this._inferTextAnchor(textConfig.position),
-          dominantBaseline: this._inferDominantBaseline(textConfig.position)
-        });
 
         // CRITICAL FIX: Infer alignment ONLY if not explicitly provided
         const inferredTextAnchor = this._inferTextAnchor(textConfig.position);
@@ -295,10 +279,10 @@ export class ButtonRenderer {
         const finalTextAnchor = textConfig.textAnchor || inferredTextAnchor;
         const finalDominantBaseline = textConfig.dominantBaseline || inferredDominantBaseline;
 
-        // CRITICAL DEBUG: Log the calculated position
-        cblcarsLog.debug(`[ButtonRenderer] Text ${index} for ${config.id}:`, {
+        // REMOVED DUPLICATE: Single consolidated debug log
+        cblcarsLog.debug(`[ButtonRenderer] ✅ Text ${index} for ${config.id}:`, {
           position: textConfig.position,
-          buttonBounds: { x, y, width, height },
+          textType: textConfig.textType,
           calculatedPosition: textPosition,
           textAnchor: finalTextAnchor,
           dominantBaseline: finalDominantBaseline
@@ -335,6 +319,7 @@ export class ButtonRenderer {
         // Wrap in group with data attributes for updates
         const wrappedMarkup = `<g data-button-text-index="${index}"
                                   data-button-text-position="${textConfig.position}"
+                                  data-button-text-type="${textConfig.textType}"
                                   data-button-id="${config.id}">
                                  ${textMarkup}
                                </g>`;
@@ -353,11 +338,10 @@ export class ButtonRenderer {
    * Supports both legacy position strings (center-top) and smart positioning
    * @private
    */
-  _calculateTextPositionInButton(position, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle) {
+  _calculateTextPositionInButton(position, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle, textType = 'label') {
     const padding = buttonStyle.text_padding || 8;
 
-    // CRITICAL FIX: Check if position is a predefined string BEFORE checking lcars_text_preset
-    // This ensures explicitly set positions (from label_position/value_position) take precedence
+    // Parse position string or use smart positioning
     const positionMap = {
       'center': [buttonX + buttonWidth / 2, buttonY + buttonHeight / 2],
       'center-top': [buttonX + buttonWidth / 2, buttonY + padding],
@@ -382,7 +366,8 @@ export class ButtonRenderer {
       return this._calculateLCARSPresetPositionInButton(
         buttonStyle.lcars_text_preset,
         buttonX, buttonY, buttonWidth, buttonHeight,
-        buttonStyle
+        buttonStyle,
+        textType // FIXED: Pass text type
       );
     }
 
@@ -411,16 +396,28 @@ export class ButtonRenderer {
    * Calculate LCARS preset positions within button bounds
    * @private
    */
-  _calculateLCARSPresetPositionInButton(preset, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle) {
+  _calculateLCARSPresetPositionInButton(preset, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle, textType = 'label') {
     const padding = buttonStyle.text_padding || 8;
     const fontSize = buttonStyle.font_size || 18;
 
     switch (preset) {
       case 'lozenge':
-        return [buttonX + padding, buttonY + padding + fontSize * 0.8];
+        // Different positions for label vs value
+        if (textType === 'label') {
+          return [buttonX + padding, buttonY + padding + fontSize * 0.8];
+        } else {
+          // Value in bottom-right corner
+          return [buttonX + buttonWidth - padding, buttonY + buttonHeight - padding];
+        }
 
       case 'bullet':
-        return [buttonX + padding, buttonY + buttonHeight / 2];
+        // Different positions for label vs value
+        if (textType === 'label') {
+          return [buttonX + padding, buttonY + buttonHeight / 2];
+        } else {
+          // Value on right side
+          return [buttonX + buttonWidth - padding, buttonY + buttonHeight / 2];
+        }
 
       default:
         return [buttonX + buttonWidth / 2, buttonY + buttonHeight / 2];
@@ -1276,6 +1273,7 @@ export class ButtonRenderer {
 
     switch (preset) {
       case 'lozenge':
+        // Different positions for label vs value
         if (textType === 'label') {
           return {
             x: x + basePadding,
@@ -1293,6 +1291,7 @@ export class ButtonRenderer {
         }
 
       case 'bullet':
+        // Different positions for label vs value
         if (textType === 'label') {
           return {
             x: x + basePadding,
