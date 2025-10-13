@@ -360,16 +360,21 @@ export class SparklineOverlayRenderer {
    */
   static updateSparklineData(overlayElement, overlay, sourceData) {
     try {
-      // Find path element without full re-render (optimization)
       const pathElement = overlayElement.querySelector('[data-sparkline-line="true"]');
       if (!pathElement) return false;
 
-      // Re-render with new data
       const instance = new SparklineOverlayRenderer();
-      const data = instance._resolveSparklineData(overlay, overlay.finalStyle || {});
+
+      // CRITICAL FIX: Resolve style before calling _resolveSparklineData
+      const style = overlay.finalStyle || overlay.style || {};
+      const sparklineStyle = instance._resolveSparklineStyles(style, overlay.id);
+
+      // Pass sparklineStyle as the third parameter
+      const data = instance._resolveSparklineData(overlay, style, sparklineStyle);
 
       if (!data || data.length === 0) return false;
 
+      // TODO: Update path without full re-render (optimization)
       cblcarsLog.debug(`[SparklineOverlayRenderer] Sparkline ${overlay.id} data updated`);
       return true;
     } catch (error) {

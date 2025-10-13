@@ -107,20 +107,19 @@ export class TextOverlayRenderer {
       if (hasActions && cardInstance) {
         const actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
         if (actionInfo) {
-          setTimeout(() => {
-            let textElement = null;
-            const card = window.cb_lcars_card_instance;
-            if (card && card.shadowRoot) {
-              textElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlay.id}"]`);
-            }
-            if (!textElement) {
-              textElement = document.querySelector(`[data-overlay-id="${overlay.id}"]`);
-            }
+          // CRITICAL: Store action info for deferred processing (same pattern as StatusGrid)
+          if (!window._msdTextActions) {
+            window._msdTextActions = new Map();
+          }
+          window._msdTextActions.set(overlay.id, actionInfo);
 
-            if (textElement) {
-              ActionHelpers.attachActions(textElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
-            }
-          }, 100);
+          // Schedule multiple attempts at action attachment (same reliable pattern)
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 0);
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 10);
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 50);
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 100);
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 200);
+          setTimeout(() => this._tryManualActionProcessing(overlay.id), 500);
         }
       }
 
@@ -128,6 +127,8 @@ export class TextOverlayRenderer {
       const metadata = renderResult.metadata || {};
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
+      // CRITICAL FIX: Use 'all' for pointer-events to ensure events reach child elements
+      // Set cursor on the group level for proper visual feedback
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="text"
                   data-text-features="${textStyle.features.join(',')}"
@@ -139,13 +140,73 @@ export class TextOverlayRenderer {
                   data-dominant-baseline="${textStyle.dominantBaseline}"
                   data-text-anchor="${textStyle.textAnchor}"
                   data-font-stabilized="0"
-                  style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
+                  ${hasActions ? 'data-has-actions="true"' : ''}
+                  style="pointer-events: ${hasActions ? 'all' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
                 ${renderResult.markup}
               </g>`;
 
     } catch (error) {
       cblcarsLog.error(`[TextOverlayRenderer] ❌ Rendering failed for text ${overlay.id}:`, error);
       return this._renderFallbackText(overlay, position[0], position[1]);
+    }
+  }
+
+  /**
+   * Try to manually process action attachment for text overlay
+   * Uses the same reliable pattern as StatusGridRenderer
+   * @private
+   */
+  _tryManualActionProcessing(overlayId) {
+    try {
+      if (!window._msdTextActions || !window._msdTextActions.has(overlayId)) {
+        return;
+      }
+
+      const actionInfo = window._msdTextActions.get(overlayId);
+      if (!actionInfo) return;
+
+      // Find the overlay element
+      let overlayElement = null;
+      const card = window.cb_lcars_card_instance;
+      if (card && card.shadowRoot) {
+        overlayElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
+      }
+      if (!overlayElement) {
+        overlayElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
+      }
+
+      if (!overlayElement) {
+        cblcarsLog.debug(`[TextOverlayRenderer] Overlay element not yet available for ${overlayId}, will retry`);
+        return;
+      }
+
+      // Check if already processed
+      if (overlayElement.hasAttribute('data-actions-attached')) {
+        cblcarsLog.debug(`[TextOverlayRenderer] Actions already attached for ${overlayId}`);
+        window._msdTextActions.delete(overlayId);
+        return;
+      }
+
+      // CRITICAL: Ensure pointer events are enabled at the group level
+      overlayElement.style.pointerEvents = 'all';
+      overlayElement.style.cursor = 'pointer';
+
+      // Attach actions using ActionHelpers
+      ActionHelpers.attachActions(
+        overlayElement,
+        actionInfo.overlay,
+        actionInfo.config,
+        actionInfo.cardInstance
+      );
+
+      // Mark as processed
+      overlayElement.setAttribute('data-actions-attached', 'true');
+      window._msdTextActions.delete(overlayId);
+
+      cblcarsLog.debug(`[TextOverlayRenderer] ✅ Successfully attached actions for text overlay ${overlayId}`);
+
+    } catch (error) {
+      cblcarsLog.warn(`[TextOverlayRenderer] Error in manual action processing for ${overlayId}:`, error);
     }
   }
 
