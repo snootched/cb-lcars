@@ -87,6 +87,17 @@ export class SparklineOverlayRenderer {
 
       cblcarsLog.debug(`[SparklineOverlayRenderer] Rendering sparkline ${overlay.id} with ${data.length} points`);
 
+      // DEBUG: Log what we're passing to core renderer
+      cblcarsLog.debug(`[SparklineOverlayRenderer] 🔍 Passing to core renderer:`, {
+        dataLength: data.length,
+        position,
+        size,
+        styleKeys: Object.keys(sparklineStyle),
+        show_points: sparklineStyle.show_points,
+        grid_lines: sparklineStyle.grid_lines,
+        smoothing_mode: sparklineStyle.smoothing_mode
+      });
+
       // 5. DELEGATE: Pure rendering to core SparklineRenderer
       const renderResult = CoreSparklineRenderer.render(
         {
@@ -101,6 +112,14 @@ export class SparklineOverlayRenderer {
           overlayId: overlay.id
         }
       );
+
+      // DEBUG: Log what core renderer returned
+      cblcarsLog.debug(`[SparklineOverlayRenderer] 🔍 Core renderer returned:`, {
+        hasMarkup: !!renderResult?.markup,
+        markupLength: renderResult?.markup?.length || 0,
+        hasMetadata: !!renderResult?.metadata,
+        markupPreview: renderResult?.markup?.substring(0, 200)
+      });
 
       if (!renderResult || !renderResult.markup) {
         cblcarsLog.warn(`[SparklineOverlayRenderer] Core renderer returned empty markup for ${overlay.id}`);
@@ -164,48 +183,113 @@ export class SparklineOverlayRenderer {
     // Parse standard styles
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
-    return {
-      // Core sparkline properties
+    // SIMPLIFIED: Only use snake_case to match core renderer
+    const sparklineStyle = {
+      // Core sparkline properties - snake_case only
       color: standardStyles.colors?.primary || style.color || this._resolveDefault('sparkline.color', scalingContext, defaults, 'var(--lcars-orange)'),
       stroke: style.stroke || null,
-      strokeWidth: Number(style.stroke_width || style.strokeWidth || style.line_width || this._resolveDefault('sparkline.stroke_width', scalingContext, defaults, 2)),
-      strokeOpacity: Number(style.stroke_opacity || style.strokeOpacity || 1),
+      width: Number(style.width || style.stroke_width || this._resolveDefault('sparkline.stroke_width', scalingContext, defaults, 2)),
+      opacity: Number(style.opacity || this._resolveDefault('sparkline.opacity', scalingContext, defaults, 1)),
 
       // Fill/area properties
-      fill: style.fill || style.area_fill || null,
-      areaFill: style.area_fill || style.areaFill || null,
-      areaOpacity: Number(style.area_opacity || style.areaOpacity || style.fill_opacity || 0.2),
-      fillOpacity: Number(style.fill_opacity || style.fillOpacity || 0.2),
+      fill: style.fill || style.area_fill || 'none',
+      fill_opacity: Number(style.fill_opacity || style.area_opacity || 0.2),
+      fill_gradient: style.fill_gradient || null,
 
       // Data bounds
-      min: style.min !== undefined ? Number(style.min) : null,
-      max: style.max !== undefined ? Number(style.max) : null,
+      min_value: style.min !== undefined ? Number(style.min) : (style.min_value !== undefined ? Number(style.min_value) : null),
+      max_value: style.max !== undefined ? Number(style.max) : (style.max_value !== undefined ? Number(style.max_value) : null),
+      auto_scale: style.auto_scale !== false,
 
       // Gradient
       gradient: standardStyles.gradient || style.gradient || null,
 
       // Threshold lines
-      threshold: style.threshold !== undefined ? Number(style.threshold) : null,
-      thresholdColor: style.threshold_color || style.thresholdColor || 'rgba(255, 0, 0, 0.5)',
-      thresholdWidth: Number(style.threshold_width || style.thresholdWidth || 1),
-      thresholdStyle: style.threshold_style || style.thresholdStyle || 'dashed',
+      thresholds: style.thresholds || null,
+
+      // Path generation options
+      smoothing_mode: (style.smoothing_mode || 'none').toLowerCase(),
+      interpolation: (style.interpolation || 'linear').toLowerCase(),
+      path_precision: Number(style.path_precision || this._resolveDefault('sparkline.path_precision', scalingContext, defaults, 2)),
 
       // Padding
       padding: Number(style.padding || this._resolveDefault('sparkline.padding', scalingContext, defaults, 0)),
 
-      // Display options
-      showPoints: style.show_points || style.showPoints || false,
-      showDataPoints: style.show_data_points || style.showDataPoints || false,
-      showLabels: style.show_labels || style.showLabels || false,
-      showValues: style.show_values || style.showValues || false,
+      // Display options - snake_case
+      show_points: !!(style.show_points),
+      point_size: Number(style.point_size || this._resolveDefault('sparkline.point_size', scalingContext, defaults, 3)),
+      point_color: style.point_color || null,
+      show_last_value: !!(style.show_last_value),
+      value_format: style.value_format || null,
+
+      // Grid lines - snake_case
+      grid_lines: !!(style.grid_lines),
+      grid_color: style.grid_color || this._resolveDefault('sparkline.grid.color', scalingContext, defaults, 'var(--lcars-gray)'),
+      grid_opacity: Number(style.grid_opacity || this._resolveDefault('sparkline.grid.opacity', scalingContext, defaults, 0.4)),
+      grid_stroke_width: Number(style.grid_stroke_width || this._resolveDefault('sparkline.grid.stroke_width', scalingContext, defaults, 1)),
+      grid_horizontal_count: Number(style.grid_horizontal_count || this._resolveDefault('sparkline.grid.horizontal_count', scalingContext, defaults, 3)),
+      grid_vertical_count: Number(style.grid_vertical_count || this._resolveDefault('sparkline.grid.vertical_count', scalingContext, defaults, 5)),
+
+      // Zero line
+      zero_line: !!(style.zero_line),
+      zero_line_color: style.zero_line_color || this._resolveDefault('sparkline.zero_line.color', scalingContext, defaults, 'var(--lcars-gray)'),
+
+      // Bracket/border properties - snake_case
+      bracket_style: style.bracket_style || null,
+      bracket_width: Number(style.bracket_width || this._resolveDefault('sparkline.bracket.width', scalingContext, defaults, 2)),
+      bracket_color: style.border_color || style.bracket_color || null,
+      bracket_gap: Number(style.bracket_gap || this._resolveDefault('sparkline.bracket.gap', scalingContext, defaults, 6)),
+      bracket_extension: Number(style.bracket_extension || this._resolveDefault('sparkline.bracket.extension', scalingContext, defaults, 8)),
+      bracket_opacity: Number(style.bracket_opacity || this._resolveDefault('sparkline.bracket.opacity', scalingContext, defaults, 1)),
+      bracket_corners: style.bracket_corners || 'both',
+      bracket_sides: style.bracket_sides || 'both',
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_extension || this._resolveDefault('sparkline.bracket.physical_width', scalingContext, defaults, 8)),
+      bracket_height: style.bracket_height || '100%',
+      bracket_radius: Number(style.bracket_radius || this._resolveDefault('sparkline.bracket.radius', scalingContext, defaults, 4)),
+      border_top: Number(style.border_top || 0),
+      border_left: Number(style.border_left || 0),
+      border_right: Number(style.border_right || 0),
+      border_bottom: Number(style.border_bottom || 0),
+      border_color: style.border_color || null,
+      border_radius: Number(style.border_radius || this._resolveDefault('sparkline.bracket.border_radius', scalingContext, defaults, 8)),
+      inner_factor: Number(style.inner_factor || this._resolveDefault('sparkline.bracket.inner_factor', scalingContext, defaults, 2)),
+      hybrid_mode: style.hybrid_mode || false,
+
+      // Status and scan line
+      status_indicator: style.status_indicator || false,
+      scan_line: style.scan_line || false,
 
       // Animation
       animatable: standardStyles.animation?.animatable || false,
+      tracer_speed: Number(style.tracer_speed || 0),
+      pulse_speed: Number(style.pulse_speed || 0),
+
+      // Performance options
+      decimation: Number(style.decimation || 0),
+      max_points: Number(style.max_points || this._resolveDefault('sparkline.decimation_threshold', scalingContext, defaults, 1000)),
+
+      // Data limiting options (NEW)
+      maxPoints: Number(style.max_points || 0),
+      timeWindow: style.time_window || null,
 
       // Opacity/visibility
-      opacity: standardStyles.layout?.opacity || 1,
       visible: standardStyles.layout?.visible !== false
     };
+
+    // DEBUG: Log the resolved style to see what core renderer receives
+    cblcarsLog.debug(`[SparklineOverlayRenderer] 🎨 Resolved sparkline style for ${overlayId}:`, {
+      show_points: sparklineStyle.show_points,
+      point_size: sparklineStyle.point_size,
+      grid_lines: sparklineStyle.grid_lines,
+      grid_color: sparklineStyle.grid_color,
+      smoothing_mode: sparklineStyle.smoothing_mode,
+      width: sparklineStyle.width,
+      color: sparklineStyle.color,
+      bracket_style: sparklineStyle.bracket_style,
+      allKeys: Object.keys(sparklineStyle)
+    });
+
+    return sparklineStyle;
   }
 
   /**
@@ -279,23 +363,79 @@ export class SparklineOverlayRenderer {
     cblcarsLog.debug(`[SparklineOverlayRenderer] Got ${bufferData.length} points from buffer for ${overlay.id}`);
 
     // Convert buffer entries to numeric array
-    // Buffer entries are objects with { t: timestamp, v: value }
-    const numericData = bufferData.map(entry => {
-      const value = entry.v; // Buffer uses 'v' for value
-      return this._parseNumericValue(value);
-    }).filter(v => v !== null);
+    let numericData = bufferData.map(entry => {
+      const value = entry.v;
+      return {
+        value: this._parseNumericValue(value),
+        timestamp: entry.t
+      };
+    }).filter(item => item.value !== null);
 
     if (numericData.length === 0) {
-      cblcarsLog.debug(`[SparklineOverlayRenderer] No valid numeric data points for ${overlay.id}`, {
-        bufferLength: bufferData.length,
-        sampleEntry: bufferData[0]
-      });
+      cblcarsLog.debug(`[SparklineOverlayRenderer] No valid numeric data points for ${overlay.id}`);
       return null;
     }
 
-    cblcarsLog.debug(`[SparklineOverlayRenderer] Successfully parsed ${numericData.length} history points for ${overlay.id}`);
+    // NEW: Apply time window filter if specified
+    const sparklineStyle = this._resolveSparklineStyles(style, overlay.id);
+    if (sparklineStyle.timeWindow) {
+      const timeWindowMs = this._parseTimeWindow(sparklineStyle.timeWindow);
+      if (timeWindowMs > 0) {
+        const cutoffTime = Date.now() - timeWindowMs;
+        const originalLength = numericData.length;
+        numericData = numericData.filter(item => item.timestamp >= cutoffTime);
+        cblcarsLog.debug(`[SparklineOverlayRenderer] Time window filter: ${originalLength} -> ${numericData.length} points`);
+      }
+    }
 
-    return numericData;
+    // NEW: Apply max points limit if specified
+    if (sparklineStyle.maxPoints > 0 && numericData.length > sparklineStyle.maxPoints) {
+      // Use intelligent decimation - keep first, last, and evenly spaced points
+      const step = Math.floor(numericData.length / sparklineStyle.maxPoints);
+      const decimated = [];
+      for (let i = 0; i < numericData.length; i += step) {
+        decimated.push(numericData[i]);
+      }
+      // Always include the last point
+      if (decimated[decimated.length - 1] !== numericData[numericData.length - 1]) {
+        decimated.push(numericData[numericData.length - 1]);
+      }
+      cblcarsLog.debug(`[SparklineOverlayRenderer] Max points limit: ${numericData.length} -> ${decimated.length} points`);
+      numericData = decimated;
+    }
+
+    // Extract just the values for the core renderer
+    const values = numericData.map(item => item.value);
+
+    cblcarsLog.debug(`[SparklineOverlayRenderer] Successfully parsed ${values.length} history points for ${overlay.id}`);
+
+    return values;
+  }
+
+  /**
+   * Parse time window string to milliseconds
+   * @private
+   * @param {string} timeWindow - Time window like "1h", "30m", "24h"
+   * @returns {number} Milliseconds
+   */
+  _parseTimeWindow(timeWindow) {
+    if (typeof timeWindow === 'number') return timeWindow;
+    if (!timeWindow || typeof timeWindow !== 'string') return 0;
+
+    const match = timeWindow.match(/^(\d+(?:\.\d+)?)\s*([smhd])$/i);
+    if (!match) return 0;
+
+    const value = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+
+    const multipliers = {
+      's': 1000,
+      'm': 60 * 1000,
+      'h': 60 * 60 * 1000,
+      'd': 24 * 60 * 60 * 1000
+    };
+
+    return value * (multipliers[unit] || 0);
   }
 
   /**

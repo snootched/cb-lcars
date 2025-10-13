@@ -172,6 +172,11 @@ export class SparklineRenderer {
 
     const parts = [];
 
+    // Grid lines (if enabled) - render BEFORE path so they're underneath
+    if (style.grid_lines) {
+      parts.push(this._buildGridLines(scaling, style));
+    }
+
     // Area fill (if enabled)
     if (areaPoints.length > 0) {
       const areaPath = areaPoints.join(' ');
@@ -199,6 +204,11 @@ export class SparklineRenderer {
                      stroke-linecap="round"
                      stroke-linejoin="round"
                      data-sparkline-line="true"/>`);
+
+    // Data points (if enabled) - render AFTER path so they're on top
+    if (style.show_points) {
+      parts.push(this._buildDataPoints(data, scaling, style));
+    }
 
     return parts.join('\n');
   }
@@ -358,5 +368,68 @@ export class SparklineRenderer {
                </g>`,
       metadata: null
     };
+  }
+
+  /**
+   * Build grid lines
+   * @private
+   */
+  static _buildGridLines(scaling, style) {
+    const lines = [];
+
+    const gridColor = style.grid_color || 'var(--lcars-gray)';
+    const gridOpacity = style.grid_opacity || 0.4;
+    const gridStrokeWidth = style.grid_stroke_width || 1;
+    const gridHorizontalCount = style.grid_horizontal_count || 3;
+    const gridVerticalCount = style.grid_vertical_count || 5;
+
+    // Horizontal grid lines
+    for (let i = 1; i < gridHorizontalCount; i++) {
+      const y = (scaling.height / gridHorizontalCount) * i + scaling.padding;
+      lines.push(`<line x1="${scaling.padding}" y1="${y}"
+                       x2="${scaling.width + scaling.padding}" y2="${y}"
+                       stroke="${gridColor}"
+                       stroke-width="${gridStrokeWidth}"
+                       opacity="${gridOpacity}"/>`);
+    }
+
+    // Vertical grid lines
+    for (let i = 1; i < gridVerticalCount; i++) {
+      const x = (scaling.width / gridVerticalCount) * i + scaling.padding;
+      lines.push(`<line x1="${x}" y1="${scaling.padding}"
+                       x2="${x}" y2="${scaling.height + scaling.padding}"
+                       stroke="${gridColor}"
+                       stroke-width="${gridStrokeWidth}"
+                       opacity="${gridOpacity}"/>`);
+    }
+
+    return `<g data-grid-lines="true">${lines.join('\n')}</g>`;
+  }
+
+  /**
+   * Build data point markers
+   * @private
+   */
+  static _buildDataPoints(data, scaling, style) {
+    const points = [];
+
+    const pointColor = style.point_color || style.color || 'var(--lcars-orange)';
+    const pointSize = style.point_size || 3;
+    const strokeOpacity = style.strokeOpacity || style.opacity || 1;
+
+    data.forEach((value, index) => {
+      if (typeof value !== 'number' || isNaN(value)) return;
+
+      const px = scaling.indexToX(index);
+      const py = scaling.valueToY(value);
+
+      points.push(`<circle cx="${px}" cy="${py}" r="${pointSize}"
+                          fill="${pointColor}"
+                          opacity="${strokeOpacity}"
+                          data-value="${value}"
+                          data-index="${index}"/>`);
+    });
+
+    return `<g data-data-points="true">${points.join('\n')}</g>`;
   }
 }
