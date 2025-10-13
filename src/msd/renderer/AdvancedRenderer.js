@@ -9,9 +9,9 @@ import { OverlayUtils } from './OverlayUtils.js';
 
 import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
-import { SparklineRenderer } from './SparklineRenderer.js';
+import { SparklineOverlayRenderer } from './SparklineOverlayRenderer.js'; // RENAMED
 import { StatusGridRenderer } from './StatusGridRenderer.js';
-import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js'; // Add ButtonOverlayRenderer import
+import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js';
 import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
@@ -217,7 +217,7 @@ export class AdvancedRenderer {
   }
 
   _computeSparklineAttachmentPoints(overlay, anchors, container, viewBox) {
-    return SparklineRenderer.computeAttachmentPoints(overlay, anchors, container);
+    return SparklineOverlayRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
   _computeHistoryBarAttachmentPoints(overlay, anchors, container, viewBox) {
@@ -561,7 +561,7 @@ export class AdvancedRenderer {
 
           return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
         case 'sparkline':
-          return SparklineRenderer.render(overlay, anchors, viewBox);
+          return SparklineOverlayRenderer.render(overlay, anchors, viewBox);
         case 'line':
           // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
           const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
@@ -663,7 +663,7 @@ export class AdvancedRenderer {
     // Delegate to type-specific renderer
     switch (overlay.type) {
       case 'sparkline':
-        SparklineRenderer.updateSparklineData(overlayElement, overlay, sourceData);
+        SparklineOverlayRenderer.updateSparklineData(overlayElement, overlay, sourceData);
         break;
       case 'text':
         cblcarsLog.debug(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
@@ -724,8 +724,7 @@ export class AdvancedRenderer {
       );
       if (!overlay) return;
 
-      // Use SparklineRenderer's update method
-      SparklineRenderer.updateSparklineData(sparklineElement, overlay, updateData.data);
+      SparklineOverlayRenderer.updateSparklineData(sparklineElement, overlay, updateData.data);
     });
   }
 
