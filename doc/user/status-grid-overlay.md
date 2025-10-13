@@ -4,6 +4,7 @@
 For comprehensive status grid documentation including advanced features, DataSource integration, Rules Engine integration, interactive actions, and configuration schema, see:
 
 **👉 [Status Grid Complete Documentation](./status_grid_overlay_complete_documentation.md)**
+**👉 [HA Template Syntax Reference](./home_assistant_templates.md)**
 
 ## Quick Start
 
@@ -127,6 +128,86 @@ overlays:
       show_values: true
 ```
 
+### CB-LCARS Presets & Cascade
+```yaml
+overlays:
+  - type: status_grid
+    id: preset_grid
+    position: [100, 50]
+    size: [200, 150]
+
+    # 🟢 Overlay.Preset (lowest priority)
+    lcars_button_preset: bullet
+
+    style:
+      # 🔵 Overlay.Specific (overrides overlay preset)
+      cell_color: "var(--lcars-blue)"
+      label_position: center
+
+    cells:
+      - position: [0, 0]
+        # 🟡 Cell.Preset (overrides overlay settings)
+        lcars_button_preset: lozenge
+
+        style:
+          # 🔴 Cell.Specific (highest priority)
+          label_position: top-right
+
+        # 🔴 Cell.Specific (direct properties)
+        color: "var(--lcars-red)"
+```
+
+### Status Grid with Texts Array (NEW)
+```yaml
+overlays:
+  - type: status_grid
+    id: advanced_grid
+    position: [100, 50]
+    size: [400, 200]
+
+    cells:
+      # Legacy format (still works)
+      - position: [0, 0]
+        label: "WARP"
+        content: "ONLINE"
+
+      # NEW: texts array for precise control
+      - position: [0, 1]
+        texts:
+          - content: "SHIELDS"
+            position: "top-left"
+            font_size: 12
+          - content: "85%"
+            position: "bottom-right"
+            font_size: 18
+            font_weight: "bold"
+
+      # Mix of preset and custom text
+      - position: [0, 2]
+        texts:
+          - content: "WEAPONS"
+            position: "top-left"
+            font_size: 10
+            color: "var(--lcars-red)"
+          - content: "ARMED"
+            position: "center"
+            font_size: 14
+          - content: "READY"
+            position: "bottom-right"
+            font_size: 8
+            color: "var(--lcars-green)"
+
+    style:
+      rows: 1
+      columns: 3
+```
+
+### Style Cascade Order
+1. **Cell.Specific** (highest) - `cell.style.property` and `cell.property`
+2. **Cell.Preset** - `cell.lcars_button_preset`
+3. **Overlay.Specific** - `overlay.style.property`
+4. **Overlay.Preset** (lowest) - `overlay.lcars_button_preset`
+
 ### LCARS Styling
 ```yaml
 overlays:
@@ -177,6 +258,27 @@ overlays:
 - **auto** - Automatic status detection
 - **ranges** - Custom status ranges
 - **per-cell colors** - Cell-level color overrides
+
+### Cell Configuration Formats
+
+**Legacy Format (Still Supported)**
+```yaml
+cells:
+  - position: [0, 0]
+    label: "Label Text"
+    content: "Value Text"
+```
+
+**New Texts Array Format (Recommended)**
+```yaml
+cells:
+  - position: [0, 0]
+    texts:
+      - content: "Text 1"
+        position: "top-left"
+      - content: "Text 2"
+        position: "bottom-right"
+```
 
 ## Common Patterns
 

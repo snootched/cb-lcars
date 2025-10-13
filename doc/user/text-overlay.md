@@ -4,6 +4,7 @@
 For comprehensive text overlay documentation including advanced features, DataSource integration, styling options, and configuration schema, see:
 
 **👉 [Text Overlay Complete Documentation](./text_overlay_complete_documentation.md)**
+**👉 [HA Template Syntax Reference](./home_assistant_templates.md)**
 
 ## Quick Start
 

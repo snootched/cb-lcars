@@ -2,6 +2,9 @@
 
 This document provides comprehensive documentation for the MSD Text overlay system, including configuration options, styling features, DataSource integration, and advanced text rendering capabilities.
 
+<!-- See also: HA template reference -->
+> See also: Home Assistant templates in CB-LCARS → [HA Template Syntax Reference](./home_assistant_templates.md)
+
 ---
 
 ## Table of Contents

@@ -2,6 +2,9 @@
 
 This document provides comprehensive documentation for the MSD Status Grid overlay system, including configuration options, styling features, DataSource integration, Defaults Manager integration, and multi-entity status visualization capabilities.
 
+<!-- See also: HA template reference -->
+> See also: Home Assistant templates in CB-LCARS → [HA Template Syntax Reference](./home_assistant_templates.md)
+
 ---
 
 ## Table of Contents
@@ -297,7 +300,6 @@ overlays:
   - type: status_grid
     # Inherits from defaults, scales responsively
 ```
-```
 
 ---
 
@@ -402,7 +404,7 @@ overlays:
 
 ## Interactive Actions
 
-Status Grid overlays support comprehensive Home Assistant actions at both overlay and cell levels, making your grids fully interactive control interfaces.
+Status Grid overlays support comprehensive Home Assistant actions at both overlay and cell levels, making your grids fully interactive control interfaces. The action system uses immediate attachment for reliable interaction.
 
 ### Overlay-Level Actions
 Apply actions to the entire status grid:
@@ -439,7 +441,7 @@ overlays:
 ```
 
 ### Cell-Level Actions (Preferred Method)
-Define actions directly on individual cells for granular control:
+Define actions directly on individual cells for granular control. **This is the recommended approach** for most use cases:
 
 ```yaml
 overlays:
@@ -454,7 +456,7 @@ overlays:
         label: "Living Room"
         content: "ON"
         source: light.living_room
-        # Cell-specific actions
+        # Cell-specific actions (recommended)
         tap_action:
           action: toggle
           entity: light.living_room
@@ -490,6 +492,21 @@ overlays:
       columns: 3
 ```
 
+### Action System Architecture
+
+The status grid uses an **immediate action attachment system** that provides reliable interaction:
+
+#### How Actions Work
+1. **Immediate Attachment**: Actions are attached immediately after DOM insertion using multiple timing strategies
+2. **Element Coverage**: All cell elements (background rect, text labels, values) become clickable
+3. **Event Coordination**: Cell actions use capture phase, overlay actions use bubble phase to prevent conflicts
+4. **Bridge Pattern**: Uses custom-button-card's proven action system for full Home Assistant compatibility
+
+#### Action Priority
+- **Cell actions always override overlay actions** when both are present
+- **Multiple elements per cell** all respond to the same cell actions
+- **Event bubbling is prevented** to avoid action conflicts
+
 ### Mixed Actions
 Combine overlay and cell actions - cell actions take priority:
 
@@ -524,31 +541,6 @@ overlays:
     style:
       rows: 1
       columns: 2
-```
-
-### Legacy Cell Actions (Still Supported)
-The older `style.actions.cells` format still works but is deprecated:
-
-```yaml
-overlays:
-  - type: status_grid
-    id: legacy_grid
-    position: [100, 100]
-    size: [300, 200]
-
-    style:
-      actions:
-        cells:
-          - cell_id: light_cell
-            tap_action:
-              action: toggle
-              entity: light.living_room
-
-    cells:
-      - id: light_cell
-        position: [0, 0]
-        label: "Living Room"
-        content: "ON"
 ```
 
 ### Template Actions
@@ -593,658 +585,44 @@ All standard Home Assistant action types are supported:
 - **Test actions** with simple configurations first
 
 #### User Experience
-- **Provide visual feedback** - Actions automatically add pointer cursor
+- **Provide visual feedback** - Actions automatically add pointer cursor and proper event handling
 - **Use intuitive actions** - tap for primary action, hold for secondary
-- **Consider accessibility** - Provide alternative access methods for complex actions
+- **Consider accessibility** - All cell elements are clickable, including text
 
 #### Maintainability
 - **Consistent action patterns** across similar cells
 - **Clear entity references** - use descriptive entity IDs
 - **Document complex actions** in YAML comments
 
-### Additional Action Documentation
-
-For complete action system documentation including troubleshooting, advanced examples, and integration with other overlay types, see the main [MSD Actions Documentation](./msd-actions.md).
-
----
-
-## Text Positioning & Layout
-
-The Status Grid provides comprehensive text positioning capabilities to recreate CB-LCARS button card styles and create custom layouts.
-
-### Smart Font-Relative Positioning (Default)
-
-By default, the system calculates intelligent positioning based on font sizes to prevent text overlap and corner radius clipping:
-
-```yaml
-style:
-  font_size: 30                     # Large font size (default: 16)
-  cell_radius: 12                   # Corner radius
-  # System automatically calculates:
-  # - text_spacing: 9px (30% of font size)
-  # - label_offset_y: -10.5px (prevents overlap)
-  # - value_offset_y: 16.5px (prevents overlap)
-  # - text_padding: ~10px (smart padding = max(base_padding, corner_clearance, font_clearance))
-```
-
-#### Smart Corner-Aware Padding
-The system automatically adjusts padding to prevent text from being clipped by rounded corners:
-- **Corner clearance**: ~70% of corner radius
-- **Font clearance**: ~20% of font size
-- **Minimum clearance**: 30% of font size
-- **Final padding**: Uses the largest of base padding, corner clearance, or font clearance
-
-### Enhanced Positioning System
-
-Use flexible positioning options for full control over text placement:
-
-```yaml
-style:
-  # CB-LCARS preset styles (recreate button card layouts)
-  lcars_text_preset: "lozenge"      # lozenge, bullet, corner, badge
-
-  # OR custom positioning
-  label_position: "top-left"        # Predefined positions
-  value_position: "bottom-right"
-
-  # OR percentage-based positioning
-  label_position:
-    x: "10%"                        # 10% from left edge
-    y: "20%"                        # 20% from top edge
-    anchor: "start"                 # text anchor
-    baseline: "hanging"             # text baseline
-
-  # Advanced layout options (smart corner-aware padding)
-  text_padding: 6                   # Base padding from cell edges (auto-adjusted for corner radius)
-  text_margin: 3                    # Margin between text elements
-  text_layout: "side-by-side"       # Layout mode
-  text_alignment: "top"             # Vertical alignment
-  text_justify: "left"              # Horizontal justification
-```
-
-### CB-LCARS Preset Styles
-
-Recreate your CB-LCARS button card styles with preset configurations:
-
-#### Lozenge Style
-```yaml
-style:
-  lcars_text_preset: "lozenge"
-  # Result: label top-left, value bottom-right
-  text_padding: 8
-```
-
-#### Bullet Style
-```yaml
-style:
-  lcars_text_preset: "bullet"
-  # Result: label left, value right (side by side)
-  text_padding: 6
-```
-
-#### Corner Style
-```yaml
-style:
-  lcars_text_preset: "corner"
-  # Result: both text elements in south-east corner, stacked
-  text_padding: 4
-  text_margin: 2
-```
-
-#### Badge Style
-```yaml
-style:
-  lcars_text_preset: "badge"
-  # Result: label top-center, value centered
-  text_padding: 6
-```
-
-### Predefined Positions
-
-Use predefined position names for consistent placement:
-
-```yaml
-style:
-  # Corner positions (perfect for LCARS styles)
-  label_position: "top-left"        # north-west corner
-  value_position: "bottom-right"    # south-east corner
-
-  # Available positions:
-  # - center, center-top, center-bottom
-  # - top-left, top-right, bottom-left, bottom-right
-  # - left, right, top, bottom
-  # - north-west, north-east, south-west, south-east
-```
-
-### Custom Position Objects
-
-Define precise positioning with custom objects:
-
-```yaml
-style:
-  label_position:
-    x: "15%"                        # X position (percentage or pixels)
-    y: "25%"                        # Y position (percentage or pixels)
-    anchor: "start"                 # SVG text-anchor: start, middle, end
-    baseline: "hanging"             # SVG dominant-baseline
-
-  value_position:
-    x: "85%"
-    y: "75%"
-    anchor: "end"
-    baseline: "baseline"
-```
-
-### Layout Modes
-
-Control overall text arrangement within cells:
-
-```yaml
-style:
-  text_layout: "stacked"            # Default: label above, value below
-  # text_layout: "side-by-side"     # Label left, value right
-  # text_layout: "label-only"       # Only show labels
-  # text_layout: "value-only"       # Only show values
-  # text_layout: "custom"           # Use custom positioning
-```
-
-### Text Alignment Options
-
-Fine-tune text positioning within the layout:
-
-```yaml
-style:
-  text_alignment: "center"          # Vertical: top, center, bottom
-  text_justify: "center"            # Horizontal: left, center, right
-  text_padding: 4                   # Distance from cell edges
-  text_margin: 2                    # Space between label and value
-```
-
-### Advanced Text Features
-
-Additional text formatting and overflow handling:
-
-```yaml
-style:
-  # Text wrapping (future feature)
-  text_wrap: true                   # Enable text wrapping
-  max_text_width: "90%"            # Maximum text width
-  text_overflow: "ellipsis"        # Overflow handling: ellipsis, clip, none
-
-  # Individual font sizing
-  label_font_size: 12              # Override label font size
-  value_font_size: 16              # Override value font size
-```
-
-## Grid Layout & Styling
-
-### Grid Dimensions & Spacing
-```yaml
-style:
-  # Grid structure
-  rows: 4                         # Number of rows
-  columns: 6                      # Number of columns
-  cell_width: 0                   # Auto-calculate width (0 = auto)
-  cell_height: 0                  # Auto-calculate height (0 = auto)
-  cell_gap: 3                     # Gap between cells
-
-  # Manual cell sizing (overrides auto-calculation)
-  cell_width: 40                  # Fixed cell width
-  cell_height: 30                 # Fixed cell height
-
-  # Proportional sizing - Powerful CSS Grid alternative with intelligent detection
-  row_sizes: [1, 2, 1]           # Relative row heights (ratios)
-  column_sizes: [1, 3, 2, 1]     # Relative column widths (ratios)
-
-  # Alternative naming (same functionality)
-  row_heights: [1, 2, 1]         # Relative row heights (ratios)
-  column_widths: [1, 3, 2, 1]    # Relative column widths (ratios)
-
-  # Percentage-based sizing (auto-detected by % suffix)
-  row_heights: ["25%", "50%", "25%"]      # Percentage heights
-  column_widths: ["15%", "45%", "30%", "10%"] # Percentage widths
-
-  # Pixel-based sizing (auto-detected when values exceed available space)
-  row_heights: [30, 60, 30]       # Fixed pixel heights (scaled if needed)
-  column_widths: [40, 120, 80, 40] # Fixed pixel widths (scaled if needed)
-
-  # Mixed sizing (advanced)
-  column_widths: ["20%", 120, 2, "10%"] # Mix percentages, pixels, and ratios
-```
-
-### Cell Appearance
-```yaml
-style:
-  # Basic cell styling
-  cell_color: "var(--lcars-blue)" # Default cell fill color
-  cell_opacity: 0.9               # Cell transparency
-  cell_radius: 4                  # Corner radius
-
-  # Advanced radius normalization (NEW)
-  normalize_radius: true          # Auto-adjust radius for consistent visual appearance (default: true)
-  match_ha_radius: true           # Use HA's card radius for all cells (default: true)
-
-  # Cell borders
-  cell_border: true               # Enable borders
-  border_color: "var(--lcars-gray)" # Border color
-  border_width: 2                 # Border thickness
-
-  # LCARS corner styling
-  lcars_corners: true             # Enable LCARS-style cut corners
-```
-
-### Text & Labels
-```yaml
-style:
-  # Label display
-  show_labels: true               # Show cell labels
-  label_color: "var(--lcars-white)" # Label text color
-  label_font_size: 11             # Label font size (individual control)
-  font_size: 11                   # Global font size (fallback)
-  font_family: "var(--lcars-font-family, Antonio)" # Font family with CSS variable support
-
-  # Value display
-  show_values: true               # Show cell values
-  value_color: "var(--lcars-cyan)" # Value text color
-  value_font_size: 9              # Value font size (individual control)
-
-  # Text positioning and spacing
-  text_spacing: 4                 # Vertical spacing between label and value
-  label_offset_y: -2              # Label vertical offset from cell center
-  value_offset_y: 8               # Value vertical offset from cell center
-```
-
-### Grid Lines & Background
-```yaml
-style:
-  # Optional grid lines
-  show_grid_lines: true           # Show lines between cells
-  grid_line_color: "var(--lcars-gray)" # Grid line color
-  grid_line_opacity: 0.4          # Grid line transparency
-  grid_line_width: 1              # Grid line thickness (pixels)
-```
-
----
-
-## Radius Normalization & HA Integration
-
-### Visual Consistency Across Cell Sizes
-The Status Grid includes intelligent radius normalization to ensure consistent visual appearance across proportionally-sized cells, perfect for the clean LCARS aesthetic.
-
-#### Default Behavior (Recommended)
-```yaml
-style:
-  # These are the new defaults (automatic unless explicitly disabled)
-  normalize_radius: true          # Enable smart radius calculation
-  match_ha_radius: true           # Use Home Assistant's card radius
-
-  # With proportional sizing
-  column_sizes: [2, 1, 1]         # Different sized cells
-  row_sizes: [1, 2]               # Different sized rows
-
-  # Result: ALL cells get identical corner radius matching your HA theme!
-```
-
-#### How It Works
-1. **🏠 HA Theme Detection**: Automatically detects your Home Assistant theme's card border radius from CSS variables (`--ha-card-border-radius`, `--card-border-radius`, etc.)
-2. **📐 Consistent Application**: When `match_ha_radius: true`, ALL cells use the exact same radius regardless of size
-3. **✨ Perfect Integration**: Status Grid cells visually match other HA cards and MSD controls
-
-#### Configuration Options
-
-**Option 1: Full HA Integration (Default)**
-```yaml
-style:
-  normalize_radius: true          # Default: true
-  match_ha_radius: true           # Default: true
-  # Result: All cells use HA's card radius (e.g., 34px for Mushroom theme)
-```
-
-**Option 2: Proportional Scaling**
-```yaml
-style:
-  normalize_radius: true
-  match_ha_radius: false          # Use proportional scaling instead
-  # Result: Radius scales with cell size but maintains visual consistency
-```
-
-**Option 3: Explicit Radius (Overrides Everything)**
-```yaml
-style:
-  cell_radius: 8                  # All cells get exactly 8px radius
-  # normalize_radius settings are ignored when explicit radius is set
-```
-
-**Option 4: Disable Normalization**
-```yaml
-style:
-  normalize_radius: false         # Disable all smart radius features
-  cell_radius: 4                  # Uses fixed radius without any scaling
-```
-
-#### Visual Comparison
-
-**Before Normalization (inconsistent appearance):**
-- Small cell (48px height): 7px radius → looks very square
-- Large cell (144px height): 22px radius → looks very rounded
-- **Problem**: Different visual "roundness" across cells
-
-**After HA Matching (consistent appearance):**
-- Small cell (48px height): 34px radius → matches HA cards perfectly
-- Large cell (144px height): 34px radius → matches HA cards perfectly
-- **Result**: Identical visual appearance across all cells and HA interface
-
-#### CSS Variables Detected
-The system automatically detects these HA theme variables in order:
-- `--ha-card-border-radius` (most common)
-- `--card-border-radius`
-- `--border-radius`
-- `--mdc-shape-small`
-
-Fallback: 12px if no variables found
-
-#### Per-Cell Overrides
-Cell-level radius overrides still work and bypass all normalization:
-
-```yaml
-cells:
-  - position: [0, 0]
-    source: critical_system
-    label: "CRITICAL"
-    radius: 0                     # Square corners for urgency (overrides all defaults)
-
-  - position: [0, 1]
-    source: normal_system
-    label: "NORMAL"
-    # Uses normalized radius (HA matching or proportional)
-```
-
----
-
-## Status Detection & Color Coding
-
-### Automatic Status Detection
-The grid automatically detects common status patterns:
-
-```yaml
-style:
-  status_mode: "auto"             # Enable automatic detection
-
-  # Auto-detected patterns:
-  # Values: "online/offline", "on/off", "active/inactive", "true/false"
-  # Numbers: negative = bad, 0-100 = good, >100 = warning
-  # Booleans: true = good, false = bad
-```
-
-### Custom Status Ranges
-```yaml
-style:
-  status_mode: "ranges"           # Use custom status ranges
-  status_ranges:
-    # String value matching
-    - value: "online"
-      state: "good"
-      color: "var(--lcars-green)"
-
-    - value: "offline"
-      state: "bad"
-      color: "var(--lcars-red)"
-
-    - value: "maintenance"
-      state: "warning"
-      color: "var(--lcars-yellow)"
-
-    # Numeric range matching
-    - min: 0
-      max: 30
-      state: "good"
-      color: "var(--lcars-green)"
-      label: "Normal"
-
-    - min: 30
-      max: 70
-      state: "warning"
-      color: "var(--lcars-yellow)"
-      label: "Elevated"
-
-    - min: 70
-      max: 100
-      state: "bad"
-      color: "var(--lcars-red)"
-      label: "Critical"
-```
-
-### Per-Cell Color Overrides
-```yaml
-cells:
-  - position: [0, 0]
-    source: critical_system
-    label: "Critical"
-    color: "var(--lcars-red)"      # Override cell-specific color
-
-  - position: [0, 1]
-    source: normal_system
-    label: "Normal"
-    # Uses status range or auto-detection
-```
-
----
-
-## Animation & Cascade Effects
-
-### LCARS Cascade Animation
-Perfect for the classic LCARS cascade effect:
-
-```yaml
-style:
-  # Animation configuration
-  animatable: true                # Enable anime.js targeting
-  cascade_speed: 1.5              # Animation speed multiplier
-  cascade_direction: "row"        # Animation direction
-  reveal_animation: true          # Initial reveal animation
-  pulse_on_change: true           # Pulse when data changes
-```
-
-### Cascade Directions
-```yaml
-style:
-  cascade_direction: "row"        # Left to right, row by row (default)
-  cascade_direction: "column"     # Top to bottom, column by column
-  cascade_direction: "diagonal"   # Diagonal cascade effect
-  cascade_direction: "reverse-row" # Right to left, row by row
-  cascade_direction: "reverse-column" # Bottom to top, column by column
-```
-
-### Animation Delay Calculation
-Each cell gets automatic animation delay based on position:
-- **Row cascade**: `delay = row × 50ms / speed`
-- **Column cascade**: `delay = column × 50ms / speed`
-- **Diagonal cascade**: `delay = (row + column) × 50ms / speed`
-
-### Real-time Pulse Animation
-```yaml
-style:
-  pulse_on_change: true           # Pulse when cell data changes
-
-  # Cells automatically get:
-  # - data-cell-changed="true" attribute when value changes
-  # - Perfect for anime.js pulse animations
-  # - Auto-removes after 1 second
-```
-
----
-
-## Rules Engine Integration
-
-### Cell-Level Rule Targeting
-The Status Grid integrates with the MSD Rules Engine for dynamic cell-level styling and content updates based on conditions.
-
-```yaml
-rules:
-  # Target specific cell by position
-  - id: reactor_critical
-    when:
-      entity: reactor_temp
-      above: 90
-    apply:
-      overlays:
-        - id: ship_systems_grid
-          cell_target:
-            position: [0, 0]     # Target reactor cell at row 0, col 0
-          style:
-            color: "var(--lcars-red)"
-            radius: 0            # Square corners for urgency
-            font_size: 14        # Larger font
-          content: "⚠️ CRITICAL" # Override cell content
-
-  # Target by cell ID
-  - id: shields_low
-    when:
-      entity: shields.strength
-      below: 25
-    apply:
-      overlays:
-        - id: bridge_grid
-          cell_target:
-            cell_id: "shields_cell"
-          style:
-            color: "var(--lcars-yellow)"
-          label: "LOW SHIELDS"
-
-  # Target entire row or column
-  - id: weapons_armed
-    when:
-      entity: weapons.status
-      equals: "armed"
-    apply:
-      overlays:
-        - id: tactical_grid
-          cell_target:
-            row: 1               # Target all cells in row 1
-          style:
-            color: "var(--lcars-orange)"
-```
-
-### Rule Targeting Options
-```yaml
-cell_target:
-  # Target by cell ID
-  cell_id: "reactor_cell"        # Target specific cell by ID
-
-  # Target by position
-  position: [0, 1]               # Target cell at [row, column]
-
-  # Target by row/column
-  row: 2                         # Target entire row (all columns)
-  col: 1                         # Target entire column (all rows)
-```
-
-### Dynamic Content Override
-```yaml
-rules:
-  - id: system_status_override
-    when:
-      entity: system.emergency_mode
-      equals: true
-    apply:
-      overlays:
-        - id: status_grid
-          cell_target:
-            position: [0, 0]
-          content: "EMERGENCY"     # Override cell content
-          label: "ALERT"           # Override cell label
-          visible: true            # Show/hide cell
-```
-
-### Priority and Stop Semantics
-Rules targeting the same Status Grid cells follow priority order and stop semantics:
-
-```yaml
-rules:
-  # High priority emergency rule
-  - id: critical_alert
-    priority: 1000
-    stop: true                   # Stops lower priority rules
-    when:
-      entity: emergency_status
-      equals: "critical"
-    apply:
-      overlays:
-        - id: main_grid
-          cell_target:
-            position: [0, 0]
-          style:
-            color: "var(--lcars-red)"
-          content: "CRITICAL"
-
-  # Lower priority rule (may be stopped)
-  - id: warning_alert
-    priority: 500
-    when:
-      entity: warning_status
-      equals: "warning"
-    apply:
-      overlays:
-        - id: main_grid
-          cell_target:
-            position: [0, 0]     # Same cell
-          style:
-            color: "var(--lcars-yellow)"
-          content: "WARNING"
-```
-
----
-
-## LCARS Features
-
-### LCARS-Style Brackets
-```yaml
-style:
-  bracket_style: true             # Enable LCARS brackets around grid
-  bracket_color: "var(--lcars-orange)" # Custom bracket color
-```
-
-### Status Indicator
-```yaml
-style:
-  status_indicator: true          # Enable status indicator dot
-  status_indicator: "var(--lcars-green)" # Custom indicator color
-```
-
-### LCARS Corner Cuts
-```yaml
-style:
-  lcars_corners: true             # Enable characteristic LCARS corners
-
-  # Automatically applies different corner cuts based on position:
-  # - Top-left cell: cut top-left corner
-  # - Top-right cells: cut top-right corner
-  # - Bottom-left cells: cut bottom-left corner
-  # - Interior cells: standard rounded corners
-```
-
-### Effects & Styling
-```yaml
-style:
-  # Visual effects
-  glow:
-    color: "var(--lcars-blue)"     # Glow color
-    blur: 3                        # Glow radius
-    intensity: 0.6                 # Glow intensity
-
-  shadow:
-    offset_x: 2                    # Shadow horizontal offset
-    offset_y: 2                    # Shadow vertical offset
-    blur: 4                        # Shadow blur
-    color: "rgba(0,0,0,0.4)"       # Shadow color
-
-  # Gradient fills
-  gradient:
-    type: "linear"
-    direction: "vertical"
-    stops:
-      - { offset: "0%", color: "var(--lcars-blue)" }
-      - { offset: "100%", color: "var(--lcars-cyan)" }
+### Troubleshooting Actions
+
+#### Common Issues
+
+**Actions Not Working**
+- Verify the card instance is available during rendering
+- Check browser console for action attachment logs
+- Ensure proper YAML syntax for action definitions
+
+**Conflicting Actions**
+- Cell actions always override overlay actions by design
+- Check for multiple action definitions on the same cell
+- Verify event handling isn't being prevented by other scripts
+
+#### Debug Actions
+```javascript
+// Check action attachment status
+const grid = document.querySelector('[data-overlay-id="my_grid"]');
+const cellsWithActions = grid.querySelectorAll('[data-actions-attached="true"]');
+console.log('Cells with actions:', cellsWithActions.length);
+
+// Check specific cell action setup
+const cell = grid.querySelector('[data-cell-id="light_cell"]');
+console.log('Cell action data:', {
+  hasActions: cell.getAttribute('data-has-cell-actions'),
+  actionsAttached: cell.getAttribute('data-actions-attached'),
+  pointerEvents: cell.style.pointerEvents,
+  cursor: cell.style.cursor
+});
 ```
 
 ---
@@ -1770,15 +1148,10 @@ overlays:
       # String-based status detection
       status_ranges:
         - value: "online"
-          state: "good"
           color: "var(--lcars-green)"
-
         - value: "offline"
-          state: "bad"
           color: "var(--lcars-red)"
-
         - value: "degraded"
-          state: "warning"
           color: "var(--lcars-orange)"
 
       show_labels: true
@@ -1879,20 +1252,26 @@ overlays:
     size: [400, 300]
 
     cells:
-      # Main display (spans multiple proportional units)
       - position: [0, 0]
-        source: ship_systems.main_display
-        label: "MAIN DISPLAY"
+        source: ship_systems.warp_core
+        label: "WARP"
+        content: "ONLINE"
 
       - position: [0, 1]
-        source: ship_systems.tactical
-        label: "TACTICAL"
+        source: ship_systems.shields
+        label: "SHIELDS"
+        content: "85%"
 
       - position: [0, 2]
-        source: ship_systems.navigation
-        label: "NAV"
+        source: ship_systems.weapons
+        label: "WEAPONS"
+        content: "ARMED"
 
-      # Critical systems row
+      - position: [0, 3]
+        source: ship_systems.life_support
+        label: "LIFE"
+        content: "NOMINAL"
+
       - position: [1, 0]
         source: ship_systems.reactor
         label: "REACTOR"
@@ -1906,7 +1285,6 @@ overlays:
         source: ship_systems.shields
         label: "SHIELDS"
 
-      # Status indicators (smaller row)
       - position: [2, 0]
         source: ship_systems.comms
         label: "COMMS"
@@ -1922,6 +1300,7 @@ overlays:
     style:
       rows: 3
       columns: 3
+      cell_gap: 2
 
       # Proportional sizing - creates unequal layouts
       row_sizes: [3, 2, 1]        # Main display row is 3x, critical systems 2x, status 1x
@@ -1937,6 +1316,7 @@ overlays:
       lcars_corners: true
       bracket_style: true
       bracket_color: "var(--lcars-orange)"
+      status_indicator: "var(--lcars-green)"
 
       show_labels: true
       show_values: false
@@ -1955,6 +1335,7 @@ overlays:
       cascade_speed: 1.5
       cascade_direction: "row"
       reveal_animation: true
+      pulse_on_change: true
 ```
 
 ### Example 7: CB-LCARS Preset Styles Showcase
@@ -2090,10 +1471,9 @@ overlays:
       show_labels: true
       show_values: true
       font_size: 11
-      label_font_size: 10
-      value_font_size: 12
-      cell_color: "var(--lcars-yellow)"
-      lcars_corners: true
+      label_color: "var(--lcars-cyan)"
+      value_color: "var(--lcars-white)"
+      cell_color: "var(--lcars-blue-dark)"
 ```
 
 ### Example 8: Advanced Custom Positioning
@@ -2124,13 +1504,13 @@ overlays:
       # Percentage-based custom positioning
       label_position:
         x: "20%"                      # 20% from left edge
-        y: "30%"                      # 30% from top
-        anchor: "start"               # Left-aligned text
-        baseline: "hanging"           # Top-aligned text
+        y: "30%"                      # 30% from top edge
+        anchor: "start"               # text anchor
+        baseline: "hanging"           # text baseline
 
       value_position:
         x: "80%"                      # 80% from left edge
-        y: "70%"                      # 70% from top
+        y: "70%"                      # 70% from top edge
         anchor: "end"                 # Right-aligned text
         baseline: "baseline"          # Bottom-aligned text
 
@@ -2234,7 +1614,3 @@ overlays:
         blur: 2
         color: "rgba(0,0,0,0.3)"
 ```
-
----
-
-This completes the comprehensive Status Grid overlay documentation covering all features, configuration options, DataSource integration, and animation capabilities. The system provides powerful multi-entity status visualization with excellent support for LCARS cascade animations through anime.js integration!
