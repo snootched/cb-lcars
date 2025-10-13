@@ -161,6 +161,7 @@ export class ButtonOverlayRenderer {
         id: overlay.id,
         label: overlay.label || buttonContent.label,
         content: buttonContent.content,
+        texts: overlay.texts || overlay._raw?.texts, // ADDED: Pass through texts array
         tap_action: overlay.tap_action,
         hold_action: overlay.hold_action,
         double_tap_action: overlay.double_tap_action,

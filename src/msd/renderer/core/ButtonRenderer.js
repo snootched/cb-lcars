@@ -9,6 +9,7 @@ import { RendererUtils } from '../RendererUtils.js';
 import { DataSourceMixin } from '../DataSourceMixin.js';
 import { BracketRenderer } from '../BracketRenderer.js';
 import { ActionHelpers } from '../ActionHelpers.js';
+import { TextRenderer as CoreTextRenderer } from './TextRenderer.js'; // Import core TextRenderer
 import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 
 export class ButtonRenderer {
@@ -133,6 +134,9 @@ export class ButtonRenderer {
       // Resolve complete button styling with enhanced border support
       const buttonStyle = this.resolveButtonStyle(config, style, width, height);
 
+      // ARCHITECTURAL CHANGE: Convert legacy label/content to texts array
+      const textsArray = this._normalizeTextsConfiguration(config, buttonStyle);
+
       // Process actions if available
       const actionInfo = this._processButtonActions(config, buttonStyle, options.cardInstance);
 
@@ -159,8 +163,8 @@ export class ButtonRenderer {
       // Render button background with enhanced border support
       buttonMarkup += this.renderButtonBackground(x, y, width, height, buttonStyle, config);
 
-      // Render button text content
-      buttonMarkup += this.renderButtonText(config, x, y, width, height, buttonStyle);
+      // NEW: Render button text using texts array and core/TextRenderer
+      buttonMarkup += this.renderButtonTexts(textsArray, x, y, width, height, buttonStyle, config);
 
       buttonMarkup += '</g>';
 
@@ -178,6 +182,288 @@ export class ButtonRenderer {
         needsActionAttachment: false
       };
     }
+  }
+
+  /**
+   * ARCHITECTURAL CHANGE: Normalize button configuration to texts array
+   * Handles backward compatibility: legacy label/content → new texts array
+   * @private
+   */
+  _normalizeTextsConfiguration(config, buttonStyle) {
+    // NEW FORMAT: Check if texts array is provided
+    if (config.texts && Array.isArray(config.texts)) {
+      return config.texts.map(textConfig => ({
+        content: textConfig.content || textConfig.text || '',
+        position: textConfig.position || 'center',
+        fontSize: textConfig.font_size || textConfig.fontSize || buttonStyle.font_size,
+        fontFamily: textConfig.font_family || textConfig.fontFamily || buttonStyle.font_family,
+        fontWeight: textConfig.font_weight || textConfig.fontWeight || buttonStyle.font_weight,
+        color: textConfig.color || textConfig.fill || buttonStyle.label_color,
+        // CRITICAL FIX: Don't set default values - let inference happen in renderButtonTexts
+        textAnchor: textConfig.text_anchor || textConfig.textAnchor || null,
+        dominantBaseline: textConfig.dominant_baseline || textConfig.dominantBaseline || null,
+        opacity: textConfig.opacity || 1,
+        // Store original for updates
+        _originalContent: textConfig.content || textConfig.text
+      }));
+    }
+
+    // LEGACY FORMAT: Convert label/content to texts array for backward compatibility
+    const legacyTexts = [];
+
+    if (buttonStyle.show_labels && config.label) {
+      legacyTexts.push({
+        content: config.label,
+        position: buttonStyle.label_position || 'top-left', // FIXED: Changed from center-top to top-left to match grid cells
+        fontSize: buttonStyle.label_font_size,
+        fontFamily: buttonStyle.font_family,
+        fontWeight: buttonStyle.font_weight,
+        color: buttonStyle.label_color,
+        // CRITICAL FIX: Use null instead of hardcoded values - let inference happen
+        textAnchor: null,
+        dominantBaseline: null,
+        opacity: 1,
+        _originalContent: config.label
+      });
+    }
+
+    if (buttonStyle.show_values && config.content) {
+      legacyTexts.push({
+        content: config.content,
+        position: buttonStyle.value_position || 'bottom-right', // FIXED: Changed from center-bottom to bottom-right to match grid cells
+        fontSize: buttonStyle.value_font_size,
+        fontFamily: buttonStyle.font_family,
+        fontWeight: buttonStyle.font_weight,
+        color: buttonStyle.value_color,
+        // CRITICAL FIX: Use null instead of hardcoded values - let inference happen
+        textAnchor: null,
+        dominantBaseline: null,
+        opacity: 1,
+        _originalContent: config.content
+      });
+    }
+
+    return legacyTexts;
+  }
+
+  /**
+   * NEW METHOD: Render button texts using array configuration and core/TextRenderer
+   * @param {Array} textsArray - Array of text configurations
+   * @param {number} x - Button X coordinate
+   * @param {number} y - Button Y coordinate
+   * @param {number} width - Button width
+   * @param {number} height - Button height
+   * @param {Object} buttonStyle - Resolved button styling
+   * @param {Object} config - Button configuration
+   * @returns {string} SVG markup for all button texts
+   */
+  renderButtonTexts(textsArray, x, y, width, height, buttonStyle, config) {
+    if (!textsArray || textsArray.length === 0) return '';
+
+    const textMarkups = [];
+
+    textsArray.forEach((textConfig, index) => {
+      try {
+        // CRITICAL DEBUG: Log input parameters
+        cblcarsLog.debug(`[ButtonRenderer] 🔍 Processing text ${index} for ${config.id}:`, {
+          position: textConfig.position,
+          buttonBounds: { x, y, width, height },
+          padding: buttonStyle.text_padding
+        });
+
+        // Calculate absolute position within button bounds
+        const textPosition = this._calculateTextPositionInButton(
+          textConfig.position,
+          x, y, width, height,
+          buttonStyle
+        );
+
+        // CRITICAL DEBUG: Log the calculated position
+        cblcarsLog.debug(`[ButtonRenderer] Text ${index} for ${config.id}:`, {
+          position: textConfig.position,
+          buttonBounds: { x, y, width, height },
+          calculatedPosition: textPosition,
+          textAnchor: this._inferTextAnchor(textConfig.position),
+          dominantBaseline: this._inferDominantBaseline(textConfig.position)
+        });
+
+        // CRITICAL FIX: Infer alignment ONLY if not explicitly provided
+        const inferredTextAnchor = this._inferTextAnchor(textConfig.position);
+        const inferredDominantBaseline = this._inferDominantBaseline(textConfig.position);
+
+        // Use explicit values if provided, otherwise use inferred values
+        const finalTextAnchor = textConfig.textAnchor || inferredTextAnchor;
+        const finalDominantBaseline = textConfig.dominantBaseline || inferredDominantBaseline;
+
+        // CRITICAL DEBUG: Log the calculated position
+        cblcarsLog.debug(`[ButtonRenderer] Text ${index} for ${config.id}:`, {
+          position: textConfig.position,
+          buttonBounds: { x, y, width, height },
+          calculatedPosition: textPosition,
+          textAnchor: finalTextAnchor,
+          dominantBaseline: finalDominantBaseline
+        });
+
+        // Prepare text style for rendering
+        const textStyle = {
+          color: textConfig.color,
+          fontSize: textConfig.fontSize,
+          fontFamily: textConfig.fontFamily,
+          fontWeight: textConfig.fontWeight,
+          textAnchor: finalTextAnchor,
+          dominantBaseline: finalDominantBaseline,
+          opacity: textConfig.opacity,
+          stroke: textConfig.stroke || null,
+          strokeWidth: textConfig.strokeWidth || 0,
+          letterSpacing: textConfig.letterSpacing || 'normal'
+        };
+
+        // CRITICAL FIX: Render directly with exact coordinates
+        const [textX, textY] = textPosition;
+
+        const textMarkup = `<text x="${textX.toFixed(2)}" y="${textY.toFixed(2)}"
+                                  fill="${textStyle.color}"
+                                  fill-opacity="${textStyle.opacity}"
+                                  font-size="${textStyle.fontSize}"
+                                  font-family="${textStyle.fontFamily}"
+                                  ${textStyle.fontWeight !== 'normal' ? `font-weight="${textStyle.fontWeight}"` : ''}
+                                  text-anchor="${textStyle.textAnchor}"
+                                  dominant-baseline="${textStyle.dominantBaseline}"
+                                  style="pointer-events: inherit; cursor: inherit; user-select: none;"
+                                  data-button-text="${config.id}-${index}">${this._escapeXml(textConfig.content)}</text>`;
+
+        // Wrap in group with data attributes for updates
+        const wrappedMarkup = `<g data-button-text-index="${index}"
+                                  data-button-text-position="${textConfig.position}"
+                                  data-button-id="${config.id}">
+                                 ${textMarkup}
+                               </g>`;
+        textMarkups.push(wrappedMarkup);
+
+      } catch (error) {
+        cblcarsLog.warn(`[ButtonRenderer] Error rendering text ${index} for button ${config.id}:`, error);
+      }
+    });
+
+    return textMarkups.join('\n');
+  }
+
+  /**
+   * Calculate text position within button bounds
+   * Supports both legacy position strings (center-top) and smart positioning
+   * @private
+   */
+  _calculateTextPositionInButton(position, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle) {
+    const padding = buttonStyle.text_padding || 8;
+
+    // CRITICAL FIX: Check if position is a predefined string BEFORE checking lcars_text_preset
+    // This ensures explicitly set positions (from label_position/value_position) take precedence
+    const positionMap = {
+      'center': [buttonX + buttonWidth / 2, buttonY + buttonHeight / 2],
+      'center-top': [buttonX + buttonWidth / 2, buttonY + padding],
+      'center-bottom': [buttonX + buttonWidth / 2, buttonY + buttonHeight - padding],
+      'top-left': [buttonX + padding, buttonY + padding],
+      'top-right': [buttonX + buttonWidth - padding, buttonY + padding],
+      'bottom-left': [buttonX + padding, buttonY + buttonHeight - padding],
+      'bottom-right': [buttonX + buttonWidth - padding, buttonY + buttonHeight - padding],
+      'left': [buttonX + padding, buttonY + buttonHeight / 2],
+      'right': [buttonX + buttonWidth - padding, buttonY + buttonHeight / 2],
+      'top': [buttonX + buttonWidth / 2, buttonY + padding],
+      'bottom': [buttonX + buttonWidth / 2, buttonY + buttonHeight - padding]
+    };
+
+    // Check if position is a predefined string (explicit configuration)
+    if (typeof position === 'string' && positionMap[position]) {
+      return positionMap[position];
+    }
+
+    // ONLY use LCARS presets if position is NOT explicitly configured
+    if (buttonStyle.lcars_text_preset) {
+      return this._calculateLCARSPresetPositionInButton(
+        buttonStyle.lcars_text_preset,
+        buttonX, buttonY, buttonWidth, buttonHeight,
+        buttonStyle
+      );
+    }
+
+    // Handle numeric array: [x, y] relative to button bounds (0-100%)
+    if (Array.isArray(position) && position.length === 2) {
+      const [relX, relY] = position;
+      return [
+        buttonX + (buttonWidth * relX / 100),
+        buttonY + (buttonHeight * relY / 100)
+      ];
+    }
+
+    // Handle object format: {x: value, y: value}
+    if (typeof position === 'object' && position.x !== undefined && position.y !== undefined) {
+      return [
+        buttonX + this._parsePositionValue(position.x, buttonWidth, 0),
+        buttonY + this._parsePositionValue(position.y, buttonHeight, 0)
+      ];
+    }
+
+    // Default to center
+    return [buttonX + buttonWidth / 2, buttonY + buttonHeight / 2];
+  }
+
+  /**
+   * Calculate LCARS preset positions within button bounds
+   * @private
+   */
+  _calculateLCARSPresetPositionInButton(preset, buttonX, buttonY, buttonWidth, buttonHeight, buttonStyle) {
+    const padding = buttonStyle.text_padding || 8;
+    const fontSize = buttonStyle.font_size || 18;
+
+    switch (preset) {
+      case 'lozenge':
+        return [buttonX + padding, buttonY + padding + fontSize * 0.8];
+
+      case 'bullet':
+        return [buttonX + padding, buttonY + buttonHeight / 2];
+
+      default:
+        return [buttonX + buttonWidth / 2, buttonY + buttonHeight / 2];
+    }
+  }
+
+  /**
+   * Infer text-anchor from position string
+   * @private
+   */
+  _inferTextAnchor(position) {
+    if (typeof position !== 'string') return 'middle';
+
+    const lowerPos = position.toLowerCase();
+
+    // CRITICAL FIX: Check exact position strings and endings more carefully
+    if (lowerPos === 'left') return 'start';
+    if (lowerPos === 'right') return 'end';
+
+    // For compound positions, check what side they're on
+    if (lowerPos.endsWith('-left') || lowerPos.startsWith('left-')) return 'start';
+    if (lowerPos.endsWith('-right') || lowerPos.startsWith('right-')) return 'end';
+
+    return 'middle';
+  }
+
+  /**
+   * Infer dominant-baseline from position string
+   * @private
+   */
+  _inferDominantBaseline(position) {
+    if (typeof position !== 'string') return 'middle';
+
+    const lowerPos = position.toLowerCase();
+
+    // CRITICAL FIX: For compound positions
+    if (lowerPos === 'top') return 'hanging';
+    if (lowerPos === 'bottom') return 'baseline';
+
+    if (lowerPos.startsWith('top-') || lowerPos.endsWith('-top')) return 'hanging';
+    if (lowerPos.startsWith('bottom-') || lowerPos.endsWith('-bottom')) return 'baseline';
+
+    return 'middle';
   }
 
   /**
@@ -1092,11 +1378,15 @@ export class ButtonRenderer {
    */
   updateButton(buttonElement, config, sourceData) {
     try {
-      // Get raw content and resolve it with new data
+      // NEW APPROACH: If using texts array, update each text element
+      if (config.texts && Array.isArray(config.texts)) {
+        return this._updateButtonTextsArray(buttonElement, config, sourceData);
+      }
+
+      // LEGACY APPROACH: Update single content element
       const rawContent = this._getCellContentFromSources(config);
       const resolvedContent = this._resolveCellContent(rawContent, sourceData);
 
-      // Update button content in DOM
       const contentElement = buttonElement.querySelector(`[data-button-content="${config.id}"]`);
 
       if (contentElement && resolvedContent !== undefined) {
@@ -1115,6 +1405,54 @@ export class ButtonRenderer {
       cblcarsLog.error(`[ButtonRenderer] Error updating button ${config.id}:`, error);
       return false;
     }
+  }
+
+  /**
+   * Update button texts array (new approach using core/TextRenderer)
+   * @private
+   */
+  _updateButtonTextsArray(buttonElement, config, sourceData) {
+    let anyUpdated = false;
+
+    config.texts.forEach((textConfig, index) => {
+      try {
+        // Find the text group for this index
+        const textGroup = buttonElement.querySelector(`[data-button-text-index="${index}"]`);
+        if (!textGroup) return;
+
+        // Find the actual text element within the group
+        const textElement = textGroup.querySelector('text');
+        if (!textElement) return;
+
+        // Resolve new content with templates
+        const rawContent = textConfig.content || textConfig._originalContent || '';
+        const resolvedContent = this._resolveCellContent(rawContent, sourceData);
+
+        if (resolvedContent !== undefined) {
+          const oldContent = textElement.textContent?.trim();
+          const newContent = String(resolvedContent);
+
+          if (newContent !== oldContent) {
+            // CRITICAL FIX: Preserve text alignment attributes when updating
+            const textAnchor = textElement.getAttribute('text-anchor');
+            const dominantBaseline = textElement.getAttribute('dominant-baseline');
+
+            textElement.textContent = this._escapeXml(newContent);
+
+            // CRITICAL: Re-apply alignment attributes (they might get lost)
+            if (textAnchor) textElement.setAttribute('text-anchor', textAnchor);
+            if (dominantBaseline) textElement.setAttribute('dominant-baseline', dominantBaseline);
+
+            cblcarsLog.debug(`[ButtonRenderer] Updated text ${index} for button ${config.id}: "${oldContent}" → "${newContent}"`);
+            anyUpdated = true;
+          }
+        }
+      } catch (error) {
+        cblcarsLog.warn(`[ButtonRenderer] Error updating text ${index} for button ${config.id}:`, error);
+      }
+    });
+
+    return anyUpdated;
   }
 
   /**
