@@ -29,13 +29,15 @@ export class TextOverlayRenderer {
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - Container element
    * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
-   * @returns {string} Complete SVG markup
+   * @returns {Object} { markup, actionInfo, overlayId }
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
+    // FIXED: Create instance to access instance methods
     const instance = new TextOverlayRenderer();
     instance.container = svgContainer;
     instance.viewBox = viewBox;
 
+    // Delegate to instance method
     return instance.renderText(overlay, anchors, viewBox, cardInstance);
   }
 
@@ -47,8 +49,10 @@ export class TextOverlayRenderer {
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[TextOverlayRenderer] ⚠️ Text overlay position could not be resolved:', overlay.id);
-      return '';
+      return { markup: '', actionInfo: null, overlayId: overlay.id };
     }
+
+    const [x, y] = position;
 
     try {
       const style = overlay.finalStyle || overlay.style || {};
@@ -77,7 +81,7 @@ export class TextOverlayRenderer {
 
       if (!textContent) {
         cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id}`);
-        return '';
+        return { markup: '', actionInfo: null, overlayId: overlay.id };
       }
 
       // 4. DELEGATE: Pure rendering to core/TextRenderer
@@ -96,117 +100,78 @@ export class TextOverlayRenderer {
         }
       );
 
+      // FIXED: Check if renderResult has the expected structure
       if (!renderResult || !renderResult.markup) {
-        cblcarsLog.warn(`[TextOverlayRenderer] Core renderer returned empty markup for ${overlay.id}`);
+        cblcarsLog.warn(`[TextOverlayRenderer] Core renderer returned empty or invalid result for ${overlay.id}`);
         return this._renderFallbackText(overlay, position[0], position[1]);
       }
 
-      // 5. MSD RESPONSIBILITY: Handle actions
+      // Check for actions
       const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
 
-      if (hasActions && cardInstance) {
-        const actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
-        if (actionInfo) {
-          // CRITICAL: Store action info for deferred processing (same pattern as StatusGrid)
-          if (!window._msdTextActions) {
-            window._msdTextActions = new Map();
-          }
-          window._msdTextActions.set(overlay.id, actionInfo);
+      // Build text features string
+      const textFeatures = [];
+      if (textStyle.glow) textFeatures.push('glow');
+      if (textStyle.status_indicator) textFeatures.push('status');
+      const textFeaturesStr = textFeatures.join(',');
 
-          // Schedule multiple attempts at action attachment (same reliable pattern)
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 0);
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 10);
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 50);
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 100);
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 200);
-          setTimeout(() => this._tryManualActionProcessing(overlay.id), 500);
-        }
-      }
-
-      // 6. MSD RESPONSIBILITY: Wrap in overlay group with metadata
-      const metadata = renderResult.metadata || {};
-      const animationAttributes = this._prepareAnimationAttributes(overlay, style);
-
-      // CRITICAL FIX: Use 'all' for pointer-events to ensure events reach child elements
-      // Set cursor on the group level for proper visual feedback
-      return `<g data-overlay-id="${overlay.id}"
-                  data-overlay-type="text"
-                  data-text-features="${textStyle.features.join(',')}"
-                  data-animation-ready="${!!animationAttributes.hasAnimations}"
-                  data-text-width="${metadata.bounds?.width || 0}"
-                  data-text-height="${metadata.bounds?.height || 0}"
-                  data-font-family="${textStyle.fontFamily}"
-                  data-font-size="${metadata.fontSize || 16}"
-                  data-dominant-baseline="${textStyle.dominantBaseline}"
-                  data-text-anchor="${textStyle.textAnchor}"
-                  data-font-stabilized="0"
-                  ${hasActions ? 'data-has-actions="true"' : ''}
-                  style="pointer-events: ${hasActions ? 'all' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
+      // FIXED: Use renderResult.markup directly - TextRenderer already provides complete markup
+      const overlayMarkup = `<g data-overlay-id="${overlay.id}"
+                data-overlay-type="text"
+                data-text-features="${textFeaturesStr}"
+                data-animation-ready="${!!textStyle.animatable}"
+                data-text-width="0"
+                data-text-height="0"
+                data-font-family="${textStyle.fontFamily || textStyle.font_family || 'Antonio'}"
+                data-font-size="${textStyle.fontSize || textStyle.font_size || 16}"
+                data-dominant-baseline="${textStyle.dominantBaseline || textStyle.dominant_baseline || 'central'}"
+                data-text-anchor="${textStyle.textAnchor || textStyle.text_anchor || 'start'}"
+                data-font-stabilized="0"
+                ${hasActions ? 'data-has-actions="true"' : ''}
+                style="pointer-events: ${hasActions ? 'all' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
                 ${renderResult.markup}
               </g>`;
 
-    } catch (error) {
-      cblcarsLog.error(`[TextOverlayRenderer] ❌ Rendering failed for text ${overlay.id}:`, error);
-      return this._renderFallbackText(overlay, position[0], position[1]);
-    }
-  }
+      // Process actions if present
+      let actionInfo = null;
+      if (hasActions && cardInstance) {
+        cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Processing actions for ${overlay.id}`, {
+          hasTapAction: !!overlay.tap_action,
+          hasHoldAction: !!overlay.hold_action,
+          hasDoubleTapAction: !!overlay.double_tap_action,
+          hasCardInstance: !!cardInstance
+        });
 
-  /**
-   * Try to manually process action attachment for text overlay
-   * Uses the same reliable pattern as StatusGridRenderer
-   * @private
-   */
-  _tryManualActionProcessing(overlayId) {
-    try {
-      if (!window._msdTextActions || !window._msdTextActions.has(overlayId)) {
-        return;
+        actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
+
+        cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Action processing result for ${overlay.id}:`, {
+          hasActionInfo: !!actionInfo,
+          actionConfig: actionInfo?.config,
+          overlayId: actionInfo?.overlay?.id
+        });
+      } else {
+        cblcarsLog.debug(`[TextOverlayRenderer] ⏭️ Skipping actions for ${overlay.id}`, {
+          hasActions,
+          hasCardInstance: !!cardInstance
+        });
       }
 
-      const actionInfo = window._msdTextActions.get(overlayId);
-      if (!actionInfo) return;
+      // Return new structure
+      cblcarsLog.debug(`[TextOverlayRenderer] 📦 Returning result for ${overlay.id}:`, {
+        hasMarkup: !!overlayMarkup,
+        hasActionInfo: !!actionInfo,
+        overlayId: overlay.id
+      });
 
-      // Find the overlay element
-      let overlayElement = null;
-      const card = window.cb_lcars_card_instance;
-      if (card && card.shadowRoot) {
-        overlayElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
-      }
-      if (!overlayElement) {
-        overlayElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
-      }
-
-      if (!overlayElement) {
-        cblcarsLog.debug(`[TextOverlayRenderer] Overlay element not yet available for ${overlayId}, will retry`);
-        return;
-      }
-
-      // Check if already processed
-      if (overlayElement.hasAttribute('data-actions-attached')) {
-        cblcarsLog.debug(`[TextOverlayRenderer] Actions already attached for ${overlayId}`);
-        window._msdTextActions.delete(overlayId);
-        return;
-      }
-
-      // CRITICAL: Ensure pointer events are enabled at the group level
-      overlayElement.style.pointerEvents = 'all';
-      overlayElement.style.cursor = 'pointer';
-
-      // Attach actions using ActionHelpers
-      ActionHelpers.attachActions(
-        overlayElement,
-        actionInfo.overlay,
-        actionInfo.config,
-        actionInfo.cardInstance
-      );
-
-      // Mark as processed
-      overlayElement.setAttribute('data-actions-attached', 'true');
-      window._msdTextActions.delete(overlayId);
-
-      cblcarsLog.debug(`[TextOverlayRenderer] ✅ Successfully attached actions for text overlay ${overlayId}`);
+      return {
+        markup: overlayMarkup,
+        actionInfo: actionInfo,
+        overlayId: overlay.id
+      };
 
     } catch (error) {
-      cblcarsLog.warn(`[TextOverlayRenderer] Error in manual action processing for ${overlayId}:`, error);
+      cblcarsLog.error(`[TextOverlayRenderer] ❌ Rendering failed for text overlay ${overlay.id}:`, error);
+      return this._renderFallbackText(overlay, x, y);
     }
   }
 
@@ -511,15 +476,19 @@ export class TextOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const fontSize = style.font_size || style.fontSize || this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
 
-    return `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
-              <text x="${x}" y="${y}"
-                    fill="${color}"
-                    font-size="${fontSize}"
-                    text-anchor="start"
-                    dominant-baseline="auto">
-                ${TextRenderer._escapeXml(text)}
-              </text>
-            </g>`;
+    return {
+      markup: `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
+                <text x="${x}" y="${y}"
+                      fill="${color}"
+                      font-size="${fontSize}"
+                      text-anchor="start"
+                      dominant-baseline="auto">
+                  ${TextRenderer._escapeXml(text)}
+                </text>
+              </g>`,
+      actionInfo: null,
+      overlayId: overlay.id
+    };
   }
 
   /**
@@ -599,6 +568,42 @@ export class TextOverlayRenderer {
       status_indicator_color: this._resolveDefault('text.status_indicator.color', scalingContext, defaults, 'var(--lcars-green)'),
       status_indicator_padding: this._resolveDefault('text.status_indicator.padding', scalingContext, defaults, 8)
     };
+  }
+
+  /**
+   * Resolve container element from various sources as fallback
+   * @private
+   * @returns {Element|null} Container element for action attachment
+   */
+  _resolveContainerElement() {
+    // Try to find a valid container element for action attachment
+
+    // Method 1: From pipeline renderer (most reliable)
+    const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
+    if (renderer?.mountEl) {
+      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from pipeline renderer`);
+      return renderer.mountEl;
+    }
+
+    // Method 2: From card instance shadow root
+    const cardInstance = window.__msdDebug?.pipelineInstance?.cardInstance ||
+                         window._msdCardInstance ||
+                         window.cb_lcars_card_instance;
+
+    if (cardInstance?.shadowRoot) {
+      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from card instance shadow root`);
+      return cardInstance.shadowRoot;
+    }
+
+    // Method 3: Try to find overlay container in document
+    const overlayContainer = document.querySelector('#msd-overlay-container');
+    if (overlayContainer) {
+      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from document query`);
+      return overlayContainer;
+    }
+
+    cblcarsLog.warn(`[TextOverlayRenderer] Could not resolve container element from any source`);
+    return null;
   }
 }
 

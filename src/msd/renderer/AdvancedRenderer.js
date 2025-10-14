@@ -82,18 +82,84 @@ export class AdvancedRenderer {
     const earlyTypes = new Set(['text', 'sparkline']);
     let svgMarkupAccum = '';
     let processedCount = 0;
+
+    // CHANGED: Collect action info during rendering
+    const actionQueue = [];
+
     overlays.filter(o => earlyTypes.has(o.type)).forEach(ov => {
       try {
-        const html = this.renderOverlay(ov, anchors, viewBox);
-        if (html) {
-          svgMarkupAccum += html;
+        const result = this.renderOverlay(ov, anchors, viewBox);
+
+        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 1 overlay ${ov.id} result:`, {
+          resultType: typeof result,
+          isObject: result && typeof result === 'object',
+          hasMarkup: result?.markup,
+          hasActionInfo: result?.actionInfo,
+          overlayId: result?.overlayId
+        });
+
+        // CHANGED: Handle new return structure
+        if (typeof result === 'string') {
+          // Backward compatibility - old renderers return strings
+          svgMarkupAccum += result;
+        } else if (result && result.markup) {
+          // New structure - extract markup and action info
+          svgMarkupAccum += result.markup;
+
+          if (result.actionInfo) {
+            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing action for ${result.overlayId}`);
+            actionQueue.push({
+              overlayId: result.overlayId,
+              actionInfo: result.actionInfo
+            });
+          }
         }
+
         processedCount++;
       } catch (e) {
         cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase1 render failed for overlay ${ov.id}:`, e);
       }
     });
+
+    cblcarsLog.debug(`[AdvancedRenderer] 📋 Phase 1 action queue:`, {
+      queueSize: actionQueue.length,
+      overlayIds: actionQueue.map(a => a.overlayId)
+    });
+
+    // Inject Phase 1 DOM
     overlayGroup.innerHTML = svgMarkupAccum;
+
+    // AT THIS POINT, DOM IS UPDATED - Elements exist in this.mountEl
+
+    // ADDED: Attach actions immediately after DOM injection
+    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${actionQueue.length} actions after Phase 1 DOM injection`);
+
+    actionQueue.forEach(({ overlayId, actionInfo }) => {
+      const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for element ${overlayId}:`, {
+        found: !!element,
+        alreadyAttached: element?.hasAttribute('data-actions-attached')
+      });
+
+      if (element) {
+        try {
+          ActionHelpers.attachActions(
+            element,
+            actionInfo.overlay,
+            actionInfo.config,
+            actionInfo.cardInstance
+          );
+          element.setAttribute('data-actions-attached', 'true');
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached actions to ${overlayId}`);
+        } catch (error) {
+          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach actions to ${overlayId}:`, error);
+        }
+      } else {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Element not found for overlay ${overlayId}`);
+      }
+    });
+
     this._cacheElementsFrom(overlayGroup);
 
     // Build dynamic anchors (overlay destinations)
@@ -106,10 +172,27 @@ export class AdvancedRenderer {
     // Phase 2: render line overlays (now DOM for targets exists)
     overlays.filter(o => !earlyTypes.has(o.type)).forEach(ov => {
       try {
-        const html = this.renderOverlay(ov, this._dynamicAnchors, viewBox); // pass dynamic anchors
-        if (html) {
-          overlayGroup.insertAdjacentHTML('beforeend', html);
-          svgMarkupAccum += html;
+        const result = this.renderOverlay(ov, this._dynamicAnchors, viewBox);
+
+        let markup = '';
+        if (typeof result === 'string') {
+          markup = result;
+        } else if (result && result.markup) {
+          markup = result.markup;
+
+          // Collect Phase 2 actions
+          if (result.actionInfo) {
+            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 2 action for ${result.overlayId}`);
+            actionQueue.push({
+              overlayId: result.overlayId,
+              actionInfo: result.actionInfo
+            });
+          }
+        }
+
+        if (markup) {
+          overlayGroup.insertAdjacentHTML('beforeend', markup);
+          svgMarkupAccum += markup;
           const el = overlayGroup.querySelector(`[data-overlay-id="${ov.id}"]`);
           if (el) this.overlayElementCache.set(ov.id, el);
           const raw = ov._raw || ov.raw || {};
@@ -139,6 +222,27 @@ export class AdvancedRenderer {
       }
     });
 
+    // ADDED: Attach Phase 2 actions (buttons, status grids, etc.)
+    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching Phase 2 actions (queue size: ${actionQueue.length})`);
+
+    actionQueue.forEach(({ overlayId, actionInfo }) => {
+      const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
+      if (element && !element.hasAttribute('data-actions-attached')) {
+        try {
+          ActionHelpers.attachActions(
+            element,
+            actionInfo.overlay,
+            actionInfo.config,
+            actionInfo.cardInstance
+          );
+          element.setAttribute('data-actions-attached', 'true');
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached actions to ${overlayId} (Phase 2)`);
+        } catch (error) {
+          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach actions to ${overlayId}:`, error);
+        }
+      }
+    });
+
     cblcarsLog.debug('[AdvancedRenderer] Injected elements (after phased render):', {
       total: this.overlayElementCache.size,
       text: overlayGroup.querySelectorAll('[data-overlay-type="text"]').length,
@@ -155,8 +259,7 @@ export class AdvancedRenderer {
     // NEW: schedule font stabilization pass (re-measure after real fonts load)
     this._scheduleFontStabilization(overlays, this._dynamicAnchors, viewBox);
 
-    // CRITICAL: Process all pending actions after DOM is complete
-    this._scheduleActionProcessing();
+    // REMOVED: _scheduleActionProcessing() call - no longer needed
 
     this.lastRenderArgs = { resolvedModel, overlays, svg };
     return {
@@ -556,10 +659,26 @@ export class AdvancedRenderer {
           const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
           if (ap) this.textAttachmentPoints.set(overlay.id, ap);
 
-          // Get card instance for action support (same pattern as status grid)
+          // Get card instance for action support
           const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
 
-          return TextOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, textCardInstance);
+          cblcarsLog.debug(`[AdvancedRenderer] 🔤 Calling TextOverlayRenderer.render for ${overlay.id}`, {
+            hasCardInstance: !!textCardInstance,
+            hasActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action)
+          });
+
+          // CHANGED: Now returns { markup, actionInfo, overlayId }
+          const textResult = TextOverlayRenderer.render(overlay, anchors, viewBox, this.mountEl, textCardInstance);
+
+          cblcarsLog.debug(`[AdvancedRenderer] 🔤 TextOverlayRenderer.render result:`, {
+            hasMarkup: !!textResult?.markup,
+            hasActionInfo: !!textResult?.actionInfo,
+            overlayId: textResult?.overlayId
+          });
+
+          // Return the result structure (backward compatible with string check in render())
+          return textResult;
+
         case 'sparkline':
           return SparklineOverlayRenderer.render(overlay, anchors, viewBox);
         case 'line':
@@ -735,475 +854,101 @@ export class AdvancedRenderer {
    */
   _getResolvedModel() {
     return this.systemsManager?.rulesEngine?.getResolvedModel?.() ||
-           this.systemsManager?.getResolvedModel?.() ||
-           window.__msdDebug?.pipelineInstance?.getResolvedModel?.() ||
+           this.systemManager?.rulesEngine?.getResolvedModel?.() ||
+           this.routerCore?.getResolvedModel?.() ||
            null;
   }
 
   /**
-   * Clean up resources when renderer is destroyed
+   * Re-render all overlays dependent on a given set of source overlays
+   * @param {Array} allOverlays - Complete list of overlays
+   * @param {Set} sourceOverlayIds - Set of source overlay IDs that changed
+   * @param {Array} viewBox - Current viewBox for rendering
    */
-  destroy() {
-    // Clear all caches and references
-    this.overlayElements.clear();
-    this.overlayElementCache.clear();
-    this.overlayAttachmentPoints.clear();
-    this.textAttachmentPoints.clear();
-    this._lineDeps.clear();
+  _rerenderAllDependentOverlays(allOverlays, sourceOverlayIds, viewBox) {
+    const visited = new Set();
+    const queue = Array.from(sourceOverlayIds);
 
-    // Clear stored references
-    this.lastRenderArgs = null;
-    this._dynamicAnchors = null;
+    while (queue.length) {
+      const overlayId = queue.shift();
+      if (visited.has(overlayId)) continue;
+      visited.add(overlayId);
 
-    // Clean up renderer references
-    if (this.lineRenderer) {
-      this.lineRenderer.destroy?.();
-      this.lineRenderer = null;
-    }
+      const overlay = allOverlays.find(o => o.id === overlayId);
+      if (!overlay) continue;
 
-    cblcarsLog.debug('[AdvancedRenderer] Cleanup completed');
-  }
-
-  _updateTextAttachmentPointsFromDom(overlay, groupEl, bb) {
-    if (!overlay || !groupEl || !bb) return;
-    const ap = {
-      id: overlay.id,
-      center: [bb.centerX, bb.centerY],
-      bbox: {
-        left: bb.left, right: bb.right, top: bb.top, bottom: bb.bottom,
-        width: bb.width, height: bb.height
-      },
-      points: {
-        center: [bb.centerX, bb.centerY],
-        top: [bb.centerX, bb.top],
-        bottom: [bb.centerX, bb.bottom],
-        left: [bb.left, bb.centerY],
-        right: [bb.right, bb.centerY],
-        topLeft: [bb.left, bb.top],
-        topRight: [bb.right, bb.top],
-        bottomLeft: [bb.left, bb.bottom],
-        bottomRight: [bb.right, bb.bottom]
+      // Re-render the overlay
+      try {
+        this.renderOverlay(overlay, this._dynamicAnchors, viewBox);
+        cblcarsLog.debug(`[AdvancedRenderer] Re-rendered dependent overlay: ${overlayId}`);
+      } catch (e) {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Re-render failed for overlay ${overlayId}:`, e);
       }
-    };
-    this.textAttachmentPoints.set(overlay.id, ap);
-  }
 
-  /**
-   * ARCHITECTURAL FIX: Update attachment points after font stabilization using actual DOM measurements
-   * This ensures attachment points reflect the final rendered text size, not the initial estimate
-   * @private
-   */
-  _updateTextAttachmentPointsAfterStabilization(overlay, groupEl, textBbox, viewBox) {
-    if (!overlay || !groupEl || !textBbox) return;
-
-    try {
-      // Create expanded bbox that includes decorations (status indicator, etc.)
-      let expandedBbox = {
-        left: textBbox.left,
-        right: textBbox.right,
-        top: textBbox.top,
-        bottom: textBbox.bottom,
-        width: textBbox.width,
-        height: textBbox.height,
-        centerX: textBbox.centerX,
-        centerY: textBbox.centerY
-      };
-
-      // Check for status indicator and expand bbox
-      const statusIndicator = groupEl.querySelector('[data-decoration="status-indicator"]');
-      if (statusIndicator) {
-        const fontSizeAttr = groupEl.getAttribute('data-font-size');
-        const fontSize = parseFloat(fontSizeAttr) || 16;
-
-        // Read actual configuration from overlay style
-        const overlayStyle = overlay.finalStyle || overlay.style || {};
-        const configuredSize = overlayStyle.status_indicator_size;
-        const configuredPadding = overlayStyle.status_indicator_padding;
-
-        const indicatorSize = configuredSize !== null && configuredSize !== undefined ?
-          configuredSize : fontSize * 0.3;
-
-        // Get proper padding calculation - gap between text edge and circle edge
-        const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
-        const pixelPadding = configuredPadding !== null && configuredPadding !== undefined ?
-          configuredPadding : 8;
-        const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
-
-        const position = statusIndicator.getAttribute('data-status-pos') || 'left-center';
-
-        // Expand bbox based on indicator position - need padding + (indicatorSize * 2) for full diameter
-        const totalSpace = padding + (indicatorSize * 2); // Use full diameter, not just radius
-        switch (position) {
-          case 'left':
-          case 'left-center':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
-            break;
-          case 'right':
-          case 'right-center':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
-            break;
-          case 'top':
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
-            break;
-          case 'bottom':
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
-            break;
-          case 'top-left':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
-            break;
-          case 'top-right':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
-            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
-            break;
-          case 'bottom-left':
-            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
-            break;
-          case 'bottom-right':
-            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
-            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
-            break;
-        }
-
-        // Recalculate dimensions
-        expandedBbox.width = expandedBbox.right - expandedBbox.left;
-        expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
-        expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
-        expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
-
-        cblcarsLog.debug(`[AdvancedRenderer] 🔄 Status indicator bbox expansion for ${overlay.id}:`, {
-          textBbox: { right: textBbox.right, centerY: textBbox.centerY },
-          expandedBbox: { right: expandedBbox.right, centerY: expandedBbox.centerY },
-          indicatorConfig: { size: indicatorSize, padding: pixelPadding, fontSize },
-          position
+      // Queue up dependencies for re-rendering
+      const deps = this._lineDeps.get(overlayId);
+      if (deps) {
+        deps.forEach(depId => {
+          if (!visited.has(depId)) {
+            queue.push(depId);
+          }
         });
       }
-
-      // Create updated attachment points using the expanded bbox
-      const updatedAttachmentPoints = {
-        id: overlay.id,
-        center: [expandedBbox.centerX, expandedBbox.centerY],
-        bbox: expandedBbox,
-        points: {
-          center: [expandedBbox.centerX, expandedBbox.centerY],
-          top: [expandedBbox.centerX, expandedBbox.top],
-          bottom: [expandedBbox.centerX, expandedBbox.bottom],
-          left: [expandedBbox.left, expandedBbox.centerY],
-          right: [expandedBbox.right, expandedBbox.centerY],
-          topLeft: [expandedBbox.left, expandedBbox.top],
-          topRight: [expandedBbox.right, expandedBbox.top],
-          bottomLeft: [expandedBbox.left, expandedBbox.bottom],
-          bottomRight: [expandedBbox.right, expandedBbox.bottom]
-        }
-      };
-
-      // Update both attachment point maps
-      this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
-      this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
-
-      // CRITICAL: Also update the line renderer's attachment points immediately
-      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
-
-      // CRITICAL: Invalidate routing cache so lines re-compute with new attachment points
-      if (this.lineRenderer && this.lineRenderer.routingCache) {
-        this.lineRenderer.routingCache.invalidate('anchors', { anchorIds: [overlay.id] });
-      }
-      // Also invalidate the router core cache if available
-      if (this.lineRenderer && this.lineRenderer.router && typeof this.lineRenderer.router.invalidate === 'function') {
-        this.lineRenderer.router.invalidate(overlay.id);
-      }
-
-      cblcarsLog.debug(`[AdvancedRenderer] 🔄 Updated attachment points after font stabilization for ${overlay.id}:`, {
-        hasStatusIndicator: !!statusIndicator,
-        newCenter: updatedAttachmentPoints.center
-      });
-
-    } catch (error) {
-      cblcarsLog.warn(`[AdvancedRenderer] Error updating attachment points after stabilization for ${overlay.id}:`, error);
     }
   }
 
-  _rerenderDependentLines(changedSet, overlays, anchorsRef, viewBox) {
-    if (!changedSet || !changedSet.size) return;
-    const toRerender = new Set();
-    changedSet.forEach(tid => {
-      const dep = this._lineDeps.get(tid);
-      if (dep) dep.forEach(id => toRerender.add(id));
-    });
-    if (!toRerender.size) return;
-    requestAnimationFrame(() => {
-      toRerender.forEach(lineId => {
-        const overlay = overlays.find(o => o.id === lineId);
-        if (!overlay) return;
-        const existingEl = this.overlayElementCache.get(lineId);
-        if (!existingEl) return;
-        try {
-          const newMarkup = this.lineRenderer.render(overlay, anchorsRef, viewBox);
-          if (!newMarkup) return;
-          const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          temp.innerHTML = newMarkup.trim();
-          const newEl = temp.firstElementChild;
-          if (!newEl) return;
-          existingEl.replaceWith(newEl);
-          this.overlayElementCache.set(lineId, newEl);
-        } catch(e) {
-          cblcarsLog.info('[AdvancedRenderer] Dep line re-render failed', lineId, e);
-        }
-      });
-      cblcarsLog.debug('[AdvancedRenderer] Rerendered dependent lines after font stabilization', { count: toRerender.size });
+  /**
+   * Rebuild virtual anchors from changed overlays (after font stabilization)
+   * @param {Set} changedOverlayIds - Set of overlay IDs that have changed
+   * @param {Array} allOverlays - Complete list of overlays
+   * @param {Object} anchorsMap - Current map of dynamic anchors
+   */
+  _rebuildVirtualAnchorsFromChangedOverlays(changedOverlayIds, allOverlays, anchorsMap) {
+    changedOverlayIds.forEach(id => {
+      const overlay = allOverlays.find(o => o.id === id);
+      if (!overlay) return;
+      const raw = overlay._raw || overlay.raw || {};
+      const dest = raw.attach_to || raw.attachTo;
+      if (!dest) return;
+
+      // Use unified attachment points (includes all overlay types)
+      const attachmentPointData = this.overlayAttachmentPoints.get(dest);
+      if (!attachmentPointData || !attachmentPointData.points) return;
+      const side = (raw.attach_side || raw.attachSide || '').toLowerCase();
+      const basePt = this._resolveOverlayAttachmentPoint(attachmentPointData.points, side);
+      if (!basePt) return;
+      const gapPt = this._applyAttachGap(basePt, side, raw, attachmentPointData.bbox);
+      anchorsMap[dest] = gapPt;
     });
   }
 
   /**
-   * Enhanced method to re-render ALL overlays that might depend on changed text overlays
-   * This includes not just direct line dependencies, but also overlays that use virtual anchors
-   * @private
+   * Perform final stabilization update (comprehensive pass)
+   * @param {Array} allOverlays - Complete list of overlays
+   * @param {Object} anchorsRef - Current reference for anchors
+   * @param {Array} viewBox - Current viewBox for rendering
    */
-  _rerenderAllDependentOverlays(overlays, anchorsRef, viewBox) {
-    const allLinesToRerender = new Set();
+  _performFinalStabilizationUpdate(allOverlays, anchorsRef, viewBox) {
+    // Final pass: re-measure all text overlays and update dependent lines
+    allOverlays.filter(o => o.type === 'text').forEach(ov => {
+      const group = this.overlayElementCache.get(ov.id);
+      if (!group) return;
+      const bb = RendererUtils.getDomTextBBox(group);
+      if (!bb) return;
 
-    // Find all line overlays that might be affected
-    overlays.filter(o => o.type === 'line').forEach(lineOverlay => {
-      const raw = lineOverlay._raw || lineOverlay.raw || {};
-      const anchor = raw.anchor;
-      const attachTo = raw.attach_to || raw.attachTo;
+      group.setAttribute('data-text-width', String(bb.width));
+      group.setAttribute('data-text-height', String(bb.height));
 
-      // Check if this line uses any virtual anchor that might have changed
-      if (anchor && anchor.includes('.')) {
-        // This line uses a virtual anchor (overlayId.side format)
-        allLinesToRerender.add(lineOverlay.id);
-      }
-
-      if (attachTo) {
-        // This line attaches to another overlay
-        allLinesToRerender.add(lineOverlay.id);
-      }
+      // Update attachment points and status indicators
+      this._updateTextAttachmentPointsFromDom(ov, group, bb);
+      this._updateStatusIndicatorPosition(group, bb);
     });
 
-    if (allLinesToRerender.size === 0) return;
+    // CRITICAL: Update line renderer with final attachment points
+    this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
-    requestAnimationFrame(() => {
-      allLinesToRerender.forEach(lineId => {
-        const overlay = overlays.find(o => o.id === lineId);
-        if (!overlay) return;
-        const existingEl = this.overlayElementCache.get(lineId);
-        if (!existingEl) return;
-
-        try {
-          const newMarkup = this.lineRenderer.render(overlay, anchorsRef, viewBox);
-          if (!newMarkup) return;
-
-          const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          temp.innerHTML = newMarkup.trim();
-          const newEl = temp.firstElementChild;
-          if (!newEl) return;
-
-          existingEl.replaceWith(newEl);
-          this.overlayElementCache.set(lineId, newEl);
-        } catch(e) {
-          cblcarsLog.info('[AdvancedRenderer] All-dependent line re-render failed', lineId, e);
-        }
-      });
-
-      cblcarsLog.debug('[AdvancedRenderer] 🔄 Rerendered all dependent overlays after font stabilization', {
-        count: allLinesToRerender.size,
-        overlays: Array.from(allLinesToRerender)
-      });
-    });
-  }
-
-  /**
-   * Rebuild virtual anchors for overlays that have changed
-   * @private
-   */
-  _rebuildVirtualAnchorsFromChangedOverlays(changedOverlayIds, overlays, anchorMap) {
-    if (!changedOverlayIds || changedOverlayIds.size === 0) return;
-
-    changedOverlayIds.forEach(overlayId => {
-      const overlay = overlays.find(o => o.id === overlayId);
-      if (!overlay || overlay.type === 'line') return;
-
-      const attachmentPoints = this.overlayAttachmentPoints.get(overlayId);
-      if (!attachmentPoints || !attachmentPoints.points) return;
-
-      // Update virtual anchors for each attachment point of this overlay
-      Object.entries(attachmentPoints.points).forEach(([side, point]) => {
-        const virtualAnchorId = `${overlayId}.${side}`;
-        anchorMap[virtualAnchorId] = point;
-      });
-
-      // Also update the default virtual anchor using the center point
-      anchorMap[overlayId] = attachmentPoints.center;
-
-      cblcarsLog.debug(`[AdvancedRenderer] 🔄 Rebuilt virtual anchors for changed overlay ${overlayId}`);
-    });
-  }
-
-  /**
-   * Perform final comprehensive stabilization update
-   * @private
-   */
-  _performFinalStabilizationUpdate(overlays, anchorsRef, viewBox) {
-    try {
-      // Force a complete rebuild of virtual anchors from all overlays
-      this._buildVirtualAnchorsFromAllOverlays(overlays, anchorsRef);
-
-      // Force update of line renderer attachment points
-      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
-
-      // Force re-render of all lines to ensure they use the latest attachment points
-      this._rerenderAllDependentOverlays(overlays, anchorsRef, viewBox);
-
-      cblcarsLog.debug('[AdvancedRenderer] 🎯 Performed final comprehensive stabilization update');
-    } catch (error) {
-      cblcarsLog.warn('[AdvancedRenderer] Error in final stabilization update:', error);
-    }
-  }
-
-  _reRenderSingleTextOverlay(overlay, anchorsRef, viewBox) {
-    try {
-      const oldGroup = this.overlayElementCache.get(overlay.id);
-      if (!oldGroup) return null;
-      const markup = TextOverlayRenderer.render(overlay, anchorsRef, viewBox, this.mountEl);
-      if (!markup) return null;
-      const temp = document.createElementNS('http://www.w3.org/2000/svg','g');
-      temp.innerHTML = markup.trim();
-      const newGroup = temp.firstElementChild;
-      if (!newGroup) return null;
-      oldGroup.replaceWith(newGroup);
-      this.overlayElementCache.set(overlay.id, newGroup);
-      // Update DOM-based attachment points immediately
-      const bb = RendererUtils.getDomTextBBox(newGroup);
-      if (bb) this._updateTextAttachmentPointsFromDom(overlay, newGroup, bb);
-      return newGroup;
-    } catch(e) {
-      cblcarsLog.info('[AdvancedRenderer] Re-render text overlay failed', overlay.id, e);
-      return null;
-    }
-  }
-
-  _updateStatusIndicatorPosition(groupEl, textBBox) {
-    try {
-      if (!groupEl) return;
-      const circle = groupEl.querySelector('circle[data-decoration="status-indicator"]');
-      if (!circle) return;
-
-      // Read required data
-      const pos = circle.getAttribute('data-status-pos') || 'left-center';
-      const fontSizeAttr = groupEl.getAttribute('data-font-size');
-
-      // Use the safe method to set circle radius
-      this._safeSetCircleRadius(circle, fontSizeAttr, 0.3);
-
-      // Get the numeric value for positioning calculations
-      const fontSize = parseFloat(fontSizeAttr) || 16;
-
-      // Read overlay configuration for custom padding - TODO: Pass overlay config to this method
-      const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
-      const pixelPadding = 8; // Default padding - ideally read from overlay config
-      const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : fontSize * 0.3;
-      const indicatorSize = fontSize * 0.3;
-
-      const bbox = textBBox; // has left/right/top/bottom/centerX/centerY
-      let cx = bbox.centerX, cy = bbox.centerY;
-      switch (pos) {
-        case 'top-left':     cx = bbox.left - padding - indicatorSize;  cy = bbox.top - padding - indicatorSize; break;
-        case 'top-right':    cx = bbox.right + padding + indicatorSize; cy = bbox.top - padding - indicatorSize; break;
-        case 'bottom-left':  cx = bbox.left - padding - indicatorSize;  cy = bbox.bottom + padding + indicatorSize; break;
-        case 'bottom-right': cx = bbox.right + padding + indicatorSize; cy = bbox.bottom + padding + indicatorSize; break;
-        case 'top':          cx = bbox.centerX;         cy = bbox.top - padding - indicatorSize; break;
-        case 'bottom':       cx = bbox.centerX;         cy = bbox.bottom + padding + indicatorSize; break;
-        case 'left':
-        case 'left-center':  cx = bbox.left - padding - indicatorSize;  cy = bbox.centerY; break;
-        case 'right':
-        case 'right-center': cx = bbox.right + padding + indicatorSize; cy = bbox.centerY; break;
-        case 'center':       cx = bbox.centerX;         cy = bbox.centerY; break;
-        default:             cx = bbox.left - padding - indicatorSize;  cy = bbox.centerY;
-      }
-      circle.setAttribute('cx', cx);
-      circle.setAttribute('cy', cy);
-    } catch(_) {
-      // silent
-    }
-  }
-
-  /**
-   * Update text decorations (status indicators, etc.) when content changes
-   * @param {string} overlayId - ID of the text overlay
-   * @param {string} newContent - New text content
-   * @param {Object} overlay - Overlay configuration
-   */
-  updateTextDecorations(overlayId, newContent, overlay) {
-    try {
-      // Use cached overlay element instead of DOM query
-      const overlayGroup = this.overlayElementCache.get(overlayId);
-      if (!overlayGroup) {
-        cblcarsLog.info(`[AdvancedRenderer] Cached overlay element not found for decorations: ${overlayId}`);
-        return;
-      }
-
-      // Update status indicator position if needed (since text width may have changed)
-      const statusIndicator = overlayGroup.querySelector('[data-decoration="status-indicator"]');
-      if (statusIndicator && overlay.finalStyle?.status_indicator) {
-        // Recalculate status indicator position
-        // This could be enhanced to recalculate based on new text metrics
-        cblcarsLog.debug(`[AdvancedRenderer] Status indicator position may need updating for ${overlayId}`);
-      }
-    } catch (error) {
-      cblcarsLog.info(`[AdvancedRenderer] Error updating text decorations for ${overlayId}:`, error);
-    }
-  }
-
-  /**
-   * Update status grid cells with new data (legacy method - keeping for compatibility)
-   * @deprecated Use StatusGridRenderer.updateGridData() instead
-   * @param {string} overlayId - Status grid overlay ID
-   * @param {Array} updatedCells - Updated cell configurations
-   * @public
-   */
-  updateStatusGrid(overlayId, updatedCells) {
-    cblcarsLog.debug(`[AdvancedRenderer] DEPRECATED: updateStatusGrid() called. Use StatusGridRenderer.updateGridData() instead.`);
-
-    // Use cached overlay element instead of DOM query
-    const gridElement = this.overlayElementCache.get(overlayId);
-    if (!gridElement) {
-      cblcarsLog.info(`[AdvancedRenderer] Cached status grid element not found: ${overlayId}`);
-      return;
-    }
-
-    // Add visual indication that the grid was updated
-    const timestamp = new Date().toISOString();
-    gridElement.setAttribute('data-last-update', timestamp);
-
-    cblcarsLog.debug(`[AdvancedRenderer] ✅ Status grid ${overlayId} update placeholder completed`);
-  }
-
-  /**
-   * Enhanced status grid update method with template processing
-   * @deprecated Use StatusGridRenderer.updateGridData() instead
-   * @param {string} overlayId - Status grid overlay ID
-   * @param {Object} sourceData - New DataSource data
-   * @public
-   */
-  updateStatusGridWithTemplates(overlayId, sourceData) {
-    cblcarsLog.debug(`[AdvancedRenderer] DEPRECATED: updateStatusGridWithTemplates() called. Use StatusGridRenderer.updateGridData() instead.`);
-
-    // For compatibility, delegate to the new unified method
-    const overlayElement = this.overlayElementCache.get(overlayId);
-    if (!overlayElement) {
-      cblcarsLog.info(`[AdvancedRenderer] Cached overlay element not found: ${overlayId}`);
-      return;
-    }
-
-    const overlay = this.lastRenderArgs?.overlays?.find(o => o.id === overlayId);
-    if (!overlay) {
-      cblcarsLog.info(`[AdvancedRenderer] Could not find overlay config: ${overlayId}`);
-      return;
-    }
-
-    // Delegate to the new unified method
-    StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
+    // Re-render all overlays to apply final updates
+    this._rerenderAllDependentOverlays(allOverlays, Object.keys(this._lineDeps), viewBox);
   }
 
   /**
@@ -1246,48 +991,28 @@ export class AdvancedRenderer {
     return staticAnchors;
   }
 
-  /**
-   * Debug overlay property processing to identify where anchor_side/attach_side are lost
-   * @private
-   */
-  _debugOverlayProcessing(overlayId, originalOverlay, processedOverlay) {
-    if (originalOverlay.type === 'line') {
-      cblcarsLog.debug(`[AdvancedRenderer] Overlay processing debug for line ${overlayId}:`, {
-        original: {
-          anchor_side: originalOverlay.anchor_side,
-          attach_side: originalOverlay.attach_side,
-          anchor_gap: originalOverlay.anchor_gap,
-          attach_gap: originalOverlay.attach_gap
-        },
-        processed: {
-          anchor_side: processedOverlay.anchor_side,
-          attach_side: processedOverlay.attach_side,
-          anchor_gap: processedOverlay.anchor_gap,
-          attach_gap: processedOverlay.attach_gap
-        },
-        raw: {
-          anchor_side: processedOverlay._raw?.anchor_side,
-          attach_side: processedOverlay._raw?.attach_side,
-          anchor_gap: processedOverlay._raw?.anchor_gap,
-          attach_gap: processedOverlay._raw?.attach_gap
-        }
-      });
-    }
-  }
-
-  /**
-   * Safe method to set circle radius, preventing NaN errors
-   * @private
-   */
-  _safeSetCircleRadius(circleElement, fontSize, multiplier = 0.3) {
-    const parsedSize = parseFloat(fontSize);
-    if (!isNaN(parsedSize) && parsedSize > 0) {
-      const radius = parsedSize * multiplier;
-      circleElement.setAttribute('r', radius);
-    } else {
-      cblcarsLog.warn(`[AdvancedRenderer] Invalid fontSize for circle radius: "${fontSize}", using fallback`);
-      circleElement.setAttribute('r', '6'); // Safe fallback radius
-    }
+  _updateTextAttachmentPointsFromDom(overlay, groupEl, bb) {
+    if (!overlay || !groupEl || !bb) return;
+    const ap = {
+      id: overlay.id,
+      center: [bb.centerX, bb.centerY],
+      bbox: {
+        left: bb.left, right: bb.right, top: bb.top, bottom: bb.bottom,
+        width: bb.width, height: bb.height
+      },
+      points: {
+        center: [bb.centerX, bb.centerY],
+        top: [bb.centerX, bb.top],
+        bottom: [bb.centerX, bb.bottom],
+        left: [bb.left, bb.centerY],
+        right: [bb.right, bb.centerY],
+        topLeft: [bb.left, bb.top],
+        topRight: [bb.right, bb.top],
+        bottomLeft: [bb.left, bb.bottom],
+        bottomRight: [bb.right, bb.bottom]
+      }
+    };
+    this.textAttachmentPoints.set(overlay.id, ap);
   }
 
   /**
@@ -1314,48 +1039,5 @@ export class AdvancedRenderer {
                 </text>
               </g>
             </g>`;
-  }
-
-  /**
-   * Schedule action processing for all overlay types after DOM is ready
-   * @private
-   */
-  _scheduleActionProcessing() {
-    // FIXED: Use direct ActionHelpers calls instead of ActionIntegrationHelper
-    const processActions = () => {
-      try {
-        cblcarsLog.debug(`[AdvancedRenderer] 🎯 Processing pending actions using ActionHelpers...`);
-
-        // Process status grid actions
-        if (window.StatusGridRenderer && typeof window.StatusGridRenderer.processAllPendingActions === 'function') {
-          window.StatusGridRenderer.processAllPendingActions();
-        }
-
-        // Process button overlay actions
-        if (window.ButtonOverlayRenderer && typeof window.ButtonOverlayRenderer._tryManualActionProcessing === 'function') {
-          // ButtonOverlayRenderer doesn't have a processAllPendingActions method, but we can check for pending actions
-          if (window._msdButtonActions && window._msdButtonActions.size > 0) {
-            window._msdButtonActions.forEach((actionInfo, overlayId) => {
-              window.ButtonOverlayRenderer._tryManualActionProcessing(overlayId);
-            });
-          }
-        }
-
-        // Process any other overlay type actions here as needed
-
-        cblcarsLog.debug(`[AdvancedRenderer] ✅ Direct ActionHelpers processing complete`);
-
-      } catch (error) {
-        cblcarsLog.error(`[AdvancedRenderer] Error processing actions:`, error);
-      }
-    };
-
-    // Use the same timing strategy as working overlays
-    setTimeout(processActions, 0);
-    setTimeout(processActions, 10);
-    setTimeout(processActions, 50);
-    setTimeout(processActions, 100);
-    setTimeout(processActions, 200);
-    setTimeout(processActions, 500);
   }
 }
