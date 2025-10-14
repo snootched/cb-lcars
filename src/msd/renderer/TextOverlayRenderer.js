@@ -115,13 +115,24 @@ export class TextOverlayRenderer {
       if (textStyle.status_indicator) textFeatures.push('status');
       const textFeaturesStr = textFeatures.join(',');
 
-      // FIXED: Use renderResult.markup directly - TextRenderer already provides complete markup
+      // CRITICAL FIX: Extract bbox from renderResult.metadata for proper measurements
+      const textBBox = renderResult.metadata?.bounds || null;
+      const estimatedWidth = textBBox ? textBBox.width : 0;
+      const estimatedHeight = textBBox ? textBBox.height : 0;
+
+      cblcarsLog.debug(`[TextOverlayRenderer] Text bbox from renderer:`, {
+        overlayId: overlay.id,
+        bbox: textBBox,
+        hasMetadata: !!renderResult.metadata
+      });
+
+      // FIXED: Use renderResult.markup directly with proper metadata attributes
       const overlayMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="text"
                 data-text-features="${textFeaturesStr}"
                 data-animation-ready="${!!textStyle.animatable}"
-                data-text-width="0"
-                data-text-height="0"
+                data-text-width="${estimatedWidth}"
+                data-text-height="${estimatedHeight}"
                 data-font-family="${textStyle.fontFamily || textStyle.font_family || 'Antonio'}"
                 data-font-size="${textStyle.fontSize || textStyle.font_size || 16}"
                 data-dominant-baseline="${textStyle.dominantBaseline || textStyle.dominant_baseline || 'central'}"
@@ -166,7 +177,8 @@ export class TextOverlayRenderer {
       return {
         markup: overlayMarkup,
         actionInfo: actionInfo,
-        overlayId: overlay.id
+        overlayId: overlay.id,
+        metadata: renderResult.metadata // ADDED: Pass through metadata for attachment points
       };
 
     } catch (error) {

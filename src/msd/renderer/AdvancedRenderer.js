@@ -15,6 +15,7 @@ import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js';
 import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { ActionHelpers } from './ActionHelpers.js'; // ADDED: Import ActionHelpers
 
 export class AdvancedRenderer {
   constructor(mountEl, routerCore, systemsManager = null) {
@@ -1039,5 +1040,401 @@ export class AdvancedRenderer {
                 </text>
               </g>
             </g>`;
+  }
+
+  /**
+   * Re-render a single text overlay (used during font stabilization)
+   * @private
+   */
+  _reRenderSingleTextOverlay(overlay, anchorsRef, viewBox) {
+    try {
+      const oldGroup = this.overlayElementCache.get(overlay.id);
+      if (!oldGroup) return null;
+
+      // CRITICAL: Check if old element had actions attached
+      const hadActions = oldGroup.hasAttribute('data-actions-attached');
+
+      // Get card instance for action support (same as initial render)
+      const textCardInstance = this._resolveCardInstance();
+
+      // Re-render the text overlay
+      const result = TextOverlayRenderer.render(overlay, anchorsRef, viewBox, this.mountEl, textCardInstance);
+
+      // Handle both string (old format) and object (new format) returns
+      let markup, actionInfo;
+      if (typeof result === 'string') {
+        markup = result;
+      } else if (result && typeof result === 'object' && result.markup) {
+        markup = result.markup;
+        actionInfo = result.actionInfo; // ADDED: Extract actionInfo from result
+      } else {
+        cblcarsLog.warn(`[AdvancedRenderer] Invalid render result for ${overlay.id}`);
+        return null;
+      }
+
+      if (!markup || typeof markup !== 'string') {
+        cblcarsLog.warn(`[AdvancedRenderer] No valid markup for ${overlay.id}`);
+        return null;
+      }
+
+      // Create new element from markup
+      const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      temp.innerHTML = markup.trim();
+      const newGroup = temp.firstElementChild;
+      if (!newGroup) return null;
+
+      // Replace old element
+      oldGroup.replaceWith(newGroup);
+      this.overlayElementCache.set(overlay.id, newGroup);
+
+      // CRITICAL FIX: Re-attach actions if they were attached before
+      if (hadActions && actionInfo) {
+        try {
+          cblcarsLog.debug(`[AdvancedRenderer] 🔄 Re-attaching actions after font stabilization for ${overlay.id}`);
+          ActionHelpers.attachActions(
+            newGroup,
+            actionInfo.overlay,
+            actionInfo.config,
+            actionInfo.cardInstance
+          );
+          newGroup.setAttribute('data-actions-attached', 'true');
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Actions re-attached to ${overlay.id}`);
+        } catch (error) {
+          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to re-attach actions to ${overlay.id}:`, error);
+        }
+      }
+
+      // Update DOM-based attachment points immediately
+      const bb = RendererUtils.getDomTextBBox(newGroup);
+      if (bb) this._updateTextAttachmentPointsFromDom(overlay, newGroup, bb);
+
+      return newGroup;
+    } catch(e) {
+      cblcarsLog.info('[AdvancedRenderer] Re-render text overlay failed', overlay.id, e);
+      return null;
+    }
+  }
+
+  /**
+   * Resolve card instance for action handling
+   * @private
+   */
+  _resolveCardInstance() {
+    // Try SystemsManager first
+    if (this.systemsManager?.cardInstance) {
+      return this.systemsManager.cardInstance;
+    }
+
+    // Try pipeline instance
+    if (window.__msdDebug?.pipelineInstance?.cardInstance) {
+      return window.__msdDebug.pipelineInstance.cardInstance;
+    }
+
+    // Try global references
+    if (window._msdCardInstance) {
+      return window._msdCardInstance;
+    }
+
+    if (window.cb_lcars_card_instance) {
+      return window.cb_lcars_card_instance;
+    }
+
+    return null;
+  }
+
+  /**
+   * Update status indicator position based on text bounding box
+   * AND update attachment points to include indicator space
+   * @private
+   */
+  _updateStatusIndicatorPosition(groupEl, textBBox) {
+    try {
+      if (!groupEl) return;
+      const circle = groupEl.querySelector('circle[data-decoration="status-indicator"]');
+      if (!circle) return;
+
+      const pos = circle.getAttribute('data-status-pos') || 'left-center';
+      const fontSizeAttr = groupEl.getAttribute('data-font-size');
+
+      this._safeSetCircleRadius(circle, fontSizeAttr, 0.3);
+
+      const fontSize = parseFloat(fontSizeAttr) || 16;
+
+      // Read overlay configuration for custom padding
+      const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
+      const pixelPadding = 8;
+      const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : fontSize * 0.3;
+      const indicatorRadius = fontSize * 0.3;
+
+      // Distance from text edge to circle CENTER
+      const centerDistance = padding + indicatorRadius;
+
+      // Distance from text edge to far edge of circle (for bbox expansion)
+      const totalDistance = padding + (indicatorRadius * 2);
+
+      const bbox = textBBox;
+      let cx = bbox.centerX, cy = bbox.centerY;
+
+      // Position circle CENTER at centerDistance from text edge
+      switch (pos) {
+        case 'top-left':     cx = bbox.left - centerDistance;  cy = bbox.top - centerDistance; break;
+        case 'top-right':    cx = bbox.right + centerDistance; cy = bbox.top - centerDistance; break;
+        case 'bottom-left':  cx = bbox.left - centerDistance;  cy = bbox.bottom + centerDistance; break;
+        case 'bottom-right': cx = bbox.right + centerDistance; cy = bbox.bottom + centerDistance; break;
+        case 'top':          cx = bbox.centerX;                cy = bbox.top - centerDistance; break;
+        case 'bottom':       cx = bbox.centerX;                cy = bbox.bottom + centerDistance; break;
+        case 'left':
+        case 'left-center':  cx = bbox.left - centerDistance;  cy = bbox.centerY; break;
+        case 'right':
+        case 'right-center': cx = bbox.right + centerDistance; cy = bbox.centerY; break;
+        case 'center':       cx = bbox.centerX;                cy = bbox.centerY; break;
+        default:             cx = bbox.left - centerDistance;  cy = bbox.centerY;
+      }
+      circle.setAttribute('cx', cx);
+      circle.setAttribute('cy', cy);
+
+      // CRITICAL FIX: Update attachment points immediately after positioning
+      const overlayId = groupEl.getAttribute('data-overlay-id');
+      if (overlayId && this.lastRenderArgs?.overlays) {
+        const overlay = this.lastRenderArgs.overlays.find(o => o.id === overlayId);
+        if (overlay) {
+          let expandedBbox = { ...textBBox };
+
+          // Expand bbox by totalDistance (to far edge of circle)
+          switch (pos) {
+            case 'left':
+            case 'left-center':
+              expandedBbox.left = Math.min(expandedBbox.left, textBBox.left - totalDistance);
+              break;
+            case 'right':
+            case 'right-center':
+              expandedBbox.right = Math.max(expandedBbox.right, textBBox.right + totalDistance);
+              break;
+            case 'top':
+              expandedBbox.top = Math.min(expandedBbox.top, textBBox.top - totalDistance);
+              break;
+            case 'bottom':
+              expandedBbox.bottom = Math.max(expandedBbox.bottom, textBBox.bottom + totalDistance);
+              break;
+            case 'top-left':
+              expandedBbox.left = Math.min(expandedBbox.left, textBBox.left - totalDistance);
+              expandedBbox.top = Math.min(expandedBbox.top, textBBox.top - totalDistance);
+              break;
+            case 'top-right':
+              expandedBbox.right = Math.max(expandedBbox.right, textBBox.right + totalDistance);
+              expandedBbox.top = Math.min(expandedBbox.top, textBBox.top - totalDistance);
+              break;
+            case 'bottom-left':
+              expandedBbox.left = Math.min(expandedBbox.left, textBBox.left - totalDistance);
+              expandedBbox.bottom = Math.max(expandedBbox.bottom, textBBox.bottom + totalDistance);
+              break;
+            case 'bottom-right':
+              expandedBbox.right = Math.max(expandedBbox.right, textBBox.right + totalDistance);
+              expandedBbox.bottom = Math.max(expandedBbox.bottom, textBBox.bottom + totalDistance);
+              break;
+          }
+
+          // Recalculate dimensions
+          expandedBbox.width = expandedBbox.right - expandedBbox.left;
+          expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
+          expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
+          expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
+
+          // Update attachment points with expanded bbox
+          const updatedAttachmentPoints = {
+            id: overlay.id,
+            center: [expandedBbox.centerX, expandedBbox.centerY],
+            bbox: expandedBbox,
+            points: {
+              center: [expandedBbox.centerX, expandedBbox.centerY],
+              top: [expandedBbox.centerX, expandedBbox.top],
+              bottom: [expandedBbox.centerX, expandedBbox.bottom],
+              left: [expandedBbox.left, expandedBbox.centerY],
+              right: [expandedBbox.right, expandedBbox.centerY],
+              topLeft: [expandedBbox.left, expandedBbox.top],
+              topRight: [expandedBbox.right, expandedBbox.top],
+              bottomLeft: [expandedBbox.left, expandedBbox.bottom],
+              bottomRight: [expandedBbox.right, expandedBbox.bottom]
+            }
+          };
+
+          this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+          this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+          this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+
+          // CRITICAL: Force line re-render for this overlay
+          if (this._lineDeps && this._lineDeps.has(overlayId)) {
+            const dependentLines = this._lineDeps.get(overlayId);
+            dependentLines.forEach(lineId => {
+              const lineOverlay = this.lastRenderArgs.overlays.find(o => o.id === lineId);
+              if (lineOverlay) {
+                try {
+                  const lineMarkup = this.lineRenderer.render(lineOverlay, this._dynamicAnchors, this.lastRenderArgs.resolvedModel.viewBox);
+                  const lineElement = this.overlayElementCache.get(lineId);
+                  if (lineElement && lineMarkup) {
+                    const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    temp.innerHTML = lineMarkup.trim();
+                    const newLineElement = temp.firstElementChild;
+                    if (newLineElement) {
+                      lineElement.replaceWith(newLineElement);
+                      this.overlayElementCache.set(lineId, newLineElement);
+                    }
+                  }
+                } catch (e) {
+                  cblcarsLog.warn(`[AdvancedRenderer] Failed to update line ${lineId}:`, e);
+                }
+              }
+            });
+          }
+
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Updated attachment points and lines for ${overlayId}`, {
+            textRight: textBBox.right,
+            expandedRight: expandedBbox.right,
+            circleCenter: cx,
+            totalDistance
+          });
+        }
+      }
+
+    } catch(err) {
+      cblcarsLog.warn('[AdvancedRenderer] Error in _updateStatusIndicatorPosition:', err);
+    }
+  }
+
+  /**
+   * Safe method to set circle radius, preventing NaN errors
+   * @private
+   */
+  _safeSetCircleRadius(circleElement, fontSize, multiplier = 0.3) {
+    const parsedSize = parseFloat(fontSize);
+    if (!isNaN(parsedSize) && parsedSize > 0) {
+      const radius = parsedSize * multiplier;
+      circleElement.setAttribute('r', radius);
+    } else {
+      cblcarsLog.warn(`[AdvancedRenderer] Invalid fontSize for circle radius: "${fontSize}", using fallback`);
+      circleElement.setAttribute('r', '6'); // Safe fallback radius
+    }
+  }
+
+  /**
+   * ARCHITECTURAL FIX: Update attachment points after font stabilization using actual DOM measurements
+   * @private
+   */
+  _updateTextAttachmentPointsAfterStabilization(overlay, groupEl, textBbox, viewBox) {
+    if (!overlay || !groupEl || !textBbox) return;
+
+    try {
+      // Create expanded bbox that includes decorations (status indicator, etc.)
+      let expandedBbox = {
+        left: textBbox.left,
+        right: textBbox.right,
+        top: textBbox.top,
+        bottom: textBbox.bottom,
+        width: textBbox.width,
+        height: textBbox.height,
+        centerX: textBbox.centerX,
+        centerY: textBbox.centerY
+      };
+
+      // Check for status indicator and expand bbox
+      const statusIndicator = groupEl.querySelector('[data-decoration="status-indicator"]');
+      if (statusIndicator) {
+        const fontSizeAttr = groupEl.getAttribute('data-font-size');
+        const fontSize = parseFloat(fontSizeAttr) || 16;
+
+        // Read actual configuration from overlay style
+        const overlayStyle = overlay.finalStyle || overlay.style || {};
+        const configuredSize = overlayStyle.status_indicator_size;
+        const configuredPadding = overlayStyle.status_indicator_padding;
+
+        const indicatorSize = configuredSize !== null && configuredSize !== undefined ?
+          configuredSize : fontSize * 0.3;
+
+        // Get proper padding calculation
+        const transformInfo = RendererUtils._getSvgTransformInfo(this.mountEl);
+        const pixelPadding = configuredPadding !== null && configuredPadding !== undefined ?
+          configuredPadding : 8;
+        const padding = transformInfo ? transformInfo.pixelToViewBox(pixelPadding) : indicatorSize;
+
+        const position = statusIndicator.getAttribute('data-status-pos') || 'left-center';
+
+        // Expand bbox based on indicator position
+        const totalSpace = padding + (indicatorSize * 2);
+        switch (position) {
+          case 'left':
+          case 'left-center':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            break;
+          case 'right':
+          case 'right-center':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            break;
+          case 'top':
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'bottom':
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+          case 'top-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'top-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            expandedBbox.top = Math.min(expandedBbox.top, textBbox.top - totalSpace);
+            break;
+          case 'bottom-left':
+            expandedBbox.left = Math.min(expandedBbox.left, textBbox.left - totalSpace);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+          case 'bottom-right':
+            expandedBbox.right = Math.max(expandedBbox.right, textBbox.right + totalSpace);
+            expandedBbox.bottom = Math.max(expandedBbox.bottom, textBbox.bottom + totalSpace);
+            break;
+        }
+
+        // Recalculate dimensions
+        expandedBbox.width = expandedBbox.right - expandedBbox.left;
+        expandedBbox.height = expandedBbox.bottom - expandedBbox.top;
+        expandedBbox.centerX = expandedBbox.left + expandedBbox.width / 2;
+        expandedBbox.centerY = expandedBbox.top + expandedBbox.height / 2;
+      }
+
+      // Create updated attachment points using the expanded bbox
+      const updatedAttachmentPoints = {
+        id: overlay.id,
+        center: [expandedBbox.centerX, expandedBbox.centerY],
+        bbox: expandedBbox,
+        points: {
+          center: [expandedBbox.centerX, expandedBbox.centerY],
+          top: [expandedBbox.centerX, expandedBbox.top],
+          bottom: [expandedBbox.centerX, expandedBbox.bottom],
+          left: [expandedBbox.left, expandedBbox.centerY],
+          right: [expandedBbox.right, expandedBbox.centerY],
+          topLeft: [expandedBbox.left, expandedBbox.top],
+          topRight: [expandedBbox.right, expandedBbox.top],
+          bottomLeft: [expandedBbox.left, expandedBbox.bottom],
+          bottomRight: [expandedBbox.right, expandedBbox.bottom]
+        }
+      };
+
+      // Update both attachment point maps
+      this.overlayAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+      this.textAttachmentPoints.set(overlay.id, updatedAttachmentPoints);
+
+      // Update the line renderer's attachment points
+      this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
+
+      // Invalidate routing cache
+      if (this.lineRenderer && this.lineRenderer.routingCache) {
+        this.lineRenderer.routingCache.invalidate('anchors', { anchorIds: [overlay.id] });
+      }
+      if (this.lineRenderer && this.lineRenderer.router && typeof this.lineRenderer.router.invalidate === 'function') {
+        this.lineRenderer.router.invalidate(overlay.id);
+      }
+
+    } catch (error) {
+      cblcarsLog.warn(`[AdvancedRenderer] Error updating attachment points after stabilization for ${overlay.id}:`, error);
+    }
   }
 }
