@@ -153,6 +153,7 @@ export class TextOverlayRenderer {
           hasCardInstance: !!cardInstance
         });
 
+        // Process actions using ActionHelpers
         actionInfo = ActionHelpers.processOverlayActions(overlay, textStyle, cardInstance);
 
         cblcarsLog.debug(`[TextOverlayRenderer] 🎯 Action processing result for ${overlay.id}:`, {

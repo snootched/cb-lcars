@@ -84,8 +84,8 @@ export class AdvancedRenderer {
     let svgMarkupAccum = '';
     let processedCount = 0;
 
-    // CHANGED: Collect action info during rendering
-    const actionQueue = [];
+    // CHANGED: Separate action queues for each phase
+    const phase1ActionQueue = [];
 
     overlays.filter(o => earlyTypes.has(o.type)).forEach(ov => {
       try {
@@ -108,8 +108,8 @@ export class AdvancedRenderer {
           svgMarkupAccum += result.markup;
 
           if (result.actionInfo) {
-            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing action for ${result.overlayId}`);
-            actionQueue.push({
+            cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 1 action for ${result.overlayId}`);
+            phase1ActionQueue.push({
               overlayId: result.overlayId,
               actionInfo: result.actionInfo
             });
@@ -123,22 +123,20 @@ export class AdvancedRenderer {
     });
 
     cblcarsLog.debug(`[AdvancedRenderer] 📋 Phase 1 action queue:`, {
-      queueSize: actionQueue.length,
-      overlayIds: actionQueue.map(a => a.overlayId)
+      queueSize: phase1ActionQueue.length,
+      overlayIds: phase1ActionQueue.map(a => a.overlayId)
     });
 
     // Inject Phase 1 DOM
     overlayGroup.innerHTML = svgMarkupAccum;
 
-    // AT THIS POINT, DOM IS UPDATED - Elements exist in this.mountEl
+    // ADDED: Attach Phase 1 actions immediately after Phase 1 DOM injection
+    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${phase1ActionQueue.length} Phase 1 actions`);
 
-    // ADDED: Attach actions immediately after DOM injection
-    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${actionQueue.length} actions after Phase 1 DOM injection`);
-
-    actionQueue.forEach(({ overlayId, actionInfo }) => {
+    phase1ActionQueue.forEach(({ overlayId, actionInfo }) => {
       const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
 
-      cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for element ${overlayId}:`, {
+      cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for Phase 1 element ${overlayId}:`, {
         found: !!element,
         alreadyAttached: element?.hasAttribute('data-actions-attached')
       });
@@ -152,12 +150,12 @@ export class AdvancedRenderer {
             actionInfo.cardInstance
           );
           element.setAttribute('data-actions-attached', 'true');
-          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached actions to ${overlayId}`);
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached Phase 1 actions to ${overlayId}`);
         } catch (error) {
-          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach actions to ${overlayId}:`, error);
+          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach Phase 1 actions to ${overlayId}:`, error);
         }
       } else {
-        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Element not found for overlay ${overlayId}`);
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase 1 element not found for overlay ${overlayId}`);
       }
     });
 
@@ -170,10 +168,21 @@ export class AdvancedRenderer {
     // Build virtual anchors from ALL overlay attachment points for line anchoring
     this._buildVirtualAnchorsFromAllOverlays(overlays, this._dynamicAnchors);
 
+    // ADDED: Separate action queue for Phase 2
+    const phase2ActionQueue = [];
+
     // Phase 2: render line overlays (now DOM for targets exists)
     overlays.filter(o => !earlyTypes.has(o.type)).forEach(ov => {
       try {
         const result = this.renderOverlay(ov, this._dynamicAnchors, viewBox);
+
+        cblcarsLog.debug(`[AdvancedRenderer] 📊 Phase 2 overlay ${ov.id} result:`, {
+          resultType: typeof result,
+          isObject: result && typeof result === 'object',
+          hasMarkup: result?.markup,
+          hasActionInfo: result?.actionInfo,
+          overlayId: result?.overlayId
+        });
 
         let markup = '';
         if (typeof result === 'string') {
@@ -181,10 +190,10 @@ export class AdvancedRenderer {
         } else if (result && result.markup) {
           markup = result.markup;
 
-          // Collect Phase 2 actions
+          // CHANGED: Collect Phase 2 actions in separate queue
           if (result.actionInfo) {
             cblcarsLog.debug(`[AdvancedRenderer] 📝 Queuing Phase 2 action for ${result.overlayId}`);
-            actionQueue.push({
+            phase2ActionQueue.push({
               overlayId: result.overlayId,
               actionInfo: result.actionInfo
             });
@@ -223,11 +232,18 @@ export class AdvancedRenderer {
       }
     });
 
-    // ADDED: Attach Phase 2 actions (buttons, status grids, etc.)
-    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching Phase 2 actions (queue size: ${actionQueue.length})`);
+    // ADDED: Attach Phase 2 actions (buttons, status grids, etc.) AFTER Phase 2 DOM injection
+    cblcarsLog.debug(`[AdvancedRenderer] 🎯 Attaching ${phase2ActionQueue.length} Phase 2 actions`);
 
-    actionQueue.forEach(({ overlayId, actionInfo }) => {
+    phase2ActionQueue.forEach(({ overlayId, actionInfo }) => {
       const element = this.mountEl.querySelector(`[data-overlay-id="${overlayId}"]`);
+
+      cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for Phase 2 element ${overlayId}:`, {
+        found: !!element,
+        alreadyAttached: element?.hasAttribute('data-actions-attached'),
+        hasActionInfo: !!actionInfo
+      });
+
       if (element && !element.hasAttribute('data-actions-attached')) {
         try {
           ActionHelpers.attachActions(
@@ -237,10 +253,12 @@ export class AdvancedRenderer {
             actionInfo.cardInstance
           );
           element.setAttribute('data-actions-attached', 'true');
-          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached actions to ${overlayId} (Phase 2)`);
+          cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached Phase 2 actions to ${overlayId}`);
         } catch (error) {
-          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach actions to ${overlayId}:`, error);
+          cblcarsLog.error(`[AdvancedRenderer] ❌ Failed to attach Phase 2 actions to ${overlayId}:`, error);
         }
+      } else if (!element) {
+        cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Phase 2 element not found for overlay ${overlayId}`);
       }
     });
 

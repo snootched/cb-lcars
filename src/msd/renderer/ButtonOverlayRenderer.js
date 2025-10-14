@@ -4,7 +4,7 @@
  * Follows the exact MSD overlay integration pattern
  */
 
-import { ButtonRenderer } from './core/ButtonRenderer.js'; // FIXED: Import from core/
+import { ButtonRenderer } from './core/ButtonRenderer.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
@@ -70,23 +70,12 @@ export class ButtonOverlayRenderer {
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - Container element for measurements
-   * @returns {string} Complete SVG markup for the styled button (backwards compatible)
+   * @returns {Object} Complete result object with markup, actionInfo, and overlayId
    * @static
    */
   static render(overlay, anchors, viewBox, svgContainer) {
-    const result = ButtonOverlayRenderer.renderWithActions(overlay, anchors, viewBox, svgContainer);
-
-    // Store action info for post-DOM-insertion processing
-    if (result.needsActionAttachment) {
-      ButtonOverlayRenderer._storeActionInfo(overlay.id, result.actions);
-
-      // Add fallback - try to process actions after a short delay
-      setTimeout(() => {
-        ButtonOverlayRenderer._tryManualActionProcessing(overlay.id);
-      }, 100);
-    }
-
-    return result.markup; // Return just markup for backwards compatibility
+    // Return full result object for AdvancedRenderer to process actions
+    return ButtonOverlayRenderer.renderWithActions(overlay, anchors, viewBox, svgContainer);
   }
 
   /**
@@ -95,7 +84,7 @@ export class ButtonOverlayRenderer {
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - Container element for measurements
-   * @returns {Object} Object with markup, actions, and metadata
+   * @returns {Object} Object with markup, actionInfo, and overlayId
    * @static
    */
   static renderWithActions(overlay, anchors, viewBox, svgContainer) {
@@ -135,13 +124,13 @@ export class ButtonOverlayRenderer {
    * @param {Object} overlay - Button overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
-   * @returns {Object} {markup, actions, metadata}
+   * @returns {Object} {markup, actionInfo, overlayId}
    */
   renderButton(overlay, anchors, viewBox) {
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[ButtonOverlayRenderer] ⚠️ Button overlay position could not be resolved:', overlay.id);
-      return { markup: '', actions: null, needsActionAttachment: false };
+      return { markup: '', actionInfo: null, overlayId: overlay.id };
     }
 
     const [x, y] = position;
@@ -153,6 +142,10 @@ export class ButtonOverlayRenderer {
       const style = overlay.style || {};
       const buttonStyle = this._resolveButtonOverlayStyles(style, overlay.id, overlay);
 
+      // Check for actions at OVERLAY level BEFORE rendering
+      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
+      const cardInstance = this._resolveCardInstance();
+
       // Process button content - handle templates and DataSource references
       const buttonContent = this._resolveButtonContent(overlay);
 
@@ -161,7 +154,7 @@ export class ButtonOverlayRenderer {
         id: overlay.id,
         label: overlay.label || buttonContent.label,
         content: buttonContent.content,
-        texts: overlay.texts || overlay._raw?.texts, // ADDED: Pass through texts array
+        texts: overlay.texts || overlay._raw?.texts,
         tap_action: overlay.tap_action,
         hold_action: overlay.hold_action,
         double_tap_action: overlay.double_tap_action,
@@ -179,30 +172,46 @@ export class ButtonOverlayRenderer {
         {
           cellId: overlay.id,
           gridContext: false, // Not in a grid context
-          cardInstance: this._resolveCardInstance()
+          cardInstance: cardInstance
         }
       );
+
+      // Process actions using ActionHelpers
+      let actionInfo = null;
+      if (hasActions && cardInstance) {
+        actionInfo = ActionHelpers.processOverlayActions(overlay, buttonStyle, cardInstance);
+
+        cblcarsLog.debug(`[ButtonOverlayRenderer] 🎯 Processed actions for button overlay ${overlay.id}:`, {
+          hasTap: !!overlay.tap_action,
+          hasHold: !!overlay.hold_action,
+          hasDoubleTap: !!overlay.double_tap_action,
+          hasCardInstance: !!cardInstance
+        });
+      } else if (hasActions && !cardInstance) {
+        cblcarsLog.warn(`[ButtonOverlayRenderer] ⚠️ Button overlay ${overlay.id} has actions but no cardInstance available`);
+      }
 
       // Wrap in overlay group with proper data attributes
       const overlayMarkup = `<g data-overlay-id="${overlay.id}"
                 data-overlay-type="button"
+                ${hasActions ? 'data-has-actions="true"' : ''}
                 data-animation-ready="${!!buttonStyle.animatable}"
-                style="pointer-events: ${result.actions ? 'visiblePainted' : 'none'}; cursor: ${result.actions ? 'pointer' : 'default'};">
+                style="pointer-events: ${hasActions ? 'all' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
                 ${result.markup}
               </g>`;
 
       return {
         markup: overlayMarkup,
-        actions: result.actions,
-        needsActionAttachment: result.needsActionAttachment
+        actionInfo: actionInfo,
+        overlayId: overlay.id
       };
 
     } catch (error) {
       cblcarsLog.error(`[ButtonOverlayRenderer] ❌ Rendering failed for button overlay ${overlay.id}:`, error);
       return {
         markup: this._renderFallbackButton(overlay, x, y, width, height),
-        actions: null,
-        needsActionAttachment: false
+        actionInfo: null,
+        overlayId: overlay.id
       };
     }
   }
@@ -333,14 +342,12 @@ export class ButtonOverlayRenderer {
       return content || '';
     }
 
-    // Quick exit if no template markers
     const hasMSD = content.includes('{');
     const hasHA = content.includes('{{') && content.includes('}}');
     if (!hasMSD && !hasHA) {
       return content;
     }
 
-    // Use DataSourceMixin for unified processing
     return DataSourceMixin.processUnifiedTemplateStrings(content, 'ButtonOverlayRenderer');
   }
 
@@ -349,7 +356,6 @@ export class ButtonOverlayRenderer {
    * @private
    */
   _resolveCardInstance() {
-    // Try various methods to get the card instance
     if (window.__msdDebug?.pipelineInstance?.cardInstance) {
       return window.__msdDebug.pipelineInstance.cardInstance;
     }
@@ -398,50 +404,6 @@ export class ButtonOverlayRenderer {
    */
   static computeAttachmentPoints(overlay, anchors, container) {
     return OverlayUtils.computeAttachmentPoints(overlay, anchors);
-  }
-
-  /**
-   * Store action info for later attachment after DOM insertion
-   * @private
-   * @static
-   */
-  static _storeActionInfo(overlayId, actionInfo) {
-    if (!window._msdButtonActions) {
-      window._msdButtonActions = new Map();
-    }
-
-    window._msdButtonActions.set(overlayId, actionInfo);
-    cblcarsLog.debug(`[ButtonOverlayRenderer] Stored action info for overlay ${overlayId}`);
-  }
-
-  /**
-   * Try manual action processing for a specific overlay
-   * @private
-   * @static
-   */
-  static _tryManualActionProcessing(overlayId) {
-    if (!window._msdButtonActions?.has(overlayId)) {
-      return;
-    }
-
-    let buttonElement = null;
-    const card = window.cb_lcars_card_instance;
-    if (card && card.shadowRoot) {
-      buttonElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlayId}"]`);
-    }
-
-    if (!buttonElement) {
-      buttonElement = document.querySelector(`[data-overlay-id="${overlayId}"]`);
-    }
-
-    if (buttonElement) {
-      const actionInfo = window._msdButtonActions.get(overlayId);
-      cblcarsLog.debug(`[ButtonOverlayRenderer] 🎯 Manual action processing for ${overlayId}`);
-      if (ActionHelpers && typeof ActionHelpers.attachActions === 'function') {
-        ActionHelpers.attachActions(buttonElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
-      }
-      window._msdButtonActions.delete(overlayId);
-    }
   }
 }
 
