@@ -895,40 +895,6 @@ export class ActionHelpers {
   }
 
   /**
-   * Get the freshest HASS object available to prevent stale state in dialogs
-   * @param {Object} cardInstance - Card instance
-   * @returns {Object} Freshest HASS object available
-   * @private
-   * @static
-   */
-  static _getFreshestHass(cardInstance) {
-    // Try to get the freshest HASS from various sources, in order of freshness
-
-    // 1. From MSD SystemsManager (most up-to-date)
-    if (window.__msdDebug?.systemsManager?._originalHass) {
-      return window.__msdDebug.systemsManager._originalHass;
-    }
-
-    // 2. From card instance (might be stale)
-    if (cardInstance.hass) {
-      return cardInstance.hass;
-    }
-
-    // 3. From global MSD context
-    if (window._msdCurrentHass) {
-      return window._msdCurrentHass;
-    }
-
-    // 4. From Home Assistant's global hass
-    if (window.hassConnection?.hass) {
-      return window.hassConnection.hass;
-    }
-
-    cblcarsLog.debug(`[ActionHelpers] Using card instance HASS (no fresher source found)`);
-    return cardInstance.hass;
-  }
-
-  /**
    * Attach actions to any overlay element using button-card bridge pattern
    * @param {Element} element - The DOM element to attach actions to
    * @param {Object} overlay - Overlay configuration
