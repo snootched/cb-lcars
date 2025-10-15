@@ -16,8 +16,84 @@ import { initMsdPipeline } from './PipelineCore.js';
 export class MsdInstanceManager {
   static _currentInstance = null;
   static _currentMountElement = null;
+  static _currentInstanceGuid = null;  // ✅ NEW: Track by GUID
   static _isInitializing = false;
   static _initializationPromise = null;
+
+  /**
+   * Generate a unique GUID for MSD instance identification
+   * Format: msd_[timestamp]_[random]
+   * Example: msd_1697302742156_a3f9c2b1
+   *
+   * @returns {string} Unique GUID string
+   * @private
+   */
+  static _generateGuid() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 10);
+    return `msd_${timestamp}_${random}`;
+  }
+
+  /**
+   * Extract card instance from mount element by traversing shadow DOM
+   * The card instance has stable identity even when DOM recreates
+   *
+   * @param {HTMLElement|ShadowRoot} mountEl - Mount element or shadow root
+   * @returns {Object|null} Card instance with _msdInstanceGuid or null
+   * @private
+   */
+  static _getCardInstanceFromMount(mountEl) {
+    try {
+      // Method 1: Check global references (most reliable)
+      const globalCard = window.cb_lcars_card_instance ||
+                        window._currentCardInstance ||
+                        window.__msdDebug?.cardInstance;
+
+      if (globalCard && globalCard._msdInstanceGuid) {
+        cblcarsLog.debug('[MsdInstanceManager] Found card instance via globals:',
+          globalCard._msdInstanceGuid);
+        return globalCard;
+      }
+
+      // Method 2: Also generate GUID if card exists but doesn't have one yet
+      if (globalCard && !globalCard._msdInstanceGuid) {
+        globalCard._msdInstanceGuid = MsdInstanceManager._generateGuid();
+        cblcarsLog.debug('[MsdInstanceManager] Generated missing GUID for existing card:',
+          globalCard._msdInstanceGuid);
+        return globalCard;
+      }
+
+      // Method 3: Traverse up from mount through shadow boundaries
+      let current = mountEl;
+      for (let i = 0; i < 10 && current; i++) {
+        // Check if current element IS the card
+        if (current._msdInstanceGuid) {
+          cblcarsLog.debug('[MsdInstanceManager] Found card instance via traversal:',
+            current._msdInstanceGuid);
+          return current;
+        }
+
+        // Move to parent or shadow host
+        current = current.parentElement;
+
+        // If we hit a shadow boundary, jump to host
+        if (!current && mountEl.getRootNode && mountEl.getRootNode() !== document) {
+          const shadowRoot = mountEl.getRootNode();
+          if (shadowRoot.host) {
+            current = shadowRoot.host;
+            mountEl = current; // Update for next getRootNode check
+          }
+        }
+      }
+
+      cblcarsLog.warn('[MsdInstanceManager] Could not find card instance with GUID');
+      return null;
+
+    } catch (error) {
+      cblcarsLog.error('[MsdInstanceManager] Error extracting card instance:', error);
+      return null;
+    }
+  }
 
   /**
    * Request MSD instance initialization with single-instance protection
@@ -30,6 +106,7 @@ export class MsdInstanceManager {
   static async requestInstance(userMsdConfig, mountEl, hass, isPreview = false) {
     cblcarsLog.debug('[MsdInstanceManager] 🚀 requestInstance called:', {
       hasExistingInstance: !!MsdInstanceManager._currentInstance,
+      currentGuid: MsdInstanceManager._currentInstanceGuid,
       isInitializing: MsdInstanceManager._isInitializing,
       isPreview,
       mountElTag: mountEl?.tagName,
@@ -42,13 +119,27 @@ export class MsdInstanceManager {
       return MsdInstanceManager._createPreviewContent(userMsdConfig, mountEl);
     }
 
+    // ✅ NEW: Extract card instance and its GUID
+    const requestingCard = MsdInstanceManager._getCardInstanceFromMount(mountEl);
+    const requestingGuid = requestingCard?._msdInstanceGuid;
+
+    cblcarsLog.debug('[MsdInstanceManager] Request identity:', {
+      hasCardInstance: !!requestingCard,
+      requestingGuid: requestingGuid,
+      currentGuid: MsdInstanceManager._currentInstanceGuid
+    });
+
     // Handle race condition: if we're already initializing, wait for completion
     if (MsdInstanceManager._isInitializing && MsdInstanceManager._initializationPromise) {
       cblcarsLog.debug('[MsdInstanceManager] ⏳ Instance initialization in progress, waiting...');
       try {
         const existingInstance = await MsdInstanceManager._initializationPromise;
-        if (existingInstance && MsdInstanceManager._currentMountElement === mountEl) {
-          cblcarsLog.debug('[MsdInstanceManager] ✅ Returning completed initialization for same mount');
+
+        // ✅ CHANGED: Check GUID match instead of mount element
+        if (existingInstance &&
+            requestingGuid &&
+            MsdInstanceManager._currentInstanceGuid === requestingGuid) {
+          cblcarsLog.debug('[MsdInstanceManager] ✅ Returning completed initialization (GUID match)');
           return existingInstance;
         }
       } catch (error) {
@@ -56,52 +147,73 @@ export class MsdInstanceManager {
       }
     }
 
-    // Check if instance already exists
-    if (MsdInstanceManager._currentInstance) {
-      const existingMount = MsdInstanceManager._currentMountElement;
+    // ✅ CHANGED: Check if instance exists with GUID comparison
+    if (MsdInstanceManager._currentInstance && MsdInstanceManager._currentInstanceGuid) {
 
-      // Check if this is a preview mode request (different handling)
-      const requestIsPreview = MsdInstanceManager.detectPreviewMode(mountEl);
+      // ✅ NEW: Check for stale instance (different card in global reference)
+      const currentCardInstance = window.cb_lcars_card_instance || window._currentCardInstance;
+      const currentCardGuid = currentCardInstance?._msdInstanceGuid;
 
-      cblcarsLog.warn('[MsdInstanceManager] 🚨 MSD instance already exists:', {
-        existingMount: existingMount?.tagName,
-        requestedMount: mountEl?.tagName,
-        sameMount: existingMount === mountEl,
-        requestIsPreview: requestIsPreview
-      });
+      // If the "current" card instance doesn't match our tracked instance, the tracked instance is stale
+      if (currentCardGuid && MsdInstanceManager._currentInstanceGuid !== currentCardGuid) {
+        cblcarsLog.warn('[MsdInstanceManager] Tracked instance GUID mismatch - instance is stale, cleaning up:', {
+          trackedGuid: MsdInstanceManager._currentInstanceGuid,
+          currentCardGuid: currentCardGuid
+        });
+        await MsdInstanceManager.destroyInstance();
+        // Now proceed with new initialization below
+      } else {
+        // ✅ NEW: GUID-based matching (legitimate re-initialization)
+        if (requestingGuid && requestingGuid === MsdInstanceManager._currentInstanceGuid) {
+          cblcarsLog.debug('[MsdInstanceManager] ✅ GUID match - returning existing instance', {
+            guid: requestingGuid,
+            reason: 'same_card_reinitializing'
+          });
+          return MsdInstanceManager._currentInstance;
+        }
 
-      // If same mount element, return existing instance
-      if (existingMount === mountEl) {
-        cblcarsLog.debug('[MsdInstanceManager] ✅ Returning existing instance for same mount');
-        return MsdInstanceManager._currentInstance;
+        // ✅ NEW: Different GUID = truly different card (block it)
+        if (requestingGuid && requestingGuid !== MsdInstanceManager._currentInstanceGuid) {
+          cblcarsLog.warn('[MsdInstanceManager] 🚨 Different GUID - blocking new instance:', {
+            existingGuid: MsdInstanceManager._currentInstanceGuid,
+            requestingGuid: requestingGuid
+          });
+
+          return {
+            enabled: false,
+            blocked: true,
+            reason: 'Different MSD card instance already active',
+            existingGuid: MsdInstanceManager._currentInstanceGuid,
+            requestingGuid: requestingGuid,
+            html: MsdInstanceManager._createBlockedContentWithGuid(
+              MsdInstanceManager._currentInstanceGuid,
+              requestingGuid
+            ),
+            destroyExisting: () => MsdInstanceManager.destroyInstance(),
+            getExistingInstance: () => MsdInstanceManager._currentInstance
+          };
+        }
+
+        // ✅ FALLBACK: No GUID on requesting card (shouldn't happen but be defensive)
+        if (!requestingGuid) {
+          cblcarsLog.warn('[MsdInstanceManager] ⚠️ No GUID on requesting card - blocking as precaution');
+          return {
+            enabled: false,
+            blocked: true,
+            reason: 'Instance already active and no GUID on new request',
+            html: MsdInstanceManager._createBlockedContent(
+              MsdInstanceManager._currentMountElement,
+              mountEl
+            )
+          };
+        }
       }
-
-      // If this is a preview request, return preview content instead of blocking
-      if (requestIsPreview) {
-        cblcarsLog.debug('[MsdInstanceManager] 🔍 Request is in preview mode - returning preview content instead of blocking');
-        return MsdInstanceManager._createPreviewContent(userMsdConfig, mountEl);
-      }
-
-      // Different mount element and not preview - this is a real conflict
-      cblcarsLog.warn('[MsdInstanceManager] ⚠️ Blocking new MSD instance - only one allowed per window');
-      cblcarsLog.warn('[MsdInstanceManager] 💡 Call destroyInstance() first if you need to reinitialize');
-
-      // Return a disabled pipeline that explains the situation
-      return {
-        enabled: false,
-        blocked: true,
-        reason: 'Another MSD instance is already active',
-        existingMount: MsdInstanceManager._getMountInfo(existingMount),
-        requestedMount: MsdInstanceManager._getMountInfo(mountEl),
-        html: MsdInstanceManager._createBlockedContent(existingMount, mountEl),
-        destroyExisting: () => MsdInstanceManager.destroyInstance(),
-        getExistingInstance: () => MsdInstanceManager._currentInstance
-      };
     }
 
-    // No existing instance - create new one
+    // ✅ CHANGED: Store GUID when creating new instance
     MsdInstanceManager._isInitializing = true;
-    MsdInstanceManager._initializationPromise = MsdInstanceManager._performInitialization(userMsdConfig, mountEl, hass);
+    MsdInstanceManager._currentInstanceGuid = requestingGuid;
+    MsdInstanceManager._initializationPromise = MsdInstanceManager._performInitialization(userMsdConfig, mountEl, hass, requestingGuid);
 
     try {
       const pipelineApi = await MsdInstanceManager._initializationPromise;
@@ -119,15 +231,16 @@ export class MsdInstanceManager {
    * Perform the actual initialization
    * @private
    */
-  static async _performInitialization(userMsdConfig, mountEl, hass) {
+  static async _performInitialization(userMsdConfig, mountEl, hass, requestingGuid) {
     try {
-      cblcarsLog.debug('[MsdInstanceManager] 🔧 Starting MSD pipeline initialization');
+      cblcarsLog.debug('[MsdInstanceManager] 🔧 Starting MSD pipeline initialization with GUID:', requestingGuid);
 
       const pipelineApi = await initMsdPipeline(userMsdConfig, mountEl, hass);
 
       // Store instance references
       MsdInstanceManager._currentInstance = pipelineApi;
       MsdInstanceManager._currentMountElement = mountEl;
+      // GUID already stored in requestInstance
 
       // Enhanced cleanup on instance
       const originalDestroy = pipelineApi.destroy || (() => {});
@@ -455,7 +568,10 @@ export class MsdInstanceManager {
       return;
     }
 
-    cblcarsLog.debug('[MsdInstanceManager] 🧹 Destroying MSD instance...');
+    cblcarsLog.debug('[MsdInstanceManager] 🧹 Destroying MSD instance:', {
+      guid: MsdInstanceManager._currentInstanceGuid,
+      timestamp: new Date().toISOString()
+    });
 
     try {
       // Call existing cleanup methods
@@ -502,8 +618,9 @@ export class MsdInstanceManager {
       // Clear instance references
       MsdInstanceManager._currentInstance = null;
       MsdInstanceManager._currentMountElement = null;
+      MsdInstanceManager._currentInstanceGuid = null; // ✅ NEW: Clear GUID
 
-      cblcarsLog.debug('[MsdInstanceManager] ✅ MSD instance destroyed and references cleared');
+      cblcarsLog.debug('[MsdInstanceManager] ✅ MSD instance destroyed and GUID cleared');
 
     } catch (error) {
       cblcarsLog.error('[MsdInstanceManager] ❌ Error during instance destruction:', error);
@@ -528,7 +645,14 @@ export class MsdInstanceManager {
    * Force replace current instance (for development/debugging)
    */
   static async forceReplace(userMsdConfig, mountEl, hass) {
-    cblcarsLog.warn('[MsdInstanceManager] 🔄 Force replacing MSD instance');
+    const replacingCard = MsdInstanceManager._getCardInstanceFromMount(mountEl);
+    const replacingGuid = replacingCard?._msdInstanceGuid;
+
+    cblcarsLog.warn('[MsdInstanceManager] 🔄 Force replacing MSD instance:', {
+      oldGuid: MsdInstanceManager._currentInstanceGuid,
+      newGuid: replacingGuid
+    });
+
     await MsdInstanceManager.destroyInstance();
     return MsdInstanceManager.requestInstance(userMsdConfig, mountEl, hass);
   }
@@ -858,6 +982,77 @@ export class MsdInstanceManager {
   }
 
   /**
+   * Create blocked instance content with GUID information
+   * Provides clearer debugging info for developers
+   *
+   * @param {string} existingGuid - GUID of active instance
+   * @param {string} requestingGuid - GUID of blocked request
+   * @returns {string} HTML content for blocked state
+   * @private
+   */
+  static _createBlockedContentWithGuid(existingGuid, requestingGuid) {
+    return `
+      <div style="
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(135deg, #220011 0%, #110006 100%);
+        border: 2px solid var(--lcars-red, #ff0000);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--lcars-red, #ff0000);
+        font-family: 'Antonio', monospace;
+        text-align: center;
+        padding: 20px;
+      ">
+        <div style="font-size: 20px; font-weight: bold; margin-bottom: 16px;">
+          ⚠️ MSD Instance Conflict
+        </div>
+
+        <div style="font-size: 14px; margin-bottom: 12px; color: var(--lcars-white, #ffffff);">
+          Another MSD card instance is already active
+        </div>
+
+        <div style="
+          font-size: 11px;
+          opacity: 0.8;
+          margin-bottom: 16px;
+          font-family: monospace;
+          background: rgba(0,0,0,0.3);
+          padding: 8px;
+          border-radius: 4px;
+        ">
+          <div style="margin-bottom: 4px;">
+            <span style="color: var(--lcars-orange, #ff9900);">Active:</span>
+            ${existingGuid}
+          </div>
+          <div>
+            <span style="color: var(--lcars-cyan, #00ffff);">Blocked:</span>
+            ${requestingGuid}
+          </div>
+        </div>
+
+        <div style="
+          font-size: 12px;
+          color: var(--lcars-orange, #ff9900);
+          background: rgba(255, 153, 0, 0.1);
+          padding: 8px 12px;
+          border-radius: 4px;
+          border: 1px solid var(--lcars-orange, #ff9900);
+        ">
+          💡 Only one MSD card allowed per window
+        </div>
+
+        <div style="font-size: 10px; margin-top: 12px; opacity: 0.6;">
+          Refresh the page to reset instances
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Get useful information about a mount element
    * @private
    */
@@ -919,8 +1114,13 @@ if (typeof window !== 'undefined') {
   };
 
   window.__msdStatus = () => {
+    const cardInstance = window.cb_lcars_card_instance || window._currentCardInstance;
+
     const status = {
       'Has Active Instance': MsdInstanceManager.hasActiveInstance(),
+      'Current GUID': MsdInstanceManager._currentInstanceGuid || 'none',
+      'Card Instance GUID': cardInstance?._msdInstanceGuid || 'none',
+      'GUIDs Match': MsdInstanceManager._currentInstanceGuid === cardInstance?._msdInstanceGuid,
       'Current Mount': MsdInstanceManager._currentMountElement?.tagName || 'none',
       'Instance Enabled': MsdInstanceManager._currentInstance?.enabled || false,
       'Is Initializing': MsdInstanceManager._isInitializing,
@@ -929,5 +1129,18 @@ if (typeof window !== 'undefined') {
 
     console.table(status);
     return status;
+  };
+
+  // ✅ NEW: GUID inspection helper
+  window.__msdInspectGuid = () => {
+    const cardInstance = window.cb_lcars_card_instance || window._currentCardInstance;
+
+    console.group('🔍 MSD GUID Inspection');
+    console.log('Active Instance GUID:', MsdInstanceManager._currentInstanceGuid);
+    console.log('Card Instance:', cardInstance);
+    console.log('Card Instance GUID:', cardInstance?._msdInstanceGuid);
+    console.log('Shadow Root:', cardInstance?.shadowRoot);
+    console.log('Mount Element:', MsdInstanceManager._currentMountElement);
+    console.groupEnd();
   };
 }

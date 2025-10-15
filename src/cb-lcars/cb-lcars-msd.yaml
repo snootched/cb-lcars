@@ -263,6 +263,22 @@ cb-lcars-msd:
           if (!this._msdV1ComprehensiveBoot) {
             console.log('[MSD DEBUG] 🚀 First boot - initializing MSD system');
 
+            // ✅ NEW: Assign GUID to card instance FIRST (before any other initialization)
+            if (!this._msdInstanceGuid) {
+              if (!window.__msdDebug?.MsdInstanceManager) {
+                console.error('[MSD DEBUG] ❌ MsdInstanceManager not available for GUID generation');
+              } else {
+                this._msdInstanceGuid = window.__msdDebug.MsdInstanceManager._generateGuid();
+                console.log('[MSD DEBUG] 🔑 Generated instance GUID:', {
+                  guid: this._msdInstanceGuid,
+                  cardId: this.id,
+                  timestamp: new Date().toISOString()
+                });
+              }
+            } else {
+              console.log('[MSD DEBUG] 🔑 Using existing instance GUID:', this._msdInstanceGuid);
+            }
+
             // Check if MSD v1 system is loaded
             if (typeof window.__msdDebug === 'undefined') {
               console.error('[MSD DEBUG] ❌ window.__msdDebug not found');
@@ -465,7 +481,8 @@ cb-lcars-msd:
                 baseWrapper: !!baseWrapper,
                 shadowRoot: !!this.shadowRoot,
                 mount: !!mount,
-                mountTagName: mount?.tagName
+                mountTagName: mount?.tagName,
+                cardGuid: this._msdInstanceGuid  // ✅ NEW: Log GUID
               });
               if (!mount && attempt < 5) {
                 console.warn('[MSD DEBUG] ⚠️ mount not ready, retrying...', attempt);
@@ -486,12 +503,12 @@ cb-lcars-msd:
 
               const realHass = this.___hass || hass;
 
-              // CRITICAL: Set card instance BEFORE pipeline initialization
+              // CRITICAL: Set card instance BEFORE pipeline initialization (with GUID already assigned)
               window.cb_lcars_card_instance = this;
               window._currentCardInstance = this;
               if (!window.__msdDebug) window.__msdDebug = {};
               window.__msdDebug.cardInstance = this;
-              console.log('[MSD DEBUG] 🎯 Card instance stored in multiple global locations BEFORE pipeline init:', this);
+              console.log('[MSD DEBUG] 🎯 Card instance stored with GUID:', this._msdInstanceGuid);
 
               // Detect preview mode
               const isPreview = window.__msdDebug.MsdInstanceManager.detectPreviewMode(mount);
@@ -510,7 +527,10 @@ cb-lcars-msd:
 
                 if (!pipelineResult.enabled) {
                   if (pipelineResult.blocked) {
-                    console.warn('[MSD DEBUG] 🚫 MSD instance blocked:', pipelineResult.reason);
+                    console.warn('[MSD DEBUG] 🚫 MSD instance blocked:', pipelineResult.reason, {
+                      existingGuid: pipelineResult.existingGuid,
+                      requestingGuid: pipelineResult.requestingGuid
+                    });
                     // Update the wrapper content with blocked message
                     const wrapper = this.shadowRoot?.getElementById('msd-v1-comprehensive-wrapper');
                     if (wrapper) {
@@ -533,7 +553,10 @@ cb-lcars-msd:
 
                 // Normal pipeline initialization completed
                 const pipeline = pipelineResult;
-                console.log('[MSD DEBUG] ✅ Pipeline initialized successfully via MsdInstanceManager:', pipeline);
+                console.log('[MSD DEBUG] ✅ Pipeline initialized successfully via MsdInstanceManager:', {
+                  pipeline,
+                  cardGuid: this._msdInstanceGuid
+                });
 
                 // Store pipeline reference for HASS updates
                 this._msdPipeline = pipeline;
@@ -603,7 +626,7 @@ cb-lcars-msd:
           }
 
           // Existing MSD case
-          console.log('[MSD DEBUG] 🔄 Subsequent render - MSD already booted');
+          console.log('[MSD DEBUG] 🔄 Subsequent render - MSD already booted with GUID:', this._msdInstanceGuid);
           const vb = this._msdViewBox || [0,0,1920,1200];
           const aspect = window.cblcars.getSvgAspectRatio(vb);
           return `<div style="width:100%;height:100%;aspect-ratio:${aspect};"></div>`;
