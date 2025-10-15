@@ -80,30 +80,7 @@ export class SparklineOverlayRenderer {
         return this._renderFallbackSparkline(overlay, position, size);
       }
 
-      // 6. MSD RESPONSIBILITY: Handle actions
-      const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
-
-      if (hasActions && cardInstance) {
-        const actionInfo = ActionHelpers.processOverlayActions(overlay, sparklineStyle, cardInstance);
-        if (actionInfo) {
-          setTimeout(() => {
-            let sparklineElement = null;
-            const card = window.cb_lcars_card_instance;
-            if (card && card.shadowRoot) {
-              sparklineElement = card.shadowRoot.querySelector(`[data-overlay-id="${overlay.id}"]`);
-            }
-            if (!sparklineElement) {
-              sparklineElement = document.querySelector(`[data-overlay-id="${overlay.id}"]`);
-            }
-
-            if (sparklineElement) {
-              ActionHelpers.attachActions(sparklineElement, actionInfo.overlay, actionInfo.config, actionInfo.cardInstance);
-            }
-          }, 100);
-        }
-      }
-
-      // 7. MSD RESPONSIBILITY: Wrap in overlay group with metadata
+      // 6. MSD RESPONSIBILITY: Wrap in overlay group with metadata
       const metadata = renderResult.metadata || {};
       const dataSourceRef = overlay.source || overlay.data_source || overlay._raw?.source || overlay._raw?.data_source || style.source || style.data_source;
 
@@ -111,7 +88,7 @@ export class SparklineOverlayRenderer {
                   data-overlay-type="sparkline"
                   data-source="${dataSourceRef || ''}"
                   data-point-count="${metadata.dataPointCount || 0}"
-                  style="pointer-events: ${hasActions ? 'visiblePainted' : 'none'}; cursor: ${hasActions ? 'pointer' : 'default'};">
+                  style="pointer-events: none;">
                 ${renderResult.markup}
               </g>`;
 

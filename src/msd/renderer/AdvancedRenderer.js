@@ -241,17 +241,56 @@ export class AdvancedRenderer {
       cblcarsLog.debug(`[AdvancedRenderer] 🔍 Looking for Phase 2 element ${overlayId}:`, {
         found: !!element,
         alreadyAttached: element?.hasAttribute('data-actions-attached'),
-        hasActionInfo: !!actionInfo
+        hasActionInfo: !!actionInfo,
+        isEnhanced: !!actionInfo?.config?.enhanced
       });
 
       if (element && !element.hasAttribute('data-actions-attached')) {
         try {
-          ActionHelpers.attachActions(
-            element,
-            actionInfo.overlay,
-            actionInfo.config,
-            actionInfo.cardInstance
-          );
+          // CHANGED: Handle different action config types
+          if (actionInfo.config.simple) {
+            // Simple overlay-level actions (text, buttons)
+            ActionHelpers.attachActions(
+              element,
+              actionInfo.overlay,
+              actionInfo.config,
+              actionInfo.cardInstance
+            );
+          } else if (actionInfo.config.enhanced) {
+            // Enhanced cell-level actions (status grids)
+            cblcarsLog.debug(`[AdvancedRenderer] 🔲 Attaching enhanced cell actions for ${overlayId}`);
+
+            // Attach cell-specific actions using ActionHelpers
+            if (actionInfo.cells && actionInfo.cells.length > 0) {
+              ActionHelpers.attachCellActionsFromConfigs(
+                element,
+                actionInfo.cells,
+                actionInfo.cardInstance
+              );
+            }
+
+            // Attach overlay-level fallback actions if present
+            if (actionInfo.config.enhanced.default_tap ||
+                actionInfo.config.enhanced.default_hold ||
+                actionInfo.config.enhanced.default_double_tap) {
+
+              const fallbackConfig = {
+                simple: {
+                  tap_action: actionInfo.config.enhanced.default_tap,
+                  hold_action: actionInfo.config.enhanced.default_hold,
+                  double_tap_action: actionInfo.config.enhanced.default_double_tap
+                }
+              };
+
+              ActionHelpers.attachActions(
+                element,
+                actionInfo.overlay,
+                fallbackConfig,
+                actionInfo.cardInstance
+              );
+            }
+          }
+
           element.setAttribute('data-actions-attached', 'true');
           cblcarsLog.debug(`[AdvancedRenderer] ✅ Attached Phase 2 actions to ${overlayId}`);
         } catch (error) {
