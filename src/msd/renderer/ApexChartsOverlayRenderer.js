@@ -82,19 +82,38 @@ export class ApexChartsOverlayRenderer {
       }
 
       // 3. MSD RESPONSIBILITY: Convert DataSource to ApexCharts series
-      const sourceRef = overlay.source || overlay.data_source;
+      // ENHANCED: Support both single source and array of sources
+      const sourceRef = overlay.source || overlay.data_source || overlay.sources;
       const style = overlay.finalStyle || overlay.style || {};
 
-      const series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
-        time_window: style.time_window,
-        max_points: style.max_points || 500,
-        name: style.name
-      });
+      // ADDED: Detect multi-series configuration
+      const isMultiSeries = Array.isArray(sourceRef);
+
+      let series;
+      if (isMultiSeries) {
+        // Multi-series: Use convertToMultiSeries
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] Multi-series chart with ${sourceRef.length} sources`);
+
+        series = ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          seriesNames: style.series_names || style.seriesNames // Custom names for each series
+        });
+      } else {
+        // Single series: Use existing method
+        series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          name: style.name
+        });
+      }
 
       if (!series || series.length === 0) {
         cblcarsLog.warn(`[ApexChartsOverlayRenderer] No data for chart ${overlay.id}`);
         return this._renderFallback(overlay, position, size);
       }
+
+      cblcarsLog.debug(`[ApexChartsOverlayRenderer] Generated ${series.length} series for ${overlay.id}`);
 
       // 4. MSD RESPONSIBILITY: Generate ApexCharts options
       const options = ApexChartsAdapter.generateOptions(style, size, { viewBox });
@@ -280,41 +299,57 @@ export class ApexChartsOverlayRenderer {
    * @param {Object} overlay - Overlay configuration
    */
   _subscribeToDataSource(sourceRef, dataSourceManager, chart, overlay) {
-    if (!sourceRef) return;
+    // ENHANCED: Handle both single and multiple sources
+    const sources = Array.isArray(sourceRef) ? sourceRef : [sourceRef];
+    const unsubscribers = [];
 
-    // Parse source reference
-    const { dataSource } = ApexChartsAdapter._resolveDataSourcePath(sourceRef, dataSourceManager);
+    sources.forEach((source, index) => {
+      if (!source) return;
 
-    if (!dataSource) {
-      cblcarsLog.warn(`[ApexChartsOverlayRenderer] DataSource not found: ${sourceRef}`);
-      return;
-    }
+      // Parse source reference
+      const { dataSource } = ApexChartsAdapter._resolveDataSourcePath(source, dataSourceManager);
 
-    // Subscribe to updates
-    const unsubscribe = dataSource.subscribe((newData) => {
-      try {
-        const style = overlay.finalStyle || overlay.style || {};
-
-        // Convert new data to series format
-        const newSeries = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
-          time_window: style.time_window,
-          max_points: style.max_points || 500,
-          name: style.name
-        });
-
-        if (newSeries && newSeries.length > 0) {
-          // Update chart with animation
-          chart.updateSeries(newSeries, true);
-
-          cblcarsLog.debug(`[ApexChartsOverlayRenderer] Chart updated: ${overlay.id}`);
-        }
-      } catch (error) {
-        cblcarsLog.error(`[ApexChartsOverlayRenderer] Update failed for ${overlay.id}:`, error);
+      if (!dataSource) {
+        cblcarsLog.warn(`[ApexChartsOverlayRenderer] DataSource not found: ${source}`);
+        return;
       }
+
+      // Subscribe to updates
+      const unsubscribe = dataSource.subscribe((newData) => {
+        try {
+          const style = overlay.finalStyle || overlay.style || {};
+
+          // Convert ALL sources to series format (not just the one that changed)
+          const newSeries = Array.isArray(sourceRef) ?
+            ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+              time_window: style.time_window,
+              max_points: style.max_points || 500,
+              seriesNames: style.series_names || style.seriesNames
+            }) :
+            ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+              time_window: style.time_window,
+              max_points: style.max_points || 500,
+              name: style.name
+            });
+
+          if (newSeries && newSeries.length > 0) {
+            // Update chart with animation
+            chart.updateSeries(newSeries, true);
+
+            cblcarsLog.debug(`[ApexChartsOverlayRenderer] Chart updated: ${overlay.id} (${newSeries.length} series)`);
+          }
+        } catch (error) {
+          cblcarsLog.error(`[ApexChartsOverlayRenderer] Update failed for ${overlay.id}:`, error);
+        }
+      });
+
+      unsubscribers.push(unsubscribe);
     });
 
-    // Store unsubscribe function for cleanup
-    this.subscriptions.set(overlay.id, unsubscribe);
+    // Store ALL unsubscribe functions
+    this.subscriptions.set(overlay.id, () => {
+      unsubscribers.forEach(unsub => unsub());
+    });
   }
 
   /**
