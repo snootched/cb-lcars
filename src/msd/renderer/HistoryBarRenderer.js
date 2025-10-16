@@ -24,7 +24,17 @@ export class HistoryBarRenderer {
    * @param {Element} svgContainer - Container element for measurements
    * @returns {string} Complete SVG markup for the styled history bar
    */
-  static render(overlay, anchors, viewBox, svgContainer) {
+  static render(overlay, anchors, viewBox, svgContainer, cardInstance) {
+    // ADDED: Deprecation warning
+    if (!HistoryBarRenderer._warningShown) {
+      cblcarsLog.warn(
+        `[HistoryBarRenderer] ⚠️ DEPRECATED: The 'history_bar' overlay type will be removed in v3.0. ` +
+        `Please migrate to 'apexchart' overlay type with chart_type: 'area' or 'bar'. ` +
+        `See: https://github.com/snootched/cb-lcars/docs/migration/historybar-to-apexchart.md`
+      );
+      HistoryBarRenderer._warningShown = true;
+    }
+
     // Create instance for non-static methods
     const instance = new HistoryBarRenderer();
     instance.container = svgContainer;

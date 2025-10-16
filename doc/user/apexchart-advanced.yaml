@@ -1,0 +1,190 @@
+# Advanced ApexCharts Configuration Examples
+# Demonstrates using chart_options for full ApexCharts API access
+
+type: custom:cb-lcars-msd
+msd:
+  data_sources:
+    temperature:
+      entity: sensor.outdoor_temperature
+      windowSeconds: 86400  # 24 hours
+
+    power:
+      entity: sensor.power_meter
+      windowSeconds: 3600
+
+    humidity:
+      entity: sensor.humidity
+      windowSeconds: 3600
+
+  overlays:
+    # Example 1: Horizontal Bar Chart with Custom Plot Options
+    - id: horizontal_bars
+      type: apexchart
+      source: temperature
+      position: [50, 50]
+      size: [300, 200]
+      style:
+        chart_type: "bar"
+        color: "var(--lcars-orange)"
+        chart_options:
+          plotOptions:
+            bar:
+              horizontal: true
+              borderRadius: 4
+              barHeight: "70%"
+              dataLabels:
+                position: "bottom"
+
+    # Example 2: Responsive Chart with Breakpoints
+    - id: responsive_chart
+      type: apexchart
+      source: power
+      position: [370, 50]
+      size: [300, 200]
+      style:
+        chart_type: "area"
+        color: "var(--lcars-yellow)"
+        chart_options:
+          responsive:
+            - breakpoint: 1024
+              options:
+                chart:
+                  height: 250
+                legend:
+                  position: "bottom"
+            - breakpoint: 768
+              options:
+                chart:
+                  height: 180
+                xaxis:
+                  labels:
+                    show: false
+
+    # Example 3: Multi-Axis Chart
+    - id: multi_axis_chart
+      type: apexchart
+      source: [temperature, humidity]
+      position: [50, 270]
+      size: [400, 200]
+      style:
+        chart_type: "line"
+        show_legend: true
+        chart_options:
+          yaxis:
+            - title:
+                text: "Temperature (°C)"
+              labels:
+                style:
+                  colors: "var(--lcars-blue)"
+            - opposite: true
+              title:
+                text: "Humidity (%)"
+              labels:
+                style:
+                  colors: "var(--lcars-green)"
+
+    # Example 4: Advanced Annotations
+    - id: annotated_chart
+      type: apexchart
+      source: temperature
+      position: [50, 490]
+      size: [400, 200]
+      style:
+        chart_type: "line"
+        color: "var(--lcars-blue)"
+        chart_options:
+          annotations:
+            xaxis:
+              - x: 1640995200000
+                borderColor: "var(--lcars-red)"
+                label:
+                  text: "Event"
+                  style:
+                    color: "#fff"
+                    background: "var(--lcars-red)"
+            points:
+              - x: 1640995200000
+                y: 25
+                marker:
+                  size: 8
+                  fillColor: "var(--lcars-yellow)"
+                label:
+                  text: "Peak"
+
+    # Example 5: Custom States (Hover Effects)
+    - id: stateful_chart
+      type: apexchart
+      source: power
+      position: [470, 270]
+      size: [300, 200]
+      style:
+        chart_type: "line"
+        color: "var(--lcars-yellow)"
+        chart_options:
+          states:
+            hover:
+              filter:
+                type: "lighten"
+                value: 0.2
+            active:
+              filter:
+                type: "darken"
+                value: 0.3
+
+    # Example 6: Custom Gradient Fill
+    - id: gradient_chart
+      type: apexchart
+      source: temperature
+      position: [470, 490]
+      size: [300, 200]
+      style:
+        chart_type: "area"
+        chart_options:
+          fill:
+            type: "gradient"
+            gradient:
+              shade: "dark"
+              type: "vertical"
+              gradientToColors: ["var(--lcars-blue)", "var(--lcars-purple)"]
+              stops: [0, 100]
+              colorStops:
+                - offset: 0
+                  color: "var(--lcars-blue)"
+                  opacity: 0.9
+                - offset: 100
+                  color: "var(--lcars-purple)"
+                  opacity: 0.1
+
+    # Example 7: Forecast Data Points
+    - id: forecast_chart
+      type: apexchart
+      source: temperature
+      position: [50, 710]
+      size: [400, 200]
+      style:
+        chart_type: "line"
+        color: "var(--lcars-orange)"
+        chart_options:
+          forecastDataPoints:
+            count: 12
+            fillOpacity: 0.3
+            strokeWidth: 2
+            dashArray: 4
+
+    # Example 8: No Data Custom Message
+    - id: nodata_chart
+      type: apexchart
+      source: missing_sensor
+      position: [470, 710]
+      size: [300, 200]
+      style:
+        chart_type: "line"
+        chart_options:
+          noData:
+            text: "🔍 No Data Available"
+            align: "center"
+            verticalAlign: "middle"
+            style:
+              color: "var(--lcars-red)"
+              fontSize: "18px"
+              fontFamily: "Antonio"

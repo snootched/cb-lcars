@@ -17,6 +17,7 @@ import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js
 // ENHANCED: Import new pack management systems
 import { StylePresetManager } from '../presets/StylePresetManager.js';
 import { PackRegistry } from '../packs/PackRegistry.js';
+import { ApexChartsOverlayRenderer } from '../renderer/ApexChartsOverlayRenderer.js';
 
 export class SystemsManager {
   constructor() {
@@ -846,6 +847,12 @@ export class SystemsManager {
   */
 
   async destroy() {
+    // ADDED: Cleanup ApexCharts instances before destroying other systems
+    if (ApexChartsOverlayRenderer) {
+      ApexChartsOverlayRenderer.cleanupAll();
+      cblcarsLog.debug('[SystemsManager] ApexCharts instances cleaned up');
+    }
+
     // Clean up rules engine first
     if (this.rulesEngine) {
       await this.rulesEngine.destroy();

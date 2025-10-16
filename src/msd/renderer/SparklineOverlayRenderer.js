@@ -32,6 +32,16 @@ export class SparklineOverlayRenderer {
    * @returns {string} Complete SVG markup
    */
   static render(overlay, anchors, viewBox, svgContainer = null, cardInstance = null) {
+    // ADDED: Deprecation warning
+    if (!SparklineOverlayRenderer._warningShown) {
+      cblcarsLog.warn(
+        `[SparklineOverlayRenderer] ⚠️ DEPRECATED: The 'sparkline' overlay type will be removed in v3.0. ` +
+        `Please migrate to 'apexchart' overlay type with chart_type: 'line'. ` +
+        `See: https://github.com/snootched/cb-lcars/docs/migration/sparkline-to-apexchart.md`
+      );
+      SparklineOverlayRenderer._warningShown = true;
+    }
+
     // Create instance for non-static methods
     const instance = new SparklineOverlayRenderer();
     instance.container = svgContainer;

@@ -16,6 +16,7 @@ import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { ActionHelpers } from './ActionHelpers.js'; // ADDED: Import ActionHelpers
+import { ApexChartsOverlayRenderer } from './ApexChartsOverlayRenderer.js';
 
 export class AdvancedRenderer {
   constructor(mountEl, routerCore, systemsManager = null) {
@@ -362,6 +363,8 @@ export class AdvancedRenderer {
         case 'line':
           // Lines don't have attachment points (they attach to others, not vice versa)
           return null;
+        case 'apexchart':
+          return ApexChartsOverlayRenderer.computeAttachmentPoints(overlay, anchors, container, viewBox);
         default:
           cblcarsLog.warn(`[AdvancedRenderer] Unknown overlay type for attachment points: ${overlay.type}`);
           return null;
@@ -753,6 +756,28 @@ export class AdvancedRenderer {
           return ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
         case 'history_bar':
           return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
+        case 'apexchart':
+          // FIXED: Pass the correct svgContainer reference
+          const apexCardInstance = this.systemsManager ? this._resolveCardInstance() : null;
+
+          // Use this.mountEl as the svgContainer if not provided
+          const effectiveSvgContainer = svgContainer || this.mountEl;
+
+          cblcarsLog.debug('[AdvancedRenderer] 📊 Rendering ApexCharts with container:', {
+            overlayId: overlay.id,
+            hasContainer: !!effectiveSvgContainer,
+            containerType: effectiveSvgContainer?.tagName,
+            hasMountEl: !!this.mountEl
+          });
+
+          return ApexChartsOverlayRenderer.render(
+            overlay,
+            anchors,
+            viewBox,
+            effectiveSvgContainer,  // FIXED: Ensure container is passed
+            apexCardInstance
+          );
+
         default:
           cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Unknown overlay type: ${overlay.type}`);
           return '';
