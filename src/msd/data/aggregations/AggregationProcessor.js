@@ -10,6 +10,9 @@ export class AggregationProcessor {
     this.key = config.key || type;
     this.enabled = config.enabled !== false;
 
+    // NEW: Support chaining from transformations
+    this.inputSource = config.input_source || null;
+
     // Parse time window if specified
     this.windowMs = this._parseTimeWindow(config.window);
     this.maxAge = this.windowMs || (24 * 60 * 60 * 1000); // Default 24h max
@@ -34,13 +37,20 @@ export class AggregationProcessor {
    * @param {Object} transformedData - Any transformed values from the same update
    */
   update(timestamp, value, transformedData = {}) {
-    if (!this.enabled || !Number.isFinite(value)) return;
+    if (!this.enabled) return;
+
+    // NEW: Support input_source chaining from transformations
+    const inputValue = this.inputSource
+      ? transformedData[this.inputSource]
+      : value;
+
+    if (!Number.isFinite(inputValue)) return;
 
     // Clean old values first
     this._cleanOldValues(timestamp);
 
-    // Add new value
-    this._values.push({ timestamp, value, transformed: transformedData });
+    // Add new value (using chained input if specified)
+    this._values.push({ timestamp, value: inputValue, transformed: transformedData });
     this._lastUpdate = timestamp;
     this._stats.updates++;
 

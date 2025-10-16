@@ -70,6 +70,10 @@ export class MsdDataSource {
     this.aggregations = new Map();
     this.transformedBuffers = new Map();
 
+    // NEW: Cache transformation execution order
+    this._transformationOrder = null;
+    this._transformationOrderValid = false;
+
     // PORT: Complete internal timing state from original
     this._lastEmitTime = 0;
     this._lastEmittedValue = null;
@@ -92,7 +96,7 @@ export class MsdDataSource {
     this._started = false;
     this._destroyed = false;
 
-    // Initialize processors from configuration
+    // Initialize processors from configuration (including profiles)
     this._initializeProcessors(cfg);
   }
 
@@ -102,22 +106,34 @@ export class MsdDataSource {
    * @param {Object} cfg - Data source configuration
    */
   _initializeProcessors(cfg) {
+    // NEW: Load transformation profiles first
+    const profiles = this._loadTransformationProfiles(cfg);
+
     // Initialize transformations
     if (cfg.transformations && Array.isArray(cfg.transformations)) {
       cfg.transformations.forEach((transformConfig, index) => {
         try {
           const key = transformConfig.key || `transform_${index}`;
+
+          // NEW: Check if this is a profile reference
+          const expandedConfig = transformConfig.profile
+            ? this._expandProfile(transformConfig.profile, profiles, transformConfig)
+            : transformConfig;
+
           const processor = createTransformationProcessor({
-            ...transformConfig,
+            ...expandedConfig,
             hass: this.hass // Pass hass for multi-entity expressions
           });
 
           this.transformations.set(key, processor);
 
-          // Create buffer for transformed historical data with same capacity as main buffer
-          const capacity = this.buffer.capacity || 60;
+          // Create buffer for transformed historical data
+          // FIXED: Use same capacity calculation as main buffer
+          const wsSec = this._getWindowSeconds();
+          const capacity = Math.max(60, Math.floor(wsSec * 10));
           this.transformedBuffers.set(key, new RollingBuffer(capacity));
-          cblcarsLog.debug(`[MsdDataSource] Initialized transformation: ${key} (${transformConfig.type})`);
+
+          cblcarsLog.debug(`[MsdDataSource] ✓ Initialized transformation: ${key} (${expandedConfig.type})`);
         } catch (error) {
           cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize transformation ${transformConfig.type}:`, error);
         }
@@ -126,21 +142,249 @@ export class MsdDataSource {
 
     // Initialize aggregations
     if (cfg.aggregations && typeof cfg.aggregations === 'object') {
-      Object.entries(cfg.aggregations).forEach(([type, config]) => {
+      Object.entries(cfg.aggregations).forEach(([key, config]) => {
         try {
-          const key = config.key || type;
-          const processor = createAggregationProcessor(type, config);
+          // FIXED: Use config.type for the aggregation type, key is just the identifier
+          const aggregationType = config.type;
+          const aggregationKey = config.key || key;
 
-          this.aggregations.set(key, processor);
+          if (!aggregationType) {
+            cblcarsLog.error(`[MsdDataSource] ❌ Aggregation '${key}' missing 'type' property`);
+            return;
+          }
 
-          cblcarsLog.debug(`[MsdDataSource] Initialized aggregation: ${key} (${type})`);
+          const processor = createAggregationProcessor(aggregationType, {
+            ...config,
+            key: aggregationKey
+          });
+
+          this.aggregations.set(aggregationKey, processor);
+
+          cblcarsLog.debug(`[MsdDataSource] ✓ Initialized aggregation: ${aggregationKey} (${aggregationType})`);
         } catch (error) {
-          cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize aggregation ${type}:`, error);
+          cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize aggregation ${key}:`, error);
         }
       });
     }
 
-    cblcarsLog.debug(`[MsdDataSource] Processor initialization complete: ${this.transformations.size} transformations, ${this.aggregations.size} aggregations`);
+    // NEW: Validate transformation chains after initialization
+    this._validateTransformationChains();
+
+    cblcarsLog.debug(
+      `[MsdDataSource] Processor initialization complete: ` +
+      `${this.transformations.size} transformations, ${this.aggregations.size} aggregations`
+    );
+  }
+
+  /**
+   * NEW: Load transformation profiles from config
+   * @private
+   * @param {Object} cfg - Configuration
+   * @returns {Object} Map of profile names to transformation arrays
+   */
+  _loadTransformationProfiles(cfg) {
+    const profiles = {};
+
+    // Global profiles (could be loaded from separate config file)
+    profiles.temperature_comfort = [
+      { type: 'unit_conversion', conversion: 'f_to_c', key: 'celsius' },
+      { type: 'scale', input_source: 'celsius', input_range: [-10, 35], output_range: [0, 100], key: 'comfort' }
+    ];
+
+    profiles.power_analysis = [
+      { type: 'unit_conversion', conversion: 'w_to_kw', key: 'kw' },
+      { type: 'smooth', input_source: 'kw', method: 'median', window_size: 5, key: 'kw_clean' },
+      { type: 'statistical', input_source: 'kw_clean', method: 'z_score', window_size: 100, key: 'anomaly' }
+    ];
+
+    profiles.signal_processing = [
+      { type: 'smooth', method: 'median', window_size: 3, key: 'outliers_removed' },
+      { type: 'smooth', input_source: 'outliers_removed', method: 'moving_average', window_size: 5, key: 'noise_reduced' },
+      { type: 'smooth', input_source: 'noise_reduced', method: 'exponential', alpha: 0.1, key: 'trend' }
+    ];
+
+    // Merge with config-specific profiles
+    if (cfg.transformation_profiles) {
+      Object.assign(profiles, cfg.transformation_profiles);
+    }
+
+    return profiles;
+  }
+
+  /**
+   * NEW: Expand a profile reference into actual transformations
+   * @private
+   * @param {string} profileName - Profile name
+   * @param {Object} profiles - Available profiles
+   * @param {Object} overrides - Configuration overrides
+   * @returns {Object} Expanded transformation config
+   */
+  _expandProfile(profileName, profiles, overrides = {}) {
+    const profile = profiles[profileName];
+    if (!profile) {
+      throw new Error(`Unknown transformation profile: ${profileName}`);
+    }
+
+    // For single transform from profile, merge with overrides
+    if (Array.isArray(profile)) {
+      throw new Error(`Profile '${profileName}' is an array - use transformations: { profile: '${profileName}' } at array level`);
+    }
+
+    return { ...profile, ...overrides };
+  }
+
+  /**
+   * NEW: Get window seconds for capacity calculation
+   * @private
+   * @returns {number} Window in seconds
+   */
+  _getWindowSeconds() {
+    let wsSec = 60; // Default window
+    if (typeof this.cfg.windowSeconds === 'number' && isFinite(this.cfg.windowSeconds)) {
+      wsSec = Math.max(1, this.cfg.windowSeconds);
+    } else if (typeof this.cfg.windowSeconds === 'string') {
+      const ms = this._parseTimeWindowMs(this.cfg.windowSeconds);
+      if (Number.isFinite(ms)) {
+        wsSec = Math.max(1, Math.floor(ms / 1000));
+      }
+    }
+    return wsSec;
+  }
+
+  /**
+   * NEW: Validate transformation chains for common errors
+   * @private
+   */
+  _validateTransformationChains() {
+    const errors = [];
+
+    this.transformations.forEach((processor, key) => {
+      const inputSource = processor.config.input_source;
+
+      if (inputSource) {
+        // Check source exists
+        if (!this.transformations.has(inputSource)) {
+          errors.push(`Transform '${key}' references non-existent source '${inputSource}'`);
+        }
+
+        // Check for self-reference
+        if (inputSource === key) {
+          errors.push(`Transform '${key}' cannot reference itself`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      const errorMsg = `Transform chain validation failed:\n  ${errors.join('\n  ')}`;
+      cblcarsLog.error(`[MsdDataSource] ❌ ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+  }
+
+  /**
+   * NEW: Determine execution order for transformations based on dependencies
+   * Uses topological sort (Kahn's algorithm) to handle chained transformations
+   * @private
+   * @returns {Array<string>} Ordered array of transformation keys
+   */
+  _determineTransformationOrder() {
+    // Return cached order if valid
+    if (this._transformationOrderValid && this._transformationOrder) {
+      return this._transformationOrder;
+    }
+
+    const keys = Array.from(this.transformations.keys());
+
+    // Quick path: no transformations
+    if (keys.length === 0) {
+      this._transformationOrder = [];
+      this._transformationOrderValid = true;
+      return [];
+    }
+
+    // Quick path: check if any transform uses input_source
+    const hasChaining = Array.from(this.transformations.values())
+      .some(p => p.config.input_source);
+
+    if (!hasChaining) {
+      // No chaining - return original order (parallel processing)
+      this._transformationOrder = keys;
+      this._transformationOrderValid = true;
+      return keys;
+    }
+
+    // Build dependency graph
+    const graph = new Map();
+    const inDegree = new Map();
+
+    keys.forEach(key => {
+      graph.set(key, []);
+      inDegree.set(key, 0);
+    });
+
+    keys.forEach(key => {
+      const processor = this.transformations.get(key);
+      const inputSource = processor.config.input_source;
+
+      if (inputSource) {
+        // Add edge: inputSource -> key
+        if (graph.has(inputSource)) {
+          graph.get(inputSource).push(key);
+          inDegree.set(key, inDegree.get(key) + 1);
+        }
+      }
+    });
+
+    // Topological sort using Kahn's algorithm
+    const queue = [];
+    const result = [];
+
+    // Start with nodes that have no dependencies
+    inDegree.forEach((degree, key) => {
+      if (degree === 0) {
+        queue.push(key);
+      }
+    });
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      result.push(current);
+
+      // Reduce in-degree for dependent nodes
+      graph.get(current).forEach(dependent => {
+        inDegree.set(dependent, inDegree.get(dependent) - 1);
+        if (inDegree.get(dependent) === 0) {
+          queue.push(dependent);
+        }
+      });
+    }
+
+    // Detect cycles
+    if (result.length !== keys.length) {
+      const remaining = keys.filter(k => !result.includes(k));
+      const involved = remaining.map(k => {
+        const src = this.transformations.get(k).config.input_source;
+        return `${k} → ${src}`;
+      }).join(', ');
+
+      cblcarsLog.error(
+        `[MsdDataSource] ❌ Circular dependency detected in transformations: ${involved}\n` +
+        `  Falling back to config order (chaining will not work correctly)`
+      );
+
+      // Return original order as fallback
+      this._transformationOrder = keys;
+      this._transformationOrderValid = true;
+      return keys;
+    }
+
+    // Cache and return
+    this._transformationOrder = result;
+    this._transformationOrderValid = true;
+
+    cblcarsLog.debug(`[MsdDataSource] Transformation execution order: ${result.join(' → ')}`);
+
+    return result;
   }
 
   /**
@@ -536,13 +780,7 @@ export class MsdDataSource {
     const transformedData = this._applyTransformations(timestamp, value);
 
     // Update aggregations
-    this.aggregations.forEach((processor, key) => {
-      try {
-        processor.update(timestamp, value, transformedData);
-      } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] ⚠️ Aggregation ${key} update failed:`, error);
-      }
-    });
+    this._updateAggregations(timestamp, value, transformedData);
 
     // Update statistics
     this._stats.updates++;
@@ -573,6 +811,131 @@ export class MsdDataSource {
     } else {
       cblcarsLog.debug(`[MsdDataSource] ⚠️ Skipping state change - invalid value:`, { rawValue, entity: this.cfg.entity });
     }
+  }
+
+  /**
+   * Update all configured aggregations with new data
+   * @private
+   * @param {number} timestamp - Current timestamp
+   * @param {number} value - Raw value
+   * @param {Object} transformedData - Transformed values from this update
+   */
+  _updateAggregations(timestamp, value, transformedData) {
+    this.aggregations.forEach((processor, key) => {
+      try {
+        processor.update(timestamp, value, transformedData);
+      } catch (error) {
+        cblcarsLog.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
+      }
+    });
+  }
+
+  /**
+   * Get current aggregation data
+   * @private
+   * @returns {Object} Current aggregation results
+   */
+  _getAggregationData() {
+    const results = {};
+    this.aggregations.forEach((processor, key) => {
+      try {
+        results[key] = processor.getValue();
+      } catch (error) {
+        cblcarsLog.warn(`[MsdDataSource] Failed to get aggregation value for ${key}:`, error);
+        results[key] = null;
+      }
+    });
+    return results;
+  }
+
+  /**
+   * Get current transformation data
+   * @private
+   * @returns {Object} Current transformation results
+   */
+  _getTransformationData() {
+    const results = {};
+
+    // Get the latest raw value to transform
+    const latestPoint = this.buffer.last();
+    if (!latestPoint) {
+      // No data available - return empty results
+      this.transformations.forEach((processor, key) => {
+        results[key] = null;
+      });
+      return results;
+    }
+
+    // Apply transformations to the latest value
+    this.transformations.forEach((processor, key) => {
+      try {
+        // Use proper timestamp and value from buffer point
+        const timestamp = latestPoint.timestamp || latestPoint.t;
+        const value = latestPoint.value || latestPoint.v;
+
+        if (Number.isFinite(value) && Number.isFinite(timestamp)) {
+          // For chained transforms, we need to process in order
+          const executionOrder = this._determineTransformationOrder();
+          const tempResults = {};
+
+          executionOrder.forEach((execKey) => {
+            const execProcessor = this.transformations.get(execKey);
+            const inputSource = execProcessor.config.input_source;
+            const inputValue = inputSource ? tempResults[inputSource] : value;
+
+            if (Number.isFinite(inputValue)) {
+              // For expression processors, provide access to previous transforms
+              if (execProcessor.constructor.name === 'ExpressionProcessor') {
+                execProcessor.transformedData = { ...tempResults };
+              }
+
+              tempResults[execKey] = execProcessor.transform(inputValue, timestamp, this.buffer);
+            } else {
+              tempResults[execKey] = null;
+            }
+
+            // If this is the key we're looking for, store it
+            if (execKey === key) {
+              results[key] = tempResults[execKey];
+            }
+          });
+        } else {
+          cblcarsLog.debug(`[MsdDataSource] Invalid data for transformation ${key}:`, { value, timestamp });
+          results[key] = null;
+        }
+      } catch (error) {
+        cblcarsLog.warn(`[MsdDataSource] Failed to get current transformation ${key}:`, error);
+        results[key] = null;
+      }
+    });
+
+    return results;
+  }
+
+  /**
+   * Enhanced debug method to show transformation and aggregation data
+   * @returns {Object} Debug information including transformations and aggregations
+   */
+  getDebugInfo() {
+    const currentData = this.getCurrentData();
+
+    return {
+      entity: this.cfg.entity,
+      currentValue: currentData.v,
+      timestamp: currentData.t ? new Date(currentData.t).toISOString() : null,
+      bufferSize: this.buffer.size(),
+      transformations: {
+        count: this.transformations.size,
+        data: currentData.transformations,
+        processors: Array.from(this.transformations.keys())
+      },
+      aggregations: {
+        count: this.aggregations.size,
+        data: currentData.aggregations,
+        processors: Array.from(this.aggregations.keys())
+      },
+      stats: currentData.stats
+    };
   }
 
   /**
@@ -1114,7 +1477,39 @@ export class MsdDataSource {
   }
 
   /**
+   * NEW: Get transformation execution graph for debugging
+   * @returns {Object} Dependency graph with execution order
+   */
+  getTransformationGraph() {
+    const graph = {};
+
+    this.transformations.forEach((processor, key) => {
+      graph[key] = {
+        type: processor.constructor.name,
+        inputSource: processor.config.input_source || null,
+        dependents: [],
+        supportsHistorical: processor.supportsHistoricalReprocessing
+      };
+    });
+
+    // Fill in dependents
+    Object.entries(graph).forEach(([key, node]) => {
+      if (node.inputSource && graph[node.inputSource]) {
+        graph[node.inputSource].dependents.push(key);
+      }
+    });
+
+    return {
+      graph,
+      executionOrder: this._determineTransformationOrder(),
+      hasChaining: Array.from(this.transformations.values())
+        .some(p => p.config.input_source)
+    };
+  }
+
+  /**
    * Apply all configured transformations to a value
+   * ENHANCED: Supports both parallel (default) and sequential (chained) processing
    * @private
    * @param {number} timestamp - Current timestamp
    * @param {number} value - Raw value to transform
@@ -1123,22 +1518,75 @@ export class MsdDataSource {
   _applyTransformations(timestamp, value) {
     const results = {};
 
-    this.transformations.forEach((processor, key) => {
+    // Get execution order (cached after first call)
+    const executionOrder = this._determineTransformationOrder();
+
+    executionOrder.forEach((key) => {
+      const processor = this.transformations.get(key);
+
       try {
-        const transformedValue = processor.transform(value, timestamp, this.buffer);
+        // Determine input value: chained source or raw value
+        const inputSource = processor.config.input_source;
+        const inputValue = inputSource
+          ? results[inputSource]   // Chain from previous transform
+          : value;                 // Use raw value (default)
+
+        // Validate chained input exists
+        if (inputSource && results[inputSource] === undefined) {
+          const available = Object.keys(results).join(', ') || 'none yet';
+          const notYetProcessed = executionOrder
+            .filter(k => !results.hasOwnProperty(k))
+            .join(', ');
+
+          cblcarsLog.warn(
+            `[MsdDataSource] ⚠️ Transform '${key}' references '${inputSource}' which is not available yet.\n` +
+            `  Available: [${available}]\n` +
+            `  Not yet processed: [${notYetProcessed}]\n` +
+            `  Hint: Check if '${inputSource}' has a valid key and appears before '${key}'.`
+          );
+          results[key] = null;
+          return;
+        }
+
+        // Validate input is numeric
+        if (!Number.isFinite(inputValue)) {
+          if (inputSource) {
+            cblcarsLog.debug(
+              `[MsdDataSource] Transform '${key}' skipped - ` +
+              `input from '${inputSource}' is non-numeric: ${inputValue}`
+            );
+          }
+          results[key] = null;
+          return;
+        }
+
+        // NEW: For expression processors, provide access to all previous transforms
+        if (processor.constructor.name === 'ExpressionProcessor') {
+          processor.transformedData = { ...results }; // Pass all current results
+        }
+
+        // Execute transformation
+        const transformedValue = processor.transform(inputValue, timestamp, this.buffer);
         results[key] = transformedValue;
 
-        // Cache transformed historical data if the value is valid
+        // Debug logging if enabled
+        if (processor.config.debug) {
+          cblcarsLog.log(
+            `[MsdDataSource] 🔍 Transform '${key}': ` +
+            `${inputValue.toFixed(2)} → ${transformedValue !== null ? transformedValue.toFixed(2) : 'null'}`
+          );
+        }
+
+        // Cache transformed historical data if valid
         if (transformedValue !== null && Number.isFinite(transformedValue)) {
           const buffer = this.transformedBuffers.get(key);
           if (buffer) {
             buffer.push(timestamp, transformedValue);
-          } else {
-            cblcarsLog.warn(`[MsdDataSource] ⚠️ No buffer found for transformation ${key}`);
           }
         }
+
       } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] ⚠️ Transformation ${key} failed:`, error);
+        cblcarsLog.warn(`[MsdDataSource] ⚠️ Transformation '${key}' failed:`, error.message);
         results[key] = null;
       }
     });
@@ -1148,30 +1596,72 @@ export class MsdDataSource {
 
   /**
    * Process historical data through transformations to populate transform buffers
+   * ENHANCED: Respects transformation execution order for chained transforms
    * @private
    */
   _processHistoricalTransformations() {
     if (this.transformations.size === 0) {
-      return; // No transformations to process
+      return;
     }
 
-    cblcarsLog.debug(`[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`);
+    cblcarsLog.debug(
+      `[MsdDataSource] 🔄 Processing historical data through ${this.transformations.size} transformations...`
+    );
 
     try {
-      // Get all historical points from main buffer
       const historicalPoints = this.buffer.getRecent(this.buffer.size());
 
       if (historicalPoints.length === 0) {
-        cblcarsLog.log(`[MsdDataSource] No historical data to process for transformations`);
+        cblcarsLog.debug(`[MsdDataSource] No historical data to process for transformations`);
         return;
       }
 
-      // Process each historical point through transformations
-      historicalPoints.reverse().forEach((point) => { // Process in chronological order
-        this.transformations.forEach((processor, key) => {
-          try {
-            const transformedValue = processor.transform(point.value, point.timestamp, this.buffer);
+      // Get correct execution order for chained transforms
+      const executionOrder = this._determineTransformationOrder();
 
+      // Track start time for performance monitoring
+      const startTime = performance.now();
+
+      // Process each historical point in chronological order
+      historicalPoints.reverse().forEach((point) => {
+        const transformResults = {};
+
+        // Execute transforms in dependency order
+        executionOrder.forEach((key) => {
+          const processor = this.transformations.get(key);
+
+          try {
+            // Skip if transform doesn't support historical reprocessing
+            if (!processor.supportsHistoricalReprocessing) {
+              transformResults[key] = null;
+              return;
+            }
+
+            // Determine input: chained source or raw value
+            const inputSource = processor.config.input_source;
+            const inputValue = inputSource
+              ? transformResults[inputSource]
+              : point.value;
+
+            if (inputValue === null || !Number.isFinite(inputValue)) {
+              transformResults[key] = null;
+              return;
+            }
+
+            // For expression processors, provide access to previous transforms
+            if (processor.constructor.name === 'ExpressionProcessor') {
+              processor.transformedData = { ...transformResults };
+            }
+
+            const transformedValue = processor.transform(
+              inputValue,
+              point.timestamp,
+              this.buffer
+            );
+
+            transformResults[key] = transformedValue;
+
+            // Store in buffer
             if (transformedValue !== null && Number.isFinite(transformedValue)) {
               const buffer = this.transformedBuffers.get(key);
               if (buffer) {
@@ -1179,119 +1669,34 @@ export class MsdDataSource {
               }
             }
           } catch (error) {
-            cblcarsLog.warn(`[MsdDataSource] Failed to process historical point through transformation ${key}:`, error);
+            cblcarsLog.warn(
+              `[MsdDataSource] Failed to process historical point through transformation ${key}:`,
+              error.message
+            );
+            transformResults[key] = null;
           }
         });
       });
 
+      const duration = performance.now() - startTime;
+
+      // Performance warning for slow processing
+      if (duration > 100) {
+        cblcarsLog.warn(
+          `[MsdDataSource] ⚠️ Historical chain processing took ${duration.toFixed(1)}ms ` +
+          `(${historicalPoints.length} points × ${this.transformations.size} transforms)`
+        );
+      }
+
       // Log results
       this.transformedBuffers.forEach((buffer, key) => {
-        cblcarsLog.debug(`[MsdDataSource] ✅ Populated ${key} buffer with ${buffer.size()} historical points`);
+        cblcarsLog.debug(
+          `[MsdDataSource] ✅ Populated '${key}' buffer with ${buffer.size()} historical points`
+        );
       });
 
     } catch (error) {
       cblcarsLog.error(`[MsdDataSource] Error processing historical transformations:`, error);
     }
-  }
-
-  /**
-   * Update all configured aggregations with new data
-   * @private
-   * @param {number} timestamp - Current timestamp
-   * @param {number} value - Raw value
-   * @param {Object} transformedData - Transformed values from this update
-   */
-  _updateAggregations(timestamp, value, transformedData) {
-    this.aggregations.forEach((processor, key) => {
-      try {
-        processor.update(timestamp, value, transformedData);
-      } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Aggregation ${key} failed:`, error);
-      }
-    });
-  }
-
-  /**
-   * Get current aggregation data
-   * @private
-   * @returns {Object} Current aggregation results
-   */
-  _getAggregationData() {
-    const results = {};
-    this.aggregations.forEach((processor, key) => {
-      try {
-        results[key] = processor.getValue();
-      } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Failed to get aggregation value for ${key}:`, error);
-        results[key] = null;
-      }
-    });
-    return results;
-  }
-
-  /**
-   * Get current transformation data
-   * @private
-   * @returns {Object} Current transformation results
-   */
-  _getTransformationData() {
-    const results = {};
-
-    // Get the latest raw value to transform
-    const latestPoint = this.buffer.last();
-    if (!latestPoint) {
-      // No data available - return empty results
-      this.transformations.forEach((processor, key) => {
-        results[key] = null;
-      });
-      return results;
-    }
-
-    // Apply transformations to the latest value
-    this.transformations.forEach((processor, key) => {
-      try {
-        // Use proper timestamp and value from buffer point
-        const timestamp = latestPoint.timestamp || latestPoint.t;
-        const value = latestPoint.value || latestPoint.v;
-
-        if (Number.isFinite(value) && Number.isFinite(timestamp)) {
-          results[key] = processor.transform(value, timestamp, this.buffer);
-        } else {
-          cblcarsLog.warn(`[MsdDataSource] Invalid data for transformation ${key}:`, { value, timestamp });
-          results[key] = null;
-        }
-      } catch (error) {
-        cblcarsLog.warn(`[MsdDataSource] Failed to get current transformation ${key}:`, error);
-        results[key] = null;
-      }
-    });
-
-    return results;
-  }
-
-  /**
-   * Enhanced debug method to show transformation and aggregation data
-   * @returns {Object} Debug information including transformations and aggregations
-   */
-  getDebugInfo() {
-    const currentData = this.getCurrentData();
-
-    return {
-      entity: this.cfg.entity,
-      currentValue: currentData.v,
-      timestamp: currentData.t ? new Date(currentData.t).toISOString() : null,
-      bufferSize: this.buffer.size(),
-      transformations: {
-        count: this.transformations.size,
-        data: currentData.transformations,
-        processors: Array.from(this.transformations.keys())
-      },
-      aggregations: {
-        count: this.aggregations.size,
-        data: currentData.aggregations,
-        processors: Array.from(this.aggregations.keys())
-      },
-      stats: currentData.stats
-    };
   }
 }

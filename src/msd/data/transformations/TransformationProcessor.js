@@ -7,9 +7,13 @@ import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 
 export class TransformationProcessor {
   constructor(config) {
-    this.config = { ...config };
+    this.config = { ...config }; // Already storing full config ✓
     this.key = config.key || this.constructor.name.toLowerCase();
     this.enabled = config.enabled !== false;
+
+    // NEW: Historical processing support
+    this.supportsHistoricalReprocessing = true; // Default: most transforms support it
+    this._isHistoricalProcessing = false;
 
     // Performance tracking
     this._stats = {
@@ -330,6 +334,10 @@ export class SmoothingProcessor extends TransformationProcessor {
     // State for smoothing algorithms
     this._lastSmoothed = null;
     this._window = [];
+
+    // NEW: Smoothing doesn't support reprocessing historical data cleanly
+    // because it builds up state - reprocessing would create artifacts
+    this.supportsHistoricalReprocessing = false;
   }
 
   _doTransform(value, timestamp, buffer) {
@@ -404,13 +412,16 @@ export class ExpressionProcessor extends TransformationProcessor {
     this.inputs = config.inputs || [];
     this.hass = config.hass; // For accessing other entities
 
+    // NEW: Store transformed data for accessing sibling transforms
+    this.transformedData = {};
+
     // Pre-compile the expression for performance
     try {
-      // Enhanced context with inputs support
-      this._compiledFunction = new Function('value', 'timestamp', 'buffer', 'Math', 'inputs', 'getEntity', `
-        "use strict";
-        return (${this.expression});
-      `);
+      // ENHANCED: Add 'transforms' parameter for accessing sibling transforms
+      this._compiledFunction = new Function(
+        'value', 'timestamp', 'buffer', 'Math', 'inputs', 'getEntity', 'transforms',
+        `"use strict"; return (${this.expression});`
+      );
     } catch (error) {
       throw new Error(`Failed to compile expression: ${error.message}`);
     }
@@ -440,7 +451,19 @@ export class ExpressionProcessor extends TransformationProcessor {
         return 0;
       };
 
-      const result = this._compiledFunction(value, timestamp, buffer, Math, inputs, getEntity);
+      // NEW: Pass transforms object with null-safe access
+      const transforms = this.transformedData || {};
+
+      const result = this._compiledFunction(
+        value,
+        timestamp,
+        buffer,
+        Math,
+        inputs,
+        getEntity,
+        transforms  // NEW: Pass all transformed values
+      );
+
       return Number.isFinite(result) ? result : null;
     } catch (error) {
       throw new Error(`Expression evaluation failed: ${error.message}`);
