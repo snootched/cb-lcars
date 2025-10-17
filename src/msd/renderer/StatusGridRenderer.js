@@ -648,7 +648,7 @@ export class StatusGridRenderer {
 
     // Resolve via ThemeTokenResolver
     if (!themeTokenResolver) {
-      cblcarsLog.debug(`[StatusGridResolver] ⚠️ No token resolver available for ${property}`);
+      cblcarsLog.debug(`[StatusGridRenderer] ⚠️ No token resolver available for ${property}`);
       return value;
     }
 
