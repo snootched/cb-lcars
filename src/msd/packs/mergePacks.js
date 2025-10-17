@@ -86,6 +86,7 @@ async function processSinglePass(layers) {
     data_sources: {},
     base_svg: null, // Initialize base_svg
     active_profiles: [],
+    theme: null,  // ✅ ADD: Initialize theme property
     __provenance: {
       anchors: {},
       palettes: {},
@@ -647,6 +648,22 @@ async function processLayer(merged, layer) {
     }
   }
 
+  // ✅ ADD: Process theme configuration (near end of function, with other top-level properties)
+  if (layer.data.theme !== undefined) {
+    merged.theme = layer.data.theme;
+
+    // Track theme provenance
+    if (!merged.__provenance.theme) {
+      merged.__provenance.theme = {
+        origin_pack: layer.pack,
+        overridden: false
+      };
+    } else {
+      merged.__provenance.theme.overridden = true;
+      merged.__provenance.theme.override_layer = layer.pack;
+    }
+  }
+
   // Process debug configuration
   if (layer.data.debug) {
     merged.debug = { ...merged.debug, ...layer.data.debug };
@@ -749,7 +766,8 @@ export function exportCollapsed(userMsd) {
   const keep = [
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
     'rules', 'profiles', 'timelines', 'palettes', 'routing',
-    'active_profiles', 'active_profile', 'remove', 'debug', 'base_svg'
+    'active_profiles', 'active_profile', 'remove', 'debug', 'base_svg',
+    'theme'  // ✅ ADD: Include theme in export
   ];
 
   keep.forEach(k => {

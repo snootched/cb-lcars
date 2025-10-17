@@ -19,6 +19,9 @@ import { StylePresetManager } from '../presets/StylePresetManager.js';
 import { PackRegistry } from '../packs/PackRegistry.js';
 import { ApexChartsOverlayRenderer } from '../renderer/ApexChartsOverlayRenderer.js';
 
+// ✅ ADDED: Import theme system initialization
+import { initializeThemeSystem } from '../themes/initializeThemeSystem.js';
+
 export class SystemsManager {
   constructor() {
     // Initialize core managers
@@ -168,11 +171,34 @@ export class SystemsManager {
         const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
         const corePacks = loadBuiltinPacks(['core']);
         this.defaultsManager.loadFromPacks(corePacks, mergedConfig?.active_profile || mergedConfig?.active_profiles);
-        cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults', (mergedConfig?.active_profile || mergedConfig?.active_profiles) ? `(profile: ${JSON.stringify(mergedConfig.active_profile || mergedConfig.active_profiles)})` : '(all profiles)');
+        packs = corePacks; // ✅ ADDED: Store packs for theme initialization
+        cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults');
       } catch (error) {
         cblcarsLog.error('[SystemsManager] ❌ Core pack fallback loading failed:', error);
         throw new Error(`Core pack loading failed: ${error.message}`);
       }
+    }
+
+    // ✅ ADDED: Initialize theme system after packs are loaded
+    cblcarsLog.debug('[SystemsManager] 🎨 Phase 1.5: Initializing theme system');
+    try {
+      const themeResult = initializeThemeSystem(packs, mergedConfig, mountEl);
+
+      if (themeResult.success) {
+        cblcarsLog.info('[SystemsManager] ✅ Theme system initialized:', {
+          theme: themeResult.theme.id,
+          name: themeResult.theme.name
+        });
+
+        // Store theme info for later reference
+        this.activeTheme = themeResult.theme;
+      } else {
+        cblcarsLog.warn('[SystemsManager] ⚠️ Theme system initialization failed:', themeResult.error);
+        cblcarsLog.warn('[SystemsManager] Continuing with fallback theme');
+      }
+    } catch (error) {
+      cblcarsLog.error('[SystemsManager] ❌ Theme system initialization error:', error);
+      cblcarsLog.warn('[SystemsManager] Continuing without theme system - renderers will use defaults');
     }
 
     // Store in global CB-LCARS namespace for immediate access
@@ -194,17 +220,12 @@ export class SystemsManager {
     await this._initializeDataSources(hass, mergedConfig);
 
     // CRITICAL FIX: Initialize StylePresetManager and PackRegistry with loaded packs
-    // This needs to happen right after DefaultsManager initialization
     cblcarsLog.debug('[SystemsManager] 🎨 CRITICAL: Initializing StylePresetManager and PackRegistry');
     cblcarsLog.debug('[SystemsManager] Available packs:', packs.map(p => ({ id: p.id, hasStylePresets: !!p.style_presets })));
 
     if (this.stylePresetManager && !this.stylePresetManager.initialized) {
       await this.stylePresetManager.initialize(packs);
-      cblcarsLog.debug('[SystemsManager] ✅ StylePresetManager initialized:', {
-        initialized: this.stylePresetManager.initialized,
-        packCount: this.stylePresetManager.loadedPacks?.length,
-        cacheSize: this.stylePresetManager.presetCache?.size
-      });
+      cblcarsLog.debug('[SystemsManager] ✅ StylePresetManager initialized');
     }
 
     if (this.packRegistry && !this.packRegistry.initialized) {

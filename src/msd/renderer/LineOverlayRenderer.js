@@ -1,11 +1,12 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { OverlayUtils } from './OverlayUtils.js';
+// ✅ ADDED: Import token resolver
+import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 /**
  * [LineOverlayRenderer] Line overlay renderer - advanced line rendering with comprehensive styling support
  * 📏 Leverages RouterCore's sophisticated path computation and adds rich visual features
  */
-
-import { OverlayUtils } from './OverlayUtils.js';
 
 export class LineOverlayRenderer {
   constructor(routerCore) {
@@ -41,7 +42,7 @@ export class LineOverlayRenderer {
       return '';
     }
 
-        // Resolve anchor position with overlay attachment support
+    // Resolve anchor position with overlay attachment support
     let anchor;
 
     // Check if anchor refers to an overlay and handle anchor_side/anchor_gap
@@ -153,9 +154,9 @@ export class LineOverlayRenderer {
         return '';
       }
 
-      // Extract comprehensive styling
+      // ✅ ENHANCED: Extract comprehensive styling with token integration
       const style = overlay.finalStyle || overlay.style || {};
-      const lineStyle = this._resolveLineStyles(style, overlay.id);
+      const lineStyle = this._resolveLineStyles(style, overlay.id, viewBox);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
 
       // Build SVG group with all features
@@ -183,24 +184,85 @@ export class LineOverlayRenderer {
 
   /**
    * Resolve comprehensive line styling from configuration
+   * ✅ ENHANCED: Now properly integrates token system for theme-aware styling
    * @private
    * @param {Object} style - Final resolved style object
    * @param {string} overlayId - Overlay ID for unique identifiers
+   * @param {Array} viewBox - ViewBox for context
    * @returns {Object} Complete line style configuration
    */
-  _resolveLineStyles(style, overlayId) {
-    const lineStyle = {
-      // Core stroke properties
-      color: style.color || style.stroke || 'var(--lcars-orange)',
-      width: Number(style.width || style.stroke_width || style.strokeWidth || 2),
-      opacity: Number(style.opacity || 1),
+  _resolveLineStyles(style, overlayId, viewBox) {
+    // ✅ ADDED: Create component-scoped token resolver
+    const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('line') : null;
 
-      // Advanced stroke styling
+    // Helper function to resolve style properties via tokens
+    const resolveStyleProperty = (styleValue, tokenPath, fallback, tokenContext = {}) => {
+      // CRITICAL: Always log what we're trying to resolve
+      cblcarsLog.debug('[LineOverlayRenderer] Attempting to resolve:', {
+        styleValue,
+        tokenPath,
+        isString: typeof styleValue === 'string',
+        isTokenReference: this._isTokenReference(styleValue),
+        hasResolver: !!resolveToken
+      });
+
+      if (styleValue !== undefined && styleValue !== null) {
+        // Check if it's a token reference
+        if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
+          const resolved = resolveToken(styleValue, fallback, tokenContext);
+          cblcarsLog.debug('[LineOverlayRenderer] ✅ Resolved token:', {
+            original: styleValue,
+            resolved
+          });
+          return resolved;
+        }
+        // Not a token, return as-is
+        return styleValue;
+      }
+
+      // Resolve from token system using tokenPath
+      if (resolveToken) {
+        const resolved = resolveToken(tokenPath, fallback, tokenContext);
+        cblcarsLog.debug('[LineOverlayRenderer] ✅ Resolved from tokenPath:', {
+          tokenPath,
+          resolved
+        });
+        return resolved;
+      }
+
+      return fallback;
+    };
+
+    // ✅ ENHANCED: Resolve all line properties via tokens
+    const lineStyle = {
+      // ✅ ENHANCED: Core stroke properties with token integration
+      color: resolveStyleProperty(
+        style.color || style.stroke,
+        'defaultColor',
+        'var(--lcars-orange)',
+        { viewBox }
+      ),
+
+      width: Number(resolveStyleProperty(
+        style.width || style.stroke_width || style.strokeWidth,
+        'defaultWidth',
+        2,
+        { viewBox }
+      )),
+
+      opacity: Number(resolveStyleProperty(
+        style.opacity,
+        'effects.opacity.base',
+        1,
+        { viewBox }
+      )),
+
+      // Advanced stroke styling (no tokens needed - direct values)
       lineCap: (style.line_cap || style.lineCap || style.strokeLinecap || 'round').toLowerCase(),
       lineJoin: (style.line_join || style.lineJoin || style.strokeLinejoin || 'round').toLowerCase(),
       miterLimit: Number(style.miter_limit || style.miterLimit || 4),
 
-      // Dash patterns
+      // Dash patterns (no tokens needed)
       dashArray: style.dash_array || style.dashArray || style.strokeDasharray || null,
       dashOffset: Number(style.dash_offset || style.dashOffset || style.strokeDashoffset || 0),
 
@@ -208,31 +270,41 @@ export class LineOverlayRenderer {
       fill: style.fill || 'none',
       fillOpacity: Number(style.fill_opacity || style.fillOpacity || 1),
 
-      // Gradient and pattern support
+      // Gradient and pattern support (parsed separately - no tokens needed)
       gradient: this._parseGradientConfig(style.gradient),
       pattern: this._parsePatternConfig(style.pattern),
 
-      // Markers (arrowheads, dots, etc.)
+      // Markers (arrowheads, dots, etc.) - parsed separately
       markerStart: this._parseMarkerConfig(style.marker_start || style.markerStart),
       markerMid: this._parseMarkerConfig(style.marker_mid || style.markerMid),
       markerEnd: this._parseMarkerConfig(style.marker_end || style.markerEnd),
 
-      // Effects
+      // Effects (parsed separately - no tokens needed)
       glow: this._parseGlowConfig(style.glow),
       shadow: this._parseShadowConfig(style.shadow),
 
-      // Animation states (for future anime.js integration)
+      // Animation states (no tokens needed)
       animatable: style.animatable !== false,
       pulseSpeed: Number(style.pulse_speed || 0),
       flowSpeed: Number(style.flow_speed || 0),
 
-      // LCARS-specific features
+      // LCARS-specific features (no tokens needed)
       segment_colors: this._parseSegmentColors(style.segment_colors),
       status_indicator: style.status_indicator || null,
 
       // Track enabled features for optimization
       features: []
     };
+
+    // ✅ DEBUG: Log resolved token values
+    cblcarsLog.debug('[LineOverlayRenderer] Resolved token values:', {
+      overlayId,
+      color: lineStyle.color,
+      colorToken: style.color,
+      width: lineStyle.width,
+      widthToken: style.width,
+      opacity: lineStyle.opacity
+    });
 
     // Build feature list for conditional rendering
     if (lineStyle.gradient) lineStyle.features.push('gradient');
@@ -245,6 +317,33 @@ export class LineOverlayRenderer {
     if (lineStyle.flowSpeed > 0) lineStyle.features.push('flow');
 
     return lineStyle;
+  }
+
+  /**
+   * Check if a value is a token reference
+   * ✅ FIXED: More robust token detection
+   * @private
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+
+    // Token references should start with a known category
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+
+    // ✅ FIXED: Also accept singular "color" as a token category (typo tolerance)
+    const singularForms = ['color', 'typograph', 'border', 'effect', 'animation', 'component'];
+
+    const isToken = tokenCategories.some(category => value.startsWith(`${category}.`)) ||
+                    singularForms.some(singular => value.startsWith(`${singular}.`));
+
+    cblcarsLog.debug('[LineOverlayRenderer] Token reference check:', {
+      value,
+      isToken,
+      startsWithKnownCategory: tokenCategories.some(c => value.startsWith(`${c}.`)),
+      startsWithSingularForm: singularForms.some(s => value.startsWith(`${s}.`))
+    });
+
+    return isToken;
   }
 
   /**

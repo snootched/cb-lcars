@@ -18,6 +18,7 @@
  * @requires cblcars-logging
  */
 
+import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class ApexChartsAdapter {
@@ -111,280 +112,192 @@ export class ApexChartsAdapter {
    * @returns {Object} ApexCharts options object
    */
   static generateOptions(style, size, context = {}) {
-    try {
-      // Validate inputs
-      if (!Array.isArray(size) || size.length < 2) {
-        cblcarsLog.warn(`[ApexChartsAdapter] Invalid size provided:`, size);
-        size = [300, 150]; // Fallback
-      }
+    // ✅ ADDED: Create component-scoped token resolver
+    const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('chart') : null;
 
-      // Use EXACT pixel dimensions (critical for HTML overlay rendering)
-      const [width, height] = size;
-      const chartType = style.chart_type || style.type || 'line';
+    // ✅ ENHANCED: Resolve chart colors (can be array or single color)
+    let colors = style.colors || style.color;
 
-      // Validate chart type
-      const validTypes = ['line', 'area', 'bar', 'scatter', 'candlestick', 'heatmap', 'radar'];
-      if (!validTypes.includes(chartType)) {
-        cblcarsLog.warn(`[ApexChartsAdapter] Invalid chart type: ${chartType}, defaulting to 'line'`);
-      }
-
-      // Generate base options from MSD style config
-      const baseOptions = {
-        chart: {
-          type: chartType,
-          height: height,  // EXACT PIXEL HEIGHT
-          width: width,    // EXACT PIXEL WIDTH
-          background: 'transparent',
-          foreColor: style.color || 'var(--lcars-orange)',
-
-          // Remove padding to ensure proper sizing
-          parentHeightOffset: 0,
-
-          // Disable auto-resize (we control dimensions explicitly)
-          redrawOnParentResize: false,
-          redrawOnWindowResize: false,
-
-          // Animations
-          animations: {
-            enabled: style.animatable !== false,
-            speed: style.animation_speed || 800,
-            animateGradually: {
-              enabled: true,
-              delay: 150
-            },
-            dynamicAnimation: {
-              enabled: true,
-              speed: 350
-            }
-          },
-
-          // Toolbar
-          toolbar: {
-            show: style.show_toolbar || false,
-            tools: {
-              download: false,
-              selection: style.enable_selection || false,
-              zoom: style.enable_zoom || false,
-              zoomin: false,
-              zoomout: false,
-              pan: style.enable_pan || false,
-              reset: false
-            }
-          },
-
-          // Zoom
-          zoom: {
-            enabled: style.enable_zoom || false,
-            type: 'x',
-            autoScaleYaxis: true
-          },
-
-          // Selection
-          selection: {
-            enabled: style.enable_selection || false
-          }
-        },
-
-        // Stroke styling
-        stroke: {
-          curve: this._mapSmoothingMode(style.smoothing_mode),
-          width: style.width || style.stroke_width || 2,
-          colors: [style.color || 'var(--lcars-orange)'],
-          lineCap: style.line_cap || 'round',
-          dashArray: style.dash_array || 0
-        },
-
-        // Fill (area charts)
-        fill: {
-          type: style.fill_gradient ? 'gradient' : 'solid',
-          opacity: style.fill_opacity || 0.2,
-          colors: [style.fill || style.color || 'var(--lcars-orange)'],
-          gradient: style.fill_gradient ? this._mapGradient(style.fill_gradient) : undefined
-        },
-
-        // Data labels
-        dataLabels: {
-          enabled: style.show_values || false,
-          formatter: style.value_format ?
-            (val) => this._formatValue(val, style.value_format) : undefined
-        },
-
-        // Markers (data points)
-        markers: {
-          size: style.show_points ? (style.point_size || 3) : 0,
-          colors: [style.point_color || style.color || 'var(--lcars-orange)'],
-          strokeWidth: 0,
-          hover: {
-            size: style.show_points ? (style.point_size || 3) + 2 : 0
-          }
-        },
-
-        // Grid
-        grid: {
-          show: style.grid_lines || style.show_grid || false,
-          borderColor: style.grid_color || 'var(--lcars-gray)',
-          strokeDashArray: 4,
-          position: 'back',
-          padding: {
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0
-          },
-          xaxis: {
-            lines: {
-              show: style.grid_vertical !== false
-            }
-          },
-          yaxis: {
-            lines: {
-              show: style.grid_horizontal !== false
-            }
-          },
-          row: {
-            colors: undefined,
-            opacity: style.grid_opacity || 0.4
-          },
-          column: {
-            colors: undefined,
-            opacity: style.grid_opacity || 0.4
-          }
-        },
-
-        // X-Axis (time)
-        xaxis: {
-          type: 'datetime',
-          labels: {
-            show: style.show_labels !== false,
-            style: {
-              colors: style.label_color || 'var(--lcars-white)',
-              fontSize: style.label_font_size || '10px',
-              fontFamily: style.label_font_family || 'var(--lcars-font-family, Antonio)'
-            },
-            datetimeUTC: false
-          },
-          axisBorder: {
-            show: style.show_axis !== false,
-            color: style.axis_color || 'var(--lcars-gray)'
-          },
-          axisTicks: {
-            show: style.show_axis !== false,
-            color: style.axis_color || 'var(--lcars-gray)'
-          },
-          // Time window
-          min: style.time_window ? Date.now() - this._parseTimeWindow(style.time_window) : undefined,
-          max: Date.now()
-        },
-
-        // Y-Axis (values)
-        yaxis: {
-          show: style.show_axis !== false,
-          min: style.min_value,
-          max: style.max_value,
-          labels: {
-            show: style.show_labels !== false,
-            style: {
-              colors: style.label_color || 'var(--lcars-white)',
-              fontSize: style.label_font_size || '10px',
-              fontFamily: style.label_font_family || 'var(--lcars-font-family, Antonio)'
-            },
-            formatter: style.value_format ?
-              (val) => this._formatValue(val, style.value_format) : undefined
-          },
-          axisBorder: {
-            show: style.show_axis !== false,
-            color: style.axis_color || 'var(--lcars-gray)'
-          },
-          axisTicks: {
-            show: style.show_axis !== false,
-            color: style.axis_color || 'var(--lcars-gray)'
-          }
-        },
-
-        // Tooltip
-        tooltip: {
-          enabled: style.show_tooltip !== false,
-          theme: 'dark',
-          x: {
-            format: style.tooltip_time_format || 'HH:mm:ss'
-          },
-          y: {
-            formatter: style.value_format ?
-              (val) => this._formatValue(val, style.value_format) : undefined
-          },
-          style: {
-            fontSize: '12px',
-            fontFamily: 'var(--lcars-font-family, Antonio)'
-          }
-        },
-
-        // Annotations (thresholds)
-        annotations: this._buildAnnotations(style),
-
-        // Theme
-        theme: {
-          mode: 'dark',
-          palette: 'palette1',
-          monochrome: {
-            enabled: false
-          }
-        },
-
-        // Legend
-        legend: {
-          show: style.show_legend || false,
-          position: style.legend_position || 'top',
-          horizontalAlign: 'left',
-          fontSize: style.legend_font_size || '12px',
-          fontFamily: 'var(--lcars-font-family, Antonio)',
-          labels: {
-            colors: style.legend_color || 'var(--lcars-white)'
-          },
-          floating: false,
-          offsetX: 0,
-          offsetY: 0
-        }
-      };
-
-      // Support for direct ApexCharts options via chart_options
-      if (style.chart_options && typeof style.chart_options === 'object') {
-        const mergedOptions = this._deepMerge(baseOptions, style.chart_options);
-        return mergedOptions;
-      }
-
-      return baseOptions;
-
-    } catch (error) {
-      cblcarsLog.error(`[ApexChartsAdapter] Error generating options:`, error);
-      return {
-        chart: {
-          type: 'line',
-          height: size[1] || 180,
-          width: size[0] || 600,
-          background: 'transparent'
-        },
-        series: []
-      };
+    // If no colors specified, get from tokens
+    if (!colors && resolveToken) {
+      colors = resolveToken('defaultColors', null, context);
     }
+
+    // If single color, convert to array
+    if (typeof colors === 'string') {
+      colors = [colors];
+    }
+
+    // Resolve each color in array via token system
+    if (Array.isArray(colors)) {
+      colors = colors.map(color => {
+        if (typeof color === 'string' && this._isTokenReference(color)) {
+          return resolveToken ? resolveToken(color, color, context) : color;
+        }
+        return color;
+      });
+    }
+
+    // ✅ ENHANCED: Resolve stroke width via tokens
+    const strokeWidth = this._resolveTokenValue(
+      style.stroke_width,
+      'defaultStrokeWidth',
+      resolveToken,
+      2,
+      context
+    );
+
+    // ✅ ENHANCED: Resolve grid color via tokens
+    const gridColor = this._resolveTokenValue(
+      style.grid_color,
+      'gridColor',
+      resolveToken,
+      'var(--lcars-gray, #999999)',
+      context
+    );
+
+    // ✅ ENHANCED: Resolve axis colors via tokens
+    const axisColor = resolveToken ?
+      resolveToken('colors.chart.axis', 'var(--lcars-white, #FFFFFF)', context) :
+      'var(--lcars-white, #FFFFFF)';
+
+    // ✅ ENHANCED: Resolve legend colors via tokens
+    const legendColor = resolveToken ?
+      resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)', context) :
+      'var(--lcars-white, #FFFFFF)';
+
+    // ✅ ENHANCED: Get font family from typography tokens
+    const fontFamily = resolveToken ?
+      resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif', context) :
+      'Antonio, Helvetica Neue, sans-serif';
+
+    // Build base ApexCharts options
+    const baseOptions = {
+      chart: {
+        type: style.chart_type || 'line',
+        width: size[0],
+        height: size[1],
+        animations: {
+          enabled: style.animations_enabled !== false,
+          speed: 800,
+          animateGradually: {
+            enabled: true,
+            delay: 150
+          }
+        },
+        toolbar: {
+          show: style.show_toolbar || false
+        },
+        background: 'transparent',
+        fontFamily: fontFamily
+      },
+
+      colors: colors,
+
+      stroke: {
+        width: strokeWidth,
+        curve: style.curve || 'smooth'
+      },
+
+      grid: {
+        borderColor: gridColor,
+        strokeDashArray: 4,
+        opacity: 0.3
+      },
+
+      xaxis: {
+        labels: {
+          style: {
+            colors: axisColor,
+            fontSize: '10px',
+            fontFamily: fontFamily
+          }
+        }
+      },
+
+      yaxis: {
+        labels: {
+          style: {
+            colors: axisColor,
+            fontSize: '10px',
+            fontFamily: fontFamily
+          }
+        }
+      },
+
+      legend: {
+        fontSize: '12px',
+        fontFamily: fontFamily,
+        labels: {
+          colors: legendColor
+        }
+      },
+
+      tooltip: {
+        theme: 'dark',
+        style: {
+          fontSize: '12px',
+          fontFamily: fontFamily
+        }
+      }
+    };
+
+    // Apply chart_options overrides (highest precedence)
+    if (style.chart_options) {
+      return this._deepMerge(baseOptions, style.chart_options);
+    }
+
+    cblcarsLog.debug('[ApexChartsAdapter] Generated options with tokens:', {
+      colors: colors?.length || 0,
+      strokeWidth,
+      gridColor,
+      fontFamily
+    });
+
+    return baseOptions;
   }
 
   /**
-   * Deep merge two objects (for chart_options override)
+   * Resolve a token value with fallback
    * @private
-   * @param {Object} target - Target object
-   * @param {Object} source - Source object to merge
-   * @returns {Object} Merged object
+   */
+  static _resolveTokenValue(styleValue, tokenPath, resolveToken, fallback, context) {
+    if (styleValue !== undefined && styleValue !== null) {
+      if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
+        return resolveToken(styleValue, fallback, context);
+      }
+      return styleValue;
+    }
+
+    if (resolveToken) {
+      return resolveToken(tokenPath, fallback, context);
+    }
+
+    return fallback;
+  }
+
+  /**
+   * Check if value is a token reference
+   * @private
+   */
+  static _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+    return tokenCategories.some(category => value.startsWith(`${category}.`));
+  }
+
+  /**
+   * Deep merge objects (for chart_options override)
+   * @private
    */
   static _deepMerge(target, source) {
     const result = { ...target };
 
     for (const key in source) {
-      if (source.hasOwnProperty(key)) {
-        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-          result[key] = this._deepMerge(target[key] || {}, source[key]);
-        } else {
-          result[key] = source[key];
-        }
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        result[key] = this._deepMerge(target[key] || {}, source[key]);
+      } else {
+        result[key] = source[key];
       }
     }
 

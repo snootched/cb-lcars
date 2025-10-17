@@ -10,6 +10,7 @@ import { BracketRenderer } from './BracketRenderer.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { ButtonRenderer } from './core/ButtonRenderer.js'; // Add ButtonRenderer import
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 
 
@@ -399,12 +400,24 @@ export class StatusGridRenderer {
    * @private
    */
   _resolveStatusGridStyles(style, overlayId, overlay = null) {
+
+    // ✅ Resolve tokens FIRST
+    const resolvedStyle = this._resolveTokensInStyle(style, overlay);
+
+    // ✅ ADDED: Debug logging to verify token resolution
+    cblcarsLog.debug('[StatusGridRenderer] 🎨 Token resolution for', overlayId, ':', {
+      inputCellColor: style.cell_color,
+      resolvedCellColor: resolvedStyle.cell_color,
+      isTokenReference: this._isTokenReference(style.cell_color),
+      hasTokenResolver: !!themeTokenResolver
+    });
+
     // Preserve the original overlay style for cascading to cells
     const originalOverlayStyle = overlay?.style || {};
-    const overlayStyle = { ...originalOverlayStyle }; // Create a copy to avoid mutation
+    const overlayStyle = { ...resolvedStyle }; // Create a copy to avoid mutation
 
     // Parse all standard styles using unified system
-    const standardStyles = RendererUtils.parseAllStandardStyles(overlayStyle);
+    const standardStyles = RendererUtils.parseAllStandardStyles(resolvedStyle);
 
     const gridStyle = {
       // Grid layout - prioritize overlay direct properties, then overlay.style, then defaults
@@ -421,16 +434,16 @@ export class StatusGridRenderer {
       column_widths: overlayStyle.column_widths || null,
 
       // Cell appearance (using standardized colors with defaults manager fallbacks)
-      cell_color: standardStyles.colors.primaryColor || this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
-      cell_opacity: standardStyles.layout.opacity || this._getDefault('status_grid.cell_opacity', 1.0),
-      cell_radius: Number(overlayStyle.cell_radius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
+      cell_color: resolvedStyle.cell_color || this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
+      cell_opacity: resolvedStyle.cell_opacity || standardStyles.layout.opacity || this._getDefault('status_grid.cell_opacity', 1.0),
+      cell_radius: Number(resolvedStyle.cell_radius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
       normalize_radius: overlayStyle.normalize_radius !== false, // Default true unless explicitly set to false
       match_ha_radius: overlayStyle.match_ha_radius !== false, // Default true unless explicitly set to false
 
       // Border (using standardized layout with defaults manager fallbacks)
       cell_border: overlayStyle.cell_border !== false,
-      border_color: standardStyles.colors.borderColor || this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
-      border_width: standardStyles.layout.borderWidth || this._getDefault('status_grid.border_width', 1),
+      border_color: resolvedStyle.border_color || standardStyles.colors.borderColor || this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
+      border_width: resolvedStyle.border_width || standardStyles.layout.borderWidth || this._getDefault('status_grid.border_width', 1),
 
       // Text (using standardized text styles with defaults manager fallbacks)
       show_labels: overlayStyle.show_labels !== false,
@@ -589,6 +602,70 @@ export class StatusGridRenderer {
 
     return gridStyle;
   }
+
+  /**
+   * Check if a value is a token reference
+   * @private
+   * @param {string} value - Value to check
+   * @returns {boolean} True if value is a token reference
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+    return tokenCategories.some(category => value.startsWith(`${category}.`));
+  }
+
+  /**
+   * Resolve all token references in style object
+   * This runs BEFORE _resolveStatusGridStyles to ensure tokens are resolved early
+   * @private
+   * @param {Object} style - Style configuration with potential token references
+   * @param {Object} overlay - Overlay configuration for context
+   * @returns {Object} Style with all tokens resolved to actual values
+   */
+  _resolveTokensInStyle(style, overlay) {
+    // Create component-scoped token resolver
+    const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('statusGrid') : null;
+
+    if (!resolveToken) {
+      return style; // No token system, return unchanged
+    }
+
+    // Helper to resolve a single property
+    const resolveProperty = (value) => {
+      if (value !== undefined && value !== null) {
+        if (typeof value === 'string' && this._isTokenReference(value)) {
+          const resolved = resolveToken(value, value, { viewBox: this.viewBox });
+          return resolved;
+        }
+      }
+      return value;
+    };
+
+    // Resolve all style properties
+    return {
+      ...style,
+      cell_color: resolveProperty(style.cell_color),
+      cell_gap: resolveProperty(style.cell_gap),
+      cell_radius: resolveProperty(style.cell_radius),
+      cell_opacity: resolveProperty(style.cell_opacity),
+      border_color: resolveProperty(style.border_color),
+      border_width: resolveProperty(style.border_width),
+      status_on_color: resolveProperty(style.status_on_color),
+      status_off_color: resolveProperty(style.status_off_color),
+      status_unavailable_color: resolveProperty(style.status_unavailable_color),
+      status_unknown_color: resolveProperty(style.status_unknown_color),
+      font_family: resolveProperty(style.font_family),
+      font_size: resolveProperty(style.font_size),
+      label_font_size: resolveProperty(style.label_font_size),
+      value_font_size: resolveProperty(style.value_font_size),
+      label_color: resolveProperty(style.label_color),
+      value_color: resolveProperty(style.value_color),
+      text_padding: resolveProperty(style.text_padding),
+      hover_color: resolveProperty(style.hover_color)
+    };
+  }
+
 
   /**
    * Apply CB-LCARS button preset using StylePresetManager

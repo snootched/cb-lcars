@@ -1,3 +1,8 @@
+import { lcarsClassicTokens } from '../themes/tokens/lcarsClassicTokens.js';
+import { lcarsDs9Tokens } from '../themes/tokens/lcarsDs9Tokens.js';
+import { lcarsVoyagerTokens } from '../themes/tokens/lcarsVoyagerTokens.js';
+import { lcarsHighContrastTokens } from '../themes/tokens/lcarsHighContrastTokens.js';
+
 // Core builtin pack - Contains all system defaults
 const CORE_PACK = {
   id: 'core',
@@ -400,19 +405,19 @@ const CB_LCARS_BUTTONS_PACK = {
         lcars_text_preset: 'lozenge',      // ✅ Works (overrides positions above)
 
         // Cell Appearance
-        cell_radius: 12,                   // ✅ Works
-        cell_color: 'var(--lcars-red)',   // ✅ Works
-        cell_gap: 2,                       // ✅ Works
-        normalize_radius: true,            // ✅ Works
+        cell_radius: 34,                   // ✅ Works
+        cell_color: 'var(--lcars-card-button)',    // ✅ Works
+        cell_gap: 8,                       // ✅ Works
+        normalize_radius: false,            // ✅ Works
         lcars_corners: false,              // ✅ Works
 
         // Text Styling
-        text_padding: 10,                  // ✅ Works (smart padding)
+        text_padding: 14,                  // ✅ Works (smart padding)
         text_margin: 3,                    // ✅ Works
-        label_font_size: 16,               // ✅ Works
-        value_font_size: 14,               // ✅ Works
-        label_color: 'var(--lcars-white)', // ✅ Works
-        value_color: 'var(--lcars-orange)', // ✅ Works
+        label_font_size: 18,               // ✅ Works
+        value_font_size: 18,               // ✅ Works
+        label_color: 'black',              // ✅ Works
+        value_color: 'black',              // ✅ Works
         font_family: 'Antonio',            // ✅ Works
         font_weight: 'bold',               // ✅ Works
 
@@ -421,7 +426,7 @@ const CB_LCARS_BUTTONS_PACK = {
         show_values: true,                 // ✅ Works
 
         // Border & Effects
-        border_width: 2,                   // ✅ Works
+        border_width: 0,                   // ✅ Works
         border_color: 'var(--lcars-gray)', // ✅ Works
         cell_opacity: 0.9                 // ✅ Works
       },
@@ -429,7 +434,7 @@ const CB_LCARS_BUTTONS_PACK = {
         text_layout: 'side-by-side',
         label_position: 'left',
         value_position: 'right',
-        cell_radius: 8,
+        cell_radius: 38,
         text_padding: 8,
         normalize_radius: true,
         show_labels: true,
@@ -475,41 +480,128 @@ const CB_LCARS_BUTTONS_PACK = {
     }
   },
 
-  // PALETTES: Named color schemes
-  palettes: {
-    cb_lcars_buttons: {
-      // CB-LCARS standard button colors
-      primary: 'var(--lcars-blue, #0088ff)',
-      secondary: 'var(--lcars-orange, #ff9900)',
-      success: 'var(--lcars-green, #00ff00)',
-      warning: 'var(--lcars-yellow, #ffcc00)',
-      danger: 'var(--lcars-red, #ff0000)',
-      info: 'var(--lcars-cyan, #00ffff)',
-
-      // Button state colors
-      normal: 'var(--lcars-blue, #0088ff)',
-      active: 'var(--lcars-orange, #ff9900)',
-      inactive: 'var(--lcars-gray, #666666)',
-      disabled: 'var(--lcars-dark-gray, #333333)',
-
-      // Special CB button colors
-      'picard-gold': '#d4af37',
-      'picard-red': '#cc0000',
-      'enterprise-blue': '#0066cc'
-    }
-  },
   anchors: {},
   routing: {}
+};
+
+// ✅ ADD: Builtin pack with themes (this is what was missing!)
+const BUILTIN_THEMES_PACK = {
+  id: 'builtin_themes',
+  version: '1.0.0',
+
+  // Token-based themes
+  themes: {
+    'lcars-classic': {
+      id: 'lcars-classic',
+      name: 'LCARS Classic',
+      description: 'Classic TNG-era LCARS styling',
+      tokens: lcarsClassicTokens,
+      cssFile: 'apexcharts-lcars-classic.css'
+    },
+
+    'lcars-ds9': {
+      id: 'lcars-ds9',
+      name: 'LCARS DS9',
+      description: 'Deep Space Nine LCARS variant',
+      tokens: lcarsDs9Tokens,
+      cssFile: 'apexcharts-lcars-ds9.css'
+    },
+
+    'lcars-voyager': {
+      id: 'lcars-voyager',
+      name: 'LCARS Voyager',
+      description: 'Voyager LCARS styling',
+      tokens: lcarsVoyagerTokens,
+      cssFile: 'apexcharts-lcars-voyager.css'
+    },
+
+    'lcars-high-contrast': {
+      id: 'lcars-high-contrast',
+      name: 'LCARS High Contrast',
+      description: 'Accessibility-focused high contrast theme',
+      tokens: lcarsHighContrastTokens,
+      cssFile: 'apexcharts-lcars-high-contrast.css'
+    }
+  },
+
+  // Default theme
+  defaultTheme: 'lcars-classic',
+
+  // Chart templates with token references
+  chartTemplates: {
+    temperature_monitor: {
+      style: {
+        chart_type: 'line',
+        color: 'colors.accent.primary',
+        stroke_width: 'borders.width.thick',
+        smoothing_mode: 'smooth',
+        time_window: '12h',
+        max_points: 500,
+        show_grid: true,
+        show_axis: true
+      }
+    },
+
+    power_monitor: {
+      style: {
+        chart_type: 'area',
+        color: 'colors.status.warning',
+        fill_opacity: 0.3,
+        stroke_width: 'borders.width.base',
+        time_window: '24h',
+        zero_line: true,
+        min_value: 0
+      }
+    }
+  },
+
+  // Chart animation presets
+  chartAnimationPresets: {
+    lcars_standard: {
+      enabled: true,
+      easing: 'easeinout',
+      speed: 800,
+      animateGradually: {
+        enabled: true,
+        delay: 150
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 350
+      }
+    },
+
+    lcars_dramatic: {
+      enabled: true,
+      easing: 'easeout',
+      speed: 1200,
+      animateGradually: {
+        enabled: true,
+        delay: 200
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 500
+      }
+    }
+  }
 };
 
 const BUILTIN_REGISTRY = {
   core: CORE_PACK,
   lcars_fx: LCARS_FX_PACK,
-  cb_lcars_buttons: CB_LCARS_BUTTONS_PACK
+  cb_lcars_buttons: CB_LCARS_BUTTONS_PACK,
+  builtin_themes: BUILTIN_THEMES_PACK  // ✅ ADD: Register the themes pack
 };
 
+// Remove getBuiltinPack() function entirely - it's not needed anymore
+// All packs are now in BUILTIN_REGISTRY
+
 export function loadBuiltinPacks(requested = ['core', 'cb_lcars_buttons']) {
-  return requested.map(id => BUILTIN_REGISTRY[id]).filter(Boolean);
+  // ✅ CRITICAL FIX: Always load builtin_themes pack for theme system
+  const packsToLoad = [...new Set([...requested, 'builtin_themes'])];
+
+  return packsToLoad.map(id => BUILTIN_REGISTRY[id]).filter(Boolean);
 }
 
 // Make loadBuiltinPacks globally accessible for preset loading

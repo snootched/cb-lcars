@@ -1,0 +1,248 @@
+/**
+ * @fileoverview LCARS Classic Theme Tokens
+ *
+ * TNG-era LCARS styling with CSS variable references.
+ * All color values reference --lcars-* CSS variables from HA-LCARS theme.
+ *
+ * @module msd/themes/tokens/lcarsClassicTokens
+ */
+
+export const lcarsClassicTokens = {
+  colors: {
+    accent: {
+      primary: 'var(--lcars-orange, #FF9900)',
+      secondary: 'var(--lcars-blue, #9999FF)',
+      tertiary: 'var(--lcars-purple, #CC99CC)',
+
+      // Computed variants (color manipulation only)
+      primaryDark: 'darken(colors.accent.primary, 0.2)',
+      primaryLight: 'lighten(colors.accent.primary, 0.2)',
+      primaryMuted: 'alpha(colors.accent.primary, 0.6)',
+
+      secondaryDark: 'darken(colors.accent.secondary, 0.2)',
+      secondaryLight: 'lighten(colors.accent.secondary, 0.2)'
+    },
+
+    status: {
+      info: 'var(--lcars-blue, #9999FF)',
+      success: 'var(--lcars-green, #99CC99)',
+      warning: 'var(--lcars-orange, #FF9900)',
+      danger: 'var(--lcars-red, #CC6666)',
+      unknown: 'var(--lcars-gray, #999999)',
+
+      // Alert intensity levels (computed)
+      alert1: 'var(--lcars-yellow, #FFCC99)',
+      alert2: 'colors.status.warning',
+      alert3: 'darken(colors.status.danger, 0.1)',
+      alert4: 'saturate(colors.status.danger, 0.3)'
+    },
+
+    ui: {
+      background: 'var(--lcars-black, #000000)',
+      foreground: 'var(--lcars-white, #FFFFFF)',
+      border: 'var(--lcars-gray, #999999)',
+      disabled: 'var(--lcars-dark-gray, #666666)',
+
+      // Computed surface colors
+      surface: 'alpha(colors.ui.foreground, 0.05)',
+      surfaceHover: 'alpha(colors.ui.foreground, 0.1)',
+      surfaceActive: 'alpha(colors.ui.foreground, 0.15)'
+    },
+
+    chart: {
+      series: [
+        'var(--lcars-orange, #FF9900)',
+        'var(--lcars-blue, #9999FF)',
+        'var(--lcars-yellow, #FFCC99)',
+        'var(--lcars-purple, #CC99CC)',
+        'var(--lcars-green, #99CC99)',
+        'var(--lcars-red, #CC6666)'
+      ],
+      grid: 'var(--lcars-gray, #999999)',
+      axis: 'var(--lcars-white, #FFFFFF)',
+      gridMuted: 'alpha(colors.chart.grid, 0.3)'
+    },
+
+    alert: {
+      base: 'var(--lcars-red, #CC6666)',
+
+      // Computed alert variants
+      critical: 'saturate(lighten(colors.alert.base, 0.1), 0.3)',
+      warning: 'mix(colors.alert.base, colors.status.warning, 0.6)',
+      caution: 'desaturate(darken(colors.alert.base, 0.1), 0.2)'
+    }
+  },
+
+  typography: {
+    fontFamily: {
+      primary: 'var(--lcars-font-family, Antonio, Helvetica Neue, sans-serif)',
+      monospace: 'var(--lcars-font-monospace, Courier New, monospace)'
+    },
+
+    fontSize: {
+      xs: 10,
+      sm: 12,
+      base: {
+        small: 12,
+        medium: 14,
+        large: 16
+      },
+      lg: 16,
+      xl: 18,
+      '2xl': 24,
+      '3xl': 32
+    },
+
+    fontWeight: {
+      normal: 'normal',
+      bold: 'bold'
+    },
+
+    lineHeight: {
+      tight: 1.0,
+      normal: 1.2,
+      relaxed: 1.5
+    },
+
+    letterSpacing: {
+      tight: '-0.05em',
+      normal: '0',
+      wide: '0.05em',
+      wider: '0.1em'
+    }
+  },
+
+  spacing: {
+    scale: {
+      '0': 0,
+      '1': 2,
+      '2': 4,
+      '3': 6,
+      '4': 8,
+      '5': 10,
+      '6': 12,
+      '8': 16,
+      '10': 20,
+      '12': 24,
+      '16': 32
+    },
+
+    gap: {
+      none: 0,
+      xs: 1,
+      sm: 2,
+      base: 4,
+      lg: 8,
+      xl: 12
+    }
+  },
+
+  borders: {
+    width: {
+      none: 0,
+      thin: 1,
+      base: 2,
+      thick: 3
+    },
+
+    radius: {
+      none: 0,
+      sm: 2,
+      base: 4,
+      lg: 8,
+      xl: 12,
+      full: 9999
+    },
+
+    style: {
+      solid: 'solid',
+      dashed: 'dashed',
+      dotted: 'dotted'
+    }
+  },
+
+  effects: {
+    opacity: {
+      disabled: 0.4,
+      muted: 0.6,
+      base: 1.0
+    },
+
+    shadow: {
+      sm: '0 1px 2px rgba(0,0,0,0.2)',
+      base: '0 2px 4px rgba(0,0,0,0.3)',
+      lg: '0 4px 8px rgba(0,0,0,0.4)'
+    },
+
+    blur: {
+      sm: 2,
+      base: 4,
+      lg: 8
+    },
+
+    glow: {
+      accent: '0 0 8px var(--lcars-orange, #FF9900)',
+      accentStrong: '0 0 16px var(--lcars-orange, #FF9900)',
+      danger: '0 0 8px var(--lcars-red, #CC6666)',
+      success: '0 0 8px var(--lcars-green, #99CC99)'
+    }
+  },
+
+  animations: {
+    duration: {
+      instant: 0,
+      fast: 200,
+      base: 350,
+      slow: 500,
+      slower: 800,
+      slowest: 1200
+    },
+
+    easing: {
+      linear: 'linear',
+      ease: 'ease',
+      easeIn: 'ease-in',
+      easeOut: 'ease-out',
+      easeInOut: 'ease-in-out'
+    }
+  },
+
+  components: {
+    text: {
+      defaultColor: 'colors.ui.foreground',
+      defaultSize: 'typography.fontSize.base',
+      defaultFamily: 'typography.fontFamily.primary'
+    },
+
+    statusGrid: {
+      defaultCellColor: 'colors.accent.primary',
+      defaultGap: 'spacing.gap.sm',
+      defaultRadius: 'borders.radius.base',
+
+      statusOnColor: 'colors.status.success',
+      statusOffColor: 'colors.status.unknown',
+      statusUnavailableColor: 'colors.status.danger'
+    },
+
+    button: {
+      defaultColor: 'colors.accent.primary',
+      defaultRadius: 'borders.radius.lg'
+    },
+
+    chart: {
+      defaultColors: 'colors.chart.series',
+      defaultStrokeWidth: 'borders.width.thick',
+      gridColor: 'colors.chart.gridMuted'
+    },
+
+    line: {
+      defaultColor: 'colors.accent.secondary',
+      defaultWidth: 'borders.width.base'
+    },
+
+    sparkline: {
+      defaultColor: 'colors.accent.primary',
+      defaultStrokeWidth: 'borders.width.base'
+    }
+  }
+};

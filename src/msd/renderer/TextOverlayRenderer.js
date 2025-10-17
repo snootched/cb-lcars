@@ -15,6 +15,7 @@ import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { TextRenderer } from './core/TextRenderer.js';
+import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class TextOverlayRenderer {
@@ -57,7 +58,7 @@ export class TextOverlayRenderer {
     try {
       const style = overlay.finalStyle || overlay.style || {};
 
-      // 2. MSD RESPONSIBILITY: Resolve styles with defaults system
+      // 2. MSD RESPONSIBILITY: Resolve styles with defaults system AND TOKEN SYSTEM
       const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
 
       // Adopt computed font when 'inherit' to prevent initial fallback mismatch
@@ -190,6 +191,7 @@ export class TextOverlayRenderer {
 
   /**
    * Resolve comprehensive text styling from configuration
+   * ENHANCED: Now integrates token system for theme-aware styling
    * @private
    */
   _resolveTextStyles(style, overlayId, fallbackViewBox = null) {
@@ -210,6 +212,9 @@ export class TextOverlayRenderer {
 
     const scalingContext = this._getScalingContext(effectiveFallbackViewBox);
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
+
+    // TOKEN INTEGRATION: Create component-scoped resolver
+    const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('text') : null;
 
     // Process font size with automatic pixel-perfect scaling
     let resolvedFontSize;
@@ -249,16 +254,46 @@ export class TextOverlayRenderer {
       } else {
         resolvedFontSize = styleFontSize;
       }
+    } else if (typeof styleFontSize === 'string') {
+      // TOKEN INTEGRATION: Check if font size is a token reference
+      if (resolveToken && this._isTokenReference(styleFontSize)) {
+        resolvedFontSize = resolveToken(styleFontSize, 16, { viewBox: scalingContext.viewBox });
+      } else {
+        resolvedFontSize = styleFontSize;
+      }
     } else {
-      resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, 16);
+      // TOKEN INTEGRATION: Use token for default size
+      if (resolveToken) {
+        resolvedFontSize = resolveToken('defaultSize', 16, { viewBox: scalingContext.viewBox });
+      } else {
+        resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, 16);
+      }
     }
 
     const textStyle = {
-      // Core properties
-      color: standardStyles.text.textColor || style.fill || this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
+      // Core properties - TOKEN INTEGRATED
+      color: this._resolveStyleProperty(
+        standardStyles.text.textColor || style.fill || style.color,
+        'defaultColor',
+        resolveToken,
+        this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
+        scalingContext
+      ),
       fontSize: resolvedFontSize,
-      fontFamily: standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily || this._resolveDefault('text.font_family', scalingContext, defaults, 'inherit')),
-      fontWeight: standardStyles.text.fontWeight,
+      fontFamily: this._resolveStyleProperty(
+        standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily),
+        'defaultFamily',
+        resolveToken,
+        this._resolveDefault('text.font_family', scalingContext, defaults, 'inherit'),
+        scalingContext
+      ),
+      fontWeight: this._resolveStyleProperty(
+        standardStyles.text.fontWeight,
+        'typography.fontWeight.normal',
+        resolveToken,
+        'normal',
+        scalingContext
+      ),
       fontStyle: standardStyles.text.fontStyle,
 
       // Positioning and alignment
@@ -272,18 +307,36 @@ export class TextOverlayRenderer {
                         style.dominant_baseline || style.dominantBaseline || 'auto').toLowerCase(),
       alignmentBaseline: (style.alignment_baseline || style.alignmentBaseline || 'auto').toLowerCase(),
 
-      // Advanced styling
-      letterSpacing: standardStyles.text.letterSpacing,
+      // Advanced styling - TOKEN INTEGRATED
+      letterSpacing: this._resolveStyleProperty(
+        standardStyles.text.letterSpacing,
+        'typography.letterSpacing.normal',
+        resolveToken,
+        '0',
+        scalingContext
+      ),
       wordSpacing: style.word_spacing || style.wordSpacing || 'normal',
       textDecoration: style.text_decoration || style.textDecoration || 'none',
 
-      // Opacity/visibility
-      opacity: standardStyles.layout.opacity,
+      // Opacity/visibility - TOKEN INTEGRATED
+      opacity: this._resolveStyleProperty(
+        standardStyles.layout.opacity,
+        'effects.opacity.base',
+        resolveToken,
+        1.0,
+        scalingContext
+      ),
       visibility: standardStyles.layout.visible ? 'visible' : 'hidden',
 
-      // Stroke properties
+      // Stroke properties - TOKEN INTEGRATED for stroke width
       stroke: style.stroke || null,
-      strokeWidth: Number(style.stroke_width || style.strokeWidth || 0),
+      strokeWidth: this._resolveStyleProperty(
+        style.stroke_width || style.strokeWidth,
+        'borders.width.base',
+        resolveToken,
+        0,
+        scalingContext
+      ),
       strokeOpacity: Number(style.stroke_opacity || style.strokeOpacity || 1),
       strokeLinecap: (style.stroke_linecap || style.strokeLinecap || 'butt').toLowerCase(),
       strokeLinejoin: (style.stroke_linejoin || style.strokeLinejoin || 'miter').toLowerCase(),
@@ -299,9 +352,15 @@ export class TextOverlayRenderer {
       shadow: standardStyles.shadow,
       blur: standardStyles.blur,
 
-      // Multi-line support
+      // Multi-line support - TOKEN INTEGRATED for line height
       multiline: style.multiline || false,
-      lineHeight: standardStyles.text.lineHeight,
+      lineHeight: this._resolveStyleProperty(
+        standardStyles.text.lineHeight,
+        'typography.lineHeight.normal',
+        resolveToken,
+        1.2,
+        scalingContext
+      ),
       maxWidth: standardStyles.layout.maxWidth || Number(style.max_width || style.maxWidth || 0),
       textWrapping: style.text_wrapping || style.textWrapping || 'none',
 
@@ -311,28 +370,52 @@ export class TextOverlayRenderer {
       fadeSpeed: Number(style.fade_speed || 0),
       typewriterSpeed: Number(style.typewriter_speed || 0),
 
-      // LCARS features
+      // LCARS features - TOKEN INTEGRATED for bracket properties
       status_indicator: style.status_indicator || null,
       status_indicator_position: style.status_indicator_position || style.statusIndicatorPosition || 'left-center',
       status_indicator_size: typeof style.status_indicator_size === 'number' ? style.status_indicator_size : null,
       status_indicator_padding: typeof style.status_indicator_padding === 'number' ? style.status_indicator_padding : null,
       bracket_style: style.bracket_style || null,
       bracket_color: style.bracket_color || null,
-      bracket_width: Number(style.bracket_width || this._resolveDefault('text.bracket.width', scalingContext, defaults, 2)),
-      bracket_gap: Number(style.bracket_gap || this._resolveDefault('text.bracket.gap', scalingContext, defaults, 4)),
+      bracket_width: this._resolveStyleProperty(
+        style.bracket_width,
+        'borders.width.base',
+        resolveToken,
+        this._resolveDefault('text.bracket.width', scalingContext, defaults, 2),
+        scalingContext
+      ),
+      bracket_gap: this._resolveStyleProperty(
+        style.bracket_gap,
+        'spacing.gap.base',
+        resolveToken,
+        this._resolveDefault('text.bracket.gap', scalingContext, defaults, 4),
+        scalingContext
+      ),
       bracket_extension: Number(style.bracket_extension || this._resolveDefault('text.bracket.extension', scalingContext, defaults, 8)),
       bracket_opacity: Number(style.bracket_opacity || this._resolveDefault('text.bracket.opacity', scalingContext, defaults, 1)),
       bracket_corners: style.bracket_corners || 'both',
       bracket_sides: style.bracket_sides || 'both',
       bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || this._resolveDefault('text.bracket.physical_width', scalingContext, defaults, 8)),
       bracket_height: style.bracket_height || this._resolveDefault('text.bracket.height', scalingContext, defaults, '70%'),
-      bracket_radius: Number(style.bracket_radius || this._resolveDefault('text.bracket.radius', scalingContext, defaults, 4)),
+      bracket_radius: this._resolveStyleProperty(
+        style.bracket_radius,
+        'borders.radius.base',
+        resolveToken,
+        this._resolveDefault('text.bracket.radius', scalingContext, defaults, 4),
+        scalingContext
+      ),
       border_top: Number(style.border_top || 0),
       border_left: Number(style.border_left || 0),
       border_right: Number(style.border_right || 0),
       border_bottom: Number(style.border_bottom || 0),
       border_color: style.border_color || null,
-      border_radius: Number(style.border_radius || this._resolveDefault('text.bracket.border_radius', scalingContext, defaults, 8)),
+      border_radius: this._resolveStyleProperty(
+        style.border_radius,
+        'borders.radius.lg',
+        resolveToken,
+        this._resolveDefault('text.bracket.border_radius', scalingContext, defaults, 8),
+        scalingContext
+      ),
       inner_factor: Number(style.inner_factor || this._resolveDefault('text.bracket.inner_factor', scalingContext, defaults, 2)),
       hybrid_mode: style.hybrid_mode || false,
       highlight: style.highlight || false,
@@ -357,6 +440,39 @@ export class TextOverlayRenderer {
     if (textStyle.highlight) textStyle.features.push('highlight');
 
     return textStyle;
+  }
+
+  /**
+   * Resolve a style property using token system with fallback to defaults
+   * @private
+   */
+  _resolveStyleProperty(styleValue, tokenPath, resolveToken, fallback, context) {
+    // If style value is explicitly set, use it
+    if (styleValue !== undefined && styleValue !== null) {
+      // Check if it's a token reference
+      if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
+        return resolveToken(styleValue, fallback, context);
+      }
+      return styleValue;
+    }
+
+    // Otherwise resolve from token system
+    if (resolveToken) {
+      return resolveToken(tokenPath, fallback, context);
+    }
+
+    // Final fallback
+    return fallback;
+  }
+
+  /**
+   * Check if a value is a token reference
+   * @private
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+    return tokenCategories.some(category => value.startsWith(`${category}.`));
   }
 
   /**

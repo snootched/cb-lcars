@@ -10,6 +10,7 @@ import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 export class ButtonOverlayRenderer {
   constructor() {
@@ -218,39 +219,96 @@ export class ButtonOverlayRenderer {
 
   /**
    * Resolve comprehensive button overlay styling from configuration
+   * ✅ ENHANCED: Now integrates token system for theme-aware styling
    * @private
    */
   _resolveButtonOverlayStyles(style, overlayId, overlay = null) {
+    // ✅ ADDED: Create component-scoped token resolver
+    const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('button') : null;
+
     // Parse all standard styles using unified system
     const standardStyles = RendererUtils.parseAllStandardStyles(style);
 
     const buttonStyle = {
-      // Basic appearance - prioritize overlay direct properties, then overlay.style, then defaults
-      color: overlay?.color || style?.color || standardStyles.colors.primaryColor || this._getDefault('button.color', 'var(--lcars-blue)'),
-      opacity: style.opacity || standardStyles.layout.opacity || this._getDefault('button.opacity', 1.0),
+      // ✅ ENHANCED: Basic appearance via tokens
+      color: this._resolveStyleProperty(
+        overlay?.color || style?.color || standardStyles.colors.primaryColor,
+        'defaultColor',
+        resolveToken,
+        this._getDefault('button.color', 'var(--lcars-blue)'),
+        { viewBox: this.viewBox }
+      ),
 
-      // Border styling - enhanced individual control
-      border_width: style.border_width || standardStyles.layout.borderWidth || this._getDefault('button.border_width', 1),
-      border_color: style.border_color || standardStyles.colors.borderColor || this._getDefault('button.border_color', 'var(--lcars-gray)'),
-      border_radius: style.border_radius || standardStyles.layout.borderRadius || this._getDefault('button.border_radius', 8),
+      opacity: this._resolveStyleProperty(
+        style.opacity || standardStyles.layout.opacity,
+        'effects.opacity.base',
+        resolveToken,
+        this._getDefault('button.opacity', 1.0),
+        { viewBox: this.viewBox }
+      ),
 
-      // Individual border control
+      // ✅ ENHANCED: Border styling via tokens
+      border_width: this._resolveStyleProperty(
+        style.border_width || standardStyles.layout.borderWidth,
+        'borders.width.base',
+        resolveToken,
+        this._getDefault('button.border_width', 1),
+        { viewBox: this.viewBox }
+      ),
+
+      border_color: this._resolveStyleProperty(
+        style.border_color || standardStyles.colors.borderColor,
+        'colors.ui.border',
+        resolveToken,
+        this._getDefault('button.border_color', 'var(--lcars-gray)'),
+        { viewBox: this.viewBox }
+      ),
+
+      border_radius: this._resolveStyleProperty(
+        style.border_radius || standardStyles.layout.borderRadius,
+        'borders.radius.lg',
+        resolveToken,
+        this._getDefault('button.border_radius', 8),
+        { viewBox: this.viewBox }
+      ),
+
+      // Individual border control (no token resolution needed - direct values)
       border_top: style.border_top || null,
       border_right: style.border_right || null,
       border_bottom: style.border_bottom || null,
       border_left: style.border_left || null,
-
-      // Individual corner radius
       border_radius_top_left: style.border_radius_top_left || null,
       border_radius_top_right: style.border_radius_top_right || null,
       border_radius_bottom_right: style.border_radius_bottom_right || null,
       border_radius_bottom_left: style.border_radius_bottom_left || null,
 
-      // Text styling (using standardized text styles with defaults manager fallbacks)
-      label_color: standardStyles.text.labelColor || style.label_color || this._getDefault('button.label_color', 'var(--lcars-white)'),
-      value_color: standardStyles.text.valueColor || style.value_color || this._getDefault('button.value_color', 'var(--lcars-white)'),
+      // ✅ ENHANCED: Text styling via tokens
+      label_color: this._resolveStyleProperty(
+        standardStyles.text.labelColor || style.label_color,
+        'colors.ui.foreground',
+        resolveToken,
+        this._getDefault('button.label_color', 'var(--lcars-white)'),
+        { viewBox: this.viewBox }
+      ),
+
+      value_color: this._resolveStyleProperty(
+        standardStyles.text.valueColor || style.value_color,
+        'colors.ui.foreground',
+        resolveToken,
+        this._getDefault('button.value_color', 'var(--lcars-white)'),
+        { viewBox: this.viewBox }
+      ),
+
       font_size: Number(style.font_size) || Math.max(standardStyles.text.fontSize || 12, this._getDefault('button.font_size', 18)),
-      font_family: standardStyles.text.fontFamily || style.font_family || this._getDefault('button.font_family', 'var(--lcars-font-family, Antonio)'),
+
+      font_family: this._resolveStyleProperty(
+        standardStyles.text.fontFamily || style.font_family,
+        'typography.fontFamily.primary',
+        resolveToken,
+        this._getDefault('button.font_family', 'var(--lcars-font-family, Antonio)'),
+        { viewBox: this.viewBox }
+      ),
+
       font_weight: standardStyles.text.fontWeight || style.font_weight || this._getDefault('button.font_weight', 'normal'),
 
       // Enhanced text sizing
@@ -310,6 +368,38 @@ export class ButtonOverlayRenderer {
     });
 
     return buttonStyle;
+  }
+
+  /**
+   * ✅ ADDED: Resolve a style property using token system with fallback
+   * @private
+   */
+  _resolveStyleProperty(styleValue, tokenPath, resolveToken, fallback, context = {}) {
+    // If style value is explicitly set, check if it's a token reference
+    if (styleValue !== undefined && styleValue !== null) {
+      if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
+        return resolveToken(styleValue, fallback, context);
+      }
+      return styleValue;
+    }
+
+    // Otherwise resolve from token system
+    if (resolveToken) {
+      return resolveToken(tokenPath, fallback, context);
+    }
+
+    // Final fallback
+    return fallback;
+  }
+
+  /**
+   * ✅ ADDED: Check if a value is a token reference
+   * @private
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+    return tokenCategories.some(category => value.startsWith(`${category}.`));
   }
 
   /**
