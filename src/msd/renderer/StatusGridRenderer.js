@@ -76,6 +76,414 @@ export class StatusGridRenderer {
     return null;
   }
 
+  // ============================================================================
+  // 🎯 UNIFIED STYLE RESOLUTION SYSTEM - Token Resolution at Every Layer
+  // ============================================================================
+
+  /**
+   * Unified entry point for complete status grid style resolution with token support at every layer
+   * 
+   * Implements proper style cascade with token resolution at each step:
+   * Layer 1: MSD Defaults (lowest priority)
+   * Layer 2: Overlay Preset (with token resolution)
+   * Layer 3: Overlay Styles (with token resolution)
+   * Layer 4: Cell Preset (with token resolution) - if cellConfig provided
+   * Layer 5: Cell Styles (highest priority, with token resolution) - if cellConfig provided
+   * 
+   * @private
+   * @param {Object} overlay - Overlay configuration with styles and presets
+   * @param {Object} cellConfig - Optional cell-specific configuration
+   * @param {Array} viewBox - SVG viewBox for responsive token resolution
+   * @returns {Object} Complete resolved style with priority tracking
+   */
+  _resolveCompleteStatusGridStyle(overlay, cellConfig = null, viewBox = null) {
+    cblcarsLog.debug('[StatusGridRenderer] 🎯 Starting unified style resolution', {
+      overlayId: overlay?.id,
+      cellId: cellConfig?.id,
+      hasOverlayPreset: !!overlay?.style?.lcars_button_preset,
+      hasCellPreset: !!cellConfig?.lcars_button_preset
+    });
+
+    // Store viewBox for token resolution
+    this.viewBox = viewBox;
+
+    // Initialize priority tracker
+    const priorityTracker = {
+      layers: new Set(),
+      explicit: new Map(),  // property -> layer that set it explicitly
+      computed: new Map()   // property -> layer that computed it
+    };
+
+    // Layer 1: MSD Defaults (lowest priority)
+    let resolvedStyle = this._getMSDDefaultsLayer(priorityTracker);
+
+    // Layer 2: Overlay Preset (with token resolution)
+    resolvedStyle = this._resolveOverlayPresetLayer(overlay, resolvedStyle, priorityTracker);
+
+    // Layer 3: Overlay Styles (with token resolution)
+    resolvedStyle = this._resolveOverlayStyleLayer(overlay, resolvedStyle, priorityTracker);
+
+    // If no cell config, return overlay-level style
+    if (!cellConfig) {
+      resolvedStyle._priorityTracker = priorityTracker;
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Overlay-level style resolved', {
+        layers: Array.from(priorityTracker.layers),
+        explicitProperties: priorityTracker.explicit.size
+      });
+      return resolvedStyle;
+    }
+
+    // Layer 4: Cell Preset (with token resolution)
+    resolvedStyle = this._resolveCellPresetLayer(cellConfig, resolvedStyle, priorityTracker);
+
+    // Layer 5: Cell Styles (highest priority, with token resolution)
+    resolvedStyle = this._resolveCellStyleLayer(cellConfig, resolvedStyle, priorityTracker);
+
+    resolvedStyle._priorityTracker = priorityTracker;
+
+    cblcarsLog.debug('[StatusGridRenderer] ✅ Complete cell style resolved', {
+      cellId: cellConfig?.id,
+      layers: Array.from(priorityTracker.layers),
+      explicitProperties: priorityTracker.explicit.size
+    });
+
+    return resolvedStyle;
+  }
+
+  /**
+   * Layer 1: Get MSD defaults from DefaultsManager
+   * @private
+   * @param {Object} priorityTracker - Priority tracking object
+   * @returns {Object} Default styles
+   */
+  _getMSDDefaultsLayer(priorityTracker) {
+    priorityTracker.layers.add('msd_defaults');
+
+    const defaults = {
+      // Grid layout defaults
+      rows: this._getDefault('status_grid.rows', 3),
+      columns: this._getDefault('status_grid.columns', 4),
+      cell_gap: this._getDefault('status_grid.cell_gap', 2),
+      cell_width: 0,  // 0 = auto
+      cell_height: 0, // 0 = auto
+
+      // Cell appearance defaults
+      cell_color: this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
+      cell_opacity: this._getDefault('status_grid.cell_opacity', 1.0),
+      cell_radius: this._getDefault('status_grid.cell_radius', 2),
+      normalize_radius: true,
+      match_ha_radius: true,
+
+      // Border defaults
+      cell_border: true,
+      border_color: this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
+      border_width: this._getDefault('status_grid.border_width', 1),
+
+      // Text defaults
+      show_labels: true,
+      show_values: false,
+      label_color: this._getDefault('status_grid.label_color', 'var(--lcars-white)'),
+      value_color: this._getDefault('status_grid.value_color', 'var(--lcars-white)'),
+      font_size: this._getDefault('status_grid.font_size', 18),
+      font_family: this._getDefault('status_grid.font_family', 'var(--lcars-font-family, Antonio)'),
+      font_weight: this._getDefault('status_grid.font_weight', 'normal'),
+      label_font_size: this._getDefault('status_grid.label_font_size', 18),
+      value_font_size: this._getDefault('status_grid.value_font_size', 16),
+
+      // Positioning defaults
+      text_padding: this._getDefault('status_grid.text_padding', 8),
+      text_margin: this._getDefault('status_grid.text_margin', 2),
+      label_position: 'center-top',
+      value_position: 'center-bottom',
+
+      // Feature defaults
+      status_mode: 'auto',
+      show_grid_lines: false
+    };
+
+    // Track all defaults as computed
+    Object.keys(defaults).forEach(key => {
+      priorityTracker.computed.set(key, 'msd_defaults');
+    });
+
+    cblcarsLog.debug('[StatusGridRenderer] 📦 Layer 1: MSD Defaults loaded', {
+      propertyCount: Object.keys(defaults).length
+    });
+
+    return defaults;
+  }
+
+  /**
+   * Layer 2: Resolve overlay preset with token resolution
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} baseStyle - Style from previous layer
+   * @param {Object} priorityTracker - Priority tracking object
+   * @returns {Object} Merged style with preset applied
+   */
+  _resolveOverlayPresetLayer(overlay, baseStyle, priorityTracker) {
+    const presetName = overlay?.style?.lcars_button_preset || overlay?.lcars_button_preset;
+    
+    if (!presetName) {
+      cblcarsLog.debug('[StatusGridRenderer] ⏭️ Layer 2: No overlay preset');
+      return { ...baseStyle };
+    }
+
+    priorityTracker.layers.add('overlay_preset');
+
+    // Load preset from StylePresetManager
+    const presetStyles = this._loadPresetFromStylePresetManager('status_grid', presetName);
+    
+    if (!presetStyles) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Overlay preset '${presetName}' not found`);
+      return { ...baseStyle };
+    }
+
+    cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 2: Applying overlay preset', {
+      presetName,
+      propertyCount: Object.keys(presetStyles).length
+    });
+
+    // Create new style object (immutable)
+    const mergedStyle = { ...baseStyle };
+
+    // Apply preset properties with token resolution
+    Object.entries(presetStyles).forEach(([property, value]) => {
+      // Resolve tokens in preset values
+      const resolvedValue = this._resolveTokenValue(value, property);
+      
+      // Only apply if not already explicitly set
+      if (!priorityTracker.explicit.has(property)) {
+        mergedStyle[property] = resolvedValue;
+        priorityTracker.computed.set(property, 'overlay_preset');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Preset set ${property}:`, {
+          raw: value,
+          resolved: resolvedValue,
+          wasToken: value !== resolvedValue
+        });
+      }
+    });
+
+    return mergedStyle;
+  }
+
+  /**
+   * Layer 3: Resolve overlay-specific styles with token resolution
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} baseStyle - Style from previous layers
+   * @param {Object} priorityTracker - Priority tracking object
+   * @returns {Object} Merged style with overlay styles applied
+   */
+  _resolveOverlayStyleLayer(overlay, baseStyle, priorityTracker) {
+    priorityTracker.layers.add('overlay_style');
+
+    const overlayStyle = overlay?.style || {};
+    
+    cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 3: Applying overlay styles', {
+      propertyCount: Object.keys(overlayStyle).length
+    });
+
+    // Create new style object (immutable)
+    const mergedStyle = { ...baseStyle };
+
+    // Also check direct overlay properties (rows, columns)
+    const directProps = ['rows', 'columns'];
+    directProps.forEach(prop => {
+      if (overlay?.[prop] !== undefined) {
+        const resolvedValue = this._resolveTokenValue(overlay[prop], prop);
+        mergedStyle[prop] = resolvedValue;
+        priorityTracker.explicit.set(prop, 'overlay_direct');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Overlay direct ${prop}:`, {
+          raw: overlay[prop],
+          resolved: resolvedValue
+        });
+      }
+    });
+
+    // Apply overlay.style properties with token resolution
+    Object.entries(overlayStyle).forEach(([property, value]) => {
+      if (value !== undefined && value !== null) {
+        // Resolve tokens
+        const resolvedValue = this._resolveTokenValue(value, property);
+        
+        // Override previous layers (overlay.style > overlay.preset)
+        mergedStyle[property] = resolvedValue;
+        priorityTracker.explicit.set(property, 'overlay_style');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Overlay style ${property}:`, {
+          raw: value,
+          resolved: resolvedValue,
+          wasToken: value !== resolvedValue
+        });
+      }
+    });
+
+    return mergedStyle;
+  }
+
+  /**
+   * Layer 4: Resolve cell preset with token resolution
+   * @private
+   * @param {Object} cellConfig - Cell configuration
+   * @param {Object} baseStyle - Style from previous layers (overlay-level)
+   * @param {Object} priorityTracker - Priority tracking object
+   * @returns {Object} Merged style with cell preset applied
+   */
+  _resolveCellPresetLayer(cellConfig, baseStyle, priorityTracker) {
+    const presetName = cellConfig?.lcars_button_preset || cellConfig?.style?.lcars_button_preset;
+    
+    if (!presetName) {
+      cblcarsLog.debug('[StatusGridRenderer] ⏭️ Layer 4: No cell preset');
+      return { ...baseStyle };
+    }
+
+    priorityTracker.layers.add('cell_preset');
+
+    // Load preset from StylePresetManager
+    const presetStyles = this._loadPresetFromStylePresetManager('status_grid', presetName);
+    
+    if (!presetStyles) {
+      cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Cell preset '${presetName}' not found`);
+      return { ...baseStyle };
+    }
+
+    cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 4: Applying cell preset', {
+      cellId: cellConfig?.id,
+      presetName,
+      propertyCount: Object.keys(presetStyles).length
+    });
+
+    // Create new style object (immutable)
+    const mergedStyle = { ...baseStyle };
+
+    // Apply preset properties with token resolution
+    Object.entries(presetStyles).forEach(([property, value]) => {
+      // Resolve tokens in preset values
+      const resolvedValue = this._resolveTokenValue(value, property);
+      
+      // Cell preset overrides overlay styles (but respects explicit overlay settings)
+      const currentPriority = priorityTracker.explicit.get(property);
+      const shouldOverride = !currentPriority || currentPriority === 'overlay_preset';
+      
+      if (shouldOverride) {
+        mergedStyle[property] = resolvedValue;
+        priorityTracker.computed.set(property, 'cell_preset');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell preset set ${property}:`, {
+          raw: value,
+          resolved: resolvedValue,
+          wasToken: value !== resolvedValue
+        });
+      }
+    });
+
+    return mergedStyle;
+  }
+
+  /**
+   * Layer 5: Resolve cell-specific styles with token resolution (highest priority)
+   * @private
+   * @param {Object} cellConfig - Cell configuration
+   * @param {Object} baseStyle - Style from previous layers
+   * @param {Object} priorityTracker - Priority tracking object
+   * @returns {Object} Final merged style with cell styles applied
+   */
+  _resolveCellStyleLayer(cellConfig, baseStyle, priorityTracker) {
+    priorityTracker.layers.add('cell_style');
+
+    const cellStyle = cellConfig?.style || {};
+    
+    cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 5: Applying cell styles', {
+      cellId: cellConfig?.id,
+      stylePropertyCount: Object.keys(cellStyle).length
+    });
+
+    // Create new style object (immutable)
+    const mergedStyle = { ...baseStyle };
+
+    // Apply cell.style properties with token resolution (highest priority)
+    Object.entries(cellStyle).forEach(([property, value]) => {
+      if (value !== undefined && value !== null) {
+        // Resolve tokens
+        const resolvedValue = this._resolveTokenValue(value, property);
+        
+        // Cell.style has highest priority
+        mergedStyle[property] = resolvedValue;
+        priorityTracker.explicit.set(property, 'cell_style');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell style ${property}:`, {
+          raw: value,
+          resolved: resolvedValue,
+          wasToken: value !== resolvedValue
+        });
+      }
+    });
+
+    // Apply direct cell properties (same priority as cell.style)
+    Object.entries(cellConfig).forEach(([property, value]) => {
+      if (value !== undefined && value !== null && 
+          property !== 'style' && 
+          property !== 'id' && 
+          property !== 'position' &&
+          property !== 'content' &&
+          property !== 'label') {
+        // Resolve tokens
+        const resolvedValue = this._resolveTokenValue(value, property);
+        
+        // Direct properties override cell.style
+        mergedStyle[property] = resolvedValue;
+        priorityTracker.explicit.set(property, 'cell_direct');
+        
+        cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell direct ${property}:`, {
+          raw: value,
+          resolved: resolvedValue,
+          wasToken: value !== resolvedValue
+        });
+      }
+    });
+
+    return mergedStyle;
+  }
+
+  /**
+   * Resolve a single token value with context
+   * @private
+   * @param {*} value - Value that may be a token reference
+   * @param {string} property - Property name for context
+   * @returns {*} Resolved value
+   */
+  _resolveTokenValue(value, property) {
+    // Non-string values pass through
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    // Check if it's a token reference
+    if (!this._isTokenReference(value)) {
+      return value;
+    }
+
+    // Resolve via ThemeTokenResolver
+    if (!themeTokenResolver) {
+      cblcarsLog.debug(`[StatusGridResolver] ⚠️ No token resolver available for ${property}`);
+      return value;
+    }
+
+    // Create component-scoped resolver
+    const resolveToken = themeTokenResolver.forComponent('statusGrid');
+    
+    // Resolve with viewBox context for responsive tokens
+    const resolved = resolveToken(value, value, { 
+      viewBox: this.viewBox,
+      property: property
+    });
+
+    return resolved;
+  }
+
   /**
    * Get default value from defaults manager with fallback
    * @private
@@ -397,35 +805,30 @@ export class StatusGridRenderer {
 
   /**
    * Resolve comprehensive status grid styling from configuration
+   * Now uses the unified style resolution system with token support at every layer
    * @private
    */
   _resolveStatusGridStyles(style, overlayId, overlay = null) {
-
-    // ✅ Resolve tokens FIRST
-    const resolvedStyle = this._resolveTokensInStyle(style, overlay);
-
-    // ✅ ADDED: Debug logging to verify token resolution
-    cblcarsLog.debug('[StatusGridRenderer] 🎨 Token resolution for', overlayId, ':', {
-      inputCellColor: style.cell_color,
-      resolvedCellColor: resolvedStyle.cell_color,
-      isTokenReference: this._isTokenReference(style.cell_color),
-      hasTokenResolver: !!themeTokenResolver
+    cblcarsLog.debug('[StatusGridRenderer] 🔄 Resolving grid styles using unified system', {
+      overlayId,
+      hasStyle: !!style,
+      hasOverlay: !!overlay
     });
+
+    // Use the new unified resolution system for overlay-level styles
+    const resolvedStyle = this._resolveCompleteStatusGridStyle(overlay, null, this.viewBox);
 
     // Preserve the original overlay style for cascading to cells
     const originalOverlayStyle = overlay?.style || {};
-    const overlayStyle = { ...resolvedStyle }; // Create a copy to avoid mutation
+    const overlayStyle = overlay?.style || style || {};
 
-    // Parse all standard styles using unified system
-    const standardStyles = RendererUtils.parseAllStandardStyles(resolvedStyle);
+    // Parse all standard styles using unified system for effects
+    const standardStyles = RendererUtils.parseAllStandardStyles(overlayStyle);
 
+    // Build comprehensive grid style object
     const gridStyle = {
-      // Grid layout - prioritize overlay direct properties, then overlay.style, then defaults
-      rows: Number(overlay?.rows || overlayStyle?.rows || this._getDefault('status_grid.rows', 3)),
-      columns: Number(overlay?.columns || overlayStyle?.columns || this._getDefault('status_grid.columns', 4)),
-      cell_width: Number(overlayStyle.cell_width || 0), // 0 = auto
-      cell_height: Number(overlayStyle.cell_height || 0), // 0 = auto
-      cell_gap: Number(overlayStyle.cell_gap || this._getDefault('status_grid.cell_gap', 2)),
+      // Core properties from unified resolution
+      ...resolvedStyle,
 
       // Proportional sizing configuration
       row_sizes: overlayStyle.row_sizes || null,
@@ -433,70 +836,24 @@ export class StatusGridRenderer {
       row_heights: overlayStyle.row_heights || null,
       column_widths: overlayStyle.column_widths || null,
 
-      // Cell appearance (using standardized colors with defaults manager fallbacks)
-      cell_color: resolvedStyle.cell_color || this._getDefault('status_grid.cell_color', 'var(--lcars-blue)'),
-      cell_opacity: resolvedStyle.cell_opacity || standardStyles.layout.opacity || this._getDefault('status_grid.cell_opacity', 1.0),
-      cell_radius: Number(resolvedStyle.cell_radius || standardStyles.layout.borderRadius || this._getDefault('status_grid.cell_radius', 2)),
-      normalize_radius: overlayStyle.normalize_radius !== false, // Default true unless explicitly set to false
-      match_ha_radius: overlayStyle.match_ha_radius !== false, // Default true unless explicitly set to false
+      // Calculated positioning helpers
+      text_spacing: this._calculateSmartTextSpacing(resolvedStyle),
+      label_offset_y: this._calculateSmartLabelOffset(resolvedStyle),
+      value_offset_y: this._calculateSmartValueOffset(resolvedStyle),
 
-      // Border (using standardized layout with defaults manager fallbacks)
-      cell_border: overlayStyle.cell_border !== false,
-      border_color: resolvedStyle.border_color || standardStyles.colors.borderColor || this._getDefault('status_grid.border_color', 'var(--lcars-gray)'),
-      border_width: resolvedStyle.border_width || standardStyles.layout.borderWidth || this._getDefault('status_grid.border_width', 1),
+      // Advanced layout options
+      text_wrap: resolvedStyle.text_wrap || false,
+      max_text_width: resolvedStyle.max_text_width || '90%',
+      text_overflow: resolvedStyle.text_overflow || 'ellipsis',
+      text_layout: resolvedStyle.text_layout || 'stacked',
+      text_alignment: resolvedStyle.text_alignment || 'center',
+      text_justify: resolvedStyle.text_justify || 'center',
 
-      // Text (using standardized text styles with defaults manager fallbacks)
-      show_labels: overlayStyle.show_labels !== false,
-      show_values: overlayStyle.show_values || false, // Default to false per documentation
-      label_color: standardStyles.text.labelColor || overlayStyle.label_color || this._getDefault('status_grid.label_color', 'var(--lcars-white)'),
-      value_color: standardStyles.text.valueColor || overlayStyle.value_color || this._getDefault('status_grid.value_color', 'var(--lcars-white)'),
-      font_size: Number(overlayStyle.font_size) || Math.max(standardStyles.text.fontSize || 12, this._getDefault('status_grid.font_size', 18)),
-      font_family: standardStyles.text.fontFamily || overlayStyle.font_family || this._getDefault('status_grid.font_family', 'var(--lcars-font-family, Antonio)'),
-      font_weight: standardStyles.text.fontWeight || overlayStyle.font_weight || this._getDefault('status_grid.font_weight', 'normal'),
+      // Status configuration
+      status_ranges: this._parseStatusRanges(resolvedStyle.status_ranges),
+      unknown_color: standardStyles.colors?.disabledColor,
 
-      // Enhanced text sizing and positioning system (using defaults manager)
-      label_font_size: Number(overlayStyle.label_font_size) || Number(overlayStyle.font_size) || this._getDefault('status_grid.label_font_size', 18),
-      value_font_size: Number(overlayStyle.value_font_size) || (Number(overlayStyle.font_size) ? Number(overlayStyle.font_size) * 0.9 : this._getDefault('status_grid.value_font_size', 16)),
-
-      // Enhanced positioning system - allows CB-LCARS button card recreation
-      text_layout: overlayStyle.text_layout || 'stacked', // stacked, side-by-side, label-only, value-only, custom
-      text_alignment: overlayStyle.text_alignment || 'center', // center, top, bottom, custom
-      text_justify: overlayStyle.text_justify || 'center', // left, center, right
-
-      // Flexible positioning - supports both predefined and custom positions
-      label_position: overlayStyle.label_position || 'center-top', // Predefined or custom object
-      value_position: overlayStyle.value_position || 'center-bottom', // Predefined or custom object
-
-      // Legacy positioning (backward compatible but calculated intelligently)
-      text_spacing: this._calculateSmartTextSpacing(overlayStyle), // Intelligent spacing calculation
-      label_offset_y: this._calculateSmartLabelOffset(overlayStyle), // Smart label positioning
-      value_offset_y: this._calculateSmartValueOffset(overlayStyle), // Smart value positioning
-
-      // Advanced layout options (using defaults manager)
-      text_padding: Number(overlayStyle.text_padding || this._getDefault('status_grid.text_padding', 8)),
-      text_margin: Number(overlayStyle.text_margin || this._getDefault('status_grid.text_margin', 2)),
-      text_wrap: overlayStyle.text_wrap || false, // Enable text wrapping
-      max_text_width: overlayStyle.max_text_width || '90%', // Max width as percentage
-      text_overflow: overlayStyle.text_overflow || 'ellipsis', // ellipsis, clip, none
-
-      // CB-LCARS specific positioning presets
-      lcars_text_preset: overlayStyle.lcars_text_preset || null, // lozenge, bullet, corner, etc.
-
-      // CB-LCARS Button Presets - simple and direct
-      lcars_button_preset: overlayStyle.lcars_button_preset || null, // lozenge, bullet, picard-filled, etc.
-
-      // Status coloring
-      status_mode: (overlayStyle.status_mode || 'auto').toLowerCase(),
-      status_ranges: this._parseStatusRanges(overlayStyle.status_ranges),
-      unknown_color: standardStyles.colors.disabledColor,
-
-      // Grid features
-      show_grid_lines: overlayStyle.show_grid_lines || false,
-      grid_line_color: overlayStyle.grid_line_color || standardStyles.colors.borderColor,
-      grid_line_opacity: Number(overlayStyle.grid_line_opacity || 0.3),
-      grid_line_width: Number(overlayStyle.grid_line_width || 1), // Added missing grid line width control
-
-      // Effects (using standardized effect parsing)
+      // Effects from standard styles
       gradient: standardStyles.gradient,
       pattern: standardStyles.pattern,
       glow: standardStyles.glow,
@@ -505,62 +862,54 @@ export class StatusGridRenderer {
 
       // LCARS-specific features
       bracket_style: overlayStyle.bracket_style || false,
-      bracket_color: overlayStyle.bracket_color || standardStyles.colors.primaryColor,
+      bracket_color: overlayStyle.bracket_color || standardStyles.colors?.primaryColor,
       bracket_width: Number(overlayStyle.bracket_width || 2),
       bracket_gap: Number(overlayStyle.bracket_gap || 4),
       bracket_extension: Number(overlayStyle.bracket_extension || 8),
       bracket_opacity: Number(overlayStyle.bracket_opacity || 1),
       bracket_corners: overlayStyle.bracket_corners || 'both',
       bracket_sides: overlayStyle.bracket_sides || 'both',
-      // Enhanced bg-grid style bracket options
       bracket_physical_width: Number(overlayStyle.bracket_physical_width || overlayStyle.bracket_extension || 8),
       bracket_height: overlayStyle.bracket_height || '100%',
       bracket_radius: Number(overlayStyle.bracket_radius || 4),
+
       // LCARS container/border options
       border_top: Number(overlayStyle.border_top || 0),
       border_left: Number(overlayStyle.border_left || 0),
       border_right: Number(overlayStyle.border_right || 0),
       border_bottom: Number(overlayStyle.border_bottom || 0),
-      border_color: overlayStyle.border_color || null,
       border_radius: Number(overlayStyle.border_radius || 8),
       inner_factor: Number(overlayStyle.inner_factor || 2),
       hybrid_mode: overlayStyle.hybrid_mode || false,
       status_indicator: overlayStyle.status_indicator || false,
       lcars_corners: overlayStyle.lcars_corners || false,
 
-      // Interaction (using standardized interaction styles)
-      hover_enabled: standardStyles.interaction.hoverEnabled,
-      hover_color: standardStyles.colors.hoverColor,
-      hover_scale: standardStyles.interaction.hoverScale,
+      // Interaction
+      hover_enabled: standardStyles.interaction?.hoverEnabled,
+      hover_color: standardStyles.colors?.hoverColor || resolvedStyle.hover_color,
+      hover_scale: standardStyles.interaction?.hoverScale,
 
-      // Animation (using standardized animation styles)
-      animatable: standardStyles.animation.animatable,
-      cascade_speed: standardStyles.animation.cascadeSpeed,
-      cascade_direction: standardStyles.animation.cascadeDirection,
-      reveal_animation: standardStyles.animation.revealAnimation,
-      pulse_on_change: standardStyles.animation.pulseOnChange,
+      // Animation
+      animatable: standardStyles.animation?.animatable,
+      cascade_speed: standardStyles.animation?.cascadeSpeed,
+      cascade_direction: standardStyles.animation?.cascadeDirection,
+      reveal_animation: standardStyles.animation?.revealAnimation,
+      pulse_on_change: standardStyles.animation?.pulseOnChange,
 
       // Actions
       actions: overlayStyle.actions || null,
 
-      // Performance options
+      // Performance
       update_throttle: Number(overlayStyle.update_throttle || 100),
 
-      // Track enabled features for optimization
+      // Track enabled features
       features: [],
 
-      // Store parsed standard styles for reference
+      // Store references
       standardStyles,
-
-      // Store BOTH the raw overlay style for cascading AND processed overlay style
-      rawOverlayStyle: originalOverlayStyle, // Raw style for pure cascading
-      overlayStyle: overlayStyle // Processed style for grid-level decisions
+      rawOverlayStyle: originalOverlayStyle,
+      overlayStyle: overlayStyle
     };
-
-    // Apply CB-LCARS Button Preset if specified
-    if (gridStyle.lcars_button_preset) {
-      this._applyButtonPreset(gridStyle, gridStyle.lcars_button_preset, overlayStyle);
-    }
 
     // Build feature list for conditional rendering
     if (gridStyle.gradient) gridStyle.features.push('gradient');
@@ -582,22 +931,13 @@ export class StatusGridRenderer {
     if (gridStyle.actions) gridStyle.features.push('actions');
     if (gridStyle.lcars_button_preset) gridStyle.features.push('cb-button-preset');
 
-    cblcarsLog.debug(`[StatusGridRenderer] 📊 Final gridStyle:`, {
+    cblcarsLog.debug(`[StatusGridRenderer] 📊 Final gridStyle via unified system:`, {
       rows: gridStyle.rows,
       columns: gridStyle.columns,
       lcars_button_preset: gridStyle.lcars_button_preset,
-      rawOverlayStyleKeys: Object.keys(gridStyle.rawOverlayStyle || {}),
-      processedOverlayStyleKeys: Object.keys(gridStyle.overlayStyle || {}),
-      // Additional grid debugging
-      totalExpectedCells: gridStyle.rows * gridStyle.columns,
-      gridDimensionsSource: {
-        overlayRows: overlay?.rows,
-        overlayColumns: overlay?.columns,
-        styleRows: overlayStyle?.rows,
-        styleColumns: overlayStyle?.columns,
-        finalRows: gridStyle.rows,
-        finalColumns: gridStyle.columns
-      }
+      priorityLayers: resolvedStyle._priorityTracker ? Array.from(resolvedStyle._priorityTracker.layers) : [],
+      explicitProperties: resolvedStyle._priorityTracker ? resolvedStyle._priorityTracker.explicit.size : 0,
+      totalExpectedCells: gridStyle.rows * gridStyle.columns
     });
 
     return gridStyle;
@@ -744,70 +1084,83 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Resolve individual cell styling with proper cascade hierarchy
-   * Order: overlay.preset → overlay.specific → cell.preset → cell.specific
+   * Resolve individual cell styling with proper cascade hierarchy using unified system
+   * Order: MSD Defaults → Overlay.Preset → Overlay.Specific → Cell.Preset → Cell.Specific
+   * Now uses the unified token resolution system at every layer
    * @private
    * @param {Object} cellConfig - Individual cell configuration
-   * @param {Object} gridStyle - Grid-level default styles (already includes overlay.preset)
+   * @param {Object} gridStyle - Grid-level default styles (already includes overlay-level resolution)
    * @param {number} cellWidth - Calculated cell width
    * @param {number} cellHeight - Calculated cell height
-   * @returns {Object} Complete cell styling with proper inheritance
+   * @returns {Object} Complete cell styling with proper inheritance and token resolution
    */
   _resolveCellStyle(cellConfig, gridStyle, cellWidth, cellHeight) {
-    const cellStyle = cellConfig.style || {};
-    const overlayStyle = gridStyle.rawOverlayStyle || {}; // Use raw overlay style for proper cascading
+    cblcarsLog.debug('[StatusGridRenderer] 🎯 Resolving cell style using unified system', {
+      cellId: cellConfig?.id,
+      hasCellPreset: !!(cellConfig?.lcars_button_preset || cellConfig?.style?.lcars_button_preset),
+      hasCellStyle: !!(cellConfig?.style)
+    });
 
-    // STEP 1: Start with overlay.preset (already applied to gridStyle)
-    const baseStyle = {
-      // Visual properties from grid (includes overlay.preset)
-      color: gridStyle.cell_color,
-      border_color: gridStyle.border_color,
-      border_width: gridStyle.border_width,
-      border_radius: gridStyle.cell_radius,
-      opacity: gridStyle.cell_opacity,
-
-      // Text styling from grid (includes overlay.preset)
-      label_color: gridStyle.label_color,
-      value_color: gridStyle.value_color,
-      font_size: gridStyle.font_size,
-      font_family: gridStyle.font_family,
-      font_weight: gridStyle.font_weight,
-      label_font_size: gridStyle.label_font_size,
-      value_font_size: gridStyle.value_font_size,
-
-      // Positioning from grid (includes overlay.preset)
-      label_position: gridStyle.label_position,
-      value_position: gridStyle.value_position,
-      text_padding: gridStyle.text_padding,
-      text_margin: gridStyle.text_margin,
-
-      // CB-LCARS features from grid (includes overlay.preset)
-      lcars_button_preset: gridStyle.lcars_button_preset,
-      lcars_text_preset: gridStyle.lcars_text_preset,
-      bracket_style: gridStyle.bracket_style,
-      bracket_color: gridStyle.bracket_color,
-
-      // Control visibility from grid (includes overlay.preset)
-      show_labels: gridStyle.show_labels,
-      show_values: gridStyle.show_values
+    // Create a minimal overlay object for the unified system
+    // It will inherit from gridStyle which already has overlay-level resolution
+    const overlayForCell = {
+      id: gridStyle.overlayId || 'grid',
+      style: gridStyle.rawOverlayStyle || {},
+      lcars_button_preset: gridStyle.lcars_button_preset
     };
 
-    // STEP 2: Apply overlay.specific (overlay.style properties)
-    const overlaySpecificStyle = this._applyOverlaySpecificStyles(baseStyle, overlayStyle);
+    // Use unified system to resolve complete cell style with all 5 layers
+    const resolvedCellStyle = this._resolveCompleteStatusGridStyle(
+      overlayForCell,
+      cellConfig,
+      this.viewBox
+    );
 
-    // STEP 3: Apply cell.preset if specified
-    const cellPresetStyle = this._applyCellPresetStyles(overlaySpecificStyle, cellConfig);
+    // Map resolved properties to cell style format
+    const finalCellStyle = {
+      // Visual properties
+      color: resolvedCellStyle.cell_color,
+      border_color: resolvedCellStyle.border_color,
+      border_width: resolvedCellStyle.border_width,
+      border_radius: resolvedCellStyle.cell_radius,
+      opacity: resolvedCellStyle.cell_opacity,
 
-    // STEP 4: Apply cell.specific (cell.style + cell direct properties)
-    const finalCellStyle = this._applyCellSpecificStyles(cellPresetStyle, cellConfig, cellStyle);
+      // Text styling
+      label_color: resolvedCellStyle.label_color,
+      value_color: resolvedCellStyle.value_color,
+      font_size: resolvedCellStyle.font_size,
+      font_family: resolvedCellStyle.font_family,
+      font_weight: resolvedCellStyle.font_weight,
+      label_font_size: resolvedCellStyle.label_font_size,
+      value_font_size: resolvedCellStyle.value_font_size,
 
-    // Apply special cell radius resolution
+      // Positioning
+      label_position: resolvedCellStyle.label_position,
+      value_position: resolvedCellStyle.value_position,
+      text_padding: resolvedCellStyle.text_padding,
+      text_margin: resolvedCellStyle.text_margin,
+
+      // CB-LCARS features
+      lcars_button_preset: resolvedCellStyle.lcars_button_preset,
+      lcars_text_preset: resolvedCellStyle.lcars_text_preset,
+      bracket_style: resolvedCellStyle.bracket_style,
+      bracket_color: resolvedCellStyle.bracket_color,
+
+      // Control visibility
+      show_labels: resolvedCellStyle.show_labels,
+      show_values: resolvedCellStyle.show_values,
+
+      // Store priority tracker for debugging
+      _priorityTracker: resolvedCellStyle._priorityTracker
+    };
+
+    // Apply special cell radius resolution (respects normalization settings)
     finalCellStyle.border_radius = this._resolveCellRadius(cellConfig, gridStyle, cellWidth, cellHeight);
 
     // Parse through RendererUtils for full CB-LCARS support on final merged style
     const mergedConfigForRendererUtils = {
-      ...overlayStyle,
-      ...cellStyle,
+      ...gridStyle.rawOverlayStyle,
+      ...(cellConfig.style || {}),
       ...cellConfig
     };
     const cellStandardStyles = RendererUtils.parseAllStandardStyles(mergedConfigForRendererUtils);
@@ -822,6 +1175,13 @@ export class StatusGridRenderer {
     // Store for reference
     finalCellStyle.standardStyles = cellStandardStyles;
     finalCellStyle.mergedConfig = mergedConfigForRendererUtils;
+
+    cblcarsLog.debug('[StatusGridRenderer] ✅ Cell style resolved via unified system', {
+      cellId: cellConfig?.id,
+      priorityLayers: finalCellStyle._priorityTracker ? Array.from(finalCellStyle._priorityTracker.layers) : [],
+      color: finalCellStyle.color,
+      hasTokenResolution: !!finalCellStyle._priorityTracker
+    });
 
     return finalCellStyle;
   }
