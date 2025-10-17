@@ -6,6 +6,7 @@
 import { perfTime, perfCount } from '../util/performance.js';
 import { globalTraceBuffer } from './RuleTraceBuffer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { ApexChartsOverlayRenderer } from '../renderer/ApexChartsOverlayRenderer.js';
 
 export class RulesEngine {
   constructor(rules = [], dataSourceManager = null) {
@@ -982,7 +983,13 @@ export class RulesEngine {
   }
 }
 
-// Helper function for applying overlay patches from rule results
+/**
+ * Helper function for applying overlay patches from rule results
+ * Handles special cases like status_grid cell patches and ApexChart updates
+ * @param {Array} overlays - Array of overlay configurations
+ * @param {Array} patches - Array of patch configurations from rules
+ * @returns {Array} Patched overlays array
+ */
 export function applyOverlayPatches(overlays, patches) {
   if (!patches || patches.length === 0) {
     return overlays;
@@ -993,6 +1000,7 @@ export function applyOverlayPatches(overlays, patches) {
     patchCount: patches.length,
     patches: patches.map(p => ({
       id: p.id,
+      type: overlays.find(o => o.id === p.id)?.type,
       styleKeys: Object.keys(p.style || {}),
       cellTarget: p.cell_target || p.cellTarget || null
     }))
@@ -1000,7 +1008,10 @@ export function applyOverlayPatches(overlays, patches) {
 
   const patchMap = new Map(patches.map(patch => [patch.id, patch]));
 
-  return overlays.map(overlay => {
+  // Track ApexChart overlays that need updates
+  const apexChartUpdates = [];
+
+  const patchedOverlays = overlays.map(overlay => {
     const patch = patchMap.get(overlay.id);
     if (!patch) {
       return overlay;
@@ -1019,6 +1030,14 @@ export function applyOverlayPatches(overlays, patches) {
       return applyStatusGridCellPatch(overlay, patch);
     }
 
+    // Track ApexChart patches for deferred update
+    if (overlay.type === 'apexchart') {
+      apexChartUpdates.push({
+        overlay: { ...overlay },
+        patch
+      });
+    }
+
     // Standard overlay-level patches
     const patchedOverlay = {
       ...overlay,
@@ -1034,12 +1053,14 @@ export function applyOverlayPatches(overlays, patches) {
 
     cblcarsLog.debug('[RulesEngine] ✅ Patched overlay result:', {
       id: patchedOverlay.id,
+      type: patchedOverlay.type,
       newStyle: patchedOverlay.style,
       newFinalStyle: patchedOverlay.finalStyle
     });
 
     return patchedOverlay;
   });
+  return patchedOverlays;
 }
 
 /**

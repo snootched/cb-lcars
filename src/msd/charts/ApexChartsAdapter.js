@@ -7,6 +7,12 @@
  * - Support dot notation for enhanced DataSource paths
  * - Map MSD style config to ApexCharts options
  * - Handle multi-series aggregation
+ * - Provide exact pixel dimensions for HTML overlay rendering
+ *
+ * Integration:
+ * - Works with ApexChartsOverlayRenderer for HTML div overlay approach
+ * - Integrates with MSD DataSourceManager for real-time data
+ * - Supports time windowing and data decimation
  *
  * @module ApexChartsAdapter
  * @requires cblcars-logging
@@ -17,12 +23,12 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 export class ApexChartsAdapter {
   /**
    * Convert MSD DataSource to ApexCharts series format
-   * @param {string} sourceRef - DataSource reference (supports dot notation)
+   * @param {string} sourceRef - DataSource reference (supports dot notation like "temp.transformations.celsius")
    * @param {Object} dataSourceManager - MSD DataSourceManager instance
-   * @param {Object} config - Overlay configuration
+   * @param {Object} config - Configuration options
    * @param {string} [config.name] - Series name override
-   * @param {string} [config.time_window] - Time window filter (e.g., "12h")
-   * @param {number} [config.max_points=500] - Maximum data points
+   * @param {string} [config.time_window] - Time window filter (e.g., "12h", "24h")
+   * @param {number} [config.max_points=500] - Maximum data points (decimation threshold)
    * @returns {Array} ApexCharts series array
    */
   static convertToSeries(sourceRef, dataSourceManager, config = {}) {
@@ -74,7 +80,7 @@ export class ApexChartsAdapter {
    * Convert multiple DataSources to multi-series format
    * @param {Array<string>|string} sourceRefs - Array of DataSource references or single reference
    * @param {Object} dataSourceManager - MSD DataSourceManager instance
-   * @param {Object} config - Overlay configuration
+   * @param {Object} config - Configuration options
    * @param {Object} [config.seriesNames] - Map of sourceRef to series name
    * @returns {Array} ApexCharts multi-series array
    */
@@ -100,8 +106,8 @@ export class ApexChartsAdapter {
   /**
    * Generate ApexCharts options from MSD overlay style config
    * @param {Object} style - MSD overlay style configuration
-   * @param {Array<number>} size - [width, height] dimensions
-   * @param {Object} context - Additional context (viewBox, etc.)
+   * @param {Array<number>} size - [width, height] dimensions in EXACT PIXELS (not viewBox units)
+   * @param {Object} context - Additional context (unused, kept for API consistency)
    * @returns {Object} ApexCharts options object
    */
   static generateOptions(style, size, context = {}) {
@@ -112,6 +118,7 @@ export class ApexChartsAdapter {
         size = [300, 150]; // Fallback
       }
 
+      // Use EXACT pixel dimensions (critical for HTML overlay rendering)
       const [width, height] = size;
       const chartType = style.chart_type || style.type || 'line';
 
@@ -125,13 +132,17 @@ export class ApexChartsAdapter {
       const baseOptions = {
         chart: {
           type: chartType,
-          height: height,
-          width: width,
+          height: height,  // EXACT PIXEL HEIGHT
+          width: width,    // EXACT PIXEL WIDTH
           background: 'transparent',
           foreColor: style.color || 'var(--lcars-orange)',
 
-          // ADDED: Ensure chart stays within bounds
+          // Remove padding to ensure proper sizing
           parentHeightOffset: 0,
+
+          // Disable auto-resize (we control dimensions explicitly)
+          redrawOnParentResize: false,
+          redrawOnWindowResize: false,
 
           // Animations
           animations: {
@@ -214,6 +225,12 @@ export class ApexChartsAdapter {
           borderColor: style.grid_color || 'var(--lcars-gray)',
           strokeDashArray: 4,
           position: 'back',
+          padding: {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0
+          },
           xaxis: {
             lines: {
               show: style.grid_vertical !== false
@@ -323,21 +340,15 @@ export class ApexChartsAdapter {
           labels: {
             colors: style.legend_color || 'var(--lcars-white)'
           },
-          // ADDED: Ensure legend stays within chart bounds
           floating: false,
           offsetX: 0,
           offsetY: 0
         }
       };
 
-      // ADDED: Support for direct ApexCharts options via chart_options
-      // This allows users to override or extend any ApexCharts option
+      // Support for direct ApexCharts options via chart_options
       if (style.chart_options && typeof style.chart_options === 'object') {
-        cblcarsLog.debug('[ApexChartsAdapter] Applying direct chart_options override/extension');
-
-        // Deep merge chart_options into baseOptions
         const mergedOptions = this._deepMerge(baseOptions, style.chart_options);
-
         return mergedOptions;
       }
 
@@ -345,12 +356,11 @@ export class ApexChartsAdapter {
 
     } catch (error) {
       cblcarsLog.error(`[ApexChartsAdapter] Error generating options:`, error);
-      // Return minimal valid options as fallback
       return {
         chart: {
           type: 'line',
-          height: 150,
-          width: 300,
+          height: size[1] || 180,
+          width: size[0] || 600,
           background: 'transparent'
         },
         series: []
@@ -371,10 +381,8 @@ export class ApexChartsAdapter {
     for (const key in source) {
       if (source.hasOwnProperty(key)) {
         if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-          // Recursively merge nested objects
           result[key] = this._deepMerge(target[key] || {}, source[key]);
         } else {
-          // Direct assignment for primitives and arrays
           result[key] = source[key];
         }
       }
@@ -432,7 +440,7 @@ export class ApexChartsAdapter {
       filteredData = bufferData.filter(point => point.t >= cutoffTime);
     }
 
-    // Apply max points limit if specified
+    // Apply max points limit if specified (data decimation)
     if (config.max_points && filteredData.length > config.max_points) {
       const step = Math.floor(filteredData.length / config.max_points);
       const decimated = [];
@@ -496,8 +504,6 @@ export class ApexChartsAdapter {
 
     // For aggregations, create synthetic time series from current values
     if (dataPath.startsWith('aggregations.')) {
-      // Aggregations are typically single values, not time series
-      // We'll create a synthetic "current value" point
       const currentData = dataSource.getCurrentData();
       const aggParts = dataPath.replace('aggregations.', '').split('.');
 
@@ -631,7 +637,7 @@ export class ApexChartsAdapter {
   /**
    * Parse time window string to milliseconds
    * @private
-   * @param {string|number} timeWindow - Time window specification
+   * @param {string|number} timeWindow - Time window specification (e.g., "12h", "24h", "30m")
    * @returns {number} Time window in milliseconds
    */
   static _parseTimeWindow(timeWindow) {

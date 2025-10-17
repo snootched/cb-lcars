@@ -1,13 +1,22 @@
+/**
+ * [BaseOverlayUpdater] Base overlay update system - unified interface for dynamic overlay updates
+ * 🔄 Provides consistent template processing and DataSource integration across all overlay types
+ *
+ * @module BaseOverlayUpdater
+ * @requires cblcars-logging
+ * @requires DataSourceMixin
+ * @requires TemplateEntityExtractor
+ */
+
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js';
 
-/**
- * [BaseOverlayUpdater] Base overlay update system - unified interface for dynamic overlay updates
- * 🔄 Provides consistent template processing and DataSource integration across all overlay types
- */
-
 export class BaseOverlayUpdater {
+  /**
+   * Create a new BaseOverlayUpdater instance
+   * @param {Object} systemsManager - Reference to SystemsManager for accessing subsystems
+   */
   constructor(systemsManager) {
     this.systemsManager = systemsManager;
     this.overlayUpdaters = new Map();
@@ -18,6 +27,10 @@ export class BaseOverlayUpdater {
 
   /**
    * Register overlay-specific update handlers
+   * Each updater provides:
+   * - needsUpdate: function to determine if overlay needs updating
+   * - update: function to perform the update
+   * - hasTemplates: function to check if overlay uses templates
    * @private
    */
   _registerUpdaters() {
@@ -28,7 +41,7 @@ export class BaseOverlayUpdater {
       hasTemplates: (overlay) => this._hasTemplateContent(overlay)
     });
 
-    // Status grid updater (future implementation)
+    // Status grid updater
     this.overlayUpdaters.set('status_grid', {
       needsUpdate: (overlay, sourceData) => this._statusGridNeedsUpdate(overlay, sourceData),
       update: (overlayId, overlay, sourceData) => this._updateStatusGrid(overlayId, overlay, sourceData),
@@ -56,6 +69,13 @@ export class BaseOverlayUpdater {
       hasTemplates: (overlay) => this._hasTemplateContent(overlay)
     });
 
+    // ApexCharts updater for rule-driven style changes
+    this.overlayUpdaters.set('apexchart', {
+      needsUpdate: (overlay, sourceData) => this._apexChartNeedsUpdate(overlay, sourceData),
+      update: (overlayId, overlay, sourceData) => this._updateApexChart(overlayId, overlay, sourceData),
+      hasTemplates: (overlay) => this._apexChartHasTemplates(overlay)
+    });
+
     // Generic updater for future overlay types
     this.overlayUpdaters.set('default', {
       needsUpdate: (overlay, sourceData) => this._hasTemplateContent(overlay),
@@ -66,7 +86,7 @@ export class BaseOverlayUpdater {
 
   /**
    * Main entry point for updating overlays when DataSource changes
-   * @param {Array} changedIds - Entity IDs that changed
+   * @param {Array<string>} changedIds - Entity IDs that changed
    * @public
    */
   updateOverlaysForDataSourceChanges(changedIds) {
@@ -89,13 +109,12 @@ export class BaseOverlayUpdater {
       if (dsChanged || haChanged) {
         let currentData = null;
 
-        // ENHANCED: Try to provide DataSource data when applicable (DS path)
+        // ENHANCED: Try to provide DataSource data when applicable
         const dsId = this._findDataSourceForEntity(changedIds[0]);
         if (dsId) {
           const ds = this.systemsManager.dataSourceManager.getSource(dsId);
           currentData = ds?.getCurrentData?.() || null;
 
-          // DIAGNOSTIC: Log the data we're about to use for the update
           cblcarsLog.debug(`[BaseOverlayUpdater] 📊 DataSource ${dsId} data for overlay ${overlay.id}:`, {
             hasCurrentData: !!currentData,
             entityState: currentData?.entity?.state,
@@ -103,15 +122,9 @@ export class BaseOverlayUpdater {
             timestamp: currentData?.timestamp,
             changedEntity: changedIds[0]
           });
-        } else {
-          cblcarsLog.debug(`[BaseOverlayUpdater] ⚠️ No DataSource found for entity ${changedIds[0]}`);
         }
 
         cblcarsLog.debug(`[BaseOverlayUpdater] 🔄 Updating ${overlay.type} overlay ${overlay.id} (dsChanged=${dsChanged}, haChanged=${haChanged})`);
-
-        // DIAGNOSTIC: Log overlay content before update
-        const overlayContent = overlay._raw?.content || overlay.content || overlay.text || '';
-        cblcarsLog.debug(`[BaseOverlayUpdater] 📝 Overlay ${overlay.id} content before update: "${overlayContent}"`);
 
         updater.update(overlay.id, overlay, currentData);
       }
@@ -121,11 +134,12 @@ export class BaseOverlayUpdater {
   /**
    * Check if overlay references any of the changed DataSources
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Array<string>} changedIds - Array of changed entity IDs
+   * @returns {boolean} True if overlay references changed DataSource
    */
   _overlayReferencesChangedDataSources(overlay, changedIds) {
-    // Check main overlay content for templates
     const mainContent = overlay._raw?.content || overlay.content || overlay.text || '';
-
     let hasReference = false;
 
     // Check main content for template references
@@ -133,7 +147,7 @@ export class BaseOverlayUpdater {
       hasReference = true;
     }
 
-    // For history bars, also check if the source directly matches a changed DataSource
+    // For history bars, check if source directly matches a changed DataSource
     if (overlay.type === 'history_bar' && overlay.source) {
       const sourceMatches = this._dataSourceMatchesChangedEntities(overlay.source, changedIds);
       if (sourceMatches) {
@@ -141,11 +155,10 @@ export class BaseOverlayUpdater {
       }
     }
 
-    // For status grids, check EACH CELL INDIVIDUALLY - FIXED: Don't use global reference check
+    // For status grids, check EACH CELL INDIVIDUALLY
     if (overlay.type === 'status_grid') {
       const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
       if (cellsConfig && Array.isArray(cellsConfig)) {
-        // Check each cell individually rather than using OR logic
         cellsConfig.forEach(cell => {
           const cellContent = cell.content || cell.label || cell.value_format || '';
           const cellReferencesChanged = this._contentReferencesChangedDataSources(cellContent, changedIds);
@@ -157,12 +170,27 @@ export class BaseOverlayUpdater {
       }
     }
 
+    // For ApexCharts, check if source matches changed DataSource
+    if (overlay.type === 'apexchart') {
+      const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+      const sources = Array.isArray(sourceRef) ? sourceRef : [sourceRef];
+
+      sources.forEach(source => {
+        if (this._dataSourceMatchesChangedEntities(source, changedIds)) {
+          hasReference = true;
+        }
+      });
+    }
+
     return hasReference;
   }
 
   /**
    * Check if overlay references any of the changed entities (using TemplateEntityExtractor)
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Array<string>} changedIds - Array of changed entity IDs
+   * @returns {boolean} True if overlay references changed entity
    */
   _overlayReferencesChangedEntities(overlay, changedIds) {
     try {
@@ -185,8 +213,10 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Check if overlay content contains template references (enhanced with TemplateEntityExtractor)
+   * Check if overlay content contains template references
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {boolean} True if overlay uses templates
    */
   _hasTemplateContent(overlay) {
     try {
@@ -203,7 +233,7 @@ export class BaseOverlayUpdater {
         return true;
       }
 
-      // For status grids, also check cell configurations
+      // For status grids, check cell configurations
       if (overlay.type === 'status_grid') {
         const cellsConfig = overlay.cells || overlay._raw?.cells || overlay.raw?.cells;
         if (cellsConfig && Array.isArray(cellsConfig)) {
@@ -229,6 +259,8 @@ export class BaseOverlayUpdater {
   /**
    * Detect any template markers (MSD {} or HA {{}})
    * @private
+   * @param {string} content - Content string to check
+   * @returns {boolean} True if content contains template markers
    */
   _hasAnyTemplateMarkers(content) {
     if (!content || typeof content !== 'string') return false;
@@ -240,6 +272,9 @@ export class BaseOverlayUpdater {
   /**
    * Check if content string references any of the changed DataSources
    * @private
+   * @param {string} content - Content string to check
+   * @param {Array<string>} changedIds - Array of changed entity IDs
+   * @returns {boolean} True if content references changed DataSource
    */
   _contentReferencesChangedDataSources(content, changedIds) {
     if (!content || typeof content !== 'string') return false;
@@ -252,7 +287,7 @@ export class BaseOverlayUpdater {
     while ((match = templateRegex.exec(content)) !== null) {
       const expression = match[1].trim();
 
-      // Extract entity names from the expression (handle both simple refs and expressions)
+      // Extract entity names from the expression
       const entityRegex = /\b([a-zA-Z_][a-zA-Z0-9_]*(?:\.[a-zA-Z_][a-zA-Z0-9_]*)*)\b/g;
       let entityMatch;
 
@@ -266,9 +301,9 @@ export class BaseOverlayUpdater {
       }
     }
 
-    // Now check if any of the referenced entities match the changed data sources
+    // Check if referenced entities match changed data sources
     for (const entityName of referencedEntities) {
-      // Check if this entity name directly matches a changed DataSource
+      // Check if entity name directly matches a changed DataSource
       if (this.systemsManager.dataSourceManager) {
         const dataSource = this.systemsManager.dataSourceManager.getSource(entityName);
         if (dataSource && changedIds.includes(dataSource.cfg?.entity)) {
@@ -276,7 +311,7 @@ export class BaseOverlayUpdater {
           return true;
         }
 
-        // ENHANCED: Check for dot notation references (e.g., temperature_enhanced.transformations.celsius)
+        // Check for dot notation references (e.g., temperature_enhanced.transformations.celsius)
         if (entityName.includes('.')) {
           const baseSourceName = entityName.split('.')[0];
           const baseDataSource = this.systemsManager.dataSourceManager.getSource(baseSourceName);
@@ -294,6 +329,9 @@ export class BaseOverlayUpdater {
   /**
    * Check if a DataSource ID matches any of the changed entities
    * @private
+   * @param {string} dataSourceId - DataSource identifier
+   * @param {Array<string>} changedIds - Array of changed entity IDs
+   * @returns {boolean} True if DataSource matches changed entity
    */
   _dataSourceMatchesChangedEntities(dataSourceId, changedIds) {
     if (!dataSourceId || !this.systemsManager.dataSourceManager) return false;
@@ -305,12 +343,16 @@ export class BaseOverlayUpdater {
     if (!entityId) return false;
 
     return changedIds.includes(entityId);
-  }  /**
+  }
+
+  /**
    * Text overlay specific update logic
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateTextOverlay(overlayId, overlay, sourceData) {
-    // DIAGNOSTIC: Log what data we're passing to the renderer
     cblcarsLog.debug(`[BaseOverlayUpdater] 📝 Updating text overlay ${overlayId} with data:`, {
       hasSourceData: !!sourceData,
       entityState: sourceData?.entity?.state,
@@ -333,21 +375,22 @@ export class BaseOverlayUpdater {
   /**
    * Status grid update logic with template processing
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateStatusGrid(overlayId, overlay, sourceData) {
     cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updating status grid ${overlayId} with template processing`);
 
-    // ENHANCED: Ensure renderer has updated HASS context before processing
+    // Ensure renderer has updated HASS context before processing
     const updatedHass = this.systemsManager.getCurrentHass();
     if (updatedHass && this.systemsManager.renderer) {
-      // Update the renderer's HASS context before processing templates
       if (this.systemsManager.renderer.setHass) {
         this.systemsManager.renderer.setHass(updatedHass);
         cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updated renderer HASS context for status grid ${overlayId}`);
       }
     }
 
-    // FIXED: Use direct import instead of dynamic import for StatusGridRenderer
     try {
       // Get the cached overlay element
       const gridElement = this.systemsManager.renderer?.overlayElementCache?.get(overlayId);
@@ -385,10 +428,12 @@ export class BaseOverlayUpdater {
   /**
    * Sparkline update logic with enhanced synchronization
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateSparkline(overlayId, overlay, sourceData) {
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateSparklineData) {
-      // Use the enhanced sparkline update method that handles synchronization
       this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
     } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
       this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
@@ -400,6 +445,9 @@ export class BaseOverlayUpdater {
   /**
    * History bar update logic with data visualization
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateHistoryBar(overlayId, overlay, sourceData) {
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
@@ -412,6 +460,9 @@ export class BaseOverlayUpdater {
   /**
    * Update button overlay with new DataSource data
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateButtonOverlay(overlayId, overlay, sourceData) {
     if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
@@ -422,8 +473,97 @@ export class BaseOverlayUpdater {
   }
 
   /**
+   * ApexChart update logic - handles both data and style changes from rules
+   * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration with finalStyle from rules
+   * @param {Object} sourceData - Updated source data
+   */
+  _updateApexChart(overlayId, overlay, sourceData) {
+    cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updating ApexChart ${overlayId}`);
+
+    // CRITICAL FIX: Import the renderer class
+    const { ApexChartsOverlayRenderer } = require('./ApexChartsOverlayRenderer.js');
+
+    // Get the singleton instance
+    const instance = ApexChartsOverlayRenderer._getInstance();
+
+    // Check if chart exists
+    const chart = instance.charts.get(overlayId);
+
+    if (!chart) {
+      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ ApexChart instance not found: ${overlayId}`);
+      return;
+    }
+
+    try {
+      const style = overlay.finalStyle || overlay.style || {};
+      const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+
+      // Get updated series data
+      const dataSourceManager = this.systemsManager.dataSourceManager;
+      if (!dataSourceManager) {
+        cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No DataSourceManager for ApexChart update`);
+        return;
+      }
+
+      // Import adapter for series conversion
+      const { ApexChartsAdapter } = require('../charts/ApexChartsAdapter.js');
+
+      // Convert data to series format
+      const isMultiSeries = Array.isArray(sourceRef);
+      const newSeries = isMultiSeries ?
+        ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          seriesNames: style.series_names || style.seriesNames
+        }) :
+        ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          name: style.name
+        });
+
+      // Get overlay dimensions for style updates
+      const overlayInfo = instance.overlayDivs.get(overlayId);
+      const size = overlay.size || [300, 150];
+
+      // Calculate screen coordinates if we have overlay info
+      let screenSize = size;
+      if (overlayInfo && overlayInfo.div) {
+        const divRect = overlayInfo.div.getBoundingClientRect();
+        screenSize = [Math.round(divRect.width), Math.round(divRect.height)];
+      }
+
+      // Generate updated options from current style
+      const updatedOptions = ApexChartsAdapter.generateOptions(
+        style,
+        screenSize,
+        {}
+      );
+
+      // CRITICAL FIX: Use separate update calls to prevent re-creation
+      // Step 1: Update options without series
+      const optionsOnly = { ...updatedOptions };
+      delete optionsOnly.series; // Remove series to update separately
+
+      chart.updateOptions(optionsOnly, false, false); // Don't redraw yet
+
+      // Step 2: Update series with animation
+      chart.updateSeries(newSeries, true); // Animate the update
+
+      cblcarsLog.debug(`[BaseOverlayUpdater] ✅ ApexChart ${overlayId} updated with new data and styles`);
+
+    } catch (error) {
+      cblcarsLog.error(`[BaseOverlayUpdater] ❌ Failed to update ApexChart ${overlayId}:`, error);
+    }
+  }
+  /**
    * Generic overlay update logic
    * @private
+   * @param {string} overlayId - Overlay identifier
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
    */
   _updateGenericOverlay(overlayId, overlay, sourceData) {
     cblcarsLog.debug(`[BaseOverlayUpdater] Generic update for ${overlay.type} overlay ${overlayId}`);
@@ -431,29 +571,76 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Helper methods
+   * Helper methods for determining update needs
+   */
+
+  /**
+   * Check if text overlay needs update
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Source data
+   * @returns {boolean} True if update needed
    */
   _textNeedsUpdate(overlay, sourceData) {
     return this._hasTemplateContent(overlay);
   }
 
+  /**
+   * Check if status grid needs update
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Source data
+   * @returns {boolean} True if update needed
+   */
   _statusGridNeedsUpdate(overlay, sourceData) {
     return this._hasTemplateContent(overlay);
   }
 
+  /**
+   * Check if history bar needs update
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Source data
+   * @returns {boolean} True if update needed
+   */
   _historyBarNeedsUpdate(overlay, sourceData) {
     // History bars need updates if they have templates OR if they visualize data from the changed source
     return this._hasTemplateContent(overlay) || this._historyBarUsesDataSource(overlay, sourceData);
   }
 
+  /**
+   * Check if ApexChart needs update
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Source data
+   * @returns {boolean} True if update needed
+   */
+  _apexChartNeedsUpdate(overlay, sourceData) {
+    // ApexCharts need updates when:
+    // 1. Their DataSource changes (data updates)
+    // 2. Their style changes (rule-driven patches)
+    return true; // Always check for updates
+  }
+
+  /**
+   * Check if history bar needs data updates
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {boolean} True if data updates needed
+   */
   _historyBarNeedsDataUpdates(overlay) {
     // History bars always need updates for data visualization, even without templates
     return !!overlay.source;
   }
 
+  /**
+   * Check if history bar uses specific DataSource
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Source data
+   * @returns {boolean} True if history bar uses the DataSource
+   */
   _historyBarUsesDataSource(overlay, sourceData) {
-    // Check if the history bar's source matches the changed data source
     if (!overlay.source || !sourceData?.entity) return false;
 
     // Find the DataSource that corresponds to this entity
@@ -468,6 +655,48 @@ export class BaseOverlayUpdater {
     return false;
   }
 
+  /**
+   * Check if ApexChart uses templates in its configuration
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @returns {boolean} True if templates used
+   */
+  _apexChartHasTemplates(overlay) {
+    // Check if overlay has any template references in style properties
+    const style = overlay.finalStyle || overlay.style || {};
+
+    // Check common style properties that might contain templates
+    const templateProps = [
+      'name',
+      'tooltip_time_format',
+      'value_format',
+      'series_names'
+    ];
+
+    for (const prop of templateProps) {
+      if (style[prop] && typeof style[prop] === 'string' && this._hasAnyTemplateMarkers(style[prop])) {
+        return true;
+      }
+    }
+
+    // Check if series names contain templates
+    if (style.series_names && typeof style.series_names === 'object') {
+      for (const name of Object.values(style.series_names)) {
+        if (typeof name === 'string' && this._hasAnyTemplateMarkers(name)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Find DataSource ID for given entity ID
+   * @private
+   * @param {string} entityId - Entity identifier
+   * @returns {string|null} DataSource ID or null if not found
+   */
   _findDataSourceForEntity(entityId) {
     if (this.systemsManager.dataSourceManager) {
       for (const [sourceId, source] of this.systemsManager.dataSourceManager.sources || new Map()) {
@@ -479,6 +708,3 @@ export class BaseOverlayUpdater {
     return null;
   }
 }
-
-// TODO: Replace the specific text overlay update logic in SystemsManager
-// with this generalized BaseOverlayUpdater
