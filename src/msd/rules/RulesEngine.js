@@ -1038,7 +1038,8 @@ export function applyOverlayPatches(overlays, patches) {
       });
     }
 
-    // Standard overlay-level patches
+    // FIXED: For non-cell-targeted patches, apply to overlay level
+    // But mark them so they don't cascade to individual cells
     const patchedOverlay = {
       ...overlay,
       style: {
@@ -1048,7 +1049,9 @@ export function applyOverlayPatches(overlays, patches) {
       finalStyle: {
         ...(overlay.finalStyle || overlay.style || {}),
         ...patch.style
-      }
+      },
+      // ADDED: Mark that this is an overlay-level patch, not cell-level
+      _hasOverlayLevelPatch: !patch.cell_target && !patch.cellTarget
     };
 
     cblcarsLog.debug('[RulesEngine] ✅ Patched overlay result:', {
@@ -1079,7 +1082,12 @@ function applyStatusGridCellPatch(overlay, patch) {
   // Clone the overlay to avoid mutations
   const patchedOverlay = {
     ...overlay,
-    cells: overlay.cells ? [...overlay.cells] : []
+    cells: overlay.cells ? [...overlay.cells] : [],
+    // ADDED: Store cell-specific patches separately to prevent cascade
+    _cellPatches: {
+      ...(overlay._cellPatches || {}),
+      [cellTarget.cell_id || `${cellTarget.row}-${cellTarget.col}`]: patch.style
+    }
   };
 
   // Find and patch the target cell(s)
@@ -1097,6 +1105,8 @@ function applyStatusGridCellPatch(overlay, patch) {
 
         return {
           ...cell,
+          // CHANGED: Store patches in a separate property to prevent cascade during style resolution
+          _rulePatch: patch.style,
           // Apply cell-level style overrides
           color: patch.style.color || cell.color,
           radius: patch.style.radius !== undefined ? patch.style.radius : cell.radius,
@@ -1113,17 +1123,8 @@ function applyStatusGridCellPatch(overlay, patch) {
     });
   }
 
-  // Also apply any overlay-level styles
-  if (patch.style && Object.keys(patch.style).length > 0) {
-    patchedOverlay.style = {
-      ...overlay.style,
-      ...patch.style
-    };
-    patchedOverlay.finalStyle = {
-      ...(overlay.finalStyle || overlay.style || {}),
-      ...patch.style
-    };
-  }
+  // REMOVED: Don't apply overlay-level styles for cell-targeted patches
+  // This was causing the cascade issue
 
   return patchedOverlay;
 }

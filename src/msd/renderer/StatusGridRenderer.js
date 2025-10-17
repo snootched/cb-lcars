@@ -82,43 +82,43 @@ export class StatusGridRenderer {
 
   /**
    * Unified entry point for complete status grid style resolution with token support at every layer
-   * 
+   *
    * This is the cornerstone of the refactored StatusGridRenderer architecture. It implements
    * proper style cascade with token resolution at each layer, ensuring that:
    * 1. Tokens are resolved at EVERY layer (not just at the end)
    * 2. Presets don't overwrite token-resolved values
    * 3. Priority is properly tracked
    * 4. Input objects are never mutated (immutable operations)
-   * 
+   *
    * Style Cascade Priority (Highest to Lowest):
    * - Layer 5: Cell.Specific (cell.style properties & direct cell properties)
    * - Layer 4: Cell.Preset (cell.lcars_button_preset)
    * - Layer 3: Overlay.Specific (overlay.style properties)
    * - Layer 2: Overlay.Preset (overlay.lcars_button_preset)
    * - Layer 1: MSD Defaults (DefaultsManager values)
-   * 
+   *
    * Example Usage:
    * ```javascript
    * // Overlay-level resolution (no cell)
    * const overlayStyle = this._resolveCompleteStatusGridStyle(overlay, null, viewBox);
-   * 
+   *
    * // Cell-level resolution (includes all layers)
    * const cellStyle = this._resolveCompleteStatusGridStyle(overlay, cellConfig, viewBox);
    * ```
-   * 
+   *
    * Key Features:
    * - Token resolution at every layer via ThemeTokenResolver
    * - Smart merge logic with priority tracking
    * - Immutable operations (no mutation of input objects)
    * - Preset token support (presets can reference theme tokens)
    * - Comprehensive logging for debugging
-   * 
+   *
    * @private
    * @param {Object} overlay - Overlay configuration with styles and presets
    * @param {Object|null} cellConfig - Optional cell-specific configuration. If null, returns overlay-level style only.
    * @param {Array|null} viewBox - SVG viewBox [x, y, width, height] for responsive token resolution
    * @returns {Object} Complete resolved style with priority tracking metadata
-   * 
+   *
    * @example
    * // Grid with tokenized styles
    * overlay.style = {
@@ -127,7 +127,7 @@ export class StatusGridRenderer {
    * };
    * const resolved = this._resolveCompleteStatusGridStyle(overlay, null, [0,0,800,600]);
    * // resolved.cell_color = 'var(--lcars-orange, #FF9900)'
-   * 
+   *
    * @example
    * // Cell overrides grid tokens
    * cellConfig.style = {
@@ -151,7 +151,7 @@ export class StatusGridRenderer {
     const priorityTracker = {
       layers: new Set(),
       explicit: new Map(),  // property -> layer that set it explicitly
-      computed: new Map()   // property -> layer that computed it
+      computed: new Map()   // ADDED: property -> layer that computed it
     };
 
     // Layer 1: MSD Defaults (lowest priority)
@@ -192,18 +192,18 @@ export class StatusGridRenderer {
 
   /**
    * Layer 1: Get MSD defaults from DefaultsManager (lowest priority)
-   * 
+   *
    * This layer provides the foundational default values for all properties.
    * These defaults are resolved from the DefaultsManager which may include
    * pack-provided defaults, theme defaults, or hard-coded fallbacks.
-   * 
+   *
    * All properties set at this layer are marked as 'computed' in the priority
    * tracker since they are derived values, not explicitly set by the user.
-   * 
+   *
    * @private
    * @param {Object} priorityTracker - Priority tracking object with layers, explicit, and computed maps
    * @returns {Object} Default style properties for status grid
-   * 
+   *
    * @example
    * const defaults = this._getMSDDefaultsLayer(tracker);
    * // defaults.cell_color = 'var(--lcars-blue)'
@@ -269,23 +269,23 @@ export class StatusGridRenderer {
 
   /**
    * Layer 2: Resolve overlay preset with token resolution
-   * 
+   *
    * Applies overlay-level CB-LCARS button preset (e.g., 'lozenge', 'bullet', 'picard-filled').
    * The preset is loaded from StylePresetManager and all values undergo token resolution
    * before being applied to the base style.
-   * 
+   *
    * Key behaviors:
    * - Preset values are resolved for tokens BEFORE merging
    * - Only applies if no explicit value was set in higher priority layers
    * - All applied properties are marked as 'computed' (from preset)
    * - Creates new style object (immutable)
-   * 
+   *
    * @private
    * @param {Object} overlay - Overlay configuration with potential lcars_button_preset
    * @param {Object} baseStyle - Style from Layer 1 (MSD Defaults)
    * @param {Object} priorityTracker - Priority tracking object
    * @returns {Object} New merged style object with preset properties applied
-   * 
+   *
    * @example
    * // Preset can contain token references
    * overlay.style.lcars_button_preset = 'lozenge';
@@ -295,7 +295,7 @@ export class StatusGridRenderer {
    */
   _resolveOverlayPresetLayer(overlay, baseStyle, priorityTracker) {
     const presetName = overlay?.style?.lcars_button_preset || overlay?.lcars_button_preset;
-    
+
     if (!presetName) {
       cblcarsLog.debug('[StatusGridRenderer] ⏭️ Layer 2: No overlay preset');
       return { ...baseStyle };
@@ -305,7 +305,7 @@ export class StatusGridRenderer {
 
     // Load preset from StylePresetManager
     const presetStyles = this._loadPresetFromStylePresetManager('status_grid', presetName);
-    
+
     if (!presetStyles) {
       cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Overlay preset '${presetName}' not found`);
       return { ...baseStyle };
@@ -323,12 +323,12 @@ export class StatusGridRenderer {
     Object.entries(presetStyles).forEach(([property, value]) => {
       // Resolve tokens in preset values
       const resolvedValue = this._resolveTokenValue(value, property);
-      
+
       // Only apply if not already explicitly set
       if (!priorityTracker.explicit.has(property)) {
         mergedStyle[property] = resolvedValue;
         priorityTracker.computed.set(property, 'overlay_preset');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Preset set ${property}:`, {
           raw: value,
           resolved: resolvedValue,
@@ -342,24 +342,24 @@ export class StatusGridRenderer {
 
   /**
    * Layer 3: Resolve overlay-specific styles with token resolution
-   * 
+   *
    * Applies user-specified styles from overlay.style and direct overlay properties.
    * This layer has higher priority than overlay presets and will override them.
    * All values undergo token resolution before being applied.
-   * 
+   *
    * Key behaviors:
    * - Processes overlay.style properties AND direct overlay properties (rows, columns)
    * - Resolves tokens in all property values
    * - Overrides both MSD defaults and overlay preset values
    * - Marks all applied properties as 'explicit' (user-specified)
    * - Creates new style object (immutable)
-   * 
+   *
    * @private
    * @param {Object} overlay - Overlay configuration with style object
    * @param {Object} baseStyle - Style from Layers 1-2 (Defaults + Overlay Preset)
    * @param {Object} priorityTracker - Priority tracking object
    * @returns {Object} New merged style object with overlay-specific properties
-   * 
+   *
    * @example
    * // User specifies tokenized color that overrides preset
    * overlay.style = {
@@ -374,9 +374,10 @@ export class StatusGridRenderer {
     priorityTracker.layers.add('overlay_style');
 
     const overlayStyle = overlay?.style || {};
-    
+
     cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 3: Applying overlay styles', {
-      propertyCount: Object.keys(overlayStyle).length
+      propertyCount: Object.keys(overlayStyle).length,
+      hasOverlayLevelPatch: overlay?._hasOverlayLevelPatch
     });
 
     // Create new style object (immutable)
@@ -389,7 +390,7 @@ export class StatusGridRenderer {
         const resolvedValue = this._resolveTokenValue(overlay[prop], prop);
         mergedStyle[prop] = resolvedValue;
         priorityTracker.explicit.set(prop, 'overlay_direct');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Overlay direct ${prop}:`, {
           raw: overlay[prop],
           resolved: resolvedValue
@@ -398,15 +399,28 @@ export class StatusGridRenderer {
     });
 
     // Apply overlay.style properties with token resolution
+    // CHANGED: Skip applying overlay-level patches that should only affect specific cells
     Object.entries(overlayStyle).forEach(([property, value]) => {
       if (value !== undefined && value !== null) {
+        // ADDED: Check if this overlay has cell-specific patches
+        // If so, don't cascade overlay-level styles to cells
+        if (overlay._cellPatches && !overlay._hasOverlayLevelPatch) {
+          // This overlay has cell-specific patches, so we're more selective
+          // Only apply non-cell-specific properties at overlay level
+          const cellSpecificProps = ['cell_color', 'cell_radius', 'cell_opacity', 'bracket_color', 'lcars_button_preset', 'text_layout'];
+          if (cellSpecificProps.includes(property)) {
+            cblcarsLog.debug(`[StatusGridRenderer] ⏭️ Skipping overlay-level ${property} (cell-specific patches present)`);
+            return;
+          }
+        }
+
         // Resolve tokens
         const resolvedValue = this._resolveTokenValue(value, property);
-        
+
         // Override previous layers (overlay.style > overlay.preset)
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'overlay_style');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Overlay style ${property}:`, {
           raw: value,
           resolved: resolvedValue,
@@ -420,28 +434,28 @@ export class StatusGridRenderer {
 
   /**
    * Layer 4: Resolve cell preset with token resolution
-   * 
+   *
    * Applies cell-specific CB-LCARS button preset. This allows individual cells to have
    * different visual styles than the grid default. The preset is loaded from
    * StylePresetManager and all values undergo token resolution.
-   * 
+   *
    * Key behaviors:
    * - Only applies if cellConfig specifies lcars_button_preset
    * - Preset values are resolved for tokens BEFORE merging
    * - Overrides overlay preset but respects explicit overlay.style values
    * - All applied properties are marked as 'computed' (from cell preset)
    * - Creates new style object (immutable)
-   * 
+   *
    * Priority behavior:
    * - Overrides: MSD Defaults, Overlay Preset
    * - Can be overridden by: Overlay.Specific (explicit), Cell.Specific
-   * 
+   *
    * @private
    * @param {Object} cellConfig - Cell configuration with potential lcars_button_preset
    * @param {Object} baseStyle - Style from Layers 1-3 (Defaults + Overlay Preset + Overlay Style)
    * @param {Object} priorityTracker - Priority tracking object
    * @returns {Object} New merged style object with cell preset properties
-   * 
+   *
    * @example
    * // Cell has different preset than grid
    * cellConfig.lcars_button_preset = 'bullet';  // Grid has 'lozenge'
@@ -451,7 +465,7 @@ export class StatusGridRenderer {
    */
   _resolveCellPresetLayer(cellConfig, baseStyle, priorityTracker) {
     const presetName = cellConfig?.lcars_button_preset || cellConfig?.style?.lcars_button_preset;
-    
+
     if (!presetName) {
       cblcarsLog.debug('[StatusGridRenderer] ⏭️ Layer 4: No cell preset');
       return { ...baseStyle };
@@ -461,7 +475,7 @@ export class StatusGridRenderer {
 
     // Load preset from StylePresetManager
     const presetStyles = this._loadPresetFromStylePresetManager('status_grid', presetName);
-    
+
     if (!presetStyles) {
       cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Cell preset '${presetName}' not found`);
       return { ...baseStyle };
@@ -480,15 +494,15 @@ export class StatusGridRenderer {
     Object.entries(presetStyles).forEach(([property, value]) => {
       // Resolve tokens in preset values
       const resolvedValue = this._resolveTokenValue(value, property);
-      
+
       // Cell preset overrides overlay styles (but respects explicit overlay settings)
       const currentPriority = priorityTracker.explicit.get(property);
       const shouldOverride = !currentPriority || currentPriority === 'overlay_preset';
-      
+
       if (shouldOverride) {
         mergedStyle[property] = resolvedValue;
         priorityTracker.computed.set(property, 'cell_preset');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell preset set ${property}:`, {
           raw: value,
           resolved: resolvedValue,
@@ -502,28 +516,28 @@ export class StatusGridRenderer {
 
   /**
    * Layer 5: Resolve cell-specific styles with token resolution (HIGHEST PRIORITY)
-   * 
+   *
    * Applies user-specified cell styles from cell.style and direct cell properties.
    * This is the final layer with the highest priority - it overrides everything.
    * All values undergo token resolution before being applied.
-   * 
+   *
    * Two sources of cell-specific values:
    * 1. cell.style object properties
    * 2. Direct cell properties (e.g., cell.color, cell.border_width)
-   * 
+   *
    * Key behaviors:
    * - Processes both cell.style properties AND direct cell properties
    * - Resolves tokens in all property values
    * - Overrides ALL previous layers (highest priority)
    * - Marks all applied properties as 'explicit' (cell_style or cell_direct)
    * - Creates new style object (immutable)
-   * 
+   *
    * @private
    * @param {Object} cellConfig - Cell configuration with style object and/or direct properties
    * @param {Object} baseStyle - Style from Layers 1-4 (Defaults + Presets + Overlay Styles)
    * @param {Object} priorityTracker - Priority tracking object
    * @returns {Object} Final merged style object with cell-specific properties (highest priority)
-   * 
+   *
    * @example
    * // Cell overrides everything with tokenized value
    * cellConfig.style = {
@@ -540,25 +554,51 @@ export class StatusGridRenderer {
     priorityTracker.layers.add('cell_style');
 
     const cellStyle = cellConfig?.style || {};
-    
+
     cblcarsLog.debug('[StatusGridRenderer] 🎨 Layer 5: Applying cell styles', {
       cellId: cellConfig?.id,
-      stylePropertyCount: Object.keys(cellStyle).length
+      stylePropertyCount: Object.keys(cellStyle).length,
+      hasRulePatch: !!cellConfig?._rulePatch
     });
 
     // Create new style object (immutable)
     const mergedStyle = { ...baseStyle };
 
-    // Apply cell.style properties with token resolution (highest priority)
+    // ADDED: Apply rule patches first (these have highest priority)
+    if (cellConfig._rulePatch) {
+      Object.entries(cellConfig._rulePatch).forEach(([property, value]) => {
+        if (value !== undefined && value !== null) {
+          // Resolve tokens
+          const resolvedValue = this._resolveTokenValue(value, property);
+
+          // Rule patches override everything
+          mergedStyle[property] = resolvedValue;
+          priorityTracker.explicit.set(property, 'rule_patch');
+
+          cblcarsLog.debug(`[StatusGridRenderer] ✓ Rule patch ${property}:`, {
+            raw: value,
+            resolved: resolvedValue,
+            wasToken: value !== resolvedValue
+          });
+        }
+      });
+    }
+
+    // Apply cell.style properties with token resolution (highest priority after rules)
     Object.entries(cellStyle).forEach(([property, value]) => {
       if (value !== undefined && value !== null) {
+        // Skip if already set by rule patch
+        if (priorityTracker.explicit.get(property) === 'rule_patch') {
+          return;
+        }
+
         // Resolve tokens
         const resolvedValue = this._resolveTokenValue(value, property);
-        
+
         // Cell.style has highest priority
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'cell_style');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell style ${property}:`, {
           raw: value,
           resolved: resolvedValue,
@@ -569,19 +609,25 @@ export class StatusGridRenderer {
 
     // Apply direct cell properties (same priority as cell.style)
     Object.entries(cellConfig).forEach(([property, value]) => {
-      if (value !== undefined && value !== null && 
-          property !== 'style' && 
-          property !== 'id' && 
+      if (value !== undefined && value !== null &&
+          property !== 'style' &&
+          property !== 'id' &&
           property !== 'position' &&
           property !== 'content' &&
-          property !== 'label') {
+          property !== 'label' &&
+          property !== '_rulePatch') {
+        // Skip if already set by rule patch
+        if (priorityTracker.explicit.get(property) === 'rule_patch') {
+          return;
+        }
+
         // Resolve tokens
         const resolvedValue = this._resolveTokenValue(value, property);
-        
+
         // Direct properties override cell.style
         mergedStyle[property] = resolvedValue;
         priorityTracker.explicit.set(property, 'cell_direct');
-        
+
         cblcarsLog.debug(`[StatusGridRenderer] ✓ Cell direct ${property}:`, {
           raw: value,
           resolved: resolvedValue,
@@ -595,11 +641,11 @@ export class StatusGridRenderer {
 
   /**
    * Resolve a single token value with context
-   * 
+   *
    * This is the token resolution workhorse used by all layer methods.
    * It checks if a value is a token reference and resolves it via ThemeTokenResolver
    * with appropriate context (viewBox, property name, component scope).
-   * 
+   *
    * Token categories supported:
    * - colors.* (color palette tokens)
    * - typography.* (font, size, weight tokens)
@@ -608,29 +654,29 @@ export class StatusGridRenderer {
    * - effects.* (shadow, glow, blur tokens)
    * - animations.* (duration, easing tokens)
    * - components.* (component-specific tokens)
-   * 
+   *
    * Supports computed tokens:
    * - darken(color, 20%)
    * - lighten(color, 30%)
    * - alpha(color, 0.5)
    * - scale(value, 1.5)
-   * 
+   *
    * Supports responsive tokens:
    * - colors.accent.primary@small (viewBox-based variants)
-   * 
+   *
    * @private
    * @param {*} value - Value that may be a token reference (e.g., 'colors.accent.primary')
    * @param {string} property - Property name for debugging context
    * @returns {*} Resolved value (non-token values pass through unchanged)
-   * 
+   *
    * @example
    * const resolved = this._resolveTokenValue('colors.accent.primary', 'cell_color');
    * // Returns: 'var(--lcars-orange, #FF9900)'
-   * 
+   *
    * @example
    * const computed = this._resolveTokenValue('darken(colors.accent.primary, 20%)', 'border_color');
    * // Returns: 'color-mix(in srgb, var(--lcars-orange) 80%, black 20%)'
-   * 
+   *
    * @example
    * const passthrough = this._resolveTokenValue('#FF0000', 'cell_color');
    * // Returns: '#FF0000' (not a token, passes through)
@@ -654,9 +700,9 @@ export class StatusGridRenderer {
 
     // Create component-scoped resolver
     const resolveToken = themeTokenResolver.forComponent('statusGrid');
-    
+
     // Resolve with viewBox context for responsive tokens
-    const resolved = resolveToken(value, value, { 
+    const resolved = resolveToken(value, value, {
       viewBox: this.viewBox,
       property: property
     });
