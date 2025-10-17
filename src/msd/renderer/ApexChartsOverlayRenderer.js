@@ -653,7 +653,7 @@ export class ApexChartsOverlayRenderer {
   /**
    * Update chart with new style configuration (called by rules engine)
    * This method is called when rules engine applies overlay patches
-   * FIXED: Use separate update methods for options and series to ensure updates work consistently
+   * FIXED: Don't update dimensions on style patches - only update visual styling
    * @static
    * @param {string} overlayId - Overlay ID
    * @param {Object} overlay - Updated overlay configuration with finalStyle
@@ -672,47 +672,50 @@ export class ApexChartsOverlayRenderer {
         const style = overlay.finalStyle || overlay.style || {};
         const sourceRef = overlay.source || overlay.data_source || overlay.sources;
 
-        // Get overlay dimensions - use actual screen size from div if available
+        // FIXED: Get original size from stored overlayInfo, don't recalculate from DOM
+        // This prevents cumulative rounding errors that cause chart growth
         const overlayInfo = instance.overlayDivs.get(overlayId);
-        let size = overlay.size || [300, 150];
-
-        // If we have the actual div, use its current screen size
-        if (overlayInfo && overlayInfo.div) {
-        const divRect = overlayInfo.div.getBoundingClientRect();
-        size = [Math.round(divRect.width), Math.round(divRect.height)];
-        }
+        const size = overlayInfo?.vbCoords
+          ? [Math.round(overlayInfo.vbCoords.width), Math.round(overlayInfo.vbCoords.height)]
+          : (overlay.size || [300, 150]);
 
         cblcarsLog.debug(`[ApexChartsOverlayRenderer] Updating chart ${overlayId} with style:`, {
-        size,
-        styleKeys: Object.keys(style),
-        hasColor: !!style.color,
-        hasStrokeWidth: !!style.stroke_width,
-        hasGridSettings: !!(style.show_grid || style.grid_lines)
+          size,
+          styleKeys: Object.keys(style),
+          hasColor: !!style.color,
+          hasStrokeWidth: !!style.stroke_width,
+          hasGridSettings: !!(style.show_grid || style.grid_lines),
+          usingStoredSize: !!overlayInfo?.vbCoords
         });
 
         // Get current data in series format
         const isMultiSeries = Array.isArray(sourceRef);
         const series = isMultiSeries ?
-        ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+          ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
             time_window: style.time_window,
             max_points: style.max_points || 500,
             seriesNames: style.series_names || style.seriesNames
-        }) :
-        ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+          }) :
+          ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
             time_window: style.time_window,
             max_points: style.max_points || 500,
             name: style.name
-        });
+          });
 
         // Generate new options from updated style
         const updatedOptions = ApexChartsAdapter.generateOptions(style, size, {});
 
-        // CRITICAL FIX: ApexCharts has issues when you update options and series simultaneously
-        // We need to update them separately and force a redraw
-
-        // Step 1: Update the options (WITHOUT series)
+        // CRITICAL FIX: Remove chart dimensions from the update options
+        // Chart dimensions should only be set during initial creation or viewport resize
+        // Rule-based style updates should NOT change dimensions
         const optionsOnly = { ...updatedOptions };
         delete optionsOnly.series; // Remove series from options object
+
+        // ADDED: Remove chart dimensions to prevent growth on style updates
+        if (optionsOnly.chart) {
+          delete optionsOnly.chart.width;
+          delete optionsOnly.chart.height;
+        }
 
         chart.updateOptions(optionsOnly, false, false); // Don't redraw yet
 
@@ -720,10 +723,10 @@ export class ApexChartsOverlayRenderer {
         chart.updateSeries(series, true); // Animate the series update
 
         cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Chart style updated: ${overlayId}`, {
-        optionsUpdated: Object.keys(optionsOnly).length,
-        seriesCount: series.length,
-        seriesDataPoints: series[0]?.data?.length,
-        optionsOnly
+          optionsUpdated: Object.keys(optionsOnly).length,
+          seriesCount: series.length,
+          seriesDataPoints: series[0]?.data?.length,
+          dimensionsPreserved: true
         });
 
     } catch (error) {
