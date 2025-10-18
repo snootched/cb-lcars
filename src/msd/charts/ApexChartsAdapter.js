@@ -23,13 +23,35 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class ApexChartsAdapter {
   /**
+   * Valid ApexCharts chart types supported by MSD
+   * @constant {string[]}
+   */
+  static VALID_CHART_TYPES = [
+    // Existing types (7)
+    'line',
+    'area',
+    'bar',
+    'pie',
+    'donut',
+    'radar',
+    'heatmap',
+
+    // NEW: Additional chart types (8)
+    'radialBar',    // Gauges, completion indicators
+    'rangeBar',     // Timelines, schedules
+    'polarArea',    // Directional data
+    'treemap',      // Hierarchical data
+    'rangeArea',    // Data ranges/confidence intervals
+    'scatter',      // Correlation plots
+    'candlestick',  // OHLC data
+    'boxPlot'       // Statistical distributions
+  ];
+
+  /**
    * Convert MSD DataSource to ApexCharts series format
    * @param {string} sourceRef - DataSource reference (supports dot notation like "temp.transformations.celsius")
    * @param {Object} dataSourceManager - MSD DataSourceManager instance
    * @param {Object} config - Configuration options
-   * @param {string} [config.name] - Series name override
-   * @param {string} [config.time_window] - Time window filter (e.g., "12h", "24h")
-   * @param {number} [config.max_points=500] - Maximum data points (decimation threshold)
    * @returns {Array} ApexCharts series array
    */
   static convertToSeries(sourceRef, dataSourceManager, config = {}) {
@@ -105,11 +127,11 @@ export class ApexChartsAdapter {
   }
 
   /**
-   * Generate ApexCharts options from MSD overlay style config
+   * Generate ApexCharts options from MSD style config
    * @param {Object} style - MSD overlay style configuration
-   * @param {Array<number>} size - [width, height] dimensions in EXACT PIXELS (not viewBox units)
-   * @param {Object} context - Additional context (unused, kept for API consistency)
-   * @returns {Object} ApexCharts options object
+   * @param {Array} size - Chart size [width, height]
+   * @param {Object} context - Additional context
+   * @returns {Object} ApexCharts options
    */
   static generateOptions(style, size, context = {}) {
     let chartType = style.chart_type || style.type || 'line';
@@ -262,65 +284,12 @@ export class ApexChartsAdapter {
     }
 
     cblcarsLog.debug('[ApexChartsAdapter] Generated options with tokens:', {
-      colors: colors?.length || 0,
-      strokeWidth,
-      gridColor,
-      fontFamily
+      colors: baseOptions.colors?.length || 0,
+      chartType,
+      hasTypeDefaults: Object.keys(typeDefaults).length > 0
     });
 
     return optionsWithTypeDefaults;
-  }
-
-  /**
-   * Valid ApexCharts chart types supported by MSD
-   * @constant {string[]}
-   */
-  static VALID_CHART_TYPES = [
-    // Existing types
-    'line',
-    'area',
-    'bar',
-    'pie',
-    'donut',
-    'radar',
-    'heatmap',
-
-    // NEW: Added chart types (Phase 1)
-    'radialBar',    // Gauges, completion indicators
-    'rangeBar',     // Timelines, schedules
-    'polarArea',    // Directional data
-    'treemap',      // Hierarchical data
-    'rangeArea',    // Data ranges/confidence intervals
-    'scatter',      // Correlation plots
-    'candlestick',  // OHLC data
-    'boxPlot'       // Statistical distributions
-  ];
-
-  /**
-   * Convert multiple DataSources to multi-series format
-   * @param {Array<string>|string} sourceRefs - Array of DataSource references or single reference
-   * @param {Object} dataSourceManager - MSD DataSourceManager instance
-   * @param {Object} config - Configuration options
-   * @param {Object} [config.seriesNames] - Map of sourceRef to series name
-   * @returns {Array} ApexCharts multi-series array
-   */
-  static convertToMultiSeries(sourceRefs, dataSourceManager, config = {}) {
-    if (!Array.isArray(sourceRefs)) {
-      return this.convertToSeries(sourceRefs, dataSourceManager, config);
-    }
-
-    const allSeries = [];
-
-    sourceRefs.forEach(sourceRef => {
-      const series = this.convertToSeries(sourceRef, dataSourceManager, {
-        ...config,
-        name: config.seriesNames?.[sourceRef] || this._extractSeriesName(sourceRef)
-      });
-
-      allSeries.push(...series);
-    });
-
-    return allSeries;
   }
 
   /**
@@ -331,7 +300,13 @@ export class ApexChartsAdapter {
    * @returns {Object} ApexCharts options specific to chart type
    */
   static _getChartTypeDefaults(chartType, style) {
-    const resolveToken = themeTokenResolver.forComponent('chart');
+    const resolveToken = (tokenPath, fallback) => {
+      try {
+        return themeTokenResolver?.resolve(tokenPath) || fallback;
+      } catch {
+        return fallback;
+      }
+    };
 
     switch (chartType) {
       case 'radialBar':
@@ -343,7 +318,7 @@ export class ApexChartsAdapter {
                 background: 'transparent'
               },
               track: {
-                background: resolveToken('colors.ui.disabled', 'var(--lcars-gray)'),
+                background: resolveToken('colors.ui.disabled', 'var(--lcars-gray, #999999)'),
                 strokeWidth: '100%',
                 opacity: 0.3
               },
@@ -351,15 +326,15 @@ export class ApexChartsAdapter {
                 name: {
                   show: true,
                   fontSize: resolveToken('typography.fontSize.sm', '12px'),
-                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
-                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
+                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)'),
                   offsetY: -10
                 },
                 value: {
                   show: true,
                   fontSize: resolveToken('typography.fontSize.2xl', '24px'),
-                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
-                  color: resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
+                  color: resolveToken('colors.accent.primary', 'var(--lcars-orange, #FF9900)'),
                   offsetY: 5,
                   formatter: (val) => {
                     return style.value_format === 'percent' ? `${Math.round(val)}%` : val;
@@ -369,8 +344,8 @@ export class ApexChartsAdapter {
                   show: true,
                   label: 'TOTAL',
                   fontSize: resolveToken('typography.fontSize.sm', '12px'),
-                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
-                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
+                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)'),
                   formatter: (w) => {
                     const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
                     return style.value_format === 'percent' ? `${Math.round(total)}%` : total;
@@ -398,18 +373,18 @@ export class ApexChartsAdapter {
             labels: {
               datetimeUTC: false,
               style: {
-                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)'),
                 fontSize: resolveToken('typography.fontSize.xs', '10px'),
-                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif')
               }
             }
           },
           yaxis: {
             labels: {
               style: {
-                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)'),
                 fontSize: resolveToken('typography.fontSize.xs', '10px'),
-                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif')
               }
             }
           },
@@ -417,7 +392,7 @@ export class ApexChartsAdapter {
             enabled: style.show_labels !== false,
             style: {
               fontSize: resolveToken('typography.fontSize.xs', '10px'),
-              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif')
             }
           }
         };
@@ -428,17 +403,17 @@ export class ApexChartsAdapter {
             polarArea: {
               rings: {
                 strokeWidth: 1,
-                strokeColor: resolveToken('colors.ui.border', 'var(--lcars-gray)')
+                strokeColor: resolveToken('colors.ui.border', 'var(--lcars-gray, #999999)')
               },
               spokes: {
                 strokeWidth: 1,
-                connectorColors: resolveToken('colors.ui.border', 'var(--lcars-gray)')
+                connectorColors: resolveToken('colors.ui.border', 'var(--lcars-gray, #999999)')
               }
             }
           },
           stroke: {
             width: 2,
-            colors: [resolveToken('colors.ui.background', 'var(--lcars-black)')]
+            colors: [resolveToken('colors.ui.background', 'var(--lcars-black, #000000)')]
           },
           fill: {
             opacity: 0.8
@@ -446,9 +421,9 @@ export class ApexChartsAdapter {
           legend: {
             position: style.legend_position || 'bottom',
             fontSize: resolveToken('typography.fontSize.sm', '12px'),
-            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
             labels: {
-              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)')
             }
           }
         };
@@ -465,22 +440,22 @@ export class ApexChartsAdapter {
                   {
                     from: 0,
                     to: 25,
-                    color: resolveToken('colors.accent.secondary', 'var(--lcars-blue)')
+                    color: resolveToken('colors.chart.series1', 'var(--lcars-blue, #9999FF)')
                   },
                   {
                     from: 25,
                     to: 50,
-                    color: resolveToken('colors.status.success', 'var(--lcars-green)')
+                    color: resolveToken('colors.status.success', 'var(--lcars-green, #99CC99)')
                   },
                   {
                     from: 50,
                     to: 75,
-                    color: resolveToken('colors.status.warning', 'var(--lcars-orange)')
+                    color: resolveToken('colors.status.warning', 'var(--lcars-orange, #FF9900)')
                   },
                   {
                     from: 75,
                     to: 100,
-                    color: resolveToken('colors.status.danger', 'var(--lcars-red)')
+                    color: resolveToken('colors.status.danger', 'var(--lcars-red, #CC6666)')
                   }
                 ]
               }
@@ -490,7 +465,7 @@ export class ApexChartsAdapter {
             enabled: true,
             style: {
               fontSize: resolveToken('typography.fontSize.sm', '12px'),
-              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
               fontWeight: 'bold'
             },
             offsetY: -4
@@ -504,8 +479,8 @@ export class ApexChartsAdapter {
             width: [0, 2, 2, 0], // Outer lines invisible, inner lines visible
             colors: [
               'transparent',
-              resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
-              resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
+              resolveToken('colors.accent.primary', 'var(--lcars-orange, #FF9900)'),
+              resolveToken('colors.accent.primary', 'var(--lcars-orange, #FF9900)'),
               'transparent'
             ]
           },
@@ -520,9 +495,9 @@ export class ApexChartsAdapter {
             show: true,
             position: style.legend_position || 'top',
             fontSize: resolveToken('typography.fontSize.sm', '12px'),
-            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
             labels: {
-              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)')
             }
           }
         };
@@ -537,7 +512,7 @@ export class ApexChartsAdapter {
             }
           },
           grid: {
-            borderColor: resolveToken('colors.ui.border', 'var(--lcars-gray)'),
+            borderColor: resolveToken('colors.ui.border', 'var(--lcars-gray, #999999)'),
             strokeDashArray: 4,
             xaxis: {
               lines: { show: style.show_grid !== false }
@@ -552,9 +527,9 @@ export class ApexChartsAdapter {
           legend: {
             position: style.legend_position || 'top',
             fontSize: resolveToken('typography.fontSize.sm', '12px'),
-            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif'),
             labels: {
-              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)')
             }
           }
         };
@@ -564,8 +539,8 @@ export class ApexChartsAdapter {
           plotOptions: {
             candlestick: {
               colors: {
-                upward: resolveToken('colors.status.success', 'var(--lcars-green)'),
-                downward: resolveToken('colors.status.danger', 'var(--lcars-red)')
+                upward: resolveToken('colors.status.success', 'var(--lcars-green, #99CC99)'),
+                downward: resolveToken('colors.status.danger', 'var(--lcars-red, #CC6666)')
               },
               wick: {
                 useFillColor: true
@@ -577,9 +552,9 @@ export class ApexChartsAdapter {
             labels: {
               datetimeUTC: false,
               style: {
-                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)'),
                 fontSize: resolveToken('typography.fontSize.xs', '10px'),
-                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif')
               }
             }
           }
@@ -590,14 +565,14 @@ export class ApexChartsAdapter {
           plotOptions: {
             boxPlot: {
               colors: {
-                upper: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue)'),
-                lower: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue)')
+                upper: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue, #9999FF)'),
+                lower: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue, #9999FF)')
               }
             }
           },
           stroke: {
             width: 2,
-            colors: [resolveToken('colors.ui.foreground', 'var(--lcars-white)')]
+            colors: [resolveToken('colors.ui.foreground', 'var(--lcars-white, #FFFFFF)')]
           }
         };
 
@@ -607,58 +582,43 @@ export class ApexChartsAdapter {
   }
 
   /**
-   * Convert MSD DataSource to ApexCharts series format
-   * @param {string} sourceRef - DataSource reference (supports dot notation like "temp.transformations.celsius")
-   * @param {Object} dataSourceManager - MSD DataSourceManager instance
-   * @param {Object} config - Configuration options
-   * @param {string} [config.name] - Series name override
-   * @param {string} [config.time_window] - Time window filter (e.g., "12h", "24h")
-   * @param {number} [config.max_points=500] - Maximum data points (decimation threshold)
-   * @returns {Array} ApexCharts series array
+   * Deep merge two objects (helper method)
+   * Recursively merges source into target, with source taking precedence
+   * @private
+   * @param {Object} target - Target object
+   * @param {Object} source - Source object (takes precedence)
+   * @returns {Object} Merged object
    */
-  static convertToSeries(sourceRef, dataSourceManager, config = {}) {
-    try {
-      // Parse dot notation (e.g., "temp.transformations.celsius")
-      const { dataSource, dataPath } = this._resolveDataSourcePath(sourceRef, dataSourceManager);
-
-      if (!dataSource) {
-        cblcarsLog.warn(`[ApexChartsAdapter] DataSource not found: ${sourceRef}`);
-        return [];
-      }
-
-      // Get historical data with error boundary
-      let data;
-      try {
-        if (dataPath) {
-          data = this._getEnhancedData(dataSource, dataPath, config);
-        } else {
-          data = this._getRawData(dataSource, config);
-        }
-      } catch (dataError) {
-        cblcarsLog.error(`[ApexChartsAdapter] Error getting data for ${sourceRef}:`, dataError);
-        return [];
-      }
-
-      if (!data || data.length === 0) {
-        cblcarsLog.warn(`[ApexChartsAdapter] No data available for: ${sourceRef}`);
-        return [];
-      }
-
-      // Convert to ApexCharts format
-      const seriesName = config.name || this._extractSeriesName(sourceRef);
-
-      return [{
-        name: seriesName,
-        data: data.map(point => ({
-          x: point.timestamp || point.t,
-          y: point.value || point.v
-        }))
-      }];
-
-    } catch (error) {
-      cblcarsLog.error(`[ApexChartsAdapter] Critical error in convertToSeries for ${sourceRef}:`, error);
-      return [];
+  static _deepMerge(target, source) {
+    if (!this._isObject(target) || !this._isObject(source)) {
+      return source;
     }
+
+    const output = { ...target };
+
+    Object.keys(source).forEach(key => {
+      if (this._isObject(source[key])) {
+        if (!(key in target)) {
+          output[key] = source[key];
+        } else {
+          output[key] = this._deepMerge(target[key], source[key]);
+        }
+      } else {
+        output[key] = source[key];
+      }
+    });
+
+    return output;
+  }
+
+  /**
+   * Check if value is a plain object
+   * @private
+   * @param {*} item - Value to check
+   * @returns {boolean} True if plain object
+   */
+  static _isObject(item) {
+    return item && typeof item === 'object' && !Array.isArray(item);
   }
 
   /**
@@ -691,29 +651,8 @@ export class ApexChartsAdapter {
   }
 
   /**
-   * Deep merge objects (for chart_options override)
-   * @private
-   */
-  static _deepMerge(target, source) {
-    const result = { ...target };
-
-    for (const key in source) {
-      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-        result[key] = this._deepMerge(target[key] || {}, source[key]);
-      } else {
-        result[key] = source[key];
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * Resolve DataSource path with dot notation support
    * @private
-   * @param {string} sourceRef - DataSource reference string
-   * @param {Object} dataSourceManager - MSD DataSourceManager instance
-   * @returns {Object} {dataSource, dataPath}
    */
   static _resolveDataSourcePath(sourceRef, dataSourceManager) {
     if (!sourceRef || typeof sourceRef !== 'string') {
@@ -738,9 +677,6 @@ export class ApexChartsAdapter {
   /**
    * Get raw DataSource buffer data
    * @private
-   * @param {Object} dataSource - MsdDataSource instance
-   * @param {Object} config - Configuration options
-   * @returns {Array<Object>} Array of {timestamp, value} objects
    */
   static _getRawData(dataSource, config) {
     const currentData = dataSource.getCurrentData();
@@ -780,10 +716,6 @@ export class ApexChartsAdapter {
   /**
    * Get enhanced DataSource data (transformation/aggregation)
    * @private
-   * @param {Object} dataSource - MsdDataSource instance
-   * @param {string} dataPath - Dot notation path (e.g., "transformations.celsius")
-   * @param {Object} config - Configuration options
-   * @returns {Array<Object>} Array of {timestamp, value} objects
    */
   static _getEnhancedData(dataSource, dataPath, config) {
     // For transformations, get transformed history buffer

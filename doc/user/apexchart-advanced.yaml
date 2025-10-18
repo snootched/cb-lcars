@@ -1,12 +1,12 @@
 # Advanced ApexCharts Configuration Examples
-# Demonstrates using chart_options for full ApexCharts API access
+# Demonstrates all 15 chart types and advanced features
 
 type: custom:cb-lcars-msd
 msd:
   data_sources:
     temperature:
       entity: sensor.outdoor_temperature
-      windowSeconds: 86400  # 24 hours
+      windowSeconds: 86400
 
     power:
       entity: sensor.power_meter
@@ -16,58 +16,288 @@ msd:
       entity: sensor.humidity
       windowSeconds: 3600
 
+    shield_strength:
+      entity: sensor.shield_percentage
+      windowSeconds: 300
+
+    maintenance_schedule:
+      entity: calendar.maintenance
+      windowSeconds: 604800  # 1 week
+
+    sensor_array:
+      entity: sensor.directional_array
+      windowSeconds: 300
+
+    resource_allocation:
+      entity: sensor.system_resources
+      windowSeconds: 60
+
+    temp_forecast:
+      entity: weather.forecast
+      windowSeconds: 172800  # 2 days
+
+    correlation_data:
+      entity: sensor.multi_dimensional
+      windowSeconds: 3600
+
+    energy_prices:
+      entity: sensor.energy_ohlc
+      windowSeconds: 86400
+
+    sensor_stats:
+      entity: sensor.statistical_data
+      windowSeconds: 3600
+
   overlays:
-    # Example 1: Horizontal Bar Chart with Custom Plot Options
-    - id: horizontal_bars
+    # ========================================
+    # BASIC CHART TYPES (Existing 7)
+    # ========================================
+
+    # Example 1: Line Chart
+    - id: line_chart
       type: apexchart
       source: temperature
       position: [50, 50]
-      size: [300, 200]
+      size: [300, 150]
+      style:
+        chart_type: "line"
+        color: "var(--lcars-blue)"
+        stroke_width: 2
+        time_window: "24h"
+
+    # Example 2: Area Chart
+    - id: area_chart
+      type: apexchart
+      source: power
+      position: [370, 50]
+      size: [300, 150]
+      style:
+        chart_type: "area"
+        color: "var(--lcars-yellow)"
+        fill_opacity: 0.3
+        time_window: "1h"
+
+    # Example 3: Bar Chart
+    - id: bar_chart
+      type: apexchart
+      source: humidity
+      position: [50, 220]
+      size: [300, 150]
       style:
         chart_type: "bar"
-        color: "var(--lcars-orange)"
+        color: "var(--lcars-green)"
+        show_labels: true
+
+    # Example 4: Pie Chart
+    - id: pie_chart
+      type: apexchart
+      source: resource_allocation
+      position: [370, 220]
+      size: [200, 200]
+      style:
+        chart_type: "pie"
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-orange)"
+          - "var(--lcars-green)"
+
+    # Example 5: Donut Chart
+    - id: donut_chart
+      type: apexchart
+      source: resource_allocation
+      position: [590, 220]
+      size: [200, 200]
+      style:
+        chart_type: "donut"
+        show_legend: true
+        legend_position: "bottom"
+
+    # Example 6: Radar Chart
+    - id: radar_chart
+      type: apexchart
+      source: sensor_array
+      position: [50, 440]
+      size: [250, 250]
+      style:
+        chart_type: "radar"
+        colors:
+          - "var(--lcars-orange)"
+          - "var(--lcars-blue)"
+
+    # Example 7: Heatmap Chart
+    - id: heatmap_chart
+      type: apexchart
+      source: temperature
+      position: [320, 440]
+      size: [350, 200]
+      style:
+        chart_type: "heatmap"
+        show_labels: false
+
+    # ========================================
+    # NEW CHART TYPES (Phase 1 - 8 types)
+    # ========================================
+
+    # Example 8: RadialBar (Gauge) Chart
+    - id: radialbar_gauge
+      type: apexchart
+      source: shield_strength
+      position: [50, 710]
+      size: [200, 200]
+      style:
+        chart_type: "radialBar"
+        color: "var(--lcars-blue)"
+        value_format: "percent"
+        gauge_start_angle: -90
+        gauge_end_angle: 90
+        show_labels: true
+        chart_options:
+          plotOptions:
+            radialBar:
+              dataLabels:
+                name:
+                  show: true
+                  fontSize: "14px"
+                  offsetY: -10
+                value:
+                  show: true
+                  fontSize: "24px"
+                  offsetY: 5
+
+    # Example 9: RangeBar (Timeline) Chart
+    - id: rangebar_timeline
+      type: apexchart
+      source: maintenance_schedule
+      position: [270, 710]
+      size: [400, 200]
+      style:
+        chart_type: "rangeBar"
+        group_rows: true
+        show_labels: true
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-orange)"
+          - "var(--lcars-green)"
         chart_options:
           plotOptions:
             bar:
               horizontal: true
-              borderRadius: 4
-              barHeight: "70%"
-              dataLabels:
-                position: "bottom"
+              barHeight: "80%"
 
-    # Example 2: Responsive Chart with Breakpoints
-    - id: responsive_chart
+    # Example 10: PolarArea Chart
+    - id: polararea_sensors
       type: apexchart
-      source: power
-      position: [370, 50]
-      size: [300, 200]
+      source: sensor_array
+      position: [50, 930]
+      size: [250, 250]
       style:
-        chart_type: "area"
-        color: "var(--lcars-yellow)"
+        chart_type: "polarArea"
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-green)"
+          - "var(--lcars-orange)"
+          - "var(--lcars-red)"
+        legend_position: "bottom"
         chart_options:
-          responsive:
-            - breakpoint: 1024
-              options:
-                chart:
-                  height: 250
-                legend:
-                  position: "bottom"
-            - breakpoint: 768
-              options:
-                chart:
-                  height: 180
-                xaxis:
-                  labels:
-                    show: false
+          stroke:
+            width: 2
+          fill:
+            opacity: 0.8
 
-    # Example 3: Multi-Axis Chart
+    # Example 11: Treemap Chart
+    - id: treemap_resources
+      type: apexchart
+      source: resource_allocation
+      position: [320, 930]
+      size: [400, 250]
+      style:
+        chart_type: "treemap"
+        show_labels: true
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-green)"
+          - "var(--lcars-orange)"
+          - "var(--lcars-red)"
+        chart_options:
+          plotOptions:
+            treemap:
+              distributed: true
+              enableShades: true
+
+    # Example 12: RangeArea Chart
+    - id: rangearea_forecast
+      type: apexchart
+      source: temp_forecast
+      position: [50, 1200]
+      size: [400, 200]
+      style:
+        chart_type: "rangeArea"
+        color: "var(--lcars-blue)"
+        fill_opacity: 0.2
+        show_legend: true
+        legend_position: "top"
+        time_window: "48h"
+
+    # Example 13: Scatter Plot
+    - id: scatter_correlation
+      type: apexchart
+      source: correlation_data
+      position: [470, 1200]
+      size: [400, 200]
+      style:
+        chart_type: "scatter"
+        marker_size: 6
+        show_grid: true
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-orange)"
+        legend_position: "top"
+
+    # Example 14: Candlestick Chart
+    - id: candlestick_energy
+      type: apexchart
+      source: energy_prices
+      position: [50, 1420]
+      size: [400, 250]
+      style:
+        chart_type: "candlestick"
+        time_window: "24h"
+        chart_options:
+          plotOptions:
+            candlestick:
+              colors:
+                upward: "var(--lcars-green)"
+                downward: "var(--lcars-red)"
+
+    # Example 15: BoxPlot Chart
+    - id: boxplot_distribution
+      type: apexchart
+      source: sensor_stats
+      position: [470, 1420]
+      size: [400, 250]
+      style:
+        chart_type: "boxPlot"
+        color: "var(--lcars-blue)"
+        chart_options:
+          stroke:
+            width: 2
+            colors: ["var(--lcars-white)"]
+
+    # ========================================
+    # ADVANCED FEATURES EXAMPLES
+    # ========================================
+
+    # Example 16: Multi-Axis Chart (using chart_options)
     - id: multi_axis_chart
       type: apexchart
       source: [temperature, humidity]
-      position: [50, 270]
+      position: [50, 1690]
       size: [400, 200]
       style:
         chart_type: "line"
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-green)"
         show_legend: true
         chart_options:
           yaxis:
@@ -83,62 +313,42 @@ msd:
                 style:
                   colors: "var(--lcars-green)"
 
-    # Example 4: Advanced Annotations
+    # Example 17: Advanced Annotations
     - id: annotated_chart
       type: apexchart
       source: temperature
-      position: [50, 490]
+      position: [470, 1690]
       size: [400, 200]
       style:
         chart_type: "line"
         color: "var(--lcars-blue)"
+        time_window: "24h"
         chart_options:
           annotations:
-            xaxis:
-              - x: 1640995200000
+            yaxis:
+              - y: 25
+                borderColor: "var(--lcars-orange)"
+                strokeDashArray: 4
+                label:
+                  text: "Warning Threshold"
+                  style:
+                    background: "var(--lcars-orange)"
+              - y: 30
                 borderColor: "var(--lcars-red)"
                 label:
-                  text: "Event"
+                  text: "Critical Threshold"
                   style:
-                    color: "#fff"
                     background: "var(--lcars-red)"
-            points:
-              - x: 1640995200000
-                y: 25
-                marker:
-                  size: 8
-                  fillColor: "var(--lcars-yellow)"
-                label:
-                  text: "Peak"
 
-    # Example 5: Custom States (Hover Effects)
-    - id: stateful_chart
-      type: apexchart
-      source: power
-      position: [470, 270]
-      size: [300, 200]
-      style:
-        chart_type: "line"
-        color: "var(--lcars-yellow)"
-        chart_options:
-          states:
-            hover:
-              filter:
-                type: "lighten"
-                value: 0.2
-            active:
-              filter:
-                type: "darken"
-                value: 0.3
-
-    # Example 6: Custom Gradient Fill
+    # Example 18: Custom Gradient (using chart_options)
     - id: gradient_chart
       type: apexchart
-      source: temperature
-      position: [470, 490]
-      size: [300, 200]
+      source: power
+      position: [50, 1910]
+      size: [400, 200]
       style:
         chart_type: "area"
+        time_window: "1h"
         chart_options:
           fill:
             type: "gradient"
@@ -147,44 +357,40 @@ msd:
               type: "vertical"
               gradientToColors: ["var(--lcars-blue)", "var(--lcars-purple)"]
               stops: [0, 100]
-              colorStops:
-                - offset: 0
-                  color: "var(--lcars-blue)"
-                  opacity: 0.9
-                - offset: 100
-                  color: "var(--lcars-purple)"
-                  opacity: 0.1
+              opacityFrom: 0.9
+              opacityTo: 0.1
 
-    # Example 7: Forecast Data Points
-    - id: forecast_chart
+    # Example 19: RadialBar with Multiple Series
+    - id: multi_gauge
+      type: apexchart
+      source: [shield_strength, power, humidity]
+      position: [470, 1910]
+      size: [250, 250]
+      style:
+        chart_type: "radialBar"
+        colors:
+          - "var(--lcars-blue)"
+          - "var(--lcars-yellow)"
+          - "var(--lcars-green)"
+        value_format: "percent"
+        show_legend: true
+        legend_position: "bottom"
+
+    # Example 20: Sparkline (minimal chart)
+    - id: sparkline_chart
       type: apexchart
       source: temperature
-      position: [50, 710]
-      size: [400, 200]
+      position: [740, 1910]
+      size: [200, 50]
       style:
         chart_type: "line"
         color: "var(--lcars-orange)"
+        stroke_width: 2
+        time_window: "1h"
         chart_options:
-          forecastDataPoints:
-            count: 12
-            fillOpacity: 0.3
-            strokeWidth: 2
-            dashArray: 4
-
-    # Example 8: No Data Custom Message
-    - id: nodata_chart
-      type: apexchart
-      source: missing_sensor
-      position: [470, 710]
-      size: [300, 200]
-      style:
-        chart_type: "line"
-        chart_options:
-          noData:
-            text: "🔍 No Data Available"
-            align: "center"
-            verticalAlign: "middle"
-            style:
-              color: "var(--lcars-red)"
-              fontSize: "18px"
-              fontFamily: "Antonio"
+          chart:
+            sparkline:
+              enabled: true
+          tooltip:
+            fixed:
+              enabled: false

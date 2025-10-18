@@ -6,7 +6,7 @@ The `apexchart` overlay type provides powerful, interactive charts using the [Ap
 
 ApexCharts overlays offer:
 - **Real-time updates** via DataSource subscriptions
-- **Multiple chart types**: line, area, bar, scatter, candlestick, heatmap, radar
+- **15 chart types**: line, area, bar, pie, donut, radar, heatmap, radialBar, rangeBar, polarArea, treemap, rangeArea, scatter, candlestick, boxPlot
 - **Interactive features**: zoom, pan, tooltips, legends
 - **Transformation support**: Direct integration with DataSource transformations
 - **Threshold visualization**: Visual markers for warning/critical values
@@ -45,17 +45,25 @@ overlays:
 
 ```yaml
 style:
-  chart_type: "line"  # Options: line, area, bar, scatter, candlestick, heatmap, radar
+  chart_type: "line"  # Options: line, area, bar, pie, donut, radar, heatmap, radialBar, rangeBar, polarArea, treemap, rangeArea, scatter, candlestick, boxPlot
 ```
 
 **Available Chart Types:**
 - `line` - Line chart (default)
 - `area` - Filled area chart
 - `bar` - Vertical bar chart
+- `pie` - Pie chart
+- `donut` - Donut chart
+- `radar` - Radar/spider chart
+- `heatmap` - Heat map visualization
+- `radialBar` - Radial gauge chart
+- `rangeBar` - Horizontal timeline chart
+- `polarArea` - Polar area chart
+- `treemap` - Hierarchical treemap
+- `rangeArea` - Range area chart
 - `scatter` - Scatter plot
 - `candlestick` - Financial candlestick chart
-- `heatmap` - Heat map visualization
-- `radar` - Radar/spider chart
+- `boxPlot` - Box plot chart
 
 ### Line Styling
 
@@ -380,21 +388,348 @@ overlays:
       show_grid: false
 ```
 
-### Scatter Plot
+### Pie Chart
 
 ```yaml
 overlays:
-  - id: scatter_chart
+  - id: pie_chart
     type: apexchart
-    source: humidity_sensor
+    source: resource_allocation
     position: [50, 610]
     size: [300, 150]
     style:
-      chart_type: "scatter"
-      color: "var(--lcars-purple)"
-      point_size: 5
-      show_grid: true
+      chart_type: "pie"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      show_labels: true
 ```
+
+### Donut Chart
+
+```yaml
+overlays:
+  - id: donut_chart
+    type: apexchart
+    source: resource_allocation
+    position: [50, 780]
+    size: [300, 150]
+    style:
+      chart_type: "donut"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      show_labels: true
+```
+
+### Radar Chart
+
+```yaml
+overlays:
+  - id: radar_chart
+    type: apexchart
+    source: multi_sensor_data
+    position: [400, 100]
+    size: [300, 150]
+    style:
+      chart_type: "radar"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      show_labels: true
+```
+
+### Heatmap Chart
+
+```yaml
+overlays:
+  - id: heatmap_chart
+    type: apexchart
+    source: activity_schedule
+    position: [400, 270]
+    size: [300, 150]
+    style:
+      chart_type: "heatmap"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-yellow)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      show_labels: true
+```
+
+### RadialBar (Gauge) Chart
+
+Perfect for gauges, progress indicators, and completion percentages.
+
+```yaml
+overlays:
+  - id: shield_gauge
+    type: apexchart
+    source: shield_strength
+    position: [50, 100]
+    size: [200, 200]
+    style:
+      chart_type: "radialBar"
+      color: "var(--lcars-blue)"
+      value_format: "percent"     # Show as percentage
+      gauge_start_angle: -90      # Gauge start angle (degrees)
+      gauge_end_angle: 90         # Gauge end angle (degrees)
+      show_labels: true
+```
+
+**RadialBar-Specific Options:**
+- `value_format`: `"percent"` or `"number"` (default: number)
+- `gauge_start_angle`: Start angle in degrees (default: -90)
+- `gauge_end_angle`: End angle in degrees (default: 90)
+
+### RangeBar (Timeline) Chart
+
+Ideal for schedules, duty rosters, and timelines.
+
+```yaml
+overlays:
+  - id: maintenance_schedule
+    type: apexchart
+    source: maintenance_events
+    position: [50, 100]
+    size: [400, 200]
+    style:
+      chart_type: "rangeBar"
+      group_rows: true            # Group similar items
+      show_labels: true           # Show event labels
+      show_legend: true
+```
+
+**RangeBar-Specific Options:**
+- `group_rows`: Group rows by category (default: true)
+- `show_labels`: Display labels on bars (default: true)
+
+**Data Format for RangeBar:**
+```yaml
+# DataSource should provide data in format:
+# [
+#   {
+#     x: "Task 1",
+#     y: [startTimestamp, endTimestamp]
+#   },
+#   {
+#     x: "Task 2",
+#     y: [startTimestamp, endTimestamp]
+#   }
+# ]
+```
+
+### PolarArea Chart
+
+Great for directional data and sensor arrays.
+
+```yaml
+overlays:
+  - id: sensor_coverage
+    type: apexchart
+    source: sensor_array
+    position: [50, 100]
+    size: [250, 250]
+    style:
+      chart_type: "polarArea"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      legend_position: "bottom"
+```
+
+### Treemap Chart
+
+Perfect for hierarchical data and resource allocation.
+
+```yaml
+overlays:
+  - id: system_resources
+    type: apexchart
+    source: resource_allocation
+    position: [50, 100]
+    size: [400, 300]
+    style:
+      chart_type: "treemap"
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-green)"
+        - "var(--lcars-orange)"
+        - "var(--lcars-red)"
+      show_labels: true
+```
+
+**Data Format for Treemap:**
+```yaml
+# DataSource should provide data in format:
+# [
+#   { x: "Category A", y: 100 },
+#   { x: "Category B", y: 200 },
+#   { x: "Category C", y: 150 }
+# ]
+```
+
+### RangeArea Chart
+
+Ideal for confidence intervals and acceptable parameter ranges.
+
+```yaml
+overlays:
+  - id: temperature_range
+    type: apexchart
+    source: temperature_forecast
+    position: [50, 100]
+    size: [400, 200]
+    style:
+      chart_type: "rangeArea"
+      color: "var(--lcars-blue)"
+      fill_opacity: 0.2
+      show_legend: true
+      legend_position: "top"
+```
+
+**Data Format for RangeArea:**
+```yaml
+# DataSource should provide data in format:
+# [
+#   {
+#     x: timestamp,
+#     y: [minValue, maxValue]
+#   }
+# ]
+```
+
+### Scatter Plot
+
+Perfect for correlation analysis and multi-dimensional data.
+
+```yaml
+overlays:
+  - id: sensor_correlation
+    type: apexchart
+    source: sensor_data
+    position: [50, 100]
+    size: [400, 300]
+    style:
+      chart_type: "scatter"
+      marker_size: 6              # Point size
+      show_grid: true             # Show background grid
+      colors:
+        - "var(--lcars-blue)"
+        - "var(--lcars-orange)"
+```
+
+**Scatter-Specific Options:**
+- `marker_size`: Size of data point markers (default: 6)
+- `show_grid`: Display background grid (default: true)
+
+**Data Format for Scatter:**
+```yaml
+# DataSource should provide data in format:
+# [
+#   { x: value1, y: value2 },
+#   { x: value3, y: value4 }
+# ]
+```
+
+### Candlestick Chart
+
+For financial data or energy fluctuation analysis.
+
+```yaml
+overlays:
+  - id: energy_fluctuations
+    type: apexchart
+    source: energy_prices
+    position: [50, 100]
+    size: [400, 250]
+    style:
+      chart_type: "candlestick"
+      colors:
+        upward: "var(--lcars-green)"      # Positive change color
+        downward: "var(--lcars-red)"      # Negative change color
+```
+
+**Data Format for Candlestick:**
+```yaml
+# DataSource should provide OHLC data:
+# [
+#   {
+#     x: timestamp,
+#     y: [open, high, low, close]
+#   }
+# ]
+```
+
+### BoxPlot Chart
+
+For statistical distributions and sensor data analysis.
+
+```yaml
+overlays:
+  - id: sensor_distribution
+    type: apexchart
+    source: sensor_stats
+    position: [50, 100]
+    size: [400, 250]
+    style:
+      chart_type: "boxPlot"
+      color: "var(--lcars-blue)"
+```
+
+**Data Format for BoxPlot:**
+```yaml
+# DataSource should provide statistical data:
+# [
+#   {
+#     x: "Sensor 1",
+#     y: [min, q1, median, q3, max]
+#   }
+# ]
+```
+
+## Chart Type Quick Reference
+
+### When to Use Each Type
+
+**Time Series & Trends:**
+- `line` - Simple time series
+- `area` - Time series with emphasis on volume/magnitude
+- `rangeArea` - Time series with uncertainty/ranges
+
+**Comparisons:**
+- `bar` - Compare discrete categories
+- `rangeBar` - Compare time periods/schedules
+
+**Part-to-Whole:**
+- `pie` - Simple proportions (< 7 categories)
+- `donut` - Proportions with center label
+- `treemap` - Hierarchical proportions
+
+**Gauges & Progress:**
+- `radialBar` - Circular gauges, completion %
+
+**Multi-Dimensional:**
+- `radar` - Compare multiple metrics
+- `polarArea` - Directional data with magnitude
+
+**Statistical:**
+- `scatter` - Correlations, distributions
+- `boxPlot` - Statistical distributions
+- `heatmap` - Two-dimensional patterns
+
+**Financial/Fluctuation:**
+- `candlestick` - OHLC data with trends
 
 ## Migration from Sparkline
 
