@@ -7,18 +7,10 @@ import { chartTemplateRegistry } from '../templates/ChartTemplateRegistry.js';
  * Single consolidated merge algorithm - COMPLETE REPLACEMENT
  * Removes all legacy dual merge logic per Milestone 1.1
  */
-export async function mergePacks(userConfig, defaultsManager = null) {
+export async function mergePacks(userConfig) {
   return await perfTimeAsync('merge.total', async () => {
     const layers = await perfTimeAsync('merge.loadLayers', () => loadAllLayers(userConfig));
     const merged = await perfTimeAsync('merge.processSingle', () => processSinglePass(layers));
-
-    // CRITICAL: Load pack defaults into defaults manager if provided
-    if (defaultsManager && typeof defaultsManager.loadFromPacks === 'function') {
-      const packLayers = layers.filter(layer => layer.type === 'builtin' || layer.type === 'external');
-      const packsData = packLayers.map(layer => layer.data);
-      defaultsManager.loadFromPacks(packsData);
-      console.log(`[MSD] Loaded ${packsData.length} packs into defaults manager:`, packsData.map(p => p.id));
-    }
 
     // NEW: Register chart templates from packs
     const packLayers = layers.filter(layer => layer.type === 'builtin' || layer.type === 'external');

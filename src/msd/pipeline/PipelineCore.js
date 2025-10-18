@@ -588,7 +588,7 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
     updateEntities: (map) => systemsManager.updateEntities(map),
     listEntities: () => systemsManager.entityRuntime.listIds(),
     getEntity: (id) => systemsManager.entityRuntime.getEntity(id),
-    getActiveProfiles: () => modelBuilder.runtimeActiveProfiles.slice(),
+    getActiveProfiles: () => [],
     getAnchors: () => ({ ...cardModel.anchors }),
     exportCollapsed: () => exportCollapsed(userMsdConfig),
     exportCollapsedJson: () => JSON.stringify(exportCollapsed(userMsdConfig)),

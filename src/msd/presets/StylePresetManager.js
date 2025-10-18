@@ -3,7 +3,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 /**
  * StylePresetManager - Handles style_presets from loaded packs
  *
- * This is separate from DefaultsManager which only handles profiles.defaults.
+ * This is separate from ThemeManage.
  * StylePresets are named style bundles that can be applied to overlays.
  *
  * Usage:

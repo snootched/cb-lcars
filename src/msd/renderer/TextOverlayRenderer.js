@@ -6,7 +6,7 @@
  * - Position resolution from anchors
  * - DataSource integration and template processing
  * - Action attachment coordination
- * - Style resolution with defaults
+ * - Style resolution with ThemeManager defaults
  * - Delegates pure rendering to core/TextRenderer
  */
 
@@ -20,7 +20,71 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
 export class TextOverlayRenderer {
   constructor() {
-    // Reserved for instance methods
+    // Initialize ThemeManager reference
+    this.themeManager = this._resolveThemeManager();
+  }
+
+  /**
+   * Resolve theme manager from various sources
+   * @private
+   * @returns {Object|null} Theme manager instance
+   */
+  _resolveThemeManager() {
+    // 1. Global CB-LCARS namespace (preferred)
+    if (window.cblcars?.theme) {
+      return window.cblcars.theme;
+    }
+
+    // 2. Pipeline instance via systemsManager
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (pipelineInstance?.systemsManager?.themeManager) {
+      return pipelineInstance.systemsManager.themeManager;
+    }
+
+    // 3. Direct pipeline access
+    if (pipelineInstance?.themeManager) {
+      return pipelineInstance.themeManager;
+    }
+
+    // 4. Systems manager global reference
+    const systemsManager = window.__msdDebug?.systemsManager;
+    if (systemsManager?.themeManager) {
+      return systemsManager.themeManager;
+    }
+
+    cblcarsLog.debug('[TextOverlayRenderer] ⚠️ No theme manager found');
+    return null;
+  }
+
+  /**
+   * Helper method to get default values with proper fallback chain
+   * UPDATED: Now uses ThemeManager instead of DefaultsManager
+   *
+   * @private
+   * @param {string} path - Dot-notation path (e.g., 'text.font_size')
+   * @param {*} fallback - Fallback value if theme default not found
+   * @returns {*} Resolved default value
+   */
+  _getDefault(path, fallback = null) {
+    const themeManager = this._resolveThemeManager();
+
+    if (!themeManager || !themeManager.initialized) {
+      return fallback;
+    }
+
+    // Convert path from 'text.property' to ThemeManager format
+    // ThemeManager expects: 'components.text.property'
+    const pathParts = path.split('.');
+    const componentType = pathParts[0];
+    const property = pathParts.slice(1).join('.');
+
+    try {
+      const value = themeManager.getDefault(componentType, property, fallback);
+      return value !== null ? value : fallback;
+    } catch (error) {
+      cblcarsLog.warn(`[TextOverlayRenderer] Error resolving theme default for ${path}:`, error);
+      return fallback;
+    }
   }
 
   /**
@@ -58,7 +122,7 @@ export class TextOverlayRenderer {
     try {
       const style = overlay.finalStyle || overlay.style || {};
 
-      // 2. MSD RESPONSIBILITY: Resolve styles with defaults system AND TOKEN SYSTEM
+      // 2. MSD RESPONSIBILITY: Resolve styles with ThemeManager defaults AND TOKEN SYSTEM
       const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
 
       // Adopt computed font when 'inherit' to prevent initial fallback mismatch
@@ -195,8 +259,6 @@ export class TextOverlayRenderer {
    * @private
    */
   _resolveTextStyles(style, overlayId, fallbackViewBox = null) {
-    const defaults = this._getDefaultsManager();
-
     let effectiveFallbackViewBox = fallbackViewBox;
     if (!this.viewBox && !fallbackViewBox) {
       try {
@@ -233,11 +295,6 @@ export class TextOverlayRenderer {
         } catch (e) {
           resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
         }
-      } else if (scaleMode === 'legacy' && defaults && scalingContext.viewBox) {
-        const tempPath = 'temp.font_size';
-        defaults.set('user', tempPath, styleFontSize);
-        resolvedFontSize = defaults.resolve(tempPath, scalingContext);
-        defaults.layers.get('user').delete(tempPath);
       } else {
         resolvedFontSize = `${styleFontSize.value}${styleFontSize.unit || 'px'}`;
       }
@@ -266,7 +323,7 @@ export class TextOverlayRenderer {
       if (resolveToken) {
         resolvedFontSize = resolveToken('defaultSize', 16, { viewBox: scalingContext.viewBox });
       } else {
-        resolvedFontSize = this._resolveDefault('text.font_size', scalingContext, defaults, 16);
+        resolvedFontSize = this._getDefault('text.font_size', 16);
       }
     }
 
@@ -276,7 +333,7 @@ export class TextOverlayRenderer {
         standardStyles.text.textColor || style.fill || style.color,
         'defaultColor',
         resolveToken,
-        this._resolveDefault('text.color', scalingContext, defaults, 'var(--lcars-orange)'),
+        this._getDefault('text.color', 'var(--lcars-orange)'),
         scalingContext
       ),
       fontSize: resolvedFontSize,
@@ -284,7 +341,7 @@ export class TextOverlayRenderer {
         standardStyles.text.fontFamily !== 'monospace' ? standardStyles.text.fontFamily : (style.font_family || style.fontFamily),
         'defaultFamily',
         resolveToken,
-        this._resolveDefault('text.font_family', scalingContext, defaults, 'inherit'),
+        this._getDefault('text.font_family', 'inherit'),
         scalingContext
       ),
       fontWeight: this._resolveStyleProperty(
@@ -381,27 +438,27 @@ export class TextOverlayRenderer {
         style.bracket_width,
         'borders.width.base',
         resolveToken,
-        this._resolveDefault('text.bracket.width', scalingContext, defaults, 2),
+        this._getDefault('text.bracket.width', 2),
         scalingContext
       ),
       bracket_gap: this._resolveStyleProperty(
         style.bracket_gap,
         'spacing.gap.base',
         resolveToken,
-        this._resolveDefault('text.bracket.gap', scalingContext, defaults, 4),
+        this._getDefault('text.bracket.gap', 4),
         scalingContext
       ),
-      bracket_extension: Number(style.bracket_extension || this._resolveDefault('text.bracket.extension', scalingContext, defaults, 8)),
-      bracket_opacity: Number(style.bracket_opacity || this._resolveDefault('text.bracket.opacity', scalingContext, defaults, 1)),
+      bracket_extension: Number(style.bracket_extension || this._getDefault('text.bracket.extension', 8)),
+      bracket_opacity: Number(style.bracket_opacity || this._getDefault('text.bracket.opacity', 1)),
       bracket_corners: style.bracket_corners || 'both',
       bracket_sides: style.bracket_sides || 'both',
-      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || this._resolveDefault('text.bracket.physical_width', scalingContext, defaults, 8)),
-      bracket_height: style.bracket_height || this._resolveDefault('text.bracket.height', scalingContext, defaults, '70%'),
+      bracket_physical_width: Number(style.bracket_physical_width || style.bracket_width || this._getDefault('text.bracket.physical_width', 8)),
+      bracket_height: style.bracket_height || this._getDefault('text.bracket.height', '70%'),
       bracket_radius: this._resolveStyleProperty(
         style.bracket_radius,
         'borders.radius.base',
         resolveToken,
-        this._resolveDefault('text.bracket.radius', scalingContext, defaults, 4),
+        this._getDefault('text.bracket.radius', 4),
         scalingContext
       ),
       border_top: Number(style.border_top || 0),
@@ -413,10 +470,10 @@ export class TextOverlayRenderer {
         style.border_radius,
         'borders.radius.lg',
         resolveToken,
-        this._resolveDefault('text.bracket.border_radius', scalingContext, defaults, 8),
+        this._getDefault('text.bracket.border_radius', 8),
         scalingContext
       ),
-      inner_factor: Number(style.inner_factor || this._resolveDefault('text.bracket.inner_factor', scalingContext, defaults, 2)),
+      inner_factor: Number(style.inner_factor || this._getDefault('text.bracket.inner_factor', 2)),
       hybrid_mode: style.hybrid_mode || false,
       highlight: style.highlight || false,
 
@@ -547,10 +604,21 @@ export class TextOverlayRenderer {
     return content;
   }
 
-  _getDefaultsManager() {
-    return (typeof window !== 'undefined' && window.cblcars?.defaults) || null;
+  /**
+   * Get ThemeManager instance (wrapper for _resolveThemeManager)
+   * @private
+   * @returns {Object|null} ThemeManager instance
+   */
+  _getThemeManager() {
+    return this._resolveThemeManager();
   }
 
+  /**
+   * Get scaling context for responsive calculations
+   * @private
+   * @param {Array|null} fallbackViewBox - Fallback viewBox if not available
+   * @returns {Object} Scaling context with viewBox and container
+   */
   _getScalingContext(fallbackViewBox = null) {
     const viewBox = this.viewBox || fallbackViewBox || [0, 0, 400, 200];
     return {
@@ -559,14 +627,13 @@ export class TextOverlayRenderer {
     };
   }
 
-  _resolveDefault(path, context, defaults, fallback) {
-    if (defaults) {
-      const resolved = defaults.resolve(path, context);
-      return resolved !== null ? resolved : fallback;
-    }
-    return fallback;
-  }
-
+  /**
+   * Prepare animation attributes for anime.js integration
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @returns {Object} Animation attributes object
+   */
   _prepareAnimationAttributes(overlay, style) {
     const standardStyles = RendererUtils.parseStandardAnimationStyles(style);
 
@@ -599,11 +666,19 @@ export class TextOverlayRenderer {
     return animationAttributes;
   }
 
+  /**
+   * Render fallback text when core rendering fails
+   * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @returns {Object} Fallback render result
+   */
   _renderFallbackText(overlay, x, y) {
     const style = overlay.finalStyle || overlay.style || {};
     const text = style.value || overlay.text || '';
     const color = style.color || 'var(--lcars-orange)';
-    const fontSize = style.font_size || style.fontSize || this._resolveDefault('text.fallback_font_size', {}, this._getDefaultsManager(), 16);
+    const fontSize = style.font_size || style.fontSize || this._getDefault('text.font_size', 16);
 
     return {
       markup: `<g data-overlay-id="${overlay.id}" data-overlay-type="text" data-fallback="true">
@@ -621,7 +696,27 @@ export class TextOverlayRenderer {
   }
 
   /**
+   * Get default values for core TextRenderer
+   * @private
+   * @returns {Object} Default values object
+   */
+  _getDefaultsForRenderer() {
+    return {
+      highlight_padding: this._getDefault('text.highlight.padding', 2),
+      highlight_opacity: this._getDefault('text.highlight.opacity', 0.3),
+      status_indicator_size_ratio: this._getDefault('text.status_indicator.size_ratio', 0.3),
+      status_indicator_color: this._getDefault('text.status_indicator.color', 'var(--lcars-green)'),
+      status_indicator_padding: this._getDefault('text.status_indicator.padding', 8)
+    };
+  }
+
+  /**
    * Update text overlay content dynamically
+   * @static
+   * @param {Element} overlayElement - DOM element for the overlay
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - Updated source data
+   * @returns {boolean} True if content was updated
    */
   static updateTextData(overlayElement, overlay, sourceData) {
     try {
@@ -645,6 +740,12 @@ export class TextOverlayRenderer {
 
   /**
    * Compute attachment points for line connectors
+   * @static
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} anchors - Anchor positions
+   * @param {Element} container - Container element
+   * @param {Array|null} viewBox - ViewBox dimensions
+   * @returns {Object|null} Attachment points object
    */
   static computeAttachmentPoints(overlay, anchors, container, viewBox = null) {
     if (!overlay || overlay.type !== 'text') return null;
@@ -683,19 +784,6 @@ export class TextOverlayRenderer {
       textStyle,
       x: position[0],
       y: position[1]
-    };
-  }
-
-  _getDefaultsForRenderer() {
-    const defaults = this._getDefaultsManager();
-    const scalingContext = this._getScalingContext();
-
-    return {
-      highlight_padding: this._resolveDefault('text.highlight.padding', scalingContext, defaults, 2),
-      highlight_opacity: this._resolveDefault('text.highlight.opacity', scalingContext, defaults, 0.3),
-      status_indicator_size_ratio: this._resolveDefault('text.status_indicator.size_ratio', scalingContext, defaults, 0.3),
-      status_indicator_color: this._resolveDefault('text.status_indicator.color', scalingContext, defaults, 'var(--lcars-green)'),
-      status_indicator_padding: this._resolveDefault('text.status_indicator.padding', scalingContext, defaults, 8)
     };
   }
 

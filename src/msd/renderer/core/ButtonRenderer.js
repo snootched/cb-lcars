@@ -14,40 +14,40 @@ import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 
 export class ButtonRenderer {
   constructor() {
-    // Connect to defaults manager from global context
-    this.defaultsManager = this._resolveDefaultsManager();
+    // Connect to theme manager from global context
+    this.themeManager = this._resolveThemeManager();
     this.stylePresetManager = this._resolveStylePresetManager();
   }
 
   /**
-   * Resolve defaults manager from various sources
+   * Resolve theme manager from various sources
    * @private
    * @returns {Object|null} Defaults manager instance
    */
-  _resolveDefaultsManager() {
+  _resolveThemeManager() {
     // 1. Global CB-LCARS namespace (preferred)
-    if (window.cblcars?.defaults) {
-      return window.cblcars.defaults;
+    if (window.cblcars?.theme) {
+      return window.cblcars.theme;
     }
 
     // 2. Pipeline instance
     const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (pipelineInstance?.systemsManager?.defaultsManager) {
-      return pipelineInstance.systemsManager.defaultsManager;
+    if (pipelineInstance?.systemsManager?.themeManager) {
+      return pipelineInstance.systemsManager.themeManager;
     }
 
     // 3. Direct pipeline access
-    if (pipelineInstance?.defaultsManager) {
-      return pipelineInstance.defaultsManager;
+    if (pipelineInstance?.themeManager) {
+      return pipelineInstance.themeManager;
     }
 
     // 4. Systems manager global reference
     const systemsManager = window.__msdDebug?.systemsManager;
-    if (systemsManager?.defaultsManager) {
-      return systemsManager.defaultsManager;
+    if (systemsManager?.themeManager) {
+      return systemsManager.themeManager;
     }
 
-    cblcarsLog.debug('[ButtonRenderer] ⚠️ No defaults manager found');
+    cblcarsLog.debug('[ButtonRenderer] ⚠️ No theme manager found');
     return null;
   }
 
@@ -74,18 +74,31 @@ export class ButtonRenderer {
   }
 
   /**
-   * Get default value from defaults manager with fallback
+   * Helper method to get default values with proper fallback chain
+   * UPDATED: Now uses ThemeManager instead of DefaultsManager
+   *
    * @private
-   * @param {string} path - Dot-notation path to the default
-   * @param {any} fallback - Fallback value if default not found
-   * @returns {any} Default value or fallback
+   * @param {string} path - Dot-notation path
+   * @param {*} fallback - Fallback value
+   * @returns {*} Resolved value
    */
   _getDefault(path, fallback = null) {
-    if (this.defaultsManager && typeof this.defaultsManager.resolve === 'function') {
-      const resolved = this.defaultsManager.resolve(path);
-      return resolved !== null ? resolved : fallback;
+    if (!this.themeManager || !this.themeManager.initialized) {
+      return fallback;
     }
-    return fallback;
+
+    // Convert path format for ThemeManager
+    const pathParts = path.split('.');
+    const componentType = pathParts[0];
+    const property = pathParts.slice(1).join('.');
+
+    try {
+      const value = this.themeManager.getDefault(componentType, property, fallback);
+      return value !== null ? value : fallback;
+    } catch (error) {
+      cblcarsLog.warn(`[ButtonRenderer] Error resolving theme default for ${path}:`, error);
+      return fallback;
+    }
   }
 
   /**

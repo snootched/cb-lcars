@@ -33,18 +33,18 @@ export class StatusGridRenderer {
 
     // 2. Pipeline instance
     const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (pipelineInstance?.systemsManager?.defaultsManager) {
+    if (pipelineInstance?.systemsManager?.themeManager) {
       return pipelineInstance.systemsManager.themeManager;
     }
 
     // 3. Direct pipeline access
-    if (pipelineInstance?.defaultsManager) {
-      return pipelineInstance.defaultsManager;
+    if (pipelineInstance?.themeManager) {
+      return pipelineInstance.themeManager;
     }
 
     // 4. Systems manager global reference
     const systemsManager = window.__msdDebug?.systemsManager;
-    if (systemsManager?.defaultsManager) {
+    if (systemsManager?.themeManager) {
       return systemsManager.themeManager;
     }
 
