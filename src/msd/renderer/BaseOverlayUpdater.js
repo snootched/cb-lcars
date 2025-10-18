@@ -48,20 +48,6 @@ export class BaseOverlayUpdater {
       hasTemplates: (overlay) => this._hasTemplateContent(overlay)
     });
 
-    // Sparkline updater with enhanced synchronization
-    this.overlayUpdaters.set('sparkline', {
-      needsUpdate: (overlay, sourceData) => true, // Always update sparklines for data synchronization
-      update: (overlayId, overlay, sourceData) => this._updateSparkline(overlayId, overlay, sourceData),
-      hasTemplates: () => false // Sparklines don't use templates
-    });
-
-    // History bar updater with data visualization
-    this.overlayUpdaters.set('history_bar', {
-      needsUpdate: (overlay, sourceData) => this._historyBarNeedsUpdate(overlay, sourceData),
-      update: (overlayId, overlay, sourceData) => this._updateHistoryBar(overlayId, overlay, sourceData),
-      hasTemplates: (overlay) => this._hasTemplateContent(overlay) || this._historyBarNeedsDataUpdates(overlay)
-    });
-
     // Button overlay updater
     this.overlayUpdaters.set('button', {
       needsUpdate: (overlay, sourceData) => this._hasTemplateContent(overlay),
@@ -243,15 +229,6 @@ export class BaseOverlayUpdater {
           });
         }
       }
-
-      // For history bars, check content property for templates
-      if (overlay.type === 'history_bar') {
-        const historyBarContent = overlay.content || overlay._raw?.content || '';
-        if (historyBarContent && typeof historyBarContent === 'string' && this._hasAnyTemplateMarkers(historyBarContent)) {
-          return true;
-        }
-      }
-
       return false;
     }
   }
@@ -426,38 +403,6 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Sparkline update logic with enhanced synchronization
-   * @private
-   * @param {string} overlayId - Overlay identifier
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} sourceData - Updated source data
-   */
-  _updateSparkline(overlayId, overlay, sourceData) {
-    if (this.systemsManager.renderer && this.systemsManager.renderer.updateSparklineData) {
-      this.systemsManager.renderer.updateSparklineData(overlayId, sourceData);
-    } else if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-      this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
-    } else {
-      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for sparkline overlay ${overlayId}`);
-    }
-  }
-
-  /**
-   * History bar update logic with data visualization
-   * @private
-   * @param {string} overlayId - Overlay identifier
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} sourceData - Updated source data
-   */
-  _updateHistoryBar(overlayId, overlay, sourceData) {
-    if (this.systemsManager.renderer && this.systemsManager.renderer.updateOverlayData) {
-      this.systemsManager.renderer.updateOverlayData(overlayId, sourceData);
-    } else {
-      cblcarsLog.warn(`[BaseOverlayUpdater] ⚠️ No renderer method available for history_bar overlay ${overlayId}`);
-    }
-  }
-
-  /**
    * Update button overlay with new DataSource data
    * @private
    * @param {string} overlayId - Overlay identifier
@@ -597,18 +542,6 @@ export class BaseOverlayUpdater {
   }
 
   /**
-   * Check if history bar needs update
-   * @private
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} sourceData - Source data
-   * @returns {boolean} True if update needed
-   */
-  _historyBarNeedsUpdate(overlay, sourceData) {
-    // History bars need updates if they have templates OR if they visualize data from the changed source
-    return this._hasTemplateContent(overlay) || this._historyBarUsesDataSource(overlay, sourceData);
-  }
-
-  /**
    * Check if ApexChart needs update
    * @private
    * @param {Object} overlay - Overlay configuration
@@ -620,39 +553,6 @@ export class BaseOverlayUpdater {
     // 1. Their DataSource changes (data updates)
     // 2. Their style changes (rule-driven patches)
     return true; // Always check for updates
-  }
-
-  /**
-   * Check if history bar needs data updates
-   * @private
-   * @param {Object} overlay - Overlay configuration
-   * @returns {boolean} True if data updates needed
-   */
-  _historyBarNeedsDataUpdates(overlay) {
-    // History bars always need updates for data visualization, even without templates
-    return !!overlay.source;
-  }
-
-  /**
-   * Check if history bar uses specific DataSource
-   * @private
-   * @param {Object} overlay - Overlay configuration
-   * @param {Object} sourceData - Source data
-   * @returns {boolean} True if history bar uses the DataSource
-   */
-  _historyBarUsesDataSource(overlay, sourceData) {
-    if (!overlay.source || !sourceData?.entity) return false;
-
-    // Find the DataSource that corresponds to this entity
-    if (this.systemsManager.dataSourceManager) {
-      for (const [sourceId, source] of this.systemsManager.dataSourceManager.sources || new Map()) {
-        if (source.cfg && source.cfg.entity === sourceData.entity && overlay.source === sourceId) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   /**

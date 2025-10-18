@@ -724,13 +724,11 @@ export class ActionHelpers {
    *         # Uses overlay default action
    * ```
    *
-   * ===== CURRENT IMPLEMENTATION STATUS =====
-   *
    * ✅ StatusGrid: Full action support (overlay + cell level)
    * ✅ TextOverlay: Full action support (overlay level)
-   * 🔄 BarChartOverlay: Planned
-   * 🔄 HistoryBarOverlay: Planned
-   */  /**
+   */
+
+  /**
    * Resolve card instance for action handling from global context
    * Utility method for overlay renderers
    * @returns {Object|null} Card instance or null if not found
