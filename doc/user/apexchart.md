@@ -213,6 +213,435 @@ style:
   animation_speed: 800          # Milliseconds
 ```
 
+## Animation Presets
+
+ApexCharts supports **pre-configured animation profiles** that control how charts appear and update. Animation presets provide consistent, LCARS-appropriate motion without manual configuration.
+
+### Available Animation Presets
+
+| Preset | Speed | Gradual Delay | Update Speed | Best For |
+|--------|-------|---------------|--------------|----------|
+| `lcars_standard` | 800ms | 150ms | 350ms | Default - balanced performance |
+| `lcars_dramatic` | 1200ms | 200ms | 500ms | Important displays, status changes |
+| `lcars_minimal` | 400ms | None | 200ms | Secondary displays, quick updates |
+| `lcars_realtime` | Disabled | None | 100ms | Live sensor feeds, high-frequency data |
+| `lcars_alert` | 600ms | 100ms | 250ms | Attention-grabbing, warnings |
+| `none` | Disabled | None | Disabled | Accessibility, performance-critical |
+
+### Using Animation Presets
+
+Add the `animation_preset` property to your overlay configuration:
+
+```yaml
+overlays:
+  - id: my_chart
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_standard"  # ✨ Apply preset
+    source: temperature
+    position: [50, 100]
+    size: [300, 150]
+```
+
+### Animation Preset Examples
+
+#### Example 1: Dramatic Entrance (Important Displays)
+
+Use `lcars_dramatic` for critical system displays that need emphasis.
+
+```yaml
+overlays:
+  - id: warp_core_status
+    type: apexchart
+    template: "power_monitor"
+    animation_preset: "lcars_dramatic"  # 1200ms cinematic entrance
+    source: warp_core_power
+    position: [50, 100]
+    size: [400, 200]
+```
+
+**Effect:** Chart smoothly animates in over 1.2 seconds with gradual delay between series.
+
+---
+
+#### Example 2: Realtime Data (Live Feeds)
+
+Use `lcars_realtime` for high-frequency updating data.
+
+```yaml
+overlays:
+  - id: network_traffic
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_realtime"  # No entrance, fast updates
+    source: live_network_data
+    position: [50, 100]
+    size: [300, 150]
+```
+
+**Effect:** No initial animation, data points update instantly (100ms transitions).
+
+---
+
+#### Example 3: Alert Display (Attention-Grabbing)
+
+Use `lcars_alert` for warning or critical status displays.
+
+```yaml
+overlays:
+  - id: shield_warning
+    type: apexchart
+    template: "gauge_radial"
+    animation_preset: "lcars_alert"  # Quick, attention-grabbing
+    source: shield_status
+    position: [50, 100]
+    size: [200, 200]
+```
+
+**Effect:** Fast 600ms entrance with quick updates, draws attention without being jarring.
+
+---
+
+#### Example 4: Minimal Animation (Performance)
+
+Use `lcars_minimal` for secondary displays or performance-constrained environments.
+
+```yaml
+overlays:
+  - id: secondary_temp
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_minimal"  # Quick, subtle
+    source: secondary_temperature
+    position: [370, 100]
+    size: [300, 150]
+```
+
+**Effect:** Brief 400ms entrance, faster updates (200ms).
+
+---
+
+#### Example 5: No Animation (Accessibility)
+
+Use `none` for accessibility needs or when animations cause issues.
+
+```yaml
+overlays:
+  - id: static_chart
+    type: apexchart
+    template: "comparison_bar"
+    animation_preset: "none"  # Completely disabled
+    source: resource_data
+    position: [50, 100]
+    size: [300, 150]
+```
+
+**Effect:** Chart appears instantly, no transitions on updates.
+
+---
+
+### Combining Presets with Templates
+
+Animation presets work seamlessly with chart templates:
+
+```yaml
+overlays:
+  # Template provides chart configuration
+  # Preset provides animation behavior
+  - id: sensor_display
+    type: apexchart
+    template: "sensor_monitor"          # Chart appearance
+    animation_preset: "lcars_standard"  # Animation behavior
+    source: temperature
+    position: [50, 100]
+    size: [300, 150]
+```
+
+**Benefit:** Separate concerns - templates define *what* the chart looks like, presets define *how* it animates.
+
+---
+
+### Overriding Animation Presets
+
+You can override preset values using `chart_options`:
+
+```yaml
+overlays:
+  - id: custom_animation
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_standard"  # Base: 800ms
+    source: temperature
+    position: [50, 100]
+    size: [300, 150]
+    style:
+      chart_options:
+        chart:
+          animations:
+            speed: 1500  # Override: 800ms → 1500ms
+            easing: "easeout"  # Override easing
+```
+
+**Precedence:** `chart_options` > `animation_preset` > defaults
+
+---
+
+### Animation Preset Behavior Details
+
+#### LCARS Standard (Default)
+
+```yaml
+animation_preset: "lcars_standard"
+```
+
+**Characteristics:**
+- Entrance: 800ms smooth animation
+- Gradual delay: 150ms between series
+- Update speed: 350ms for data changes
+- Easing: `easeinout` (smooth acceleration/deceleration)
+
+**Use when:** You want balanced, professional animation for most displays.
+
+---
+
+#### LCARS Dramatic (Cinematic)
+
+```yaml
+animation_preset: "lcars_dramatic"
+```
+
+**Characteristics:**
+- Entrance: 1200ms slow, cinematic animation
+- Gradual delay: 200ms between series
+- Update speed: 500ms for data changes
+- Easing: `easeout` (starts fast, slows down)
+
+**Use when:** Chart represents critical data or important status changes.
+
+---
+
+#### LCARS Minimal (Quick)
+
+```yaml
+animation_preset: "lcars_minimal"
+```
+
+**Characteristics:**
+- Entrance: 400ms fast animation
+- Gradual delay: Disabled
+- Update speed: 200ms for data changes
+- Easing: `easein` (starts slow, speeds up)
+
+**Use when:** Chart is secondary or you need quick responsiveness.
+
+---
+
+#### LCARS Realtime (Live Data)
+
+```yaml
+animation_preset: "lcars_realtime"
+```
+
+**Characteristics:**
+- Entrance: **Disabled** (appears instantly)
+- Gradual delay: Disabled
+- Update speed: 100ms for data changes
+- Easing: `linear`
+
+**Use when:** Displaying live sensor feeds, network traffic, or high-frequency data.
+
+---
+
+#### LCARS Alert (Attention)
+
+```yaml
+animation_preset: "lcars_alert"
+```
+
+**Characteristics:**
+- Entrance: 600ms attention-grabbing animation
+- Gradual delay: 100ms between series
+- Update speed: 250ms for data changes
+- Easing: `easeout`
+
+**Use when:** Displaying warnings, alerts, or status that requires attention.
+
+---
+
+#### None (Disabled)
+
+```yaml
+animation_preset: "none"
+```
+
+**Characteristics:**
+- Entrance: **Disabled**
+- Gradual delay: Disabled
+- Update speed: **Disabled** (instant)
+- Easing: `linear`
+
+**Use when:**
+- Accessibility needs (motion sensitivity)
+- Performance-critical environments
+- Testing/debugging
+- Static displays that don't need animation
+
+---
+
+### Animation Preset Best Practices
+
+#### 1. Match Preset to Data Frequency
+
+```yaml
+# High-frequency data (updates every second)
+- animation_preset: "lcars_realtime"
+
+# Medium-frequency data (updates every 5-10 seconds)
+- animation_preset: "lcars_standard"
+
+# Low-frequency data (updates every minute+)
+- animation_preset: "lcars_dramatic"
+```
+
+#### 2. Consider Display Hierarchy
+
+```yaml
+# Primary display (user's focus)
+- animation_preset: "lcars_dramatic"
+
+# Secondary displays (context)
+- animation_preset: "lcars_standard"
+
+# Tertiary displays (background info)
+- animation_preset: "lcars_minimal"
+```
+
+#### 3. Respect User Preferences
+
+```yaml
+# For users with motion sensitivity
+- animation_preset: "none"
+
+# Or use minimal animation
+- animation_preset: "lcars_minimal"
+```
+
+#### 4. Performance Considerations
+
+```yaml
+# Many charts on one page
+- animation_preset: "lcars_minimal"  # or "none"
+
+# Complex charts (many data points)
+- animation_preset: "lcars_realtime"  # Fast updates
+
+# Simple charts (few data points)
+- animation_preset: "lcars_standard"  # Full animation
+```
+
+---
+
+### Testing Animation Presets
+
+Try all presets to find the right feel for your display:
+
+```yaml
+overlays:
+  # Test: Standard (800ms)
+  - id: test_standard
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_standard"
+    source: test_data
+    position: [50, 50]
+    size: [300, 150]
+
+  # Test: Dramatic (1200ms)
+  - id: test_dramatic
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_dramatic"
+    source: test_data
+    position: [50, 220]
+    size: [300, 150]
+
+  # Test: Minimal (400ms)
+  - id: test_minimal
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_minimal"
+    source: test_data
+    position: [50, 390]
+    size: [300, 150]
+
+  # Test: Realtime (no entrance)
+  - id: test_realtime
+    type: apexchart
+    template: "sensor_monitor"
+    animation_preset: "lcars_realtime"
+    source: test_data
+    position: [50, 560]
+    size: [300, 150]
+```
+
+**Tip:** Reload the page to see entrance animations, then watch data updates to see update animations.
+
+---
+
+### Troubleshooting Animation Presets
+
+#### Animation Not Working
+
+**Symptom:** Chart appears instantly despite preset
+
+**Solutions:**
+1. Check preset name is correct (case-sensitive)
+2. Ensure `animatable: false` is not set in style
+3. Verify pack with presets is loaded (`builtin_themes`)
+4. Check browser console for preset loading errors
+
+```yaml
+# ❌ Wrong
+animation_preset: "LCARS_Standard"  # Wrong case
+
+# ✅ Correct
+animation_preset: "lcars_standard"
+```
+
+---
+
+#### Animation Too Slow/Fast
+
+**Solution:** Override with `chart_options`
+
+```yaml
+style:
+  animation_preset: "lcars_standard"
+  chart_options:
+    chart:
+      animations:
+        speed: 500  # Adjust speed
+```
+
+---
+
+#### Animation Causing Performance Issues
+
+**Solution:** Use lighter preset or disable
+
+```yaml
+# Option 1: Lighter preset
+animation_preset: "lcars_minimal"
+
+# Option 2: Realtime (fast updates only)
+animation_preset: "lcars_realtime"
+
+# Option 3: Completely disable
+animation_preset: "none"
+```
+
+---
+
 ## Complete Example
 
 ```yaml

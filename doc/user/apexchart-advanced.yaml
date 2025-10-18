@@ -394,3 +394,75 @@ msd:
           tooltip:
             fixed:
               enabled: false
+
+    # ========================================
+    # ANIMATION PRESET EXAMPLES (Phase 3)
+    # ========================================
+
+    # Example 21: Dramatic Entrance
+    - id: dramatic_warp_core
+      type: apexchart
+      template: "power_monitor"
+      animation_preset: "lcars_dramatic"  # 1200ms cinematic
+      source: warp_core_power
+      position: [50, 2130]
+      size: [400, 200]
+
+    # Example 22: Realtime Network Feed
+    - id: realtime_network
+      type: apexchart
+      template: "sensor_monitor"
+      animation_preset: "lcars_realtime"  # No entrance, fast updates
+      source: network_traffic
+      position: [470, 2130]
+      size: [300, 150]
+
+    # Example 23: Alert Gauge
+    - id: alert_shield
+      type: apexchart
+      template: "gauge_radial"
+      animation_preset: "lcars_alert"  # Attention-grabbing
+      source: shield_status
+      position: [50, 2350]
+      size: [200, 200]
+
+    # Example 24: Minimal Secondary Display
+    - id: minimal_humidity
+      type: apexchart
+      template: "sensor_monitor"
+      animation_preset: "lcars_minimal"  # Quick, subtle
+      source: humidity
+      position: [270, 2350]
+      size: [300, 150]
+
+    # Example 25: Static Accessibility Chart
+    - id: static_comparison
+      type: apexchart
+      template: "comparison_bar"
+      animation_preset: "none"  # No animations
+      source: resource_comparison
+      position: [590, 2350]
+      size: [300, 150]
+
+    # Example 26: Custom Animation Override
+    - id: custom_speed
+      type: apexchart
+      template: "sensor_monitor"
+      animation_preset: "lcars_standard"
+      source: temperature
+      position: [50, 2520]
+      size: [300, 150]
+      style:
+        chart_options:
+          chart:
+            animations:
+              speed: 1500  # Override: 800ms → 1500ms
+
+    # Example 27: Multi-Series with Gradual Delay
+    - id: gradual_series
+      type: apexchart
+      template: "multi_metric"
+      animation_preset: "lcars_dramatic"  # 200ms delay between series
+      source: [temp, humidity, pressure]
+      position: [370, 2520]
+      size: [400, 200]

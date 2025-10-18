@@ -528,6 +528,118 @@ const BUILTIN_THEMES_PACK = {
   defaultTheme: 'lcars-classic',
 
   /**
+   * Chart Animation Presets
+   *
+   * Pre-configured animation profiles for ApexCharts.
+   * Uses native ApexCharts animation system (no Anime.js integration yet).
+   */
+  chartAnimationPresets: {
+    /**
+     * LCARS Standard - Smooth and professional
+     * Use: Default for most charts
+     */
+    lcars_standard: {
+      enabled: true,
+      easing: 'easeinout',
+      speed: 800,
+      animateGradually: {
+        enabled: true,
+        delay: 150
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 350
+      }
+    },
+
+    /**
+     * LCARS Dramatic - Cinematic entrance
+     * Use: Important reveals, status changes, alerts
+     */
+    lcars_dramatic: {
+      enabled: true,
+      easing: 'easeout',
+      speed: 1200,
+      animateGradually: {
+        enabled: true,
+        delay: 200
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 500
+      }
+    },
+
+    /**
+     * LCARS Minimal - Quick and responsive
+     * Use: Secondary displays, less critical data
+     */
+    lcars_minimal: {
+      enabled: true,
+      easing: 'easein',
+      speed: 400,
+      animateGradually: {
+        enabled: false
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 200
+      }
+    },
+
+    /**
+     * LCARS Realtime - Optimized for high-frequency updates
+     * Use: Live sensor feeds, network traffic, system monitors
+     */
+    lcars_realtime: {
+      enabled: false,  // No entrance animation
+      easing: 'linear',
+      speed: 0,
+      animateGradually: {
+        enabled: false
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 100  // Very fast data updates
+      }
+    },
+
+    /**
+     * LCARS Alert - Attention-grabbing
+     * Use: Critical alerts, warnings, emergency displays
+     */
+    lcars_alert: {
+      enabled: true,
+      easing: 'easeout',
+      speed: 600,
+      animateGradually: {
+        enabled: true,
+        delay: 100
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 250
+      }
+    },
+
+    /**
+     * None - Disable all animations
+     * Use: Performance-critical situations, accessibility needs
+     */
+    none: {
+      enabled: false,
+      easing: 'linear',
+      speed: 0,
+      animateGradually: {
+        enabled: false
+      },
+      dynamicAnimation: {
+        enabled: false
+      }
+    }
+  },
+
+  /**
    * Chart Templates
    *
    * Reusable chart configurations that can be referenced in overlay configs.

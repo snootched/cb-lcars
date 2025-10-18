@@ -204,7 +204,7 @@ export class ApexChartsAdapter {
     // Build base ApexCharts options
     const baseOptions = {
       chart: {
-        type: style.chart_type || 'line',
+        type: chartType,
         width: size[0],
         height: size[1],
         animations: {
@@ -274,9 +274,19 @@ export class ApexChartsAdapter {
 
     // NEW: Apply type-specific LCARS defaults
     const typeDefaults = this._getChartTypeDefaults(chartType, style);
-
-    // Deep merge type defaults with base options
     const optionsWithTypeDefaults = this._deepMerge(baseOptions, typeDefaults);
+
+    // NEW: Apply animation preset if specified (after type defaults, before chart_options)
+    if (style.animation_preset) {
+      const animationPreset = this._getAnimationPreset(style.animation_preset);
+      if (animationPreset) {
+        optionsWithTypeDefaults.chart.animations = {
+          ...optionsWithTypeDefaults.chart.animations,
+          ...animationPreset
+        };
+        cblcarsLog.debug(`[ApexChartsAdapter] Applied animation preset: ${style.animation_preset}`);
+      }
+    }
 
     // Apply chart_options overrides (highest precedence)
     if (style.chart_options) {
@@ -286,10 +296,45 @@ export class ApexChartsAdapter {
     cblcarsLog.debug('[ApexChartsAdapter] Generated options with tokens:', {
       colors: baseOptions.colors?.length || 0,
       chartType,
-      hasTypeDefaults: Object.keys(typeDefaults).length > 0
+      hasTypeDefaults: Object.keys(typeDefaults).length > 0,
+      hasAnimationPreset: !!style.animation_preset
     });
 
     return optionsWithTypeDefaults;
+  }
+
+  /**
+   * Get animation preset from pack registry
+   * @private
+   * @param {string} presetName - Animation preset name
+   * @returns {Object|null} Animation configuration or null
+   */
+  static _getAnimationPreset(presetName) {
+    try {
+      // Access pack registry via global debug object
+      const packRegistry = window.__msdDebug?.pipelineInstance?.systemsManager?.packRegistry;
+
+      if (!packRegistry) {
+        cblcarsLog.warn('[ApexChartsAdapter] PackRegistry not available for animation presets');
+        return null;
+      }
+
+      // Check all packs for animation presets
+      const packs = packRegistry.getAllPacks();
+      for (const pack of packs) {
+        if (pack.chartAnimationPresets && pack.chartAnimationPresets[presetName]) {
+          cblcarsLog.debug(`[ApexChartsAdapter] Found animation preset '${presetName}' in pack: ${pack.id}`);
+          return pack.chartAnimationPresets[presetName];
+        }
+      }
+
+      cblcarsLog.warn(`[ApexChartsAdapter] Animation preset not found: ${presetName}`);
+      return null;
+
+    } catch (error) {
+      cblcarsLog.error('[ApexChartsAdapter] Error loading animation preset:', error);
+      return null;
+    }
   }
 
   /**
