@@ -1,23 +1,23 @@
-# MSD Configuration Layering & Defaults System
+# MSD Configuration Layering & Theme System
 
-This document explains how configuration flows through the MSD system, from packs to final resolved values.
+This document explains how configuration flows through the MSD system, from themes to final resolved values.
 
 ## 1. Configuration Sources & Priority
 
-The MSD system uses a **layered configuration approach** with clear priority ordering:
+The MSD system uses a **unified theme-based approach** with clear priority ordering:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                   FINAL RESOLVED VALUES                    │
-│                    (what gets rendered)                    │
+│                   FINAL RESOLVED VALUES                     │
+│                    (what gets rendered)                     │
 └─────────────────────────────────────────────────────────────┘
                             ▲
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. STYLE RESOLUTION (in StatusGridRenderer._resolveStyles) │
-│    • Uses DefaultsManager.resolve() for fallbacks          │
-│    • Applies button presets via _applyButtonPreset()       │
-│    • Smart calculations (font-relative spacing, etc.)      │
+│ 5. STYLE RESOLUTION (in Renderer._resolveStyles)           │
+│    • Uses ThemeManager.getDefault() for component defaults │
+│    • Applies style presets via preset system               │
+│    • Smart calculations (token resolution, etc.)           │
 └─────────────────────────────────────────────────────────────┘
                             ▲
                             │
@@ -29,236 +29,332 @@ The MSD system uses a **layered configuration approach** with clear priority ord
                             ▲
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. DEFAULTS MANAGER LAYERS (mergePacks.js → DefaultsManager)│
-│    ┌─ User Layer (priority 1000) ─────────────────────────┐ │
-│    │   • User's direct defaults in config                │ │
-│    ├─ Pack Layer (priority 100+) ──────────────────────--┤ │
-│    │   • CB-LCARS pack: text_padding: 12, cell_radius: 8 │ │
-│    │   • Other loaded packs                              │ │
-│    ├─ Theme Layer (priority 50) ─────────────────────────┤ │
-│    │   • Theme-specific defaults                         │ │
-│    └─ Builtin Layer (priority 10) ──────────────────────┘ │
-│        • Core MSD defaults: text_padding: 8, etc.        │
+│ 3. STYLE PRESETS (named style bundles)                     │
+│    • CB-LCARS button presets (lozenge, bullet, etc.)      │
+│    • Complete style configurations                          │
+│    • Applied via lcars_button_preset: "preset_name"        │
 └─────────────────────────────────────────────────────────────┘
                             ▲
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. PACK LOADING & MERGING (mergePacks.js)                  │
-│    • Loads packs from use_packs: { builtin: [...] }        │
-│    • Merges pack profiles into unified config              │
-│    • Creates __provenance for tracking                     │
+│ 2. THEME SYSTEM (ThemeManager)                             │
+│    ┌─ Active Theme (e.g., lcars-classic) ─────────────────┐│
+│    │   • Component defaults from theme tokens            ││
+│    │   • text.defaultSize: 'typography.fontSize.base'    ││
+│    │   • statusGrid.textPadding: 'spacing.scale.4'       ││
+│    │   • Token resolution (colors, spacing, typography)  ││
+│    └─────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────┘
                             ▲
                             │
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. RAW USER CONFIGURATION                                  │
+│ 1. PACK LOADING & THEME SELECTION (mergePacks.js)          │
+│    • Loads builtin_themes pack (always)                    │
+│    • Loads other packs (core, cb_lcars_buttons, etc.)      │
+│    • Loads user-selected theme or default theme            │
+│    • Registers style presets from packs                    │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│ 0. RAW USER CONFIGURATION                                  │
 │    • YAML config from user                                 │
-│    • Specifies which packs to use                          │
+│    • Specifies which theme to use                          │
+│    • Specifies which packs to load                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ## 2. Detailed Flow
 
-### Step 1: Pack Loading (mergePacks.js)
-```javascript
-// User config specifies which packs to load
-userConfig = {
-  use_packs: {
+### Step 0: User Configuration
+```yaml
+# User config specifies theme and packs
+msd:
+  theme: "lcars-classic"          # Select active theme
+  use_packs:
     builtin: ['core', 'cb_lcars_buttons']
+  overlays:
+    - id: my_grid
+      type: status_grid
+      style:
+        lcars_button_preset: "lozenge"  # Apply preset
+        cell_color: "#ff6600"            # User override
+```
+
+### Step 1: Pack Loading & Theme Initialization (mergePacks.js + SystemsManager.js)
+```javascript
+// mergePacks.js loads all specified packs + builtin_themes (always)
+const packsToLoad = [...userPacks, 'builtin_themes'];
+const packs = loadBuiltinPacks(packsToLoad);
+
+// SystemsManager initializes ThemeManager with loaded packs
+await this.themeManager.initialize(packs, requestedTheme, mountEl);
+
+// ThemeManager loads the active theme's tokens
+const theme = packs.find(p => p.id === 'builtin_themes').themes[requestedTheme];
+this.activeTheme = theme;
+this.tokens = theme.tokens; // lcarsClassicTokens
+```
+
+### Step 2: Theme Token Structure
+```javascript
+// Theme tokens contain component defaults
+lcarsClassicTokens = {
+  colors: {
+    accent: { primary: 'var(--lcars-orange)' },
+    status: { success: 'var(--lcars-green)' }
   },
-  overlays: [...]
-}
-
-// mergePacks.js loads the specified packs
-const builtinPacks = loadBuiltinPacks(['core', 'cb_lcars_buttons']);
-// Result: [corePack, cbLcarsPack] with their profiles/defaults
-```
-
-### Step 2: Defaults Manager Population (SystemsManager.js)
-```javascript
-// SystemsManager extracts pack defaults and loads them
-const packs = loadBuiltinPacks(packNames);
-this.defaultsManager.loadFromPacks(packs);
-
-// This processes pack.profiles[].defaults into layers:
-// Pack Layer gets: status_grid.text_padding = 12 (from CB-LCARS pack)
-// Builtin Layer has: status_grid.text_padding = 8 (from core defaults)
-```
-
-### Step 3: Style Resolution (StatusGridRenderer.js)
-```javascript
-_resolveStatusGridStyles(style, overlayId, overlay) {
-  // 1. Use user's direct style values first
-  const userTextPadding = style.text_padding || style.textPadding;
-
-  // 2. Fall back to defaults manager (which checks layers in priority order)
-  const defaultTextPadding = this._getDefault('status_grid.text_padding', 8);
-
-  // 3. Final value uses user value OR defaults manager value
-  const finalTextPadding = userTextPadding || defaultTextPadding;
-
-  // 4. Apply button presets (which can override the above)
-  if (gridStyle.lcars_button_preset) {
-    this._applyButtonPreset(gridStyle, presetName); // May set text_padding: 10
-  }
-}
-```
-
-## 3. DefaultsManager Layer Resolution
-
-The DefaultsManager resolves values using **priority-based layer checking**:
-
-```javascript
-// When StatusGridRenderer calls: this._getDefault('status_grid.text_padding', 8)
-DefaultsManager.resolve('status_grid.text_padding') {
-  // Check layers in priority order (high to low):
-
-  // 1. User Layer (priority 1000) - user's explicit defaults
-  if (userLayer.has('status_grid.text_padding')) return userLayer.get(...);
-
-  // 2. Pack Layer (priority 100+) - CB-LCARS pack defaults
-  if (packLayer.has('status_grid.text_padding')) return 12; // ← CB-LCARS value!
-
-  // 3. Theme Layer (priority 50) - theme defaults
-  if (themeLayer.has('status_grid.text_padding')) return themeLayer.get(...);
-
-  // 4. Builtin Layer (priority 10) - core MSD defaults
-  if (builtinLayer.has('status_grid.text_padding')) return 8; // ← Core fallback
-
-  // 5. No default found
-  return null;
-}
-```
-
-## 4. Pack Structure & Profile Processing
-
-### Pack Definition (loadBuiltinPacks.js)
-```javascript
-const CB_LCARS_BUTTONS_PACK = {
-  id: 'cb_lcars_buttons',
-
-  // PROFILES: Provide defaults to DefaultsManager (fallback values)
-  profiles: [
-    {
-      id: 'cb_button_defaults',
-      defaults: {
-        status_grid: {
-          text_padding: 12,     // ← This becomes pack layer value
-          cell_radius: 8,       // ← This overrides builtin value of 2
-          text_margin: 3        // ← Enhanced spacing
-        }
-      }
-    }
-  ],
-
-  // STYLE PRESETS: Named style bundles for applying complete style sets
-  style_presets: {
-    status_grid: {
-      lozenge: {
-        text_layout: 'diagonal',
-        label_position: 'top-left',
-        value_position: 'bottom-right',
-        cell_radius: 12,
-        text_padding: 10,
-        // Any style property can be included
-      }
-    }
+  typography: {
+    fontSize: { base: 16 },
+    fontFamily: { primary: 'Antonio' }
   },
-
-  // PALETTES: Named color schemes
-  palettes: {
-    cb_lcars_buttons: {
-      primary: 'var(--lcars-blue, #0088ff)',
-      'picard-gold': '#d4af37'
+  spacing: {
+    scale: { '4': 8 },
+    gap: { base: 4 }
+  },
+  components: {
+    text: {
+      defaultSize: 'typography.fontSize.base',   // Token reference
+      defaultColor: 'colors.ui.foreground',       // Token reference
+      bracket: {
+        width: 'borders.width.base',              // Token reference
+        gap: 'spacing.gap.base',                  // Token reference
+        extension: 8                               // Direct value
+      }
+    },
+    statusGrid: {
+      rows: 3,
+      columns: 4,
+      cellGap: 'spacing.gap.sm',
+      textPadding: 'spacing.scale.4',
+      statusOnColor: 'colors.status.success'
     }
   }
 }
 ```
 
-### Profile Processing (MsdDefaultsManager.js)
+### Step 3: Style Resolution in Renderers
 ```javascript
-loadFromPacks(packs) {
-  packs.forEach(pack => {
-    pack.profiles?.forEach(profile => {
-      if (profile.defaults) {
-        // Flatten nested defaults: { status_grid: { text_padding: 12 } }
-        // Becomes: "status_grid.text_padding" → 12
-        const flattened = this.flattenDefaults(profile.defaults);
+// StatusGridRenderer.js
+_resolveStatusGridStyles(style, overlayId) {
+  // 1. Get component defaults from ThemeManager
+  const defaultRows = this._getDefault('statusGrid.rows', 3);
+  const defaultCellGap = this._getDefault('statusGrid.cellGap', 2);
+  const defaultTextPadding = this._getDefault('statusGrid.textPadding', 8);
 
-        // Store in pack layer
-        this.layers.get('pack').set('status_grid.text_padding', 12);
-      }
-    });
-  });
+  // ThemeManager resolves:
+  // 'statusGrid.rows' → 3 (direct value from theme)
+  // 'statusGrid.cellGap' → 'spacing.gap.sm' → 2 (token resolution)
+  // 'statusGrid.textPadding' → 'spacing.scale.4' → 8 (token resolution)
+
+  // 2. Apply style preset if specified
+  if (style.lcars_button_preset) {
+    const preset = stylePresetManager.getPreset('status_grid', style.lcars_button_preset);
+    // Preset may override theme defaults
+  }
+
+  // 3. Apply user style values (highest priority)
+  const finalCellGap = style.cell_gap || presetCellGap || defaultCellGap;
 }
 ```
 
-## 5. Style Presets System
+### Step 4: ThemeManager Resolution
+```javascript
+// ThemeManager.getDefault(componentType, property, fallback)
+getDefault(componentType, property, fallback) {
+  // 1. Build full path: components.statusGrid.cellGap
+  const fullPath = `components.${componentType}.${property}`;
 
-Style presets work as **named style bundles** that can be applied to overlays:
+  // 2. Look up in active theme tokens
+  const value = this._resolvePath(this.tokens, fullPath);
+
+  // 3. If value is a token reference, resolve it
+  if (this._isTokenReference(value)) {
+    return this._resolveTokenReference(value);
+    // 'spacing.gap.sm' → tokens.spacing.gap.sm → 2
+  }
+
+  // 4. Return resolved value or fallback
+  return value !== undefined ? value : fallback;
+}
+```
+
+## 3. Style Presets System
+
+Style presets provide **named style bundles** independent of themes:
 
 ```javascript
-// In user config:
+// Pack definition (cb_lcars_buttons pack)
+style_presets: {
+  status_grid: {
+    lozenge: {
+      text_layout: 'diagonal',
+      label_position: 'top-left',
+      value_position: 'bottom-right',
+      cell_radius: 34,
+      text_padding: 14,
+      normalize_radius: false
+    }
+  }
+}
+
+// User applies preset
 style: {
-  lcars_button_preset: "lozenge",  // Loads preset from pack
+  lcars_button_preset: "lozenge",  // Loads all lozenge properties
   cell_color: "#ff6600"            // User override
 }
-
-// StatusGridRenderer loads preset from pack and applies:
-// 1. All preset properties (text_layout, cell_radius, etc.)
-// 2. Respects user overrides (cell_color wins over preset)
 ```
 
-### How Presets Work
-
-1. **Pack Definition**: Style presets defined in pack `style_presets` section
-2. **Runtime Loading**: StatusGridRenderer loads preset by name from loaded packs
-3. **Style Application**: All preset properties applied to overlay style
-4. **User Override**: Explicit user properties always win over preset values
-
-### Preset vs Defaults vs User Values
+### Preset vs Theme vs User Values
 
 ```yaml
-# Pack defines preset:
-style_presets:
-  status_grid:
-    lozenge:
-      text_padding: 10      # Preset value
-      cell_radius: 12       # Preset value
+# Theme provides defaults:
+components.statusGrid.textPadding: 'spacing.scale.4' → 8
 
-# User applies preset + override:
+# Preset overrides theme:
+lozenge: { text_padding: 14 }
+
+# User overrides everything:
 style:
-  lcars_button_preset: "lozenge"  # Loads preset
-  text_padding: 15                # USER WINS: final value is 15
-  # cell_radius not specified     # PRESET WINS: uses 12
+  lcars_button_preset: "lozenge"  # Loads preset (text_padding: 14)
+  text_padding: 20                # USER WINS: final value is 20
 ```
 
-## 6. Priority Summary
+## 4. Priority Summary
 
 From **highest to lowest priority**:
 
-1. **User Style Properties** - Direct `style.text_padding` values (highest priority)
+1. **User Style Properties** - Direct `style.text_padding` values (highest)
 2. **Style Preset Values** - `lcars_button_preset: "lozenge"` properties
-3. **User Defaults Layer** - User's explicit defaults
-4. **Pack Defaults Layer** - CB-LCARS pack defaults ← **Fallback values**
-5. **Theme Defaults Layer** - Theme-specific defaults
-6. **Builtin Defaults Layer** - Core MSD defaults
-7. **Hardcoded Fallbacks** - Last resort values in code (lowest priority)## 7. Debug Commands
+3. **Theme Component Defaults** - `components.statusGrid.textPadding` in theme
+4. **Hardcoded Fallbacks** - Last resort values in code (lowest)
+
+**Note:** The old system had 7 layers (profiles, pack layer, theme layer, etc.).
+The new system has **4 clear layers** with themes providing all defaults.
+
+## 5. Theme Token Resolution
+
+Themes support **token references** for consistency:
 
 ```javascript
-// Check what packs are loaded
-window.__msdDebug?.pipelineInstance?.config?.__provenance?.merge_order
+// Theme tokens
+{
+  spacing: {
+    scale: { '4': 8 }
+  },
+  components: {
+    statusGrid: {
+      textPadding: 'spacing.scale.4'  // Token reference
+    }
+  }
+}
 
-// Check defaults manager layers
-const dm = window.cblcars.defaults;
-console.log('Pack layer:', Array.from(dm.layers.get('pack').entries()));
+// Resolution
+ThemeManager.getDefault('statusGrid', 'textPadding', 8)
+// → Looks up 'components.statusGrid.textPadding'
+// → Finds 'spacing.scale.4'
+// → Resolves to 8
+// → Returns 8
+```
 
-// Check final resolved value
-console.log('Final text_padding:', dm.resolve('status_grid.text_padding'));
+### Supported Token Categories:
+- `colors.*` - Color palette
+- `typography.*` - Font settings
+- `spacing.*` - Spacing scales
+- `borders.*` - Border properties
+- `effects.*` - Visual effects
+- `components.*` - Component defaults
+
+## 6. Migration from Old System
+
+### Old System (Deprecated):
+```yaml
+profiles:
+  - id: cb_button_defaults
+    defaults:
+      status_grid:
+        text_padding: 12  # Pack-level default
+```
+
+### New System (Current):
+```javascript
+// Theme tokens
+lcarsClassicTokens = {
+  components: {
+    statusGrid: {
+      textPadding: 'spacing.scale.4'  // Theme-level default
+    }
+  }
+}
+```
+
+**Benefits:**
+- ✅ **Simpler** - Only 4 layers instead of 7
+- ✅ **More powerful** - Token resolution and computed values
+- ✅ **Better organized** - All defaults in theme files
+- ✅ **Easier to maintain** - No profile system complexity
+
+## 7. Debug Commands
+
+```javascript
+// Check active theme
+const themeManager = window.cblcars.theme;
+console.log('Active theme:', themeManager.getActiveTheme());
+
+// Check theme tokens
+console.log('Theme tokens:', themeManager.tokens);
+
+// Check component default
+console.log('StatusGrid textPadding:',
+  themeManager.getDefault('statusGrid', 'textPadding', 8)
+);
+
+// List available themes
+console.log('Available themes:', themeManager.listThemes());
 
 // Check renderer connection
 const renderer = new window.StatusGridRenderer();
-console.log('Renderer gets:', renderer._getDefault('status_grid.text_padding', 'FALLBACK'));
+console.log('Renderer gets:',
+  renderer._getDefault('statusGrid.textPadding', 8)
+);
 ```
 
-This system provides **maximum flexibility** while maintaining **predictable behavior** - packs provide better defaults, users can override anything, and presets provide curated combinations.
+## 8. Creating Custom Themes
+
+Users can create custom themes in their packs:
+
+```yaml
+# User's custom pack
+msd:
+  use_packs:
+    external:
+      - url: "/local/my-custom-theme-pack.json"
+
+# my-custom-theme-pack.json
+{
+  "id": "my_themes",
+  "themes": {
+    "my-custom-theme": {
+      "id": "my-custom-theme",
+      "name": "My Custom Theme",
+      "tokens": {
+        "colors": {
+          "accent": { "primary": "#00ff00" }
+        },
+        "components": {
+          "statusGrid": {
+            "cellGap": 4,
+            "textPadding": 12
+          }
+        }
+      }
+    }
+  }
+}
+
+# Select custom theme
+msd:
+  theme: "my-custom-theme"
+```
+
+This unified theme system provides **maximum flexibility** while maintaining **predictable behavior** - themes provide defaults, presets provide styled combinations, and users can override anything.

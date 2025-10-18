@@ -79,28 +79,60 @@ Comprehensive schema validation:
 - Rules and animation validation
 - Duplicate ID detection
 
-### 6.1 **Defaults Management System (`src/msd/pipeline/MsdDefaultsManager.js`)**
-**NEW** - Layered defaults system with pack integration:
+### 6.1 **Theme Management System (`src/msd/themes/ThemeManager.js`)**
+**NEW** - Unified theme system with token-based component defaults:
 
 ```javascript
-const defaultsManager = new MsdDefaultsManager();
-defaultsManager.loadFromPacks(packs); // Loads pack profiles into 'pack' layer
+const themeManager = new ThemeManager();
+await themeManager.initialize(packs, requestedTheme, mountEl);
 
-// Layer priority (high to low):
-// 1. User Layer - explicit user defaults
-// 2. Pack Layer - loaded pack defaults (CB-LCARS, etc.)
-// 3. Theme Layer - theme-specific defaults
-// 4. Builtin Layer - core MSD defaults
-
-const value = defaultsManager.resolve('status_grid.text_padding');
-// Returns: 12 (from CB-LCARS pack) instead of 8 (from builtin)
+// ThemeManager provides component defaults via tokens
+const value = themeManager.getDefault('statusGrid', 'textPadding', 8);
+// Returns value from active theme's components.statusGrid.textPadding
+// Resolves token references (e.g., 'spacing.scale.4' → 8)
 ```
 
+**Key Features:**
+- **Token-based defaults**: All component defaults defined in theme tokens
+- **Token resolution**: Supports references like `'colors.accent.primary'`
+- **Multiple themes**: lcars-classic, lcars-ds9, lcars-voyager, lcars-high-contrast
+- **Component scoping**: Each component type has dedicated defaults section
+- **Global access**: Available via `window.cblcars.theme`
+
 **Integration Points:**
-- **SystemsManager**: Loads pack defaults during initialization
-- **StatusGridRenderer**: Uses `_getDefault()` to resolve values with fallbacks
-- **Button Presets**: Override defaults for specific styling patterns
-- **Global Access**: Available via `window.cblcars.defaults`
+- **SystemsManager**: Initializes ThemeManager with loaded packs
+- **Renderers**: Use `_getDefault()` to resolve component-specific values
+- **builtin_themes pack**: Provides all theme definitions and tokens
+- **User config**: Selects theme via `theme: "theme-name"`
+
+**Theme Token Structure:**
+```javascript
+lcarsClassicTokens = {
+  // Base tokens
+  colors: { accent: { primary: 'var(--lcars-orange)' } },
+  typography: { fontSize: { base: 16 } },
+  spacing: { gap: { base: 4 } },
+
+  // Component defaults
+  components: {
+    statusGrid: {
+      textPadding: 'spacing.scale.4',  // Token reference
+      cellGap: 'spacing.gap.sm',
+      rows: 3,
+      columns: 4
+    },
+    text: {
+      defaultSize: 'typography.fontSize.base',
+      defaultColor: 'colors.ui.foreground'
+    }
+  }
+}
+```
+
+**Replaces:**
+- ❌ `MsdDefaultsManager` (deprecated)
+- ❌ `ProfileResolver` (deprecated)
+- ❌ Pack profiles system (removed)
 
 ## Data Management
 

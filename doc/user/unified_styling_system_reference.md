@@ -7,7 +7,7 @@ This document defines the standardized styling system used across all MSD overla
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [MSD Defaults System](#msd-defaults-system)
+2. [MSD Theme System](#msd-theme-system)
 3. [Text Styling](#text-styling)
 4. [Color System](#color-system)
 5. [Layout & Spacing](#layout--spacing)
@@ -38,188 +38,216 @@ The MSD Unified Styling System provides consistent property naming and behavior 
 
 ---
 
-## MSD Defaults System
+## MSD Theme System
 
-The MSD defaults system provides automatic scaling and consistent styling through profile-based configuration. This system ensures that text and other elements scale properly with different viewBox dimensions while maintaining design consistency.
+The MSD theme system provides automatic scaling, consistent styling, and centralized defaults through a unified token-based approach. This system ensures that overlays scale properly and maintain visual consistency across different themes.
 
 ### **How It Works**
-- **Profiles** define scalable defaults using object notation
-- **ViewBox scaling** automatically adjusts sizes based on SVG dimensions
-- **Inheritance** allows overlays to inherit or override profile defaults
-- **Flexible overrides** support both scaled and fixed values
+- **Themes** define all component defaults using token-based notation
+- **Token resolution** automatically resolves references (e.g., `'colors.accent.primary'`)
+- **Component scoping** provides dedicated defaults for each overlay type
+- **Flexible overrides** support both themed and explicit values
 
-### **Profile Configuration**
+### **Theme Selection**
 ```yaml
-profiles:
-  - id: responsive_design
-    defaults:
-      text:
-        # Scalable font size (recommended)
-        font_size:
-          value: 14                 # Base size in pixels
-          scale: "viewbox"          # Scale with SVG viewBox
-          unit: "px"                # Unit specification
-        color: "var(--lcars-orange)" # Default text color
-        font_family: "Orbitron"    # Default font family
+msd:
+  theme: "lcars-classic"          # Select active theme
+  use_packs:
+    builtin: ['cb_lcars_buttons']
 
-      line:
-        color: "var(--lcars-blue)"  # Default line color
-        width: 2                    # Default line width
-
-active_profiles: ["responsive_design"]  # Apply this profile
-```
-
-### **Scaling Modes**
-- **`viewbox`**: Scale based on SVG viewBox dimensions (recommended)
-- **`container`**: Scale based on container size
-- **`none`**: No automatic scaling
-
-### **Value Formats**
-
-#### **Scalable Values** (Object Format)
-```yaml
-font_size:
-  value: 16                         # Base value
-  scale: "viewbox"                  # Scaling mode
-  unit: "px"                        # Output unit
-```
-
-#### **Fixed Values** (Simple Format)
-```yaml
-font_size: 16                       # No scaling applied
-```
-
-### **Override Behavior**
-```yaml
 overlays:
   - type: text
-    id: inherits_scaling
-    text: "Inherits profile scaling"
-    # Uses profile's scalable font_size
+    id: themed_text
+    text: "Uses theme defaults"
+    # Inherits font_size from theme's components.text.defaultSize
 
   - type: text
-    id: custom_scaling
-    text: "Custom scaling"
+    id: custom_text
+    text: "Custom styling"
     style:
-      font_size:                    # Override with different scaling
-        value: 20
-        scale: "viewbox"
-        unit: "px"
-
-  - type: text
-    id: fixed_size
-    text: "Fixed size"
-    style:
-      font_size: 18                 # Override with fixed size
+      font_size: 20               # Override theme default
 ```
 
-### **ViewBox Scaling Example**
-With a profile default of `{value: 14, scale: "viewbox"}`:
-- **ViewBox [0, 0, 400, 300]**: Font renders at ~14px
-- **ViewBox [0, 0, 800, 600]**: Font renders at ~28px (2× scaling)
-- **ViewBox [0, 0, 1920, 1200]**: Font renders at ~56px (4× scaling)
+### **Available Themes**
+Built-in themes from the `builtin_themes` pack:
+- **`lcars-classic`** - Classic TNG-era LCARS styling (default)
+- **`lcars-ds9`** - Deep Space Nine LCARS variant
+- **`lcars-voyager`** - Voyager LCARS styling
+- **`lcars-high-contrast`** - Accessibility-focused high contrast theme
+
+### **Theme Token Structure**
+
+Themes are defined using a hierarchical token system:
+
+```javascript
+lcarsClassicTokens = {
+  // Base design tokens
+  colors: {
+    accent: { primary: 'var(--lcars-orange)' },
+    status: { success: 'var(--lcars-green)' }
+  },
+  typography: {
+    fontSize: { base: 16, lg: 18 },
+    fontFamily: { primary: 'Antonio' }
+  },
+  spacing: {
+    scale: { '4': 8, '8': 16 },
+    gap: { base: 4, sm: 2 }
+  },
+  borders: {
+    width: { base: 2 },
+    radius: { base: 4 }
+  },
+
+  // Component-specific defaults
+  components: {
+    text: {
+      defaultSize: 'typography.fontSize.base',   // Token reference
+      defaultColor: 'colors.ui.foreground',       // Token reference
+      bracket: {
+        width: 'borders.width.base',
+        gap: 'spacing.gap.base',
+        extension: 8
+      }
+    },
+    statusGrid: {
+      rows: 3,
+      columns: 4,
+      cellGap: 'spacing.gap.sm',                 // Token reference
+      textPadding: 'spacing.scale.4',            // Token reference
+      statusOnColor: 'colors.status.success'
+    }
+  }
+}
+```
+
+### **Token Categories**
+
+**Base Tokens** (design primitives):
+- `colors.*` - Color palette (accent, status, ui, chart, alert)
+- `typography.*` - Font settings (fontSize, fontFamily, fontWeight, lineHeight)
+- `spacing.*` - Spacing scales and gaps
+- `borders.*` - Border widths, radii, and styles
+- `effects.*` - Opacity, shadows, blurs, glows
+- `animations.*` - Duration and easing functions
+
+**Component Tokens** (`components.*`):
+- `text.*` - Text overlay defaults
+- `statusGrid.*` - Status grid defaults
+- `sparkline.*` - Sparkline overlay defaults
+- `button.*` - Button overlay defaults
+- `line.*` - Line overlay defaults
+- `chart.*` - Chart overlay defaults
+
+### **Token Resolution**
+
+Tokens can reference other tokens using dot notation:
+
+```javascript
+// Theme definition
+{
+  spacing: {
+    scale: { '4': 8 }
+  },
+  components: {
+    statusGrid: {
+      textPadding: 'spacing.scale.4'  // References spacing token
+    }
+  }
+}
+
+// At runtime
+ThemeManager.getDefault('statusGrid', 'textPadding', 8)
+// → Looks up components.statusGrid.textPadding
+// → Finds 'spacing.scale.4'
+// → Resolves to 8
+// → Returns 8
+```
+
+### **Using Themes in Overlays**
+
+```yaml
+overlays:
+  # Inherits all theme defaults
+  - type: status_grid
+    id: themed_grid
+    cells: [...]
+    # Uses theme's components.statusGrid defaults
+
+  # Partial override
+  - type: status_grid
+    id: custom_grid
+    style:
+      cell_gap: 4                # Override theme default
+      # Other values use theme defaults
+    cells: [...]
+
+  # Complete custom styling
+  - type: status_grid
+    id: fully_custom
+    style:
+      rows: 5
+      columns: 6
+      cell_gap: 8
+      text_padding: 16
+      # All values explicitly set
+    cells: [...]
+```
+
+### **Priority Order**
+When resolving values:
+1. **User explicit values** (highest) - Direct `style.property` values
+2. **Style presets** - Values from `lcars_button_preset`
+3. **Theme defaults** - Values from active theme's `components.*` tokens
+4. **Hardcoded fallbacks** (lowest) - Last resort values in code
+
+### **Creating Custom Themes**
+
+You can create custom themes in external packs:
+
+```json
+{
+  "id": "my_themes",
+  "themes": {
+    "my-custom-theme": {
+      "id": "my-custom-theme",
+      "name": "My Custom Theme",
+      "description": "Custom LCARS styling",
+      "tokens": {
+        "colors": {
+          "accent": { "primary": "#00ff00" }
+        },
+        "typography": {
+          "fontSize": { "base": 14 }
+        },
+        "components": {
+          "statusGrid": {
+            "cellGap": 4,
+            "textPadding": 12
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Load and activate:
+```yaml
+msd:
+  theme: "my-custom-theme"
+  use_packs:
+    external:
+      - url: "/local/my-themes.json"
+```
 
 ### **Benefits**
-- **🎯 Consistent scaling** across all overlay types
-- **📱 Responsive design** that adapts to different screen sizes
-- **🎨 Design flexibility** with easy override options
-- **⚡ Performance** through intelligent caching
-- **🔧 Maintainability** with centralized defaults
-
----
-
-## Text Styling
-
-### **Core Text Properties**
-```yaml
-style:
-  # Font properties
-  font_size: 14                   # Font size in pixels (simple, no scaling)
-  font_family: "Orbitron"         # Font family name
-  font_weight: "bold"             # normal, bold, lighter, bolder, 100-900
-  font_style: "normal"            # normal, italic, oblique
-
-  # Scalable font size (recommended for responsive design)
-  font_size:                      # Object format enables viewBox scaling
-    value: 14                     # Base size value
-    scale: "viewbox"              # Scaling mode: viewbox, container, none
-    unit: "px"                    # Unit: px, em, rem
-
-  # Text alignment
-  text_align: "center"            # left, center, right, start, end
-  vertical_align: "middle"        # top, middle, bottom, baseline
-
-  # Text spacing
-  line_height: 1.4                # Line height multiplier
-  letter_spacing: "0.1em"         # Letter spacing (CSS units)
-```
-
-### **Font Scaling with MSD Defaults System**
-The MSD defaults system provides automatic font scaling based on SVG viewBox dimensions:
-
-```yaml
-# Profile-based scaling (recommended)
-profiles:
-  - id: responsive
-    defaults:
-      text:
-        font_size:                # Scalable default
-          value: 14               # Base size
-          scale: "viewbox"        # Scale with viewBox
-          unit: "px"
-
-overlays:
-  - type: text
-    id: auto_scaled_text
-    text: "Scales automatically!"
-    # Inherits scalable font_size from profile
-
-  - type: text
-    id: custom_scaled_text
-    text: "Custom scaling"
-    style:
-      font_size:                  # Override with custom scaling
-        value: 20
-        scale: "viewbox"
-        unit: "px"
-
-  - type: text
-    id: fixed_size_text
-    text: "Fixed size"
-    style:
-      font_size: 16               # Simple number = no scaling
-```
-
-### **Text Colors**
-```yaml
-style:
-  # Primary text colors
-  text_color: "var(--lcars-white)"     # Main text color
-  label_color: "var(--lcars-cyan)"     # Label text color
-  value_color: "var(--lcars-yellow)"   # Value text color
-
-  # Alternative naming (fallback support)
-  color: "var(--lcars-white)"          # Falls back to text_color
-  textColor: "var(--lcars-white)"      # camelCase alternative
-```
-
-### **Text Effects**
-```yaml
-style:
-  # Text shadow
-  text_shadow:
-    offset_x: 2                   # Horizontal shadow offset
-    offset_y: 2                   # Vertical shadow offset
-    blur: 3                       # Shadow blur radius
-    color: "rgba(0,0,0,0.5)"      # Shadow color
-
-  # Text stroke/outline
-  text_stroke:
-    width: 1                      # Stroke width
-    color: "var(--lcars-gray)"    # Stroke color
-    opacity: 0.8                  # Stroke opacity
-```
-
+- **🎯 Consistent theming** across all overlay types
+- **🎨 Easy theme switching** - change entire look with one setting
+- **📱 Responsive design** through token-based scaling
+- **🔧 Maintainability** with centralized theme definitions
+- **⚡ Performance** through intelligent caching and resolution
+- **✨ Powerful** - token references enable computed values
 ---
 
 ## Color System
