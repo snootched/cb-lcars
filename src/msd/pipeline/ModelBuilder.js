@@ -1,4 +1,3 @@
-import { globalProfileResolver } from '../profile/ProfileResolver.js';
 import { applyOverlayPatches } from '../rules/RulesEngine.js';
 import { resolveValueMaps } from '../valueMap/resolveValueMaps.js';
 import { resolveDesiredAnimations } from '../animation/resolveAnimations.js';
@@ -12,14 +11,9 @@ export class ModelBuilder {
     this.cardModel = cardModel;
     this.systems = systemsManager;
 
-    // Replace profile index building with ProfileResolver
-    globalProfileResolver.loadProfiles(mergedConfig.profiles || []);
-
     this.animationIndex = new Map((mergedConfig.animations || []).map(a => [a.id, a]));
     this.timelineDefs = mergedConfig.timelines || [];
-    this.runtimeActiveProfiles = Array.isArray(mergedConfig.active_profiles)
-      ? mergedConfig.active_profiles.slice()
-      : [];
+
     this._resolvedModelRef = null;
   }
 
@@ -94,29 +88,22 @@ export class ModelBuilder {
     }
   }
 
+
   _assembleBaseOverlays() {
-    return perfTime('profiles.assemble', () => {
-      // Set active profiles before resolving
-      globalProfileResolver.setActiveProfiles(this.runtimeActiveProfiles);
-
+    return perfTime('overlays.assemble', () => {
       return this.cardModel.overlaysBase.map(o => {
-        // Replace assembleOverlayBaseStyle with ProfileResolver
-        const style = globalProfileResolver.resolveOverlayStyle(o);
+        // Start with overlay's own style (highest precedence)
+        const baseStyle = o.style || {};
 
-        // Get provenance from resolved style (if needed for debugging)
-        const sources = style.__styleProvenance ?
-          Object.entries(style.__styleProvenance).map(([prop, prov]) => ({
-            kind: prov.source,
-            id: prov.sourceId
-          })) : [];
+        // Resolve any theme token references in the style
+        const resolvedStyle = this._resolveThemeTokensInStyle(baseStyle, o.type);
 
         // Preserve ALL properties from raw overlay config
         const resolvedOverlay = {
           id: o.id,
           type: o.type,
-          style,
-          finalStyle: { ...style },
-          _styleSources: sources,
+          style: resolvedStyle,
+          finalStyle: { ...resolvedStyle },
           _raw: o.raw,
           anchor: o.raw?.anchor,
           attach_to: o.raw?.attach_to,
@@ -126,42 +113,72 @@ export class ModelBuilder {
           attach_gap: o.raw?.attach_gap,
           position: o.raw?.position,
           size: o.raw?.size,
-          // CRITICAL: Preserve grid layout properties for status_grid overlays
           rows: o.raw?.rows,
-          columns: o.raw?.columns,
+          columns: o.raw?.columns
         };
 
         // Preserve data source and routing properties
-        if (o.raw?.source) {
-          resolvedOverlay.source = o.raw.source;
-        }
+        if (o.raw?.source) resolvedOverlay.source = o.raw.source;
+        if (o.raw?.route) resolvedOverlay.route = o.raw.route;
+        if (o.raw?.data_source) resolvedOverlay.data_source = o.raw.data_source;
 
-        if (o.raw?.route) {
-          resolvedOverlay.route = o.raw.route;
-        }
-
-        // CRITICAL: Preserve action properties for ActionHelpers
-        if (o.raw?.tap_action) {
-          resolvedOverlay.tap_action = o.raw.tap_action;
-        }
-
-        if (o.raw?.hold_action) {
-          resolvedOverlay.hold_action = o.raw.hold_action;
-        }
-
-        if (o.raw?.double_tap_action) {
-          resolvedOverlay.double_tap_action = o.raw.double_tap_action;
-        }
+        // Preserve action properties
+        if (o.raw?.tap_action) resolvedOverlay.tap_action = o.raw.tap_action;
+        if (o.raw?.hold_action) resolvedOverlay.hold_action = o.raw.hold_action;
+        if (o.raw?.double_tap_action) resolvedOverlay.double_tap_action = o.raw.double_tap_action;
 
         // Preserve cells for status grids
-        if (o.raw?.cells) {
-          resolvedOverlay.cells = o.raw.cells;
-        }
+        if (o.raw?.cells) resolvedOverlay.cells = o.raw.cells;
+
+        // Preserve template reference
+        if (o.raw?.template) resolvedOverlay.template = o.raw.template;
+
+        // Preserve preset reference
+        if (o.raw?.preset) resolvedOverlay.preset = o.raw.preset;
 
         return resolvedOverlay;
       });
     });
   }
+
+  /**
+   * Resolve theme token references in overlay style
+   * @private
+   */
+  _resolveThemeTokensInStyle(style, overlayType) {
+    if (!style || typeof style !== 'object') {
+      return style;
+    }
+
+    const resolved = {};
+    const themeManager = this.systems.themeManager;
+
+    if (!themeManager || !themeManager.initialized) {
+      // No theme system available, return style as-is
+      return { ...style };
+    }
+
+    // Get component-scoped resolver
+    const resolveToken = themeManager.forComponent(overlayType);
+
+    // Recursively resolve token references in style values
+    for (const [key, value] of Object.entries(style)) {
+      if (typeof value === 'string' && value.startsWith('theme.')) {
+        // This is a theme token reference: "theme.defaultSize"
+        const tokenPath = value.substring(6); // Remove "theme." prefix
+        resolved[key] = resolveToken(tokenPath, value);
+      } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Recursively resolve nested objects
+        resolved[key] = this._resolveThemeTokensInStyle(value, overlayType);
+      } else {
+        // Keep value as-is
+        resolved[key] = value;
+      }
+    }
+
+    return resolved;
+  }
+
 
   _subscribeOverlaysToDataSources(baseOverlays) {
     if (!this.systems.dataSourceManager || !baseOverlays) {

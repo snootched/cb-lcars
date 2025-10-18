@@ -209,9 +209,47 @@ export const lcarsClassicTokens = {
 
   components: {
     text: {
-      defaultColor: 'colors.ui.foreground',
       defaultSize: 'typography.fontSize.base',
-      defaultFamily: 'typography.fontFamily.primary'
+      defaultColor: 'colors.ui.foreground',
+      defaultFamily: 'typography.fontFamily.primary',
+      defaultLineHeight: 'typography.lineHeight.normal',
+
+      // Text decoration defaults (from old core_defaults profile)
+      statusIndicator: {
+        sizeRatio: 0.3,
+        padding: 8,
+        color: 'colors.status.success'
+      },
+
+      highlight: {
+        padding: 2,
+        opacity: 0.3
+      },
+
+      bracket: {
+        width: 'borders.width.base',
+        gap: 'spacing.gap.base',
+        extension: 8,
+        opacity: 'effects.opacity.base',
+        physicalWidth: 8,
+        height: '70%',
+        radius: 'borders.radius.base',
+        borderRadius: 'borders.radius.lg',
+        innerFactor: 2
+      },
+
+      effects: {
+        glow: {
+          blur: 'effects.blur.sm',
+          intensity: 1
+        },
+        shadow: {
+          offsetX: 2,
+          offsetY: 2,
+          blur: 'effects.blur.sm',
+          color: 'rgba(0,0,0,0.5)'
+        }
+      }
     },
 
     statusGrid: {
@@ -219,9 +257,153 @@ export const lcarsClassicTokens = {
       defaultGap: 'spacing.gap.sm',
       defaultRadius: 'borders.radius.base',
 
+      // From old core_defaults profile
+      rows: 3,
+      columns: 4,
+      cellGap: 'spacing.gap.sm',
+      cellOpacity: 'effects.opacity.base',
+      borderColor: 'colors.ui.border',
+      borderWidth: 'borders.width.thin',
+      unknownColor: 'colors.status.unknown',
+
+      fontSize: 'typography.fontSize.sm',
+      labelFontSize: 'typography.fontSize.lg',
+      valueFontSize: 'typography.fontSize.base',
+      fontFamily: 'typography.fontFamily.primary',
+      fontWeight: 'typography.fontWeight.normal',
+      labelColor: 'colors.ui.foreground',
+      valueColor: 'colors.ui.foreground',
+
+      textLayout: 'stacked',
+      textAlignment: 'center',
+      textJustify: 'center',
+      labelPosition: 'center-top',
+      valuePosition: 'center-bottom',
+      textPadding: 'spacing.scale.4',
+      textMargin: 'spacing.scale.1',
+      maxTextWidth: '90%',
+      textOverflow: 'ellipsis',
+
+      // Status colors
       statusOnColor: 'colors.status.success',
       statusOffColor: 'colors.status.unknown',
-      statusUnavailableColor: 'colors.status.danger'
+      statusUnavailableColor: 'colors.status.danger',
+
+      // LCARS features
+      bracketColor: null,
+      bracketWidth: 'borders.width.base',
+      bracketGap: 'spacing.gap.base',
+      bracketExtension: 8,
+      bracketOpacity: 'effects.opacity.base',
+
+      // Interaction
+      hoverColor: 'colors.accent.secondary',
+      hoverScale: 1.05,
+
+      // Animation
+      cascadeSpeed: 0,
+      cascadeDirection: 'row',
+      revealAnimation: false,
+      pulseOnChange: false,
+
+      // Performance
+      updateThrottle: 100
+    },
+
+    sparkline: {
+      defaultColor: 'colors.accent.primary',
+      defaultStrokeWidth: 'borders.width.base',
+
+      // From old core_defaults profile
+      size: {
+        width: 200,
+        height: 60
+      },
+      opacity: 'effects.opacity.base',
+      lineCap: 'round',
+      lineJoin: 'round',
+      miterLimit: 4,
+      pathPrecision: 2,
+      fillOpacity: 0.2,
+      pointSize: 3,
+      decimationThreshold: 1000,
+
+      grid: {
+        color: 'colors.chart.grid',
+        opacity: 0.4,
+        strokeWidth: 'borders.width.thin',
+        horizontalCount: 3,
+        verticalCount: 5
+      },
+
+      threshold: {
+        color: 'colors.status.warning',
+        width: 'borders.width.thin',
+        opacity: 0.7
+      },
+
+      zeroLine: {
+        color: 'colors.chart.grid',
+        width: 'borders.width.thin',
+        opacity: 0.5
+      },
+
+      bracket: {
+        width: 'borders.width.base',
+        gap: 'spacing.gap.sm',
+        extension: 8,
+        opacity: 'effects.opacity.base',
+        physicalWidth: 8,
+        radius: 'borders.radius.base',
+        borderRadius: 'borders.radius.lg',
+        innerFactor: 2
+      },
+
+      statusIndicator: {
+        size: 4,
+        offset: 4,
+        color: 'colors.status.success'
+      },
+
+      scanLine: {
+        duration: 3,
+        width: 'borders.width.thin',
+        opacity: 0.8
+      },
+
+      smoothing: {
+        chaikinIterations: 2,
+        bezierControlFactor: 0.5,
+        constrainedControlFactor: 0.25,
+        splineSegments: 10
+      },
+
+      valueLabel: {
+        offsetX: 4,
+        fontSizeRatio: 0.1,
+        maxFontSize: 'typography.fontSize.sm',
+        fontFamily: 'typography.fontFamily.primary'
+      },
+
+      status: {
+        noSource: { color: 'colors.status.danger' },
+        loading: { color: 'colors.status.info' },
+        notFound: { color: 'colors.status.warning' },
+        error: { color: 'colors.status.danger' },
+        fontSizeRatio: 0.125,
+        minWidthForSource: 120,
+        strokeWidth: 'borders.width.base',
+        opacity: 0.6
+      }
+    },
+
+    overlay: {
+      defaultPadding: 'spacing.scale.4'
+    },
+
+    line: {
+      defaultColor: 'colors.accent.secondary',
+      defaultWidth: 'borders.width.base'
     },
 
     button: {
@@ -233,16 +415,6 @@ export const lcarsClassicTokens = {
       defaultColors: 'colors.chart.series',
       defaultStrokeWidth: 'borders.width.thick',
       gridColor: 'colors.chart.gridMuted'
-    },
-
-    line: {
-      defaultColor: 'colors.accent.secondary',
-      defaultWidth: 'borders.width.base'
-    },
-
-    sparkline: {
-      defaultColor: 'colors.accent.primary',
-      defaultStrokeWidth: 'borders.width.base'
     }
   }
 };

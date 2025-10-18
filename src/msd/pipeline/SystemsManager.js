@@ -6,8 +6,7 @@ import { DataSourceManager } from '../data/DataSourceManager.js';
 import { RouterCore } from '../routing/RouterCore.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
-import { MsdDefaultsManager } from './MsdDefaultsManager.js';
-
+import { ThemeManager } from '../themes/ThemeManager.js';
 import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
 import { BaseOverlayUpdater } from '../renderer/BaseOverlayUpdater.js';
@@ -22,7 +21,7 @@ import { initializeThemeSystem } from '../themes/initializeThemeSystem.js';
 export class SystemsManager {
   constructor() {
     // Initialize core managers
-    this.defaultsManager = new MsdDefaultsManager();
+    this.themeManager = new ThemeManager();
 
     this.stylePresetManager = new StylePresetManager();
 
@@ -36,7 +35,6 @@ export class SystemsManager {
     this.rulesEngine = null;
     this.debugManager = new DebugManager();
     this.overlayUpdater = null; // ADDED: Unified overlay update system
-    this.defaultsManager = null; // ADDED: MSD defaults manager
     this._renderTimeout = null;
     this._reRenderCallback = null;
     this._queuedReRender = false; // ADDED: Flag for queued renders
@@ -87,9 +85,9 @@ export class SystemsManager {
     this.mergedConfig = mergedConfig;
     this._currentHass = hass;
 
-    // PHASE 1: Initialize defaults manager and load pack defaults FIRST
-    cblcarsLog.debug('[SystemsManager] 📦 Phase 1: Loading pack defaults');
-    this.defaultsManager = new MsdDefaultsManager();
+    // PHASE 1: Initialize theme system FIRST (provides all component defaults)
+    cblcarsLog.debug('[SystemsManager] 🎨 Phase 1: Initializing theme system');
+
 
     let packs;
 
@@ -97,19 +95,19 @@ export class SystemsManager {
     if (mergedConfig && mergedConfig.__provenance && mergedConfig.__provenance.merge_order) {
       const packLayers = mergedConfig.__provenance.merge_order.filter(layer => layer.type === 'builtin');
       if (packLayers.length > 0) {
-        cblcarsLog.debug('[SystemsManager] 📦 Loading pack defaults from merged config provenance');
+        cblcarsLog.debug('[SystemsManager] 📦 Loading packs from merged config provenance');
 
-        // Import pack loading function and load the packs used in merge
         const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
         const packNames = packLayers.map(layer => layer.pack);
 
-        // Ensure 'core' pack is always loaded for builtin defaults
+        // Ensure 'core' and 'builtin_themes' packs are always loaded
         if (!packNames.includes('core')) {
           packNames.unshift('core');
-          cblcarsLog.debug('[SystemsManager] 📦 Added core pack for builtin defaults');
+        }
+        if (!packNames.includes('builtin_themes')) {
+          packNames.push('builtin_themes');
         }
 
-        // Validate pack loading with timeout protection
         try {
           const packLoadPromise = Promise.resolve(loadBuiltinPacks(packNames));
           const timeoutPromise = new Promise((_, reject) =>
@@ -124,81 +122,34 @@ export class SystemsManager {
           cblcarsLog.error('[SystemsManager] ❌ Pack loading failed:', error);
           throw new Error(`Pack loading failed: ${error.message}`);
         }
-
-        this.defaultsManager.loadFromPacks(packs, mergedConfig.active_profile || mergedConfig.active_profiles);
-        cblcarsLog.debug('[SystemsManager] ✅ Loaded pack defaults:', packNames, (mergedConfig.active_profile || mergedConfig.active_profiles) ? `(profile: ${JSON.stringify(mergedConfig.active_profile || mergedConfig.active_profiles)})` : '(all profiles)');
-
-        // Validate essential packs were loaded
-        const introspectionData = this.defaultsManager.getIntrospectionData();
-
-        // Extract actual pack names rather than configuration paths
-        let loadedPackNames = [];
-        if (introspectionData.layers && introspectionData.layers.pack) {
-          const packData = introspectionData.layers.pack;
-          const keys = Object.keys(packData);
-
-          // Distinguish between pack names and setting paths
-          loadedPackNames = keys.filter(key => !key.includes('.'));
-
-          // If no pack names found, fall back to provenance
-          if (loadedPackNames.length === 0) {
-            loadedPackNames = packNames; // Use the names we tried to load
-          }
-        }
-
-        if (!loadedPackNames.includes('core')) {
-          cblcarsLog.warn('[SystemsManager] ⚠️ Core pack was not loaded successfully');
-          cblcarsLog.debug('[SystemsManager] Pack loading attempt:', {
-            requestedPacks: packNames,
-            introspectionKeys: Object.keys(introspectionData.layers?.pack || {}),
-            extractedPackNames: loadedPackNames
-          });
-        } else {
-          cblcarsLog.debug('[SystemsManager] ✅ Core pack loaded successfully along with:', loadedPackNames);
-        }
       }
     } else {
-      // Fallback: Always load core pack for basic defaults if no pack provenance
-      cblcarsLog.debug('[SystemsManager] 📦 No pack provenance, loading core pack for basic defaults');
+      // Fallback: Load core and builtin_themes packs
+      cblcarsLog.debug('[SystemsManager] 📦 No pack provenance, loading core + builtin_themes');
       try {
         const { loadBuiltinPacks } = await import('../packs/loadBuiltinPacks.js');
-        const corePacks = loadBuiltinPacks(['core']);
-        this.defaultsManager.loadFromPacks(corePacks, mergedConfig?.active_profile || mergedConfig?.active_profiles);
-        packs = corePacks; // ✅ ADDED: Store packs for theme initialization
-        cblcarsLog.debug('[SystemsManager] ✅ Loaded core pack defaults');
+        packs = loadBuiltinPacks(['core', 'builtin_themes']);
+        cblcarsLog.debug('[SystemsManager] ✅ Loaded fallback packs');
       } catch (error) {
-        cblcarsLog.error('[SystemsManager] ❌ Core pack fallback loading failed:', error);
-        throw new Error(`Core pack loading failed: ${error.message}`);
+        cblcarsLog.error('[SystemsManager] ❌ Fallback pack loading failed:', error);
+        throw new Error(`Pack loading failed: ${error.message}`);
       }
     }
 
-    // ✅ ADDED: Initialize theme system after packs are loaded
-    cblcarsLog.debug('[SystemsManager] 🎨 Phase 1.5: Initializing theme system');
-    try {
-      const themeResult = initializeThemeSystem(packs, mergedConfig, mountEl);
+    // Initialize theme system with loaded packs
+    const requestedTheme = mergedConfig?.theme || 'lcars-classic';
+    await this.themeManager.initialize(packs, requestedTheme, mountEl);
 
-      if (themeResult.success) {
-        cblcarsLog.info('[SystemsManager] ✅ Theme system initialized:', {
-          theme: themeResult.theme.id,
-          name: themeResult.theme.name
-        });
+    cblcarsLog.info('[SystemsManager] ✅ Theme system initialized:', {
+      theme: this.themeManager.getActiveTheme()?.name,
+      themeCount: this.themeManager.listThemes().length
+    });
 
-        // Store theme info for later reference
-        this.activeTheme = themeResult.theme;
-      } else {
-        cblcarsLog.warn('[SystemsManager] ⚠️ Theme system initialization failed:', themeResult.error);
-        cblcarsLog.warn('[SystemsManager] Continuing with fallback theme');
-      }
-    } catch (error) {
-      cblcarsLog.error('[SystemsManager] ❌ Theme system initialization error:', error);
-      cblcarsLog.warn('[SystemsManager] Continuing without theme system - renderers will use defaults');
-    }
-
-    // Store in global CB-LCARS namespace for immediate access
+    // Store in global namespace for access by overlays
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
-      window.cblcars.defaults = this.defaultsManager;
-      cblcarsLog.debug('[SystemsManager] 🔧 MSD Defaults Manager initialized and globally accessible');
+      window.cblcars.theme = this.themeManager;
+      cblcarsLog.debug('[SystemsManager] 🔧 ThemeManager globally accessible via window.cblcars.theme');
     }
 
     // PHASE 2: Initialize other critical systems that overlays might need

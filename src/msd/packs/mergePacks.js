@@ -85,8 +85,6 @@ async function processSinglePass(layers) {
   const merged = {
     version: 1,
     anchors: {},
-    palettes: {},
-    profiles: [],
     overlays: [],
     rules: [],
     animations: [],
@@ -94,11 +92,9 @@ async function processSinglePass(layers) {
     routing: {},
     data_sources: {},
     base_svg: null, // Initialize base_svg
-    active_profiles: [],
     theme: null,  // ✅ ADD: Initialize theme property
     __provenance: {
       anchors: {},
-      palettes: {},
       overlays: {},
       rules: {},
       animations: {},
@@ -157,26 +153,6 @@ async function loadBuiltinPack(packName) {
         svg_warp: [350, 200],    // Simulated SVG extraction
       },
       _extracted_anchors: ['svg_bridge', 'svg_warp'], // Mark as SVG-extracted
-      profiles: [
-        {
-          id: 'normal',
-          defaults: {
-            line: { color: 'var(--lcars-orange)', width: 2 },
-            text: {
-              color: 'var(--lcars-orange)',
-              font_size: { value: 14, scale: 'viewbox', unit: 'px' } // Use scalable defaults
-            }
-          }
-        }
-      ],
-      palettes: {
-        default: {
-          accent1: 'var(--lcars-orange)',
-          accent2: 'var(--lcars-yellow)',
-          danger: 'var(--lcars-red)',
-          info: 'var(--lcars-cyan)'
-        }
-      }
     };
   }
 
@@ -398,7 +374,7 @@ function createTimeoutPromise(timeout, url) {
 
 function validateExternalPackStructure(data, url) {
   // Basic validation - ensure it looks like an MSD pack
-  const validFields = ['version', 'anchors', 'overlays', 'rules', 'animations', 'profiles', 'palettes', 'timelines'];
+  const validFields = ['version', 'anchors', 'overlays', 'rules', 'animations', 'timelines'];
   const dataFields = Object.keys(data);
   const hasValidField = validFields.some(field => dataFields.includes(field));
 
@@ -407,7 +383,7 @@ function validateExternalPackStructure(data, url) {
   }
 
   // Check for required ID fields in collections
-  const collections = ['overlays', 'rules', 'animations', 'profiles'];
+  const collections = ['overlays', 'rules', 'animations'];
   collections.forEach(collection => {
     if (Array.isArray(data[collection])) {
       data[collection].forEach((item, index) => {
@@ -439,7 +415,7 @@ const externalPackCache = new Map();
 export { externalPackCache };
 
 async function processLayer(merged, layer) {
-  const collections = ['overlays', 'rules', 'animations', 'profiles', 'timelines'];
+  const collections = ['overlays', 'rules', 'animations', 'timelines'];
 
   // Process collections with ID-based merging
   for (const collection of collections) {
@@ -494,90 +470,6 @@ async function processLayer(merged, layer) {
         perfCount(`merge.items.${collection}`, layer.data[collection].length);
       });
     }
-  }
-
-  // Enhanced token-level palette merging
-  if (layer.data.palettes) {
-    perfTime('merge.palettes', () => {
-      merged.palettes = merged.palettes || {};
-      // Initialize palette provenance if missing
-      if (!merged.__provenance.palettes) {
-        merged.__provenance.palettes = {};
-      }
-
-      for (const [paletteName, tokens] of Object.entries(layer.data.palettes)) {
-        if (typeof tokens === 'object' && !Array.isArray(tokens)) {
-          // Initialize palette if it doesn't exist
-          if (!merged.palettes[paletteName]) {
-            merged.palettes[paletteName] = {};
-            merged.__provenance.palettes[paletteName] = {
-              origin_pack: layer.pack,
-              tokens: {},
-              overridden: false
-            };
-          }
-
-          // Initialize token-level provenance tracking for this palette
-          if (!merged.__provenance.palettes[paletteName].tokens) {
-            merged.__provenance.palettes[paletteName].tokens = {};
-          }
-
-          // Process each token individually
-          for (const [tokenName, value] of Object.entries(tokens)) {
-            const tokenExisted = merged.palettes[paletteName][tokenName] !== undefined;
-            const previousValue = merged.palettes[paletteName][tokenName];
-
-            // Set the token value
-            merged.palettes[paletteName][tokenName] = value;
-
-            // Track token-level provenance
-            if (tokenExisted) {
-              // Token is being overridden
-              merged.__provenance.palettes[paletteName].tokens[tokenName] = {
-                origin_pack: merged.__provenance.palettes[paletteName].tokens[tokenName]?.origin_pack || 'unknown',
-                current_value: value,
-                previous_value: previousValue,
-                overridden: true,
-                override_pack: layer.pack,
-                override_history: [
-                  ...(merged.__provenance.palettes[paletteName].tokens[tokenName]?.override_history || []),
-                  {
-                    pack: layer.pack,
-                    value: value,
-                    timestamp: Date.now()
-                  }
-                ]
-              };
-            } else {
-              // New token
-              merged.__provenance.palettes[paletteName].tokens[tokenName] = {
-                origin_pack: layer.pack,
-                current_value: value,
-                overridden: false,
-                override_history: []
-              };
-            }
-          }
-
-          // Update palette-level provenance
-          if (merged.__provenance.palettes[paletteName].origin_pack !== layer.pack) {
-            merged.__provenance.palettes[paletteName].overridden = true;
-            merged.__provenance.palettes[paletteName].last_modified_by = layer.pack;
-          }
-        }
-      }
-
-      // Count processed palettes and tokens
-      let tokenCount = 0;
-      Object.values(layer.data.palettes).forEach(tokens => {
-        if (typeof tokens === 'object' && !Array.isArray(tokens)) {
-          tokenCount += Object.keys(tokens).length;
-        }
-      });
-
-      perfCount('merge.palette.tokens', tokenCount);
-      perfCount('merge.palettes', Object.keys(layer.data.palettes).length);
-    });
   }
 
   // Enhanced anchor processing with comprehensive provenance
@@ -688,42 +580,6 @@ async function processLayer(merged, layer) {
       merged.__provenance.debug.override_layer = layer.pack;
     }
   }
-
-  if (Array.isArray(layer.data.active_profiles)) {
-    merged.active_profiles = [...layer.data.active_profiles];
-  }
-
-  // Process active_profile configuration (singular) - preferred format
-  if (layer.data.active_profile !== undefined) {
-    merged.active_profile = layer.data.active_profile;
-
-    // Track active_profile provenance
-    if (!merged.__provenance.active_profile) {
-      merged.__provenance.active_profile = {
-        origin_pack: layer.pack,
-        overridden: false
-      };
-    } else {
-      merged.__provenance.active_profile.overridden = true;
-      merged.__provenance.active_profile.override_layer = layer.pack;
-    }
-  }
-
-  // COMPATIBILITY: Handle active_profiles (plural) as alias for active_profile
-  if (layer.data.active_profiles !== undefined && !Array.isArray(layer.data.active_profiles)) {
-    merged.active_profile = layer.data.active_profiles;
-
-    // Track active_profile provenance (same as above)
-    if (!merged.__provenance.active_profile) {
-      merged.__provenance.active_profile = {
-        origin_pack: layer.pack,
-        overridden: false
-      };
-    } else {
-      merged.__provenance.active_profile.overridden = true;
-      merged.__provenance.active_profile.override_layer = layer.pack;
-    }
-  }
 }
 
 function determineAnchorOriginType(layer, anchorId) {
@@ -747,7 +603,7 @@ function determineAnchorOriginType(layer, anchorId) {
 function applyRemovals(merged, removals) {
   if (!removals || typeof removals !== 'object') return;
 
-  const collections = ['overlays', 'rules', 'animations', 'profiles', 'timelines'];
+  const collections = ['overlays', 'rules', 'animations', 'timelines'];
 
   for (const collection of collections) {
     const removeIds = removals[collection];
@@ -774,8 +630,8 @@ export function exportCollapsed(userMsd) {
   const out = {};
   const keep = [
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
-    'rules', 'profiles', 'timelines', 'palettes', 'routing',
-    'active_profiles', 'active_profile', 'remove', 'debug', 'base_svg',
+    'rules', 'timelines', 'routing',
+    'remove', 'debug', 'base_svg',
     'theme'  // ✅ ADD: Include theme in export
   ];
 
