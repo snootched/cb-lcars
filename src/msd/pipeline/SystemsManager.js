@@ -7,16 +7,13 @@ import { RouterCore } from '../routing/RouterCore.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { AnimationRegistry } from '../animation/AnimationRegistry.js';
 import { MsdDefaultsManager } from './MsdDefaultsManager.js';
-import './MsdDefaultsExample.js'; // Import examples to make them available globally
 
 import { RulesEngine } from '../rules/RulesEngine.js';
 import { DebugManager } from '../debug/DebugManager.js';
 import { BaseOverlayUpdater } from '../renderer/BaseOverlayUpdater.js';
 import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js';
 
-// ENHANCED: Import new pack management systems
 import { StylePresetManager } from '../presets/StylePresetManager.js';
-import { PackRegistry } from '../packs/PackRegistry.js';
 import { ApexChartsOverlayRenderer } from '../renderer/ApexChartsOverlayRenderer.js';
 
 // ✅ ADDED: Import theme system initialization
@@ -27,11 +24,7 @@ export class SystemsManager {
     // Initialize core managers
     this.defaultsManager = new MsdDefaultsManager();
 
-    // ENHANCED: Initialize new pack management systems (will be initialized with packs later)
     this.stylePresetManager = new StylePresetManager();
-    this.packRegistry = new PackRegistry();
-    this.stylePresetManager = new StylePresetManager();
-    this.packRegistry = new PackRegistry();
 
     this.dataSourceManager = null;
     this.renderer = null;
@@ -219,18 +212,13 @@ export class SystemsManager {
     // Initialize data source manager FIRST (overlays may reference it)
     await this._initializeDataSources(hass, mergedConfig);
 
-    // CRITICAL FIX: Initialize StylePresetManager and PackRegistry with loaded packs
-    cblcarsLog.debug('[SystemsManager] 🎨 CRITICAL: Initializing StylePresetManager and PackRegistry');
+    // CRITICAL FIX: Initialize StylePresetManager with loaded packs
+    cblcarsLog.debug('[SystemsManager] 🎨 CRITICAL: Initializing StylePresetManager');
     cblcarsLog.debug('[SystemsManager] Available packs:', packs.map(p => ({ id: p.id, hasStylePresets: !!p.style_presets })));
 
     if (this.stylePresetManager && !this.stylePresetManager.initialized) {
       await this.stylePresetManager.initialize(packs);
       cblcarsLog.debug('[SystemsManager] ✅ StylePresetManager initialized');
-    }
-
-    if (this.packRegistry && !this.packRegistry.initialized) {
-      await this.packRegistry.initialize(packs);
-      cblcarsLog.debug('[SystemsManager] ✅ PackRegistry initialized');
     }
 
     cblcarsLog.debug('[SystemsManager] ✅ Critical systems ready for overlay processing');
