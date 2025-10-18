@@ -30,9 +30,6 @@ export class ModelBuilder {
     // Apply rules
     const ruleResult = this._applyRules();
 
-    // Handle profile changes from rules
-    this._updateActiveProfiles(ruleResult);
-
     // Apply overlay patches
     const overlaysWithPatches = this._applyOverlayPatches(baseOverlays, ruleResult);
 
@@ -49,8 +46,7 @@ export class ModelBuilder {
       overlays: overlaysWithPatches,
       animations: animDiff.active,
       timelines: tlDiff.active,
-      config: this.mergedConfig,
-      active_profiles: this.runtimeActiveProfiles.slice()
+      config: this.mergedConfig
     };
 
     // DEBUG: Check final overlay state before rendering
@@ -351,16 +347,6 @@ export class ModelBuilder {
     });
 
     return ruleResult;
-  }  _updateActiveProfiles(ruleResult) {
-    if (ruleResult.profilesAdd?.length || ruleResult.profilesRemove?.length) {
-      const set = new Set(this.runtimeActiveProfiles);
-      ruleResult.profilesAdd.forEach(p => set.add(p));
-      ruleResult.profilesRemove.forEach(p => set.delete(p));
-      this.runtimeActiveProfiles = Array.from(set);
-
-      // Update ProfileResolver with new active profiles
-      globalProfileResolver.setActiveProfiles(this.runtimeActiveProfiles);
-    }
   }
 
   _applyOverlayPatches(baseOverlays, ruleResult) {

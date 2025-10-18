@@ -9,10 +9,8 @@ import { OverlayUtils } from './OverlayUtils.js';
 
 import { LineOverlayRenderer } from './LineOverlayRenderer.js';
 import { TextOverlayRenderer } from './TextOverlayRenderer.js';
-import { SparklineOverlayRenderer } from './SparklineOverlayRenderer.js'; // RENAMED
 import { StatusGridRenderer } from './StatusGridRenderer.js';
 import { ButtonOverlayRenderer } from './ButtonOverlayRenderer.js';
-import { HistoryBarRenderer } from './HistoryBarRenderer.js';
 import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { ActionHelpers } from './ActionHelpers.js'; // ADDED: Import ActionHelpers
@@ -80,8 +78,8 @@ export class AdvancedRenderer {
 
     this.lineRenderer.setOverlayAttachmentPoints(this.overlayAttachmentPoints);
 
-    // Phase 1: render overlays that others may depend on (text, sparkline)
-    const earlyTypes = new Set(['text', 'sparkline']);
+    // Phase 1: render overlays that others may depend on (text)
+    const earlyTypes = new Set(['text']);
     let svgMarkupAccum = '';
     let processedCount = 0;
 
@@ -306,7 +304,6 @@ export class AdvancedRenderer {
       total: this.overlayElementCache.size,
       text: overlayGroup.querySelectorAll('[data-overlay-type="text"]').length,
       lines: overlayGroup.querySelectorAll('[data-overlay-type="line"]').length,
-      sparklines: overlayGroup.querySelectorAll('[data-overlay-type="sparkline"]').length,
       status_grid: overlayGroup.querySelectorAll('[data-overlay-type="status_grid"]').length,
       history_bars: overlayGroup.querySelectorAll('[data-overlay-type="history_bar"]').length,
       controls: overlayGroup.querySelectorAll('[data-overlay-type="control"]').length
@@ -352,10 +349,6 @@ export class AdvancedRenderer {
       switch (overlay.type) {
         case 'text':
           return this._computeTextAttachmentPoints(overlay, anchors, container, effectiveViewBox);
-        case 'sparkline':
-          return this._computeSparklineAttachmentPoints(overlay, anchors, container, effectiveViewBox);
-        case 'history_bar':
-          return this._computeHistoryBarAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'status_grid':
           return this._computeStatusGridAttachmentPoints(overlay, anchors, container, effectiveViewBox);
         case 'control':
@@ -378,14 +371,6 @@ export class AdvancedRenderer {
   _computeTextAttachmentPoints(overlay, anchors, container, viewBox) {
     // Use existing TextOverlayRenderer method with viewBox
     return TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, container, viewBox);
-  }
-
-  _computeSparklineAttachmentPoints(overlay, anchors, container, viewBox) {
-    return SparklineOverlayRenderer.computeAttachmentPoints(overlay, anchors, container);
-  }
-
-  _computeHistoryBarAttachmentPoints(overlay, anchors, container, viewBox) {
-    return HistoryBarRenderer.computeAttachmentPoints(overlay, anchors, container);
   }
 
   _computeStatusGridAttachmentPoints(overlay, anchors, container, viewBox) {
@@ -740,8 +725,6 @@ export class AdvancedRenderer {
           // Return the result structure (backward compatible with string check in render())
           return textResult;
 
-        case 'sparkline':
-          return SparklineOverlayRenderer.render(overlay, anchors, viewBox);
         case 'line':
           // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
           const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
@@ -754,8 +737,6 @@ export class AdvancedRenderer {
           return StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
         case 'button':
           return ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
-        case 'history_bar':
-          return HistoryBarRenderer.render(overlay, anchors, viewBox, svgContainer);
         case 'apexchart':
           // FIXED: Pass the correct svgContainer reference
           const apexCardInstance = this.systemsManager ? this._resolveCardInstance() : null;
@@ -819,12 +800,10 @@ export class AdvancedRenderer {
       });
 
       // Verify injection
-      const sparklines = overlayGroup.querySelectorAll('[data-overlay-type="sparkline"]');
       const lines = overlayGroup.querySelectorAll('[data-overlay-type="line"]');
       const texts = overlayGroup.querySelectorAll('[data-overlay-type="text"]');
 
       cblcarsLog.debug('[AdvancedRenderer] Injected elements:', {
-        sparklines: sparklines.length,
         lines: lines.length,
         texts: texts.length,
         cached: this.overlayElementCache.size
@@ -864,9 +843,6 @@ export class AdvancedRenderer {
 
     // Delegate to type-specific renderer
     switch (overlay.type) {
-      case 'sparkline':
-        SparklineOverlayRenderer.updateSparklineData(overlayElement, overlay, sourceData);
-        break;
       case 'text':
         cblcarsLog.debug(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
         // Use unified delegation pattern - delegate to TextOverlayRenderer
@@ -885,14 +861,6 @@ export class AdvancedRenderer {
           this.updateTextDecorations(overlayId, 'updated', overlay);
         }
         return gridUpdated;
-      case 'history_bar':
-        cblcarsLog.debug(`[AdvancedRenderer] Updating history_bar overlay: ${overlayId}`);
-        const historyBarUpdated = HistoryBarRenderer.updateHistoryBarData(overlayElement, overlay, sourceData);
-        if (historyBarUpdated) {
-          // Update any status indicators that might depend on the content
-          this.updateTextDecorations(overlayId, 'updated', overlay);
-        }
-        break;
       case 'button':
         cblcarsLog.debug(`[AdvancedRenderer] Updating button overlay: ${overlayId}`);
         const updated = ButtonOverlayRenderer.updateButtonData(overlayElement, overlay, sourceData);
@@ -904,30 +872,6 @@ export class AdvancedRenderer {
       default:
         cblcarsLog.info(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
     }
-  }
-
-  handleDataSourceUpdate(updateData) {
-    if (!this.mountEl) return;
-
-    // Find sparklines using cached elements instead of DOM search
-    const cachedElements = Array.from(this.overlayElementCache.values());
-    const sparklines = cachedElements.filter(el =>
-      el.getAttribute('data-source') === updateData.sourceId
-    );
-
-    if (sparklines.length === 0) {
-      cblcarsLog.debug(`[AdvancedRenderer] No cached sparklines found for source: ${updateData.sourceId}`);
-      return;
-    }
-
-    sparklines.forEach(sparklineElement => {
-      const overlay = this.lastRenderArgs.overlays?.find(o =>
-        o.id === sparklineElement.getAttribute('data-overlay-id')
-      );
-      if (!overlay) return;
-
-      SparklineOverlayRenderer.updateSparklineData(sparklineElement, overlay, updateData.data);
-    });
   }
 
   /**

@@ -728,7 +728,6 @@ export class ActionHelpers {
    *
    * ✅ StatusGrid: Full action support (overlay + cell level)
    * ✅ TextOverlay: Full action support (overlay level)
-   * 🔄 SparklineOverlay: Planned
    * 🔄 BarChartOverlay: Planned
    * 🔄 HistoryBarOverlay: Planned
    */  /**

@@ -33,7 +33,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     return createDisabledPipeline(mergedConfig, issues, provenance);
   }
 
-  // PHASE 2: Initialize SystemsManager with defaults loading BEFORE any overlay processing
+  // PHASE 2: Initialize SystemsManager with theme loading BEFORE any overlay processing
   cblcarsLog.debug('[PipelineCore] 🔧 Phase 2: Initializing SystemsManager and loading pack defaults');
   const systemsManager = new SystemsManager();
 
@@ -45,69 +45,35 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     throw new Error(`SystemsManager initialization failed: ${error.message}`);
   }
 
-  // Verify defaults manager is ready with enhanced validation
-  if (!systemsManager.defaultsManager) {
-    throw new Error('DefaultsManager initialization failed - cannot proceed with overlay rendering');
+  // Verify theme manager is ready with enhanced validation
+  if (!systemsManager.themeManager) {
+    throw new Error('ThemeManager initialization failed - cannot proceed with overlay rendering');
   }
 
-  // Validate essential packs are loaded
-  const introspectionData = systemsManager.defaultsManager.getIntrospectionData();
+  // Validate theme is loaded
+  const activeTheme = systemsManager.themeManager.getActiveTheme();
 
-  cblcarsLog.debug('[PipelineCore] 🔍 Pack validation - full introspection:', introspectionData);
-
-  // The introspection data structure should be checked more carefully
-  // We need to look for actual pack names, not configuration paths
-  let packsFound = [];
-  let corePackFound = false;
-
-  // Check if introspection has a packs section or similar
-  if (introspectionData.layers && introspectionData.layers.pack) {
-    // The pack layers might be structured differently
-    const packData = introspectionData.layers.pack;
-
-    // Try different ways to extract pack information
-    if (typeof packData === 'object') {
-      // If it's an object, we need to find actual pack references
-      const keys = Object.keys(packData);
-
-      // Look for pack metadata or check if these are actually pack names
-      for (const key of keys) {
-        if (typeof key === 'string') {
-          // Check if this looks like a pack name (no dots) vs a setting path (has dots)
-          if (!key.includes('.')) {
-            packsFound.push(key);
-            if (key === 'core') corePackFound = true;
-          }
-        }
-      }
-
-      // If we didn't find pack names, try to extract from the provenance
-      if (packsFound.length === 0 && mergedConfig.__provenance) {
-        const provenancePackLayers = mergedConfig.__provenance.merge_order?.filter(layer => layer.type === 'builtin') || [];
-        packsFound = provenancePackLayers.map(layer => layer.pack);
-        corePackFound = packsFound.includes('core');
-
-        cblcarsLog.debug('[PipelineCore] 🔍 Extracted pack names from provenance:', packsFound);
-      }
-    }
-  }
-
-  cblcarsLog.debug('[PipelineCore] 🔍 Pack validation results:', {
-    introspectionStructure: typeof introspectionData.layers?.pack,
-    packsFound,
-    corePackFound,
-    introspectionKeys: introspectionData.layers?.pack ? Object.keys(introspectionData.layers.pack).slice(0, 5) : []
+  cblcarsLog.debug('[PipelineCore] 🔍 Theme validation:', {
+    activeTheme: activeTheme?.name || 'none',
+    themeId: activeTheme?.id || 'none',
+    availableThemes: systemsManager.themeManager.listThemes(),
+    initialized: systemsManager.themeManager.initialized
   });
 
-  if (!corePackFound) {
-    cblcarsLog.warn('[PipelineCore] ⚠️ Core pack not found in defaults manager - some features may not work');
-    cblcarsLog.debug('[PipelineCore] Available packs:', packsFound);
+  if (!activeTheme) {
+    cblcarsLog.warn('[PipelineCore] ⚠️ No theme active - some features may not work properly');
   } else {
-    cblcarsLog.debug('[PipelineCore] ✅ Core pack validated in defaults manager');
-  }  cblcarsLog.debug('[PipelineCore] ✅ Pack defaults loaded and ready:', {
-    hasDefaultsManager: !!systemsManager.defaultsManager,
-    packsLoaded: packsFound,
-    totalPackDefaults: packsFound.length
+    cblcarsLog.debug('[PipelineCore] ✅ Theme validated:', {
+      name: activeTheme.name,
+      id: activeTheme.id,
+      packId: activeTheme.packId
+    });
+  }
+
+  cblcarsLog.debug('[PipelineCore] ✅ Theme system loaded and ready:', {
+    hasThemeManager: !!systemsManager.themeManager,
+    activeTheme: activeTheme?.name,
+    themeCount: systemsManager.themeManager.listThemes().length
   });
 
   // PHASE 3: Build card model (now safe to process overlays)
@@ -150,13 +116,13 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       systemsManager: systemsManager,
       dataSourceManager: systemsManager.dataSourceManager,
       config: mergedConfig,
-      defaultsManager: systemsManager.defaultsManager
+      themeManager: systemsManager.themeManager
     };
 
     cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
       hasSystemsManager: !!systemsManager,
       hasDataSourceManager: !!systemsManager.dataSourceManager,
-      hasDefaultsManager: !!systemsManager.defaultsManager,
+      hasThemeManager: !!systemsManager.themeManager,
       hasRouter: !!systemsManager.router,
       dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
     });
@@ -184,14 +150,12 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   async function reRender() {
     cblcarsLog.debug('[PipelineCore] 🔄 reRender() ENTRY', {
       timestamp: new Date().toISOString(),
-      renderInProgress: systemsManager._renderInProgress,
-      defaultsManagerReady: !!systemsManager.defaultsManager
+      renderInProgress: systemsManager._renderInProgress
     });
 
-    // ENHANCED: Verify defaults manager is still available
-    if (!systemsManager.defaultsManager) {
-      cblcarsLog.error('[PipelineCore] ❌ DefaultsManager not available during re-render - aborting');
-      return { success: false, error: 'DefaultsManager not available' };
+    if (!systemsManager.themeManager) {
+      cblcarsLog.error('[PipelineCore] ❌ ThemeManager not available during re-render - aborting');
+      return { success: false, error: 'ThemeManager not available' };
     }
 
     // IMPROVED: Queue renders instead of blocking them

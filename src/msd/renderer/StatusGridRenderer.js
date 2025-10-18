@@ -16,25 +16,25 @@ import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 export class StatusGridRenderer {
   constructor() {
-    // Connect to defaults manager from global context
-    this.defaultsManager = this._resolveDefaultsManager();
+    // Connect to theme manager from global context
+    this.themeManager = this._resolveThemeManager();
   }
 
   /**
-   * Resolve defaults manager from various sources
+   * Resolve theme manager from various sources
    * @private
    * @returns {Object|null} Defaults manager instance
    */
-  _resolveDefaultsManager() {
+  _resolveThemeManager() {
     // 1. Global CB-LCARS namespace (preferred)
-    if (window.cblcars?.defaults) {
+    if (window.cblcars?.theme) {
       return window.cblcars.defaults;
     }
 
     // 2. Pipeline instance
     const pipelineInstance = window.__msdDebug?.pipelineInstance;
     if (pipelineInstance?.systemsManager?.defaultsManager) {
-      return pipelineInstance.systemsManager.defaultsManager;
+      return pipelineInstance.systemsManager.themeManager;
     }
 
     // 3. Direct pipeline access
@@ -45,10 +45,10 @@ export class StatusGridRenderer {
     // 4. Systems manager global reference
     const systemsManager = window.__msdDebug?.systemsManager;
     if (systemsManager?.defaultsManager) {
-      return systemsManager.defaultsManager;
+      return systemsManager.themeManager;
     }
 
-    cblcarsLog.debug('[StatusGridRenderer] ⚠️ No defaults manager found');
+    cblcarsLog.debug('[StatusGridRenderer] ⚠️ No theme manager found');
     return null;
   }
 
@@ -61,14 +61,14 @@ export class StatusGridRenderer {
     // 1. Pipeline instance (preferred)
     const pipelineInstance = window.__msdDebug?.pipelineInstance;
     if (pipelineInstance?.systemsManager?.stylePresetManager) {
-      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to style preset manager via pipeline systemsManager');
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to theme manager via pipeline systemsManager');
       return pipelineInstance.systemsManager.stylePresetManager;
     }
 
     // 2. Systems manager global reference
     const systemsManager = window.__msdDebug?.systemsManager;
     if (systemsManager?.stylePresetManager) {
-      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to style preset manager via global systemsManager');
+      cblcarsLog.debug('[StatusGridRenderer] ✅ Connected to theme manager via global systemsManager');
       return systemsManager.stylePresetManager;
     }
 
@@ -95,7 +95,7 @@ export class StatusGridRenderer {
    * - Layer 4: Cell.Preset (cell.lcars_button_preset)
    * - Layer 3: Overlay.Specific (overlay.style properties)
    * - Layer 2: Overlay.Preset (overlay.lcars_button_preset)
-   * - Layer 1: MSD Defaults (DefaultsManager values)
+   * - Layer 1: Theme Defaults (ThemeManager values)
    *
    * Example Usage:
    * ```javascript
@@ -154,7 +154,7 @@ export class StatusGridRenderer {
       computed: new Map()   // ADDED: property -> layer that computed it
     };
 
-    // Layer 1: MSD Defaults (lowest priority)
+    // Layer 1: Theme Defaults (lowest priority)
     let resolvedStyle = this._getMSDDefaultsLayer(priorityTracker);
 
     // Layer 2: Overlay Preset (with token resolution)
@@ -191,10 +191,10 @@ export class StatusGridRenderer {
   }
 
   /**
-   * Layer 1: Get MSD defaults from DefaultsManager (lowest priority)
+   * Layer 1: Get MSD defaults from ThemeManager (lowest priority)
    *
    * This layer provides the foundational default values for all properties.
-   * These defaults are resolved from the DefaultsManager which may include
+   * These defaults are resolved from the ThemeManager which may include
    * pack-provided defaults, theme defaults, or hard-coded fallbacks.
    *
    * All properties set at this layer are marked as 'computed' in the priority
@@ -208,10 +208,10 @@ export class StatusGridRenderer {
    * const defaults = this._getMSDDefaultsLayer(tracker);
    * // defaults.cell_color = 'var(--lcars-blue)'
    * // defaults.cell_radius = 2
-   * // tracker.computed.get('cell_color') = 'msd_defaults'
+   * // tracker.computed.get('cell_color') = 'theme_defaults'
    */
   _getMSDDefaultsLayer(priorityTracker) {
-    priorityTracker.layers.add('msd_defaults');
+    priorityTracker.layers.add('theme_defaults');
 
     const defaults = {
       // Grid layout defaults
@@ -257,10 +257,10 @@ export class StatusGridRenderer {
 
     // Track all defaults as computed
     Object.keys(defaults).forEach(key => {
-      priorityTracker.computed.set(key, 'msd_defaults');
+      priorityTracker.computed.set(key, 'theme_defaults');
     });
 
-    cblcarsLog.debug('[StatusGridRenderer] 📦 Layer 1: MSD Defaults loaded', {
+    cblcarsLog.debug('[StatusGridRenderer] 📦 Layer 1: Theme Defaults loaded', {
       propertyCount: Object.keys(defaults).length
     });
 
@@ -282,7 +282,7 @@ export class StatusGridRenderer {
    *
    * @private
    * @param {Object} overlay - Overlay configuration with potential lcars_button_preset
-   * @param {Object} baseStyle - Style from Layer 1 (MSD Defaults)
+   * @param {Object} baseStyle - Style from Layer 1 (Theme Defaults)
    * @param {Object} priorityTracker - Priority tracking object
    * @returns {Object} New merged style object with preset properties applied
    *
@@ -447,7 +447,7 @@ export class StatusGridRenderer {
    * - Creates new style object (immutable)
    *
    * Priority behavior:
-   * - Overrides: MSD Defaults, Overlay Preset
+   * - Overrides: Theme Defaults, Overlay Preset
    * - Can be overridden by: Overlay.Specific (explicit), Cell.Specific
    *
    * @private
@@ -710,20 +710,6 @@ export class StatusGridRenderer {
     return resolved;
   }
 
-  /**
-   * Get default value from defaults manager with fallback
-   * @private
-   * @param {string} path - Dot-notation path to the default
-   * @param {any} fallback - Fallback value if default not found
-   * @returns {any} Default value or fallback
-   */
-  _getDefault(path, fallback = null) {
-    if (this.defaultsManager && typeof this.defaultsManager.resolve === 'function') {
-      const resolved = this.defaultsManager.resolve(path);
-      return resolved !== null ? resolved : fallback;
-    }
-    return fallback;
-  }
 
   /**
    * Render a status grid overlay with comprehensive styling support
@@ -1311,7 +1297,7 @@ export class StatusGridRenderer {
 
   /**
    * Resolve individual cell styling with proper cascade hierarchy using unified system
-   * Order: MSD Defaults → Overlay.Preset → Overlay.Specific → Cell.Preset → Cell.Specific
+   * Order: Theme Defaults → Overlay.Preset → Overlay.Specific → Cell.Preset → Cell.Specific
    * Now uses the unified token resolution system at every layer
    * @private
    * @param {Object} cellConfig - Individual cell configuration
@@ -3331,13 +3317,47 @@ export class StatusGridRenderer {
 
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
-}
 
-// Expose StatusGridRenderer to window for console debugging
-if (typeof window !== 'undefined') {
-  window.StatusGridRenderer = StatusGridRenderer;
 
-  // Add debug helpers for action system
-  window._debugStatusGridActions = () => StatusGridRenderer.getActionDebugInfo();
-  window._processStatusGridActions = () => StatusGridRenderer.processAllPendingActions();
+  /**
+   * Get default value from theme manager with fallback
+   * @private
+   * @param {string} path - Dot-notation path to the default
+   * @param {any} fallback - Fallback value if default not found
+   * @returns {any} Default value or fallback
+   */
+  /**
+   * Helper method to get default values with proper fallback chain
+   * UPDATED: Now uses ThemeManager instead of ThemeManager
+   *
+   * @private
+   * @param {string} path - Dot-notation path (e.g., 'status_grid.text_padding')
+   * @param {*} fallback - Fallback value if theme default not found
+   * @returns {*} Resolved default value
+   */
+  _getDefault(path, fallback = null) {
+    if (!this.themeManager || !this.themeManager.initialized) {
+      return fallback;
+    }
+
+    // Convert path from 'status_grid.property' to ThemeManager format
+    // ThemeManager expects: 'components.statusGrid.property'
+    const pathParts = path.split('.');
+    if (pathParts[0] === 'status_grid') {
+      // Convert status_grid -> statusGrid (camelCase for components)
+      pathParts[0] = 'statusGrid';
+    }
+
+    // Use ThemeManager's getDefault method
+    const componentType = pathParts[0];
+    const property = pathParts.slice(1).join('.');
+
+    try {
+      const value = this.themeManager.getDefault(componentType, property, fallback);
+      return value !== null ? value : fallback;
+    } catch (error) {
+      cblcarsLog.warn(`[StatusGridRenderer] Error resolving theme default for ${path}:`, error);
+      return fallback;
+    }
+  }
 }
