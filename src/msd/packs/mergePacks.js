@@ -1,6 +1,7 @@
 import { computeCanonicalChecksum } from '../util/checksum.js';
 import { perfTime, perfTimeAsync, perfCount } from '../util/performance.js';
 import { loadBuiltinPacks } from './loadBuiltinPacks.js';
+import { chartTemplateRegistry } from '../templates/ChartTemplateRegistry.js';
 
 /**
  * Single consolidated merge algorithm - COMPLETE REPLACEMENT
@@ -18,6 +19,14 @@ export async function mergePacks(userConfig, defaultsManager = null) {
       defaultsManager.loadFromPacks(packsData);
       console.log(`[MSD] Loaded ${packsData.length} packs into defaults manager:`, packsData.map(p => p.id));
     }
+
+    // NEW: Register chart templates from packs
+    const packLayers = layers.filter(layer => layer.type === 'builtin' || layer.type === 'external');
+    packLayers.forEach(layer => {
+      if (layer.data.chartTemplates) {
+        chartTemplateRegistry.registerFromPack(layer.data.id || layer.pack, layer.data.chartTemplates);
+      }
+    });
 
     return merged;
   }, {

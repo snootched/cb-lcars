@@ -27,6 +27,7 @@ import { OverlayUtils } from './OverlayUtils.js';
 import { ApexChartsAdapter } from '../charts/ApexChartsAdapter.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import ApexCharts from 'apexcharts';
+import { chartTemplateRegistry } from '../templates/ChartTemplateRegistry.js';
 
 export class ApexChartsOverlayRenderer {
   constructor() {
@@ -99,6 +100,16 @@ export class ApexChartsOverlayRenderer {
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance) {
     const instance = ApexChartsOverlayRenderer._getInstance();
+
+    // NEW: Apply chart template if specified (BEFORE any other processing)
+    if (overlay.template) {
+      const overlayWithTemplate = chartTemplateRegistry.applyTemplate(overlay);
+
+      if (overlayWithTemplate !== overlay) {
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] Applied template '${overlay.template}' to overlay ${overlay.id}`);
+        overlay = overlayWithTemplate;
+      }
+    }
 
     // SAFETY CHECK: Lazy initialize on first render
     if (!instance.elements) {

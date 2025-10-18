@@ -44,7 +44,35 @@ export async function buildCardModel(mergedConfig) {
     console.log('[CardModel] Final viewBox:', viewBox);
 
     const anchors = {}; // merged + normalized numeric
-    const overlaysBase = mergedConfig.overlays.map(o => ({ id: o.id, type: o.type, style: o.style || {}, raw: o }));
+
+    // Preserve template property in overlays
+    const overlaysBase = mergedConfig.overlays.map(o => {
+      const baseOverlay = {
+        id: o.id,
+        type: o.type,
+        style: o.style || {},
+        raw: o
+      };
+
+      // Preserve template reference if present
+      if (o.template && typeof o.template === 'string') {
+        baseOverlay.template = o.template;
+      }
+
+      // Preserve animation_preset reference if present (for Phase 3)
+      if (o.animation_preset && typeof o.animation_preset === 'string') {
+        baseOverlay.animation_preset = o.animation_preset;
+      }
+
+      // Preserve other critical properties
+      if (o.source) baseOverlay.source = o.source;
+      if (o.data_source) baseOverlay.data_source = o.data_source;
+      if (o.sources) baseOverlay.sources = o.sources;
+      if (o.position) baseOverlay.position = o.position;
+      if (o.size) baseOverlay.size = o.size;
+
+      return baseOverlay;
+    });
 
     return { viewBox, anchors, overlaysBase, __raw: mergedConfig };
   });

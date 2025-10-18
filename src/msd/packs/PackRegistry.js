@@ -239,6 +239,58 @@ export class PackRegistry {
   }
 
   /**
+   * Get chart templates from a specific pack
+   * @param {string} packId - Pack identifier
+   * @returns {Object} Chart templates object
+   */
+  getChartTemplates(packId) {
+    const pack = this.getPack(packId);
+    return pack?.chartTemplates || {};
+  }
+
+  /**
+   * Get all chart templates from all packs
+   * @returns {Object} Object with pack.template structure
+   */
+  getAllChartTemplates() {
+    const allTemplates = {};
+
+    for (const pack of this.loadedPacks) {
+      if (pack.chartTemplates && typeof pack.chartTemplates === 'object') {
+        allTemplates[pack.id] = pack.chartTemplates;
+      }
+    }
+
+    return allTemplates;
+  }
+
+  /**
+   * Get chart animation presets from a specific pack
+   * @param {string} packId - Pack identifier
+   * @returns {Object} Animation presets object
+   */
+  getChartAnimationPresets(packId) {
+    const pack = this.getPack(packId);
+    return pack?.chartAnimationPresets || {};
+  }
+
+  /**
+   * Get all chart animation presets from all packs
+   * @returns {Object} Object with pack.preset structure
+   */
+  getAllChartAnimationPresets() {
+    const allPresets = {};
+
+    for (const pack of this.loadedPacks) {
+      if (pack.chartAnimationPresets && typeof pack.chartAnimationPresets === 'object') {
+        allPresets[pack.id] = pack.chartAnimationPresets;
+      }
+    }
+
+    return allPresets;
+  }
+
+  /**
    * Search for items across all packs
    * @param {string} type - Type to search for ('overlays', 'animations', 'rules', etc.)
    * @param {Function} predicate - Function to test each item
@@ -284,7 +336,9 @@ export class PackRegistry {
       ruleCount: pack.rules?.length || 0,
       paletteCount: Object.keys(pack.palettes || {}).length,
       anchorCount: Object.keys(pack.anchors || {}).length,
-      hasRouting: !!(pack.routing && Object.keys(pack.routing).length)
+      hasRouting: !!(pack.routing && Object.keys(pack.routing).length),
+      chartTemplateCount: Object.keys(pack.chartTemplates || {}).length,
+      animationPresetCount: Object.keys(pack.chartAnimationPresets || {}).length
     }));
 
     return info;
