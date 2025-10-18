@@ -112,6 +112,14 @@ export class ApexChartsAdapter {
    * @returns {Object} ApexCharts options object
    */
   static generateOptions(style, size, context = {}) {
+    let chartType = style.chart_type || style.type || 'line';
+
+    // Validate chart type
+    if (!this.VALID_CHART_TYPES.includes(chartType)) {
+      cblcarsLog.warn(`[ApexChartsAdapter] Invalid chart type: ${chartType}, defaulting to 'line'`);
+      chartType = 'line';
+    }
+
     // ✅ ADDED: Create component-scoped token resolver
     const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('chart') : null;
 
@@ -242,9 +250,15 @@ export class ApexChartsAdapter {
       }
     };
 
+    // NEW: Apply type-specific LCARS defaults
+    const typeDefaults = this._getChartTypeDefaults(chartType, style);
+
+    // Deep merge type defaults with base options
+    const optionsWithTypeDefaults = this._deepMerge(baseOptions, typeDefaults);
+
     // Apply chart_options overrides (highest precedence)
     if (style.chart_options) {
-      return this._deepMerge(baseOptions, style.chart_options);
+      return this._deepMerge(optionsWithTypeDefaults, style.chart_options);
     }
 
     cblcarsLog.debug('[ApexChartsAdapter] Generated options with tokens:', {
@@ -254,7 +268,397 @@ export class ApexChartsAdapter {
       fontFamily
     });
 
-    return baseOptions;
+    return optionsWithTypeDefaults;
+  }
+
+  /**
+   * Valid ApexCharts chart types supported by MSD
+   * @constant {string[]}
+   */
+  static VALID_CHART_TYPES = [
+    // Existing types
+    'line',
+    'area',
+    'bar',
+    'pie',
+    'donut',
+    'radar',
+    'heatmap',
+
+    // NEW: Added chart types (Phase 1)
+    'radialBar',    // Gauges, completion indicators
+    'rangeBar',     // Timelines, schedules
+    'polarArea',    // Directional data
+    'treemap',      // Hierarchical data
+    'rangeArea',    // Data ranges/confidence intervals
+    'scatter',      // Correlation plots
+    'candlestick',  // OHLC data
+    'boxPlot'       // Statistical distributions
+  ];
+
+  /**
+   * Convert multiple DataSources to multi-series format
+   * @param {Array<string>|string} sourceRefs - Array of DataSource references or single reference
+   * @param {Object} dataSourceManager - MSD DataSourceManager instance
+   * @param {Object} config - Configuration options
+   * @param {Object} [config.seriesNames] - Map of sourceRef to series name
+   * @returns {Array} ApexCharts multi-series array
+   */
+  static convertToMultiSeries(sourceRefs, dataSourceManager, config = {}) {
+    if (!Array.isArray(sourceRefs)) {
+      return this.convertToSeries(sourceRefs, dataSourceManager, config);
+    }
+
+    const allSeries = [];
+
+    sourceRefs.forEach(sourceRef => {
+      const series = this.convertToSeries(sourceRef, dataSourceManager, {
+        ...config,
+        name: config.seriesNames?.[sourceRef] || this._extractSeriesName(sourceRef)
+      });
+
+      allSeries.push(...series);
+    });
+
+    return allSeries;
+  }
+
+  /**
+   * Get LCARS-optimized defaults for specific chart type
+   * @private
+   * @param {string} chartType - Chart type
+   * @param {Object} style - MSD style configuration
+   * @returns {Object} ApexCharts options specific to chart type
+   */
+  static _getChartTypeDefaults(chartType, style) {
+    const resolveToken = themeTokenResolver.forComponent('chart');
+
+    switch (chartType) {
+      case 'radialBar':
+        return {
+          plotOptions: {
+            radialBar: {
+              hollow: {
+                size: '65%',
+                background: 'transparent'
+              },
+              track: {
+                background: resolveToken('colors.ui.disabled', 'var(--lcars-gray)'),
+                strokeWidth: '100%',
+                opacity: 0.3
+              },
+              dataLabels: {
+                name: {
+                  show: true,
+                  fontSize: resolveToken('typography.fontSize.sm', '12px'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                  offsetY: -10
+                },
+                value: {
+                  show: true,
+                  fontSize: resolveToken('typography.fontSize.2xl', '24px'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+                  color: resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
+                  offsetY: 5,
+                  formatter: (val) => {
+                    return style.value_format === 'percent' ? `${Math.round(val)}%` : val;
+                  }
+                },
+                total: {
+                  show: true,
+                  label: 'TOTAL',
+                  fontSize: resolveToken('typography.fontSize.sm', '12px'),
+                  fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+                  color: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                  formatter: (w) => {
+                    const total = w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                    return style.value_format === 'percent' ? `${Math.round(total)}%` : total;
+                  }
+                }
+              },
+              startAngle: style.gauge_start_angle || -90,
+              endAngle: style.gauge_end_angle || 90
+            }
+          }
+        };
+
+      case 'rangeBar':
+        return {
+          plotOptions: {
+            bar: {
+              horizontal: true,
+              barHeight: '70%',
+              rangeBarOverlap: false,
+              rangeBarGroupRows: style.group_rows !== false
+            }
+          },
+          xaxis: {
+            type: 'datetime',
+            labels: {
+              datetimeUTC: false,
+              style: {
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                fontSize: resolveToken('typography.fontSize.xs', '10px'),
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+              }
+            }
+          },
+          yaxis: {
+            labels: {
+              style: {
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                fontSize: resolveToken('typography.fontSize.xs', '10px'),
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+              }
+            }
+          },
+          dataLabels: {
+            enabled: style.show_labels !== false,
+            style: {
+              fontSize: resolveToken('typography.fontSize.xs', '10px'),
+              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+            }
+          }
+        };
+
+      case 'polarArea':
+        return {
+          plotOptions: {
+            polarArea: {
+              rings: {
+                strokeWidth: 1,
+                strokeColor: resolveToken('colors.ui.border', 'var(--lcars-gray)')
+              },
+              spokes: {
+                strokeWidth: 1,
+                connectorColors: resolveToken('colors.ui.border', 'var(--lcars-gray)')
+              }
+            }
+          },
+          stroke: {
+            width: 2,
+            colors: [resolveToken('colors.ui.background', 'var(--lcars-black)')]
+          },
+          fill: {
+            opacity: 0.8
+          },
+          legend: {
+            position: style.legend_position || 'bottom',
+            fontSize: resolveToken('typography.fontSize.sm', '12px'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            labels: {
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+            }
+          }
+        };
+
+      case 'treemap':
+        return {
+          plotOptions: {
+            treemap: {
+              enableShades: true,
+              shadeIntensity: 0.5,
+              distributed: true,
+              colorScale: {
+                ranges: [
+                  {
+                    from: 0,
+                    to: 25,
+                    color: resolveToken('colors.accent.secondary', 'var(--lcars-blue)')
+                  },
+                  {
+                    from: 25,
+                    to: 50,
+                    color: resolveToken('colors.status.success', 'var(--lcars-green)')
+                  },
+                  {
+                    from: 50,
+                    to: 75,
+                    color: resolveToken('colors.status.warning', 'var(--lcars-orange)')
+                  },
+                  {
+                    from: 75,
+                    to: 100,
+                    color: resolveToken('colors.status.danger', 'var(--lcars-red)')
+                  }
+                ]
+              }
+            }
+          },
+          dataLabels: {
+            enabled: true,
+            style: {
+              fontSize: resolveToken('typography.fontSize.sm', '12px'),
+              fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+              fontWeight: 'bold'
+            },
+            offsetY: -4
+          }
+        };
+
+      case 'rangeArea':
+        return {
+          stroke: {
+            curve: 'straight',
+            width: [0, 2, 2, 0], // Outer lines invisible, inner lines visible
+            colors: [
+              'transparent',
+              resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
+              resolveToken('colors.accent.primary', 'var(--lcars-orange)'),
+              'transparent'
+            ]
+          },
+          fill: {
+            type: 'solid',
+            opacity: 0.2
+          },
+          markers: {
+            size: 0
+          },
+          legend: {
+            show: true,
+            position: style.legend_position || 'top',
+            fontSize: resolveToken('typography.fontSize.sm', '12px'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            labels: {
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+            }
+          }
+        };
+
+      case 'scatter':
+        return {
+          markers: {
+            size: style.marker_size || 6,
+            strokeWidth: 0,
+            hover: {
+              sizeOffset: 3
+            }
+          },
+          grid: {
+            borderColor: resolveToken('colors.ui.border', 'var(--lcars-gray)'),
+            strokeDashArray: 4,
+            xaxis: {
+              lines: { show: style.show_grid !== false }
+            },
+            yaxis: {
+              lines: { show: style.show_grid !== false }
+            }
+          },
+          dataLabels: {
+            enabled: false // Usually too cluttered for scatter
+          },
+          legend: {
+            position: style.legend_position || 'top',
+            fontSize: resolveToken('typography.fontSize.sm', '12px'),
+            fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio'),
+            labels: {
+              colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)')
+            }
+          }
+        };
+
+      case 'candlestick':
+        return {
+          plotOptions: {
+            candlestick: {
+              colors: {
+                upward: resolveToken('colors.status.success', 'var(--lcars-green)'),
+                downward: resolveToken('colors.status.danger', 'var(--lcars-red)')
+              },
+              wick: {
+                useFillColor: true
+              }
+            }
+          },
+          xaxis: {
+            type: 'datetime',
+            labels: {
+              datetimeUTC: false,
+              style: {
+                colors: resolveToken('colors.ui.foreground', 'var(--lcars-white)'),
+                fontSize: resolveToken('typography.fontSize.xs', '10px'),
+                fontFamily: resolveToken('typography.fontFamily.primary', 'Antonio')
+              }
+            }
+          }
+        };
+
+      case 'boxPlot':
+        return {
+          plotOptions: {
+            boxPlot: {
+              colors: {
+                upper: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue)'),
+                lower: style.color || resolveToken('colors.accent.primary', 'var(--lcars-blue)')
+              }
+            }
+          },
+          stroke: {
+            width: 2,
+            colors: [resolveToken('colors.ui.foreground', 'var(--lcars-white)')]
+          }
+        };
+
+      default:
+        return {};
+    }
+  }
+
+  /**
+   * Convert MSD DataSource to ApexCharts series format
+   * @param {string} sourceRef - DataSource reference (supports dot notation like "temp.transformations.celsius")
+   * @param {Object} dataSourceManager - MSD DataSourceManager instance
+   * @param {Object} config - Configuration options
+   * @param {string} [config.name] - Series name override
+   * @param {string} [config.time_window] - Time window filter (e.g., "12h", "24h")
+   * @param {number} [config.max_points=500] - Maximum data points (decimation threshold)
+   * @returns {Array} ApexCharts series array
+   */
+  static convertToSeries(sourceRef, dataSourceManager, config = {}) {
+    try {
+      // Parse dot notation (e.g., "temp.transformations.celsius")
+      const { dataSource, dataPath } = this._resolveDataSourcePath(sourceRef, dataSourceManager);
+
+      if (!dataSource) {
+        cblcarsLog.warn(`[ApexChartsAdapter] DataSource not found: ${sourceRef}`);
+        return [];
+      }
+
+      // Get historical data with error boundary
+      let data;
+      try {
+        if (dataPath) {
+          data = this._getEnhancedData(dataSource, dataPath, config);
+        } else {
+          data = this._getRawData(dataSource, config);
+        }
+      } catch (dataError) {
+        cblcarsLog.error(`[ApexChartsAdapter] Error getting data for ${sourceRef}:`, dataError);
+        return [];
+      }
+
+      if (!data || data.length === 0) {
+        cblcarsLog.warn(`[ApexChartsAdapter] No data available for: ${sourceRef}`);
+        return [];
+      }
+
+      // Convert to ApexCharts format
+      const seriesName = config.name || this._extractSeriesName(sourceRef);
+
+      return [{
+        name: seriesName,
+        data: data.map(point => ({
+          x: point.timestamp || point.t,
+          y: point.value || point.v
+        }))
+      }];
+
+    } catch (error) {
+      cblcarsLog.error(`[ApexChartsAdapter] Critical error in convertToSeries for ${sourceRef}:`, error);
+      return [];
+    }
   }
 
   /**
