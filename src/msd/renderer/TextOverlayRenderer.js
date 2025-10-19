@@ -10,6 +10,7 @@
  * - Delegates pure rendering to core/TextRenderer
  */
 
+import { BaseRenderer } from './BaseRenderer.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
@@ -18,73 +19,13 @@ import { TextRenderer } from './core/TextRenderer.js';
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 
-export class TextOverlayRenderer {
+export class TextOverlayRenderer extends BaseRenderer {
   constructor() {
+    super();
+    this.rendererName = 'TextOverlayRenderer';
+
     // Initialize ThemeManager reference
     this.themeManager = this._resolveThemeManager();
-  }
-
-  /**
-   * Resolve theme manager from various sources
-   * @private
-   * @returns {Object|null} Theme manager instance
-   */
-  _resolveThemeManager() {
-    // 1. Global CB-LCARS namespace (preferred)
-    if (window.cblcars?.theme) {
-      return window.cblcars.theme;
-    }
-
-    // 2. Pipeline instance via systemsManager
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (pipelineInstance?.systemsManager?.themeManager) {
-      return pipelineInstance.systemsManager.themeManager;
-    }
-
-    // 3. Direct pipeline access
-    if (pipelineInstance?.themeManager) {
-      return pipelineInstance.themeManager;
-    }
-
-    // 4. Systems manager global reference
-    const systemsManager = window.__msdDebug?.systemsManager;
-    if (systemsManager?.themeManager) {
-      return systemsManager.themeManager;
-    }
-
-    cblcarsLog.debug('[TextOverlayRenderer] ⚠️ No theme manager found');
-    return null;
-  }
-
-  /**
-   * Helper method to get default values with proper fallback chain
-   * UPDATED: Now uses ThemeManager instead of DefaultsManager
-   *
-   * @private
-   * @param {string} path - Dot-notation path (e.g., 'text.font_size')
-   * @param {*} fallback - Fallback value if theme default not found
-   * @returns {*} Resolved default value
-   */
-  _getDefault(path, fallback = null) {
-    const themeManager = this._resolveThemeManager();
-
-    if (!themeManager || !themeManager.initialized) {
-      return fallback;
-    }
-
-    // Convert path from 'text.property' to ThemeManager format
-    // ThemeManager expects: 'components.text.property'
-    const pathParts = path.split('.');
-    const componentType = pathParts[0];
-    const property = pathParts.slice(1).join('.');
-
-    try {
-      const value = themeManager.getDefault(componentType, property, fallback);
-      return value !== null ? value : fallback;
-    } catch (error) {
-      cblcarsLog.warn(`[TextOverlayRenderer] Error resolving theme default for ${path}:`, error);
-      return fallback;
-    }
   }
 
   /**
@@ -500,39 +441,6 @@ export class TextOverlayRenderer {
   }
 
   /**
-   * Resolve a style property using token system with fallback to defaults
-   * @private
-   */
-  _resolveStyleProperty(styleValue, tokenPath, resolveToken, fallback, context) {
-    // If style value is explicitly set, use it
-    if (styleValue !== undefined && styleValue !== null) {
-      // Check if it's a token reference
-      if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
-        return resolveToken(styleValue, fallback, context);
-      }
-      return styleValue;
-    }
-
-    // Otherwise resolve from token system
-    if (resolveToken) {
-      return resolveToken(tokenPath, fallback, context);
-    }
-
-    // Final fallback
-    return fallback;
-  }
-
-  /**
-   * Check if a value is a token reference
-   * @private
-   */
-  _isTokenReference(value) {
-    if (typeof value !== 'string') return false;
-    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
-    return tokenCategories.some(category => value.startsWith(`${category}.`));
-  }
-
-  /**
    * Resolve text content from DataSource/templates
    * @private
    */
@@ -602,29 +510,6 @@ export class TextOverlayRenderer {
     }
 
     return content;
-  }
-
-  /**
-   * Get ThemeManager instance (wrapper for _resolveThemeManager)
-   * @private
-   * @returns {Object|null} ThemeManager instance
-   */
-  _getThemeManager() {
-    return this._resolveThemeManager();
-  }
-
-  /**
-   * Get scaling context for responsive calculations
-   * @private
-   * @param {Array|null} fallbackViewBox - Fallback viewBox if not available
-   * @returns {Object} Scaling context with viewBox and container
-   */
-  _getScalingContext(fallbackViewBox = null) {
-    const viewBox = this.viewBox || fallbackViewBox || [0, 0, 400, 200];
-    return {
-      viewBox: viewBox,
-      containerElement: this.container
-    };
   }
 
   /**
@@ -787,41 +672,6 @@ export class TextOverlayRenderer {
     };
   }
 
-  /**
-   * Resolve container element from various sources as fallback
-   * @private
-   * @returns {Element|null} Container element for action attachment
-   */
-  _resolveContainerElement() {
-    // Try to find a valid container element for action attachment
-
-    // Method 1: From pipeline renderer (most reliable)
-    const renderer = window.__msdDebug?.pipelineInstance?.systemsManager?.renderer;
-    if (renderer?.mountEl) {
-      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from pipeline renderer`);
-      return renderer.mountEl;
-    }
-
-    // Method 2: From card instance shadow root
-    const cardInstance = window.__msdDebug?.pipelineInstance?.cardInstance ||
-                         window._msdCardInstance ||
-                         window.cb_lcars_card_instance;
-
-    if (cardInstance?.shadowRoot) {
-      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from card instance shadow root`);
-      return cardInstance.shadowRoot;
-    }
-
-    // Method 3: Try to find overlay container in document
-    const overlayContainer = document.querySelector('#msd-overlay-container');
-    if (overlayContainer) {
-      cblcarsLog.debug(`[TextOverlayRenderer] Resolved container from document query`);
-      return overlayContainer;
-    }
-
-    cblcarsLog.warn(`[TextOverlayRenderer] Could not resolve container element from any source`);
-    return null;
-  }
 }
 
 export default TextOverlayRenderer;

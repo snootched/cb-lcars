@@ -1,15 +1,40 @@
+/**
+ * @fileoverview Line Overlay Renderer - Advanced line rendering with comprehensive styling support
+ *
+ * Leverages RouterCore's sophisticated path computation and adds rich visual features:
+ * - Multiple routing strategies (direct, smart, channel, arc)
+ * - Advanced styling (gradients, patterns, markers, effects)
+ * - Overlay-to-overlay attachment with gap support
+ * - Theme token integration via BaseRenderer
+ * - Animation hooks for anime.js integration
+ *
+ * UPDATED: Now extends BaseRenderer for ThemeManager integration and consistent patterns
+ *
+ * @module msd/renderer/LineOverlayRenderer
+ */
+
+import { BaseRenderer } from './BaseRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { OverlayUtils } from './OverlayUtils.js';
-// ✅ ADDED: Import token resolver
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 /**
- * [LineOverlayRenderer] Line overlay renderer - advanced line rendering with comprehensive styling support
- * 📏 Leverages RouterCore's sophisticated path computation and adds rich visual features
+ * Line overlay renderer with advanced styling and routing capabilities
+ *
+ * @class LineOverlayRenderer
+ * @extends BaseRenderer
  */
-
-export class LineOverlayRenderer {
+export class LineOverlayRenderer extends BaseRenderer {
+  /**
+   * Create a line overlay renderer instance
+   *
+   * @constructor
+   * @param {Object} routerCore - RouterCore instance for path computation
+   */
   constructor(routerCore) {
+    super(); // Call BaseRenderer constructor
+    this.rendererName = 'LineOverlayRenderer'; // Set name for logging
+
     this.routerCore = routerCore;
 
     // Pre-defined marker templates for performance
@@ -20,27 +45,36 @@ export class LineOverlayRenderer {
     this.textAttachmentPoints = new Map();
   }
 
+  /**
+   * Set overlay attachment points for overlay-to-overlay line connections
+   *
+   * @param {Map} overlayAttachmentPoints - Map of overlay ID to attachment point data
+   */
   setOverlayAttachmentPoints(overlayAttachmentPoints) {
     this.overlayAttachmentPoints = overlayAttachmentPoints;
     // Keep backward compatibility
     this.textAttachmentPoints = overlayAttachmentPoints;
 
-    cblcarsLog.debug('[LineOverlayRenderer] 📏 Updated with unified attachment points:',
+    this._logDebug('📏 Updated with unified attachment points:',
       overlayAttachmentPoints ? overlayAttachmentPoints.size : 0, 'overlay(s)');
   }
 
   /**
    * Render a line overlay with full styling support
+   *
    * @param {Object} overlay - Line overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions for routing
-   * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Array} viewBox - SVG viewBox dimensions [x, y, width, height]
    * @returns {string} Complete SVG markup for the styled line
    */
   render(overlay, anchors, viewBox) {
     if (!this.routerCore) {
-      cblcarsLog.error('[LineOverlayRenderer] ❌ RouterCore not available for line rendering');
+      this._logError('❌ RouterCore not available for line rendering');
       return '';
     }
+
+    // Set viewBox for BaseRenderer helpers
+    this.viewBox = viewBox;
 
     // Resolve anchor position with overlay attachment support
     let anchor;
@@ -49,7 +83,7 @@ export class LineOverlayRenderer {
     if (typeof overlay.anchor === 'string' && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.anchor)) {
       const sourceAttachmentPoints = this.overlayAttachmentPoints.get(overlay.anchor);
       if (sourceAttachmentPoints && sourceAttachmentPoints.points) {
-        cblcarsLog.debug(`[LineOverlayRenderer] 📏 Found source overlay attachment points for: ${overlay.anchor}`);
+        this._logDebug(`📏 Found source overlay attachment points for: ${overlay.anchor}`);
 
         const anchorSide = overlay.anchor_side || 'center';
 
@@ -65,30 +99,28 @@ export class LineOverlayRenderer {
             sourceAttachmentPoints.bbox
           );
 
-          cblcarsLog.debug(`[LineOverlayRenderer] Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
+          this._logDebug(`Resolved overlay anchor: ${overlay.anchor}.${anchorSide} -> [${anchor[0]}, ${anchor[1]}]`);
         } else {
-          cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
+          this._logWarn(`⚠️ Could not resolve anchor side '${anchorSide}' for overlay ${overlay.anchor}`);
           anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
         }
       } else {
-        cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ No attachment points found for source overlay: ${overlay.anchor}`);
+        this._logWarn(`⚠️ No attachment points found for source overlay: ${overlay.anchor}`);
         anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
       }
     } else {
       // Standard anchor resolution (coordinates, static anchors)
       anchor = OverlayUtils.resolvePosition(overlay.anchor, anchors);
     }
+
     // Resolve target position with overlay attachment support
-    // PRIORITIZE: Check overlay attachment points first, then fall back to static anchors
     let anchor2 = null;
-
-
 
     // Check for overlay attachment points FIRST (prioritize over static anchors)
     if (overlay.attach_to && this.overlayAttachmentPoints && this.overlayAttachmentPoints.has(overlay.attach_to)) {
       const targetAttachmentPoints = this.overlayAttachmentPoints.get(overlay.attach_to);
       if (targetAttachmentPoints && targetAttachmentPoints.points) {
-        cblcarsLog.debug(`[LineOverlayRenderer] Found target overlay attachment points for: ${overlay.attach_to}`);
+        this._logDebug(`Found target overlay attachment points for: ${overlay.attach_to}`);
 
         const attachSide = overlay.attach_side || 'center';
         const targetPoint = this._resolveAttachmentPoint(targetAttachmentPoints.points, attachSide);
@@ -103,20 +135,20 @@ export class LineOverlayRenderer {
             targetAttachmentPoints.bbox
           );
 
-          cblcarsLog.debug(`[LineOverlayRenderer] Resolved target overlay attachment: ${overlay.attach_to}.${attachSide} -> [${anchor2[0]}, ${anchor2[1]}]`);
+          this._logDebug(`Resolved target overlay attachment: ${overlay.attach_to}.${attachSide} -> [${anchor2[0]}, ${anchor2[1]}]`);
         } else {
-          cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve attach_side '${attachSide}' for overlay ${overlay.attach_to}`);
+          this._logWarn(`Could not resolve attach_side '${attachSide}' for overlay ${overlay.attach_to}`);
           anchor2 = targetAttachmentPoints.center; // Fallback to center
         }
       } else {
-        cblcarsLog.warn(`[LineOverlayRenderer] No attachment points found for target overlay: ${overlay.attach_to}`);
+        this._logWarn(`No attachment points found for target overlay: ${overlay.attach_to}`);
       }
     }
 
     // Fallback to static anchor resolution if no overlay attachment points found
     if (!anchor2 && overlay.attach_to) {
       anchor2 = OverlayUtils.resolvePosition(overlay.attach_to, anchors);
-      cblcarsLog.debug(`[LineOverlayRenderer] Using static anchor for target ${overlay.attach_to}:`, anchor2);
+      this._logDebug(`Using static anchor for target ${overlay.attach_to}:`, anchor2);
     }
 
     // Legacy fallback for text overlays (backward compatibility)
@@ -128,7 +160,7 @@ export class LineOverlayRenderer {
 
     // Validate anchor is properly resolved
     if (!anchor || !Array.isArray(anchor) || anchor.length !== 2) {
-      cblcarsLog.error(`[LineOverlayRenderer] ❌ Invalid anchor for ${overlay.id}:`, {
+      this._logError(`❌ Invalid anchor for ${overlay.id}:`, {
         anchor,
         type: typeof anchor,
         isArray: Array.isArray(anchor)
@@ -137,7 +169,7 @@ export class LineOverlayRenderer {
     }
 
     // DEBUG: Log anchor resolution for troubleshooting
-    cblcarsLog.debug(`[LineOverlayRenderer] Resolved anchor for ${overlay.id}:`, {
+    this._logDebug(`Resolved anchor for ${overlay.id}:`, {
       originalAnchor: overlay.anchor,
       resolvedAnchor: anchor,
       anchorType: typeof overlay.anchor,
@@ -150,11 +182,11 @@ export class LineOverlayRenderer {
       const pathResult = this.routerCore.computePath(routeRequest);
 
       if (!pathResult?.d) {
-        cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ No path computed for line ${overlay.id}`);
+        this._logWarn(`⚠️ No path computed for line ${overlay.id}`);
         return '';
       }
 
-      // ✅ ENHANCED: Extract comprehensive styling with token integration
+      // Extract comprehensive styling with token integration
       const style = overlay.finalStyle || overlay.style || {};
       const lineStyle = this._resolveLineStyles(style, overlay.id, viewBox);
       const animationAttributes = this._prepareAnimationAttributes(overlay, style);
@@ -167,7 +199,7 @@ export class LineOverlayRenderer {
         this._buildEffects(pathResult, lineStyle, overlay.id)
       ].filter(Boolean);
 
-      cblcarsLog.debug(`[LineOverlayRenderer] 📏 Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
+      this._logDebug(`📏 Rendered enhanced line ${overlay.id} with ${lineStyle.features.length} features`);
 
       return `<g data-overlay-id="${overlay.id}"
                   data-overlay-type="line"
@@ -177,14 +209,17 @@ export class LineOverlayRenderer {
               </g>`;
 
     } catch (error) {
-      cblcarsLog.error(`[LineOverlayRenderer] ❌ Enhanced rendering failed for line ${overlay.id}:`, error);
+      this._logError(`❌ Enhanced rendering failed for line ${overlay.id}:`, error);
       return this._renderFallbackLine(overlay, anchor, anchor2);
     }
   }
 
   /**
    * Resolve comprehensive line styling from configuration
-   * ✅ ENHANCED: Now properly integrates token system for theme-aware styling
+   *
+   * Integrates token system for theme-aware styling and resolves all
+   * line properties from style configuration with proper fallbacks.
+   *
    * @private
    * @param {Object} style - Final resolved style object
    * @param {string} overlayId - Overlay ID for unique identifiers
@@ -192,69 +227,35 @@ export class LineOverlayRenderer {
    * @returns {Object} Complete line style configuration
    */
   _resolveLineStyles(style, overlayId, viewBox) {
-    // ✅ ADDED: Create component-scoped token resolver
+    // Create component-scoped token resolver
     const resolveToken = themeTokenResolver ? themeTokenResolver.forComponent('line') : null;
+    const scalingContext = this._getScalingContext(viewBox);
 
-    // Helper function to resolve style properties via tokens
-    const resolveStyleProperty = (styleValue, tokenPath, fallback, tokenContext = {}) => {
-      // CRITICAL: Always log what we're trying to resolve
-      cblcarsLog.debug('[LineOverlayRenderer] Attempting to resolve:', {
-        styleValue,
-        tokenPath,
-        isString: typeof styleValue === 'string',
-        isTokenReference: this._isTokenReference(styleValue),
-        hasResolver: !!resolveToken
-      });
-
-      if (styleValue !== undefined && styleValue !== null) {
-        // Check if it's a token reference
-        if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
-          const resolved = resolveToken(styleValue, fallback, tokenContext);
-          cblcarsLog.debug('[LineOverlayRenderer] ✅ Resolved token:', {
-            original: styleValue,
-            resolved
-          });
-          return resolved;
-        }
-        // Not a token, return as-is
-        return styleValue;
-      }
-
-      // Resolve from token system using tokenPath
-      if (resolveToken) {
-        const resolved = resolveToken(tokenPath, fallback, tokenContext);
-        cblcarsLog.debug('[LineOverlayRenderer] ✅ Resolved from tokenPath:', {
-          tokenPath,
-          resolved
-        });
-        return resolved;
-      }
-
-      return fallback;
-    };
-
-    // ✅ ENHANCED: Resolve all line properties via tokens
+    // Resolve all line properties via tokens and BaseRenderer helpers
     const lineStyle = {
-      // ✅ ENHANCED: Core stroke properties with token integration
-      color: resolveStyleProperty(
+      // Core stroke properties with token integration
+      color: this._resolveStyleProperty(
         style.color || style.stroke,
         'defaultColor',
-        'var(--lcars-orange)',
-        { viewBox }
+        resolveToken,
+        this._getDefault('line.defaultColor', 'var(--lcars-orange)'),
+        scalingContext
       ),
 
-      width: Number(resolveStyleProperty(
+      width: Number(this._resolveStyleProperty(
         style.width || style.stroke_width || style.strokeWidth,
         'defaultWidth',
-        2,
-        { viewBox }
+        resolveToken,
+        this._getDefault('line.defaultWidth', 2),
+        scalingContext
       )),
 
-      opacity: Number(resolveStyleProperty(
+      opacity: Number(this._resolveStyleProperty(
         style.opacity,
         'effects.opacity.base',
-        1,
-        { viewBox }
+        resolveToken,
+        this._getDefault('line.defaultOpacity', 1),
+        scalingContext
       )),
 
       // Advanced stroke styling (no tokens needed - direct values)
@@ -296,13 +297,13 @@ export class LineOverlayRenderer {
       features: []
     };
 
-    // ✅ DEBUG: Log resolved token values
-    cblcarsLog.debug('[LineOverlayRenderer] Resolved token values:', {
+    // DEBUG: Log resolved token values
+    this._logDebug('Resolved token values:', {
       overlayId,
       color: lineStyle.color,
-      colorToken: style.color,
+      colorSource: style.color || 'theme',
       width: lineStyle.width,
-      widthToken: style.width,
+      widthSource: style.width || 'theme',
       opacity: lineStyle.opacity
     });
 
@@ -320,35 +321,11 @@ export class LineOverlayRenderer {
   }
 
   /**
-   * Check if a value is a token reference
-   * ✅ FIXED: More robust token detection
-   * @private
-   */
-  _isTokenReference(value) {
-    if (typeof value !== 'string') return false;
-
-    // Token references should start with a known category
-    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
-
-    // ✅ FIXED: Also accept singular "color" as a token category (typo tolerance)
-    const singularForms = ['color', 'typograph', 'border', 'effect', 'animation', 'component'];
-
-    const isToken = tokenCategories.some(category => value.startsWith(`${category}.`)) ||
-                    singularForms.some(singular => value.startsWith(`${singular}.`));
-
-    cblcarsLog.debug('[LineOverlayRenderer] Token reference check:', {
-      value,
-      isToken,
-      startsWithKnownCategory: tokenCategories.some(c => value.startsWith(`${c}.`)),
-      startsWithSingularForm: singularForms.some(s => value.startsWith(`${s}.`))
-    });
-
-    return isToken;
-  }
-
-  /**
    * Parse gradient configuration
+   *
    * @private
+   * @param {Object|string} gradientConfig - Gradient configuration
+   * @returns {Object|null} Parsed gradient config
    */
   _parseGradientConfig(gradientConfig) {
     if (!gradientConfig) return null;
@@ -385,7 +362,10 @@ export class LineOverlayRenderer {
 
   /**
    * Parse pattern configuration
+   *
    * @private
+   * @param {Object|string} patternConfig - Pattern configuration
+   * @returns {Object|null} Parsed pattern config
    */
   _parsePatternConfig(patternConfig) {
     if (!patternConfig) return null;
@@ -409,7 +389,10 @@ export class LineOverlayRenderer {
 
   /**
    * Parse marker configuration (arrows, dots, etc.)
+   *
    * @private
+   * @param {Object|string} markerConfig - Marker configuration
+   * @returns {Object|null} Parsed marker config
    */
   _parseMarkerConfig(markerConfig) {
     if (!markerConfig) return null;
@@ -433,7 +416,10 @@ export class LineOverlayRenderer {
 
   /**
    * Parse glow effect configuration
+   *
    * @private
+   * @param {Object|boolean} glowConfig - Glow configuration
+   * @returns {Object|null} Parsed glow config
    */
   _parseGlowConfig(glowConfig) {
     if (!glowConfig) return null;
@@ -455,7 +441,10 @@ export class LineOverlayRenderer {
 
   /**
    * Parse shadow effect configuration
+   *
    * @private
+   * @param {Object|boolean} shadowConfig - Shadow configuration
+   * @returns {Object|null} Parsed shadow config
    */
   _parseShadowConfig(shadowConfig) {
     if (!shadowConfig) return null;
@@ -477,7 +466,10 @@ export class LineOverlayRenderer {
 
   /**
    * Parse segment colors configuration
+   *
    * @private
+   * @param {Array} segmentConfig - Segment colors array
+   * @returns {Array|null} Parsed segment colors
    */
   _parseSegmentColors(segmentConfig) {
     if (!segmentConfig || !Array.isArray(segmentConfig)) return null;
@@ -491,7 +483,11 @@ export class LineOverlayRenderer {
 
   /**
    * Build SVG definitions for gradients, patterns, markers, and effects
+   *
    * @private
+   * @param {Object} lineStyle - Resolved line style
+   * @param {string} overlayId - Overlay ID for unique identifiers
+   * @returns {string} SVG <defs> markup
    */
   _buildDefinitions(lineStyle, overlayId) {
     const defs = [];
@@ -527,7 +523,11 @@ export class LineOverlayRenderer {
 
   /**
    * Create gradient definition
+   *
    * @private
+   * @param {Object} gradient - Gradient configuration
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} SVG gradient definition
    */
   _createGradientDefinition(gradient, overlayId) {
     const gradientId = `line-gradient-${overlayId}`;
@@ -551,7 +551,10 @@ export class LineOverlayRenderer {
 
   /**
    * Get linear gradient coordinates based on direction
+   *
    * @private
+   * @param {string} direction - Gradient direction
+   * @returns {string} SVG gradient coordinates
    */
   _getLinearGradientCoords(direction) {
     const directions = {
@@ -565,7 +568,11 @@ export class LineOverlayRenderer {
 
   /**
    * Create pattern definition
+   *
    * @private
+   * @param {Object} pattern - Pattern configuration
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} SVG pattern definition
    */
   _createPatternDefinition(pattern, overlayId) {
     const patternId = `line-pattern-${overlayId}`;
@@ -595,7 +602,12 @@ export class LineOverlayRenderer {
 
   /**
    * Create marker definition (arrows, dots, etc.)
+   *
    * @private
+   * @param {Object} marker - Marker configuration
+   * @param {string} overlayId - Overlay ID
+   * @param {string} markerType - Marker type (markerStart, markerMid, markerEnd)
+   * @returns {string} SVG marker definition
    */
   _createMarkerDefinition(marker, overlayId, markerType) {
     const markerId = `line-marker-${overlayId}-${markerType}`;
@@ -636,7 +648,10 @@ export class LineOverlayRenderer {
 
   /**
    * Get numeric marker size from size descriptor
+   *
    * @private
+   * @param {string|number} size - Size descriptor
+   * @returns {number} Numeric size
    */
   _getMarkerSize(size) {
     const sizes = { small: 6, medium: 8, large: 12, xlarge: 16 };
@@ -645,7 +660,11 @@ export class LineOverlayRenderer {
 
   /**
    * Create glow filter definition
+   *
    * @private
+   * @param {Object} glow - Glow configuration
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} SVG filter definition
    */
   _createGlowFilter(glow, overlayId) {
     const filterId = `line-glow-${overlayId}`;
@@ -661,7 +680,11 @@ export class LineOverlayRenderer {
 
   /**
    * Create drop shadow filter definition
+   *
    * @private
+   * @param {Object} shadow - Shadow configuration
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} SVG filter definition
    */
   _createShadowFilter(shadow, overlayId) {
     const filterId = `line-shadow-${overlayId}`;
@@ -676,7 +699,13 @@ export class LineOverlayRenderer {
 
   /**
    * Build the main path element with all styling
+   *
    * @private
+   * @param {string} pathData - SVG path data
+   * @param {Object} lineStyle - Resolved line style
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} animationAttributes - Animation attributes
+   * @returns {string} SVG path element
    */
   _buildMainPath(pathData, lineStyle, overlayId, animationAttributes) {
     const attributes = [];
@@ -738,7 +767,12 @@ export class LineOverlayRenderer {
 
   /**
    * Build additional marker elements (beyond standard markers)
+   *
    * @private
+   * @param {Object} pathResult - Path computation result
+   * @param {Object} lineStyle - Resolved line style
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} Additional marker markup (empty for now)
    */
   _buildMarkers(pathResult, lineStyle, overlayId) {
     // Future: Add custom markers along path at specific positions
@@ -747,7 +781,12 @@ export class LineOverlayRenderer {
 
   /**
    * Build special effects elements
+   *
    * @private
+   * @param {Object} pathResult - Path computation result
+   * @param {Object} lineStyle - Resolved line style
+   * @param {string} overlayId - Overlay ID
+   * @returns {string} Effects markup
    */
   _buildEffects(pathResult, lineStyle, overlayId) {
     const effects = [];
@@ -766,7 +805,11 @@ export class LineOverlayRenderer {
 
   /**
    * Prepare animation attributes for future anime.js integration
+   *
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} style - Style configuration
+   * @returns {Object} Animation attributes
    */
   _prepareAnimationAttributes(overlay, style) {
     const animationAttributes = {
@@ -801,7 +844,12 @@ export class LineOverlayRenderer {
 
   /**
    * Render a simple fallback line when enhanced rendering fails
+   *
    * @private
+   * @param {Object} overlay - Overlay configuration
+   * @param {Array} anchor - Start position [x, y]
+   * @param {Array} anchor2 - End position [x, y]
+   * @returns {string} Fallback SVG markup
    */
   _renderFallbackLine(overlay, anchor, anchor2) {
     const [x1, y1] = anchor;
@@ -810,7 +858,7 @@ export class LineOverlayRenderer {
     const color = style.color || 'var(--lcars-orange)';
     const width = style.width || 2;
 
-    cblcarsLog.warn(`[LineOverlayRenderer] ⚠️ Using fallback rendering for line ${overlay.id}`);
+    this._logWarn(`⚠️ Using fallback rendering for line ${overlay.id}`);
 
     return `<g data-overlay-id="${overlay.id}" data-overlay-type="line" data-fallback="true">
               <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"
@@ -821,16 +869,21 @@ export class LineOverlayRenderer {
 
   /**
    * Update line styling dynamically (for future real-time updates)
+   *
    * @public
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} newStyle - New style configuration
    */
   updateLineStyle(overlayId, newStyle) {
     // Future: Update existing line styles without full re-render
-    cblcarsLog.debug(`[LineOverlayRenderer] Style update requested for line ${overlayId}`);
+    this._logDebug(`Style update requested for line ${overlayId}`);
   }
 
   /**
    * Get rendering capabilities and features supported
+   *
    * @public
+   * @returns {Object} Capabilities object
    */
   getCapabilities() {
     return {
@@ -847,8 +900,16 @@ export class LineOverlayRenderer {
   }
 
   /**
-   * Choose attachment point on target text overlay bbox, honoring attach_side or auto.
+   * Choose attachment point on target text overlay bbox, honoring attach_side or auto
+   *
+   * Legacy method for backward compatibility with text overlay attachments.
    * Applies configurable gap (attach_gap | gap | line_gap) in outward normal direction.
+   *
+   * @private
+   * @param {Array} origin - Origin position [x, y]
+   * @param {Object} attachMeta - Attachment metadata
+   * @param {Object} overlay - Overlay configuration
+   * @returns {Array} Attachment point [x, y]
    */
   _computeTextAttachPoint(origin, attachMeta, overlay) {
     if (!origin || !attachMeta) return attachMeta?.center;
@@ -919,22 +980,23 @@ export class LineOverlayRenderer {
 
   /**
    * Resolve attachment point from attachment points object
+   *
+   * Handles various naming conventions and aliases for attachment sides.
+   *
+   * @private
    * @param {Object} points - Attachment points object
    * @param {string} side - Side to resolve (center, top, left, etc.)
    * @returns {Array|null} [x, y] coordinates or null
-   * @private
    */
   _resolveAttachmentPoint(points, side) {
     if (!points || typeof points !== 'object') {
-      cblcarsLog.warn(`[LineOverlayRenderer] No attachment points provided for side '${side}'`);
+      this._logWarn(`No attachment points provided for side '${side}'`);
       return null;
     }
 
-
-
     // Try exact side match first
     if (points[side]) {
-      cblcarsLog.debug(`[LineOverlayRenderer] Found exact match for side '${side}':`, points[side]);
+      this._logDebug(`Found exact match for side '${side}':`, points[side]);
       return points[side];
     }
 
@@ -967,35 +1029,39 @@ export class LineOverlayRenderer {
 
     const resolvedSide = aliases[side] || side;
     if (points[resolvedSide]) {
-      cblcarsLog.debug(`[LineOverlayRenderer] Found alias match '${side}' -> '${resolvedSide}':`, points[resolvedSide]);
+      this._logDebug(`Found alias match '${side}' -> '${resolvedSide}':`, points[resolvedSide]);
       return points[resolvedSide];
     }
 
     // Fallback to center if available
     if (points.center) {
-      cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using center:`, points.center);
+      this._logWarn(`Could not resolve side '${side}', using center:`, points.center);
       return points.center;
     }
 
     // Last resort: return first available point
     const firstPoint = Object.values(points)[0];
     if (firstPoint && Array.isArray(firstPoint)) {
-      cblcarsLog.warn(`[LineOverlayRenderer] Could not resolve side '${side}', using first available point:`, firstPoint);
+      this._logWarn(`Could not resolve side '${side}', using first available point:`, firstPoint);
       return firstPoint;
     }
 
-    cblcarsLog.error(`[LineOverlayRenderer] ❌ No attachment points available for side '${side}'`);
+    this._logError(`❌ No attachment points available for side '${side}'`);
     return null;
   }
 
   /**
    * Apply gap offset to attachment point
+   *
+   * Applies gap offset in the appropriate direction based on the attachment side.
+   * For corner attachments, applies gap in the PRIMARY direction only (first part of compound name).
+   *
+   * @private
    * @param {Array} point - [x, y] attachment point
    * @param {string} side - Side the point is on
    * @param {number} gap - Gap distance
    * @param {Object} bbox - Bounding box of target overlay
    * @returns {Array} [x, y] gap-adjusted point
-   * @private
    */
   _applyGapToAttachmentPoint(point, side, gap, bbox) {
     if (!point || !Array.isArray(point) || gap === 0) {
@@ -1064,3 +1130,6 @@ export class LineOverlayRenderer {
     return [x + offsetX, y + offsetY];
   }
 }
+
+// Export for use by rendering system
+export default LineOverlayRenderer;

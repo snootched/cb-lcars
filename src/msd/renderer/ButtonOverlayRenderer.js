@@ -4,6 +4,7 @@
  * Follows the exact MSD overlay integration pattern
  */
 
+import { BaseRenderer } from './BaseRenderer.js';
 import { ButtonRenderer } from './core/ButtonRenderer.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
@@ -12,70 +13,13 @@ import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
-export class ButtonOverlayRenderer {
+export class ButtonOverlayRenderer extends BaseRenderer {
   constructor() {
+    super();
+    this.rendererName = 'ButtonOverlayRenderer';
+
     // Connect to theme manager from global context
     this.themeManager = this._resolveThemeManager();
-  }
-
-  /**
-   * Resolve theme manager from various sources
-   * @private
-   * @returns {Object|null} Defaults manager instance
-   */
-  _resolveThemeManager() {
-    // 1. Global CB-LCARS namespace (preferred)
-    if (window.cblcars?.theme) {
-      return window.cblcars.theme;
-    }
-
-    // 2. Pipeline instance
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (pipelineInstance?.systemsManager?.themeManager) {
-      return pipelineInstance.systemsManager.themeManager;
-    }
-
-    // 3. Direct pipeline access
-    if (pipelineInstance?.themeManager) {
-      return pipelineInstance.themeManager;
-    }
-
-    // 4. Systems manager global reference
-    const systemsManager = window.__msdDebug?.systemsManager;
-    if (systemsManager?.themeManager) {
-      return systemsManager.themeManager;
-    }
-
-    cblcarsLog.debug('[ButtonOverlayRenderer] ⚠️ No theme manager found');
-    return null;
-  }
-
-  /**
-   * Helper method to get default values with proper fallback chain
-   * UPDATED: Now uses ThemeManager instead of DefaultsManager
-   *
-   * @private
-   * @param {string} path - Dot-notation path
-   * @param {*} fallback - Fallback value
-   * @returns {*} Resolved value
-   */
-  _getDefault(path, fallback = null) {
-    if (!this.themeManager || !this.themeManager.initialized) {
-      return fallback;
-    }
-
-    // Convert path format for ThemeManager
-    const pathParts = path.split('.');
-    const componentType = pathParts[0];
-    const property = pathParts.slice(1).join('.');
-
-    try {
-      const value = this.themeManager.getDefault(componentType, property, fallback);
-      return value !== null ? value : fallback;
-    } catch (error) {
-      cblcarsLog.warn(`[ButtonRenderer] Error resolving theme default for ${path}:`, error);
-      return fallback;
-    }
   }
 
   /**

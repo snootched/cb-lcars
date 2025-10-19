@@ -366,6 +366,49 @@ components.sparkline.grid: {
   opacity: 0.4,
   strokeWidth: 'borders.width.thin'
 }
+
+---
+
+```
+### Line Component (`components.line.*`)
+
+| Token | Type | Default | Description |
+|-------|------|---------|-------------|
+| `components.line.defaultColor` | ref | `colors.accent.secondary` | Default line color |
+| `components.line.defaultWidth` | ref | `borders.width.base` | Default stroke width |
+| `components.line.defaultOpacity` | ref | `effects.opacity.base` | Default opacity |
+
+**Stroke Styling:**
+| Token | Type | Default |
+|-------|------|---------|
+| `components.line.defaultLineCap` | string | `round` |
+| `components.line.defaultLineJoin` | string | `round` |
+| `components.line.defaultMiterLimit` | number | 4 |
+
+**Markers:**
+```javascript
+components.line.marker: {
+  defaultSize: 'medium',
+  defaultColor: 'inherit',
+  arrowSize: 8,
+  dotSize: 6,
+  diamondSize: 8
+}
+```
+
+**Effects:**
+```javascript
+components.line.glow: {
+  size: 'effects.blur.sm',
+  opacity: 0.6,
+  color: 'currentColor'
+}
+
+components.line.shadow: {
+  offset: [2, 2],
+  blur: 'effects.blur.sm',
+  color: 'rgba(0,0,0,0.3)'
+}
 ```
 
 ---

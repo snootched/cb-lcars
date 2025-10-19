@@ -6,6 +6,8 @@ import { chartTemplateRegistry } from '../templates/ChartTemplateRegistry.js';
 /**
  * Single consolidated merge algorithm - COMPLETE REPLACEMENT
  * Removes all legacy dual merge logic per Milestone 1.1
+ *
+ * ENHANCED: Now tracks comprehensive provenance including theme system
  */
 export async function mergePacks(userConfig) {
   return await perfTimeAsync('merge.total', async () => {
@@ -83,15 +85,53 @@ async function processSinglePass(layers) {
     timelines: [],
     routing: {},
     data_sources: {},
-    base_svg: null, // Initialize base_svg
-    theme: null,  // ✅ ADD: Initialize theme property
+    base_svg: null,
+    theme: null,
     __provenance: {
       anchors: {},
       overlays: {},
       rules: {},
       animations: {},
-      merge_order: []
+      merge_order: [],
+      // ✅ NEW: Theme provenance tracking
+      theme: {
+        active_theme: null,
+        source_pack: null,
+        requested_theme: null,
+        default_theme: null,
+        fallback_used: false,
+        themes_available: [],
+        theme_pack_loaded: false
+      },
+      // ✅ NEW: Pack information
+      packs: {
+        builtin: [],
+        external: [],
+        failed: []
+      },
+      // ✅ NEW: Style resolution tracking (populated by renderers)
+      style_resolution: {},
+      // ✅ NEW: Renderer usage tracking (populated by renderers)
+      renderers: {}
     }
+  };
+
+  // Track theme information
+  let themeProvenance = {
+    active_theme: null,
+    source_pack: null,
+    requested_theme: null,
+    default_theme: null,
+    fallback_used: false,
+    themes_available: [],
+    theme_pack_loaded: false
+  };
+
+  // Track pack loading
+  const packInfo = {
+    builtin: [],
+    external: [],
+    failed: []
   };
 
   // Process each layer in priority order
@@ -101,12 +141,50 @@ async function processSinglePass(layers) {
       type: layer.type
     });
 
+    // Track merge order
     merged.__provenance.merge_order.push({
       type: layer.type,
       pack: layer.pack,
       priority: layer.priority
     });
+
+    // ✅ NEW: Track pack loading
+    if (layer.type === 'builtin') {
+      packInfo.builtin.push({
+        id: layer.pack,
+        has_themes: !!(layer.data.themes),
+        has_presets: !!(layer.data.style_presets),
+        has_overlays: !!(layer.data.overlays?.length)
+      });
+    } else if (layer.type === 'external') {
+      packInfo.external.push({
+        url: layer.pack,
+        has_themes: !!(layer.data.themes),
+        has_presets: !!(layer.data.style_presets)
+      });
+    }
+
+    // ✅ NEW: Track theme from builtin_themes pack
+    if (layer.pack === 'builtin_themes' && layer.data.themes) {
+      themeProvenance.themes_available = Object.keys(layer.data.themes);
+      themeProvenance.default_theme = layer.data.defaultTheme || 'lcars-classic';
+      themeProvenance.source_pack = 'builtin_themes';
+      themeProvenance.theme_pack_loaded = true;
+    }
+
+    // ✅ NEW: Track requested theme from user config
+    if (layer.type === 'user' && layer.data.theme) {
+      themeProvenance.requested_theme = layer.data.theme;
+    }
   }
+
+  // ✅ NEW: Determine active theme
+  themeProvenance.active_theme = merged.theme || themeProvenance.default_theme;
+  themeProvenance.fallback_used = !merged.theme && !!themeProvenance.default_theme;
+
+  // Store theme provenance
+  merged.__provenance.theme = themeProvenance;
+  merged.__provenance.packs = packInfo;
 
   // Apply removals after all merges
   perfTime('merge.applyRemovals', () => applyRemovals(merged, layers[layers.length - 1]?.data?.remove));
@@ -115,6 +193,40 @@ async function processSinglePass(layers) {
   merged.checksum = await perfTimeAsync('merge.checksum', () => computeCanonicalChecksum(merged));
 
   return merged;
+}
+
+async function loadBuiltinPack(packName) {
+  // Try debug packs first (for development)
+  try {
+    const dbgPacks = window.__msdDebug?.packs;
+    if (dbgPacks) {
+      const dbgSource = packName === 'core'
+        ? dbgPacks.core
+        : dbgPacks.builtin?.[packName];
+
+      if (dbgSource && typeof dbgSource === 'object') {
+        return dbgSource;
+      }
+    }
+  } catch (e) {
+    // Fallback to normal loading
+  }
+
+  // Normal builtin pack loading would go here
+  // For now, return minimal core pack with simulated SVG anchors
+  if (packName === 'core') {
+    return {
+      version: 1,
+      // Simulate SVG-extracted anchors
+      anchors: {
+        svg_bridge: [200, 150],  // Simulated SVG extraction
+        svg_warp: [350, 200],    // Simulated SVG extraction
+      },
+      _extracted_anchors: ['svg_bridge', 'svg_warp'], // Mark as SVG-extracted
+    };
+  }
+
+  return null;
 }
 
 async function loadExternalPacks(urls, options = {}) {
@@ -491,7 +603,7 @@ async function processLayer(merged, layer) {
     merged.data_sources = { ...merged.data_sources, ...layer.data.data_sources };
   }
 
-  // ADDED: Process base_svg configuration
+  // Process base_svg configuration
   if (layer.data.base_svg !== undefined) {
     merged.base_svg = layer.data.base_svg;
 
@@ -507,7 +619,7 @@ async function processLayer(merged, layer) {
     }
   }
 
-  // ✅ ADD: Process theme configuration (near end of function, with other top-level properties)
+  // Process theme configuration
   if (layer.data.theme !== undefined) {
     merged.theme = layer.data.theme;
 
@@ -590,7 +702,7 @@ export function exportCollapsed(userMsd) {
     'version', 'use_packs', 'anchors', 'overlays', 'animations',
     'rules', 'timelines', 'routing',
     'remove', 'debug', 'base_svg',
-    'theme'  // ✅ ADD: Include theme in export
+    'theme'
   ];
 
   keep.forEach(k => {

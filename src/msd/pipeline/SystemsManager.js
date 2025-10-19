@@ -139,16 +139,22 @@ export class SystemsManager {
     // Initialize theme system with loaded packs
     const requestedTheme = mergedConfig?.theme || 'lcars-classic';
     await this.themeManager.initialize(packs, requestedTheme, mountEl);
+    const activeTheme = this.themeManager.getActiveTheme();
 
-    cblcarsLog.info('[SystemsManager] ✅ Theme system initialized:', {
-      theme: this.themeManager.getActiveTheme()?.name,
-      themeCount: this.themeManager.listThemes().length
+    // ✅ ENHANCED: Log theme provenance
+    cblcarsLog.info('[SystemsManager] 🎨 Theme system initialized:', {
+      requested: requestedTheme,
+      active: activeTheme?.name,
+      activeId: activeTheme?.id,
+      themeCount: this.themeManager.listThemes().length,
+      provenance: mergedConfig.__provenance?.theme  // ← Log theme provenance
     });
 
     // Store in global namespace for access by overlays
     if (typeof window !== 'undefined') {
       window.cblcars = window.cblcars || {};
       window.cblcars.theme = this.themeManager;
+      window.__msdDebug.themeProvenance = mergedConfig.__provenance?.theme;
       cblcarsLog.debug('[SystemsManager] 🔧 ThemeManager globally accessible via window.cblcars.theme');
     }
 

@@ -3,6 +3,7 @@
  * 🔲 Each cell can have full CB-LCARS styling with inheritance from grid defaults
  */
 
+import { BaseRenderer } from './BaseRenderer.js';
 import { OverlayUtils } from './OverlayUtils.js';
 import { RendererUtils } from './RendererUtils.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
@@ -14,42 +15,13 @@ import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 
 
 
-export class StatusGridRenderer {
+export class StatusGridRenderer extends BaseRenderer {
   constructor() {
+    super();
+    this.rendererName = 'StatusGridRenderer';
+
     // Connect to theme manager from global context
     this.themeManager = this._resolveThemeManager();
-  }
-
-  /**
-   * Resolve theme manager from various sources
-   * @private
-   * @returns {Object|null} Defaults manager instance
-   */
-  _resolveThemeManager() {
-    // 1. Global CB-LCARS namespace (preferred)
-    if (window.cblcars?.theme) {
-      return window.cblcars.defaults;
-    }
-
-    // 2. Pipeline instance
-    const pipelineInstance = window.__msdDebug?.pipelineInstance;
-    if (pipelineInstance?.systemsManager?.themeManager) {
-      return pipelineInstance.systemsManager.themeManager;
-    }
-
-    // 3. Direct pipeline access
-    if (pipelineInstance?.themeManager) {
-      return pipelineInstance.themeManager;
-    }
-
-    // 4. Systems manager global reference
-    const systemsManager = window.__msdDebug?.systemsManager;
-    if (systemsManager?.themeManager) {
-      return systemsManager.themeManager;
-    }
-
-    cblcarsLog.debug('[StatusGridRenderer] ⚠️ No theme manager found');
-    return null;
   }
 
   /**
@@ -3318,46 +3290,4 @@ export class StatusGridRenderer {
     return BracketRenderer.render(width, height, bracketConfig, overlayId);
   }
 
-
-  /**
-   * Get default value from theme manager with fallback
-   * @private
-   * @param {string} path - Dot-notation path to the default
-   * @param {any} fallback - Fallback value if default not found
-   * @returns {any} Default value or fallback
-   */
-  /**
-   * Helper method to get default values with proper fallback chain
-   * UPDATED: Now uses ThemeManager instead of ThemeManager
-   *
-   * @private
-   * @param {string} path - Dot-notation path (e.g., 'status_grid.text_padding')
-   * @param {*} fallback - Fallback value if theme default not found
-   * @returns {*} Resolved default value
-   */
-  _getDefault(path, fallback = null) {
-    if (!this.themeManager || !this.themeManager.initialized) {
-      return fallback;
-    }
-
-    // Convert path from 'status_grid.property' to ThemeManager format
-    // ThemeManager expects: 'components.statusGrid.property'
-    const pathParts = path.split('.');
-    if (pathParts[0] === 'status_grid') {
-      // Convert status_grid -> statusGrid (camelCase for components)
-      pathParts[0] = 'statusGrid';
-    }
-
-    // Use ThemeManager's getDefault method
-    const componentType = pathParts[0];
-    const property = pathParts.slice(1).join('.');
-
-    try {
-      const value = this.themeManager.getDefault(componentType, property, fallback);
-      return value !== null ? value : fallback;
-    } catch (error) {
-      cblcarsLog.warn(`[StatusGridRenderer] Error resolving theme default for ${path}:`, error);
-      return fallback;
-    }
-  }
 }

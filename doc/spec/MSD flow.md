@@ -169,6 +169,53 @@ Comprehensive development tools:
 - **Routing Visualization**: Path computation display
 - **Performance Overlays**: Real-time metrics display
 
+### 10.1 **Base Renderer Architecture (`src/msd/renderer/BaseRenderer.js`)**
+**NEW** - Unified base class for all MSD overlay renderers:
+
+```javascript
+export class BaseRenderer {
+  constructor() {
+    this.rendererName = 'BaseRenderer';  // Set by subclass for logging
+    this.themeManager = this._resolveThemeManager();
+    this.container = null;
+    this.viewBox = null;
+  }
+
+  // Shared functionality for all renderers:
+  _resolveThemeManager()      // Find ThemeManager from multiple sources
+  _getDefault(path, fallback) // Get component defaults from theme
+  _getScalingContext()         // Get viewBox and container context
+  _resolveStyleProperty()      // Resolve tokens and style properties
+  _isTokenReference()          // Check if value is a token reference
+  _logDebug/Warn/Error()       // Consistent logging with renderer name
+}
+```
+
+**Key Features:**
+- **Theme Integration**: Unified ThemeManager resolution
+- **Default Resolution**: Consistent `_getDefault()` pattern
+- **Token Support**: Built-in token reference detection and resolution
+- **Logging**: Minification-safe logging with explicit renderer names
+- **Scaling Context**: Shared viewBox and container management
+
+**Renderers Extending BaseRenderer:**
+- ✅ TextOverlayRenderer - Text overlays with DataSource integration
+- ✅ StatusGridRenderer - Grid-based status displays
+- ✅ ButtonOverlayRenderer - Button overlays with actions
+- ✅ core/ButtonRenderer - Hybrid button rendering with theme awareness
+- ✅ LineOverlayRenderer - Advanced line rendering with routing
+
+**Pure Utility Renderers (No BaseRenderer):**
+- ✅ core/TextRenderer - Static SVG text generation
+- ✅ BracketRenderer - Static bracket SVG generation
+
+**Benefits:**
+- 🎯 **Eliminates ~200-300 lines of duplicate code**
+- 🎯 **Consistent patterns** across all overlay renderers
+- 🎯 **Single source of truth** for theme integration
+- 🎯 **Easier to maintain** - fix bugs in one place
+- 🎯 **Simpler to extend** - new renderers inherit all functionality
+
 ### 11. **Controls System (`src/msd/controls/MsdControlsRenderer.js`)**
 Home Assistant card integration:
 - **Card Embedding**: Places HA cards within MSD viewBox

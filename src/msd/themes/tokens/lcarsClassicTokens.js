@@ -208,6 +208,45 @@ export const lcarsClassicTokens = {
   },
 
   components: {
+    line: {
+      // Core line properties
+      defaultColor: 'colors.accent.secondary',     // Token reference → blue
+      defaultWidth: 'borders.width.base',           // Token reference → 2
+      defaultOpacity: 'effects.opacity.base',       // Token reference → 1.0
+
+      // Stroke styling
+      defaultLineCap: 'round',
+      defaultLineJoin: 'round',
+      defaultMiterLimit: 4,
+
+      // Markers
+      marker: {
+        defaultSize: 'medium',
+        defaultColor: 'inherit',
+        arrowSize: 8,
+        dotSize: 6,
+        diamondSize: 8
+      },
+
+      // Effects
+      glow: {
+        size: 'effects.blur.sm',                    // Token reference → 2
+        opacity: 0.6,
+        color: 'currentColor'
+      },
+
+      shadow: {
+        offset: [2, 2],
+        blur: 'effects.blur.sm',                    // Token reference → 2
+        color: 'rgba(0,0,0,0.3)'
+      },
+
+      // Patterns
+      pattern: {
+        size: 8,
+        opacity: 0.5
+      }
+    },
     text: {
       defaultSize: 'typography.fontSize.base',
       defaultColor: 'colors.ui.foreground',
