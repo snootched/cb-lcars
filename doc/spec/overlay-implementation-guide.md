@@ -308,6 +308,46 @@ return `<g data-overlay-id="${overlay.id}" data-overlay-type="{type_name}">
 - Return false from update methods if no changes made
 - Provide fallback rendering if main rendering fails
 
+## Provenance Tracking (Phase 5.2)
+
+All overlay renderers should include provenance tracking for debugging and performance analysis.
+
+### Requirements for Renderers Extending BaseRenderer
+
+If your renderer extends `BaseRenderer`, provenance tracking is mostly automatic:
+
+```javascript
+export class MyOverlayRenderer extends BaseRenderer {
+  constructor() {
+    super();
+    this.rendererName = 'MyOverlayRenderer'; // Set for logging
+  }
+
+  static render(overlay, anchors, viewBox, svgContainer, cardInstance) {
+    const instance = new MyOverlayRenderer();
+    instance.container = svgContainer;
+    instance.viewBox = viewBox;
+
+    // ✅ Reset tracking for this render
+    instance._resetTracking();
+    instance._startRenderTiming();
+
+    // Your rendering logic here
+    const result = instance.renderOverlay(overlay, anchors, viewBox);
+
+    // ✅ Build provenance before returning
+    return {
+      markup: result.markup,
+      provenance: instance._getRendererProvenance(overlay.id, {
+        overlay_type: overlay.type,
+        has_data_source: !!overlay.data_source,
+        // Add overlay-specific metadata
+      })
+    };
+  }
+}
+```
+
 ## DataSource Integration Patterns
 
 ### Template Detection

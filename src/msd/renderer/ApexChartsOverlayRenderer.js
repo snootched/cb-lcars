@@ -17,6 +17,7 @@
  * - Debug helpers for troubleshooting
  *
  * ✅ ENHANCED: Now includes provenance tracking (Phase 5.2A)
+ * ✅ ENHANCED: Now includes style resolution tracking (Phase 5.2B)
  *
  * @module ApexChartsOverlayRenderer
  * @requires ApexChartsAdapter
@@ -40,11 +41,48 @@ export class ApexChartsOverlayRenderer {
     this.resizeObserver = null;
     this.isInitialized = false;
     this.elements = null;
-    this.shadowRoot = null; // ADDED: Store shadowRoot reference
-    this.mountElement = null; // ADDED: Store mount element reference
+    this.shadowRoot = null;
+    this.mountElement = null;
 
     // ✅ NEW: Initialize tracking properties for provenance
     this._trackingInitialized = false;
+
+    // Resolve ThemeManager for style resolution
+    this.themeManager = this._resolveThemeManager();
+  }
+
+  /**
+   * Resolve ThemeManager from various sources
+   *
+   * @private
+   * @returns {Object|null} ThemeManager instance or null if not found
+   */
+  _resolveThemeManager() {
+    // 1. Global CB-LCARS namespace (preferred)
+    if (typeof window !== 'undefined' && window.cblcars?.theme) {
+      return window.cblcars.theme;
+    }
+
+    // 2. Pipeline instance via systemsManager
+    if (typeof window !== 'undefined') {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (pipelineInstance?.systemsManager?.themeManager) {
+        return pipelineInstance.systemsManager.themeManager;
+      }
+
+      // 3. Direct pipeline access
+      if (pipelineInstance?.themeManager) {
+        return pipelineInstance.themeManager;
+      }
+
+      // 4. Systems manager global reference
+      const systemsManager = window.__msdDebug?.systemsManager;
+      if (systemsManager?.themeManager) {
+        return systemsManager.themeManager;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -96,7 +134,8 @@ export class ApexChartsOverlayRenderer {
    * This returns a placeholder rect in the SVG for attachment point computation,
    * while the actual chart renders in an HTML div overlay
    *
-   * ✅ ENHANCED: Now includes provenance tracking
+   * ✅ ENHANCED: Now includes provenance tracking (Phase 5.2A)
+   * ✅ ENHANCED: Now includes style resolution tracking (Phase 5.2B)
    *
    * @static
    * @param {Object} overlay - Overlay configuration
@@ -114,12 +153,14 @@ export class ApexChartsOverlayRenderer {
       instance._defaultsAccessed = [];
       instance._renderStartTime = null;
       instance._featuresUsed = new Set();
+      instance._styleResolutions = []; // ✅ NEW: Phase 5.2B
       instance._trackingInitialized = true;
     }
 
     // Reset tracking for this render
     instance._defaultsAccessed = [];
     instance._featuresUsed = new Set();
+    instance._styleResolutions = []; // ✅ NEW: Phase 5.2B
     instance._renderStartTime = performance.now();
 
     // NEW: Apply chart template if specified (BEFORE any other processing)
@@ -281,7 +322,144 @@ export class ApexChartsOverlayRenderer {
   }
 
   /**
-   * ✅ NEW: Build provenance object for ApexCharts rendering
+   * ✅ NEW: Track style resolution for provenance (Phase 5.2B)
+   * @private
+   * @param {string} property - Property name being resolved
+   * @param {Object} resolution - Resolution tracking object
+   */
+  _trackStyleResolution(property, resolution) {
+    if (!this._styleResolutions) {
+      this._styleResolutions = [];
+    }
+
+    this._styleResolutions.push({
+      property,
+      source: resolution.source,
+      value: resolution.resolved,
+      explicitValue: resolution.explicitValue,
+      themeDefault: resolution.themeDefault,
+      adapterDefault: resolution.adapterDefault,
+      timestamp: performance.now()
+    });
+  }
+
+  /**
+   * ✅ NEW: Resolve chart style property with tracking (Phase 5.2B)
+   * @private
+   * @param {string} property - Property name
+   * @param {*} explicitValue - Explicit value from overlay config
+   * @param {*} themeDefault - Default from theme
+   * @param {*} adapterDefault - Fallback from ApexChartsAdapter
+   * @returns {*} Resolved value
+   */
+  _resolveChartStyleProperty(property, explicitValue, themeDefault, adapterDefault) {
+    const resolution = {
+      property,
+      explicitValue,
+      themeDefault,
+      adapterDefault,
+      resolved: null,
+      source: null
+    };
+
+    // Priority 1: Explicit value from overlay config
+    if (explicitValue !== undefined && explicitValue !== null) {
+      resolution.resolved = explicitValue;
+      resolution.source = 'explicit';
+      this._trackStyleResolution(property, resolution);
+      return explicitValue;
+    }
+
+    // Priority 2: Theme default
+    if (themeDefault !== undefined && themeDefault !== null) {
+      resolution.resolved = themeDefault;
+      resolution.source = 'theme';
+      this._trackStyleResolution(property, resolution);
+      return themeDefault;
+    }
+
+    // Priority 3: Adapter default
+    resolution.resolved = adapterDefault;
+    resolution.source = 'adapter_default';
+    this._trackStyleResolution(property, resolution);
+    return adapterDefault;
+  }
+
+  /**
+   * ✅ NEW: Get chart style defaults from theme (Phase 5.2B)
+   * @private
+   * @returns {Object} Theme defaults for charts
+   */
+  _getChartStyleDefaults() {
+    if (!this.themeManager || !this.themeManager.initialized) {
+      return {};
+    }
+
+    try {
+      return {
+        // Chart colors
+        primaryColor: this.themeManager.getDefault('chart', 'primaryColor', null),
+        secondaryColor: this.themeManager.getDefault('chart', 'secondaryColor', null),
+        strokeColor: this.themeManager.getDefault('chart', 'strokeColor', null),
+        fillColor: this.themeManager.getDefault('chart', 'fillColor', null),
+
+        // Grid and axes
+        gridColor: this.themeManager.getDefault('chart', 'gridColor', null),
+        axisColor: this.themeManager.getDefault('chart', 'axisColor', null),
+
+        // Labels
+        labelColor: this.themeManager.getDefault('chart', 'labelColor', null),
+
+        // Background
+        backgroundColor: this.themeManager.getDefault('chart', 'backgroundColor', null)
+      };
+    } catch (error) {
+      cblcarsLog.warn('[ApexChartsOverlayRenderer] Error getting theme defaults:', error);
+      return {};
+    }
+  }
+
+  /**
+   * ✅ NEW: Summarize style resolutions by source (Phase 5.2B)
+   * @private
+   * @returns {Object} Style resolution summary
+   */
+  _summarizeStyleResolutions() {
+    if (!this._styleResolutions || this._styleResolutions.length === 0) {
+      return {
+        total: 0,
+        by_source: {},
+        properties: []
+      };
+    }
+
+    const bySource = {};
+    const properties = [];
+
+    this._styleResolutions.forEach(resolution => {
+      // Count by source
+      if (!bySource[resolution.source]) {
+        bySource[resolution.source] = 0;
+      }
+      bySource[resolution.source]++;
+
+      // Track property details
+      properties.push({
+        property: resolution.property,
+        source: resolution.source,
+        value: resolution.value
+      });
+    });
+
+    return {
+      total: this._styleResolutions.length,
+      by_source: bySource,
+      properties: properties
+    };
+  }
+
+  /**
+   * ✅ ENHANCED: Build provenance object with style resolution (Phase 5.2B)
    * @private
    * @param {string} overlayId - Overlay ID
    * @param {Object} metadata - Additional metadata
@@ -289,6 +467,9 @@ export class ApexChartsOverlayRenderer {
    */
   _buildProvenance(overlayId, metadata = {}) {
     const renderDuration = this._renderStartTime ? performance.now() - this._renderStartTime : 0;
+
+    // ✅ NEW: Summarize style resolutions
+    const styleResolutionSummary = this._summarizeStyleResolutions();
 
     return {
       renderer: 'ApexChartsOverlayRenderer',
@@ -299,6 +480,7 @@ export class ApexChartsOverlayRenderer {
       has_data_source: this._featuresUsed.has('data_source'),
       series_count: metadata.series_count || 0,
       features_used: Array.from(this._featuresUsed),
+      style_resolution: styleResolutionSummary, // ✅ NEW: Phase 5.2B
       rendering_time_ms: renderDuration,
       timestamp: Date.now(),
       note: 'Chart renders in HTML overlay, not SVG',
@@ -420,6 +602,7 @@ export class ApexChartsOverlayRenderer {
   /**
    * Schedule chart creation in HTML overlay div
    * Uses retry logic to wait for DOM to be ready
+   * ✅ ENHANCED: Now tracks style resolutions during chart creation (Phase 5.2B)
    * @private
    * @param {Object} overlay - Overlay configuration
    * @param {Object} anchors - Anchor positions
@@ -497,6 +680,66 @@ export class ApexChartsOverlayRenderer {
         const sourceRef = overlay.source || overlay.data_source || overlay.sources;
         const style = overlay.finalStyle || overlay.style || {};
         const isMultiSeries = Array.isArray(sourceRef);
+
+        // ✅ NEW: Get theme defaults for style resolution tracking (Phase 5.2B)
+        const themeDefaults = this._getChartStyleDefaults();
+
+        // ✅ NEW: Track common chart style properties (Phase 5.2B)
+        if (style.color !== undefined || themeDefaults.strokeColor !== undefined) {
+          const resolvedColor = this._resolveChartStyleProperty(
+            'chart.strokeColor',
+            style.color,
+            themeDefaults.strokeColor,
+            null
+          );
+        }
+
+        if (style.chart_type !== undefined) {
+          this._resolveChartStyleProperty(
+            'chart.type',
+            style.chart_type,
+            null,
+            'line'
+          );
+        }
+
+        if (style.show_grid !== undefined || themeDefaults.gridColor !== undefined) {
+          this._resolveChartStyleProperty(
+            'chart.gridColor',
+            style.grid_color,
+            themeDefaults.gridColor,
+            '#e0e0e0'
+          );
+        }
+
+        if (style.background_color !== undefined || themeDefaults.backgroundColor !== undefined) {
+          this._resolveChartStyleProperty(
+            'chart.backgroundColor',
+            style.background_color,
+            themeDefaults.backgroundColor,
+            'transparent'
+          );
+        }
+
+        // Track time window configuration
+        if (style.time_window !== undefined) {
+          this._resolveChartStyleProperty(
+            'chart.timeWindow',
+            style.time_window,
+            null,
+            '24h'
+          );
+        }
+
+        // Track max points configuration
+        if (style.max_points !== undefined) {
+          this._resolveChartStyleProperty(
+            'chart.maxPoints',
+            style.max_points,
+            null,
+            500
+          );
+        }
 
         let series;
         if (isMultiSeries) {

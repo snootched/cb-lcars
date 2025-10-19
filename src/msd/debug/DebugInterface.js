@@ -50,8 +50,6 @@ export function setupDebugInterface(pipelineApi, mergedConfig, provenance, syste
   }
 }
 
-// ...existing code...
-
 function setupRoutingDebugInterface(dbg, pipelineApi, systemsManager) {
   dbg.routing = {
     inspect: (id) => pipelineApi.routingInspect(id),
@@ -459,7 +457,9 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
           }
         } catch (error) {
           results.methods.dataAttributes = { error: error.message };
-        }        console.table(results.methods);
+        }
+
+        console.table(results.methods);
         return results;
       }
     },
@@ -552,6 +552,11 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 ║   __msdDebug.debug.routing.toggle()        - Toggle routing guides          ║
 ║   __msdDebug.debug.performance.toggle()    - Toggle performance overlay     ║
 ║                                                                              ║
+║ Provenance (Phase 5.2):                                                      ║
+║   __msdDebug.getStyleResolutions('id')     - Style resolution details       ║
+║   __msdDebug.findOverlaysByToken('token')  - Find overlays using token      ║
+║   __msdDebug.getGlobalStyleSummary()       - Global style statistics        ║
+║                                                                              ║
 ║ Data & Entities:                                                             ║
 ║   __msdDebug.dataSources.stats()           - Data source statistics         ║
 ║   __msdDebug.dataSources.list()            - List all data sources          ║
@@ -592,6 +597,11 @@ Check status:
   __msdDebug.debug.status()               # Current debug state
   __msdDebug.dataSources.stats()          # Data source info
   __msdDebug.getPerf()                    # Performance metrics
+
+Style Resolution (NEW):
+  __msdDebug.getStyleResolutions('id')    # See how styles were resolved
+  __msdDebug.findOverlaysByToken('token') # Find token usage
+  __msdDebug.getGlobalStyleSummary()      # Global style stats
 
 Quick toggles:
   __msdDebug.debug.anchors.toggle()       # Toggle anchors
@@ -690,5 +700,166 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
       }
       return false;
     }
+  };
+
+  // ✅ NEW: Phase 5.2B - Style Resolution Debug Methods
+  // These use the provenance data collected by renderers via index.js
+
+  /**
+   * Get style resolution details for an overlay
+   *
+   * ✅ NEW: Phase 5.2B - Style resolution inspection
+   *
+   * @param {string} overlayId - Overlay ID
+   * @returns {Object|null} Style resolution details
+   */
+  dbg.getStyleResolutions = function(overlayId) {
+    // Access provenance from index.js methods
+    const provenance = dbg.getRendererInfo ? dbg.getRendererInfo(overlayId) : null;
+
+    if (!provenance || !provenance.style_resolution) {
+      console.warn(`No style resolution data for overlay: ${overlayId}`);
+      console.log('Try using: __msdDebug.getRendererInfo("${overlayId}") for full provenance');
+      return null;
+    }
+
+    const summary = provenance.style_resolution;
+
+    console.log(`📊 Style Resolutions for ${overlayId}:`);
+    console.log(`Total properties resolved: ${summary.total}`);
+    console.log(`\n📈 By Source:`);
+    Object.entries(summary.by_source).forEach(([source, count]) => {
+      const percentage = ((count / summary.total) * 100).toFixed(1);
+      console.log(`  ${source}: ${count} (${percentage}%)`);
+    });
+
+    console.log(`\n📋 Property Details:`);
+    console.table(summary.properties);
+
+    return summary;
+  };
+
+  /**
+   * Find all overlays that used a specific token
+   *
+   * ✅ NEW: Phase 5.2B - Token usage tracking
+   *
+   * @param {string} tokenPath - Token path (e.g., 'colors.primary')
+   * @returns {Array} List of overlay IDs using this token
+   */
+  dbg.findOverlaysByToken = function(tokenPath) {
+    const results = [];
+
+    const overlayIds = dbg.listTrackedOverlays ? dbg.listTrackedOverlays() : [];
+
+    overlayIds.forEach(overlayId => {
+      const provenance = dbg.getRendererInfo ? dbg.getRendererInfo(overlayId) : null;
+      if (!provenance?.style_resolution) return;
+
+      const usesToken = provenance.style_resolution.properties.some(
+        prop => prop.token === tokenPath
+      );
+
+      if (usesToken) {
+        const properties = provenance.style_resolution.properties
+          .filter(prop => prop.token === tokenPath)
+          .map(prop => prop.property);
+
+        results.push({
+          overlayId,
+          renderer: provenance.renderer,
+          overlay_type: provenance.overlay_type,
+          properties
+        });
+      }
+    });
+
+    console.log(`🔍 Overlays using token '${tokenPath}':`);
+    if (results.length === 0) {
+      console.log('  No overlays found using this token');
+    } else {
+      results.forEach(result => {
+        console.log(`  ${result.overlayId} (${result.overlay_type}):`);
+        result.properties.forEach(prop => {
+          console.log(`    - ${prop}`);
+        });
+      });
+    }
+
+    return results;
+  };
+
+  /**
+   * Get summary of all style resolution sources across all overlays
+   *
+   * ✅ NEW: Phase 5.2B - Global style analysis
+   *
+   * @returns {Object} Global style resolution summary
+   */
+  dbg.getGlobalStyleSummary = function() {
+    const global = {
+      total_overlays: 0,
+      total_resolutions: 0,
+      by_source: {},
+      by_renderer: {},
+      by_overlay_type: {}
+    };
+
+    const overlayIds = dbg.listTrackedOverlays ? dbg.listTrackedOverlays() : [];
+
+    overlayIds.forEach(overlayId => {
+      const provenance = dbg.getRendererInfo ? dbg.getRendererInfo(overlayId) : null;
+      if (!provenance?.style_resolution) return;
+
+      global.total_overlays++;
+      global.total_resolutions += provenance.style_resolution.total;
+
+      // Aggregate by source
+      Object.entries(provenance.style_resolution.by_source).forEach(([source, count]) => {
+        if (!global.by_source[source]) global.by_source[source] = 0;
+        global.by_source[source] += count;
+      });
+
+      // Aggregate by renderer
+      const renderer = provenance.renderer;
+      if (!global.by_renderer[renderer]) {
+        global.by_renderer[renderer] = { count: 0, resolutions: 0 };
+      }
+      global.by_renderer[renderer].count++;
+      global.by_renderer[renderer].resolutions += provenance.style_resolution.total;
+
+      // Aggregate by overlay type
+      const overlayType = provenance.overlay_type || 'unknown';
+      if (!global.by_overlay_type[overlayType]) {
+        global.by_overlay_type[overlayType] = { count: 0, resolutions: 0 };
+      }
+      global.by_overlay_type[overlayType].count++;
+      global.by_overlay_type[overlayType].resolutions += provenance.style_resolution.total;
+    });
+
+    console.log(`🌍 Global Style Resolution Summary:`);
+    console.log(`═══════════════════════════════════`);
+    console.log(`Total overlays tracked: ${global.total_overlays}`);
+    console.log(`Total style resolutions: ${global.total_resolutions}`);
+    if (global.total_overlays > 0) {
+      console.log(`Average per overlay: ${(global.total_resolutions / global.total_overlays).toFixed(1)}`);
+    }
+
+    console.log(`\n📊 By Source:`);
+    const totalSourceResolutions = Object.values(global.by_source).reduce((a, b) => a + b, 0);
+    if (totalSourceResolutions > 0) {
+      Object.entries(global.by_source).forEach(([source, count]) => {
+        const percentage = ((count / totalSourceResolutions) * 100).toFixed(1);
+        console.log(`  ${source}: ${count} (${percentage}%)`);
+      });
+    }
+
+    console.log(`\n🔧 By Renderer:`);
+    console.table(global.by_renderer);
+
+    console.log(`\n📑 By Overlay Type:`);
+    console.table(global.by_overlay_type);
+
+    return global;
   };
 }

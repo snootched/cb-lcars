@@ -226,10 +226,11 @@ export class BaseRenderer {
   /**
    * Get renderer provenance for an overlay
    *
-   * Collects all tracking data (defaults accessed, features used, render time)
-   * and returns a provenance object suitable for storage in __provenance.renderers.
+   * Collects all tracking data (defaults accessed, features used, render time,
+   * style resolutions) and returns a provenance object suitable for storage
+   * in __provenance.renderers.
    *
-   * ✅ NEW: Provenance generation method
+   * ✅ ENHANCED: Now includes style resolution summary (Phase 5.2B)
    *
    * @protected
    * @param {string} overlayId - Overlay ID
@@ -237,16 +238,67 @@ export class BaseRenderer {
    * @returns {Object} Renderer provenance object
    */
   _getRendererProvenance(overlayId, additionalData = {}) {
+    // ✅ NEW: Summarize style resolutions by source
+    const styleResolutionSummary = this._summarizeStyleResolutions();
+
     return {
       renderer: this.rendererName,
       extends_base: true,
+      overlay_id: overlayId,
       theme_manager_resolved: !!this.themeManager,
       theme_manager_source: this._getThemeManagerSource(),
       defaults_accessed: this._defaultsAccessed,
       features_used: Array.from(this._featuresUsed),
+      style_resolution: styleResolutionSummary, // ✅ NEW: Style resolution data
       rendering_time_ms: this._getRenderDuration(),
       timestamp: Date.now(),
       ...additionalData
+    };
+  }
+
+  /**
+   * Summarize style resolutions by source
+   *
+   * Aggregates style resolution data for provenance reporting.
+   * Groups resolutions by source type and provides detailed property list.
+   *
+   * ✅ NEW: Phase 5.2B - Style resolution summary
+   *
+   * @private
+   * @returns {Object} Style resolution summary
+   */
+  _summarizeStyleResolutions() {
+    if (!this._styleResolutions || this._styleResolutions.length === 0) {
+      return {
+        total: 0,
+        by_source: {},
+        properties: []
+      };
+    }
+
+    const bySource = {};
+    const properties = [];
+
+    this._styleResolutions.forEach(resolution => {
+      // Count by source
+      if (!bySource[resolution.source]) {
+        bySource[resolution.source] = 0;
+      }
+      bySource[resolution.source]++;
+
+      // Track property details
+      properties.push({
+        property: resolution.property,
+        source: resolution.source,
+        value: resolution.value,
+        token: resolution.tokenUsed || null
+      });
+    });
+
+    return {
+      total: this._styleResolutions.length,
+      by_source: bySource,
+      properties: properties
     };
   }
 
@@ -300,6 +352,7 @@ export class BaseRenderer {
     this._defaultsAccessed = [];
     this._featuresUsed = new Set();
     this._renderStartTime = null;
+    this._styleResolutions = [];
   }
 
   /**
@@ -337,6 +390,8 @@ export class BaseRenderer {
   /**
    * Resolve style property using token system with fallback to defaults
    *
+   * ✅ ENHANCED: Now tracks resolution path for provenance (Phase 5.2B)
+   *
    * Handles token references and provides consistent fallback behavior.
    * If styleValue is set, uses it (resolving tokens if needed).
    * Otherwise resolves from token system or returns fallback.
@@ -359,26 +414,93 @@ export class BaseRenderer {
    * );
    */
   _resolveStyleProperty(styleValue, tokenPath, resolveToken, fallback, context) {
+    // ✅ NEW: Track the resolution path
+    const resolutionTracking = {
+      tokenPath,
+      styleValue,
+      fallback,
+      resolved: null,
+      source: null
+    };
+
     // If style value is explicitly set, use it
     if (styleValue !== undefined && styleValue !== null) {
       // Check if it's a token reference
       if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
-        // ✅ Track token resolution
+        // Resolve token reference from style value
+        const resolved = resolveToken(styleValue, fallback, context);
+        resolutionTracking.resolved = resolved;
+        resolutionTracking.source = 'token_from_style';
+        resolutionTracking.tokenUsed = styleValue;
+
+        // ✅ Track this resolution
+        this._trackStyleResolution(tokenPath, resolutionTracking);
         this._trackFeature('token_resolution');
-        return resolveToken(styleValue, fallback, context);
+
+        return resolved;
       }
+
+      // Use explicit style value
+      resolutionTracking.resolved = styleValue;
+      resolutionTracking.source = 'explicit';
+
+      // ✅ Track this resolution
+      this._trackStyleResolution(tokenPath, resolutionTracking);
+
       return styleValue;
     }
 
     // Otherwise resolve from token system
     if (resolveToken) {
-      // ✅ Track token resolution
+      const resolved = resolveToken(tokenPath, fallback, context);
+      resolutionTracking.resolved = resolved;
+      resolutionTracking.source = 'token_system';
+      resolutionTracking.tokenUsed = tokenPath;
+
+      // ✅ Track this resolution
+      this._trackStyleResolution(tokenPath, resolutionTracking);
       this._trackFeature('token_resolution');
-      return resolveToken(tokenPath, fallback, context);
+
+      return resolved;
     }
 
     // Final fallback
+    resolutionTracking.resolved = fallback;
+    resolutionTracking.source = 'fallback';
+
+    // ✅ Track this resolution
+    this._trackStyleResolution(tokenPath, resolutionTracking);
+
     return fallback;
+  }
+
+  /**
+   * Track style resolution for provenance
+   *
+   * Records each style property resolution including the source
+   * (explicit, token, fallback) and the actual value used.
+   *
+   * ✅ NEW: Phase 5.2B - Style resolution tracking
+   *
+   * @private
+   * @param {string} property - Property name being resolved
+   * @param {Object} resolution - Resolution tracking object
+   */
+  _trackStyleResolution(property, resolution) {
+    if (!this._styleResolutions) {
+      this._styleResolutions = [];
+    }
+
+    this._styleResolutions.push({
+      property,
+      source: resolution.source,
+      value: resolution.resolved,
+      tokenPath: resolution.tokenPath,
+      tokenUsed: resolution.tokenUsed,
+      explicitValue: resolution.styleValue,
+      fallback: resolution.fallback,
+      timestamp: performance.now()
+    });
   }
 
   /**
