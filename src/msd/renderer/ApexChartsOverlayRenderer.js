@@ -49,6 +49,20 @@ export class ApexChartsOverlayRenderer {
 
     // Resolve ThemeManager for style resolution
     this.themeManager = this._resolveThemeManager();
+
+    // ✅ NEW: Phase 6 - Resolve StyleResolverService
+    this.styleResolver = this._resolveStyleResolver();
+
+    // ✅ NEW: Phase 6 - Log StyleResolver availability
+    if (this.styleResolver) {
+      cblcarsLog.info('[ApexChartsOverlayRenderer] ✅ StyleResolverService available');
+    } else {
+      cblcarsLog.warn('[ApexChartsOverlayRenderer] ⚠️ StyleResolverService not available - using fallback resolution');
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] Checked:', {
+        hasGlobal: !!(typeof window !== 'undefined' && window.cblcars?.styleResolver),
+        hasPipeline: !!(typeof window !== 'undefined' && window.__msdDebug?.pipelineInstance?.systemsManager?.styleResolver)
+      });
+    }
   }
 
   /**
@@ -79,6 +93,30 @@ export class ApexChartsOverlayRenderer {
       const systemsManager = window.__msdDebug?.systemsManager;
       if (systemsManager?.themeManager) {
         return systemsManager.themeManager;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Resolve StyleResolverService from various sources
+   * ✅ NEW: Phase 6 - StyleResolverService resolution
+   *
+   * @private
+   * @returns {Object|null} StyleResolverService instance or null
+   */
+  _resolveStyleResolver() {
+    // Priority 1: Global CB-LCARS namespace
+    if (typeof window !== 'undefined' && window.cblcars?.styleResolver) {
+      return window.cblcars.styleResolver;
+    }
+
+    // Priority 2: Pipeline instance
+    if (typeof window !== 'undefined') {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (pipelineInstance?.systemsManager?.styleResolver) {
+        return pipelineInstance.systemsManager.styleResolver;
       }
     }
 
@@ -344,7 +382,9 @@ export class ApexChartsOverlayRenderer {
   }
 
   /**
-   * ✅ NEW: Resolve chart style property with tracking (Phase 5.2B)
+   * Resolve chart style property with StyleResolverService
+   * ✅ ENHANCED: Phase 6 - Now uses StyleResolverService when available
+   *
    * @private
    * @param {string} property - Property name
    * @param {*} explicitValue - Explicit value from overlay config
@@ -353,6 +393,43 @@ export class ApexChartsOverlayRenderer {
    * @returns {*} Resolved value
    */
   _resolveChartStyleProperty(property, explicitValue, themeDefault, adapterDefault) {
+    // ✅ NEW: Phase 6 - Use StyleResolverService if available
+    if (this.styleResolver) {
+      try {
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] 🎨 Resolving '${property}' via StyleResolver for overlay ${this._currentOverlayId || 'unknown'}`);
+
+        const result = this.styleResolver.resolveProperty({
+          property,
+          value: explicitValue,
+          tokenPath: `components.chart.${property}`,
+          defaultValue: adapterDefault,
+          context: {
+            overlayId: this._currentOverlayId,
+            componentType: 'apexchart'
+          }
+        });
+
+        // Track for provenance
+        this._trackStyleResolution(property, {
+          source: result.source,
+          value: result.value,
+          explicitValue,
+          themeDefault,
+          adapterDefault
+        });
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Resolved '${property}' = ${result.value} (source: ${result.source})`);
+
+        return result.value;
+
+      } catch (error) {
+        cblcarsLog.warn('[ApexChartsOverlayRenderer] StyleResolver error, using fallback:', error);
+        // Fall through to manual resolution
+      }
+    } else {
+      cblcarsLog.debug(`[ApexChartsOverlayRenderer] ⚠️ Using fallback resolution for '${property}' (no StyleResolver)`);
+    }
+
+    // ✅ FALLBACK: Original manual resolution logic
     const resolution = {
       property,
       explicitValue,
@@ -386,36 +463,60 @@ export class ApexChartsOverlayRenderer {
   }
 
   /**
-   * ✅ NEW: Get chart style defaults from theme (Phase 5.2B)
+   * ✅ FIXED: Get chart style defaults from theme (Phase 5.2B)
+   * Now directly accesses theme.components.chart instead of using getDefault
+   *
    * @private
    * @returns {Object} Theme defaults for charts
    */
   _getChartStyleDefaults() {
     if (!this.themeManager || !this.themeManager.initialized) {
-      return {};
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] ThemeManager not initialized');
+      return this._getFallbackChartDefaults();
     }
 
     try {
-      return {
-        // Chart colors
-        primaryColor: this.themeManager.getDefault('chart', 'primaryColor', null),
-        secondaryColor: this.themeManager.getDefault('chart', 'secondaryColor', null),
-        strokeColor: this.themeManager.getDefault('chart', 'strokeColor', null),
-        fillColor: this.themeManager.getDefault('chart', 'fillColor', null),
+      const theme = this.themeManager.getActiveTheme();
 
-        // Grid and axes
-        gridColor: this.themeManager.getDefault('chart', 'gridColor', null),
-        axisColor: this.themeManager.getDefault('chart', 'axisColor', null),
+      if (!theme) {
+        cblcarsLog.debug('[ApexChartsOverlayRenderer] No active theme');
+        return this._getFallbackChartDefaults();
+      }
 
-        // Labels
-        labelColor: this.themeManager.getDefault('chart', 'labelColor', null),
+      // ✅ TIER 1: Try theme.components.chart (when you add it to tokens)
+      if (theme.components && theme.components.chart) {
+        cblcarsLog.debug('[ApexChartsOverlayRenderer] ✅ Using theme.components.chart');
+        return {
+          strokeColor: theme.components.chart.strokeColor,
+          gridColor: theme.components.chart.gridColor,
+          backgroundColor: theme.components.chart.backgroundColor,
+          primaryColor: theme.components.chart.primaryColor,
+          secondaryColor: theme.components.chart.secondaryColor,
+          defaultColors: theme.components.chart.defaultColors,
+          defaultStrokeWidth: theme.components.chart.defaultStrokeWidth
+        };
+      }
 
-        // Background
-        backgroundColor: this.themeManager.getDefault('chart', 'backgroundColor', null)
-      };
+      // ✅ TIER 2: Use theme.colors.chart (works now)
+      if (theme.colors && theme.colors.chart) {
+        cblcarsLog.debug('[ApexChartsOverlayRenderer] ✅ Using theme.colors.chart (fallback)');
+        return {
+          strokeColor: theme.colors.chart.axis,
+          gridColor: theme.colors.chart.gridMuted || theme.colors.chart.grid,
+          backgroundColor: 'transparent',
+          defaultColors: theme.colors.chart.series,
+          primaryColor: 'var(--lcars-orange, #FF9900)',
+          secondaryColor: 'var(--lcars-blue, #9999FF)'
+        };
+      }
+
+      // ✅ TIER 3: Explicit fallbacks
+      cblcarsLog.debug('[ApexChartsOverlayRenderer] ⚠️ Using fallback defaults');
+      return this._getFallbackChartDefaults();
+
     } catch (error) {
       cblcarsLog.warn('[ApexChartsOverlayRenderer] Error getting theme defaults:', error);
-      return {};
+      return this._getFallbackChartDefaults();
     }
   }
 
@@ -614,6 +715,9 @@ export class ApexChartsOverlayRenderer {
     const maxRetries = 20;
     let retries = 0;
 
+    // Set current overlay ID for style resolution
+    this._currentOverlayId = overlay.id;
+
     const attemptCreation = () => {
       // ADDED: Ensure initialization completed
       if (!this.isInitialized || !this.elements) {
@@ -675,115 +779,145 @@ export class ApexChartsOverlayRenderer {
         overlay
       });
 
-      try {
-        // Convert DataSource to series
-        const sourceRef = overlay.source || overlay.data_source || overlay.sources;
-        const style = overlay.finalStyle || overlay.style || {};
-        const isMultiSeries = Array.isArray(sourceRef);
+  try {
+    // Convert DataSource to series
+    const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+    const style = overlay.finalStyle || overlay.style || {};
+    const isMultiSeries = Array.isArray(sourceRef);
 
-        // ✅ NEW: Get theme defaults for style resolution tracking (Phase 5.2B)
-        const themeDefaults = this._getChartStyleDefaults();
+    // ✅ NEW: Get theme defaults for style resolution tracking (Phase 5.2B)
+    const themeDefaults = this._getChartStyleDefaults();
 
-        // ✅ NEW: Track common chart style properties (Phase 5.2B)
-        if (style.color !== undefined || themeDefaults.strokeColor !== undefined) {
-          const resolvedColor = this._resolveChartStyleProperty(
-            'chart.strokeColor',
-            style.color,
-            themeDefaults.strokeColor,
-            null
-          );
-        }
+    // ✅ ENHANCED: Resolve and STORE chart style properties
+    const resolvedChartStyles = {
+      strokeColor: this._resolveChartStyleProperty(
+        'strokeColor',
+        style.color || style.stroke_color,
+        themeDefaults.strokeColor,
+        null
+      ),
+      gridColor: this._resolveChartStyleProperty(
+        'gridColor',
+        style.grid_color,
+        themeDefaults.gridColor,
+        '#e0e0e0'
+      ),
+      backgroundColor: this._resolveChartStyleProperty(
+        'backgroundColor',
+        style.background_color,
+        themeDefaults.backgroundColor,
+        'transparent'
+      ),
+      defaultColors: this._resolveChartStyleProperty(
+        'defaultColors',
+        style.colors,
+        themeDefaults.defaultColors,
+        null
+      ),
+      defaultStrokeWidth: this._resolveChartStyleProperty(
+        'defaultStrokeWidth',
+        style.stroke_width,
+        themeDefaults.defaultStrokeWidth,
+        2
+      )
+    };
 
-        if (style.chart_type !== undefined) {
-          this._resolveChartStyleProperty(
-            'chart.type',
-            style.chart_type,
-            null,
-            'line'
-          );
-        }
+    // Track chart type
+    if (style.chart_type !== undefined) {
+      resolvedChartStyles.chartType = this._resolveChartStyleProperty(
+        'type',
+        style.chart_type,
+        null,
+        'line'
+      );
+    }
 
-        if (style.show_grid !== undefined || themeDefaults.gridColor !== undefined) {
-          this._resolveChartStyleProperty(
-            'chart.gridColor',
-            style.grid_color,
-            themeDefaults.gridColor,
-            '#e0e0e0'
-          );
-        }
+    // Track time window
+    if (style.time_window !== undefined) {
+      resolvedChartStyles.timeWindow = this._resolveChartStyleProperty(
+        'timeWindow',
+        style.time_window,
+        null,
+        '24h'
+      );
+    }
 
-        if (style.background_color !== undefined || themeDefaults.backgroundColor !== undefined) {
-          this._resolveChartStyleProperty(
-            'chart.backgroundColor',
-            style.background_color,
-            themeDefaults.backgroundColor,
-            'transparent'
-          );
-        }
+    // Track max points
+    if (style.max_points !== undefined) {
+      resolvedChartStyles.maxPoints = this._resolveChartStyleProperty(
+        'maxPoints',
+        style.max_points,
+        null,
+        500
+      );
+    }
 
-        // Track time window configuration
-        if (style.time_window !== undefined) {
-          this._resolveChartStyleProperty(
-            'chart.timeWindow',
-            style.time_window,
-            null,
-            '24h'
-          );
-        }
+    cblcarsLog.debug('[ApexChartsOverlayRenderer] 📊 Resolved chart styles:', resolvedChartStyles);
 
-        // Track max points configuration
-        if (style.max_points !== undefined) {
-          this._resolveChartStyleProperty(
-            'chart.maxPoints',
-            style.max_points,
-            null,
-            500
-          );
-        }
+    // Convert DataSource to series
+    let series;
+    if (isMultiSeries) {
+      series = ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+        time_window: resolvedChartStyles.timeWindow || style.time_window,
+        max_points: resolvedChartStyles.maxPoints || style.max_points || 500,
+        seriesNames: style.series_names || style.seriesNames
+      });
+    } else {
+      series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+        time_window: resolvedChartStyles.timeWindow || style.time_window,
+        max_points: resolvedChartStyles.maxPoints || style.max_points || 500,
+        name: style.name
+      });
+    }
 
-        let series;
-        if (isMultiSeries) {
-          series = ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
-            time_window: style.time_window,
-            max_points: style.max_points || 500,
-            seriesNames: style.series_names || style.seriesNames
-          });
-        } else {
-          series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
-            time_window: style.time_window,
-            max_points: style.max_points || 500,
-            name: style.name
-          });
-        }
+    if (!series || series.length === 0) {
+      cblcarsLog.warn(`[ApexChartsOverlayRenderer] No data for chart ${overlay.id}`);
+      return;
+    }
 
-        if (!series || series.length === 0) {
-          cblcarsLog.warn(`[ApexChartsOverlayRenderer] No data for chart ${overlay.id}`);
-          return;
-        }
+    // Calculate screen position from viewBox coordinates
+    const screenCoords = this._viewBoxToScreen(svg, viewBox, vbX, vbY, vbWidth, vbHeight);
 
-        // Calculate screen position from viewBox coordinates
-        const screenCoords = this._viewBoxToScreen(svg, viewBox, vbX, vbY, vbWidth, vbHeight);
+    // Create overlay div
+    const overlayDiv = this._createOverlayDiv(overlay.id, screenCoords, svg);
 
-        // Create overlay div
-        const overlayDiv = this._createOverlayDiv(overlay.id, screenCoords, svg);
+    if (!overlayDiv) {
+      cblcarsLog.error(`[ApexChartsOverlayRenderer] Failed to create overlay div for ${overlay.id}`);
+      return;
+    }
 
-        if (!overlayDiv) {
-          cblcarsLog.error(`[ApexChartsOverlayRenderer] Failed to create overlay div for ${overlay.id}`);
-          return;
-        }
+    // ✅ ENHANCED: Merge resolved chart styles into style object
+    const enhancedStyle = {
+      ...style,
+      // ✅ Override with resolved values from theme
+      stroke_color: resolvedChartStyles.strokeColor || style.stroke_color,
+      grid_color: resolvedChartStyles.gridColor || style.grid_color,
+      background_color: resolvedChartStyles.backgroundColor || style.background_color,
+      colors: resolvedChartStyles.defaultColors || style.colors,
+      stroke_width: resolvedChartStyles.defaultStrokeWidth || style.stroke_width
+    };
 
-        // Generate ApexCharts options with EXACT screen pixel dimensions
-        const options = ApexChartsAdapter.generateOptions(
-          style,
-          [Math.round(screenCoords.width), Math.round(screenCoords.height)],
-          {}
-        );
+    // Generate ApexCharts options with EXACT screen pixel dimensions
+    const options = ApexChartsAdapter.generateOptions(
+      enhancedStyle,  // ✅ Use enhanced style with resolved values
+      [Math.round(screenCoords.width), Math.round(screenCoords.height)],
+      {}
+    );
 
-        // Create chart in overlay div
-        const chart = new ApexCharts(overlayDiv, {
-          ...options,
-          series
-        });
+    cblcarsLog.debug('[ApexChartsOverlayRenderer] 📋 ApexCharts options generated:', {
+      backgroundColor: enhancedStyle.background_color,
+      strokeColor: enhancedStyle.stroke_color,
+      gridColor: enhancedStyle.grid_color,
+      colors: enhancedStyle.colors,
+      hasResolvedStyles: true
+    });
+
+    // Create chart in overlay div
+    const chart = new ApexCharts(overlayDiv, {
+      ...options,
+      series
+    });
+
 
         chart.render().then(() => {
           cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Chart created: ${overlay.id}`);

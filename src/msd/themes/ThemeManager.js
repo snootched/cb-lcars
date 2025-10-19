@@ -213,14 +213,22 @@ export class ThemeManager {
    * @example
    * const theme = themeManager.getActiveTheme();
    * console.log(theme.name); // "LCARS Classic"
+   * console.log(theme.tokens.components.chart); // {strokeColor: '...', ...}
    */
   getActiveTheme() {
-    return this.activeTheme ? {
+    if (!this.activeTheme) {
+      return null;
+    }
+
+    return {
       id: this.activeThemeId,
       name: this.activeTheme.name,
       description: this.activeTheme.description,
-      packId: this.activeTheme.packId
-    } : null;
+      packId: this.activeTheme.packId,
+      tokens: this.activeTheme.tokens,  // ✅ NEW: Include actual tokens
+      // ✅ NEW: Also include flattened token structure for direct access
+      ...this.activeTheme.tokens  // This spreads colors, typography, components, etc. to top level
+    };
   }
 
   /**
