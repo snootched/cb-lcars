@@ -833,7 +833,6 @@ export class AdvancedRenderer {
     }
   }
 
-  // UPDATED signature usages for dynamic anchors
   _scheduleDeferredLineRefresh(overlays, anchorsRef, viewBox) {
     if (typeof requestAnimationFrame !== 'function') return;
     const lineOverlays = overlays.filter(o =>
@@ -846,15 +845,30 @@ export class AdvancedRenderer {
         const existingEl = this.overlayElementCache.get(ov.id);
         if (!existingEl) return;
         try {
-          const newMarkup = this.lineRenderer.render(ov, anchorsRef, viewBox);
-          if (!newMarkup) return;
+          // ✅ FIXED: LineRenderer now returns {markup, provenance}
+          const result = this.lineRenderer.render(ov, anchorsRef, viewBox);
+          if (!result) return;
+
+          // ✅ FIXED: Extract markup from result object
+          const markup = typeof result === 'string' ? result : result.markup;
+          if (!markup || typeof markup !== 'string') {
+            cblcarsLog.warn('[AdvancedRenderer] Invalid line render result for', ov.id);
+            return;
+          }
+
           // Parse markup into element
           const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-          temp.innerHTML = newMarkup.trim();
+          temp.innerHTML = markup.trim();
           const newEl = temp.firstElementChild;
           if (!newEl) return;
-            existingEl.replaceWith(newEl);
+
+          existingEl.replaceWith(newEl);
           this.overlayElementCache.set(ov.id, newEl);
+
+          // ✅ NEW: Store provenance if available
+          if (result.provenance) {
+            this._storeRendererProvenance(ov.id, result.provenance);
+          }
         } catch (e) {
           cblcarsLog.info('[AdvancedRenderer] Deferred line refresh failed', ov.id, e);
         }

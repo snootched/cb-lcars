@@ -710,217 +710,169 @@ export class ApexChartsOverlayRenderer {
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - SVG container element
    * @param {Object} cardInstance - Reference to custom-button-card instance
+   *
    */
-  _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
-    const maxRetries = 20;
-    let retries = 0;
 
-    // Set current overlay ID for style resolution
-    this._currentOverlayId = overlay.id;
+_scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
+  // Set current overlay ID for style resolution
+  this._currentOverlayId = overlay.id;
 
-    const attemptCreation = () => {
-      // ADDED: Ensure initialization completed
-      if (!this.isInitialized || !this.elements) {
-        retries++;
-        if (retries < maxRetries) {
-          setTimeout(attemptCreation, 50);
-          return;
-        }
-        cblcarsLog.error(`[ApexChartsOverlayRenderer] Not initialized after ${maxRetries} retries`);
-        return;
-      }
-
-      // ADDED: Double-check that chart doesn't already exist
-      if (this.charts.has(overlay.id)) {
-        cblcarsLog.warn(`[ApexChartsOverlayRenderer] ⚠️ Chart ${overlay.id} already exists, aborting duplicate creation`);
-        return;
-      }
-
-      // Use initialized SVG element
-      const svg = this.elements.svg;
-
-      if (!svg) {
-        retries++;
-        if (retries < maxRetries) {
-          setTimeout(attemptCreation, 50);
-          return;
-        }
-        cblcarsLog.error(`[ApexChartsOverlayRenderer] SVG not found after ${maxRetries} retries`);
-        return;
-      }
-
-      // Get DataSourceManager
-      const dataSourceManager = cardInstance?._config?.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager ||
-                                window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
-
-      if (!dataSourceManager) {
-        cblcarsLog.error(`[ApexChartsOverlayRenderer] DataSourceManager not available`);
-        return;
-      }
-
-      // Resolve position from anchors
-      const position = OverlayUtils.resolvePosition(overlay.position, anchors);
-      if (!position) {
-        cblcarsLog.warn(`[ApexChartsOverlayRenderer] Position could not be resolved: ${overlay.id}`);
-        return;
-      }
-
-      const [vbX, vbY] = position;
-      const size = overlay.size || [300, 150];
-      const [vbWidth, vbHeight] = size;
-
-      // ADDED: Store overlay config for position updates
-      this.overlayConfigs.set(overlay.id, {
-        x: vbX,
-        y: vbY,
-        width: vbWidth,
-        height: vbHeight,
-        viewBox,
-        overlay
-      });
-
-  try {
-    // Convert DataSource to series
-    const sourceRef = overlay.source || overlay.data_source || overlay.sources;
-    const style = overlay.finalStyle || overlay.style || {};
-    const isMultiSeries = Array.isArray(sourceRef);
-
-    // ✅ NEW: Get theme defaults for style resolution tracking (Phase 5.2B)
-    const themeDefaults = this._getChartStyleDefaults();
-
-    // ✅ ENHANCED: Resolve and STORE chart style properties
-    const resolvedChartStyles = {
-      strokeColor: this._resolveChartStyleProperty(
-        'strokeColor',
-        style.color || style.stroke_color,
-        themeDefaults.strokeColor,
-        null
-      ),
-      gridColor: this._resolveChartStyleProperty(
-        'gridColor',
-        style.grid_color,
-        themeDefaults.gridColor,
-        '#e0e0e0'
-      ),
-      backgroundColor: this._resolveChartStyleProperty(
-        'backgroundColor',
-        style.background_color,
-        themeDefaults.backgroundColor,
-        'transparent'
-      ),
-      defaultColors: this._resolveChartStyleProperty(
-        'defaultColors',
-        style.colors,
-        themeDefaults.defaultColors,
-        null
-      ),
-      defaultStrokeWidth: this._resolveChartStyleProperty(
-        'defaultStrokeWidth',
-        style.stroke_width,
-        themeDefaults.defaultStrokeWidth,
-        2
-      )
-    };
-
-    // Track chart type
-    if (style.chart_type !== undefined) {
-      resolvedChartStyles.chartType = this._resolveChartStyleProperty(
-        'type',
-        style.chart_type,
-        null,
-        'line'
-      );
-    }
-
-    // Track time window
-    if (style.time_window !== undefined) {
-      resolvedChartStyles.timeWindow = this._resolveChartStyleProperty(
-        'timeWindow',
-        style.time_window,
-        null,
-        '24h'
-      );
-    }
-
-    // Track max points
-    if (style.max_points !== undefined) {
-      resolvedChartStyles.maxPoints = this._resolveChartStyleProperty(
-        'maxPoints',
-        style.max_points,
-        null,
-        500
-      );
-    }
-
-    cblcarsLog.debug('[ApexChartsOverlayRenderer] 📊 Resolved chart styles:', resolvedChartStyles);
-
-    // Convert DataSource to series
-    let series;
-    if (isMultiSeries) {
-      series = ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
-        time_window: resolvedChartStyles.timeWindow || style.time_window,
-        max_points: resolvedChartStyles.maxPoints || style.max_points || 500,
-        seriesNames: style.series_names || style.seriesNames
-      });
-    } else {
-      series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
-        time_window: resolvedChartStyles.timeWindow || style.time_window,
-        max_points: resolvedChartStyles.maxPoints || style.max_points || 500,
-        name: style.name
-      });
-    }
-
-    if (!series || series.length === 0) {
-      cblcarsLog.warn(`[ApexChartsOverlayRenderer] No data for chart ${overlay.id}`);
+  // ✅ IMMEDIATE: No retries, no waiting
+  const attemptCreation = () => {
+    // Basic validation
+    if (!this.isInitialized || !this.elements) {
+      cblcarsLog.error(`[ApexChartsOverlayRenderer] Not initialized`);
       return;
     }
 
-    // Calculate screen position from viewBox coordinates
-    const screenCoords = this._viewBoxToScreen(svg, viewBox, vbX, vbY, vbWidth, vbHeight);
-
-    // Create overlay div
-    const overlayDiv = this._createOverlayDiv(overlay.id, screenCoords, svg);
-
-    if (!overlayDiv) {
-      cblcarsLog.error(`[ApexChartsOverlayRenderer] Failed to create overlay div for ${overlay.id}`);
+    if (this.charts.has(overlay.id)) {
+      cblcarsLog.warn(`[ApexChartsOverlayRenderer] ⚠️ Chart ${overlay.id} already exists`);
       return;
     }
 
-    // ✅ ENHANCED: Merge resolved chart styles into style object
-    const enhancedStyle = {
-      ...style,
-      // ✅ Override with resolved values from theme
-      stroke_color: resolvedChartStyles.strokeColor || style.stroke_color,
-      grid_color: resolvedChartStyles.gridColor || style.grid_color,
-      background_color: resolvedChartStyles.backgroundColor || style.background_color,
-      colors: resolvedChartStyles.defaultColors || style.colors,
-      stroke_width: resolvedChartStyles.defaultStrokeWidth || style.stroke_width
-    };
+    const svg = this.elements.svg;
+    if (!svg) {
+      cblcarsLog.error(`[ApexChartsOverlayRenderer] SVG not found`);
+      return;
+    }
 
-    // Generate ApexCharts options with EXACT screen pixel dimensions
-    const options = ApexChartsAdapter.generateOptions(
-      enhancedStyle,  // ✅ Use enhanced style with resolved values
-      [Math.round(screenCoords.width), Math.round(screenCoords.height)],
-      {}
-    );
+    // Get DataSourceManager
+    const dataSourceManager = cardInstance?._config?.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager ||
+                              window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
 
-    cblcarsLog.debug('[ApexChartsOverlayRenderer] 📋 ApexCharts options generated:', {
-      backgroundColor: enhancedStyle.background_color,
-      strokeColor: enhancedStyle.stroke_color,
-      gridColor: enhancedStyle.grid_color,
-      colors: enhancedStyle.colors,
-      hasResolvedStyles: true
+    if (!dataSourceManager) {
+      cblcarsLog.error(`[ApexChartsOverlayRenderer] DataSourceManager not available`);
+      return;
+    }
+
+    // Resolve position
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
+    if (!position) {
+      cblcarsLog.warn(`[ApexChartsOverlayRenderer] Position could not be resolved: ${overlay.id}`);
+      return;
+    }
+
+    const [vbX, vbY] = position;
+    const size = overlay.size || [300, 150];
+    const [vbWidth, vbHeight] = size;
+
+    // Store overlay config for position updates
+    this.overlayConfigs.set(overlay.id, {
+      x: vbX,
+      y: vbY,
+      width: vbWidth,
+      height: vbHeight,
+      viewBox,
+      overlay
     });
 
-    // Create chart in overlay div
-    const chart = new ApexCharts(overlayDiv, {
-      ...options,
-      series
-    });
+    try {
+      const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+      const style = overlay.finalStyle || overlay.style || {};
+      const isMultiSeries = Array.isArray(sourceRef);
 
+      // Get theme defaults
+      const themeDefaults = this._getChartStyleDefaults();
 
-        chart.render().then(() => {
-          cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Chart created: ${overlay.id}`);
+      // Resolve chart styles
+      const resolvedChartStyles = {
+        strokeColor: this._resolveChartStyleProperty(
+          'strokeColor',
+          style.color || style.stroke_color,
+          themeDefaults.strokeColor,
+          null
+        ),
+        gridColor: this._resolveChartStyleProperty(
+          'gridColor',
+          style.grid_color,
+          themeDefaults.gridColor,
+          '#e0e0e0'
+        ),
+        backgroundColor: this._resolveChartStyleProperty(
+          'backgroundColor',
+          style.background_color,
+          themeDefaults.backgroundColor,
+          'transparent'
+        ),
+        defaultColors: this._resolveChartStyleProperty(
+          'defaultColors',
+          style.colors,
+          themeDefaults.defaultColors,
+          null
+        ),
+        defaultStrokeWidth: this._resolveChartStyleProperty(
+          'defaultStrokeWidth',
+          style.stroke_width,
+          themeDefaults.defaultStrokeWidth,
+          2
+        )
+      };
+
+      // Convert DataSource to series
+      let series;
+      if (isMultiSeries) {
+        series = ApexChartsAdapter.convertToMultiSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          seriesNames: style.series_names || style.seriesNames
+        });
+      } else {
+        series = ApexChartsAdapter.convertToSeries(sourceRef, dataSourceManager, {
+          time_window: style.time_window,
+          max_points: style.max_points || 500,
+          name: style.name
+        });
+      }
+
+      // Validate series (validation happens in adapter now, but double-check)
+      if (!series || series.length === 0) {
+        cblcarsLog.warn(`[ApexChartsOverlayRenderer] No valid series data for ${overlay.id}`);
+        // Create empty chart placeholder
+        series = [{ name: 'No Data', data: [] }];
+      }
+
+      // Calculate screen position
+      const screenCoords = this._viewBoxToScreen(svg, viewBox, vbX, vbY, vbWidth, vbHeight);
+
+      // Create overlay div
+      const overlayDiv = this._createOverlayDiv(overlay.id, screenCoords, svg);
+      if (!overlayDiv) {
+        cblcarsLog.error(`[ApexChartsOverlayRenderer] Failed to create overlay div for ${overlay.id}`);
+        return;
+      }
+
+      // Merge resolved styles
+      const enhancedStyle = {
+        ...style,
+        stroke_color: resolvedChartStyles.strokeColor || style.stroke_color,
+        grid_color: resolvedChartStyles.gridColor || style.grid_color,
+        background_color: resolvedChartStyles.backgroundColor || style.background_color,
+        colors: resolvedChartStyles.defaultColors || style.colors,
+        stroke_width: resolvedChartStyles.defaultStrokeWidth || style.stroke_width
+      };
+
+      // Check if we have actual data
+      const hasData = series && series.length > 0 && series.some(s =>
+        s.data && Array.isArray(s.data) && s.data.length > 0
+      );
+
+      // Generate ApexCharts options
+      const options = ApexChartsAdapter.generateOptions(
+        enhancedStyle,
+        [Math.round(screenCoords.width), Math.round(screenCoords.height)],
+        { hasData }
+      );
+
+      // Create chart
+      const chart = new ApexCharts(overlayDiv, {
+        ...options,
+        series
+      });
+
+      // Render chart
+      chart.render()
+        .then(() => {
+          cblcarsLog.debug(`[ApexChartsOverlayRenderer] ✅ Chart rendered: ${overlay.id}`);
 
           // Store references
           this.charts.set(overlay.id, chart);
@@ -937,17 +889,120 @@ export class ApexChartsOverlayRenderer {
           // Register for debugging
           this._registerChartForDebugging(overlay.id, chart, overlayDiv, svg);
 
-          // Subscribe to DataSource updates
+          // Subscribe to updates (no delay needed - chart is stable after render promise)
           this._subscribeToDataSource(sourceRef, dataSourceManager, chart, overlay);
+        })
+        .catch(renderError => {
+          cblcarsLog.error(`[ApexChartsOverlayRenderer] ❌ Chart render failed for ${overlay.id}:`, renderError);
+
+          if (overlayDiv) {
+            overlayDiv.innerHTML = `
+              <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #ff6666; font-family: Antonio, sans-serif; text-align: center; padding: 20px;">
+                <div>
+                  <div style="font-size: 18px; margin-bottom: 10px;">❌ Render Failed</div>
+                  <div style="font-size: 12px; opacity: 0.8;">${renderError.message}</div>
+                </div>
+              </div>
+            `;
+          }
+
+          this.charts.delete(overlay.id);
         });
 
-      } catch (error) {
-        cblcarsLog.error(`[ApexChartsOverlayRenderer] Chart creation failed: ${overlay.id}`, error);
-      }
-    };
+    } catch (error) {
+      cblcarsLog.error(`[ApexChartsOverlayRenderer] ❌ Chart creation failed: ${overlay.id}`, error);
+    }
+  };
 
-    // Start creation attempt
-    setTimeout(attemptCreation, 100);
+  // Execute immediately (no setTimeout)
+  attemptCreation();
+}
+  /**
+   * Validate series data structure before chart creation
+   * Prevents ApexCharts path morphing errors from undefined data
+   *
+   * @private
+   * @param {Array} series - Series data array
+   * @param {string} overlayId - Overlay ID for logging
+   * @returns {Object} {valid: boolean, errors: Array<string>}
+   */
+  _validateSeriesData(series, overlayId) {
+    const errors = [];
+
+    // Check series exists
+    if (!series || !Array.isArray(series)) {
+      errors.push('Series must be an array');
+      return { valid: false, errors };
+    }
+
+    if (series.length === 0) {
+      errors.push('Series array is empty');
+      return { valid: false, errors };
+    }
+
+    // Check each series
+    series.forEach((s, index) => {
+      if (!s) {
+        errors.push(`Series[${index}] is null or undefined`);
+        return;
+      }
+
+      if (!s.data) {
+        errors.push(`Series[${index}] has no 'data' property`);
+        return;
+      }
+
+      if (!Array.isArray(s.data)) {
+        errors.push(`Series[${index}].data is not an array (type: ${typeof s.data})`);
+        return;
+      }
+
+      // Check data points
+      if (s.data.length === 0) {
+        // Empty data is OK, just warn
+        cblcarsLog.debug(`[ApexChartsOverlayRenderer] Series[${index}] has empty data array for ${overlayId}`);
+        return;
+      }
+
+      // Validate first few data points
+      const sampleSize = Math.min(3, s.data.length);
+      for (let i = 0; i < sampleSize; i++) {
+        const point = s.data[i];
+
+        if (!point || typeof point !== 'object') {
+          errors.push(`Series[${index}].data[${i}] is not an object (type: ${typeof point})`);
+          continue;
+        }
+
+        if (point.x === undefined || point.x === null) {
+          errors.push(`Series[${index}].data[${i}] has undefined/null 'x' value`);
+        }
+
+        if (point.y === undefined || point.y === null) {
+          errors.push(`Series[${index}].data[${i}] has undefined/null 'y' value`);
+        }
+
+        if (typeof point.y !== 'number' || isNaN(point.y) || !isFinite(point.y)) {
+          errors.push(`Series[${index}].data[${i}].y is not a valid number (value: ${point.y}, type: ${typeof point.y})`);
+        }
+      }
+    });
+
+    const valid = errors.length === 0;
+
+    if (!valid) {
+      cblcarsLog.warn(`[ApexChartsOverlayRenderer] ⚠️ Series validation failed for ${overlayId}:`, {
+        seriesCount: series.length,
+        errors: errors,
+        sampleData: series.slice(0, 2).map(s => ({
+          name: s.name,
+          dataLength: s.data?.length,
+          firstPoints: s.data?.slice(0, 3)
+        }))
+      });
+    }
+
+    return { valid, errors };
   }
 
   /**
@@ -1350,6 +1405,7 @@ export class ApexChartsOverlayRenderer {
    * @param {Object} chart - ApexCharts instance
    * @param {Object} overlay - Overlay configuration
    */
+
   _subscribeToDataSource(sourceRef, dataSourceManager, chart, overlay) {
     const sources = Array.isArray(sourceRef) ? sourceRef : [sourceRef];
     const unsubscribers = [];
@@ -1381,10 +1437,12 @@ export class ApexChartsOverlayRenderer {
             });
 
           if (newSeries && newSeries.length > 0) {
+            // Validation already happened in convertToSeries
             chart.updateSeries(newSeries, true);
+            cblcarsLog.debug(`[ApexChartsOverlayRenderer] 🔄 Updated chart ${overlay.id}`);
           }
         } catch (error) {
-          cblcarsLog.error(`[ApexChartsOverlayRenderer] Update failed for ${overlay.id}:`, error);
+          cblcarsLog.error(`[ApexChartsOverlayRenderer] ❌ Update failed for ${overlay.id}:`, error);
         }
       });
 

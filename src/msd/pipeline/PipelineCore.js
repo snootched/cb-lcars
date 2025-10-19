@@ -11,12 +11,14 @@ import { diffItem } from '../export/diffItem.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { StyleResolverService } from '../styles/StyleResolverService.js';
-
+import { ValidationService } from '../validation/ValidationService.js';
+import { registerAllSchemas } from '../validation/schemas/index.js';
 
 /**
  * Initialize the MSD processing/rendering pipeline.
  * ENHANCED: Ensures pack loading and defaults management complete before overlay processing
  * ✅ ENHANCED: Phase 6 - Now includes StyleResolverService initialization
+ * ✅ ENHANCED: Phase 7 - Now includes ValidationService initialization and pre-render validation
  *
  * @param {Object} userMsdConfig - User supplied MSD config.
  * @param {HTMLElement|ShadowRoot} mountEl - Mount/root element (may be a shadowRoot).
@@ -88,6 +90,55 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       cblcarsLog.info('[PipelineCore] ✅ StyleResolver connected to ThemeManager');
     }
 
+    // ✅ NEW: Phase 7 - Phase 2.2: Initialize ValidationService
+    cblcarsLog.debug('[PipelineCore] ✅ Phase 2.2: Initializing ValidationService');
+    let validationService = null;
+
+    try {
+      validationService = new ValidationService({
+        strict: mergedConfig?.debug?.strictValidation || false,
+        stopOnError: false,
+        validateTokens: true,
+        validateDataSources: true,
+        debug: mergedConfig?.debug?.validation || false
+      });
+
+      // Register all overlay schemas
+      registerAllSchemas(validationService.schemaRegistry);
+      cblcarsLog.debug('[PipelineCore] 📋 Registered validation schemas:', {
+        schemaCount: validationService.schemaRegistry.getSchemaCount(),
+        types: validationService.schemaRegistry.getRegisteredTypes()
+      });
+
+      // Connect ValidationService to ThemeManager and DataSourceManager
+      if (systemsManager.themeManager) {
+        validationService.setThemeManager(systemsManager.themeManager);
+        cblcarsLog.debug('[PipelineCore] 🔗 ValidationService connected to ThemeManager');
+      }
+
+      if (systemsManager.dataSourceManager) {
+        validationService.setDataSourceManager(systemsManager.dataSourceManager);
+        cblcarsLog.debug('[PipelineCore] 🔗 ValidationService connected to DataSourceManager');
+      }
+
+      // Make ValidationService globally accessible
+      if (typeof window !== 'undefined') {
+        if (!window.cblcars) window.cblcars = {};
+        window.cblcars.validationService = validationService;
+        cblcarsLog.debug('[PipelineCore] ✅ ValidationService available at window.cblcars.validationService');
+      }
+
+      // Store in SystemsManager
+      systemsManager.validationService = validationService;
+
+      cblcarsLog.info('[PipelineCore] ✅ ValidationService initialized and connected');
+
+    } catch (validationInitError) {
+      cblcarsLog.warn('[PipelineCore] ⚠️ ValidationService initialization failed:', validationInitError);
+      cblcarsLog.warn('[PipelineCore] ⚠️ Continuing without ValidationService - overlays will not be pre-validated');
+      // Don't fail the pipeline - validation is helpful but not critical
+    }
+
   } catch (error) {
     cblcarsLog.error('[PipelineCore] ❌ SystemsManager initialization failed:', error);
     throw new Error(`SystemsManager initialization failed: ${error.message}`);
@@ -123,6 +174,59 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     activeTheme: activeTheme?.name,
     themeCount: systemsManager.themeManager.listThemes().length
   });
+
+  // ✅ NEW: Phase 7 - Phase 2.3: Pre-render validation of overlays
+  if (systemsManager.validationService && mergedConfig.overlays && mergedConfig.overlays.length > 0) {
+    cblcarsLog.debug('[PipelineCore] 🔍 Phase 2.3: Validating overlays before rendering');
+
+    const validation = systemsManager.validationService.validateAll(mergedConfig.overlays, {
+      viewBox: mergedConfig.view_box || [0, 0, 800, 600],
+      anchors: mergedConfig.anchors || {}
+    });
+
+    if (!validation.valid) {
+      cblcarsLog.warn('[PipelineCore] ⚠️ Overlay validation found issues:', {
+        total: validation.summary.total,
+        invalid: validation.summary.invalid,
+        errors: validation.summary.errors,
+        warnings: validation.summary.warnings
+      });
+
+      // Log detailed validation errors in debug mode
+      if (mergedConfig?.debug?.validation) {
+        const formattedErrors = systemsManager.validationService.formatErrors(validation);
+        cblcarsLog.debug('[PipelineCore] Validation details:\n' + formattedErrors);
+      }
+
+      // In strict mode, filter out invalid overlays
+      if (mergedConfig?.debug?.strictValidation) {
+        const validOverlayIds = validation.results
+          .filter(r => r.valid)
+          .map(r => r.overlayId);
+
+        const originalCount = mergedConfig.overlays.length;
+        mergedConfig.overlays = mergedConfig.overlays.filter(o =>
+          validOverlayIds.includes(o.id)
+        );
+
+        cblcarsLog.info('[PipelineCore] 🚮 Filtered out invalid overlays in strict mode:', {
+          removed: originalCount - mergedConfig.overlays.length,
+          remaining: mergedConfig.overlays.length
+        });
+      }
+    } else {
+      cblcarsLog.debug('[PipelineCore] ✅ All overlays passed validation');
+    }
+
+    // Store validation results in config for debugging
+    mergedConfig.__validation = {
+      timestamp: Date.now(),
+      summary: validation.summary,
+      results: validation.results
+    };
+  } else if (!systemsManager.validationService) {
+    cblcarsLog.debug('[PipelineCore] ⏭️ Skipping overlay validation (ValidationService not available)');
+  }
 
   // PHASE 3: Build card model (now safe to process overlays)
   cblcarsLog.debug('[PipelineCore] 🏗️ Phase 3: Building card model');
@@ -164,7 +268,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       dataSourceManager: systemsManager.dataSourceManager,
       config: mergedConfig,
       themeManager: systemsManager.themeManager,
-      styleResolver: styleResolver  // ✅ NEW: Phase 6 - Add StyleResolver to debug
+      styleResolver: styleResolver,  // ✅ NEW: Phase 6 - Add StyleResolver to debug
+      validationService: systemsManager.validationService
     };
 
     cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
@@ -172,6 +277,7 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       hasDataSourceManager: !!systemsManager.dataSourceManager,
       hasThemeManager: !!systemsManager.themeManager,
       hasStyleResolver: !!styleResolver,  // ✅ NEW: Phase 6
+      hasValidationService: !!systemsManager.validationService,
       hasRouter: !!systemsManager.router,
       dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
     });
@@ -572,6 +678,7 @@ function createPipelineApi(mergedConfig, cardModel, systemsManager, modelBuilder
     rulesEngine: systemsManager.rulesEngine,
     renderer: systemsManager.renderer,
     router: systemsManager.router,
+    validationService: systemsManager.validationService,
 
     /**
      * Inspect routing for a given overlay id and compute path data.

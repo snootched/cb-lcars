@@ -85,12 +85,54 @@ export class ApexChartsAdapter {
       // Convert to ApexCharts format
       const seriesName = config.name || this._extractSeriesName(sourceRef);
 
-      return [{
-        name: seriesName,
-        data: data.map(point => ({
+      // ✅ FIXED: Validate and filter data points to prevent ApexCharts path morphing errors
+      const validData = data
+        .filter(point => {
+          const x = point.timestamp || point.t;
+          const y = point.value || point.v;
+
+          // Strict validation: both x and y must be valid numbers
+          const isValid = (
+            x !== undefined &&
+            x !== null &&
+            !isNaN(Number(x)) &&
+            y !== undefined &&
+            y !== null &&
+            !isNaN(Number(y)) &&
+            isFinite(y)  // Reject Infinity and -Infinity
+          );
+
+          if (!isValid && config.debug) {
+            cblcarsLog.debug(`[ApexChartsAdapter] Filtered invalid point:`, { x, y, point });
+          }
+
+          return isValid;
+        })
+        .map(point => ({
           x: point.timestamp || point.t,
           y: point.value || point.v
-        }))
+        }));
+
+      // ✅ FIXED: Log warning if data was filtered
+      if (validData.length < data.length) {
+        cblcarsLog.warn(`[ApexChartsAdapter] Filtered ${data.length - validData.length} invalid points from ${sourceRef}`, {
+          original: data.length,
+          valid: validData.length
+        });
+      }
+
+      // ✅ FIXED: Return empty series if no valid data (prevents ApexCharts errors)
+      if (validData.length === 0) {
+        cblcarsLog.warn(`[ApexChartsAdapter] No valid data points for series ${seriesName} (${sourceRef})`);
+        return [{
+          name: seriesName,
+          data: []  // Empty array is safe for ApexCharts
+        }];
+      }
+
+      return [{
+        name: seriesName,
+        data: validData
       }];
 
     } catch (error) {
@@ -120,8 +162,30 @@ export class ApexChartsAdapter {
         name: config.seriesNames?.[sourceRef] || this._extractSeriesName(sourceRef)
       });
 
-      allSeries.push(...series);
+      // ✅ FIXED: Only add series with valid data
+      if (series && series.length > 0) {
+        // Validate each series has at least some data or is intentionally empty
+        const validSeries = series.filter(s => {
+          if (!s.data || !Array.isArray(s.data)) {
+            cblcarsLog.warn(`[ApexChartsAdapter] Series ${s.name} has invalid data structure`);
+            return false;
+          }
+          return true;  // Keep series even if empty (ApexCharts can handle empty arrays)
+        });
+
+        allSeries.push(...validSeries);
+      }
     });
+
+    // ✅ FIXED: Ensure at least one series exists (even if empty)
+    if (allSeries.length === 0) {
+      cblcarsLog.warn(`[ApexChartsAdapter] No valid series data from sources:`, sourceRefs);
+      // Return single empty series to prevent ApexCharts initialization errors
+      return [{
+        name: 'No Data',
+        data: []
+      }];
+    }
 
     return allSeries;
   }
@@ -217,6 +281,7 @@ export class ApexChartsAdapter {
       resolveToken('typography.fontFamily.primary', 'Antonio, Helvetica Neue, sans-serif', context) :
       'Antonio, Helvetica Neue, sans-serif';
 
+
     // Build base ApexCharts options
     const baseOptions = {
       chart: {
@@ -224,18 +289,22 @@ export class ApexChartsAdapter {
         width: size[0],
         height: size[1],
         animations: {
-          enabled: style.animations_enabled !== false,
+          enabled: true,
           speed: 800,
           animateGradually: {
             enabled: true,
             delay: 150
+          },
+          dynamicAnimation: {
+            enabled: true,
+            speed: 350
           }
         },
         toolbar: {
           show: style.show_toolbar || false
         },
-        background: backgroundColor,  // ✅ FIXED: Use resolved background color
-        foreColor: strokeColor,        // ✅ NEW: Set default text color
+        background: backgroundColor,
+        foreColor: strokeColor,
         fontFamily: fontFamily
       },
 
@@ -746,44 +815,63 @@ export class ApexChartsAdapter {
     return { dataSource, dataPath: null };
   }
 
-  /**
-   * Get raw DataSource buffer data
-   * @private
-   */
-  static _getRawData(dataSource, config) {
-    const currentData = dataSource.getCurrentData();
-    if (!currentData?.buffer) return [];
+/**
+ * Get raw DataSource buffer data with strict validation
+ * @private
+ */
+static _getRawData(dataSource, config) {
+  const currentData = dataSource.getCurrentData();
+  if (!currentData?.buffer) return [];
 
-    const bufferData = currentData.buffer.getAll();
-    if (!Array.isArray(bufferData) || bufferData.length === 0) return [];
+  const bufferData = currentData.buffer.getAll();
+  if (!Array.isArray(bufferData) || bufferData.length === 0) return [];
 
-    // Apply time window filter if specified
-    let filteredData = bufferData;
-    if (config.time_window) {
-      const timeWindowMs = this._parseTimeWindow(config.time_window);
-      const cutoffTime = Date.now() - timeWindowMs;
-      filteredData = bufferData.filter(point => point.t >= cutoffTime);
+  // Apply time window filter if specified
+  let filteredData = bufferData;
+  if (config.time_window) {
+    const timeWindowMs = this._parseTimeWindow(config.time_window);
+    const cutoffTime = Date.now() - timeWindowMs;
+    filteredData = bufferData.filter(point => {
+      const timestamp = point?.t;
+      return timestamp && timestamp >= cutoffTime;
+    });
+  }
+
+  // Apply max points limit if specified (data decimation)
+  if (config.max_points && filteredData.length > config.max_points) {
+    const step = Math.floor(filteredData.length / config.max_points);
+    const decimated = [];
+    for (let i = 0; i < filteredData.length; i += step) {
+      decimated.push(filteredData[i]);
     }
-
-    // Apply max points limit if specified (data decimation)
-    if (config.max_points && filteredData.length > config.max_points) {
-      const step = Math.floor(filteredData.length / config.max_points);
-      const decimated = [];
-      for (let i = 0; i < filteredData.length; i += step) {
-        decimated.push(filteredData[i]);
-      }
-      // Always include last point
-      if (decimated[decimated.length - 1] !== filteredData[filteredData.length - 1]) {
-        decimated.push(filteredData[filteredData.length - 1]);
-      }
-      filteredData = decimated;
+    // Always include last point
+    if (decimated[decimated.length - 1] !== filteredData[filteredData.length - 1]) {
+      decimated.push(filteredData[filteredData.length - 1]);
     }
+    filteredData = decimated;
+  }
 
-    return filteredData.map(point => ({
+  // ✅ CRITICAL: Filter out invalid points BEFORE conversion
+  return filteredData
+    .filter(point => {
+      if (!point) return false;
+      const t = point.t;
+      const v = point.v;
+      return (
+        t !== undefined &&
+        t !== null &&
+        !isNaN(Number(t)) &&
+        v !== undefined &&
+        v !== null &&
+        !isNaN(Number(v)) &&
+        isFinite(v)
+      );
+    })
+    .map(point => ({
       timestamp: point.t,
       value: point.v
     }));
-  }
+}
 
   /**
    * Get enhanced DataSource data (transformation/aggregation)
