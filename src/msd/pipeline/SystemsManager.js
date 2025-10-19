@@ -43,6 +43,7 @@ export class SystemsManager {
     this._originalHass = null;  // Pristine copy for controls
     this._currentHass = null;   // Working copy for MSD internal processing
     this._previousRuleStates = new Map(); // ADDED: Track rule states for threshold crossing detection
+    this.styleResolver = null;
 
     // ADDED: Render progress tracking with automatic queue execution
     this._internalRenderInProgress = false;
@@ -158,6 +159,14 @@ export class SystemsManager {
       cblcarsLog.debug('[SystemsManager] 🔧 ThemeManager globally accessible via window.cblcars.theme');
     }
 
+    // Acquire StyleResolverService reference
+    if (typeof window !== 'undefined' && window.cblcars?.styleResolver) {
+      this.styleResolver = window.cblcars.styleResolver;
+      cblcarsLog.info('[SystemsManager] ✅ StyleResolverService reference acquired');
+    } else {
+      cblcarsLog.warn('[SystemsManager] ⚠️ StyleResolverService not found - renderers will use fallback');
+    }
+
     // PHASE 2: Initialize other critical systems that overlays might need
     cblcarsLog.debug('[SystemsManager] ⚙️ Phase 2: Initializing critical systems');
 
@@ -257,7 +266,18 @@ export class SystemsManager {
     this.overlayUpdater = new BaseOverlayUpdater(this);
     cblcarsLog.debug('[SystemsManager] BaseOverlayUpdater initialized for unified overlay updates');
 
-    cblcarsLog.debug('[SystemsManager] ✅ All systems initialization complete');
+    cblcarsLog.debug('[SystemsManager] ✅ All systems initialization complete', {
+      hasThemeManager: !!this.themeManager,
+      hasStyleResolver: !!this.styleResolver,  // ✅ NEW: Phase 6
+      hasDataSourceManager: !!this.dataSourceManager,
+      hasRouter: !!this.router,
+      hasRenderer: !!this.renderer,
+      hasRulesEngine: !!this.rulesEngine,
+      hasAnimRegistry: !!this.animRegistry,
+      hasDebugManager: !!this.debugManager,
+      hasControlsRenderer: !!this.controlsRenderer,
+      hasDebugRenderer: !!this.debugRenderer
+    });
   }
 
   // Keep the original initializeSystems method for backward compatibility but mark it deprecated
@@ -792,25 +812,6 @@ export class SystemsManager {
     return Array.from(entities);
   }
 
-  /**
-   * Essential cleanup method
-   */
-  /*
-  destroy() {
-    if (this.debugRenderer) {
-      this.debugRenderer.destroy();
-    }
-
-    // Clear render timeout
-    if (this._renderTimeout) {
-      clearTimeout(this._renderTimeout);
-      this._renderTimeout = null;
-    }
-
-    // Clear re-render callback
-    this._reRenderCallback = null;
-  }
-  */
 
   async destroy() {
     // ADDED: Cleanup ApexCharts instances before destroying other systems
@@ -832,12 +833,25 @@ export class SystemsManager {
     this.renderer?.destroy();
     this.rulesEngine?.destroy();
 
+    if (this.styleResolver) {
+      try {
+        this.styleResolver.invalidateCache('overlay');
+        cblcarsLog.debug('[SystemsManager] StyleResolver overlay cache invalidated');
+      } catch (error) {
+        cblcarsLog.error('[SystemsManager] StyleResolver cleanup error:', error);
+      }
+    }
+
     // Clear timeouts and callbacks
     if (this._renderTimeout) {
       clearTimeout(this._renderTimeout);
       this._renderTimeout = null;
     }
     this._reRenderCallback = null;
+
+    this.styleResolver = null;
+
+    //*** clean up other systems */
 
     // Remove global references
     if (typeof window !== 'undefined' && window.__msdDebug) {

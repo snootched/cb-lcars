@@ -49,6 +49,9 @@ export class BaseRenderer {
     // Initialize ThemeManager reference
     this.themeManager = this._resolveThemeManager();
 
+    // ✅ NEW: Phase 6 - Get StyleResolverService
+    this.styleResolver = this._resolveStyleResolver();
+
     // Container and viewBox will be set by subclasses or render methods
     this.container = null;
     this.viewBox = null;
@@ -57,6 +60,12 @@ export class BaseRenderer {
     this._defaultsAccessed = [];
     this._renderStartTime = null;
     this._featuresUsed = new Set();
+
+    if (this.styleResolver) {
+      cblcarsLog.debug(`[${this.rendererName}] ✅ StyleResolverService available`);
+    } else {
+      cblcarsLog.debug(`[${this.rendererName}] ⚠️ StyleResolverService not available, using fallback`);
+    }
   }
 
   /**
@@ -366,6 +375,42 @@ export class BaseRenderer {
   }
 
   /**
+   * Resolve StyleResolverService from various sources
+   * ✅ NEW: Phase 6 - StyleResolverService resolution
+   *
+   * @protected
+   * @returns {Object|null} StyleResolverService instance or null
+   */
+  _resolveStyleResolver() {
+    // Priority 1: Global CB-LCARS namespace (preferred)
+    if (typeof window !== 'undefined' && window.cblcars?.styleResolver) {
+      return window.cblcars.styleResolver;
+    }
+
+    // Priority 2: Pipeline instance via systemsManager
+    if (typeof window !== 'undefined') {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (pipelineInstance?.systemsManager?.styleResolver) {
+        return pipelineInstance.systemsManager.styleResolver;
+      }
+
+      // Priority 3: Direct pipeline access
+      if (pipelineInstance?.styleResolver) {
+        return pipelineInstance.styleResolver;
+      }
+
+      // Priority 4: SystemsManager global reference
+      const systemsManager = window.__msdSystemsManager || window.__msdDebug?.systemsManager;
+      if (systemsManager?.styleResolver) {
+        return systemsManager.styleResolver;
+      }
+    }
+
+    // No StyleResolver available - will use fallback resolution
+    return null;
+  }
+
+  /**
    * Get scaling context for responsive calculations
    *
    * Provides viewBox and container element for scaling calculations.
@@ -388,90 +433,189 @@ export class BaseRenderer {
   }
 
   /**
-   * Resolve style property using token system with fallback to defaults
+   * Resolve a style property with full resolution chain
+   * ✅ ENHANCED: Phase 6 - Now uses StyleResolverService when available
    *
-   * ✅ ENHANCED: Now tracks resolution path for provenance (Phase 5.2B)
-   *
-   * Handles token references and provides consistent fallback behavior.
-   * If styleValue is set, uses it (resolving tokens if needed).
-   * Otherwise resolves from token system or returns fallback.
+   * Resolution chain:
+   * 1. StyleResolverService (if available) - Phase 6
+   * 2. Explicit value from config
+   * 3. Token resolution via ThemeTokenResolver
+   * 4. Theme default
+   * 5. Fallback value
    *
    * @protected
-   * @param {*} styleValue - Value from style configuration
-   * @param {string} tokenPath - Token path for resolution (e.g., 'colors.accent.primary')
-   * @param {Function|null} resolveToken - Token resolver function
-   * @param {*} fallback - Final fallback value
-   * @param {Object} context - Scaling context for resolution
-   * @returns {*} Resolved property value
-   *
-   * @example
-   * const color = this._resolveStyleProperty(
-   *   style.color,
-   *   'colors.accent.primary',
-   *   resolveToken,
-   *   '#FF9900',
-   *   context
-   * );
+   * @param {*} explicitValue - Explicit value from overlay config
+   * @param {string} tokenPath - Token path for resolution (e.g., 'colors.primary')
+   * @param {Function} resolveToken - Token resolver function (legacy)
+   * @param {*} fallback - Fallback value if all else fails
+   * @param {Object} context - Resolution context (viewBox, overlayId, etc.)
+   * @returns {*} Resolved value
    */
-  _resolveStyleProperty(styleValue, tokenPath, resolveToken, fallback, context) {
-    // ✅ NEW: Track the resolution path
-    const resolutionTracking = {
-      tokenPath,
-      styleValue,
-      fallback,
-      resolved: null,
-      source: null
-    };
+  _resolveStyleProperty(explicitValue, tokenPath, resolveToken, fallback, context = {}) {
+    // ✅ NEW: Phase 6 - Use StyleResolverService if available
+    if (this.styleResolver) {
+      try {
+        const result = this.styleResolver.resolveProperty({
+          property: tokenPath ? tokenPath.split('.').pop() : 'unknown',
+          value: explicitValue,
+          tokenPath: tokenPath,
+          defaultValue: fallback,
+          context: {
+            ...context,
+            componentType: this.rendererName.replace('Renderer', '').toLowerCase()
+          }
+        });
 
-    // If style value is explicitly set, use it
-    if (styleValue !== undefined && styleValue !== null) {
-      // Check if it's a token reference
-      if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
-        // Resolve token reference from style value
-        const resolved = resolveToken(styleValue, fallback, context);
-        resolutionTracking.resolved = resolved;
-        resolutionTracking.source = 'token_from_style';
-        resolutionTracking.tokenUsed = styleValue;
+        // Track for provenance (Phase 5.2B)
+        this._trackStyleResolution(tokenPath, {
+          source: result.source,
+          value: result.value,
+          provenance: result.provenance
+        });
 
-        // ✅ Track this resolution
-        this._trackStyleResolution(tokenPath, resolutionTracking);
-        this._trackFeature('token_resolution');
+        return result.value;
 
-        return resolved;
+      } catch (error) {
+        cblcarsLog.warn(`[${this.rendererName}] StyleResolver error, using fallback:`, error);
+        // Fall through to manual resolution
+      }
+    }
+
+    // ✅ FALLBACK: Manual resolution (legacy behavior)
+    // Priority 1: Explicit value
+    if (explicitValue !== undefined && explicitValue !== null) {
+      // Check if it's a token reference string
+      if (typeof explicitValue === 'string' && this._isTokenReference(explicitValue)) {
+        const tokenResolved = this._resolveTokenManually(explicitValue, fallback, context);
+        this._trackStyleResolution(tokenPath, {
+          source: 'token_from_style',
+          value: tokenResolved,
+          token: explicitValue
+        });
+        return tokenResolved;
       }
 
-      // Use explicit style value
-      resolutionTracking.resolved = styleValue;
-      resolutionTracking.source = 'explicit';
-
-      // ✅ Track this resolution
-      this._trackStyleResolution(tokenPath, resolutionTracking);
-
-      return styleValue;
+      // Use explicit value
+      this._trackStyleResolution(tokenPath, {
+        source: 'explicit',
+        value: explicitValue
+      });
+      return explicitValue;
     }
 
-    // Otherwise resolve from token system
-    if (resolveToken) {
-      const resolved = resolveToken(tokenPath, fallback, context);
-      resolutionTracking.resolved = resolved;
-      resolutionTracking.source = 'token_system';
-      resolutionTracking.tokenUsed = tokenPath;
+    // Priority 2: Token path resolution
+    if (tokenPath) {
+      // Try ThemeTokenResolver first
+      if (resolveToken && typeof resolveToken === 'function') {
+        try {
+          const tokenValue = resolveToken(tokenPath, null, context);
+          if (tokenValue !== null && tokenValue !== undefined) {
+            this._trackStyleResolution(tokenPath, {
+              source: 'token_system',
+              value: tokenValue,
+              token: tokenPath
+            });
+            return tokenValue;
+          }
+        } catch (error) {
+          cblcarsLog.debug(`[${this.rendererName}] Token resolution failed for ${tokenPath}:`, error);
+        }
+      }
 
-      // ✅ Track this resolution
-      this._trackStyleResolution(tokenPath, resolutionTracking);
-      this._trackFeature('token_resolution');
-
-      return resolved;
+      // Try manual token resolution
+      const manualResolved = this._resolveTokenManually(tokenPath, null, context);
+      if (manualResolved !== null) {
+        this._trackStyleResolution(tokenPath, {
+          source: 'token_system',
+          value: manualResolved,
+          token: tokenPath
+        });
+        return manualResolved;
+      }
     }
 
-    // Final fallback
-    resolutionTracking.resolved = fallback;
-    resolutionTracking.source = 'fallback';
+    // Priority 3: Theme default (via ThemeManager)
+    if (this.themeManager && tokenPath) {
+      try {
+        const parts = tokenPath.split('.');
+        if (parts.length >= 2) {
+          const componentType = parts[0]; // e.g., 'text', 'line'
+          const property = parts.slice(1).join('.'); // e.g., 'defaultColor'
 
-    // ✅ Track this resolution
-    this._trackStyleResolution(tokenPath, resolutionTracking);
+          const themeDefault = this.themeManager.getDefault(componentType, property, null);
+          if (themeDefault !== null && themeDefault !== undefined) {
+            this._trackStyleResolution(tokenPath, {
+              source: 'theme',
+              value: themeDefault
+            });
+            return themeDefault;
+          }
+        }
+      } catch (error) {
+        cblcarsLog.debug(`[${this.rendererName}] Theme default lookup failed:`, error);
+      }
+    }
 
+    // Priority 4: Fallback
+    this._trackStyleResolution(tokenPath, {
+      source: 'fallback',
+      value: fallback
+    });
     return fallback;
+  }
+
+  /**
+   * Check if a value is a token reference
+   * ✅ NEW: Phase 6 - Token reference detection
+   *
+   * @private
+   * @param {*} value - Value to check
+   * @returns {boolean} True if value is a token reference
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+    const tokenCategories = ['colors', 'typography', 'spacing', 'borders', 'effects', 'animations', 'components'];
+    return tokenCategories.some(category => value.startsWith(`${category}.`));
+  }
+
+  /**
+   * Manually resolve a token (fallback when StyleResolver not available)
+   * ✅ NEW: Phase 6 - Manual token resolution fallback
+   *
+   * @private
+   * @param {string} tokenPath - Token path to resolve
+   * @param {*} fallback - Fallback value
+   * @param {Object} context - Resolution context
+   * @returns {*} Resolved value or fallback
+   */
+  _resolveTokenManually(tokenPath, fallback, context) {
+    if (!this.themeManager) return fallback;
+
+    try {
+      // Simple path navigation through theme
+      const theme = this.themeManager.getActiveTheme?.() || this.themeManager.activeTheme;
+      if (!theme) return fallback;
+
+      const parts = tokenPath.split('.');
+      let value = theme;
+
+      for (const part of parts) {
+        if (value && typeof value === 'object' && part in value) {
+          value = value[part];
+        } else {
+          return fallback;
+        }
+      }
+
+      // Handle function values (context-aware tokens)
+      if (typeof value === 'function') {
+        return value(context);
+      }
+
+      return value !== null && value !== undefined ? value : fallback;
+    } catch (error) {
+      return fallback;
+    }
   }
 
   /**

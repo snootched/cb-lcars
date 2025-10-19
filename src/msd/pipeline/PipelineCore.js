@@ -10,10 +10,13 @@ import { exportFullSnapshot, exportFullSnapshotJson } from '../export/exportFull
 import { diffItem } from '../export/diffItem.js';
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { StyleResolverService } from '../styles/StyleResolverService.js';
+
 
 /**
  * Initialize the MSD processing/rendering pipeline.
  * ENHANCED: Ensures pack loading and defaults management complete before overlay processing
+ * ✅ ENHANCED: Phase 6 - Now includes StyleResolverService initialization
  *
  * @param {Object} userMsdConfig - User supplied MSD config.
  * @param {HTMLElement|ShadowRoot} mountEl - Mount/root element (may be a shadowRoot).
@@ -37,9 +40,54 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
   cblcarsLog.debug('[PipelineCore] 🔧 Phase 2: Initializing SystemsManager and loading pack defaults');
   const systemsManager = new SystemsManager();
 
+  // ✅ MOVED: Phase 2.5 - Initialize StyleResolverService BEFORE SystemsManager initialization
+  // This ensures StyleResolver is available when SystemsManager checks for it
+  cblcarsLog.debug('[PipelineCore] 🎨 Phase 2.5: Initializing StyleResolverService (before SystemsManager)');
+
+  let styleResolver = null;
+  try {
+    // Get preset configuration from merged config
+    const presets = mergedConfig?.presets || {};
+
+    // Create StyleResolverService instance
+    styleResolver = new StyleResolverService(null, {  // ← ThemeManager not available yet
+      presets,
+      cacheEnabled: true,
+      maxCacheSize: 1000,
+      debug: mergedConfig?.debug?.styleResolver || false
+    });
+
+    // Store in global namespace for access by renderers
+    if (typeof window !== 'undefined') {
+      if (!window.cblcars) window.cblcars = {};
+      window.cblcars.styleResolver = styleResolver;
+    }
+
+    // Store in SystemsManager
+    systemsManager.styleResolver = styleResolver;
+
+    cblcarsLog.info('[PipelineCore] ✅ StyleResolverService initialized (before SystemsManager)');
+  } catch (error) {
+    cblcarsLog.warn('[PipelineCore] ⚠️ StyleResolverService initialization failed:', error);
+    cblcarsLog.warn('[PipelineCore] ⚠️ Continuing without StyleResolverService - renderers will use fallback resolution');
+    // Don't fail the pipeline - renderers will gracefully fall back to manual resolution
+  }
+
   // CRITICAL: Initialize systems with pack defaults loading before overlay processing
   try {
     await systemsManager.initializeSystemsWithPacksFirst(mergedConfig, mountEl, hass);
+
+    // ✅ NEW: Update StyleResolver with ThemeManager after SystemsManager initializes it
+    if (styleResolver && systemsManager.themeManager) {
+      cblcarsLog.debug('[PipelineCore] 🔗 Connecting StyleResolver to ThemeManager');
+      styleResolver.themeManager = systemsManager.themeManager;
+
+      // Re-initialize token resolver with actual theme manager
+      styleResolver.tokenResolver.themeManager = systemsManager.themeManager;
+
+      cblcarsLog.info('[PipelineCore] ✅ StyleResolver connected to ThemeManager');
+    }
+
   } catch (error) {
     cblcarsLog.error('[PipelineCore] ❌ SystemsManager initialization failed:', error);
     throw new Error(`SystemsManager initialization failed: ${error.message}`);
@@ -103,7 +151,6 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     systemsManager.setOriginalHass(hass);
   }
 
-
   // PHASE 5: Early debug and routing setup
   cblcarsLog.debug('[PipelineCore] 🔍 Phase 5: Setting up debug infrastructure');
   if (typeof window !== 'undefined') {
@@ -116,13 +163,15 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
       systemsManager: systemsManager,
       dataSourceManager: systemsManager.dataSourceManager,
       config: mergedConfig,
-      themeManager: systemsManager.themeManager
+      themeManager: systemsManager.themeManager,
+      styleResolver: styleResolver  // ✅ NEW: Phase 6 - Add StyleResolver to debug
     };
 
     cblcarsLog.debug('[PipelineCore] Essential subsystems ready for overlay rendering:', {
       hasSystemsManager: !!systemsManager,
       hasDataSourceManager: !!systemsManager.dataSourceManager,
       hasThemeManager: !!systemsManager.themeManager,
+      hasStyleResolver: !!styleResolver,  // ✅ NEW: Phase 6
       hasRouter: !!systemsManager.router,
       dataSourceCount: systemsManager.dataSourceManager?.listIds?.()?.length || 0
     });

@@ -571,6 +571,15 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 ║   __msdDebug.getPerf()                     - Get performance metrics        ║
 ║   __msdDebug.perf()                        - Alternative performance data   ║
 ║                                                                              ║
+║ Performance (Phase 5.3):                                                     ║
+║   __msdDebug.getPerformanceSummary()       - Complete performance summary   ║
+║   __msdDebug.getSlowestOverlays(5)         - Get slowest overlays           ║
+║   __msdDebug.getRendererPerformance()      - Performance by overlay type    ║
+║   __msdDebug.getOverlayPerformance('id')   - Performance for specific overlay║
+║   __msdDebug.getPerformanceWarnings()      - Check for slow overlays        ║
+║   __msdDebug.getRenderTimeline()           - Stage-by-stage timing          ║
+║   __msdDebug.compareRendererPerformance()  - Compare renderer efficiency    ║
+║                                                                              ║║                                                                              ║
 ║ Other Tools:                                                                 ║
 ║   __msdDebug.hud.toggle()                  - Toggle HUD overlay             ║
 ║   __msdDebug.rules.trace()                 - Show rules engine trace        ║
@@ -608,6 +617,12 @@ Quick toggles:
   __msdDebug.debug.bounding.toggle()      # Toggle bounding boxes
   __msdDebug.debug.bounding.test('id')    # Test bounding accuracy
   __msdDebug.debug.routing.toggle()       # Toggle routing guides
+
+Performance Analysis:
+  __msdDebug.getPerformanceSummary()      # Complete render performance
+  __msdDebug.getSlowestOverlays(5)        # Find bottlenecks
+  __msdDebug.getPerformanceWarnings()     # Check for slow overlays
+  __msdDebug.getRenderTimeline()          # Stage-by-stage breakdown
 
 For full help: __msdDebug.help()
     `);
@@ -656,6 +671,315 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
   };
 
   dbg.perf = () => perfGetAll();
+
+
+  // ✅ NEW: Phase 5.3 - Enhanced Performance Analysis Commands
+
+  /**
+   * Get comprehensive performance summary from last render
+   * @returns {Object} Performance summary with stage breakdowns
+   */
+  dbg.getPerformanceSummary = function() {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    // Get performance from AdvancedRenderer provenance
+    const config = pipelineInstance.config;
+    const advancedRendererProvenance = config?.__provenance?.advanced_renderer;
+
+    if (!advancedRendererProvenance?.performance) {
+      console.warn('[MSD Debug] No performance data available - ensure overlays have been rendered');
+      return null;
+    }
+
+    const perf = advancedRendererProvenance.performance;
+
+    console.log('⚡ Performance Summary:');
+    console.log('═══════════════════════════════════');
+    console.log(`Total Render Time: ${perf.total_render_time_ms.toFixed(2)}ms`);
+    console.log(`Overlays Rendered: ${perf.overlay_count}`);
+    console.log(`Average per Overlay: ${perf.average_per_overlay_ms.toFixed(2)}ms`);
+    console.log('');
+    console.log('📊 Stage Breakdown:');
+    console.log(`  Preparation: ${perf.stages.preparation_ms.toFixed(2)}ms`);
+    console.log(`  Overlay Rendering: ${perf.stages.overlay_rendering_ms.toFixed(2)}ms`);
+    console.log(`  DOM Injection: ${perf.stages.dom_injection_ms.toFixed(2)}ms`);
+    console.log(`  Action Attachment: ${perf.stages.action_attachment_ms.toFixed(2)}ms`);
+    console.log('');
+    console.log('🐌 Slowest Overlays:');
+    console.table(perf.slowest_overlays);
+
+    return perf;
+  };
+
+  /**
+   * Get slowest overlays from last render
+   * @param {number} count - Number of slowest overlays to return (default: 5)
+   * @returns {Array} Array of slowest overlay performance data
+   */
+  dbg.getSlowestOverlays = function(count = 5) {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const renderer = pipelineInstance.systemsManager?.renderer;
+    if (!renderer || typeof renderer.getSlowestOverlays !== 'function') {
+      console.warn('[MSD Debug] Renderer not available or does not support performance tracking');
+      return null;
+    }
+
+    const slowest = renderer.getSlowestOverlays(count);
+
+    console.log(`🐌 ${count} Slowest Overlays:`);
+    console.log('═══════════════════════════════════');
+    slowest.forEach((overlay, index) => {
+      console.log(`${index + 1}. ${overlay.overlay_id} (${overlay.type}): ${overlay.duration_ms.toFixed(2)}ms (${overlay.percentage_of_total}%)`);
+    });
+
+    return slowest;
+  };
+
+  /**
+   * Get performance breakdown by overlay type
+   * @returns {Object} Performance data grouped by type
+   */
+  dbg.getRendererPerformance = function() {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const renderer = pipelineInstance.systemsManager?.renderer;
+    if (!renderer || typeof renderer.getPerformanceByType !== 'function') {
+      console.warn('[MSD Debug] Renderer not available or does not support performance tracking');
+      return null;
+    }
+
+    const byType = renderer.getPerformanceByType();
+
+    console.log('📊 Performance by Overlay Type:');
+    console.log('═══════════════════════════════════');
+
+    // Sort by total time
+    const sortedTypes = Object.entries(byType)
+      .sort((a, b) => b[1].total_ms - a[1].total_ms);
+
+    sortedTypes.forEach(([type, data]) => {
+      console.log(`\n${type.toUpperCase()}:`);
+      console.log(`  Count: ${data.count}`);
+      console.log(`  Total: ${data.total_ms.toFixed(2)}ms`);
+      console.log(`  Average: ${data.average_ms.toFixed(2)}ms`);
+      console.log(`  Slowest: ${Math.max(...data.overlays.map(o => o.duration_ms)).toFixed(2)}ms`);
+    });
+
+    console.log('\n📋 Detailed Breakdown:');
+    console.table(
+      Object.entries(byType).map(([type, data]) => ({
+        Type: type,
+        Count: data.count,
+        'Total (ms)': data.total_ms.toFixed(2),
+        'Average (ms)': data.average_ms.toFixed(2),
+        'Slowest (ms)': Math.max(...data.overlays.map(o => o.duration_ms)).toFixed(2)
+      }))
+    );
+
+    return byType;
+  };
+
+  /**
+   * Get performance data for a specific overlay
+   * @param {string} overlayId - Overlay ID to get performance for
+   * @returns {Object|null} Performance data for the overlay
+   */
+  dbg.getOverlayPerformance = function(overlayId) {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const renderer = pipelineInstance.systemsManager?.renderer;
+    if (!renderer || typeof renderer.getOverlayPerformance !== 'function') {
+      console.warn('[MSD Debug] Renderer not available or does not support performance tracking');
+      return null;
+    }
+
+    const performance = renderer.getOverlayPerformance(overlayId);
+
+    if (!performance) {
+      console.warn(`[MSD Debug] No performance data found for overlay: ${overlayId}`);
+      return null;
+    }
+
+    console.log(`⚡ Performance for Overlay: ${overlayId}`);
+    console.log('═══════════════════════════════════');
+    console.log(`Type: ${performance.type}`);
+    console.log(`Duration: ${performance.duration_ms.toFixed(2)}ms`);
+    console.log(`Percentage of Total: ${performance.percentage_of_total}%`);
+
+    return performance;
+  };
+
+  /**
+   * Get performance warnings for slow overlays
+   * @returns {Object} Performance warnings with details
+   */
+  dbg.getPerformanceWarnings = function() {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const renderer = pipelineInstance.systemsManager?.renderer;
+    if (!renderer || typeof renderer.getPerformanceWarnings !== 'function') {
+      console.warn('[MSD Debug] Renderer not available or does not support performance tracking');
+      return null;
+    }
+
+    const warnings = renderer.getPerformanceWarnings();
+
+    if (!warnings.has_warnings) {
+      console.log('✅ No performance warnings - all overlays rendering efficiently!');
+      return warnings;
+    }
+
+    console.log(`⚠️ Performance Warnings (${warnings.count}):`);
+    console.log('═══════════════════════════════════');
+
+    warnings.warnings.forEach((warning, index) => {
+      console.log(`\n${index + 1}. ${warning.type.toUpperCase()}`);
+      console.log(`   ${warning.message}`);
+      if (warning.overlay_id) {
+        console.log(`   Overlay: ${warning.overlay_id}`);
+      }
+      console.log(`   Value: ${warning.value.toFixed(2)}ms`);
+      console.log(`   Threshold: ${warning.threshold}ms`);
+    });
+
+    console.log('\n📋 Warning Summary:');
+    console.table(warnings.warnings);
+
+    return warnings;
+  };
+
+  /**
+   * Get render timeline (stage-by-stage breakdown)
+   * @returns {Object} Timeline of render stages
+   */
+  dbg.getRenderTimeline = function() {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const config = pipelineInstance.config;
+    const advancedRendererProvenance = config?.__provenance?.advanced_renderer;
+
+    if (!advancedRendererProvenance?.performance) {
+      console.warn('[MSD Debug] No performance data available');
+      return null;
+    }
+
+    const perf = advancedRendererProvenance.performance;
+    const stages = perf.stages;
+    const total = perf.total_render_time_ms;
+
+    const timeline = [
+      {
+        stage: 'Preparation',
+        duration_ms: stages.preparation_ms.toFixed(2),
+        percentage: ((stages.preparation_ms / total) * 100).toFixed(1) + '%',
+        description: 'Initialize structures, compute attachment points'
+      },
+      {
+        stage: 'Overlay Rendering',
+        duration_ms: stages.overlay_rendering_ms.toFixed(2),
+        percentage: ((stages.overlay_rendering_ms / total) * 100).toFixed(1) + '%',
+        description: 'Generate SVG markup for all overlays'
+      },
+      {
+        stage: 'DOM Injection',
+        duration_ms: stages.dom_injection_ms.toFixed(2),
+        percentage: ((stages.dom_injection_ms / total) * 100).toFixed(1) + '%',
+        description: 'Inject markup into DOM, attach actions'
+      },
+      {
+        stage: 'Action Attachment',
+        duration_ms: stages.action_attachment_ms.toFixed(2),
+        percentage: ((stages.action_attachment_ms / total) * 100).toFixed(1) + '%',
+        description: 'Attach event handlers to interactive elements'
+      }
+    ];
+
+    console.log('⏱️ Render Timeline:');
+    console.log('═══════════════════════════════════');
+    console.log(`Total: ${total.toFixed(2)}ms\n`);
+
+    timeline.forEach((stage, index) => {
+      const bar = '█'.repeat(Math.round(parseFloat(stage.percentage) / 2));
+      console.log(`${index + 1}. ${stage.stage}`);
+      console.log(`   ${stage.duration_ms}ms (${stage.percentage}) ${bar}`);
+      console.log(`   ${stage.description}`);
+      console.log('');
+    });
+
+    console.table(timeline);
+
+    return {
+      total_ms: total,
+      stages: timeline
+    };
+  };
+
+  /**
+   * Compare renderer performance across overlay types
+   * @returns {Object} Comparison of renderer performance
+   */
+  dbg.compareRendererPerformance = function() {
+    const pipelineInstance = window.__msdDebug?.pipelineInstance;
+    if (!pipelineInstance) {
+      console.warn('[MSD Debug] No pipeline instance available');
+      return null;
+    }
+
+    const config = pipelineInstance.config;
+    const advancedRendererProvenance = config?.__provenance?.advanced_renderer;
+
+    if (!advancedRendererProvenance?.render_summary) {
+      console.warn('[MSD Debug] No renderer summary available');
+      return null;
+    }
+
+    const summary = advancedRendererProvenance.render_summary;
+    const byRenderer = summary.by_renderer;
+
+    console.log('🔧 Renderer Performance Comparison:');
+    console.log('═══════════════════════════════════');
+
+    const rendererData = Object.entries(byRenderer)
+      .map(([renderer, data]) => ({
+        Renderer: renderer,
+        Count: data.count,
+        'Total Time (ms)': data.total_time_ms.toFixed(2),
+        'Average (ms)': (data.total_time_ms / data.count).toFixed(2)
+      }))
+      .sort((a, b) => parseFloat(b['Total Time (ms)']) - parseFloat(a['Total Time (ms)']));
+
+    console.table(rendererData);
+
+    return byRenderer;
+  };
+
+
+
 
   // Validation
   dbg.validation = {
