@@ -60,6 +60,7 @@ export class BaseRenderer {
     this._defaultsAccessed = [];
     this._renderStartTime = null;
     this._featuresUsed = new Set();
+    this._styleResolutions = [];
 
     if (this.styleResolver) {
       cblcarsLog.debug(`[${this.rendererName}] ✅ StyleResolverService available`);
