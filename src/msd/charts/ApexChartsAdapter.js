@@ -186,10 +186,26 @@ export class ApexChartsAdapter {
       context
     );
 
+    // ✅ NEW: Resolve background color via tokens
+    const backgroundColor = this._resolveTokenValue(
+      style.background_color,
+      'backgroundColor',
+      resolveToken,
+      'transparent',
+      context
+    );
+
+    // ✅ NEW: Resolve stroke/axis color via tokens
+    const strokeColor = this._resolveTokenValue(
+      style.stroke_color,
+      'strokeColor',
+      resolveToken,
+      'var(--lcars-white, #FFFFFF)',
+      context
+    );
+
     // ✅ ENHANCED: Resolve axis colors via tokens
-    const axisColor = resolveToken ?
-      resolveToken('colors.chart.axis', 'var(--lcars-white, #FFFFFF)', context) :
-      'var(--lcars-white, #FFFFFF)';
+    const axisColor = strokeColor;
 
     // ✅ ENHANCED: Resolve legend colors via tokens
     const legendColor = resolveToken ?
@@ -218,7 +234,8 @@ export class ApexChartsAdapter {
         toolbar: {
           show: style.show_toolbar || false
         },
-        background: 'transparent',
+        background: backgroundColor,  // ✅ FIXED: Use resolved background color
+        foreColor: strokeColor,        // ✅ NEW: Set default text color
         fontFamily: fontFamily
       },
 
@@ -226,10 +243,12 @@ export class ApexChartsAdapter {
 
       stroke: {
         width: strokeWidth,
-        curve: style.curve || 'smooth'
+        curve: style.curve || 'smooth',
+        colors: style.stroke_colors || [strokeColor]  // ✅ NEW: Support stroke colors
       },
 
       grid: {
+        show: style.show_grid !== false,  // ✅ NEW: Support disabling grid
         borderColor: gridColor,
         strokeDashArray: 4,
         opacity: 0.3
@@ -264,7 +283,8 @@ export class ApexChartsAdapter {
       },
 
       tooltip: {
-        theme: 'dark',
+        enabled: style.show_tooltip !== false,  // ✅ NEW: Support disabling tooltip
+        theme: style.tooltip_theme || 'dark',
         style: {
           fontSize: '12px',
           fontFamily: fontFamily
@@ -288,17 +308,24 @@ export class ApexChartsAdapter {
       }
     }
 
-    // Apply chart_options overrides (highest precedence)
-    if (style.chart_options) {
-      return this._deepMerge(optionsWithTypeDefaults, style.chart_options);
-    }
-
-    cblcarsLog.debug('[ApexChartsAdapter] Generated options with tokens:', {
-      colors: baseOptions.colors?.length || 0,
+    // ✅ ENHANCED: Log what's being generated
+    cblcarsLog.debug('[ApexChartsAdapter] Generated ApexCharts options:', {
       chartType,
+      backgroundColor,
+      strokeColor,
+      gridColor,
+      colors: colors?.length || 0,
+      strokeWidth,
       hasTypeDefaults: Object.keys(typeDefaults).length > 0,
       hasAnimationPreset: !!style.animation_preset
     });
+
+    // Apply chart_options overrides (highest precedence)
+    if (style.chart_options) {
+      const finalOptions = this._deepMerge(optionsWithTypeDefaults, style.chart_options);
+      cblcarsLog.debug('[ApexChartsAdapter] Applied chart_options overrides');
+      return finalOptions;
+    }
 
     return optionsWithTypeDefaults;
   }

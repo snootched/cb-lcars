@@ -247,6 +247,7 @@ export const lcarsClassicTokens = {
         opacity: 0.5
       }
     },
+
     text: {
       defaultSize: 'typography.fontSize.base',
       defaultColor: 'colors.ui.foreground',
@@ -349,100 +350,8 @@ export const lcarsClassicTokens = {
       updateThrottle: 100
     },
 
-    sparkline: {
-      defaultColor: 'colors.accent.primary',
-      defaultStrokeWidth: 'borders.width.base',
-
-      // From old core_defaults profile
-      size: {
-        width: 200,
-        height: 60
-      },
-      opacity: 'effects.opacity.base',
-      lineCap: 'round',
-      lineJoin: 'round',
-      miterLimit: 4,
-      pathPrecision: 2,
-      fillOpacity: 0.2,
-      pointSize: 3,
-      decimationThreshold: 1000,
-
-      grid: {
-        color: 'colors.chart.grid',
-        opacity: 0.4,
-        strokeWidth: 'borders.width.thin',
-        horizontalCount: 3,
-        verticalCount: 5
-      },
-
-      threshold: {
-        color: 'colors.status.warning',
-        width: 'borders.width.thin',
-        opacity: 0.7
-      },
-
-      zeroLine: {
-        color: 'colors.chart.grid',
-        width: 'borders.width.thin',
-        opacity: 0.5
-      },
-
-      bracket: {
-        width: 'borders.width.base',
-        gap: 'spacing.gap.sm',
-        extension: 8,
-        opacity: 'effects.opacity.base',
-        physicalWidth: 8,
-        radius: 'borders.radius.base',
-        borderRadius: 'borders.radius.lg',
-        innerFactor: 2
-      },
-
-      statusIndicator: {
-        size: 4,
-        offset: 4,
-        color: 'colors.status.success'
-      },
-
-      scanLine: {
-        duration: 3,
-        width: 'borders.width.thin',
-        opacity: 0.8
-      },
-
-      smoothing: {
-        chaikinIterations: 2,
-        bezierControlFactor: 0.5,
-        constrainedControlFactor: 0.25,
-        splineSegments: 10
-      },
-
-      valueLabel: {
-        offsetX: 4,
-        fontSizeRatio: 0.1,
-        maxFontSize: 'typography.fontSize.sm',
-        fontFamily: 'typography.fontFamily.primary'
-      },
-
-      status: {
-        noSource: { color: 'colors.status.danger' },
-        loading: { color: 'colors.status.info' },
-        notFound: { color: 'colors.status.warning' },
-        error: { color: 'colors.status.danger' },
-        fontSizeRatio: 0.125,
-        minWidthForSource: 120,
-        strokeWidth: 'borders.width.base',
-        opacity: 0.6
-      }
-    },
-
     overlay: {
       defaultPadding: 'spacing.scale.4'
-    },
-
-    line: {
-      defaultColor: 'colors.accent.secondary',
-      defaultWidth: 'borders.width.base'
     },
 
     button: {
@@ -453,7 +362,9 @@ export const lcarsClassicTokens = {
     chart: {
       defaultColors: 'colors.chart.series',
       defaultStrokeWidth: 'borders.width.thick',
-      gridColor: 'colors.chart.gridMuted'
+      gridColor: 'colors.chart.gridMuted',
+      strokeColor: 'colors.chart.axis',
+      backgroundColor: 'colors.ui.background'
     }
   }
 };
