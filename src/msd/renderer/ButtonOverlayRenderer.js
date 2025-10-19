@@ -2,6 +2,8 @@
  * [ButtonOverlayRenderer] Individual LCARS button overlay
  * 🔲 Standalone button with full preset and styling support
  * Follows the exact MSD overlay integration pattern
+ *
+ * ✅ ENHANCED: Now includes provenance tracking (Phase 5.2A)
  */
 
 import { BaseRenderer } from './BaseRenderer.js';
@@ -24,37 +26,63 @@ export class ButtonOverlayRenderer extends BaseRenderer {
 
   /**
    * Render a button overlay with full styling support
+   *
+   * ✅ ENHANCED: Now includes provenance tracking
+   *
    * @param {Object} overlay - Button overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - Container element for measurements
-   * @returns {Object} Complete result object with markup, actionInfo, and overlayId
+   * @param {Object} cardInstance - Card instance for action handling
+   * @returns {Object} Complete result object with markup, actionInfo, overlayId, and provenance
    * @static
    */
-  static render(overlay, anchors, viewBox, svgContainer) {
-    // Return full result object for AdvancedRenderer to process actions
-    return ButtonOverlayRenderer.renderWithActions(overlay, anchors, viewBox, svgContainer);
-  }
-
-  /**
-   * Render button overlay with action metadata
-   * @param {Object} overlay - Button overlay configuration with resolved styles
-   * @param {Object} anchors - Anchor positions
-   * @param {Array} viewBox - SVG viewBox dimensions
-   * @param {Element} svgContainer - Container element for measurements
-   * @returns {Object} Object with markup, actionInfo, and overlayId
-   * @static
-   */
-  static renderWithActions(overlay, anchors, viewBox, svgContainer) {
-    // Create instance for non-static methods
+  static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
+    // Create instance
     const instance = new ButtonOverlayRenderer();
     instance.container = svgContainer;
     instance.viewBox = viewBox;
 
+    // ✅ NEW: Start tracking
+    instance._resetTracking();
+    instance._startRenderTiming();
+
     // CRITICAL: Pass systemsManager if available for DataSource access
     instance.systemsManager = svgContainer?.systemsManager || window.__msdSystemsManager;
 
-    return instance.renderButton(overlay, anchors, viewBox);
+    // Delegate to instance method
+    const result = instance.renderButton(overlay, anchors, viewBox, cardInstance);
+
+    // ✅ NEW: Add provenance to result
+    if (result && result.markup) {
+      result.provenance = instance._getRendererProvenance(overlay.id, {
+        overlay_type: 'button',
+        has_data_source: !!(overlay.data_source || overlay._raw?.data_source),
+        has_actions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action),
+        has_texts: !!(overlay.texts && overlay.texts.length > 0),
+        has_label: !!overlay.label,
+        has_content: !!overlay.content,
+        button_style: overlay.style?.lcars_button_preset || 'default',
+        size: overlay.size || [100, 40]
+      });
+    }
+
+    return result;
+  }
+
+  /**
+   * Render button overlay with action metadata (legacy compatibility)
+   * @param {Object} overlay - Button overlay configuration with resolved styles
+   * @param {Object} anchors - Anchor positions
+   * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Element} svgContainer - Container element for measurements
+   * @param {Object} cardInstance - Card instance for action handling
+   * @returns {Object} Object with markup, actionInfo, overlayId, and provenance
+   * @static
+   */
+  static renderWithActions(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
+    // Delegate to main render method (now returns full result)
+    return ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer, cardInstance);
   }
 
   /**
@@ -82,9 +110,10 @@ export class ButtonOverlayRenderer extends BaseRenderer {
    * @param {Object} overlay - Button overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
+   * @param {Object} cardInstance - Card instance for action handling
    * @returns {Object} {markup, actionInfo, overlayId}
    */
-  renderButton(overlay, anchors, viewBox) {
+  renderButton(overlay, anchors, viewBox, cardInstance = null) {
     const position = OverlayUtils.resolvePosition(overlay.position, anchors);
     if (!position) {
       cblcarsLog.warn('[ButtonOverlayRenderer] ⚠️ Button overlay position could not be resolved:', overlay.id);
@@ -100,12 +129,50 @@ export class ButtonOverlayRenderer extends BaseRenderer {
       const style = overlay.style || {};
       const buttonStyle = this._resolveButtonOverlayStyles(style, overlay.id, overlay);
 
+      // ✅ NEW: Track button overlay features
+      if (buttonStyle.gradient) this._trackFeature('gradient');
+      if (buttonStyle.pattern) this._trackFeature('pattern');
+      if (buttonStyle.glow) this._trackFeature('glow');
+      if (buttonStyle.shadow) this._trackFeature('shadow');
+      if (buttonStyle.bracket_style) this._trackFeature('brackets');
+      if (buttonStyle.lcars_button_preset) this._trackFeature(`preset_${buttonStyle.lcars_button_preset}`);
+      if (buttonStyle.lcars_text_preset) this._trackFeature(`text_preset_${buttonStyle.lcars_text_preset}`);
+
+      // Check for individual border styling
+      if (buttonStyle.border_top || buttonStyle.border_right || buttonStyle.border_bottom || buttonStyle.border_left) {
+        this._trackFeature('individual_borders');
+      }
+      if (buttonStyle.border_radius_top_left || buttonStyle.border_radius_top_right ||
+          buttonStyle.border_radius_bottom_right || buttonStyle.border_radius_bottom_left) {
+        this._trackFeature('individual_radius');
+      }
+
       // Check for actions at OVERLAY level BEFORE rendering
       const hasActions = !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action);
-      const cardInstance = this._resolveCardInstance();
+
+      // ✅ NEW: Track actions
+      if (hasActions) this._trackFeature('actions');
+
+      // Resolve card instance
+      if (!cardInstance) {
+        cardInstance = this._resolveCardInstance();
+      }
 
       // Process button content - handle templates and DataSource references
       const buttonContent = this._resolveButtonContent(overlay);
+
+      // ✅ NEW: Track data source usage
+      if (overlay.data_source || overlay._raw?.data_source || style.data_source) {
+        this._trackFeature('data_source');
+      }
+
+      // ✅ NEW: Track text configuration
+      if (overlay.texts || overlay._raw?.texts) {
+        this._trackFeature('texts_array');
+      } else {
+        if (buttonContent.label) this._trackFeature('has_label');
+        if (buttonContent.content) this._trackFeature('has_content');
+      }
 
       // Create button configuration for ButtonRenderer
       const buttonConfig = {

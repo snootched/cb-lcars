@@ -2,6 +2,8 @@
  * [ButtonRenderer] Individual button rendering with full LCARS styling support
  * 🔲 Provides comprehensive button rendering for both status grids and standalone buttons
  * 🎨 Supports individual border styling and corner radius control
+ *
+ * ✅ ENHANCED: Now includes provenance tracking (Phase 5.2A)
  */
 
 import { BaseRenderer } from '../BaseRenderer.js';
@@ -47,17 +49,40 @@ export class ButtonRenderer extends BaseRenderer {
 
   /**
    * Render a single button with full LCARS styling support
+   *
+   * ✅ ENHANCED: Now includes provenance tracking
+   *
    * @param {Object} config - Button configuration
    * @param {Object} style - Resolved button styling
    * @param {Object} size - Button dimensions {width, height}
    * @param {Object} position - Button position {x, y}
    * @param {Object} options - Additional options {cellId, gridContext, etc}
-   * @returns {Object} {markup, actions, metadata}
+   * @returns {Object} {markup, actions, metadata, provenance}
    * @static
    */
   static render(config, style, size, position, options = {}) {
     const instance = new ButtonRenderer();
-    return instance.renderButton(config, style, size, position, options);
+
+    // ✅ NEW: Start tracking
+    instance._resetTracking();
+    instance._startRenderTiming();
+
+    const result = instance.renderButton(config, style, size, position, options);
+
+    // ✅ NEW: Add provenance to result
+    if (result && result.markup) {
+      result.provenance = instance._getRendererProvenance(config.id, {
+        button_type: options.gridContext ? 'grid_cell' : 'standalone',
+        has_actions: !!result.needsActionAttachment,
+        has_texts: !!(config.texts && config.texts.length > 0),
+        has_label: !!config.label,
+        has_content: !!config.content,
+        preset: style.lcars_button_preset || null,
+        text_preset: style.lcars_text_preset || null
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -91,11 +116,33 @@ export class ButtonRenderer extends BaseRenderer {
       // Resolve complete button styling with enhanced border support
       const buttonStyle = this.resolveButtonStyle(config, style, width, height);
 
+      // ✅ NEW: Track button features
+      if (buttonStyle.gradient) this._trackFeature('gradient');
+      if (buttonStyle.pattern) this._trackFeature('pattern');
+      if (buttonStyle.glow) this._trackFeature('glow');
+      if (buttonStyle.shadow) this._trackFeature('shadow');
+      if (buttonStyle.bracket_style) this._trackFeature('brackets');
+      if (buttonStyle.lcars_button_preset) this._trackFeature(`preset_${buttonStyle.lcars_button_preset}`);
+      if (buttonStyle.lcars_text_preset) this._trackFeature(`text_preset_${buttonStyle.lcars_text_preset}`);
+      if (buttonStyle.border.hasIndividualSides) this._trackFeature('individual_borders');
+      if (buttonStyle.border.hasIndividualRadius) this._trackFeature('individual_radius');
+
       // ARCHITECTURAL CHANGE: Convert legacy label/content to texts array
       const textsArray = this._normalizeTextsConfiguration(config, buttonStyle);
 
+      // ✅ NEW: Track text configuration
+      if (textsArray.length > 0) {
+        this._trackFeature('has_texts');
+        textsArray.forEach(text => {
+          if (text.textType) this._trackFeature(`text_${text.textType}`);
+        });
+      }
+
       // Process actions if available
       const actionInfo = this._processButtonActions(config, buttonStyle, options.cardInstance);
+
+      // ✅ NEW: Track actions
+      if (actionInfo) this._trackFeature('actions');
 
       // Check if button has actions
       const hasActions = !!(config.tap_action || config.hold_action || config.double_tap_action || buttonStyle.actions);
@@ -1042,69 +1089,6 @@ export class ButtonRenderer extends BaseRenderer {
   }
 
   /**
-   * Check if we can use simple rect rendering (optimization)
-   * @private
-   */
-  _canUseSimpleRect(border) {
-    // Check if all borders are the same
-    const bordersSame = (
-      border.top.width === border.right.width &&
-      border.right.width === border.bottom.width &&
-      border.bottom.width === border.left.width &&
-      border.top.color === border.right.color &&
-      border.right.color === border.bottom.color &&
-      border.bottom.color === border.left.color
-    );
-
-    // Check if all radii are the same
-    const radiiSame = (
-      border.topLeft === border.topRight &&
-      border.topRight === border.bottomRight &&
-      border.bottomRight === border.bottomLeft
-    );
-
-    return bordersSame && radiiSame && !border.hasIndividualSides && !border.hasIndividualRadius;
-  }
-
-  /**
-   * Apply SVG filter effects for button
-   * @private
-   */
-  _applyFilterEffects(buttonElement, buttonStyle, buttonId) {
-    // Remove existing filter effects
-    const existingFilters = buttonElement.querySelectorAll(`[filter^="url(#filter-"]`);
-    existingFilters.forEach(filter => filter.remove());
-
-    const filterDefs = [];
-
-    // Glow effect
-    if (buttonStyle.glow) {
-      const glowId = `glow-${buttonId}`;
-      RendererUtils.renderGlowFilter(buttonStyle.glow, glowId);
-      filterDefs.push(`url(#${glowId})`);
-    }
-    // Shadow effect
-    if (buttonStyle.shadow) {
-      const shadowId = `shadow-${buttonId}`;
-      RendererUtils.renderShadowFilter(buttonStyle.shadow, shadowId);
-      filterDefs.push(`url(#${shadowId})`);
-    }
-    // Blur effect
-    if (buttonStyle.blur) {
-      const blurId = `blur-${buttonId}`;
-      RendererUtils.renderBlurFilter(buttonStyle.blur, blurId);
-      filterDefs.push(`url(#${blurId})`);
-    }
-
-    // Apply filters to button element
-    if (filterDefs.length > 0) {
-      buttonElement.style.filter = filterDefs.join(' ');
-    } else {
-      buttonElement.style.filter = '';
-    }
-  }
-
-  /**
    * Build filter effects for button
    * @private
    */
@@ -1128,201 +1112,6 @@ export class ButtonRenderer extends BaseRenderer {
     }
 
     return filters;
-  }
-
-  /**
-   * Render button text content with positioning and styling
-   * @param {Object} config - Button configuration
-   * @param {number} x - Button X coordinate
-   * @param {number} y - Button Y coordinate
-   * @param {number} width - Button width
-   * @param {number} height - Button height
-   * @param {Object} buttonStyle - Resolved button styling
-   * @returns {string} SVG markup for button text
-   */
-  renderButtonText(config, x, y, width, height, buttonStyle) {
-    let textMarkup = '';
-
-    // CRITICAL: Text elements should use 'all' to ensure they receive click events
-    const textPointerEvents = 'all';
-    const textCursor = 'inherit';
-
-    // Render button label if enabled
-    if (buttonStyle.show_labels && config.label) {
-      const labelPos = this._calculateEnhancedTextPosition(
-        buttonStyle.label_position, x, y, width, height, buttonStyle, 'label'
-      );
-
-      textMarkup += `<text x="${labelPos.x}" y="${labelPos.y}"
-                     text-anchor="${labelPos.anchor}" dominant-baseline="${labelPos.baseline}"
-                     fill="${buttonStyle.label_color}"
-                     font-size="${buttonStyle.label_font_size}"
-                     font-family="${buttonStyle.font_family}"
-                     font-weight="${buttonStyle.font_weight}"
-                     style="pointer-events: ${textPointerEvents}; user-select: none; cursor: ${textCursor};"
-                     data-button-label="${config.id}">
-                     ${this._escapeXml(config.label)}
-                   </text>`;
-    }
-
-    // Render button content/value if enabled
-    if (buttonStyle.show_values && config.content) {
-      const valuePos = this._calculateEnhancedTextPosition(
-        buttonStyle.value_position, x, y, width, height, buttonStyle, 'value'
-      );
-
-      textMarkup += `<text x="${valuePos.x}" y="${valuePos.y}"
-                     text-anchor="${valuePos.anchor}" dominant-baseline="${valuePos.baseline}"
-                     fill="${buttonStyle.value_color}"
-                     font-size="${buttonStyle.value_font_size}"
-                     font-family="${buttonStyle.font_family}"
-                     font-weight="${buttonStyle.font_weight}"
-                     style="pointer-events: ${textPointerEvents}; user-select: none; cursor: ${textCursor};"
-                     data-button-content="${config.id}">
-                     ${this._escapeXml(config.content)}
-                   </text>`;
-    }
-
-    return textMarkup;
-  }
-
-  /**
-   * Calculate text position based on enhanced positioning system
-   * @private
-   */
-  _calculateEnhancedTextPosition(position, x, y, width, height, buttonStyle, textType = 'label') {
-    const basePadding = buttonStyle.text_padding || 8;
-    const fontSize = textType === 'label' ? (buttonStyle.label_font_size || 18) : (buttonStyle.value_font_size || 16);
-
-    // Handle LCARS presets
-    if (buttonStyle.lcars_text_preset) {
-      return this._calculateLCARSPresetPosition(buttonStyle.lcars_text_preset, x, y, width, height, buttonStyle, textType);
-    }
-
-    // Predefined position strings
-    const positionMap = {
-      'center': { x: '50%', y: '50%', anchor: 'middle', baseline: 'middle' },
-      'center-top': { x: '50%', y: basePadding + 'px', anchor: 'middle', baseline: 'hanging' },
-      'center-bottom': { x: '50%', y: (height - basePadding) + 'px', anchor: 'middle', baseline: 'baseline' },
-      'top-left': { x: basePadding + 'px', y: basePadding + 'px', anchor: 'start', baseline: 'hanging' },
-      'top-right': { x: (width - basePadding) + 'px', y: basePadding + 'px', anchor: 'end', baseline: 'hanging' },
-      'bottom-left': { x: basePadding + 'px', y: (height - basePadding) + 'px', anchor: 'start', baseline: 'baseline' },
-      'bottom-right': { x: (width - basePadding) + 'px', y: (height - basePadding) + 'px', anchor: 'end', baseline: 'baseline' }
-    };
-
-    const positionSpec = positionMap[position] || positionMap['center'];
-
-    return {
-      x: x + this._parsePositionValue(positionSpec.x, width, 0),
-      y: y + this._parsePositionValue(positionSpec.y, height, 0),
-      anchor: positionSpec.anchor,
-      baseline: positionSpec.baseline
-    };
-  }
-
-  /**
-   * Calculate LCARS preset positions
-   * @private
-   */
-  _calculateLCARSPresetPosition(preset, x, y, width, height, buttonStyle, textType) {
-    const basePadding = buttonStyle.text_padding || 8;
-    const fontSize = textType === 'label' ? (buttonStyle.label_font_size || 18) : (buttonStyle.value_font_size || 16);
-
-    switch (preset) {
-      case 'lozenge':
-        // Different positions for label vs value
-        if (textType === 'label') {
-          return {
-            x: x + basePadding,
-            y: y + basePadding + fontSize * 0.8,
-            anchor: 'start',
-            baseline: 'hanging'
-          };
-        } else {
-          return {
-            x: x + width - basePadding,
-            y: y + height * 0.85,
-            anchor: 'end',
-            baseline: 'baseline'
-          };
-        }
-
-      case 'bullet':
-        // Different positions for label vs value
-        if (textType === 'label') {
-          return {
-            x: x + basePadding,
-            y: y + height / 2,
-            anchor: 'start',
-            baseline: 'middle'
-          };
-        } else {
-          return {
-            x: x + width - basePadding,
-            y: y + height / 2,
-            anchor: 'end',
-            baseline: 'middle'
-          };
-        }
-
-      default:
-        return {
-          x: x + width / 2,
-          y: y + height / 2,
-          anchor: 'middle',
-          baseline: 'middle'
-        };
-    }
-  }
-
-  /**
-   * Parse position value (percentage, pixel, or relative)
-   * @private
-   */
-  _parsePositionValue(value, dimension, offset = 0) {
-    dimension = Number(dimension) || 100;
-
-    if (typeof value === 'number') {
-      return isNaN(value) ? 0 : value;
-    }
-
-    const stringValue = String(value);
-
-    if (stringValue.includes('%')) {
-      const percentage = parseFloat(stringValue.replace('%', ''));
-      const result = (dimension * percentage) / 100;
-      return isNaN(result) ? 0 : result;
-    }
-
-    if (stringValue.includes('px')) {
-      const result = parseFloat(stringValue.replace('px', ''));
-      return isNaN(result) ? 0 : result;
-    }
-
-    const numValue = parseFloat(stringValue);
-    return isNaN(numValue) ? 0 : numValue;
-  }
-
-  /**
-   * Process action configuration for button
-   * @private
-   */
-  _processButtonActions(config, buttonStyle, cardInstance) {
-    // Try to get card instance from various sources
-    if (!cardInstance) {
-      cardInstance = ActionHelpers.resolveCardInstance();
-    }
-
-    // Create overlay-like structure for ActionHelpers compatibility
-    const overlayLike = {
-      id: config.id,
-      tap_action: config.tap_action,
-      hold_action: config.hold_action,
-      double_tap_action: config.double_tap_action
-    };
-
-    // Use the generic ActionHelpers method for consistency
-    return ActionHelpers.processOverlayActions(overlayLike, buttonStyle, cardInstance);
   }
 
   /**
@@ -1445,6 +1234,28 @@ export class ButtonRenderer extends BaseRenderer {
   }
 
   /**
+   * Process action configuration for button
+   * @private
+   */
+  _processButtonActions(config, buttonStyle, cardInstance) {
+    // Try to get card instance from various sources
+    if (!cardInstance) {
+      cardInstance = ActionHelpers.resolveCardInstance();
+    }
+
+    // Create overlay-like structure for ActionHelpers compatibility
+    const overlayLike = {
+      id: config.id,
+      tap_action: config.tap_action,
+      hold_action: config.hold_action,
+      double_tap_action: config.double_tap_action
+    };
+
+    // Use the generic ActionHelpers method for consistency
+    return ActionHelpers.processOverlayActions(overlayLike, buttonStyle, cardInstance);
+  }
+
+  /**
    * Escape XML special characters
    * @private
    */
@@ -1456,6 +1267,34 @@ export class ButtonRenderer extends BaseRenderer {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Parse position value (percentage, pixel, or relative)
+   * @private
+   */
+  _parsePositionValue(value, dimension, offset = 0) {
+    dimension = Number(dimension) || 100;
+
+    if (typeof value === 'number') {
+      return isNaN(value) ? 0 : value;
+    }
+
+    const stringValue = String(value);
+
+    if (stringValue.includes('%')) {
+      const percentage = parseFloat(stringValue.replace('%', ''));
+      const result = (dimension * percentage) / 100;
+      return isNaN(result) ? 0 : result;
+    }
+
+    if (stringValue.includes('px')) {
+      const result = parseFloat(stringValue.replace('px', ''));
+      return isNaN(result) ? 0 : result;
+    }
+
+    const numValue = parseFloat(stringValue);
+    return isNaN(numValue) ? 0 : numValue;
   }
 
   /**
@@ -1483,4 +1322,3 @@ export class ButtonRenderer extends BaseRenderer {
 if (typeof window !== 'undefined') {
   window.ButtonRenderer = ButtonRenderer;
 }
-

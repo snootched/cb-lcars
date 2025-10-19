@@ -30,21 +30,41 @@ export class TextOverlayRenderer extends BaseRenderer {
 
   /**
    * Render a text overlay with MSD integration
+   *
+   * ✅ ENHANCED: Now includes provenance tracking
+   *
    * @param {Object} overlay - Text overlay configuration with resolved styles
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions
    * @param {Element} svgContainer - Container element
    * @param {Object} cardInstance - Reference to custom-button-card instance for action handling
-   * @returns {Object} { markup, actionInfo, overlayId }
+   * @returns {Object} { markup, actionInfo, overlayId, provenance }
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance = null) {
-    // FIXED: Create instance to access instance methods
+    // Create instance
     const instance = new TextOverlayRenderer();
     instance.container = svgContainer;
     instance.viewBox = viewBox;
 
+    // ✅ NEW: Start tracking
+    instance._resetTracking();
+    instance._startRenderTiming();
+
     // Delegate to instance method
-    return instance.renderText(overlay, anchors, viewBox, cardInstance);
+    const result = instance.renderText(overlay, anchors, viewBox, cardInstance);
+
+    // ✅ NEW: Add provenance to result
+    if (result && result.markup) {
+      result.provenance = instance._getRendererProvenance(overlay.id, {
+        overlay_type: 'text',
+        has_data_source: !!overlay.data_source,
+        has_actions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action),
+        content_source: overlay.data_source ? 'data_source' : (overlay.content ? 'content' : 'text'),
+        text_length: result.markup.length
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -65,6 +85,16 @@ export class TextOverlayRenderer extends BaseRenderer {
 
       // 2. MSD RESPONSIBILITY: Resolve styles with ThemeManager defaults AND TOKEN SYSTEM
       const textStyle = this._resolveTextStyles(style, overlay.id, viewBox);
+
+      // ✅ NEW: Track data source usage
+      if (overlay.data_source) {
+        this._trackFeature('data_source');
+      }
+
+      // ✅ NEW: Track action usage
+      if (overlay.tap_action || overlay.hold_action || overlay.double_tap_action) {
+        this._trackFeature('actions');
+      }
 
       // Adopt computed font when 'inherit' to prevent initial fallback mismatch
       if (this.container && typeof window !== 'undefined') {
@@ -296,9 +326,9 @@ export class TextOverlayRenderer extends BaseRenderer {
 
       // Positioning and alignment
       textAnchor: (standardStyles.text.textAlign === 'left' ? 'start' :
-                   standardStyles.text.textAlign === 'right' ? 'end' :
-                   standardStyles.text.textAlign === 'center' ? 'middle' :
-                   style.text_anchor || style.textAnchor || 'start').toLowerCase(),
+                  standardStyles.text.textAlign === 'right' ? 'end' :
+                  standardStyles.text.textAlign === 'center' ? 'middle' :
+                  style.text_anchor || style.textAnchor || 'start').toLowerCase(),
       dominantBaseline: (standardStyles.text.verticalAlign === 'top' ? 'hanging' :
                         standardStyles.text.verticalAlign === 'bottom' ? 'text-after-edge' :
                         standardStyles.text.verticalAlign === 'middle' ? 'central' :
@@ -419,23 +449,23 @@ export class TextOverlayRenderer extends BaseRenderer {
       highlight: style.highlight || false,
 
       standardStyles,
-      features: []
+      features: [] // Will be populated by _trackFeature calls
     };
 
-    // Build feature list
-    if (textStyle.gradient) textStyle.features.push('gradient');
-    if (textStyle.pattern) textStyle.features.push('pattern');
-    if (textStyle.stroke && textStyle.strokeWidth > 0) textStyle.features.push('stroke');
-    if (textStyle.glow) textStyle.features.push('glow');
-    if (textStyle.shadow) textStyle.features.push('shadow');
-    if (textStyle.blur) textStyle.features.push('blur');
-    if (textStyle.multiline) textStyle.features.push('multiline');
-    if (textStyle.pulseSpeed > 0) textStyle.features.push('pulse');
-    if (textStyle.fadeSpeed > 0) textStyle.features.push('fade');
-    if (textStyle.typewriterSpeed > 0) textStyle.features.push('typewriter');
-    if (textStyle.status_indicator) textStyle.features.push('status');
-    if (textStyle.bracket_style) textStyle.features.push('brackets');
-    if (textStyle.highlight) textStyle.features.push('highlight');
+    // ✅ SINGLE FEATURE TRACKING: Track features as they're detected
+    if (textStyle.gradient) this._trackFeature('gradient');
+    if (textStyle.pattern) this._trackFeature('pattern');
+    if (textStyle.stroke && textStyle.strokeWidth > 0) this._trackFeature('stroke');
+    if (textStyle.glow) this._trackFeature('glow');
+    if (textStyle.shadow) this._trackFeature('shadow');
+    if (textStyle.blur) this._trackFeature('blur');
+    if (textStyle.multiline) this._trackFeature('multiline');
+    if (textStyle.pulseSpeed > 0) this._trackFeature('pulse');
+    if (textStyle.fadeSpeed > 0) this._trackFeature('fade');
+    if (textStyle.typewriterSpeed > 0) this._trackFeature('typewriter');
+    if (textStyle.status_indicator) this._trackFeature('status');
+    if (textStyle.bracket_style) this._trackFeature('brackets');
+    if (textStyle.highlight) this._trackFeature('highlight');
 
     return textStyle;
   }

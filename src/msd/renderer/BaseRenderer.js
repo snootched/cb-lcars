@@ -6,6 +6,7 @@
  * - Default value resolution with token support
  * - Scaling context management
  * - Consistent logging patterns
+ * - Provenance tracking for debugging
  *
  * All overlay-specific renderers should extend this base class.
  *
@@ -18,7 +19,7 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
  * Base class for all MSD overlay renderers
  *
  * Provides shared functionality for theme management, default resolution,
- * and common rendering utilities.
+ * and common rendering utilities with built-in provenance tracking.
  *
  * Subclasses should set this.rendererName in their constructor for proper logging.
  *
@@ -51,6 +52,11 @@ export class BaseRenderer {
     // Container and viewBox will be set by subclasses or render methods
     this.container = null;
     this.viewBox = null;
+
+    // ✅ NEW: Provenance tracking
+    this._defaultsAccessed = [];
+    this._renderStartTime = null;
+    this._featuresUsed = new Set();
   }
 
   /**
@@ -101,6 +107,8 @@ export class BaseRenderer {
    * Converts dot-notation paths to ThemeManager format and resolves
    * token references automatically.
    *
+   * ✅ ENHANCED: Now tracks default access for provenance
+   *
    * @protected
    * @param {string} path - Dot-notation path (e.g., 'statusGrid.textPadding')
    * @param {*} fallback - Fallback value if theme default not found
@@ -118,6 +126,8 @@ export class BaseRenderer {
     const themeManager = this._resolveThemeManager();
 
     if (!themeManager || !themeManager.initialized) {
+      // ✅ Track fallback usage
+      this._trackDefaultAccess(path, fallback, 'fallback', 'no_theme_manager');
       return fallback;
     }
 
@@ -129,11 +139,167 @@ export class BaseRenderer {
 
     try {
       const value = themeManager.getDefault(componentType, property, fallback);
-      return value !== null ? value : fallback;
+      const finalValue = value !== null ? value : fallback;
+
+      // ✅ Track the access with source
+      const source = value !== null ? 'theme' : 'fallback';
+      const reason = value !== null ? 'resolved' : 'not_in_theme';
+      this._trackDefaultAccess(path, finalValue, source, reason);
+
+      return finalValue;
     } catch (error) {
       this._logWarn(`Error resolving theme default for ${path}:`, error);
+      // ✅ Track error case
+      this._trackDefaultAccess(path, fallback, 'fallback', 'error');
       return fallback;
     }
+  }
+
+  /**
+   * Track default value access for provenance
+   *
+   * Records each time a default value is accessed, including the path,
+   * resolved value, source, and reason. This data is used to populate
+   * the renderer provenance in __provenance.renderers.
+   *
+   * ✅ NEW: Provenance tracking method
+   *
+   * @private
+   * @param {string} path - Default value path
+   * @param {*} value - Resolved value
+   * @param {string} source - Source of value (theme, fallback, error)
+   * @param {string} reason - Reason for source (resolved, not_in_theme, no_theme_manager, error)
+   */
+  _trackDefaultAccess(path, value, source, reason) {
+    this._defaultsAccessed.push({
+      path,
+      value,
+      source,
+      reason,
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * Track feature usage for provenance
+   *
+   * Records renderer features used during rendering (e.g., 'preset',
+   * 'theme_defaults', 'token_resolution', 'brackets', 'glow', etc.)
+   *
+   * ✅ NEW: Feature tracking method
+   *
+   * @protected
+   * @param {string} feature - Feature name
+   */
+  _trackFeature(feature) {
+    this._featuresUsed.add(feature);
+  }
+
+  /**
+   * Start render timing for performance tracking
+   *
+   * Call at the beginning of a render method to track rendering time.
+   *
+   * ✅ NEW: Performance tracking method
+   *
+   * @protected
+   */
+  _startRenderTiming() {
+    this._renderStartTime = performance.now();
+  }
+
+  /**
+   * Get render duration in milliseconds
+   *
+   * Returns the time elapsed since _startRenderTiming() was called.
+   *
+   * ✅ NEW: Performance tracking method
+   *
+   * @protected
+   * @returns {number} Render duration in milliseconds
+   */
+  _getRenderDuration() {
+    if (!this._renderStartTime) return 0;
+    return performance.now() - this._renderStartTime;
+  }
+
+  /**
+   * Get renderer provenance for an overlay
+   *
+   * Collects all tracking data (defaults accessed, features used, render time)
+   * and returns a provenance object suitable for storage in __provenance.renderers.
+   *
+   * ✅ NEW: Provenance generation method
+   *
+   * @protected
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} additionalData - Additional renderer-specific data
+   * @returns {Object} Renderer provenance object
+   */
+  _getRendererProvenance(overlayId, additionalData = {}) {
+    return {
+      renderer: this.rendererName,
+      extends_base: true,
+      theme_manager_resolved: !!this.themeManager,
+      theme_manager_source: this._getThemeManagerSource(),
+      defaults_accessed: this._defaultsAccessed,
+      features_used: Array.from(this._featuresUsed),
+      rendering_time_ms: this._getRenderDuration(),
+      timestamp: Date.now(),
+      ...additionalData
+    };
+  }
+
+  /**
+   * Get ThemeManager source for provenance
+   *
+   * Determines where the ThemeManager instance came from for debugging.
+   *
+   * ✅ NEW: Source tracking method
+   *
+   * @private
+   * @returns {string|null} Source name
+   */
+  _getThemeManagerSource() {
+    if (!this.themeManager) return null;
+
+    if (typeof window !== 'undefined') {
+      if (window.cblcars?.theme === this.themeManager) {
+        return 'window.cblcars.theme';
+      }
+
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (pipelineInstance?.systemsManager?.themeManager === this.themeManager) {
+        return 'pipelineInstance.systemsManager.themeManager';
+      }
+
+      if (pipelineInstance?.themeManager === this.themeManager) {
+        return 'pipelineInstance.themeManager';
+      }
+
+      const systemsManager = window.__msdDebug?.systemsManager;
+      if (systemsManager?.themeManager === this.themeManager) {
+        return 'systemsManager.themeManager';
+      }
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Reset provenance tracking for new render
+   *
+   * Clears all tracking data to prepare for a new render operation.
+   * Should be called at the start of each render.
+   *
+   * ✅ NEW: Tracking reset method
+   *
+   * @protected
+   */
+  _resetTracking() {
+    this._defaultsAccessed = [];
+    this._featuresUsed = new Set();
+    this._renderStartTime = null;
   }
 
   /**
@@ -197,6 +363,8 @@ export class BaseRenderer {
     if (styleValue !== undefined && styleValue !== null) {
       // Check if it's a token reference
       if (resolveToken && typeof styleValue === 'string' && this._isTokenReference(styleValue)) {
+        // ✅ Track token resolution
+        this._trackFeature('token_resolution');
         return resolveToken(styleValue, fallback, context);
       }
       return styleValue;
@@ -204,6 +372,8 @@ export class BaseRenderer {
 
     // Otherwise resolve from token system
     if (resolveToken) {
+      // ✅ Track token resolution
+      this._trackFeature('token_resolution');
       return resolveToken(tokenPath, fallback, context);
     }
 

@@ -691,10 +691,225 @@ export class AdvancedRenderer {
     });
   }
 
+
+
+
+  /**
+   * Render individual overlay using appropriate renderer
+   *
+   * ✅ ENHANCED: Now collects and stores renderer provenance for debugging
+   *
+   * @private
+   */
+  renderOverlay(overlay, anchors, viewBox, svgContainer) {
+    try {
+      cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
+
+      let result;
+
+      switch (overlay.type) {
+        case 'text':
+          // Update (in case dynamic overlays later): recompute & refresh map
+          const ap = TextOverlayRenderer.computeAttachmentPoints(overlay, anchors, svgContainer);
+          if (ap) this.textAttachmentPoints.set(overlay.id, ap);
+
+          // Get card instance for action support
+          const textCardInstance = this.systemsManager ? StatusGridRenderer._resolveCardInstance() : null;
+
+          cblcarsLog.debug(`[AdvancedRenderer] 🔤 Calling TextOverlayRenderer.render for ${overlay.id}`, {
+            hasCardInstance: !!textCardInstance,
+            hasActions: !!(overlay.tap_action || overlay.hold_action || overlay.double_tap_action)
+          });
+
+          // CHANGED: Now returns { markup, actionInfo, overlayId, provenance }
+          const textResult = TextOverlayRenderer.render(overlay, anchors, viewBox, this.mountEl, textCardInstance);
+
+          cblcarsLog.debug(`[AdvancedRenderer] 🔤 TextOverlayRenderer.render result:`, {
+            hasMarkup: !!textResult?.markup,
+            hasActionInfo: !!textResult?.actionInfo,
+            overlayId: textResult?.overlayId,
+            hasProvenance: !!textResult?.provenance
+          });
+
+          result = textResult;
+          break;
+
+        case 'line':
+          // Lines need complete anchor set (static + virtual) for overlay-to-overlay connections
+          const completeAnchors = this._getCompleteAnchors(anchors, overlay.type);
+          result = this.lineRenderer.render(overlay, completeAnchors, viewBox);
+          break;
+
+        case 'control':
+          // ADDED: Control overlays are handled by MsdControlsRenderer, not SVG renderer
+          cblcarsLog.debug('[AdvancedRenderer] 🎮 Control overlay detected, skipping SVG rendering:', overlay.id);
+          result = ''; // Return empty string - controls are rendered separately by MsdControlsRenderer
+          break;
+
+        case 'status_grid':
+          result = StatusGridRenderer.render(overlay, anchors, viewBox, svgContainer);
+          break;
+
+        case 'button':
+          result = ButtonOverlayRenderer.render(overlay, anchors, viewBox, svgContainer);
+          break;
+
+        case 'apexchart':
+          // FIXED: Pass the correct svgContainer reference
+          const apexCardInstance = this.systemsManager ? this._resolveCardInstance() : null;
+
+          // Use this.mountEl as the svgContainer if not provided
+          const effectiveSvgContainer = svgContainer || this.mountEl;
+
+          cblcarsLog.debug('[AdvancedRenderer] 📊 Rendering ApexCharts with container:', {
+            overlayId: overlay.id,
+            hasContainer: !!effectiveSvgContainer,
+            containerType: effectiveSvgContainer?.tagName,
+            hasMountEl: !!this.mountEl
+          });
+
+          result = ApexChartsOverlayRenderer.render(
+            overlay,
+            anchors,
+            viewBox,
+            effectiveSvgContainer,
+            apexCardInstance
+          );
+          break;
+
+        default:
+          cblcarsLog.warn(`[AdvancedRenderer] ⚠️ Unknown overlay type: ${overlay.type}`);
+          result = '';
+          break;
+      }
+
+      // ✅ NEW: Store renderer provenance after successful render
+      if (result && typeof result === 'object' && result.provenance) {
+        this._storeRendererProvenance(overlay.id, result.provenance);
+      } else if (result && typeof result === 'string' && result !== '') {
+        // For renderers that just return string markup (legacy pattern)
+        // We still want to track that the overlay was rendered, but without detailed provenance
+        this._storeBasicRendererProvenance(overlay.id, overlay.type);
+      }
+
+      return result;
+
+    } catch (error) {
+      cblcarsLog.error(`[AdvancedRenderer] ❌ Error rendering overlay ${overlay.id}:`, error);
+
+      // ✅ NEW: Track failed render
+      this._storeFailedRendererProvenance(overlay.id, overlay.type, error);
+
+      return this.renderFallbackOverlay(overlay);
+    }
+  }
+
+  /**
+   * Store renderer provenance in config
+   *
+   * ✅ NEW: Provenance storage method
+   *
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} provenance - Renderer provenance data
+   */
+  _storeRendererProvenance(overlayId, provenance) {
+    // Get config from pipeline
+    const config = window.__msdDebug?.pipelineInstance?.config;
+    if (!config || !config.__provenance) {
+      return;
+    }
+
+    // Ensure renderers object exists
+    if (!config.__provenance.renderers) {
+      config.__provenance.renderers = {};
+    }
+
+    // Store provenance
+    config.__provenance.renderers[overlayId] = provenance;
+
+    cblcarsLog.debug(`[AdvancedRenderer] 📊 Stored renderer provenance for ${overlayId}`, provenance);
+  }
+
+  /**
+   * Store basic renderer provenance for legacy renderers that only return strings
+   *
+   * ✅ NEW: Basic provenance tracking for legacy renderers
+   *
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @param {string} overlayType - Overlay type
+   */
+  _storeBasicRendererProvenance(overlayId, overlayType) {
+    const config = window.__msdDebug?.pipelineInstance?.config;
+    if (!config || !config.__provenance) {
+      return;
+    }
+
+    // Ensure renderers object exists
+    if (!config.__provenance.renderers) {
+      config.__provenance.renderers = {};
+    }
+
+    // Store basic provenance
+    config.__provenance.renderers[overlayId] = {
+      renderer: `${overlayType}_renderer`,
+      extends_base: false, // Unknown for legacy renderers
+      theme_manager_resolved: false, // Unknown for legacy renderers
+      rendering_time_ms: 0,
+      timestamp: Date.now(),
+      legacy_renderer: true,
+      note: 'Renderer returned string markup only (no provenance data)'
+    };
+
+    cblcarsLog.debug(`[AdvancedRenderer] 📊 Stored basic provenance for legacy renderer: ${overlayId}`);
+  }
+
+  /**
+   * Store failed render provenance
+   *
+   * ✅ NEW: Track rendering failures for debugging
+   *
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @param {string} overlayType - Overlay type
+   * @param {Error} error - Error that occurred
+   */
+  _storeFailedRendererProvenance(overlayId, overlayType, error) {
+    const config = window.__msdDebug?.pipelineInstance?.config;
+    if (!config || !config.__provenance) {
+      return;
+    }
+
+    // Ensure renderers object exists
+    if (!config.__provenance.renderers) {
+      config.__provenance.renderers = {};
+    }
+
+    // Store failure provenance
+    config.__provenance.renderers[overlayId] = {
+      renderer: `${overlayType}_renderer`,
+      extends_base: false,
+      theme_manager_resolved: false,
+      rendering_failed: true,
+      error_message: error.message,
+      error_stack: error.stack,
+      timestamp: Date.now()
+    };
+
+    cblcarsLog.debug(`[AdvancedRenderer] 📊 Stored failed render provenance for ${overlayId}:`, error.message);
+  }
+
+
+
+
+
+
   /**
    * Render individual overlay using appropriate renderer
    * @private
    */
+  /*
   renderOverlay(overlay, anchors, viewBox, svgContainer) {
     try {
       cblcarsLog.debug(`[AdvancedRenderer] 🎨 Rendering overlay: ${overlay.type} (${overlay.id})`);
@@ -768,8 +983,9 @@ export class AdvancedRenderer {
       return this.renderFallbackOverlay(overlay);
     }
   }
+  */
 
-    injectSvgContent(svgContent) {
+  injectSvgContent(svgContent) {
     const svg = this.mountEl.querySelector('svg');
     if (!svg) {
       cblcarsLog.info('[AdvancedRenderer] No SVG element found for overlay injection');
@@ -813,6 +1029,8 @@ export class AdvancedRenderer {
       cblcarsLog.info('[AdvancedRenderer] Failed to inject SVG content:', error);
     }
   }
+
+
 
   // === DATA UPDATE METHODS ===
 
@@ -1295,15 +1513,24 @@ export class AdvancedRenderer {
               const lineOverlay = this.lastRenderArgs.overlays.find(o => o.id === lineId);
               if (lineOverlay) {
                 try {
-                  const lineMarkup = this.lineRenderer.render(lineOverlay, this._dynamicAnchors, this.lastRenderArgs.resolvedModel.viewBox);
+                  // ✅ FIXED: LineRenderer now returns { markup, provenance }
+                  const lineResult = this.lineRenderer.render(lineOverlay, this._dynamicAnchors, this.lastRenderArgs.resolvedModel.viewBox);
                   const lineElement = this.overlayElementCache.get(lineId);
-                  if (lineElement && lineMarkup) {
+
+                  // ✅ FIXED: Extract markup from result object
+                  if (lineElement && lineResult && lineResult.markup) {
                     const temp = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                    temp.innerHTML = lineMarkup.trim();
+                    temp.innerHTML = lineResult.markup.trim();
                     const newLineElement = temp.firstElementChild;
+
                     if (newLineElement) {
                       lineElement.replaceWith(newLineElement);
                       this.overlayElementCache.set(lineId, newLineElement);
+
+                      // ✅ NEW: Store provenance if available
+                      if (lineResult.provenance) {
+                        this._storeRendererProvenance(lineId, lineResult.provenance);
+                      }
                     }
                   }
                 } catch (e) {

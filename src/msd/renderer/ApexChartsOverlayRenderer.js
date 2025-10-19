@@ -16,6 +16,8 @@
  * - Tooltip support with correct positioning
  * - Debug helpers for troubleshooting
  *
+ * ✅ ENHANCED: Now includes provenance tracking (Phase 5.2A)
+ *
  * @module ApexChartsOverlayRenderer
  * @requires ApexChartsAdapter
  * @requires OverlayUtils
@@ -40,6 +42,9 @@ export class ApexChartsOverlayRenderer {
     this.elements = null;
     this.shadowRoot = null; // ADDED: Store shadowRoot reference
     this.mountElement = null; // ADDED: Store mount element reference
+
+    // ✅ NEW: Initialize tracking properties for provenance
+    this._trackingInitialized = false;
   }
 
   /**
@@ -90,16 +95,32 @@ export class ApexChartsOverlayRenderer {
    * Render ApexCharts overlay (returns empty SVG markup - actual rendering happens in DOM)
    * This returns a placeholder rect in the SVG for attachment point computation,
    * while the actual chart renders in an HTML div overlay
+   *
+   * ✅ ENHANCED: Now includes provenance tracking
+   *
    * @static
    * @param {Object} overlay - Overlay configuration
    * @param {Object} anchors - Anchor positions
    * @param {Array} viewBox - SVG viewBox dimensions [x, y, width, height]
    * @param {Element} svgContainer - SVG container element
    * @param {Object} cardInstance - Reference to custom-button-card instance
-   * @returns {string} Empty SVG group markup for attachment point tracking
+   * @returns {Object} {markup, provenance} - Placeholder markup and rendering metadata
    */
   static render(overlay, anchors, viewBox, svgContainer, cardInstance) {
     const instance = ApexChartsOverlayRenderer._getInstance();
+
+    // ✅ NEW: Initialize tracking if not already done (singleton pattern)
+    if (!instance._trackingInitialized) {
+      instance._defaultsAccessed = [];
+      instance._renderStartTime = null;
+      instance._featuresUsed = new Set();
+      instance._trackingInitialized = true;
+    }
+
+    // Reset tracking for this render
+    instance._defaultsAccessed = [];
+    instance._featuresUsed = new Set();
+    instance._renderStartTime = performance.now();
 
     // NEW: Apply chart template if specified (BEFORE any other processing)
     if (overlay.template) {
@@ -108,7 +129,27 @@ export class ApexChartsOverlayRenderer {
       if (overlayWithTemplate !== overlay) {
         cblcarsLog.debug(`[ApexChartsOverlayRenderer] Applied template '${overlay.template}' to overlay ${overlay.id}`);
         overlay = overlayWithTemplate;
+
+        // ✅ Track template usage
+        instance._featuresUsed.add('chart_template');
       }
+    }
+
+    // ✅ Track data source usage
+    if (overlay.source || overlay.data_source || overlay.sources) {
+      instance._featuresUsed.add('data_source');
+    }
+
+    // ✅ Track chart type
+    if (overlay.chart_type) {
+      instance._featuresUsed.add(`chart_${overlay.chart_type}`);
+    }
+
+    // ✅ Track series configuration
+    const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+    const isMultiSeries = Array.isArray(sourceRef);
+    if (isMultiSeries) {
+      instance._featuresUsed.add('multi_series');
     }
 
     // SAFETY CHECK: Lazy initialize on first render
@@ -116,7 +157,16 @@ export class ApexChartsOverlayRenderer {
       const svg = svgContainer?.tagName === 'svg' ? svgContainer : svgContainer?.querySelector('svg');
       if (!svg) {
         cblcarsLog.error('[ApexChartsOverlayRenderer] Cannot initialize: SVG not found');
-        return '';
+        return {
+          markup: '',
+          provenance: {
+            renderer: 'ApexChartsOverlayRenderer',
+            extends_base: false,
+            overlay_type: 'apexchart',
+            error: 'svg_not_found',
+            timestamp: Date.now()
+          }
+        };
       }
 
       // CRITICAL: Get shadowRoot and mountElement from pipeline
@@ -161,13 +211,58 @@ export class ApexChartsOverlayRenderer {
       }
 
       const position = OverlayUtils.resolvePosition(overlay.position, anchors);
-      if (!position) return '';
+      if (!position) {
+        return {
+          markup: '',
+          provenance: instance._buildProvenance(overlay.id, {
+            error: 'invalid_position',
+            existing_chart: true
+          })
+        };
+      }
 
       const [x, y] = position;
       const size = overlay.size || [300, 150];
       const [width, height] = size;
 
-      return `<g data-overlay-id="${overlay.id}"
+      return {
+        markup: `<g data-overlay-id="${overlay.id}"
+                   data-overlay-type="apexchart"
+                   data-overlay-layer="html"
+                   class="msd-apexchart-placeholder">
+                  <rect x="${x}" y="${y}"
+                        width="${width}" height="${height}"
+                        fill="none" stroke="none"
+                        pointer-events="none"
+                        opacity="0"/>
+                </g>`,
+        provenance: instance._buildProvenance(overlay.id, {
+          existing_chart: true,
+          updated: true
+        })
+      };
+    }
+
+    // NEW CHART: Schedule creation
+    cblcarsLog.debug(`[ApexChartsOverlayRenderer] 📊 Creating NEW chart for ${overlay.id}`);
+    instance._scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance);
+
+    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
+    if (!position) {
+      return {
+        markup: '',
+        provenance: instance._buildProvenance(overlay.id, {
+          error: 'invalid_position'
+        })
+      };
+    }
+
+    const [x, y] = position;
+    const size = overlay.size || [300, 150];
+    const [width, height] = size;
+
+    return {
+      markup: `<g data-overlay-id="${overlay.id}"
                  data-overlay-type="apexchart"
                  data-overlay-layer="html"
                  class="msd-apexchart-placeholder">
@@ -176,30 +271,39 @@ export class ApexChartsOverlayRenderer {
                       fill="none" stroke="none"
                       pointer-events="none"
                       opacity="0"/>
-              </g>`;
-    }
+              </g>`,
+      provenance: instance._buildProvenance(overlay.id, {
+        chart_type: overlay.chart_type,
+        series_count: isMultiSeries ? sourceRef.length : 1,
+        size: [width, height]
+      })
+    };
+  }
 
-    // NEW CHART: Schedule creation
-    cblcarsLog.debug(`[ApexChartsOverlayRenderer] 📊 Creating NEW chart for ${overlay.id}`);
-    instance._scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance);
+  /**
+   * ✅ NEW: Build provenance object for ApexCharts rendering
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} metadata - Additional metadata
+   * @returns {Object} Provenance object
+   */
+  _buildProvenance(overlayId, metadata = {}) {
+    const renderDuration = this._renderStartTime ? performance.now() - this._renderStartTime : 0;
 
-    const position = OverlayUtils.resolvePosition(overlay.position, anchors);
-    if (!position) return '';
-
-    const [x, y] = position;
-    const size = overlay.size || [300, 150];
-    const [width, height] = size;
-
-    return `<g data-overlay-id="${overlay.id}"
-               data-overlay-type="apexchart"
-               data-overlay-layer="html"
-               class="msd-apexchart-placeholder">
-              <rect x="${x}" y="${y}"
-                    width="${width}" height="${height}"
-                    fill="none" stroke="none"
-                    pointer-events="none"
-                    opacity="0"/>
-            </g>`;
+    return {
+      renderer: 'ApexChartsOverlayRenderer',
+      extends_base: false, // Singleton pattern, doesn't extend BaseRenderer
+      overlay_id: overlayId,
+      overlay_type: 'apexchart',
+      chart_type: metadata.chart_type || null,
+      has_data_source: this._featuresUsed.has('data_source'),
+      series_count: metadata.series_count || 0,
+      features_used: Array.from(this._featuresUsed),
+      rendering_time_ms: renderDuration,
+      timestamp: Date.now(),
+      note: 'Chart renders in HTML overlay, not SVG',
+      ...metadata
+    };
   }
 
   /**
@@ -470,61 +574,6 @@ export class ApexChartsOverlayRenderer {
   }
 
   /**
-   * Convert viewBox coordinates to screen coordinates relative to overlay container
-   * CRITICAL FIX: Since overlay container is at (0,0) matching SVG origin,
-   * we just need to scale the viewBox coordinates, NOT add any offsets
-   * @private
-   */
-  _viewBoxToScreen(svg, viewBox, vbX, vbY, vbWidth, vbHeight) {
-    const [viewBoxX, viewBoxY, viewBoxWidth, viewBoxHeight] = viewBox ||
-      [0, 0, svg.viewBox.baseVal.width, svg.viewBox.baseVal.height];
-
-    // CRITICAL: Get actual render area accounting for letterboxing
-    const renderArea = this._calculateSVGRenderArea(svg);
-
-    // Calculate scale factors using ACTUAL render dimensions, not container dimensions
-    const scaleX = renderArea.renderWidth / viewBoxWidth;
-    const scaleY = renderArea.renderHeight / viewBoxHeight;
-
-    // Position within viewBox, scaled to screen pixels, PLUS letterbox offset
-    const screenLeft = ((vbX - viewBoxX) * scaleX) + renderArea.offsetX;
-    const screenTop = ((vbY - viewBoxY) * scaleY) + renderArea.offsetY;
-    const screenWidth = vbWidth * scaleX;
-    const screenHeight = vbHeight * scaleY;
-
-    cblcarsLog.debug('[ApexChartsOverlayRenderer] ViewBox to screen conversion:', {
-      input: {
-        viewBox: { x: vbX, y: vbY, w: vbWidth, h: vbHeight },
-        viewBoxOrigin: { x: viewBoxX, y: viewBoxY, w: viewBoxWidth, h: viewBoxHeight }
-      },
-      renderArea: {
-        width: renderArea.renderWidth,
-        height: renderArea.renderHeight,
-        offsetX: renderArea.offsetX,
-        offsetY: renderArea.offsetY
-      },
-      scale: {
-        x: scaleX,
-        y: scaleY,
-        match: Math.abs(scaleX - scaleY) < 0.01
-      },
-      output: {
-        left: screenLeft,
-        top: screenTop,
-        width: screenWidth,
-        height: screenHeight
-      }
-    });
-
-    return {
-      left: screenLeft,
-      top: screenTop,
-      width: screenWidth,
-      height: screenHeight
-    };
-  }
-
-  /**
    * Create overlay container div for ApexCharts
    * CRITICAL FIX: Position container to match SVG exactly, accounting for parent positioning
    * @private
@@ -687,65 +736,6 @@ export class ApexChartsOverlayRenderer {
 
     return chartDiv;
   }
-
-  /**
-   * Calculate the actual rendered SVG position/size within letterboxed container
-   * Accounts for aspect-ratio letterboxing (black bars)
-   * @private
-   * @param {SVGElement} svg - SVG element
-   * @returns {Object} {offsetX, offsetY, renderWidth, renderHeight}
-   */
-  _calculateSVGRenderArea(svg) {
-    const svgRect = svg.getBoundingClientRect();
-    const viewBox = svg.viewBox.baseVal;
-
-    // Calculate aspect ratios
-    const viewBoxAspect = viewBox.width / viewBox.height;
-    const containerAspect = svgRect.width / svgRect.height;
-
-    let renderWidth, renderHeight, offsetX, offsetY;
-
-    if (Math.abs(viewBoxAspect - containerAspect) < 0.01) {
-      // No letterboxing - aspect ratios match
-      renderWidth = svgRect.width;
-      renderHeight = svgRect.height;
-      offsetX = 0;
-      offsetY = 0;
-    } else if (containerAspect > viewBoxAspect) {
-      // Pillarboxed (vertical black bars on sides) - width constrained
-      // Height fills container, width is scaled down
-      renderHeight = svgRect.height;
-      renderWidth = renderHeight * viewBoxAspect;
-      offsetX = (svgRect.width - renderWidth) / 2;
-      offsetY = 0;
-    } else {
-      // Letterboxed (horizontal black bars top/bottom) - height constrained
-      // Width fills container, height is scaled down
-      renderWidth = svgRect.width;
-      renderHeight = renderWidth / viewBoxAspect;
-      offsetX = 0;
-      offsetY = (svgRect.height - renderHeight) / 2;
-    }
-
-    cblcarsLog.debug('[ApexChartsOverlayRenderer] SVG render area calculated:', {
-      viewBox: { width: viewBox.width, height: viewBox.height, aspect: viewBoxAspect },
-      container: { width: svgRect.width, height: svgRect.height, aspect: containerAspect },
-      letterboxed: Math.abs(viewBoxAspect - containerAspect) >= 0.01,
-      renderArea: { width: renderWidth, height: renderHeight },
-      offset: { x: offsetX, y: offsetY },
-      letterboxType: containerAspect > viewBoxAspect ? 'pillarbox' :
-                     containerAspect < viewBoxAspect ? 'letterbox' : 'none'
-    });
-
-    return {
-      offsetX,
-      offsetY,
-      renderWidth,
-      renderHeight
-    };
-  }
-
-
 
   /**
    * Setup viewport synchronization (resize, pan, zoom)
@@ -1291,7 +1281,7 @@ export class ApexChartsOverlayRenderer {
     } catch (error) {
         cblcarsLog.error(`[ApexChartsOverlayRenderer] Failed to update chart style for ${overlayId}:`, error);
     }
-    }
+  }
 
   /**
    * Validate overlay configuration before rendering

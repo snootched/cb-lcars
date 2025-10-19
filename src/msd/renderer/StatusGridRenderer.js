@@ -708,7 +708,21 @@ export class StatusGridRenderer extends BaseRenderer {
   static renderWithActions(overlay, anchors, viewBox, cardInstance = null) {
     // Create instance for non-static methods
     const instance = new StatusGridRenderer();
+
+    // ✅ NEW: Start tracking
+    instance._resetTracking();
+    instance._startRenderTiming();
+
     const result = instance.renderStatusGrid(overlay, anchors, viewBox, cardInstance);
+
+    // ✅ NEW: Add provenance to result
+    if (result && result.markup) {
+      result.provenance = instance._getRendererProvenance(overlay.id, {
+        overlay_type: 'status_grid',
+        cell_count: overlay.cells?.length || 0,
+        preset_used: overlay.style?.lcars_button_preset || null
+      });
+    }
 
     // Return the result structure for AdvancedRenderer
     return result;
