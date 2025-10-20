@@ -140,29 +140,46 @@ export class MsdDataSource {
       });
     }
 
-    // Initialize aggregations
-    if (cfg.aggregations && typeof cfg.aggregations === 'object') {
-      Object.entries(cfg.aggregations).forEach(([key, config]) => {
-        try {
-          // FIXED: Use config.type for the aggregation type, key is just the identifier
-          const aggregationType = config.type;
-          const aggregationKey = config.key || key;
+    if (cfg.aggregations) {
+      // Validate aggregations is an array
+      if (!Array.isArray(cfg.aggregations)) {
+        cblcarsLog.error(
+          `[MsdDataSource] ❌ Aggregations must be an array for ${this.cfg.entity}.\n` +
+          `  Found: ${typeof cfg.aggregations}\n` +
+          `  Use: aggregations: [{ type: "min_max", key: "daily_stats" }]`
+        );
+        return; // Skip aggregations initialization
+      }
 
-          if (!aggregationType) {
-            cblcarsLog.error(`[MsdDataSource] ❌ Aggregation '${key}' missing 'type' property`);
+      cfg.aggregations.forEach((config, index) => {
+        try {
+          // Validate required fields
+          if (!config.type) {
+            cblcarsLog.error(
+              `[MsdDataSource] ❌ Aggregation at index ${index} missing required "type" property`
+            );
             return;
           }
 
-          const processor = createAggregationProcessor(aggregationType, {
-            ...config,
-            key: aggregationKey
-          });
+          if (!config.key) {
+            cblcarsLog.error(
+              `[MsdDataSource] ❌ Aggregation at index ${index} missing required "key" property`
+            );
+            return;
+          }
 
-          this.aggregations.set(aggregationKey, processor);
+          // Create aggregation processor
+          const processor = createAggregationProcessor(config.type, config);
+          this.aggregations.set(config.key, processor);
 
-          cblcarsLog.debug(`[MsdDataSource] ✓ Initialized aggregation: ${aggregationKey} (${aggregationType})`);
+          cblcarsLog.debug(
+            `[MsdDataSource] ✓ Initialized aggregation: ${config.key} (${config.type})`
+          );
         } catch (error) {
-          cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize aggregation ${key}:`, error);
+          cblcarsLog.error(
+            `[MsdDataSource] ❌ Failed to initialize aggregation ${config.type}:`,
+            error
+          );
         }
       });
     }

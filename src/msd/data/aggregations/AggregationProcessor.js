@@ -458,8 +458,18 @@ export class RecentTrendAggregation extends AggregationProcessor {
  * @param {string} type - Aggregation type
  * @param {Object} config - Aggregation configuration
  * @returns {AggregationProcessor} Configured processor instance
+ * @throws {Error} If type is unknown or config is invalid
  */
 export function createAggregationProcessor(type, config) {
+  // Validate config
+  if (!config || typeof config !== 'object') {
+    throw new Error(`Invalid aggregation config: must be an object`);
+  }
+
+  if (!config.key) {
+    throw new Error(`Aggregation config missing required "key" property`);
+  }
+
   switch (type) {
     case 'moving_average':
       return new MovingAverageAggregation(config);
@@ -481,6 +491,9 @@ export function createAggregationProcessor(type, config) {
       return new RecentTrendAggregation(config);
 
     default:
-      throw new Error(`Unknown aggregation type: ${type}`);
+      throw new Error(
+        `Unknown aggregation type: ${type}\n` +
+        `  Valid types: moving_average, min_max, rate_of_change, session_stats, duration, recent_trend`
+      );
   }
 }
