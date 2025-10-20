@@ -1,6 +1,7 @@
 import { perfGetAll } from '../perf/PerfCounters.js';
 import { MsdIntrospection } from '../introspection/MsdIntrospection.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { ChartDataValidator } from '../validation/ChartDataValidator.js';
 
 export function setupDebugInterface(pipelineApi, mergedConfig, provenance, systemsManager, modelBuilder) {
   if (typeof window === 'undefined') return;
@@ -533,61 +534,68 @@ function setupRenderingDebugInterface(dbg, systemsManager, modelBuilder, pipelin
 ║                          MSD Debug Interface Help                            ║
 ╠══════════════════════════════════════════════════════════════════════════════╣
 ║ Debug Features:                                                              ║
-║   __msdDebug.debug.enable('anchors')       - Show anchor point markers      ║
-║   __msdDebug.debug.enable('bounding_boxes') - Show overlay bounding boxes   ║
-║   __msdDebug.debug.enable('routing')       - Show routing path visualization║
-║   __msdDebug.debug.enable('performance')   - Show performance metrics       ║
-║   __msdDebug.debug.enable('all')           - Enable all features            ║
+║   __msdDebug.debug.enable('anchors')       - Show anchor point markers       ║
+║   __msdDebug.debug.enable('bounding_boxes') - Show overlay bounding boxes    ║
+║   __msdDebug.debug.enable('routing')       - Show routing path visualization ║
+║   __msdDebug.debug.enable('performance')   - Show performance metrics        ║
+║   __msdDebug.debug.enable('all')           - Enable all features             ║
 ║                                                                              ║
-║   __msdDebug.debug.disable('feature')      - Disable specific feature       ║
-║   __msdDebug.debug.status()                - Show current debug state       ║
-║   __msdDebug.debug.setScale(1.5)           - Set debug element scale        ║
-║   __msdDebug.debug.refresh()               - Force re-render debug overlays ║
+║   __msdDebug.debug.disable('feature')      - Disable specific feature        ║
+║   __msdDebug.debug.status()                - Show current debug state        ║
+║   __msdDebug.debug.setScale(1.5)           - Set debug element scale         ║
+║   __msdDebug.debug.refresh()               - Force re-render debug overlays  ║
 ║                                                                              ║
 ║ Quick Access:                                                                ║
-║   __msdDebug.debug.anchors.toggle()        - Toggle anchor markers          ║
-║   __msdDebug.debug.bounding.toggle()       - Toggle bounding boxes          ║
-║   __msdDebug.debug.bounding.test('id')     - Test bounding box accuracy     ║
-║   __msdDebug.debug.bounding.compare('id')  - Compare measurement methods    ║
-║   __msdDebug.debug.routing.toggle()        - Toggle routing guides          ║
-║   __msdDebug.debug.performance.toggle()    - Toggle performance overlay     ║
+║   __msdDebug.debug.anchors.toggle()        - Toggle anchor markers           ║
+║   __msdDebug.debug.bounding.toggle()       - Toggle bounding boxes           ║
+║   __msdDebug.debug.bounding.test('id')     - Test bounding box accuracy      ║
+║   __msdDebug.debug.bounding.compare('id')  - Compare measurement methods     ║
+║   __msdDebug.debug.routing.toggle()        - Toggle routing guides           ║
+║   __msdDebug.debug.performance.toggle()    - Toggle performance overlay      ║
 ║                                                                              ║
-║ Provenance (Phase 5.2):                                                      ║
-║   __msdDebug.getStyleResolutions('id')     - Style resolution details       ║
-║   __msdDebug.findOverlaysByToken('token')  - Find overlays using token      ║
-║   __msdDebug.getGlobalStyleSummary()       - Global style statistics        ║
+║ Provenance:                                                                  ║
+║   __msdDebug.getStyleResolutions('id')     - Style resolution details        ║
+║   __msdDebug.findOverlaysByToken('token')  - Find overlays using token       ║
+║   __msdDebug.getGlobalStyleSummary()       - Global style statistics         ║
+║                                                                              ║
+║ Chart Validation:                                                            ║
+║   __msdDebug.charts.validate('id')         - Validate specific chart         ║
+║   __msdDebug.charts.validateAll()          - Validate all charts             ║
+║   __msdDebug.charts.getFormatSpec('type')  - Get chart data format req       ║
+║   __msdDebug.charts.listTypes()            - List supported chart types      ║
+║   __msdDebug.charts.checkCompatibility('id') - Check data source compat      ║
 ║                                                                              ║
 ║ Data & Entities:                                                             ║
-║   __msdDebug.dataSources.stats()           - Data source statistics         ║
-║   __msdDebug.dataSources.list()            - List all data sources          ║
-║   __msdDebug.dataSources.get('name')       - Get specific data source       ║
+║   __msdDebug.dataSources.stats()           - Data source statistics          ║
+║   __msdDebug.dataSources.list()            - List all data sources           ║
+║   __msdDebug.dataSources.get('name')       - Get specific data source        ║
 ║                                                                              ║
 ║ Routing:                                                                     ║
-║   __msdDebug.routing.inspect('overlay_id') - Inspect routing path           ║
-║   __msdDebug.routing.stats()               - Routing system statistics      ║
-║   __msdDebug.routing.invalidate()          - Clear routing cache            ║
+║   __msdDebug.routing.inspect('overlay_id') - Inspect routing path            ║
+║   __msdDebug.routing.stats()               - Routing system statistics       ║
+║   __msdDebug.routing.invalidate()          - Clear routing cache             ║
 ║                                                                              ║
 ║ Performance:                                                                 ║
-║   __msdDebug.getPerf()                     - Get performance metrics        ║
-║   __msdDebug.perf()                        - Alternative performance data   ║
+║   __msdDebug.getPerf()                     - Get performance metrics         ║
+║   __msdDebug.perf()                        - Alternative performance data    ║
 ║                                                                              ║
 ║ Performance (Phase 5.3):                                                     ║
-║   __msdDebug.getPerformanceSummary()       - Complete performance summary   ║
-║   __msdDebug.getSlowestOverlays(5)         - Get slowest overlays           ║
-║   __msdDebug.getRendererPerformance()      - Performance by overlay type    ║
+║   __msdDebug.getPerformanceSummary()       - Complete performance summary    ║
+║   __msdDebug.getSlowestOverlays(5)         - Get slowest overlays            ║
+║   __msdDebug.getRendererPerformance()      - Performance by overlay type     ║
 ║   __msdDebug.getOverlayPerformance('id')   - Performance for specific overlay║
-║   __msdDebug.getPerformanceWarnings()      - Check for slow overlays        ║
-║   __msdDebug.getRenderTimeline()           - Stage-by-stage timing          ║
-║   __msdDebug.compareRendererPerformance()  - Compare renderer efficiency    ║
-║                                                                              ║║                                                                              ║
+║   __msdDebug.getPerformanceWarnings()      - Check for slow overlays         ║
+║   __msdDebug.getRenderTimeline()           - Stage-by-stage timing           ║
+║   __msdDebug.compareRendererPerformance()  - Compare renderer efficiency     ║
+║                                                                              ║                                                                              ║
 ║ Other Tools:                                                                 ║
-║   __msdDebug.hud.toggle()                  - Toggle HUD overlay             ║
-║   __msdDebug.rules.trace()                 - Show rules engine trace        ║
-║   __msdDebug.validation.issues()           - Show configuration issues      ║
-║   __msdDebug.usage()                       - Show simplified usage examples ║
+║   __msdDebug.hud.toggle()                  - Toggle HUD overlay              ║
+║   __msdDebug.rules.trace()                 - Show rules engine trace         ║
+║   __msdDebug.validation.issues()           - Show configuration issues       ║
+║   __msdDebug.usage()                       - Show simplified usage examples  ║
 ║                                                                              ║
 ║ Pipeline:                                                                    ║
-║   __msdDebug.pipelineInstance              - Direct pipeline access         ║
+║   __msdDebug.pipelineInstance              - Direct pipeline access          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
     `);
   };
@@ -623,6 +631,11 @@ Performance Analysis:
   __msdDebug.getSlowestOverlays(5)        # Find bottlenecks
   __msdDebug.getPerformanceWarnings()     # Check for slow overlays
   __msdDebug.getRenderTimeline()          # Stage-by-stage breakdown
+
+  Chart Validation:
+  __msdDebug.charts.validate('temp_chart')  # Validate specific chart
+  __msdDebug.charts.validateAll()           # Validate all charts
+  __msdDebug.charts.listTypes()             # List supported types
 
 For full help: __msdDebug.help()
     `);
@@ -990,6 +1003,288 @@ function setupUtilityDebugInterface(dbg, mergedConfig, systemsManager) {
         cblcarsLog.warn('[DebugInterface] validation.issues failed:', e);
         return { errors: [], warnings: [] };
       }
+    }
+  };
+
+  // ✅ NEW: Chart Data Validation Commands
+  dbg.charts = {
+    /**
+     * Validate a specific chart overlay
+     * @param {string} overlayId - Chart overlay ID
+     * @returns {Object} Validation result
+     */
+    validate: (overlayId) => {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (!pipelineInstance) {
+        console.error('[Charts] ❌ No pipeline instance available');
+        return null;
+      }
+
+      const model = pipelineInstance.getResolvedModel?.();
+      if (!model) {
+        console.error('[Charts] ❌ No resolved model available');
+        return null;
+      }
+
+      const overlay = model.overlays.find(o => o.id === overlayId);
+      if (!overlay) {
+        console.error(`[Charts] ❌ Overlay "${overlayId}" not found`);
+        return null;
+      }
+
+      if (overlay.type !== 'apexchart') {
+        console.error(`[Charts] ❌ Overlay "${overlayId}" is not an ApexChart (type: ${overlay.type})`);
+        return null;
+      }
+
+      const context = {
+        dataSourceManager: systemsManager.dataSourceManager
+      };
+
+      const result = ChartDataValidator.validate(overlay, context);
+
+      console.log(`\n📊 Chart Validation: ${overlayId}`);
+      console.log('═══════════════════════════════════');
+
+      if (result.valid) {
+        console.log('✅ Chart data format is VALID');
+      } else {
+        console.log('❌ Chart validation FAILED');
+        console.log('\n🔴 Errors:');
+        result.errors.forEach((error, index) => {
+          console.log(`\n${index + 1}. ${error.message}`);
+          if (error.requiredFormat) {
+            console.log(`   Required: ${error.requiredFormat}`);
+          }
+          if (error.suggestion) {
+            console.log(`   💡 Fix: ${error.suggestion}`);
+          }
+          if (error.example) {
+            console.log(`   📝 Example: ${error.example}`);
+          }
+        });
+      }
+
+      if (result.warnings.length > 0) {
+        console.log('\n⚠️ Warnings:');
+        result.warnings.forEach((warning, index) => {
+          console.log(`${index + 1}. ${warning.message}`);
+          if (warning.suggestion) {
+            console.log(`   💡 ${warning.suggestion}`);
+          }
+        });
+      }
+
+      return result;
+    },
+
+    /**
+     * Validate all chart overlays
+     * @returns {Object} Summary of validation results
+     */
+    validateAll: () => {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (!pipelineInstance) {
+        console.error('[Charts] ❌ No pipeline instance available');
+        return null;
+      }
+
+      const model = pipelineInstance.getResolvedModel?.();
+      if (!model) {
+        console.error('[Charts] ❌ No resolved model available');
+        return null;
+      }
+
+      const charts = model.overlays.filter(o => o.type === 'apexchart');
+
+      if (charts.length === 0) {
+        console.log('[Charts] ℹ️ No ApexChart overlays found');
+        return { total: 0, valid: 0, invalid: 0, results: [] };
+      }
+
+      const context = {
+        dataSourceManager: systemsManager.dataSourceManager
+      };
+
+      const results = charts.map(overlay => {
+        const result = ChartDataValidator.validate(overlay, context);
+        return {
+          overlayId: overlay.id,
+          chartType: overlay.style?.chart_type || overlay.finalStyle?.chart_type || 'line',
+          valid: result.valid,
+          errors: result.errors.length,
+          warnings: result.warnings.length,
+          result: result
+        };
+      });
+
+      const summary = {
+        total: results.length,
+        valid: results.filter(r => r.valid).length,
+        invalid: results.filter(r => !r.valid).length,
+        results: results
+      };
+
+      console.log('\n📊 Chart Validation Summary');
+      console.log('═══════════════════════════════════');
+      console.log(`Total Charts: ${summary.total}`);
+      console.log(`✅ Valid: ${summary.valid}`);
+      console.log(`❌ Invalid: ${summary.invalid}`);
+
+      if (summary.invalid > 0) {
+        console.log('\n🔴 Invalid Charts:');
+        results.filter(r => !r.valid).forEach((result, index) => {
+          console.log(`\n${index + 1}. ${result.overlayId} (${result.chartType})`);
+          console.log(`   Errors: ${result.errors}, Warnings: ${result.warnings}`);
+          result.result.errors.forEach(error => {
+            console.log(`   - ${error.message}`);
+          });
+        });
+      }
+
+      console.log('\n📋 Detailed Results:');
+      console.table(results.map(r => ({
+        'Overlay ID': r.overlayId,
+        'Chart Type': r.chartType,
+        'Valid': r.valid ? '✅' : '❌',
+        'Errors': r.errors,
+        'Warnings': r.warnings
+      })));
+
+      return summary;
+    },
+
+    /**
+     * Get data format specification for a chart type
+     * @param {string} chartType - Chart type (e.g., 'line', 'rangeArea')
+     * @returns {Object|null} Format specification
+     */
+    getFormatSpec: (chartType) => {
+      const spec = ChartDataValidator.getFormatSpec(chartType);
+
+      if (!spec) {
+        console.error(`[Charts] ❌ Unknown chart type: ${chartType}`);
+        console.log(`\nSupported types: ${ChartDataValidator.getSupportedChartTypes().join(', ')}`);
+        return null;
+      }
+
+      console.log(`\n📊 Chart Type: ${chartType}`);
+      console.log('═══════════════════════════════════');
+      console.log(`Data Format: ${spec.dataFormat}`);
+      console.log(`Value Type: ${spec.valueType}`);
+      console.log(`Series Structure: ${spec.seriesStructure}`);
+      console.log(`\nDescription: ${spec.description}`);
+      console.log(`\n📝 Example:\n${spec.example}`);
+
+      if (spec.requiredFields) {
+        console.log(`\n✅ Required Fields: ${spec.requiredFields.join(', ')}`);
+      }
+
+      if (spec.transformationHint) {
+        console.log(`\n💡 Transformation Hint:\n${spec.transformationHint}`);
+      }
+
+      return spec;
+    },
+
+    /**
+     * List all supported chart types
+     * @returns {Array<string>} Array of supported chart types
+     */
+    listTypes: () => {
+      const types = ChartDataValidator.getSupportedChartTypes();
+
+      console.log('\n📊 Supported ApexCharts Types');
+      console.log('═══════════════════════════════════');
+
+      // Group by data format
+      const byFormat = {
+        'Single Value (Timeseries)': ['line', 'area', 'bar', 'column', 'scatter'],
+        'Range Data': ['rangeArea', 'rangeBar'],
+        'OHLC/Distribution': ['candlestick', 'boxPlot'],
+        'Simple Numeric': ['pie', 'donut', 'radialBar'],
+        'Special': ['radar', 'polarArea', 'heatmap', 'treemap']
+      };
+
+      Object.entries(byFormat).forEach(([category, chartTypes]) => {
+        console.log(`\n${category}:`);
+        chartTypes.forEach(type => {
+          const spec = ChartDataValidator.getFormatSpec(type);
+          console.log(`  - ${type}: ${spec?.description || 'No description'}`);
+        });
+      });
+
+      return types;
+    },
+
+    /**
+     * Check data source compatibility for a chart
+     * @param {string} overlayId - Chart overlay ID
+     * @returns {Object|null} Compatibility analysis
+     */
+    checkCompatibility: (overlayId) => {
+      const pipelineInstance = window.__msdDebug?.pipelineInstance;
+      if (!pipelineInstance) {
+        console.error('[Charts] ❌ No pipeline instance available');
+        return null;
+      }
+
+      const model = pipelineInstance.getResolvedModel?.();
+      if (!model) {
+        console.error('[Charts] ❌ No resolved model available');
+        return null;
+      }
+
+      const overlay = model.overlays.find(o => o.id === overlayId);
+      if (!overlay || overlay.type !== 'apexchart') {
+        console.error(`[Charts] ❌ ApexChart overlay "${overlayId}" not found`);
+        return null;
+      }
+
+      const style = overlay.finalStyle || overlay.style || {};
+      const chartType = style.chart_type || style.type || 'line';
+      const sourceRef = overlay.source || overlay.data_source || overlay.sources;
+
+      const spec = ChartDataValidator.getFormatSpec(chartType);
+      if (!spec) {
+        console.error(`[Charts] ❌ Unknown chart type: ${chartType}`);
+        return null;
+      }
+
+      console.log(`\n🔍 Compatibility Check: ${overlayId}`);
+      console.log('═══════════════════════════════════');
+      console.log(`Chart Type: ${chartType}`);
+      console.log(`Required Format: ${spec.valueType}`);
+      console.log(`Data Source: ${Array.isArray(sourceRef) ? sourceRef.join(', ') : sourceRef}`);
+
+      const context = {
+        dataSourceManager: systemsManager.dataSourceManager
+      };
+
+      const result = ChartDataValidator.validate(overlay, context);
+
+      if (result.valid) {
+        console.log('\n✅ Data source is COMPATIBLE');
+      } else {
+        console.log('\n❌ Data source is INCOMPATIBLE');
+        console.log('\n🔴 Issues:');
+        result.errors.forEach((error, index) => {
+          console.log(`\n${index + 1}. ${error.message}`);
+          if (error.suggestion) {
+            console.log(`   💡 Fix: ${error.suggestion}`);
+          }
+        });
+      }
+
+      return {
+        overlayId,
+        chartType,
+        sourceRef,
+        requiredFormat: spec.valueType,
+        compatible: result.valid,
+        issues: result.errors,
+        warnings: result.warnings
+      };
     }
   };
 

@@ -181,7 +181,8 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
 
     const validation = systemsManager.validationService.validateAll(mergedConfig.overlays, {
       viewBox: mergedConfig.view_box || [0, 0, 800, 600],
-      anchors: mergedConfig.anchors || {}
+      anchors: mergedConfig.anchors || {},
+      dataSourceManager: systemsManager.dataSourceManager
     });
 
     if (!validation.valid) {

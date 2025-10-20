@@ -23,13 +23,21 @@ export const statusGridOverlaySchema = {
       items: {
         type: 'object',
         properties: {
+          // ✅ ENHANCED: Entity is now fully optional
           entity: {
             type: 'string',
+            optional: true,
             errorMessage: 'Cell entity must be a valid Home Assistant entity ID'
           },
           label: {
             type: 'string',
             optional: true
+          },
+          // ✅ NEW: Added value property for static content
+          value: {
+            type: ['string', 'number', 'boolean'],
+            optional: true,
+            errorMessage: 'Cell value must be a string, number, or boolean'
           },
           color: {
             type: 'string',
@@ -117,6 +125,27 @@ export const statusGridOverlaySchema = {
           optional: true
         },
 
+        label_font_size: {
+          type: 'number',
+          min: 6,
+          max: 100,
+          optional: true,
+          errorMessage: 'Label font size must be between 6 and 100'
+        },
+
+        value_font_size: {
+          type: 'number',
+          min: 6,
+          max: 100,
+          optional: true,
+          errorMessage: 'Value font size must be between 6 and 100'
+        },
+
+        font_family: {
+          type: 'string',
+          optional: true
+        },
+
         text_layout: {
           type: 'string',
           enum: ['stacked', 'side-by-side', 'label-only', 'value-only'],
@@ -182,39 +211,9 @@ export const statusGridOverlaySchema = {
       }
 
       return warnings.length > 0 ? { valid: true, warnings } : { valid: true };
-    },
-
-    // Validate cell entities
-    (overlay, context) => {
-      if (!overlay.cells || !Array.isArray(overlay.cells)) {
-        return { valid: true };
-      }
-
-      const errors = [];
-
-      overlay.cells.forEach((cell, index) => {
-        if (!cell.entity) {
-          errors.push({
-            field: `cells[${index}].entity`,
-            type: 'required_field',
-            message: `Cell ${index} is missing required "entity" field`,
-            severity: 'error',
-            suggestion: 'Add an "entity" field with a Home Assistant entity ID'
-          });
-        } else if (typeof cell.entity !== 'string') {
-          errors.push({
-            field: `cells[${index}].entity`,
-            type: 'invalid_type',
-            message: `Cell ${index} entity must be a string`,
-            expected: 'string',
-            actual: typeof cell.entity,
-            severity: 'error'
-          });
-        }
-      });
-
-      return errors.length > 0 ? { valid: false, errors } : { valid: true };
     }
+
+    // ✅ REMOVED: Entity validation - entity is now fully optional
   ]
 };
 

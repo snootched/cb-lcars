@@ -8,6 +8,7 @@
  */
 
 import { ApexChartsAdapter } from '../../charts/ApexChartsAdapter.js';
+import { ChartDataValidator } from '../ChartDataValidator.js';
 
 /**
  * ApexChart overlay validation schema
@@ -19,25 +20,34 @@ export const apexChartOverlaySchema = {
   required: ['position', 'size'],
 
   properties: {
+    // ✅ ENHANCED: Accept string OR array for backward compatibility
     source: {
-      type: 'string',
+      type: ['string', 'array'],
       optional: true,
-      errorMessage: 'Source must be a string reference to a data source'
-    },
-
-    data_source: {
-      type: 'string',
-      optional: true,
-      errorMessage: 'Data source must be a string reference'
-    },
-
-    sources: {
-      type: 'array',
-      optional: true,
-      items: {
+      items: {  // Only applies when type is array
         type: 'string'
       },
-      errorMessage: 'Sources must be an array of data source references'
+      errorMessage: 'Source must be a string or array of data source references'
+    },
+
+    // ✅ ENHANCED: Accept string OR array for backward compatibility
+    data_source: {
+      type: ['string', 'array'],
+      optional: true,
+      items: {  // Only applies when type is array
+        type: 'string'
+      },
+      errorMessage: 'Data source must be a string or array of data source references'
+    },
+
+    // ✅ ENHANCED: Accept array OR string for backward compatibility
+    sources: {
+      type: ['array', 'string'],
+      optional: true,
+      items: {  // Only applies when type is array
+        type: 'string'
+      },
+      errorMessage: 'Sources must be an array or string of data source references'
     },
 
     chart_type: {
@@ -207,6 +217,11 @@ export const apexChartOverlaySchema = {
       }
 
       return warnings.length > 0 ? { valid: true, warnings } : { valid: true };
+    },
+
+    // Chart data format validation
+    (overlay, context) => {
+      return ChartDataValidator.validate(overlay, context);
     }
   ]
 };

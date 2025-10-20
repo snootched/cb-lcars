@@ -31,13 +31,14 @@ export const commonSchema = {
       errorMessage: 'Overlay type is required'
     },
 
+    // ✅ ENHANCED: Accept array OR string (anchor reference)
     position: {
-      type: 'array',
-      length: 2,
-      items: {
+      type: ['array', 'string'],
+      length: 2,  // Only applies when type is array
+      items: {    // Only applies when type is array
         type: 'number'
       },
-      errorMessage: 'Position must be an array of 2 numbers [x, y]'
+      errorMessage: 'Position must be [x, y] coordinates or an anchor reference string'
     },
 
     size: {

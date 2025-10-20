@@ -170,46 +170,63 @@ export class DataSourceValidator {
    *
    * @private
    * @param {string} field - Field name
-   * @param {string} value - Data source reference
+   * @param {*} value - Data source reference (should be string)
    * @param {Object} result - Validation result
    */
   _validateDataSourceReference(field, value, result) {
-    if (!value || typeof value !== 'string') {
+    // ✅ FIXED: Better type checking that handles edge cases
+    if (value === null || value === undefined) {
       result.errors.push({
         field: field,
         type: 'invalid_type',
-        message: `Data source reference must be a string`,
-        actual: typeof value,
+        message: `Data source reference cannot be null or undefined`,
+        actual: value === null ? 'null' : 'undefined',
         expected: 'string',
         severity: 'error'
       });
       return;
     }
 
+    // ✅ FIXED: Convert to string if needed (handles wrapped values)
+    const stringValue = typeof value === 'string' ? value : String(value);
+
+    // Validate it's actually a valid string (not "[object Object]")
+    if (!stringValue || stringValue === '[object Object]' || stringValue === 'undefined' || stringValue === 'null') {
+      result.errors.push({
+        field: field,
+        type: 'invalid_type',
+        message: `Data source reference must be a string`,
+        actual: typeof value,
+        expected: 'string',
+        value: value,
+        severity: 'error'
+      });
+      return;
+    }
+
     // Parse data source reference (supports dot notation)
-    const { sourceId, path } = this._parseDataSourcePath(value);
+    const { sourceId, path } = this._parseDataSourcePath(stringValue);
 
     // Check if data source exists
     const dataSource = this.dataSourceManager.getSource(sourceId);
 
     if (!dataSource) {
-      const suggestion = this._suggestSimilarSource(sourceId);
-
+      // Data source not found
       result.errors.push({
         field: field,
         type: 'data_source_not_found',
         message: `Data source "${sourceId}" not found`,
-        value: value,
+        value: stringValue,
         severity: 'error',
-        suggestion: suggestion ? `Did you mean "${suggestion}"?` : 'Check your data source configuration',
-        helpUrl: 'https://docs.cb-lcars.com/msd/data-sources'
+        suggestion: this._suggestSimilarSource(sourceId) ||
+                    'Ensure the data source is defined in your configuration'
       });
       return;
     }
 
-    // If path is specified, validate it
+    // Validate path if specified
     if (path) {
-      this._validateDataSourcePath(field, value, dataSource, path, result);
+      this._validateDataSourcePath(field, stringValue, dataSource, path, result);
     }
 
     // Validate data source has data
@@ -220,7 +237,7 @@ export class DataSourceValidator {
           field: field,
           type: 'data_source_no_data',
           message: `Data source "${sourceId}" has no data`,
-          value: value,
+          value: stringValue,
           severity: 'warning',
           suggestion: 'Data source may not be initialized yet'
         });
@@ -229,7 +246,6 @@ export class DataSourceValidator {
       cblcarsLog.debug('[DataSourceValidator] Error getting data source data:', error);
     }
   }
-
   /**
    * Parse data source path (e.g., "temp.transformations.celsius")
    *

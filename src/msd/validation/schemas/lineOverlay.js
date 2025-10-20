@@ -14,12 +14,15 @@ export const lineOverlaySchema = {
   type: 'line',
   extends: 'common',
 
-  required: ['points'],
+  // ✅ CHANGED: points not required at schema level
+  // Custom validator handles conditional requirement
+  required: [],
 
   properties: {
     points: {
       type: 'array',
       minItems: 2,
+      optional: true,  // ✅ Made optional
       items: {
         type: 'array',
         length: 2,
@@ -62,10 +65,16 @@ export const lineOverlaySchema = {
           errorMessage: 'Line join must be "miter", "round", or "bevel"'
         },
 
+        // ✅ ENHANCED: Accept string OR array for easier configuration
+        // String format: "5,5" (SVG standard)
+        // Array format: [5, 5] (easier to configure)
         dash_array: {
-          type: 'string',
+          type: ['string', 'array'],
           optional: true,
-          errorMessage: 'Dash array must be a string (e.g., "5,5" or "10,5,2,5")'
+          items: {  // Only applies when type is array
+            type: 'number'
+          },
+          errorMessage: 'Dash array must be a string ("5,5") or array ([5, 5])'
         },
 
         dash_offset: {
@@ -73,30 +82,36 @@ export const lineOverlaySchema = {
           optional: true
         },
 
+        // ✅ ENHANCED: Accept string OR object (for enhanced marker configuration)
+        // Simple format: "arrow"
+        // Enhanced format: { type: "diamond", size: "medium", color: "var(--lcars-red)", rotate: false }
         marker_start: {
-          type: 'string',
-          enum: ['none', 'arrow', 'dot', 'circle', 'square', 'diamond'],
+          type: ['string', 'object'],
+          enum: ['none', 'arrow', 'dot', 'circle', 'square', 'diamond'],  // Only applies when type is string
           optional: true,
-          errorMessage: 'Marker start must be "none", "arrow", "dot", "circle", "square", or "diamond"'
+          errorMessage: 'Marker start must be a marker type string or an enhanced marker configuration object'
         },
 
         marker_end: {
-          type: 'string',
-          enum: ['none', 'arrow', 'dot', 'circle', 'square', 'diamond'],
+          type: ['string', 'object'],
+          enum: ['none', 'arrow', 'dot', 'circle', 'square', 'diamond'],  // Only applies when type is string
           optional: true,
-          errorMessage: 'Marker end must be "none", "arrow", "dot", "circle", "square", or "diamond"'
+          errorMessage: 'Marker end must be a marker type string or an enhanced marker configuration object'
         },
 
         marker_mid: {
-          type: 'string',
-          enum: ['none', 'dot', 'circle', 'square', 'diamond'],
+          type: ['string', 'object'],
+          enum: ['none', 'dot', 'circle', 'square', 'diamond'],  // Only applies when type is string
           optional: true,
-          errorMessage: 'Marker mid must be "none", "dot", "circle", "square", or "diamond"'
+          errorMessage: 'Marker mid must be a marker type string or an enhanced marker configuration object'
         },
 
+        // ✅ ENHANCED: Accept boolean OR object (for enhanced glow configuration)
+        // Enhanced format: { color: "var(--lcars-orange)", blur: 30, intensity: 10 }
         glow: {
-          type: 'boolean',
-          optional: true
+          type: ['boolean', 'object'],
+          optional: true,
+          errorMessage: 'Glow must be a boolean or an enhanced glow configuration object'
         },
 
         glow_color: {
@@ -124,10 +139,32 @@ export const lineOverlaySchema = {
   },
 
   validators: [
-    // Validate points array structure
+    // ✅ NEW: Conditional points requirement
+    (overlay, context) => {
+      const hasPoints = overlay.points && Array.isArray(overlay.points) && overlay.points.length >= 2;
+      const hasAttachment = overlay.attach_to || overlay.attachTo;
+
+      // Points required UNLESS line uses attachment-based positioning
+      if (!hasPoints && !hasAttachment) {
+        return {
+          valid: false,
+          errors: [{
+            field: 'points',
+            type: 'required_field',
+            message: 'Line overlay requires "points" field unless using "attach_to"',
+            severity: 'error',
+            suggestion: 'Add a "points" field with coordinate pairs, or use "attach_to" for attachment-based positioning'
+          }]
+        };
+      }
+
+      return { valid: true };
+    },
+
+    // Validate points array structure (if present)
     (overlay, context) => {
       if (!overlay.points || !Array.isArray(overlay.points)) {
-        return { valid: true }; // Already handled by schema
+        return { valid: true }; // Already handled by conditional validator
       }
 
       const errors = [];

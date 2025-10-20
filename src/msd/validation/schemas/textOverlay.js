@@ -14,13 +14,25 @@ export const textOverlaySchema = {
   type: 'text',
   extends: 'common',
 
-  required: ['text', 'position'],
+  // ✅ CHANGED: Neither text nor content required at schema level
+  // Custom validator handles the "at least one" requirement
+  required: ['position'],
 
   properties: {
+    // ✅ Both text and content are optional (but one is required via validator)
     text: {
       type: 'string',
       minLength: 1,
+      optional: true,
       errorMessage: 'Text content cannot be empty'
+    },
+
+    // ✅ NEW: Accept content as alternative to text
+    content: {
+      type: 'string',
+      minLength: 1,
+      optional: true,
+      errorMessage: 'Content cannot be empty'
     },
 
     style: {
@@ -34,12 +46,14 @@ export const textOverlaySchema = {
           errorMessage: 'Color must be a valid color format (hex, rgb, rgba, or CSS variable)'
         },
 
+        // ✅ ENHANCED: Accept number OR object (for enhanced responsive sizing)
+        // Enhanced format: { value: 28, scale: "viewbox", unit: "px" }
         font_size: {
-          type: 'number',
-          min: 6,
-          max: 200,
+          type: ['number', 'object'],
+          min: 6,      // Only applies when type is number
+          max: 200,    // Only applies when type is number
           optional: true,
-          errorMessage: 'Font size must be between 6 and 200'
+          errorMessage: 'Font size must be a number (6-200) or an enhanced sizing object'
         },
 
         font_family: {
@@ -54,11 +68,12 @@ export const textOverlaySchema = {
           errorMessage: 'Font weight must be "normal", "bold", or a numeric value (100-900)'
         },
 
+        // ✅ ENHANCED: Support all 6 values (SVG standard + user-friendly aliases)
         text_anchor: {
           type: 'string',
-          enum: ['start', 'middle', 'end'],
+          enum: ['start', 'middle', 'end', 'left', 'center', 'right'],
           optional: true,
-          errorMessage: 'Text anchor must be "start", "middle", or "end"'
+          errorMessage: 'Text anchor must be one of: start, middle, end, left, center, right'
         },
 
         alignment: {
@@ -102,9 +117,12 @@ export const textOverlaySchema = {
           errorMessage: 'Text decoration must be "none", "underline", "overline", or "line-through"'
         },
 
+        // ✅ ENHANCED: Accept boolean OR object (for enhanced glow configuration)
+        // Enhanced format: { color: "var(--lcars-orange)", blur: 30, intensity: 10 }
         glow: {
-          type: 'boolean',
-          optional: true
+          type: ['boolean', 'object'],
+          optional: true,
+          errorMessage: 'Glow must be a boolean or an enhanced glow configuration object'
         },
 
         glow_color: {
@@ -152,6 +170,27 @@ export const textOverlaySchema = {
   },
 
   validators: [
+    // ✅ UPDATED: Validate text OR content is present
+    (overlay, context) => {
+      const hasText = overlay.text && typeof overlay.text === 'string' && overlay.text.length > 0;
+      const hasContent = overlay.content && typeof overlay.content === 'string' && overlay.content.length > 0;
+
+      if (!hasText && !hasContent) {
+        return {
+          valid: false,
+          errors: [{
+            field: 'text',
+            type: 'required_field',
+            message: 'Text overlay requires either "text" or "content" field',
+            severity: 'error',
+            suggestion: 'Add a "text" or "content" field with your text content'
+          }]
+        };
+      }
+
+      return { valid: true };
+    },
+
     // Custom validator: Check if position is valid when anchor is not used
     (overlay, context) => {
       if (!overlay.anchor && !overlay.position) {

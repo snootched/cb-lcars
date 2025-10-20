@@ -1,11 +1,13 @@
 /**
- * @fileoverview Value Validator - Type, range, and format validation
+ * @fileoverview Value Validator - Type, range, and format validation with token resolution
  *
  * Validates individual values against schema constraints:
  * - Type checking (string, number, boolean, array, object)
  * - Range validation (min, max, length)
  * - Format validation (patterns, enums, custom formats)
  * - Array/object structure validation
+ * - ✅ NEW: Design token resolution and validation
+ * - ✅ NEW: Enhanced property format support
  *
  * @module msd/validation/ValueValidator
  */
@@ -16,9 +18,13 @@ import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
  * Value Validator
  *
  * Validates individual values against schema constraints.
+ * Enhanced with token resolution and enhanced property support.
  */
 export class ValueValidator {
   constructor() {
+    // ✅ NEW: ThemeManager for token resolution
+    this.themeManager = null;
+
     // Register custom format validators
     this.formatValidators = new Map([
       ['color', this._validateColor.bind(this)],
@@ -26,6 +32,15 @@ export class ValueValidator {
       ['email', this._validateEmail.bind(this)],
       ['pattern', this._validatePattern.bind(this)]
     ]);
+  }
+
+  /**
+   * ✅ NEW: Set ThemeManager for token resolution
+   * @param {Object} themeManager - ThemeManager instance
+   */
+  setThemeManager(themeManager) {
+    this.themeManager = themeManager;
+    cblcarsLog.debug('[ValueValidator] ThemeManager connected for token resolution');
   }
 
   /**
@@ -62,6 +77,16 @@ export class ValueValidator {
         });
       }
       return result;
+    }
+
+    // ✅ NEW: Check if value is a token reference
+    if (this._isTokenReference(value)) {
+      return this._validateTokenValue(value, schema, meta);
+    }
+
+    // ✅ NEW: Check for enhanced property format
+    if (this._isEnhancedProperty(value, schema)) {
+      return this._validateEnhancedProperty(value, schema, meta);
     }
 
     // Type validation
@@ -106,6 +131,208 @@ export class ValueValidator {
   }
 
   /**
+   * ✅ FIXED: Check if value is a token reference
+   * Token references use dot notation: colors.primary, typography.fontSize.2xl
+   * Segments can start with letters OR numbers (e.g., 2xl, 3d, 4k)
+   * @private
+   */
+  _isTokenReference(value) {
+    if (typeof value !== 'string') return false;
+
+    // Pattern: starts with letter, contains dots, segments can be alphanumeric
+    // First segment must start with letter (e.g., "typography")
+    // Subsequent segments can start with letter OR number (e.g., "2xl", "fontSize")
+    return /^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)+$/.test(value);
+    //                                    ↑↑↑↑↑↑↑↑
+    // Changed from [a-zA-Z][a-zA-Z0-9]* to [a-zA-Z0-9]+
+    // Now allows "2xl", "3d", "4k" as token segments
+  }
+
+  /**
+   * ✅ NEW: Validate token value by resolving it first
+   * @private
+   */
+  _validateTokenValue(value, schema, meta) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // Try to resolve the token
+    let resolvedValue = value;
+    if (this.themeManager) {
+      try {
+        resolvedValue = this.themeManager.resolveToken(value);
+
+        if (resolvedValue === null || resolvedValue === undefined) {
+          // Token exists but couldn't resolve
+          result.warnings.push({
+            field: meta.field,
+            type: 'token_resolution_failed',
+            message: `Token "${value}" exists but failed to resolve`,
+            value: value,
+            severity: 'warning',
+            suggestion: 'Check for circular references or invalid token values'
+          });
+          // Don't validate further, but don't fail
+          return result;
+        }
+      } catch (error) {
+        // Token doesn't exist or error resolving
+        result.warnings.push({
+          field: meta.field,
+          type: 'token_not_found',
+          message: `Token "${value}" could not be resolved`,
+          value: value,
+          severity: 'warning',
+          suggestion: 'Verify the token exists in your theme configuration'
+        });
+        return result;
+      }
+    } else {
+      // No ThemeManager available - skip validation but don't fail
+      result.warnings.push({
+        field: meta.field,
+        type: 'token_validation_skipped',
+        message: `Token "${value}" cannot be validated (ThemeManager not available)`,
+        value: value,
+        severity: 'info',
+        suggestion: 'Token will be validated at runtime'
+      });
+      return result;
+    }
+
+    // Validate the resolved value
+    return this._validateResolvedValue(resolvedValue, schema, meta);
+  }
+
+  /**
+   * ✅ NEW: Check if value is an enhanced property format
+   * Enhanced properties are complex objects that replace simple values
+   * @private
+   */
+  _isEnhancedProperty(value, schema) {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+      return false;
+    }
+
+    // Font size enhancement: { value, scale, unit }
+    if (schema.type === 'number' && 'value' in value && 'scale' in value) {
+      return true;
+    }
+
+    // Glow enhancement: { color, blur, intensity }
+    if (schema.type === 'boolean' && 'color' in value && 'blur' in value) {
+      return true;
+    }
+
+    // Marker enhancement: { type, size, color, rotate }
+    if (schema.type === 'string' && 'type' in value && !('value' in value)) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * ✅ NEW: Validate enhanced property format
+   * @private
+   */
+  _validateEnhancedProperty(value, schema, meta) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // Enhanced font_size: { value: number, scale: string, unit: string }
+    if (schema.type === 'number' && 'value' in value) {
+      if (typeof value.value !== 'number') {
+        result.errors.push({
+          field: meta.field,
+          type: 'invalid_enhanced_property',
+          message: `Enhanced property "${meta.field}" has invalid value type`,
+          value: value,
+          severity: 'error',
+          suggestion: 'The "value" field must be a number'
+        });
+        result.valid = false;
+      }
+      // Valid enhancement - allow it
+      return result;
+    }
+
+    // Enhanced glow: { color: string, blur: number, intensity: number }
+    if (schema.type === 'boolean' && 'color' in value) {
+      // Just warn that this is an enhanced format - don't validate deeply
+      result.warnings.push({
+        field: meta.field,
+        type: 'enhanced_property_format',
+        message: `Field "${meta.field}" uses enhanced glow format`,
+        value: value,
+        severity: 'info',
+        suggestion: 'Enhanced properties will be processed at runtime'
+      });
+      return result;
+    }
+
+    // Enhanced marker: { type, size, color, rotate }
+    if (schema.type === 'string' && 'type' in value) {
+      result.warnings.push({
+        field: meta.field,
+        type: 'enhanced_property_format',
+        message: `Field "${meta.field}" uses enhanced marker format`,
+        value: value,
+        severity: 'info',
+        suggestion: 'Enhanced properties will be processed at runtime'
+      });
+      return result;
+    }
+
+    // Unknown enhanced format - allow with warning
+    result.warnings.push({
+      field: meta.field,
+      type: 'enhanced_property_format',
+      message: `Field "${meta.field}" uses enhanced property format`,
+      value: value,
+      severity: 'info',
+      suggestion: 'Enhanced properties will be processed at runtime'
+    });
+
+    return result;
+  }
+
+  /**
+   * ✅ NEW: Validate resolved token value against schema
+   * @private
+   */
+  _validateResolvedValue(value, schema, meta) {
+    const result = {
+      valid: true,
+      errors: [],
+      warnings: []
+    };
+
+    // Validate type of resolved value
+    if (schema.type) {
+      const typeResult = this._validateType(value, schema, meta);
+      result.errors.push(...typeResult.errors);
+      result.warnings.push(...typeResult.warnings);
+    }
+
+    // Validate format of resolved value
+    if (schema.format) {
+      const formatResult = this._validateFormat(value, schema, meta);
+      result.errors.push(...formatResult.errors);
+      result.warnings.push(...formatResult.warnings);
+    }
+
+    result.valid = result.errors.length === 0;
+    return result;
+  }
+
+  /**
    * Validate type
    *
    * @private
@@ -114,17 +341,20 @@ export class ValueValidator {
     const result = { valid: true, errors: [] };
     const actualType = Array.isArray(value) ? 'array' : typeof value;
 
-    if (schema.type && actualType !== schema.type) {
+    // ✅ ENHANCED: Handle multiple allowed types
+    const allowedTypes = Array.isArray(schema.type) ? schema.type : [schema.type];
+
+    if (!allowedTypes.includes(actualType)) {
       result.valid = false;
       result.errors.push({
         field: meta.field,
         type: 'invalid_type',
         message: `Field "${meta.field}" has invalid type`,
-        expected: schema.type,
+        expected: allowedTypes.length === 1 ? allowedTypes[0] : allowedTypes.join(' or '),
         actual: actualType,
         value: value,
         severity: 'error',
-        suggestion: `Change "${meta.field}" to ${schema.type}`
+        suggestion: `Change "${meta.field}" to ${allowedTypes.join(' or ')}`
       });
     }
 
@@ -204,7 +434,7 @@ export class ValueValidator {
 
     // Max value
     if (schema.max !== undefined && value > schema.max) {
-      result.valid = false;
+      result.valid = false,
       result.errors.push({
         field: meta.field,
         type: 'out_of_range',
@@ -330,6 +560,12 @@ export class ValueValidator {
    * @private
    */
   _validateEnum(value, schema, meta, result) {
+    // ✅ NEW: Skip enum validation for objects (they're enhanced properties)
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      // Objects are enhanced property formats - enum doesn't apply
+      return;
+    }
+
     const validValues = schema.enum;
 
     if (!validValues.includes(value)) {
@@ -349,7 +585,6 @@ export class ValueValidator {
       });
     }
   }
-
   /**
    * Validate custom format
    *

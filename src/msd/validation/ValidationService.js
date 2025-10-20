@@ -57,6 +57,7 @@ export class ValidationService {
     this.tokenValidator = null;  // Set when ThemeManager available
     this.dataSourceValidator = null;  // Set when DataSourceManager available
     this.errorFormatter = new ErrorFormatter();
+    this.themeManager = null;
 
     // Statistics
     this.stats = {
@@ -129,9 +130,16 @@ export class ValidationService {
       return result;
     }
 
+    // ✅ ENHANCED: Add DataSourceManager to context if available
+    const enhancedContext = {
+      ...context,
+      dataSourceManager: context.dataSourceManager ||
+                        window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager
+    };
+
     // 1. Structural validation (schema-based)
     try {
-      const structuralValidation = this.overlayValidator.validate(overlay, context);
+      const structuralValidation = this.overlayValidator.validate(overlay, enhancedContext);
       result.errors.push(...structuralValidation.errors);
       result.warnings.push(...structuralValidation.warnings);
     } catch (error) {
@@ -263,7 +271,14 @@ export class ValidationService {
    * @param {Object} themeManager - ThemeManager instance
    */
   setThemeManager(themeManager) {
+    this.themeManager = themeManager;
     this.tokenValidator = new TokenValidator(themeManager);
+
+    // ✅ NEW: Pass ThemeManager to ValueValidator
+    if (this.overlayValidator && this.overlayValidator.valueValidator) {
+      this.overlayValidator.valueValidator.setThemeManager(themeManager);
+    }
+
     cblcarsLog.debug('[ValidationService] ThemeManager connected for token validation');
   }
 
