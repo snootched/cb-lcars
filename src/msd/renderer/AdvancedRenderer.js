@@ -1221,62 +1221,235 @@ export class AdvancedRenderer {
   // === DATA UPDATE METHODS ===
 
   /**
-   * Update overlay data when data source changes
-   * @param {string} overlayId - ID of the overlay to update
-   * @param {Object} sourceData - Data from the data source
+   * Update overlay with new DataSource data
+   * ENHANCED: Now handles text overlays with template processing
+   * @param {string} overlayId - Overlay ID
+   * @param {Object} sourceData - DataSource data
    */
   updateOverlayData(overlayId, sourceData) {
-    if (!sourceData) {
-      cblcarsLog.info('[AdvancedRenderer] updateOverlayData: Missing sourceData');
-      return;
-    }
+    try {
+      cblcarsLog.debug(`[AdvancedRenderer] 📊 Updating overlay ${overlayId} with DataSource data`, {
+        hasData: !!sourceData,
+        value: sourceData?.v,
+        isPeriodicUpdate: sourceData?.isPeriodicUpdate,
+        hasAggregations: !!sourceData?.aggregations
+      });
 
-    // Use cached element - no DOM searching needed with subscription system
-    const overlayElement = this.overlayElementCache.get(overlayId);
+      // Get the overlay element from cache
+      const overlayElement = this.overlayElementCache?.get(overlayId);
+      if (!overlayElement) {
+        cblcarsLog.warn(`[AdvancedRenderer] Overlay element not found in cache: ${overlayId}`);
+        return;
+      }
 
-    if (!overlayElement) {
-      cblcarsLog.info(`[AdvancedRenderer] Could not find cached overlay element: ${overlayId}. Element should be cached during render.`);
-      return;
-    }
+      // Get the overlay configuration
+      const overlay = this._findOverlayById(overlayId);
+      if (!overlay) {
+        cblcarsLog.warn(`[AdvancedRenderer] Overlay configuration not found: ${overlayId}`);
+        return;
+      }
 
-    const overlay = this.lastRenderArgs?.overlays?.find(o => o.id === overlayId);
-    if (!overlay) {
-      cblcarsLog.info(`[AdvancedRenderer] Could not find overlay config: ${overlayId}`);
-      return;
-    }
+      // Handle different overlay types
+      switch (overlay.type) {
+        case 'text':
+          this._updateTextOverlayContent(overlayElement, overlay, sourceData);
+          break;
 
-    // Delegate to type-specific renderer
-    switch (overlay.type) {
-      case 'text':
-        cblcarsLog.debug(`[AdvancedRenderer] Updating text overlay: ${overlayId}`);
-        // Use unified delegation pattern - delegate to TextOverlayRenderer
-        const textUpdated = TextOverlayRenderer.updateTextData(overlayElement, overlay, sourceData);
-        if (textUpdated) {
-          // Update any status indicators that might depend on the content
-          this.updateTextDecorations(overlayId, 'updated', overlay);
-        }
-        break;
-      case 'status_grid':
-        cblcarsLog.debug(`[AdvancedRenderer] Updating status grid overlay: ${overlayId}`);
-        // FIXED: Use the correct static method name
-        const gridUpdated = StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
-        if (gridUpdated) {
-          // Update any status indicators that might depend on the content
-          this.updateTextDecorations(overlayId, 'updated', overlay);
-        }
-        return gridUpdated;
-      case 'button':
-        cblcarsLog.debug(`[AdvancedRenderer] Updating button overlay: ${overlayId}`);
-        const updated = ButtonOverlayRenderer.updateButtonData(overlayElement, overlay, sourceData);
-        if (updated) {
-          // Handle any post-update logic if needed
-          cblcarsLog.debug(`[AdvancedRenderer] ✅ Button overlay ${overlayId} updated successfully`);
-        }
-        return updated;
-      default:
-        cblcarsLog.info(`[AdvancedRenderer] Update not implemented for overlay type: ${overlay.type}`);
+        case 'status_grid':
+          StatusGridRenderer.updateGridData(overlayElement, overlay, sourceData);
+          break;
+
+        case 'button':
+          ButtonOverlayRenderer.updateButtonData(overlayElement, overlay, sourceData);
+          break;
+
+        case 'apexchart':
+          // ApexCharts already have their own subscription mechanism
+          break;
+
+        default:
+          cblcarsLog.debug(`[AdvancedRenderer] No update handler for overlay type: ${overlay.type}`);
+      }
+
+    } catch (error) {
+      cblcarsLog.error(`[AdvancedRenderer] Error updating overlay ${overlayId}:`, error);
     }
   }
+
+
+  /**
+   * Update text overlay content with new data
+   * @private
+   * @param {Element} overlayElement - Overlay DOM element
+   * @param {Object} overlay - Overlay configuration
+   * @param {Object} sourceData - DataSource data
+   */
+  _updateTextOverlayContent(overlayElement, overlay, sourceData) {
+    try {
+      // Find the text element
+      const textElement = overlayElement.querySelector('text');
+      if (!textElement) {
+        cblcarsLog.warn(`[AdvancedRenderer] Text element not found in overlay`);
+        return;
+      }
+
+      // Get the template string
+      const template = overlay.text || overlay.content || overlay._raw?.text || overlay._raw?.content || '';
+
+      // Process the template with current DataSource data
+      const processedContent = this._processTextTemplate(template);
+
+      // Update the text content if changed
+      if (processedContent && processedContent !== textElement.textContent) {
+        textElement.textContent = processedContent;
+
+        cblcarsLog.debug(`[AdvancedRenderer] ✅ Updated text overlay content: ${overlay.id}`, {
+          oldContent: textElement.textContent.substring(0, 50),
+          newContent: processedContent.substring(0, 50)
+        });
+      }
+
+    } catch (error) {
+      cblcarsLog.error(`[AdvancedRenderer] Error updating text overlay content:`, error);
+    }
+  }
+
+  /**
+   * Process text template with DataSource data
+   * @private
+   * @param {string} template - Template string
+   * @returns {string} Processed content
+   */
+  _processTextTemplate(template) {
+    if (!template || !template.includes('{')) {
+      return template;
+    }
+
+    // Get DataSourceManager
+    const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
+    if (!dataSourceManager) {
+      cblcarsLog.debug(`[AdvancedRenderer] DataSourceManager not available`);
+      return template;
+    }
+
+    // Process template
+    return template.replace(/\{([^}]+)\}/g, (match, reference) => {
+      try {
+        const [dataSourceRef, formatSpec] = reference.split(':');
+        const cleanRef = dataSourceRef.trim();
+
+        // Parse the reference: "hvac_complete.aggregations.heating_time.current"
+        const parts = cleanRef.split('.');
+        const sourceName = parts[0];
+
+        // Get the data source
+        const dataSource = dataSourceManager.getSource(sourceName);
+        if (!dataSource) {
+          cblcarsLog.debug(`[AdvancedRenderer] DataSource not found: ${sourceName}`);
+          return match;
+        }
+
+        // Get current data
+        const currentData = dataSource.getCurrentData();
+        let value = currentData?.v;
+
+        // Navigate the path
+        if (parts.length > 1) {
+          if (parts[1] === 'transformations' && parts[2]) {
+            // Access transformation: hvac_complete.transformations.is_heating
+            value = currentData?.transformations?.[parts[2]];
+          } else if (parts[1] === 'aggregations' && parts.length > 2) {
+            // Access aggregation with nested path: hvac_complete.aggregations.heating_time.current
+            const aggPath = parts.slice(2).join('.');
+            value = this._getNestedValue(currentData?.aggregations, aggPath);
+          } else if (parts[1] === 'v') {
+            // Direct value access: hvac_complete.v
+            value = currentData?.v;
+          }
+        }
+
+        if (value === null || value === undefined) {
+          cblcarsLog.debug(`[AdvancedRenderer] Value not found for: ${cleanRef}`);
+          return match;
+        }
+
+        // Apply formatting
+        if (formatSpec && typeof value === 'number') {
+          return this._formatNumber(value, formatSpec.trim());
+        }
+
+        return String(value);
+
+      } catch (error) {
+        cblcarsLog.warn(`[AdvancedRenderer] Template processing error:`, error);
+        return match;
+      }
+    });
+  }
+
+  /**
+   * Get nested value from object using dot notation
+   * @private
+   * @param {Object} obj - Object to traverse
+   * @param {string} path - Dot-separated path
+   * @returns {*} Nested value
+   */
+  _getNestedValue(obj, path) {
+    if (!obj || !path) return undefined;
+
+    return path.split('.').reduce((current, key) => {
+      return current?.[key];
+    }, obj);
+  }
+
+  /**
+   * Format number with format specification
+   * @private
+   * @param {number} value - Number to format
+   * @param {string} formatSpec - Format specification (.1f, .2f, etc.)
+   * @returns {string} Formatted number
+   */
+  _formatNumber(value, formatSpec) {
+    if (formatSpec.endsWith('f')) {
+      const precision = parseInt(formatSpec.slice(1, -1)) || 1;
+      return value.toFixed(precision);
+    }
+    if (formatSpec === 'd') {
+      return Math.round(value).toString();
+    }
+    return String(value);
+  }
+
+  /**
+   * Find overlay by ID in current model
+   * @private
+   * @param {string} overlayId - Overlay ID
+   * @returns {Object|null} Overlay configuration
+   */
+  _findOverlayById(overlayId) {
+    // Try to get from last render args first
+    if (this.lastRenderArgs?.overlays) {
+      const overlay = this.lastRenderArgs.overlays.find(o => o.id === overlayId);
+      if (overlay) return overlay;
+    }
+
+    // Try to get from current render model
+    if (this._currentRenderModel?.resolvedModel?.overlays) {
+      return this._currentRenderModel.resolvedModel.overlays.find(o => o.id === overlayId);
+    }
+
+    // Try systems manager
+    const resolvedModel = this.systemsManager?.getResolvedModel?.();
+    if (resolvedModel?.overlays) {
+      return resolvedModel.overlays.find(o => o.id === overlayId);
+    }
+
+    return null;
+  }
+
+
+
+
 
   /**
    * Get resolved model from various sources

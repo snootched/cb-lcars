@@ -1,3 +1,51 @@
+/**
+ * @fileoverview Data Transformation System - Chainable transformations with type-safe pipeline
+ *
+ * Transformation Processors:
+ * - UnitConversionProcessor: Convert between units (temperature, power, distance, etc.)
+ * - ScaleProcessor: Map values from one range to another
+ * - SmoothingProcessor: Apply smoothing algorithms (exponential, moving average, median)
+ * - ExpressionProcessor: Evaluate JavaScript expressions with enhanced context
+ * - StatisticalProcessor: Calculate rolling statistics (std dev, percentiles, z-scores)
+ *
+ * Expression Processor Context:
+ * All expressions have access to:
+ * - v, value: Current numeric value
+ * - t, timestamp: Current timestamp (milliseconds)
+ * - buffer: RollingBuffer instance for historical queries
+ * - entity.state: Entity state value
+ * - entity.attributes.*: All entity attributes (CPU, memory, temperature, etc.)
+ * - entity.entity_id: Entity ID string
+ * - entity.last_changed: Last changed timestamp
+ * - entity.last_updated: Last updated timestamp
+ * - Math.*: All Math functions
+ * - abs, min, max, round, floor, ceil, pow, sqrt: Math shortcuts
+ *
+ * Expression Examples:
+ *
+ * Simple:
+ *   expression: "v * 2 + 10"
+ *
+ * Multi-attribute (Server Load):
+ *   expression: |
+ *     (entity.attributes.cpu_usage * 0.5) +
+ *     (entity.attributes.memory_usage * 0.3) +
+ *     (entity.attributes.disk_usage * 0.2)
+ *
+ * Thermal Efficiency:
+ *   expression: "entity.attributes.cpu_temperature / entity.attributes.cpu_usage"
+ *
+ * HVAC Comfort:
+ *   expression: |
+ *     abs(entity.attributes.target_temperature -
+ *         entity.attributes.current_temperature)
+ *
+ * With Math Helpers:
+ *   expression: "max(0, min(100, round(v * 1.5)))"
+ *
+ * @module msd/data/transformations/TransformationProcessor
+ */
+
 import { cblcarsLog } from '../../../utils/cb-lcars-logging.js';
 
 /**
@@ -398,6 +446,13 @@ export class SmoothingProcessor extends TransformationProcessor {
 /**
  * Expression Processor
  * Evaluates JavaScript expressions with context
+ *
+ * ENHANCED: Provides comprehensive context including:
+ * - Entity attributes (entity.attributes.*)
+ * - Current value and timestamp
+ * - Buffer for historical queries
+ * - Math helpers
+ * - Access to sibling transformations
  */
 export class ExpressionProcessor extends TransformationProcessor {
   constructor(config) {
@@ -412,14 +467,34 @@ export class ExpressionProcessor extends TransformationProcessor {
     this.inputs = config.inputs || [];
     this.hass = config.hass; // For accessing other entities
 
-    // NEW: Store transformed data for accessing sibling transforms
+    // Store transformed data for accessing sibling transforms
     this.transformedData = {};
+
+    // ✅ NEW: Will be set by MsdDataSource for entity attribute access
+    this.dataSource = null;
 
     // Pre-compile the expression for performance
     try {
-      // ENHANCED: Add 'transforms' parameter for accessing sibling transforms
+      // Build comprehensive parameter list for expression context
       this._compiledFunction = new Function(
-        'value', 'timestamp', 'buffer', 'Math', 'inputs', 'getEntity', 'transforms',
+        'v',           // Current value (short alias)
+        'value',       // Current value (long alias)
+        't',           // Timestamp (short alias)
+        'timestamp',   // Timestamp (long alias)
+        'buffer',      // RollingBuffer instance
+        'entity',      // ✅ NEW: Entity state and attributes
+        'Math',        // Math functions
+        'abs',         // Math.abs shorthand
+        'min',         // Math.min shorthand
+        'max',         // Math.max shorthand
+        'round',       // Math.round shorthand
+        'floor',       // Math.floor shorthand
+        'ceil',        // Math.ceil shorthand
+        'pow',         // Math.pow shorthand
+        'sqrt',        // Math.sqrt shorthand
+        'inputs',      // Multi-entity inputs (legacy)
+        'getEntity',   // Entity getter function (legacy)
+        'transforms',
         `"use strict"; return (${this.expression});`
       );
     } catch (error) {
@@ -431,7 +506,18 @@ export class ExpressionProcessor extends TransformationProcessor {
     if (!Number.isFinite(value)) return null;
 
     try {
-      // Gather input values from other entities
+      // ✅ ENHANCED: Build comprehensive context with entity access
+
+      // Build entity context object
+      const entityContext = {
+        state: value,
+        attributes: this.dataSource?._lastOriginalState?.attributes || {},
+        entity_id: this.dataSource?.cfg?.entity || 'unknown',
+        last_changed: this.dataSource?._lastOriginalState?.last_changed || timestamp,
+        last_updated: this.dataSource?._lastOriginalState?.last_updated || timestamp
+      };
+
+      // Legacy: Gather input values from other entities
       const inputs = this.inputs.map(entityId => {
         if (this.hass?.states?.[entityId]) {
           const state = this.hass.states[entityId].state;
@@ -441,7 +527,7 @@ export class ExpressionProcessor extends TransformationProcessor {
         return 0;
       });
 
-      // Simple getEntity function for expression context
+      // Legacy: Simple getEntity function for expression context
       const getEntity = (entityId) => {
         if (this.hass?.states?.[entityId]) {
           const state = this.hass.states[entityId].state;
@@ -451,24 +537,73 @@ export class ExpressionProcessor extends TransformationProcessor {
         return 0;
       };
 
-      // NEW: Pass transforms object with null-safe access
+      // ✅ NEW: Build transforms object (for accessing sibling transformations)
+      // This provides access to other transformation results via transforms.keyName
       const transforms = this.transformedData || {};
 
+      // ✅ FIXED: Execute compiled expression with ALL parameters
       const result = this._compiledFunction(
-        value,
-        timestamp,
-        buffer,
-        Math,
-        inputs,
-        getEntity,
-        transforms  // NEW: Pass all transformed values
+        value,              // v
+        value,              // value
+        timestamp,          // t
+        timestamp,          // timestamp
+        buffer,             // buffer
+        entityContext,      // entity (with attributes)
+        Math,               // Math
+        Math.abs,           // abs
+        Math.min,           // min
+        Math.max,           // max
+        Math.round,         // round
+        Math.floor,         // floor
+        Math.ceil,          // ceil
+        Math.pow,           // pow
+        Math.sqrt,          // sqrt
+        inputs,             // inputs (legacy)
+        getEntity,          // getEntity (legacy)
+        transforms          // ✅ transforms (NEW - was missing!)
       );
 
-      return Number.isFinite(result) ? result : null;
+      // Validate result
+      if (result === null || result === undefined) {
+        return null;
+      }
+
+      if (!Number.isFinite(result)) {
+        if (this.config.debug) {
+          cblcarsLog.warn(
+            `[ExpressionProcessor] Expression returned non-finite value: ${result}\n` +
+            `  Expression: ${this.expression}\n` +
+            `  Input value: ${value}\n` +
+            `  Transforms available: ${Object.keys(transforms).join(', ') || 'none'}`
+          );
+        }
+        return null;
+      }
+
+      return result;
+
     } catch (error) {
-      throw new Error(`Expression evaluation failed: ${error.message}`);
+      if (this.config.debug) {
+        cblcarsLog.warn(
+          `[ExpressionProcessor] Expression evaluation failed: ${error.message}\n` +
+          `  Expression: ${this.expression}\n` +
+          `  Value: ${value}\n` +
+          `  Entity: ${this.dataSource?.cfg?.entity || 'unknown'}\n` +
+          `  Transforms available: ${Object.keys(this.transformedData || {}).join(', ') || 'none'}`
+        );
+      }
+
+      // Log first few failures at error level for visibility
+      if (this._stats.errors < 3) {
+        cblcarsLog.error(
+          `[ExpressionProcessor] Expression failed (will suppress further errors): ${error.message}`
+        );
+      }
+
+      return null;
     }
   }
+
 }
 
 /**

@@ -27,6 +27,9 @@ export class ModelBuilder {
     // Subscribe overlays to data sources
     this._subscribeOverlaysToDataSources(baseOverlays);
 
+    // ✅ NEW: Subscribe text overlays to data sources
+   this._subscribeTextOverlaysToDataSources(baseOverlays);
+
     // Apply rules
     const ruleResult = this._applyRules();
 
@@ -487,6 +490,15 @@ export class ModelBuilder {
         return;
       }
 
+      // ✅ CRITICAL: Check if already subscribed
+      if (!this._overlayUnsubscribers) {
+        this._overlayUnsubscribers = new Map();
+      }
+
+      if (!this._overlayUnsubscribers.has(overlayId)) {
+        this._overlayUnsubscribers.set(overlayId, []);
+      }
+
       // Create subscription callback
       const callback = (data) => {
         cblcarsLog.debug(`[ModelBuilder] 📊 Text overlay ${overlayId} received DataSource update from ${sourceName}`);
@@ -494,11 +506,17 @@ export class ModelBuilder {
         // Notify AdvancedRenderer to update the text overlay
         if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
           this.systems.renderer.updateOverlayData(overlayId, data);
+        } else {
+          cblcarsLog.warn(`[ModelBuilder] Renderer updateOverlayData not available for ${overlayId}`);
         }
       };
 
       // Subscribe to the DataSource
-      dataSource.subscribe(overlayId, callback);
+
+      const unsubscribe = dataSource.subscribe(callback);
+      this._overlayUnsubscribers.get(overlayId).push(unsubscribe);
+
+      //dataSource.subscribe(overlayId, callback);
 
       cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed text overlay ${overlayId} to DataSource ${sourceName}`);
 
@@ -519,21 +537,28 @@ export class ModelBuilder {
     }
 
     const references = [];
-    const templatePattern = /\{([^}]+)\}/g;
+    const regex = /\{([^}:]+)/g;
     let match;
 
-    while ((match = templatePattern.exec(content)) !== null) {
-      const reference = match[1].split(':')[0].trim(); // Remove formatting specs
+    while ((match = regex.exec(content)) !== null) {
+      const ref = match[1].trim();
 
-      // Only include if it looks like a DataSource reference (contains dots or is a simple identifier)
-      if (reference.includes('.') || /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(reference)) {
-        const sourceName = reference.split('.')[0];
-        if (!references.includes(sourceName)) {
+      // Check if it's a DataSource reference (not a HA entity)
+      if (ref.includes('.')) {
+        const parts = ref.split('.');
+        const sourceName = parts[0];
+
+        // Check if this looks like a DataSource reference
+        // (has transformations, aggregations, or is a known source)
+        if (parts.includes('transformations') ||
+            parts.includes('aggregations') ||
+            this.systems?.dataSourceManager?.getSource(sourceName)) {
           references.push(sourceName);
         }
       }
     }
 
-    return references;
+    // Return unique references
+    return [...new Set(references)];
   }
 }

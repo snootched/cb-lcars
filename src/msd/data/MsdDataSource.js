@@ -29,6 +29,9 @@ export class MsdDataSource {
       this.cfg.entity = '';
     }
 
+    // This allows expressions to access entity attributes
+    this._lastOriginalState = null;
+
     // PORT: Complete buffer sizing logic from original
     let wsSec = 60; // Default window
     if (typeof cfg.windowSeconds === 'number' && isFinite(cfg.windowSeconds)) {
@@ -95,6 +98,10 @@ export class MsdDataSource {
     // Lifecycle state
     this._started = false;
     this._destroyed = false;
+
+    // ✅ NEW: Periodic update timer for time-based aggregations
+    this._periodicUpdateInterval = null;
+    this._periodicUpdateEnabled = false;
 
     // Initialize processors from configuration (including profiles)
     this._initializeProcessors(cfg);
@@ -557,9 +564,99 @@ export class MsdDataSource {
       // STEP 5: Emit initial data to any existing subscribers
       this._emitInitialData();
 
+      // ✅ NEW: STEP 6: Start periodic updates for time-based aggregations
+      this._startPeriodicUpdates();
+
     } catch (error) {
       cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize ${this.cfg.entity}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Start periodic updates for time-based aggregations
+   * @private
+   */
+  _startPeriodicUpdates() {
+    // Check if we have time-based aggregations
+    const hasTimeBased = Array.from(this.aggregations.values()).some(agg =>
+      agg.type === 'duration' ||
+      agg.type === 'session_stats' ||
+      agg.config.requires_periodic_update
+    );
+
+    if (!hasTimeBased) {
+      return; // No time-based aggregations, don't start timer
+    }
+
+    // Determine update interval (default 1 second for smooth time display)
+    const updateInterval = this.cfg.periodic_update_interval || 1000;
+
+    cblcarsLog.debug(
+      `[MsdDataSource] 🕐 Starting periodic updates for ${this.cfg.entity} ` +
+      `(interval: ${updateInterval}ms)`
+    );
+
+    this._periodicUpdateEnabled = true;
+    this._periodicUpdateInterval = setInterval(() => {
+      if (!this._periodicUpdateEnabled || this._destroyed) {
+        this._stopPeriodicUpdates();
+        return;
+      }
+
+      // Recalculate time-based aggregations
+      const timestamp = Date.now();
+      const lastValue = this.buffer.last()?.v;
+
+      if (lastValue !== null && lastValue !== undefined) {
+        // Update aggregations with current timestamp
+        // This allows duration aggregations to recalculate elapsed time
+        this.aggregations.forEach((processor, key) => {
+          if (processor.type === 'duration' || processor.type === 'session_stats') {
+            try {
+              // Force recalculation without adding a new value
+              processor._calculate();
+            } catch (error) {
+              cblcarsLog.warn(`[MsdDataSource] Periodic aggregation update failed for ${key}:`, error);
+            }
+          }
+        });
+
+        // Emit updated data to subscribers
+        const emitData = {
+          t: timestamp,
+          v: lastValue,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(),
+          aggregations: this._getAggregationData(),
+          entity: this.cfg.entity,
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isPeriodicUpdate: true  // Flag to indicate this is a periodic update
+        };
+
+        this.subscribers.forEach((callback) => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            cblcarsLog.error(`[MsdDataSource] Periodic update callback failed:`, error);
+          }
+        });
+      }
+    }, updateInterval);
+  }
+
+  /**
+   * Stop periodic updates
+   * @private
+   */
+  _stopPeriodicUpdates() {
+    if (this._periodicUpdateInterval) {
+      clearInterval(this._periodicUpdateInterval);
+      this._periodicUpdateInterval = null;
+      this._periodicUpdateEnabled = false;
+      cblcarsLog.debug(`[MsdDataSource] 🕐 Stopped periodic updates for ${this.cfg.entity}`);
     }
   }
 
@@ -1228,7 +1325,15 @@ export class MsdDataSource {
 
 
   /**
-   * Convert raw value to number with support for boolean states
+   * Convert raw value to number with support for boolean states and enum mapping
+   *
+   * Handles:
+   * - Numeric values and strings
+   * - Boolean states (on/off, true/false, etc.)
+   * - Enum mapping for categorical states (heating, cooling, etc.)
+   * - Unavailable/unknown states
+   *
+   * @private
    * @param {*} raw - Raw value from HA state
    * @returns {number|null} Converted number or null if invalid
    */
@@ -1244,19 +1349,62 @@ export class MsdDataSource {
 
     // Handle string values
     if (typeof raw === 'string') {
-      // Try direct numeric conversion first
+      // ✅ ENHANCED DEBUG: Log what we're checking
+      if (this.cfg.debug || this.cfg.enum_mapping_debug) {
+        cblcarsLog.debug(
+          `[MsdDataSource] ${this.cfg.entity}: _toNumber called with string: "${raw}"\n` +
+          `  Has enum_mapping: ${!!this.cfg.enum_mapping}\n` +
+          `  Enum mapping keys: ${this.cfg.enum_mapping ? Object.keys(this.cfg.enum_mapping).join(', ') : 'none'}`
+        );
+      }
+
+      // Check enum_mapping first (before any other conversion)
+      if (this.cfg.enum_mapping && typeof this.cfg.enum_mapping === 'object') {
+        // ✅ ENHANCED DEBUG: Show the lookup attempt
+        if (this.cfg.debug || this.cfg.enum_mapping_debug) {
+          cblcarsLog.debug(
+            `[MsdDataSource] ${this.cfg.entity}: Looking up "${raw}" in enum_mapping\n` +
+            `  Found: ${this.cfg.enum_mapping[raw] !== undefined}\n` +
+            `  Value: ${this.cfg.enum_mapping[raw]}`
+          );
+        }
+
+        if (this.cfg.enum_mapping[raw] !== undefined) {
+          const mappedValue = this.cfg.enum_mapping[raw];
+
+          // Validate mapped value is numeric
+          if (typeof mappedValue === 'number' && isFinite(mappedValue)) {
+            cblcarsLog.debug(
+              `[MsdDataSource] ${this.cfg.entity}: ✅ Enum mapping "${raw}" → ${mappedValue}`
+            );
+            return mappedValue;
+          } else {
+            cblcarsLog.warn(
+              `[MsdDataSource] ${this.cfg.entity}: ❌ Invalid enum mapping value for "${raw}": ${mappedValue} (must be a number)`
+            );
+          }
+        }
+      }
+
+      // Try direct numeric conversion
       const num = parseFloat(raw);
       if (!isNaN(num) && isFinite(num)) {
         return num;
       }
 
-      // ADDED: Handle boolean-like string states
+      // Handle boolean-like strings
       const lowerRaw = raw.toLowerCase().trim();
       if (lowerRaw === 'on' || lowerRaw === 'true' || lowerRaw === 'active' || lowerRaw === 'open') {
+        if (this.cfg.debug || this.cfg.enum_mapping_debug) {
+          cblcarsLog.debug(`[MsdDataSource] ${this.cfg.entity}: Boolean mapping "${raw}" → 1`);
+        }
         return 1;
       }
 
       if (lowerRaw === 'off' || lowerRaw === 'false' || lowerRaw === 'inactive' || lowerRaw === 'closed') {
+        if (this.cfg.debug || this.cfg.enum_mapping_debug) {
+          cblcarsLog.debug(`[MsdDataSource] ${this.cfg.entity}: Boolean mapping "${raw}" → 0`);
+        }
         return 0;
       }
 
@@ -1265,10 +1413,14 @@ export class MsdDataSource {
         return null;
       }
 
-      // Log unhandled strings occasionally for debugging
-      if (Math.random() < 0.1) {
-        cblcarsLog.debug('[MsdDataSource] Unhandled string value:', raw, 'for entity:', this.cfg.entity);
+      // Log unhandled strings
+      if (this.cfg.debug || this.cfg.enum_mapping_debug) {
+        cblcarsLog.warn(
+          `[MsdDataSource] ${this.cfg.entity}: ⚠️ Unhandled string value: "${raw}" ` +
+          `(consider adding to enum_mapping)`
+        );
       }
+
       return null;
     }
 
@@ -1409,6 +1561,9 @@ export class MsdDataSource {
   async stop() {
     this._started = false;
 
+    // ✅ NEW: Stop periodic updates
+    this._stopPeriodicUpdates();
+
     if (this.haUnsubscribe) {
       try {
         this.haUnsubscribe();
@@ -1428,6 +1583,7 @@ export class MsdDataSource {
 
   destroy() {
     this._destroyed = true;
+    this._stopPeriodicUpdates();
     this.stop();
     this.subscribers.clear();
     this.buffer.clear();
@@ -1542,6 +1698,10 @@ export class MsdDataSource {
       const processor = this.transformations.get(key);
 
       try {
+
+        // This allows ExpressionProcessor to access entity attributes
+        processor.dataSource = this;
+
         // Determine input value: chained source or raw value
         const inputSource = processor.config.input_source;
         const inputValue = inputSource

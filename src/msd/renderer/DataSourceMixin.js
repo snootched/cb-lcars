@@ -278,31 +278,40 @@ export class DataSourceMixin {
           if (dataKey && isTransformation && currentData?.transformations) {
             value = currentData.transformations[dataKey];
           } else if (dataKey && isAggregation && currentData?.aggregations) {
-            const aggData = currentData.aggregations[dataKey];
-            if (typeof aggData === 'object' && aggData !== null) {
-              // Handle nested object access
-              const nestedKeys = dataKey.split('.');
-              if (nestedKeys.length > 1) {
-                const baseKey = nestedKeys[0];
-                const nestedKey = nestedKeys.slice(1).join('.');
-                const baseData = currentData.aggregations[baseKey];
-                if (baseData && typeof baseData === 'object') {
-                  value = this.getNestedValue(baseData, nestedKey);
-                }
-              } else {
-                // Standard aggregation object handling
+            // ✅ FIXED: Handle nested aggregation paths properly
+            // Split dataKey to handle paths like "heating_time.current"
+            const pathParts = dataKey.split('.');
+            const aggKey = pathParts[0]; // "heating_time"
+            const aggData = currentData.aggregations[aggKey];
+
+            if (aggData === null || aggData === undefined) {
+              cblcarsLog.warn(`[${rendererName}] 🔗 Aggregation '${aggKey}' not found in ${sourceName}`);
+              hasUnresolvedTemplates = true;
+              return fallbackToOriginal ? match : `[No data: ${reference}]`;
+            }
+
+            // If there are nested keys (e.g., "current" in "heating_time.current")
+            if (pathParts.length > 1) {
+              const nestedPath = pathParts.slice(1).join('.');
+              value = this.getNestedValue(aggData, nestedPath);
+            } else {
+              // No nested path - handle the aggregation object
+              if (typeof aggData === 'object' && aggData !== null) {
+                // Try common aggregation result properties
                 if (aggData.avg !== undefined) value = aggData.avg;
                 else if (aggData.value !== undefined) value = aggData.value;
                 else if (aggData.last !== undefined) value = aggData.last;
+                else if (aggData.current !== undefined) value = aggData.current;
                 else if (aggData.direction !== undefined) value = aggData.direction;
                 else value = JSON.stringify(aggData);
+              } else {
+                value = aggData;
               }
-            } else {
-              value = aggData;
             }
           }
 
           if (value === null || value === undefined) {
+            cblcarsLog.warn(`[${rendererName}] 🔗 Template value not found: ${reference}`);
             hasUnresolvedTemplates = true;
             return fallbackToOriginal ? match : `[No data: ${reference}]`;
           }
