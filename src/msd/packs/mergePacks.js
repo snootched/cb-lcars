@@ -452,17 +452,8 @@ function validateExternalPackStructure(data, url) {
     console.warn(`[MSD] External pack ${url} doesn't contain recognized MSD fields`);
   }
 
-  // Check for required ID fields in collections
-  const collections = ['overlays', 'rules', 'animations'];
-  collections.forEach(collection => {
-    if (Array.isArray(data[collection])) {
-      data[collection].forEach((item, index) => {
-        if (!item.id) {
-          console.warn(`[MSD] External pack ${url} ${collection}[${index}] missing required 'id' field`);
-        }
-      });
-    }
-  });
+  // ✅ REMOVED: ID validation is now handled by validateMerged and ValidationService
+  // Previously validated individual ID fields here - now centralized
 }
 
 function classifyError(error) {

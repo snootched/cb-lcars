@@ -1719,7 +1719,17 @@ _scheduleChartCreation(overlay, anchors, viewBox, svgContainer, cardInstance) {
   }
 
   /**
-   * Validate overlay configuration before rendering
+   * Pre-flight validation for ApexCharts overlay requirements
+   *
+   * NOTE: This performs a quick static check for absolute minimum requirements
+   * before expensive chart creation. For comprehensive schema validation,
+   * use ValidationService which validates against the full overlay schema.
+   *
+   * This method exists because:
+   * - It runs BEFORE chart instantiation (performance optimization)
+   * - It checks renderer-specific requirements (data source, size)
+   * - It provides immediate feedback without full validation overhead
+   *
    * @static
    * @param {Object} overlay - Overlay configuration
    * @returns {Array<string>} Array of error messages (empty if valid)

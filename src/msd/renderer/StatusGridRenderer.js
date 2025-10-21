@@ -2826,7 +2826,10 @@ export class StatusGridRenderer extends BaseRenderer {
       return Array(count).fill(size);
     }
 
-    // Validate array length matches expected count
+    // RUNTIME NORMALIZATION: Validate array length matches expected count
+    // Schema validation ensures 'sizing' is an array if present, but doesn't
+    // enforce length constraints (which depend on runtime grid dimensions).
+    // Fall back to equal sizing rather than failing the render.
     if (sizing.length !== count) {
       cblcarsLog.warn(`[StatusGridRenderer] ⚠️ Sizing array length (${sizing.length}) doesn't match expected count (${count}). Using equal sizing.`);
       const size = totalSpace / count;

@@ -115,8 +115,11 @@ export class TextOverlayRenderer extends BaseRenderer {
       // 3. MSD RESPONSIBILITY: Resolve text content from DataSource/templates
       const textContent = this._resolveTextContent(overlay, style);
 
+      // ✅ RUNTIME CHECK: Verify resolved content (different from schema validation)
+      // Schema validates config structure, this validates runtime resolution result
+      // (DataSource might resolve to null, templates might produce empty strings)
       if (!textContent) {
-        cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id}`);
+        cblcarsLog.warn(`[TextOverlayRenderer] ⚠️ No text content for overlay ${overlay.id} - DataSource or template resolved to empty`);
         return { markup: '', actionInfo: null, overlayId: overlay.id };
       }
 

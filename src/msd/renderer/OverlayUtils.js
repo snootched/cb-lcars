@@ -127,12 +127,35 @@ export class OverlayUtils {
 
   /**
    * Validate overlay configuration has required properties
+   *
+   * @deprecated Use ValidationService for comprehensive overlay validation
+   * This method provides only basic existence checks and will be removed in a future version.
+   *
+   * Migration path:
+   * ```javascript
+   * // OLD:
+   * const valid = OverlayUtils.validateOverlay(overlay, ['id', 'position']);
+   *
+   * // NEW:
+   * const result = validationService.validateOverlay(overlay, context);
+   * const valid = result.valid;
+   * ```
+   *
    * @param {Object} overlay - Overlay configuration
    * @param {Array} requiredProps - Required property names
    * @returns {boolean} True if valid
    */
   static validateOverlay(overlay, requiredProps = ['id', 'position']) {
     if (!overlay || typeof overlay !== 'object') return false;
+
+    // Log deprecation warning
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[OverlayUtils] validateOverlay() is deprecated. ' +
+        'Use ValidationService for comprehensive validation. ' +
+        'This method will be removed in a future version.'
+      );
+    }
 
     return requiredProps.every(prop =>
       overlay.hasOwnProperty(prop) && overlay[prop] !== undefined
