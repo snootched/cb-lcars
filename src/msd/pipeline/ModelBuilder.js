@@ -24,11 +24,11 @@ export class ModelBuilder {
     // Assemble base overlays with profiles
     const baseOverlays = this._assembleBaseOverlays();
 
-    // Subscribe overlays to data sources
-    this._subscribeOverlaysToDataSources(baseOverlays);
+    // REMOVED: _subscribeOverlaysToDataSources (sparkline/ribbon/historybar specific)
+    // this._subscribeOverlaysToDataSources(baseOverlays);
 
-    // ✅ NEW: Subscribe text overlays to data sources
-   this._subscribeTextOverlaysToDataSources(baseOverlays);
+    // Subscribe text overlays to data sources
+    this._subscribeTextOverlaysToDataSources(baseOverlays);
 
     // Apply rules
     const ruleResult = this._applyRules();
@@ -179,138 +179,15 @@ export class ModelBuilder {
   }
 
 
-  _subscribeOverlaysToDataSources(baseOverlays) {
-    if (!this.systems.dataSourceManager || !baseOverlays) {
-      cblcarsLog.debug('[ModelBuilder] Skipping overlay subscriptions - no DataSourceManager or overlays');
-      return;
-    }
-
-    let subscriptionCount = 0;
-    let pendingSubscriptions = 0;
-
-    baseOverlays.forEach(overlay => {
-      if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
-        try {
-          // Check if data source exists and is ready
-          const dataSource = this.systems.dataSourceManager.getSource(overlay.source);
-          if (!dataSource) {
-            cblcarsLog.warn(`[ModelBuilder] Data source '${overlay.source}' not found for overlay ${overlay.id}`);
-            return;
-          }
-
-          // Check data source readiness
-          const currentData = dataSource.getCurrentData();
-          const isReady = currentData && (currentData.bufferSize > 0 || currentData.v !== undefined);
-
-          cblcarsLog.debug(`[ModelBuilder] Subscribing overlay ${overlay.id} to source ${overlay.source}:`, {
-            sourceReady: isReady,
-            bufferSize: currentData?.bufferSize || 0,
-            hasValue: currentData?.v !== undefined
-          });
-
-          // Subscribe with enhanced callback
-          const unsubscribe = this.systems.dataSourceManager.subscribeOverlay(overlay, (overlayConfig, updateData) => {
-            cblcarsLog.debug(`[ModelBuilder] 📊 Data update for overlay ${overlayConfig.id}:`, {
-              value: updateData.v,
-              bufferSize: updateData.buffer?.size?.() || 0,
-              hasHistoricalData: !!(updateData.historicalData?.length),
-              sourceReady: true
-            });
-
-            // Update the renderer with real data
-            if (this.systems.renderer && this.systems.renderer.updateOverlayData) {
-              try {
-                this.systems.renderer.updateOverlayData(overlayConfig.id, updateData);
-              } catch (error) {
-                cblcarsLog.error(`[ModelBuilder] Error updating overlay ${overlayConfig.id}:`, error);
-              }
-            } else {
-              cblcarsLog.warn(`[ModelBuilder] Renderer not available for overlay update: ${overlayConfig.id}`);
-            }
-          });
-
-          if (unsubscribe) {
-            subscriptionCount++;
-            if (isReady) {
-              cblcarsLog.debug(`[ModelBuilder] ✅ Subscribed overlay ${overlay.id} to ready source ${overlay.source}`);
-            } else {
-              pendingSubscriptions++;
-              cblcarsLog.debug(`[ModelBuilder] ⏳ Subscribed overlay ${overlay.id} to pending source ${overlay.source}`);
-            }
-
-            // Store unsubscribe function for cleanup
-            if (!this._overlayUnsubscribers) {
-              this._overlayUnsubscribers = new Map();
-            }
-            if (!this._overlayUnsubscribers.has(overlay.id)) {
-              this._overlayUnsubscribers.set(overlay.id, []);
-            }
-            this._overlayUnsubscribers.get(overlay.id).push(unsubscribe);
-          }
-
-        } catch (error) {
-          cblcarsLog.warn(`[ModelBuilder] ⚠️ Failed to subscribe overlay ${overlay.id} to source ${overlay.source}:`, error.message);
-        }
-      }
-    });
-
-    if (subscriptionCount > 0) {
-      cblcarsLog.debug(`[ModelBuilder] ✅ Established ${subscriptionCount} overlay data subscriptions (${pendingSubscriptions} pending data)`);
-    }
-
-    // Monitor pending subscriptions and log when they become ready
-    if (pendingSubscriptions > 0) {
-      this._monitorPendingSubscriptions(baseOverlays, pendingSubscriptions);
-    }
-
-    // Subscribe to text overlays data sources
-    this._subscribeTextOverlaysToDataSources(baseOverlays);
-  }
 
 
+  // REMOVED METHOD: _subscribeOverlaysToDataSources
+  // This method subscribed sparkline/ribbon/historybar overlays which are no longer supported.
+  // Deleted in Phase 0 of architecture refactor.
 
-
-  /**
-   * Monitor pending subscriptions and report when data becomes available
-   * @private
-   * @param {Array} baseOverlays - Array of overlay configurations
-   * @param {number} pendingCount - Initial count of pending subscriptions
-   */
-  _monitorPendingSubscriptions(baseOverlays, pendingCount) {
-    let checkCount = 0;
-    const maxChecks = 50; // Maximum number of checks (5 seconds with 100ms intervals)
-
-    const checkInterval = setInterval(() => {
-      checkCount++;
-      let stillPending = 0;
-
-      baseOverlays.forEach(overlay => {
-        if ((overlay.type === 'sparkline' || overlay.type === 'ribbon') && overlay.source) {
-          const dataSource = this.systems.dataSourceManager.getSource(overlay.source);
-          if (dataSource) {
-            const currentData = dataSource.getCurrentData();
-            const isReady = currentData && (currentData.bufferSize > 0 || currentData.v !== undefined);
-            if (!isReady) {
-              stillPending++;
-            }
-          }
-        }
-      });
-
-      if (stillPending === 0) {
-        cblcarsLog.debug(`[ModelBuilder] 🎉 All overlay data sources are now ready (checked ${checkCount} times)`);
-        clearInterval(checkInterval);
-      } else if (checkCount >= maxChecks) {
-        cblcarsLog.warn(`[ModelBuilder] ⏰ Timeout waiting for ${stillPending} data sources to become ready`);
-        clearInterval(checkInterval);
-      } else if (checkCount % 10 === 0) {
-        // Log progress every second (10 * 100ms)
-        cblcarsLog.debug(`[ModelBuilder] ⏳ Still waiting for ${stillPending} data sources (${checkCount * 100}ms elapsed)`);
-      }
-    }, 100); // Check every 100ms
-  }
-
-
+  // REMOVED METHOD: _monitorPendingSubscriptions
+  // This was only used by _subscribeOverlaysToDataSources.
+  // Deleted in Phase 0 of architecture refactor.
 
 
   _applyRules() {

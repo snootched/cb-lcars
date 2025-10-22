@@ -1249,91 +1249,14 @@ export class SystemsManager {
    * @param {Array} changedIds - Entity IDs that changed
    * @private
    */
-  _updateTextOverlaysForDataSourceChanges(changedIds) {
-    cblcarsLog.debug('[SystemsManager] 🔤 Checking for text overlays affected by DataSource changes:', changedIds);
 
-    // Get current resolved model to find text overlays
-    const resolvedModel = this.modelBuilder?.getResolvedModel?.();
-    if (!resolvedModel || !resolvedModel.overlays) {
-      cblcarsLog.debug('[SystemsManager] ⚠️ No resolved model available for text overlay updates');
-      return;
-    }
+  // REMOVED METHOD: _updateTextOverlaysForDataSourceChanges
+  // This method was deprecated and replaced by the unified BaseOverlayUpdater system.
+  // Deleted in Phase 0 of architecture refactor.
 
-    // Find text overlays that might be affected
-    const textOverlays = resolvedModel.overlays.filter(overlay => overlay.type === 'text');
-    cblcarsLog.debug('[SystemsManager] 🔤 Found', textOverlays.length, 'text overlays to check');
-
-    textOverlays.forEach(overlay => {
-      // Check if this text overlay uses template strings that reference the changed DataSources
-      const content = overlay._raw?.content || overlay.content || overlay.text || '';
-
-      if (content && typeof content === 'string' && content.includes('{')) {
-        cblcarsLog.debug(`[SystemsManager] 🔤 Checking text overlay ${overlay.id} with content: "${content}"`);
-
-        // Check if any of the changed entities map to DataSources referenced in the template
-        const needsUpdate = changedIds.some(entityId => {
-          // Find DataSources that use this entity
-          if (this.dataSourceManager) {
-            for (const [sourceId, source] of this.dataSourceManager.sources || new Map()) {
-              if (source.cfg && source.cfg.entity === entityId) {
-                cblcarsLog.debug(`[SystemsManager] 🔗 Entity ${entityId} maps to DataSource ${sourceId}`);
-
-                // Check if the template content references this DataSource
-                if (content.includes(sourceId)) {
-                  cblcarsLog.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} references DataSource ${sourceId} - needs update`);
-                  return true;
-                }
-              }
-            }
-          }
-          return false;
-        });
-
-        if (needsUpdate) {
-          cblcarsLog.debug(`[SystemsManager] 🚀 Updating text overlay ${overlay.id} for DataSource changes`);
-
-          // Get the updated DataSource data for the first changed DataSource
-          const updatedDataSourceId = this._findDataSourceForEntity(changedIds[0]);
-          if (updatedDataSourceId) {
-            const dataSource = this.dataSourceManager.getSource(updatedDataSourceId);
-            if (dataSource) {
-              const currentData = dataSource.getCurrentData();
-              cblcarsLog.debug(`[SystemsManager] 📊 Using DataSource ${updatedDataSourceId} data:`, currentData);
-
-              // Update the text overlay with new data
-              if (this.renderer && this.renderer.updateTextOverlay) {
-                try {
-                  this.renderer.updateTextOverlay(overlay.id, currentData);
-                  cblcarsLog.debug(`[SystemsManager] ✅ Text overlay ${overlay.id} updated successfully`);
-                } catch (error) {
-                  cblcarsLog.error(`[SystemsManager] ❌ Failed to update text overlay ${overlay.id}:`, error);
-                }
-              }
-            }
-          }
-        } else {
-          cblcarsLog.debug(`[SystemsManager] ⏭️ Text overlay ${overlay.id} not affected by these changes`);
-        }
-      }
-    });
-  }
-
-  /**
-   * Find DataSource ID for a given entity ID
-   * @param {string} entityId - Entity ID
-   * @returns {string|null} DataSource ID
-   * @private
-   */
-  _findDataSourceForEntity(entityId) {
-    if (this.dataSourceManager) {
-      for (const [sourceId, source] of this.dataSourceManager.sources || new Map()) {
-        if (source.cfg && source.cfg.entity === entityId) {
-          return sourceId;
-        }
-      }
-    }
-    return null;
-  }
+  // REMOVED METHOD: _findDataSourceForEntity
+  // This was only used by _updateTextOverlaysForDataSourceChanges.
+  // Deleted in Phase 0 of architecture refactor.
 }
 
 // CLEANUP NOTE: The old text-specific overlay update methods have been removed
