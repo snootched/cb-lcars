@@ -177,40 +177,45 @@ export class DataSourceMixin {
   }
 
   /**
-   * Apply number formatting specifications with unit-aware intelligence
-   * @param {number} value - Numeric value to format
-   * @param {string} formatSpec - Format specification like ".1f", ".2%", "d"
-   * @param {string} [unitOfMeasurement] - Original entity's unit_of_measurement for intelligent formatting
-   * @returns {string} Formatted value
+   * Apply number formatting with optional unit from metadata
+   * @param {number} value - Value to format
+   * @param {string} formatSpec - Format specification
+   * @param {Object} metadata - DataSource metadata (optional)
+   * @returns {string} Formatted value with unit if available
    */
-  static applyNumberFormat(value, formatSpec, unitOfMeasurement) {
+  static applyNumberFormat(value, formatSpec, metadata = null) {
     if (typeof value !== 'number') return String(value);
+
+    let formattedValue;
 
     // Parse format specifications like ".1f", ".2%", "d", etc.
     if (formatSpec.endsWith('%')) {
       const precision = parseInt(formatSpec.slice(1, -1)) || 0;
 
-      // UNIT-AWARE: Check if the source entity already has % units
-      if (unitOfMeasurement === '%') {
-        // Already a percentage (0-100), don't multiply by 100
-        return `${value.toFixed(precision)}%`;
+      // Check if metadata indicates already a percentage
+      if (metadata?.unit_of_measurement === '%') {
+        formattedValue = value.toFixed(precision);
       } else {
-        // Decimal value (0.0-1.0) or other unit, multiply by 100
-        return `${(value * 100).toFixed(precision)}%`;
+        formattedValue = (value * 100).toFixed(precision);
       }
+      return `${formattedValue}%`;
     }
 
     if (formatSpec.endsWith('f')) {
       const precision = parseInt(formatSpec.slice(1, -1)) || 1;
-      return value.toFixed(precision);
+      formattedValue = value.toFixed(precision);
+    } else if (formatSpec === 'd') {
+      formattedValue = Math.round(value).toString();
+    } else {
+      formattedValue = String(value);
     }
 
-    if (formatSpec === 'd') {
-      return Math.round(value).toString();
+    // ✅ NEW: Append unit from metadata if available
+    if (metadata?.unit_of_measurement) {
+      return `${formattedValue}${metadata.unit_of_measurement}`;
     }
 
-    // Fallback
-    return String(value);
+    return formattedValue;
   }
 
   /**
@@ -250,15 +255,12 @@ export class DataSourceMixin {
     try {
       const dataSourceManager = window.__msdDebug?.pipelineInstance?.systemsManager?.dataSourceManager;
       if (!dataSourceManager) {
-        // DataSourceManager not available - this is normal during initial rendering
         return fallbackToOriginal ? content : null;
       }
 
-      // Enhanced template pattern to capture DataSource references and formatting
       let hasUnresolvedTemplates = false;
       const processedContent = content.replace(/\{([^}]+)\}/g, (match, reference) => {
         try {
-          // Parse reference and optional formatting: {source.transformations.key:.2f}
           const [dataSourceRef, formatSpec] = reference.split(':');
           const cleanRef = dataSourceRef.trim();
 
@@ -318,7 +320,11 @@ export class DataSourceMixin {
 
           // Apply formatting if specified
           if (formatSpec) {
-            return this.applyNumberFormat(value, formatSpec.trim(), currentData?.unit_of_measurement);
+            return this.applyNumberFormat(
+              value,
+              formatSpec.trim(),
+              currentData?.metadata  // ✅ NEW: Pass metadata
+            );
           }
 
           return String(value);

@@ -103,6 +103,20 @@ export class MsdDataSource {
     this._periodicUpdateInterval = null;
     this._periodicUpdateEnabled = false;
 
+    // ✅ NEW: Entity metadata storage
+    this.metadata = {
+      unit_of_measurement: null,
+      device_class: null,
+      friendly_name: null,
+      area: null,
+      device_id: null,
+      entity_id: this.cfg.entity,
+      state_class: null,
+      icon: null,
+      last_changed: null,
+      last_updated: null
+    };
+
     // Initialize processors from configuration (including profiles)
     this._initializeProcessors(cfg);
   }
@@ -536,6 +550,10 @@ export class MsdDataSource {
       // STEP 2: Initialize with current HASS state if available
       if (this.hass.states && this.hass.states[this.cfg.entity]) {
         const currentState = this.hass.states[this.cfg.entity];
+
+        // ✅ NEW: Extract metadata from initial state
+        this._extractMetadata(currentState);
+
         cblcarsLog.debug(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
 
                 // ENHANCED: Capture unit_of_measurement from initial state
@@ -877,6 +895,671 @@ export class MsdDataSource {
   }
 
   /**
+   * Extract and store entity metadata from Home Assistant state
+   * @private
+   * @param {Object} entityState - Home Assistant entity state object
+   */
+  _extractMetadata(entityState) {
+    if (!entityState) return;
+
+    const attributes = entityState.attributes || {};
+
+    // Core metadata
+    this.metadata.unit_of_measurement = attributes.unit_of_measurement || null;
+    this.metadata.device_class = attributes.device_class || null;
+    this.metadata.friendly_name = attributes.friendly_name || entityState.entity_id;
+    this.metadata.state_class = attributes.state_class || null;
+    this.metadata.icon = attributes.icon || null;
+
+    // Timestamps
+    this.metadata.last_changed = entityState.last_changed;
+    this.metadata.last_updated = entityState.last_updated;
+
+    // Device and area information (if available)
+    if (attributes.device_id) {
+      this.metadata.device_id = attributes.device_id;
+    }
+
+    // Try to get area from device registry (if available)
+    if (this.hass?.entities?.[this.cfg.entity]) {
+      const entityInfo = this.hass.entities[this.cfg.entity];
+      this.metadata.area = entityInfo.area_id || null;
+    }
+
+    // Log captured metadata
+    if (this.cfg.debug) {
+      cblcarsLog.debug(`[MsdDataSource] 📊 Captured metadata for ${this.cfg.entity}:`, {
+        unit: this.metadata.unit_of_measurement,
+        device_class: this.metadata.device_class,
+        friendly_name: this.metadata.friendly_name
+      });
+    }
+  }
+
+  /**
+   * NEW: Get window seconds for capacity calculation
+   * @private
+   * @returns {number} Window in seconds
+   */
+  _getWindowSeconds() {
+    let wsSec = 60; // Default window
+    if (typeof this.cfg.windowSeconds === 'number' && isFinite(this.cfg.windowSeconds)) {
+      wsSec = Math.max(1, this.cfg.windowSeconds);
+    } else if (typeof this.cfg.windowSeconds === 'string') {
+      const ms = this._parseTimeWindowMs(this.cfg.windowSeconds);
+      if (Number.isFinite(ms)) {
+        wsSec = Math.max(1, Math.floor(ms / 1000));
+      }
+    }
+    return wsSec;
+  }
+
+  /**
+   * NEW: Validate transformation chains for common errors
+   * @private
+   */
+  _validateTransformationChains() {
+    const errors = [];
+
+    this.transformations.forEach((processor, key) => {
+      const inputSource = processor.config.input_source;
+
+      if (inputSource) {
+        // Check source exists
+        if (!this.transformations.has(inputSource)) {
+          errors.push(`Transform '${key}' references non-existent source '${inputSource}'`);
+        }
+
+        // Check for self-reference
+        if (inputSource === key) {
+          errors.push(`Transform '${key}' cannot reference itself`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      const errorMsg = `Transform chain validation failed:\n  ${errors.join('\n  ')}`;
+      cblcarsLog.error(`[MsdDataSource] ❌ ${errorMsg}`);
+      throw new Error(errorMsg);
+    }
+  }
+
+  /**
+   * NEW: Determine execution order for transformations based on dependencies
+   * Uses topological sort (Kahn's algorithm) to handle chained transformations
+   * @private
+   * @returns {Array<string>} Ordered array of transformation keys
+   */
+  _determineTransformationOrder() {
+    // Return cached order if valid
+    if (this._transformationOrderValid && this._transformationOrder) {
+      return this._transformationOrder;
+    }
+
+    const keys = Array.from(this.transformations.keys());
+
+    // Quick path: no transformations
+    if (keys.length === 0) {
+      this._transformationOrder = [];
+      this._transformationOrderValid = true;
+      return [];
+    }
+
+    // Quick path: check if any transform uses input_source
+    const hasChaining = Array.from(this.transformations.values())
+      .some(p => p.config.input_source);
+
+    if (!hasChaining) {
+      // No chaining - return original order (parallel processing)
+      this._transformationOrder = keys;
+      this._transformationOrderValid = true;
+      return keys;
+    }
+
+    // Build dependency graph
+    const graph = new Map();
+    const inDegree = new Map();
+
+    keys.forEach(key => {
+      graph.set(key, []);
+      inDegree.set(key, 0);
+    });
+
+    keys.forEach(key => {
+      const processor = this.transformations.get(key);
+      const inputSource = processor.config.input_source;
+
+      if (inputSource) {
+        // Add edge: inputSource -> key
+        if (graph.has(inputSource)) {
+          graph.get(inputSource).push(key);
+          inDegree.set(key, inDegree.get(key) + 1);
+        }
+      }
+    });
+
+    // Topological sort using Kahn's algorithm
+    const queue = [];
+    const result = [];
+
+    // Start with nodes that have no dependencies
+    inDegree.forEach((degree, key) => {
+      if (degree === 0) {
+        queue.push(key);
+      }
+    });
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      result.push(current);
+
+      // Reduce in-degree for dependent nodes
+      graph.get(current).forEach(dependent => {
+        inDegree.set(dependent, inDegree.get(dependent) - 1);
+        if (inDegree.get(dependent) === 0) {
+          queue.push(dependent);
+        }
+      });
+    }
+
+    // Detect cycles
+    if (result.length !== keys.length) {
+      const remaining = keys.filter(k => !result.includes(k));
+      const involved = remaining.map(k => {
+        const src = this.transformations.get(k).config.input_source;
+        return `${k} → ${src}`;
+      }).join(', ');
+
+      cblcarsLog.error(
+        `[MsdDataSource] ❌ Circular dependency detected in transformations: ${involved}\n` +
+        `  Falling back to config order (chaining will not work correctly)`
+      );
+
+      // Return original order as fallback
+      this._transformationOrder = keys;
+      this._transformationOrderValid = true;
+      return keys;
+    }
+
+    // Cache and return
+    this._transformationOrder = result;
+    this._transformationOrderValid = true;
+
+    cblcarsLog.debug(`[MsdDataSource] Transformation execution order: ${result.join(' → ')}`);
+
+    return result;
+  }
+
+  /**
+   * ENHANCED: Preload historical data with multiple fallback strategies
+   * @private
+   */
+  async _preloadHistory() {
+    if (!this.hass?.callService || !this.cfg.entity) return;
+
+    // Check if history is enabled in config
+    const historyConfig = this.cfg.history || {};
+    if (historyConfig.enabled === false) return;
+
+    const hours = Math.max(1, Math.min(168, historyConfig.hours || 6));
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - hours * 3600000);
+
+    cblcarsLog.debug(`[MsdDataSource] 📊 Preloading ${hours}h history for ${this.cfg.entity}`);
+
+    try {
+      // Strategy 1: Try Home Assistant's history service (most reliable)
+      await this._preloadWithHistoryService(startTime, endTime);
+    } catch (error) {
+      cblcarsLog.warn(`[MsdDataSource] History service failed for ${this.cfg.entity}, trying statistics:`, error.message);
+
+      try {
+        // Strategy 2: Fall back to enhanced statistics
+        await this._preloadWithStatistics(startTime, endTime);
+      } catch (statError) {
+        cblcarsLog.warn(`[MsdDataSource] Statistics failed, trying state history:`, statError.message);
+        // Strategy 3: Final fallback (existing _preloadStateHistory method)
+        await this._preloadStateHistory(startTime, endTime);
+      }
+    }
+
+    cblcarsLog.debug(`[MsdDataSource] History preload complete: ${this._stats.historyLoaded} points loaded`);
+  }
+
+  /**
+   * NEW: Primary history loading using HA history service
+   * @private
+   * @param {Date} startTime - Start time for history query
+   * @param {Date} endTime - End time for history query
+   */
+  async _preloadWithHistoryService(startTime, endTime) {
+    const response = await this.hass.callService('history', 'get_history', {
+      entity_ids: [this.cfg.entity],
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString()
+    });
+
+    if (response && response[0]) {
+      const states = response[0];
+      cblcarsLog.debug(`[MsdDataSource] History service returned ${states.length} states for ${this.cfg.entity}`);
+
+      for (const state of states) {
+        const timestamp = new Date(state.last_changed || state.last_updated).getTime();
+
+        // ✅ ENHANCED: Support nested attribute paths
+        let rawValue;
+        if (this.cfg.attribute_path) {
+          rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+        } else if (this.cfg.attribute) {
+          rawValue = state.attributes?.[this.cfg.attribute];
+        } else {
+          rawValue = state.state;
+        }
+
+        const value = this._toNumber(rawValue);
+
+        if (value !== null) {
+          this.buffer.push(timestamp, value);
+          this._stats.historyLoaded++;
+        }
+      }
+    }
+  }
+
+  /**
+   * ENHANCED: Statistics-based history loading with finer granularity
+   * @private
+   * @param {Date} startTime - Start time for history query
+   * @param {Date} endTime - End time for history query
+   */
+  async _preloadWithStatistics(startTime, endTime) {
+    // Use 5-minute periods for more granular data
+    const response = await this.hass.callService('recorder', 'get_statistics', {
+      statistic_ids: [this.cfg.entity],
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
+      period: '5minute'  // Changed from 'hour' to '5minute'
+    });
+
+    if (response && response[0]?.statistics) {
+      const statistics = response[0].statistics;
+      cblcarsLog.debug(`[MsdDataSource] Statistics returned ${statistics.length} points for ${this.cfg.entity}`);
+
+      for (const stat of statistics) {
+        const timestamp = new Date(stat.start).getTime();
+        const value = this._extractStatisticValue(stat);
+
+        if (value !== null) {
+          this.buffer.push(timestamp, value);
+          this._stats.historyLoaded++;
+        }
+      }
+    }
+  }
+
+  /**
+   * Start the data source with proper initialization sequence
+   * @returns {Promise} Resolves when fully initialized
+   */
+  async start() {
+    if (this._started || this._destroyed) return;
+
+    try {
+      cblcarsLog.debug(`[MsdDataSource] 🚀 Starting initialization for ${this.cfg.entity}`);
+
+      // STEP 1: Preload historical data FIRST
+      if (this.hass?.callService) {
+        await this._preloadHistory();
+      }
+
+      // STEP 2: Initialize with current HASS state if available
+      if (this.hass.states && this.hass.states[this.cfg.entity]) {
+        const currentState = this.hass.states[this.cfg.entity];
+
+        // ✅ NEW: Extract metadata from initial state
+        this._extractMetadata(currentState);
+
+        cblcarsLog.debug(`[MsdDataSource] 🔄 Loading initial state for ${this.cfg.entity}:`, currentState.state);
+
+      // ENHANCED: Capture unit_of_measurement from initial state
+      if (currentState.attributes?.unit_of_measurement) {
+        this.cfg.unit_of_measurement = currentState.attributes.unit_of_measurement;
+        cblcarsLog.debug(`[MsdDataSource] 📊 Captured initial unit_of_measurement for ${this.cfg.entity}: "${this.cfg.unit_of_measurement}"`);
+      }
+
+      // FIXED: Use current timestamp for initial state
+      const currentTimestamp = Date.now();
+      const rawValue = this.cfg.attribute ? currentState.attributes?.[this.cfg.attribute] : currentState.state;
+      const value = this._toNumber(rawValue);
+
+      if (value !== null) {
+        cblcarsLog.debug(`[MsdDataSource] Adding current state: ${value} at ${currentTimestamp}`);
+        this.buffer.push(currentTimestamp, value);
+        this._stats.currentValue = value;
+      }
+    }
+
+      // STEP 3: Setup real-time subscriptions
+      this.haUnsubscribe = await this.hass.connection.subscribeEvents((event) => {
+        if (event.event_type === 'state_changed' &&
+            event.data?.entity_id === this.cfg.entity) {
+          cblcarsLog.debug(`[MsdDataSource] 📊 HA event received for ${this.cfg.entity}:`, event.data.new_state?.state);
+          this._handleStateChange(event.data);
+        }
+      }, 'state_changed');
+
+      this._started = true;
+      cblcarsLog.debug(`[MsdDataSource] ✅ Full initialization complete for ${this.cfg.entity} - Buffer: ${this.buffer.size()} points`);
+
+      // STEP 4: Process historical data through transformations
+      this._processHistoricalTransformations();
+
+      // STEP 5: Emit initial data to any existing subscribers
+      this._emitInitialData();
+
+      // ✅ NEW: STEP 6: Start periodic updates for time-based aggregations
+      this._startPeriodicUpdates();
+
+    } catch (error) {
+      cblcarsLog.error(`[MsdDataSource] ❌ Failed to initialize ${this.cfg.entity}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start periodic updates for time-based aggregations
+   * @private
+   */
+  _startPeriodicUpdates() {
+    // Check if we have time-based aggregations
+    const hasTimeBased = Array.from(this.aggregations.values()).some(agg =>
+      agg.type === 'duration' ||
+      agg.type === 'session_stats' ||
+      agg.config.requires_periodic_update
+    );
+
+    if (!hasTimeBased) {
+      return; // No time-based aggregations, don't start timer
+    }
+
+    // Determine update interval (default 1 second for smooth time display)
+    const updateInterval = this.cfg.periodic_update_interval || 1000;
+
+    cblcarsLog.debug(
+      `[MsdDataSource] 🕐 Starting periodic updates for ${this.cfg.entity} ` +
+      `(interval: ${updateInterval}ms)`
+    );
+
+    this._periodicUpdateEnabled = true;
+    this._periodicUpdateInterval = setInterval(() => {
+      if (!this._periodicUpdateEnabled || this._destroyed) {
+        this._stopPeriodicUpdates();
+        return;
+      }
+
+      // Recalculate time-based aggregations
+      const timestamp = Date.now();
+      const lastValue = this.buffer.last()?.v;
+
+      if (lastValue !== null && lastValue !== undefined) {
+        // Update aggregations with current timestamp
+        // This allows duration aggregations to recalculate elapsed time
+        this.aggregations.forEach((processor, key) => {
+          if (processor.type === 'duration' || processor.type === 'session_stats') {
+            try {
+              // Force recalculation without adding a new value
+              processor._calculate();
+            } catch (error) {
+              cblcarsLog.warn(`[MsdDataSource] Periodic aggregation update failed for ${key}:`, error);
+            }
+          }
+        });
+
+        // Emit updated data to subscribers
+        const emitData = {
+          t: timestamp,
+          v: lastValue,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(),
+          aggregations: this._getAggregationData(),
+          entity: this.cfg.entity,
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isPeriodicUpdate: true  // Flag to indicate this is a periodic update
+        };
+
+        this.subscribers.forEach((callback) => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            cblcarsLog.error(`[MsdDataSource] Periodic update callback failed:`, error);
+          }
+        });
+      }
+    }, updateInterval);
+  }
+
+  /**
+   * Stop periodic updates
+   * @private
+   */
+  _stopPeriodicUpdates() {
+    if (this._periodicUpdateInterval) {
+      clearInterval(this._periodicUpdateInterval);
+      this._periodicUpdateInterval = null;
+      this._periodicUpdateEnabled = false;
+      cblcarsLog.debug(`[MsdDataSource] 🕐 Stopped periodic updates for ${this.cfg.entity}`);
+    }
+  }
+
+  /**
+   * NEW: Emit initial data to subscribers after full initialization
+   * @private
+   */
+  _emitInitialData() {
+    if (this.subscribers.size > 0) {
+      const lastPoint = this.buffer.last();
+      if (lastPoint) {
+        cblcarsLog.debug(`[MsdDataSource] 📤 Emitting initial data for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        const emitData = {
+          t: lastPoint.t,
+          v: lastPoint.v,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(), // Convert Map to Object
+          aggregations: this._getAggregationData(),       // Convert Map to Object
+          entity: this.cfg.entity,
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isInitialEmission: true // NEW: Flag to indicate this is initial data
+        };
+
+        this.subscribers.forEach(callback => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            cblcarsLog.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+          }
+        });
+      } else {
+        // Even if no buffer data, emit initial structure for consistency
+        cblcarsLog.debug(`[MsdDataSource] 📤 Emitting initial empty data structure for ${this.cfg.entity} to ${this.subscribers.size} subscribers`);
+        const emitData = {
+          t: null,
+          v: null,
+          buffer: this.buffer,
+          stats: { ...this._stats },
+          transformations: this._getTransformationData(),
+          aggregations: this._getAggregationData(),
+          entity: this.cfg.entity,
+          unit_of_measurement: this.cfg.unit_of_measurement,
+          historyReady: this._stats.historyLoaded > 0,
+          isInitialEmission: true
+        };
+
+        this.subscribers.forEach(callback => {
+          try {
+            callback(emitData);
+          } catch (error) {
+            cblcarsLog.error(`[MsdDataSource] Initial callback error for ${this.cfg.entity}:`, error);
+          }
+        });
+      }
+    }
+  }
+
+  async _preloadHistory() {
+    if (!this.hass?.connection || !this.cfg.entity) {
+      cblcarsLog.warn('[MsdDataSource] ⚠️ No HASS connection or entity for history preload');
+      return;
+    }
+
+    const hours = Math.max(1, Math.min(168, this.cfg.history?.hours || 6)); // 1-168 hours
+    const endTime = new Date();
+    const startTime = new Date(endTime.getTime() - hours * 3600000);
+
+    cblcarsLog.debug(`[MsdDataSource] 🔄 Preloading ${hours}h history for ${this.cfg.entity}`);
+
+    try {
+      // Use modern WebSocket call for statistics (preferred)
+      const statisticsData = await this.hass.connection.sendMessagePromise({
+        type: 'recorder/statistics_during_period',
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        statistic_ids: [this.cfg.entity],
+        period: 'hour'
+      });
+
+      if (statisticsData && statisticsData[this.cfg.entity]) {
+        const statistics = statisticsData[this.cfg.entity];
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${statistics.length} statistics points`,statistics);
+
+        for (const stat of statistics) {
+          const timestamp = new Date(stat.start).getTime();
+          const value = this._extractStatisticValue(stat);
+
+          if (value !== null) {
+            this.buffer.push(timestamp, value);
+            this._stats.historyLoaded++;
+          }
+        }
+
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} statistics points`);
+        return; // Success with statistics
+      }
+    } catch (error) {
+      cblcarsLog.warn('[MsdDataSource] ⚠️ Statistics failed, trying state history:', error.message);
+    }
+
+    // Fallback: try state history via WebSocket
+    await this._preloadStateHistoryWS(startTime, endTime);
+  }
+
+  async _preloadStateHistoryWS(startTime, endTime) {
+    try {
+      cblcarsLog.debug(`[MsdDataSource] 📚 Trying WebSocket state history for ${this.cfg.entity}`);
+
+      // Use modern WebSocket call for history
+      const historyData = await this.hass.connection.sendMessagePromise({
+        type: 'history/history_during_period',
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        entity_ids: [this.cfg.entity],
+        minimal_response: true,
+        no_attributes: true
+      });
+
+      if (historyData && historyData[0]) {
+        const states = historyData[0];
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${states.length} history states`);
+
+        for (const state of states) {
+          const timestamp = new Date(state.last_changed || state.last_updated).getTime();
+
+          // ✅ ENHANCED: Support nested attribute paths
+          let rawValue;
+          if (this.cfg.attribute_path) {
+            rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+          } else if (this.cfg.attribute) {
+            rawValue = state.attributes?.[this.cfg.attribute];
+          } else {
+            rawValue = state.state;
+          }
+
+          const value = this._toNumber(rawValue);
+
+          if (value !== null) {
+            this.buffer.push(timestamp, value);
+            this._stats.historyLoaded++;
+          }
+        }
+
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} history points`);
+      } else {
+        cblcarsLog.warn('[MsdDataSource] ⚠️ No history data returned from WebSocket call');
+      }
+    } catch (error) {
+      cblcarsLog.error('[MsdDataSource] ❌ WebSocket state history also failed:', error);
+
+      // Final fallback: try direct REST API if available
+      await this._preloadHistoryREST(startTime, endTime);
+    }
+  }
+
+  async _preloadHistoryREST(startTime, endTime) {
+    try {
+      cblcarsLog.debug(`[MsdDataSource] 🌐 Trying REST API history for ${this.cfg.entity}`);
+
+      const startParam = startTime.toISOString();
+      const url = `/api/history/period/${startParam}?filter_entity_id=${this.cfg.entity}&minimal_response&no_attributes`;
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${this.hass.auth?.accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const historyData = await response.json();
+
+      if (historyData && historyData[0]) {
+        const states = historyData[0];
+        cblcarsLog.debug(`[MsdDataSource] 📊 Got ${states.length} REST history states`);
+
+        for (const state of states) {
+          const timestamp = new Date(state.last_changed || state.last_updated).getTime();
+
+          // ✅ ENHANCED: Support nested attribute paths
+          let rawValue;
+          if (this.cfg.attribute_path) {
+            rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+          } else if (this.cfg.attribute) {
+            rawValue = state.attributes?.[this.cfg.attribute];
+          } else {
+            rawValue = state.state;
+          }
+
+          const value = this._toNumber(rawValue);
+
+          if (value !== null) {
+            this.buffer.push(timestamp, value);
+            this._stats.historyLoaded++;
+          }
+        }
+
+        cblcarsLog.debug(`[MsdDataSource] ✅ Loaded ${this._stats.historyLoaded} REST history points`);
+      }
+    } catch (error) {
+      cblcarsLog.error('[MsdDataSource] ❌ REST history fallback also failed:', error);
+    }
+  }
+
+  /**
    * Handle state change from Home Assistant
    * @private
    * @param {Object} eventData - State change event data
@@ -894,7 +1577,10 @@ export class MsdDataSource {
       return;
     }
 
-    // CRITICAL: Store the original state object before any conversion
+    // ✅ NEW: Update metadata on state changes (before storing original state)
+    this._extractMetadata(eventData.new_state);
+
+    // Store the original state object before any conversion
     this._lastOriginalState = eventData.new_state;
 
     // ENHANCED: Capture and store unit_of_measurement from the entity
@@ -1416,6 +2102,7 @@ export class MsdDataSource {
           const mappedValue = this.cfg.enum_mapping[raw];
 
           // Validate mapped value is numeric
+
           if (typeof mappedValue === 'number' && isFinite(mappedValue)) {
             cblcarsLog.debug(
               `[MsdDataSource] ${this.cfg.entity}: ✅ Enum mapping "${raw}" → ${mappedValue}`
@@ -1565,10 +2252,10 @@ export class MsdDataSource {
         v: null,
         buffer: this.buffer,
         stats: { ...this._stats },
-        transformations: this._getTransformationData(), // Convert Map to Object
-        aggregations: this._getAggregationData(),       // Convert Map to Object
+        transformations: this._getTransformationData(),
+        aggregations: this._getAggregationData(),
         entity: this.cfg.entity,
-        unit_of_measurement: this.cfg.unit_of_measurement, // NEW: Include unit info
+        metadata: { ...this.metadata },  // ✅ NEW: Include metadata
         historyReady: this._stats.historyLoaded > 0,
         bufferSize: 0,
         started: this._started
@@ -1580,22 +2267,45 @@ export class MsdDataSource {
       v: lastPoint.v,
       buffer: this.buffer,
       stats: { ...this._stats },
-      transformations: this._getTransformationData(), // Convert Map to Object
-      aggregations: this._getAggregationData(),       // Convert Map to Object
+      transformations: this._getTransformationData(),
+      aggregations: this._getAggregationData(),
       entity: this.cfg.entity,
-      unit_of_measurement: this.cfg.unit_of_measurement, // NEW: Include unit info
+      metadata: { ...this.metadata },  // ✅ NEW: Include metadata
       historyReady: this._stats.historyLoaded > 0,
       bufferSize: this.buffer.size(),
       started: this._started
     };
   }
 
-  // NEW: Add EntityRuntime-compatible method
-  getEntity() {
-    return this.currentState ? {
-      state: this.currentState.state,
-      attributes: this.currentState.attributes || {}
-    } : null;
+  /**
+   * Get entity metadata
+   * @returns {Object} Entity metadata object
+   */
+  getMetadata() {
+    return { ...this.metadata };
+  }
+
+  /**
+   * Get formatted value with unit
+   * @param {number} value - Value to format
+   * @param {number} precision - Decimal places
+   * @returns {string} Formatted value with unit
+   */
+  getFormattedValue(value, precision = 1) {
+    if (!Number.isFinite(value)) return 'N/A';
+
+    const formatted = value.toFixed(precision);
+    return this.metadata.unit_of_measurement
+      ? `${formatted}${this.metadata.unit_of_measurement}`
+      : formatted;
+  }
+
+  /**
+   * Get display name (friendly_name or entity_id)
+   * @returns {string} Display name
+   */
+  getDisplayName() {
+    return this.metadata.friendly_name || this.cfg.entity;
   }
 
   /**
