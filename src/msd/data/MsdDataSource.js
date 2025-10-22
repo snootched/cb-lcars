@@ -466,7 +466,17 @@ export class MsdDataSource {
 
       for (const state of states) {
         const timestamp = new Date(state.last_changed || state.last_updated).getTime();
-        const rawValue = this.cfg.attribute ? state.attributes?.[this.cfg.attribute] : state.state;
+
+        // ✅ ENHANCED: Support nested attribute paths
+        let rawValue;
+        if (this.cfg.attribute_path) {
+          rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+        } else if (this.cfg.attribute) {
+          rawValue = state.attributes?.[this.cfg.attribute];
+        } else {
+          rawValue = state.state;
+        }
+
         const value = this._toNumber(rawValue);
 
         if (value !== null) {
@@ -783,7 +793,17 @@ export class MsdDataSource {
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
-          const rawValue = this.cfg.attribute ? state.attributes?.[this.cfg.attribute] : state.state;
+
+          // ✅ ENHANCED: Support nested attribute paths
+          let rawValue;
+          if (this.cfg.attribute_path) {
+            rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+          } else if (this.cfg.attribute) {
+            rawValue = state.attributes?.[this.cfg.attribute];
+          } else {
+            rawValue = state.state;
+          }
+
           const value = this._toNumber(rawValue);
 
           if (value !== null) {
@@ -830,7 +850,17 @@ export class MsdDataSource {
 
         for (const state of states) {
           const timestamp = new Date(state.last_changed || state.last_updated).getTime();
-          const rawValue = this.cfg.attribute ? state.attributes?.[this.cfg.attribute] : state.state;
+
+          // ✅ ENHANCED: Support nested attribute paths
+          let rawValue;
+          if (this.cfg.attribute_path) {
+            rawValue = this._extractNestedAttribute(state.attributes, this.cfg.attribute_path);
+          } else if (this.cfg.attribute) {
+            rawValue = state.attributes?.[this.cfg.attribute];
+          } else {
+            rawValue = state.state;
+          }
+
           const value = this._toNumber(rawValue);
 
           if (value !== null) {
@@ -875,14 +905,27 @@ export class MsdDataSource {
     // FIXED: Use current timestamp instead of state timestamp
     const timestamp = Date.now();
 
-    // Validate timestamp
-    if (!Number.isFinite(timestamp)) {
-      cblcarsLog.error('[MsdDataSource] ❌ Invalid timestamp generated:', timestamp);
-      return;
+    let rawValue;
+
+    if (this.cfg.attribute_path) {
+      // New nested path syntax
+      rawValue = this._extractNestedAttribute(
+        eventData.new_state.attributes,
+        this.cfg.attribute_path
+      );
+
+      if (rawValue === null && this.cfg.debug) {
+        cblcarsLog.debug(
+          `[MsdDataSource] ${this.cfg.entity}: Nested attribute path "${this.cfg.attribute_path}" returned null`
+        );
+      }
+    } else if (this.cfg.attribute) {
+      // Legacy single attribute access
+      rawValue = eventData.new_state.attributes?.[this.cfg.attribute];
+    } else {
+      // Entity state
+      rawValue = eventData.new_state.state;
     }
-    const rawValue = this.cfg.attribute
-      ? eventData.new_state.attributes?.[this.cfg.attribute]
-      : eventData.new_state.state;
 
     const value = this._toNumber(rawValue);
 
@@ -1598,6 +1641,111 @@ export class MsdDataSource {
     if (Number.isFinite(stat.min)) return stat.min;
     return null;
   }
+
+
+  /**
+   * Extract nested attribute value using dot notation and array indices
+   *
+   * Supports:
+   * - Dot notation: "forecast.temperature"
+   * - Array indices: "forecast.0.temperature" or "forecast[0].temperature"
+   * - Mixed: "device.config[0].settings.enabled"
+   *
+   * @private
+   * @param {Object} attributes - Entity attributes object
+   * @param {string} path - Attribute path (e.g., "forecast.0.temperature")
+   * @returns {*} Extracted value or null if not found
+   */
+  _extractNestedAttribute(attributes, path) {
+    if (!attributes || !path) {
+      return null;
+    }
+
+    try {
+      // Normalize path: convert brackets to dots
+      // "forecast[0].temperature" → "forecast.0.temperature"
+      const normalizedPath = path.replace(/\[(\d+)\]/g, '.$1');
+
+      // Split into path segments
+      const segments = normalizedPath.split('.');
+
+      // Traverse the object
+      let current = attributes;
+
+      for (const segment of segments) {
+        if (current === null || current === undefined) {
+          if (this.cfg.debug) {
+            cblcarsLog.debug(
+              `[MsdDataSource] ${this.cfg.entity}: Nested path traversal stopped at null/undefined for segment: ${segment}`
+            );
+          }
+          return null;
+        }
+
+        // Check if segment is an array index
+        const arrayIndex = parseInt(segment);
+        if (!isNaN(arrayIndex)) {
+          // Array access
+          if (!Array.isArray(current)) {
+            if (this.cfg.debug) {
+              cblcarsLog.debug(
+                `[MsdDataSource] ${this.cfg.entity}: Expected array at segment ${segment}, got ${typeof current}`
+              );
+            }
+            return null;
+          }
+
+          if (arrayIndex < 0 || arrayIndex >= current.length) {
+            if (this.cfg.debug) {
+              cblcarsLog.debug(
+                `[MsdDataSource] ${this.cfg.entity}: Array index ${arrayIndex} out of bounds (length: ${current.length})`
+              );
+            }
+            return null;
+          }
+
+          current = current[arrayIndex];
+        } else {
+          // Object property access
+          if (typeof current !== 'object') {
+            if (this.cfg.debug) {
+              cblcarsLog.debug(
+                `[MsdDataSource] ${this.cfg.entity}: Expected object at segment ${segment}, got ${typeof current}`
+              );
+            }
+            return null;
+          }
+
+          if (!(segment in current)) {
+            if (this.cfg.debug) {
+              cblcarsLog.debug(
+                `[MsdDataSource] ${this.cfg.entity}: Property "${segment}" not found in object. Available: ${Object.keys(current).join(', ')}`
+              );
+            }
+            return null;
+          }
+
+          current = current[segment];
+        }
+      }
+
+      if (this.cfg.debug) {
+        cblcarsLog.debug(
+          `[MsdDataSource] ${this.cfg.entity}: Successfully extracted nested attribute "${path}": ${current}`
+        );
+      }
+
+      return current;
+
+    } catch (error) {
+      cblcarsLog.warn(
+        `[MsdDataSource] ${this.cfg.entity}: Error extracting nested attribute "${path}":`,
+        error.message
+      );
+      return null;
+    }
+  }
+
 
   /**
    * Get recent points from the main buffer (compatibility method)

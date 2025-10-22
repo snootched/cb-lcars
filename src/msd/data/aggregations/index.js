@@ -4,7 +4,7 @@
  * This module provides the factory function to create aggregation processors
  * and exports all aggregation types for easy importing.
  */
-
+import { RollingStatisticsAggregation } from './RollingStatisticsAggregation.js';
 import {
   MovingAverageAggregation,
   MinMaxAggregation,
@@ -21,8 +21,12 @@ import {
  * @returns {Object} Configured aggregation processor instance
  */
 export function createAggregationProcessor(type, config) {
-  if (!type || !config) {
-    throw new Error('Aggregation type and config are required');
+  if (!config || typeof config !== 'object') {
+    throw new Error(`Invalid aggregation config: must be an object`);
+  }
+
+  if (!config.key) {
+    throw new Error(`Aggregation config missing required "key" property`);
   }
 
   switch (type) {
@@ -49,8 +53,16 @@ export function createAggregationProcessor(type, config) {
     case 'duration':
       return new DurationAggregation(config);
 
+    case 'rolling_statistics':
+    case 'rolling_stats':
+      return new RollingStatisticsAggregation(config);
+
+
     default:
-      throw new Error(`Unknown aggregation type: ${type}. Available types: moving_average, min_max, rate_of_change, session_stats, recent_trend, duration`);
+      throw new Error(
+        `Unknown aggregation type: ${type}\n` +
+        `  Valid types: moving_average, min_max, rate_of_change, session_stats, duration, recent_trend, rolling_statistics`
+      );
   }
 }
 
@@ -60,6 +72,7 @@ export {
   MinMaxAggregation,
   RateOfChangeAggregation,
   SessionStatsAggregation,
+  DurationAggregation,
   RecentTrendAggregation,
-  DurationAggregation
+  RollingStatisticsAggregation
 };
