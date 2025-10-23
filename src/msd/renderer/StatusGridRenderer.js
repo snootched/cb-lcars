@@ -12,6 +12,7 @@ import { ActionHelpers } from './ActionHelpers.js';
 import { ButtonRenderer } from './core/ButtonRenderer.js'; // Add ButtonRenderer import
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 
 
@@ -2262,11 +2263,11 @@ export class StatusGridRenderer extends BaseRenderer {
     }
 
     // Quick exit if no template markers at all
-    const hasMSD = cellContent.includes('{');
-    const hasHA = cellContent.includes('{{') && cellContent.includes('}}');
-    if (!hasMSD && !hasHA) {
+    if (!TemplateProcessor.hasTemplates(cellContent)) {
       return cellContent;
     }
+
+    const hasMSD = TemplateProcessor.hasMSDTemplates(cellContent);
 
     // MSD-style inline conditional support stays (only for { ... ? ... : ... } style)
     if (cellContent.includes('?') && cellContent.includes(':') && hasMSD) {
@@ -3123,7 +3124,7 @@ export class StatusGridRenderer extends BaseRenderer {
       // Get raw content using unified method
       const rawCellContent = this._getCellContentFromSources(cell);
 
-      if (rawCellContent && typeof rawCellContent === 'string' && rawCellContent.includes('{')) {
+      if (TemplateProcessor.hasTemplates(rawCellContent)) {
         // Use single method for all template processing with fresh data
         const processedContent = this._resolveCellContent(rawCellContent, newDataSourceData);
 

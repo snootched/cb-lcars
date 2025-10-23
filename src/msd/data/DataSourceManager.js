@@ -605,4 +605,47 @@ export class DataSourceManager {
       stats: this.getStats()
     };
   }
+
+  // ============================================================================
+  // PHASE 1: New HASS Ingestion Method (Step 1 - Add alongside existing)
+  // ============================================================================
+
+  /**
+   * NEW: Ingest fresh HASS and update tracked entities
+   * This supplements the real-time subscription mechanism (which remains primary)
+   * Used for: initialization, reconnection, manual refresh
+   * @param {Object} hass - Home Assistant state object
+   */
+  ingestHass(hass) {
+    if (!hass || !hass.states) {
+      cblcarsLog.warn('[DataSourceManager] ingestHass: Invalid HASS provided');
+      return;
+    }
+
+    cblcarsLog.debug('[DataSourceManager] 📥 ingestHass: Updating tracked entities', {
+      entityCount: Object.keys(hass.states).length,
+      trackedCount: this.entityIndex.size
+    });
+
+    // Update HASS reference for lookups
+    this.hass = hass;
+
+    // Update all tracked entities with fresh values
+    // NOTE: Real-time subscriptions remain the primary update mechanism
+    // This just ensures consistency after full HASS refresh
+    for (const [entityId, dataSource] of this.entityIndex.entries()) {
+      if (hass.states[entityId]) {
+        const freshState = hass.states[entityId];
+        cblcarsLog.debug(`[DataSourceManager] 🔄 Refreshing entity: ${entityId}`);
+
+        // Notify the data source of the fresh state
+        // The data source will handle notifying its subscribers
+        if (dataSource && typeof dataSource.updateFromEntityState === 'function') {
+          dataSource.updateFromEntityState(entityId, freshState);
+        }
+      }
+    }
+
+    cblcarsLog.debug('[DataSourceManager] ✅ ingestHass: Complete');
+  }
 }

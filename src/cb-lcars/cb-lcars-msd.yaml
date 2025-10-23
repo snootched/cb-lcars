@@ -561,9 +561,9 @@ cb-lcars-msd:
                 // Store pipeline reference for HASS updates
                 this._msdPipeline = pipeline;
 
-                // ADDED: Set original HASS for controls
+                // Initialize HASS state
                 if (realHass && pipeline.systemsManager) {
-                    pipeline.systemsManager.setOriginalHass(realHass);
+                    pipeline.systemsManager.ingestHass(realHass);
                 }
 
                 // ADDITIONAL: Set card instance via pipeline API too (for consistency)

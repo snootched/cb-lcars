@@ -14,6 +14,7 @@ import { DataSourceMixin } from './DataSourceMixin.js';
 import { ActionHelpers } from './ActionHelpers.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 export class ButtonOverlayRenderer extends BaseRenderer {
   constructor() {
@@ -456,9 +457,7 @@ export class ButtonOverlayRenderer extends BaseRenderer {
       return content || '';
     }
 
-    const hasMSD = content.includes('{');
-    const hasHA = content.includes('{{') && content.includes('}}');
-    if (!hasMSD && !hasHA) {
+    if (!TemplateProcessor.hasTemplates(content)) {
       return content;
     }
 

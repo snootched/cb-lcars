@@ -1041,9 +1041,9 @@ class CBLCARSMSDCard extends CBLCARSBaseCard {
         }
 
         // Forward HASS to the MSD system directly instead of re-rendering the card
-        if (this._msdPipeline && typeof this._msdPipeline.ingestHass === 'function') {
-            cblcarsLog.info('[CBLCARSMSDCard.setHass()] 📤 Forwarding HASS to MSD pipeline via ingestHass');
-            this._msdPipeline.ingestHass(hass);
+        if (this._msdPipeline?.systemsManager && typeof this._msdPipeline.systemsManager.ingestHass === 'function') {
+            cblcarsLog.info('[CBLCARSMSDCard.setHass()] 📤 Forwarding HASS to SystemsManager via ingestHass');
+            this._msdPipeline.systemsManager.ingestHass(hass);
         }
 
         // CRITICAL: Call parent setHass to ensure Home Assistant's normal HASS flow continues

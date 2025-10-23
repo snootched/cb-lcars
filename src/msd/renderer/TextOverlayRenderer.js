@@ -18,6 +18,7 @@ import { ActionHelpers } from './ActionHelpers.js';
 import { TextRenderer } from './core/TextRenderer.js';
 import { themeTokenResolver } from '../themes/ThemeTokenResolver.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 export class TextOverlayRenderer extends BaseRenderer {
   constructor() {
@@ -523,7 +524,7 @@ export class TextOverlayRenderer extends BaseRenderer {
       return content;
     }
 
-    if (content && typeof content === 'string' && content.includes('{')) {
+    if (TemplateProcessor.hasTemplates(content)) {
       content = DataSourceMixin.processTemplateForInitialRender(content, 'TextOverlayRenderer');
       return content;
     }

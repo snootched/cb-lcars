@@ -40,9 +40,13 @@ export class SystemsManager {
     this._queuedReRender = false; // ADDED: Flag for queued renders
     this._debugControlsRendering = false;
     this.mergedConfig = null; // Store for entity change handler
-    this._originalHass = null;  // Pristine copy for controls
-    this._currentHass = null;   // Working copy for MSD internal processing
-    this._previousRuleStates = new Map(); // ADDED: Track rule states for threshold crossing detection
+
+    // PHASE 1: Single source of truth for HASS (old properties removed in Step 3C)
+    this._hass = null;
+
+    // Keep _previousRuleStates for threshold crossing detection
+    this._previousRuleStates = new Map();
+
     this.styleResolver = null;
 
     // ADDED: Render progress tracking with automatic queue execution
@@ -84,7 +88,7 @@ export class SystemsManager {
 
     // Store config and HASS context immediately
     this.mergedConfig = mergedConfig;
-    this._currentHass = hass;
+    this._hass = hass; // PHASE 1: Use single source
 
     // PHASE 1: Initialize theme system FIRST (provides all component defaults)
     cblcarsLog.debug('[SystemsManager] 🎨 Phase 1: Initializing theme system');
@@ -220,19 +224,6 @@ export class SystemsManager {
       cblcarsLog.debug('[SystemsManager] Rules Engine HASS monitoring configured');
     }
 
-    // Connect data source manager to rules engine for entity changes
-    if (this.dataSourceManager) {
-      const entityChangeHandler = this._createEntityChangeHandler();
-
-      // Add entity change listener
-      this.dataSourceManager.addEntityChangeListener(entityChangeHandler);
-      cblcarsLog.debug('[SystemsManager] DataSourceManager connected to rules engine with entity change handler');
-
-      cblcarsLog.debug('[SystemsManager] DataSourceManager entity count:', this.dataSourceManager.listIds().length);
-    } else {
-      cblcarsLog.warn('[SystemsManager] DataSourceManager not initialized - no data sources configured or HASS unavailable');
-    }
-
     // Initialize rendering systems
     this.router = new RouterCore(mergedConfig.routing, cardModel.anchors, cardModel.viewBox);
     this.renderer = new AdvancedRenderer(mountEl, this.router, this); // Pass 'this' as systemsManager
@@ -240,9 +231,9 @@ export class SystemsManager {
     this.controlsRenderer = new MsdControlsRenderer(this.renderer);
 
     // ADDED: Set HASS context on controls renderer immediately if available
-    if (this._currentHass && this.controlsRenderer) {
+    if (this._hass && this.controlsRenderer) {
       cblcarsLog.debug('[SystemsManager] Setting initial HASS context on controls renderer');
-      this.controlsRenderer.setHass(this._currentHass);
+      this.controlsRenderer.setHass(this._hass);
     }
 
     // REPLACED: Initialize unified HUD manager with document.body mounting
@@ -295,338 +286,54 @@ export class SystemsManager {
 
 
 
-  _createEntityChangeHandler() {
-      return (changedIds, enhancedData = null) => {
-          const timestamp = Date.now();
-
-          cblcarsLog.debug('[SystemsManager] 🔔 Entity change handler TRIGGERED:', {
-              timestamp: new Date().toISOString(),
-              changedIds,
-              hasEnhancedData: !!enhancedData,
-              stackTrace: new Error().stack.split('\n').slice(1, 5).join('\n'),
-              renderTimeout: !!this._renderTimeout,
-              renderInProgress: !!this._renderInProgress
-          });
-
-          // STEP 1: ENHANCED - Update original HASS with fresh entity states
-          // Try multiple methods to get the fresh entity state
-          if (this._originalHass && this._originalHass.states) {
-            const updatedStates = { ...this._originalHass.states };
-            let hassUpdated = false;
-
-            changedIds.forEach(entityId => {
-              let freshEntityState = null;
-
-              // METHOD 1: Try to get fresh state from direct HASS subscription if available
-              // The direct HASS subscription should have already updated _originalHass, so use it
-              if (this._originalHass.states[entityId]) {
-                freshEntityState = this._originalHass.states[entityId];
-                cblcarsLog.debug(`[SystemsManager] 🔄 Using existing HASS state for ${entityId}:`, freshEntityState.state);
-              }
-
-              // METHOD 2: Try to get from DataSource's preserved entity data
-              if (!freshEntityState && this.dataSourceManager) {
-                const templateDataSourceName = `template_${entityId.replace(/\./g, '_')}`;
-                const templateDataSource = this.dataSourceManager.getSource(templateDataSourceName);
-
-                if (templateDataSource) {
-                  const currentData = templateDataSource.getCurrentData();
-                  if (currentData && currentData.entity && currentData.entity.state !== undefined) {
-                    freshEntityState = {
-                      ...currentData.entity,
-                      entity_id: entityId
-                    };
-                    cblcarsLog.debug(`[SystemsManager] 🔄 Using DataSource preserved state for ${entityId}:`, freshEntityState.state);
-                  }
-                }
-              }
-
-              // METHOD 3: If we still don't have fresh state, preserve the existing state but update timestamp
-              if (!freshEntityState && this._originalHass.states[entityId]) {
-                freshEntityState = {
-                  ...this._originalHass.states[entityId],
-                  last_updated: new Date().toISOString(),
-                  last_changed: new Date().toISOString()
-                };
-                cblcarsLog.debug(`[SystemsManager] 🔄 Preserving existing state for ${entityId}:`, freshEntityState.state);
-              }
-
-              // Apply the fresh state if we found one
-              if (freshEntityState) {
-                updatedStates[entityId] = freshEntityState;
-                hassUpdated = true;
-
-                cblcarsLog.debug(`[SystemsManager] 🔄 Updated original HASS for ${entityId}:`, {
-                  newState: freshEntityState.state,
-                  oldState: this._originalHass.states[entityId]?.state,
-                  method: freshEntityState === this._originalHass.states[entityId] ? 'existing' : 'fresh'
-                });
-              } else {
-                cblcarsLog.warn(`[SystemsManager] ⚠️ No fresh state found for ${entityId} - entity may be missing`);
-              }
-            });
-
-            // Update both original and current HASS if we have updates
-            if (hassUpdated) {
-              this._originalHass = {
-                ...this._originalHass,
-                states: updatedStates
-              };
-
-              this._currentHass = {
-                ...this._originalHass // Start with fresh original
-              };
-
-              cblcarsLog.debug('[SystemsManager] ✅ Updated both original and current HASS with fresh entity states');
-
-              // DIAGNOSTIC: Log the specific entity state we just updated
-              changedIds.forEach(entityId => {
-                const state = this._originalHass.states[entityId]?.state;
-                cblcarsLog.debug(`[SystemsManager] 📊 Post-update HASS state for ${entityId}: ${state}`);
-              });
-            } else {
-              cblcarsLog.warn('[SystemsManager] ⚠️ No HASS updates applied - entities may be missing from HASS');
-            }
-          }
-
-          // DIAGNOSTIC: Check DataSource state immediately when entity changes
-          changedIds.forEach(entityId => {
-            if (this.dataSourceManager) {
-              const entity = this.dataSourceManager.getEntity(entityId);
-              cblcarsLog.debug(`[SystemsManager] 🔍 DataSource entity ${entityId} current state:`, {
-                hasEntity: !!entity,
-                state: entity?.state,
-                attributes: entity?.attributes,
-                lastUpdated: entity?.last_updated
-              });
-            }
-          });
-
-          // STEP 2: Handle controls with FRESH CURRENT HASS (restored logic)
-          const controlEntities = this._extractControlEntities(this.mergedConfig);
-          const controlChangedIds = changedIds.filter(id => controlEntities.includes(id));
-
-          if (controlChangedIds.length > 0 && this.controlsRenderer) {
-              // SIMPLIFIED: Direct subscription handles control updates automatically
-              cblcarsLog.debug('[SystemsManager] 📡 Control entities changed:', controlChangedIds);
-              cblcarsLog.debug('[SystemsManager] ℹ️ Direct subscription will handle these updates automatically');
-              // NOTE: The direct HASS subscription automatically handles control updates
-              // No need to manually forward HASS here as it causes duplicate/stale updates
-          }
-
-          // STEP 3: Update MSD internal HASS with converted data (existing logic)
-          const workingHass = this.getCurrentHass();
-          if (workingHass && this.dataSourceManager) {
-              cblcarsLog.debug('[SystemsManager] 📤 Refreshing MSD internal HASS context with converted entity states');
-
-              // Get converted state from data source manager for MSD internal use
-              const freshStates = {};
-              changedIds.forEach(entityId => {
-                  const entity = this.dataSourceManager.getEntity(entityId);
-                  if (entity && entity.state !== undefined) {
-                      // For MSD internal processing, use converted numeric values
-                      freshStates[entityId] = {
-                          state: entity.state.toString(), // MSD converted state
-                          last_changed: new Date().toISOString(),
-                          last_updated: new Date().toISOString(),
-                          attributes: entity.attributes || workingHass.states[entityId]?.attributes || {},
-                          entity_id: entityId,
-                          context: {
-                              id: Date.now().toString(),
-                              user_id: null
-                          }
-                      };
-
-                      cblcarsLog.debug('[SystemsManager] 🔄 Updated MSD internal state for', entityId, {
-                          originalState: this._originalHass?.states[entityId]?.state,
-                          convertedState: freshStates[entityId].state,
-                          rawValue: entity.state
-                      });
-                  } else {
-                      cblcarsLog.debug('[SystemsManager] ⚠️ No data source found for entity:', entityId, '(entity will not be updated in MSD internal HASS)');
-                  }
-              });
-
-              // Only update HASS if we have fresh states from data sources
-              if (Object.keys(freshStates).length > 0) {
-                  // Update the working HASS states object with converted data
-                  this._currentHass = {
-                      ...workingHass,
-                      states: {
-                          ...workingHass.states,
-                          ...freshStates
-                      }
-                  };
-
-                  cblcarsLog.debug('[SystemsManager] ✅ MSD internal HASS context refreshed with', Object.keys(freshStates).length, 'converted entities');
-              } else {
-                  cblcarsLog.debug('[SystemsManager] ℹ️ No data source entities changed - MSD internal HASS unchanged');
-              }
-          } else {
-              cblcarsLog.debug('[SystemsManager] ⚠️ Skipping MSD internal HASS update:', {
-                  hasWorkingHass: !!workingHass,
-                  hasDataSourceManager: !!this.dataSourceManager,
-                  dataSourceManagerIsNull: this.dataSourceManager === null
-              });
-          }
-
-          // STEP 3.5: ENHANCED - Update overlays with DataSource changes using unified system
-          if (this.overlayUpdater) {
-              cblcarsLog.debug('[SystemsManager] 🔄 Using BaseOverlayUpdater for overlay updates');
-
-              // DIAGNOSTIC: Add small delay to ensure DataSource has processed the change
-              setTimeout(() => {
-                cblcarsLog.debug('[SystemsManager] 🔄 Executing delayed overlay updates for:', changedIds);
-                this.overlayUpdater.updateOverlaysForDataSourceChanges(changedIds);
-              }, 10); // 10ms delay to allow DataSource processing
-
-          } else {
-              cblcarsLog.debug('[SystemsManager] ⚠️ BaseOverlayUpdater not available, skipping overlay updates');
-          }
-
-          // STEP 4: Mark rules dirty for future renders - MOVED BEFORE rule evaluation
-          if (this.rulesEngine) {
-              // Enhanced: Map entity IDs to DataSource IDs for rules
-              const entitiesToMarkDirty = new Set();
-
-              changedIds.forEach(entityId => {
-                  // Add the original entity ID
-                  entitiesToMarkDirty.add(entityId);
-
-                  // Check if this entity ID corresponds to any DataSources
-                  if (this.dataSourceManager) {
-                      // Find DataSources that use this entity
-                      for (const [sourceId, source] of this.dataSourceManager.sources) {
-                          if (source.cfg && source.cfg.entity === entityId) {
-                              // Add the DataSource ID so rules can be triggered
-                              entitiesToMarkDirty.add(sourceId);
-                              cblcarsLog.debug(`[SystemsManager] 📏 Mapped entity "${entityId}" to DataSource "${sourceId}"`);
-                          }
-                      }
-                  }
-              });
-
-              const finalEntityList = Array.from(entitiesToMarkDirty);
-              this.rulesEngine.markEntitiesDirty(finalEntityList);
-              cblcarsLog.debug('[SystemsManager] 📏 Marked rules dirty for entities:', finalEntityList);
-
-              // ENHANCED: Force rule evaluation immediately with fresh HASS
-              setTimeout(() => {
-                cblcarsLog.debug('[SystemsManager] 🎯 Triggering immediate rule evaluation with fresh HASS');
-
-                // CRITICAL: Ensure RulesEngine gets the updated original HASS for evaluation
-                changedIds.forEach(entityId => {
-                  const currentState = this._originalHass?.states?.[entityId]?.state;
-                  cblcarsLog.debug(`[SystemsManager] 🔄 Verifying HASS state for rules evaluation - ${entityId}: ${currentState}`);
-                });
-
-                const ruleResults = this.rulesEngine.evaluateDirty();
-                cblcarsLog.debug('[SystemsManager] 🎯 Rule evaluation results:', {
-                  overlayPatches: ruleResults.overlayPatches?.length || 0,
-                  profilesAdd: ruleResults.profilesAdd?.length || 0,
-                  profilesRemove: ruleResults.profilesRemove?.length || 0
-                });
-
-                // If we have overlay patches, apply them and trigger re-render
-                if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
-                  cblcarsLog.debug('[SystemsManager] 🎨 Rule evaluation produced overlay patches - triggering re-render');
-                  this._scheduleFullReRender();
-                }
-              }, 25); // Slightly longer delay to ensure HASS updates are complete
-
-          } else {
-              cblcarsLog.debug('[SystemsManager] ⚠️ No rules engine available to mark dirty');
-          }
-
-          if (this._renderTimeout) {
-              cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing render timeout');
-              clearTimeout(this._renderTimeout);
-          }
-
-          // SIMPLIFIED: Check if this is ONLY a control-triggered change with no data source implications
-          const isControlTriggered = changedIds.some(entityId => controlEntities.includes(entityId));
-          const hasDataSourceChanges = changedIds.some(entityId => {
-              return this.dataSourceManager && this.dataSourceManager.getEntity(entityId);
-          });
-
-          // Store analysis results
-          this._lastEntityAnalysis = {
-              isControlTriggered,
-              hasDataSourceChanges,
-              timestamp,
-              changedIds,
-              controlEntities,
-              matchingEntities: changedIds.filter(id => controlEntities.includes(id))
-          };
-
-          cblcarsLog.debug('[SystemsManager] 🎯 Entity change analysis:', this._lastEntityAnalysis);
-
-          // IMPROVED: Only trigger re-render if rules might have actually changed
-          if (hasDataSourceChanges) {
-              cblcarsLog.debug('[SystemsManager] 🔄 Checking if rules need re-evaluation for data source changes');
-
-              // Check if rule conditions might have changed
-              const needsRuleReRender = this._checkIfRulesNeedReRender(changedIds);
-
-              if (needsRuleReRender) {
-                  cblcarsLog.debug('[SystemsManager] 🎨 Rule conditions may have changed - scheduling full re-render');
-                  this._scheduleFullReRender();
-              } else {
-                  cblcarsLog.debug('[SystemsManager] 📊 Only content changed - rules unchanged, skipping full re-render');
-                  // Content updates happen automatically via DataSource subscriptions
-                  // No full re-render needed for content-only changes
-              }
-          } else {
-              cblcarsLog.debug('[SystemsManager] ⏭️ SKIPPING re-render - no relevant entity changes for MSD');
-          }
-      };
-  }
+  // ============================================================================
+  // REMOVED METHOD: _createEntityChangeHandler() - 293 lines removed
+  // ============================================================================
+  // This complex handler was removed in Phase 1 Step 3B of the architecture refactor.
+  //
+  // What it did:
+  // - Created a closure that handled entity changes with setTimeout delays (10ms, 25ms)
+  // - Manually managed _originalHass and _currentHass state copies
+  // - Applied template conversions and rule evaluations with multiple phases
+  // - Used setTimeout hacks to sequence operations
+  //
+  // Replaced by:
+  // - ingestHassV2() for full HASS updates
+  // - DataSource subscriptions for real-time entity updates (primary path)
+  // - RulesEngine.ingestHass() for rule evaluation
+  // - BaseOverlayUpdater for unified overlay updates
+  //
+  // Benefits of new architecture:
+  // - Single source of truth (_hass)
+  // - No setTimeout delays
+  // - Cleaner separation of concerns
+  // - Real-time subscriptions remain the primary update mechanism
+  // ============================================================================
 
 
+  // ============================================================================
+  // REMOVED METHODS: setOriginalHass(), getCurrentHass(), getOriginalHass()
+  // ============================================================================
+  // These methods were removed in Phase 1 Step 3B of the architecture refactor.
+  //
+  // setOriginalHass(hass) - Set original HASS copy
+  // getCurrentHass() - Get working HASS copy
+  // getOriginalHass() - Get pristine HASS copy
+  //
+  // Replaced by:
+  // - ingestHassV2(hass) - Single entry point for HASS updates
+  // - getHassV2() - Single source getter
+  //
+  // Reason for removal: Multiple HASS copies caused state synchronization issues
+  // ============================================================================
 
   /**
-   * Set the original HASS object and keep a pristine reference for controls
-   * @param {Object} hass - Original Home Assistant object
+   * Render the MSD display
    */
-  setOriginalHass(hass) {
-      cblcarsLog.debug('[SystemsManager] 📚 Setting original HASS reference:', {
-          hasStates: !!hass?.states,
-          entityCount: hass?.states ? Object.keys(hass.states).length : 0,
-          hasAuth: !!hass?.auth,
-          hasConnection: !!hass?.connection,
-          lightDeskState: hass?.states?.['light.desk']?.state,
-          timestamp: new Date().toISOString()
-      });
-
-      // ALWAYS update original HASS to keep it fresh - this should be the most current
-      this._originalHass = hass;
-
-      // If this is the first time setting HASS, also set working copy
-      if (!this._currentHass) {
-          this._currentHass = hass;
-          cblcarsLog.debug('[SystemsManager] 📚 Also setting _currentHass (first time)');
-      }
-
-      // ADDED: Set up direct subscription to ensure fresh HASS for controls
-      this.setupDirectHassSubscription(hass);
-
-      // Note: _currentHass will be modified separately in entity change handler with converted data
+  render() {
+    // Rendering is handled automatically via pipeline
+    // This method exists for API compatibility
   }
-
-  /**
-   * Get the current working HASS (for MSD internal use)
-   */
-  getCurrentHass() {
-      return this._currentHass;
-  }
-
-  /**
-   * Get the original pristine HASS (for controls)
-   */
-  getOriginalHass() {
-      return this._originalHass;
-  }
-
 
   _instrumentRulesEngine(mergedConfig) {
     try {
@@ -677,6 +384,10 @@ export class SystemsManager {
       return;
     }
 
+    // PHASE 1: Pre-register entity change listener BEFORE creating data sources
+    // This ensures the listener is ready when data source subscriptions are set up
+    this._entityChangeListenerRegistered = false;
+
     // ENHANCED: Create auto-DataSources for template entities before processing configured ones
     const configuredDataSources = mergedConfig.data_sources || {};
     const dataSourcesWithTemplates = await this._createTemplateDataSources(mergedConfig, configuredDataSources);
@@ -709,6 +420,66 @@ export class SystemsManager {
 
     try {
       this.dataSourceManager = new DataSourceManager(hass);
+
+      // PHASE 1: Register entity change listener BEFORE initializing data sources
+      // This ensures subscriptions created during initialization can trigger the listener
+      this.dataSourceManager.addEntityChangeListener((changedIds) => {
+        cblcarsLog.debug('[SystemsManager] 🔔 Entity change detected via DataSource:', changedIds);
+
+        // CRITICAL: Sync our HASS with DataSourceManager's updated HASS
+        // Real-time entity updates come via DataSource subscriptions, which update
+        // DataSourceManager.hass but NOT SystemsManager._hass. We need to sync them!
+        if (this.dataSourceManager && this.dataSourceManager.hass) {
+          this._hass = this.dataSourceManager.hass;
+          cblcarsLog.debug('[SystemsManager] 🔄 Synced HASS from DataSourceManager for rule evaluation');
+        }
+
+        // Mark rules dirty for changed entities
+        if (this.rulesEngine && changedIds.length > 0) {
+          // Map entity IDs to DataSource IDs for rules
+          const entitiesToMarkDirty = new Set();
+
+          changedIds.forEach(entityId => {
+            entitiesToMarkDirty.add(entityId);
+
+            // Check if this entity corresponds to any DataSources used in rules
+            if (this.dataSourceManager) {
+              for (const [sourceId, source] of this.dataSourceManager.sources) {
+                if (source.cfg && source.cfg.entity === entityId) {
+                  entitiesToMarkDirty.add(sourceId);
+                  cblcarsLog.debug(`[SystemsManager] Mapped entity "${entityId}" to DataSource "${sourceId}"`);
+                }
+              }
+            }
+          });
+
+          const finalEntityList = Array.from(entitiesToMarkDirty);
+          this.rulesEngine.markEntitiesDirty(finalEntityList);
+
+          // Evaluate rules to check if patches need to be applied
+          const ruleResults = this.rulesEngine.evaluateDirty(this._hass);
+
+          cblcarsLog.info('[SystemsManager] 🔍 RULE EVALUATION RESULT:', {
+            patchCount: ruleResults.overlayPatches?.length || 0,
+            patches: ruleResults.overlayPatches?.map(p => ({
+              overlayId: p.id,
+              cellTarget: p.cell_target || p.cellTarget || null,
+              styleKeys: Object.keys(p.style || {})
+            }))
+          });
+
+          if (ruleResults.overlayPatches && ruleResults.overlayPatches.length > 0) {
+            cblcarsLog.info(`[SystemsManager] 🎨 Rules produced ${ruleResults.overlayPatches.length} patches - triggering re-render`);
+            this._scheduleFullReRender();
+          } else {
+            cblcarsLog.debug('[SystemsManager] ℹ️ No rule patches needed');
+          }
+        }
+      });
+
+      cblcarsLog.debug('[SystemsManager] ✅ Entity change listener configured for rule evaluation (BEFORE data source init)');
+      this._entityChangeListenerRegistered = true;
+
       const sourceCount = await this.dataSourceManager.initializeFromConfig(allDataSources);
       cblcarsLog.debug('[SystemsManager] ✅ DataSourceManager initialized -', sourceCount, 'sources started');
 
@@ -880,7 +651,7 @@ export class SystemsManager {
       cblcarsLog.debug('[SystemsManager] renderDebugAndControls called:', {
         anyEnabled: this.debugManager.isAnyEnabled(),
         controlOverlays: resolvedModel.overlays.filter(o => o.type === 'control').length,
-        hasHass: !!this._currentHass,
+        hasHass: !!this._hass,
         hasResolvedModel: !!resolvedModel,
         hasOverlays: !!resolvedModel?.overlays
       });
@@ -925,8 +696,8 @@ export class SystemsManager {
           }
 
           // Ensure controls renderer has current HASS context
-          if (this._currentHass && this.controlsRenderer) {
-            this.controlsRenderer.setHass(this._currentHass);
+          if (this._hass && this.controlsRenderer) {
+            this.controlsRenderer.setHass(this._hass);
             cblcarsLog.debug('[SystemsManager] HASS context applied to controls renderer');
           } else {
             cblcarsLog.warn('[SystemsManager] No HASS context available for controls');
@@ -1005,11 +776,10 @@ export class SystemsManager {
       return;
     }
 
-    // CRITICAL: Update BOTH working copy AND original copy to keep them fresh
-    this._currentHass = hass;
-    this._originalHass = hass;  // ADDED: Keep original fresh too
+    // PHASE 1: Update single source of truth
+    this._hass = hass;
 
-    cblcarsLog.debug('[SystemsManager] Updated both _currentHass and _originalHass with fresh data');
+    cblcarsLog.debug('[SystemsManager] Updated _hass with fresh data');
 
     // ENHANCED: Pass HASS to controls renderer EVERY time to ensure cards get updates
     if (this.controlsRenderer) {
@@ -1040,48 +810,24 @@ export class SystemsManager {
     return this.dataSourceManager ? this.dataSourceManager.getEntity(id) : null;
   }
 
-  /**
-   * Set up direct HASS subscription to ensure fresh HASS for controls
-   * @param {Object} hass - Home Assistant object with connection
-   */
-  setupDirectHassSubscription(hass) {
-    if (hass && hass.connection && !this._directHassSubscription) {
-      cblcarsLog.debug('[SystemsManager] 🔗 Setting up direct HASS subscription for fresh control updates');
-
-      this._directHassSubscription = hass.connection.subscribeEvents((event) => {
-        if (event.event_type === 'state_changed' && event.data && event.data.entity_id) {
-          const entityId = event.data.entity_id;
-          const newState = event.data.new_state;
-
-          if (newState && this._originalHass && this._originalHass.states) {
-            cblcarsLog.debug('[SystemsManager] 📡 Direct HASS update for entity:', entityId, 'new state:', newState.state);
-
-            // ALWAYS update HASS with fresh state - not just control entities
-            const freshHass = {
-              ...this._originalHass,
-              states: {
-                ...this._originalHass.states,
-                [entityId]: newState
-              }
-            };
-
-            cblcarsLog.debug('[SystemsManager] 📊 Updated HASS with fresh state for', entityId, ':', newState.state);
-            this._originalHass = freshHass;
-            this._currentHass = freshHass;
-
-            // Forward fresh HASS to controls for control entities
-            const controlEntities = this._extractControlEntities(this.mergedConfig);
-            if (controlEntities.includes(entityId) && this.controlsRenderer) {
-              cblcarsLog.debug('[SystemsManager] 📤 Forwarding fresh HASS to controls for control entity');
-              this.controlsRenderer.setHass(freshHass);
-            }
-          }
-        }
-      }, 'state_changed');
-
-      cblcarsLog.debug('[SystemsManager] ✅ Direct HASS subscription established');
-    }
-  }
+  // ============================================================================
+  // REMOVED METHOD: setupDirectHassSubscription() - ~200 lines removed
+  // ============================================================================
+  // This method was removed in Phase 1 Step 3B of the architecture refactor.
+  //
+  // What it did:
+  // - Set up WebSocket subscription to state_changed events
+  // - Manually updated _originalHass and _currentHass on every entity change
+  // - Forwarded HASS to controls for control entities
+  // - Created duplicate update path alongside DataSource subscriptions
+  //
+  // Replaced by:
+  // - DataSource subscriptions handle real-time entity updates (primary path)
+  // - ingestHass() handles full HASS refreshes (initialization, reconnection)
+  // - Single source of truth in _hass property
+  //
+  // Reason for removal: Duplicate update path, manual HASS management, state sync issues
+  // ============================================================================
 
   /**
    * Set up global HUD interface (placeholder for future implementation)
@@ -1222,6 +968,8 @@ export class SystemsManager {
    * @private
    */
   _scheduleFullReRender() {
+    cblcarsLog.info('[SystemsManager] 📅 SCHEDULED full re-render (100ms delay)');
+
     if (this._renderTimeout) {
       cblcarsLog.debug('[SystemsManager] ⏰ Clearing existing render timeout');
       clearTimeout(this._renderTimeout);
@@ -1232,13 +980,18 @@ export class SystemsManager {
       if (this._reRenderCallback && !this._renderInProgress) {
         try {
           this._renderInProgress = true;
-          cblcarsLog.debug('[SystemsManager] 🚀 TRIGGERING full re-render from rule change timeout');
+          cblcarsLog.info('[SystemsManager] 🚀 EXECUTING full re-render from rule change timeout');
           this._reRenderCallback();
         } catch (error) {
           cblcarsLog.error('[SystemsManager] ❌ Re-render FAILED in entity change handler:', error);
         } finally {
           this._renderInProgress = false;
         }
+      } else {
+        cblcarsLog.warn('[SystemsManager] ⚠️ Re-render NOT triggered:', {
+          hasCallback: !!this._reRenderCallback,
+          renderInProgress: this._renderInProgress
+        });
       }
       this._renderTimeout = null;
     }, 100);
@@ -1257,6 +1010,79 @@ export class SystemsManager {
   // REMOVED METHOD: _findDataSourceForEntity
   // This was only used by _updateTextOverlaysForDataSourceChanges.
   // Deleted in Phase 0 of architecture refactor.
+
+  // ============================================================================
+  // PHASE 1: HASS Management Methods (Completed - Phase 3D renamed V2 methods)
+  // ============================================================================
+
+  /**
+   * Ingest fresh HASS and propagate to all systems in correct order
+   * Single source of truth for HASS (renamed from ingestHassV2 in Phase 3D)
+   * @param {Object} hass - Home Assistant state object
+   */
+  ingestHass(hass) {
+    if (!hass || !hass.states) {
+      cblcarsLog.warn('[SystemsManager] ingestHass: Invalid HASS provided');
+      return;
+    }
+
+    cblcarsLog.debug('[SystemsManager] 📥 ingestHass: Ingesting fresh HASS:', {
+      entityCount: Object.keys(hass.states).length,
+      timestamp: new Date().toISOString()
+    });
+
+    // Store in single source of truth
+    this._hass = hass;
+
+    // Propagate to subsystems in correct order
+    this._propagateHassToSystems(hass);
+  }
+
+  /**
+   * Propagate HASS to subsystems in correct order
+   * ORDER MATTERS: DataSourceManager → RulesEngine → Controls
+   * (renamed from _propagateHassToSystemsV2 in Phase 3D)
+   * @private
+   */
+  _propagateHassToSystems(hass) {
+    cblcarsLog.debug('[SystemsManager] 🔄 _propagateHassToSystems: Starting ordered propagation');
+
+    // 1. DataSourceManager first (provides entity values)
+    if (this.dataSourceManager && typeof this.dataSourceManager.ingestHass === 'function') {
+      cblcarsLog.debug('[SystemsManager] 📊 Propagating to DataSourceManager');
+      this.dataSourceManager.ingestHass(hass);
+    } else {
+      cblcarsLog.debug('[SystemsManager] ⏭️ DataSourceManager not ready or no ingestHass method');
+    }
+
+    // 2. RulesEngine second (evaluates conditions with fresh data)
+    if (this.rulesEngine && typeof this.rulesEngine.ingestHass === 'function') {
+      cblcarsLog.debug('[SystemsManager] 📏 Propagating to RulesEngine');
+      this.rulesEngine.ingestHass(hass);
+    } else {
+      cblcarsLog.debug('[SystemsManager] ⏭️ RulesEngine not ready or no ingestHass method');
+    }
+
+    // 3. Controls third (direct HASS access)
+    if (this.controlsRenderer) {
+      cblcarsLog.debug('[SystemsManager] 🎮 Propagating to Controls');
+      this.controlsRenderer.setHass(hass);
+    } else {
+      cblcarsLog.debug('[SystemsManager] ⏭️ Controls not ready');
+    }
+
+    // 4. Overlays update automatically via DataSource subscriptions
+    cblcarsLog.debug('[SystemsManager] ✅ _propagateHassToSystems: Propagation complete');
+  }
+
+  /**
+   * Get current HASS (single source of truth)
+   * (renamed from getHassV2 in Phase 3D)
+   * @returns {Object} Current Home Assistant state
+   */
+  getHass() {
+    return this._hass;
+  }
 }
 
 // CLEANUP NOTE: The old text-specific overlay update methods have been removed

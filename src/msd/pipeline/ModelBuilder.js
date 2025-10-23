@@ -208,9 +208,9 @@ export class ModelBuilder {
         return this.systems.dataSourceManager.getEntity(entityId);
       }
 
-      // Fallback to direct HASS access if no DataSourceManager
-      if (this.systems._currentHass?.states?.[entityId]) {
-        const hassState = this.systems._currentHass.states[entityId];
+      // Fallback to direct HASS access if no DataSourceManager (Phase 1: use new _hass property)
+      if (this.systems._hass?.states?.[entityId]) {
+        const hassState = this.systems._hass.states[entityId];
         return {
           state: hassState.state,
           attributes: hassState.attributes || {}
@@ -230,17 +230,48 @@ export class ModelBuilder {
   }
 
   _applyOverlayPatches(baseOverlays, ruleResult) {
-    cblcarsLog.debug('[ModelBuilder] 🎨 _applyOverlayPatches() called with:', {
+    cblcarsLog.info('[ModelBuilder] 🎨 _applyOverlayPatches() ENTRY:', {
       overlayCount: baseOverlays.length,
       patchCount: ruleResult.overlayPatches.length,
-      patches: ruleResult.overlayPatches
+      patches: ruleResult.overlayPatches.map(p => ({
+        overlayId: p.overlayId,
+        ruleId: p.ruleId,
+        changeKeys: Object.keys(p.changes || {})
+      }))
     });
 
     const result = perfTime('styles.patch', () =>
       applyOverlayPatches(baseOverlays, ruleResult.overlayPatches)
     );
 
-    cblcarsLog.debug('[ModelBuilder] 🎨 Overlay patches applied. Checking title_overlay:');
+    cblcarsLog.info('[ModelBuilder] 🎨 _applyOverlayPatches() COMPLETE - patches applied to overlays');
+
+    // Log specific statusgrid overlays if patches were for statusgrid
+    const statusgridPatches = ruleResult.overlayPatches.filter(p =>
+      baseOverlays.find(o => o.id === p.overlayId && o.type === 'statusgrid')
+    );
+
+    if (statusgridPatches.length > 0) {
+      cblcarsLog.info('[ModelBuilder] 🔲 STATUSGRID patches detected:', {
+        count: statusgridPatches.length,
+        patchedOverlayIds: statusgridPatches.map(p => p.overlayId)
+      });
+
+      statusgridPatches.forEach(patch => {
+        const overlay = result.find(o => o.id === patch.overlayId);
+        if (overlay) {
+          cblcarsLog.info(`[ModelBuilder] 🔍 Statusgrid overlay "${patch.overlayId}" after patching:`, {
+            id: overlay.id,
+            type: overlay.type,
+            hasButtons: !!overlay.buttons,
+            buttonCount: overlay.buttons?.length || 0,
+            patchChanges: patch.changes
+          });
+        }
+      });
+    }
+
+    cblcarsLog.debug('[ModelBuilder] 🎨 Checking title_overlay:');
     const titleOverlay = result.find(o => o.id === 'title_overlay');
     if (titleOverlay) {
       cblcarsLog.debug('[ModelBuilder] 🎯 Title overlay after patching:', {

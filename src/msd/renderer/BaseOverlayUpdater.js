@@ -11,6 +11,7 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { DataSourceMixin } from './DataSourceMixin.js';
 import { TemplateEntityExtractor } from '../templates/TemplateEntityExtractor.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 export class BaseOverlayUpdater {
   /**
@@ -238,12 +239,11 @@ export class BaseOverlayUpdater {
    * @private
    * @param {string} content - Content string to check
    * @returns {boolean} True if content contains template markers
+   *
+   * PHASE 2: Delegated to TemplateProcessor for unified detection
    */
   _hasAnyTemplateMarkers(content) {
-    if (!content || typeof content !== 'string') return false;
-    if (content.includes('{{') && content.includes('}}')) return true;
-    if (content.includes('{')) return true;
-    return false;
+    return TemplateProcessor.hasTemplates(content);
   }
 
   /**
@@ -359,8 +359,8 @@ export class BaseOverlayUpdater {
   _updateStatusGrid(overlayId, overlay, sourceData) {
     cblcarsLog.debug(`[BaseOverlayUpdater] 📊 Updating status grid ${overlayId} with template processing`);
 
-    // Ensure renderer has updated HASS context before processing
-    const updatedHass = this.systemsManager.getCurrentHass();
+    // Ensure renderer has updated HASS context before processing (Phase 1 new method)
+    const updatedHass = this.systemsManager.getHassV2();
     if (updatedHass && this.systemsManager.renderer) {
       if (this.systemsManager.renderer.setHass) {
         this.systemsManager.renderer.setHass(updatedHass);

@@ -15,6 +15,7 @@ import { MsdControlsRenderer } from '../controls/MsdControlsRenderer.js';
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { ActionHelpers } from './ActionHelpers.js'; // ADDED: Import ActionHelpers
 import { ApexChartsOverlayRenderer } from './ApexChartsOverlayRenderer.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 export class AdvancedRenderer {
   constructor(mountEl, routerCore, systemsManager = null) {
@@ -1321,7 +1322,7 @@ export class AdvancedRenderer {
    * @returns {string} Processed content
    */
   _processTextTemplate(template) {
-    if (!template || !template.includes('{')) {
+    if (!TemplateProcessor.hasTemplates(template)) {
       return template;
     }
 
@@ -1331,7 +1332,6 @@ export class AdvancedRenderer {
       cblcarsLog.debug(`[AdvancedRenderer] DataSourceManager not available`);
       return template;
     }
-
     // Process template
     return template.replace(/\{([^}]+)\}/g, (match, reference) => {
       try {

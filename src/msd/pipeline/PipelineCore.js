@@ -251,9 +251,10 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
     throw new Error(`Systems completion failed: ${error.message}`);
   }
 
-  // ADDED: Set original HASS for clean controls separation
+  // Initialize HASS state
   if (hass) {
-    systemsManager.setOriginalHass(hass);
+    cblcarsLog.debug('[PipelineCore] 📥 Initializing HASS via ingestHass');
+    systemsManager.ingestHass(hass);
   }
 
   // PHASE 5: Early debug and routing setup
@@ -304,9 +305,10 @@ export async function initMsdPipeline(userMsdConfig, mountEl, hass = null) {
    * @returns {Object|undefined} Renderer result object
    */
   async function reRender() {
-    cblcarsLog.debug('[PipelineCore] 🔄 reRender() ENTRY', {
+    cblcarsLog.info('[PipelineCore] 🔄 reRender() ENTRY - FULL RE-RENDER TRIGGERED', {
       timestamp: new Date().toISOString(),
-      renderInProgress: systemsManager._renderInProgress
+      renderInProgress: systemsManager._renderInProgress,
+      rulePatches: systemsManager.rulesEngine?.getLastEvaluationResult?.()?.overlayPatches?.length || 'N/A'
     });
 
     if (!systemsManager.themeManager) {

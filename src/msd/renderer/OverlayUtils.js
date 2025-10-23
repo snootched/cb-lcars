@@ -111,6 +111,26 @@ export class OverlayUtils {
 
   /**
    * Process template strings with data substitution
+   *
+   * @deprecated Use TemplateProcessor for template detection and parsing.
+   * This method provides only basic {key} → value substitution and will be removed in a future version.
+   *
+   * Migration path:
+   * ```javascript
+   * // OLD:
+   * const result = OverlayUtils.processTemplate('{name} is {value}', {name: 'CPU', value: '75'});
+   *
+   * // NEW:
+   * import { TemplateProcessor } from '../utils/TemplateProcessor.js';
+   *
+   * // For detection:
+   * if (TemplateProcessor.hasTemplates(content)) { ... }
+   *
+   * // For full processing (with DataSource support):
+   * import { DataSourceMixin } from './DataSourceMixin.js';
+   * const result = DataSourceMixin.processUnifiedTemplateStrings(content, 'YourRenderer');
+   * ```
+   *
    * @param {string} template - Template string with {key} placeholders
    * @param {Object} data - Data object for substitution
    * @returns {string} Processed string
@@ -118,6 +138,15 @@ export class OverlayUtils {
   static processTemplate(template, data) {
     if (!template || typeof template !== 'string') return template;
     if (!data || typeof data !== 'object') return template;
+
+    // Log deprecation warning
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(
+        '[OverlayUtils] processTemplate() is deprecated. ' +
+        'Use TemplateProcessor for template detection or DataSourceMixin for processing. ' +
+        'This method will be removed in a future version.'
+      );
+    }
 
     return template.replace(/\{([^}]+)\}/g, (match, key) => {
       const value = data[key];

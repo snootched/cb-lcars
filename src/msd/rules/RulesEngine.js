@@ -214,19 +214,19 @@ export class RulesEngine {
         getEntity = (entityId) => {
           cblcarsLog.debug(`[RulesEngine] getEntity called for: ${entityId}`);
 
-          // PRIORITY 1: Try to get original HASS state from SystemsManager
+          // PRIORITY 1: Try to get HASS state from SystemsManager
           if (this.systemsManager) {
-            const originalHass = this.systemsManager.getOriginalHass();
-            if (originalHass && originalHass.states && originalHass.states[entityId]) {
-              const originalState = originalHass.states[entityId].state;
-              cblcarsLog.debug(`[RulesEngine] Found original HASS state for ${entityId}: ${originalState}`);
+            const hass = this.systemsManager.getHass();
+            if (hass && hass.states && hass.states[entityId]) {
+              const state = hass.states[entityId].state;
+              cblcarsLog.debug(`[RulesEngine] Found HASS state for ${entityId}: ${state}`);
 
               return {
                 entity_id: entityId,
-                state: originalState,
-                attributes: originalHass.states[entityId].attributes || {},
-                last_changed: originalHass.states[entityId].last_changed,
-                last_updated: originalHass.states[entityId].last_updated
+                state: state,
+                attributes: hass.states[entityId].attributes || {},
+                last_changed: hass.states[entityId].last_changed,
+                last_updated: hass.states[entityId].last_updated
               };
             }
           }
@@ -1073,10 +1073,11 @@ export function applyOverlayPatches(overlays, patches) {
 function applyStatusGridCellPatch(overlay, patch) {
   const cellTarget = patch.cell_target || patch.cellTarget;
 
-  cblcarsLog.debug('[RulesEngine] 🔲 Applying status_grid cell patch:', {
+  cblcarsLog.info('[RulesEngine] 🔲 APPLYING status_grid cell patch:', {
     overlayId: overlay.id,
     cellTarget,
-    cellPatch: patch.style
+    cellPatch: patch.style,
+    currentCellCount: overlay.cells?.length || 0
   });
 
   // Clone the overlay to avoid mutations
@@ -1090,6 +1091,8 @@ function applyStatusGridCellPatch(overlay, patch) {
     }
   };
 
+  let patchedCellCount = 0;
+
   // Find and patch the target cell(s)
   if (patchedOverlay.cells) {
     patchedOverlay.cells = patchedOverlay.cells.map(cell => {
@@ -1097,13 +1100,16 @@ function applyStatusGridCellPatch(overlay, patch) {
       const isTargetCell = matchesStatusGridCellTarget(cell, cellTarget);
 
       if (isTargetCell) {
-        cblcarsLog.debug('[RulesEngine] 🎯 Patching cell:', {
+        patchedCellCount++;
+        cblcarsLog.info('[RulesEngine] 🎯 PATCHING CELL:', {
           cellId: cell.id,
           position: [cell.row, cell.col],
+          originalColor: cell.color,
+          patchColor: patch.style.color,
           patch: patch.style
         });
 
-        return {
+        const patchedCell = {
           ...cell,
           // CHANGED: Store patches in a separate property to prevent cascade during style resolution
           _rulePatch: patch.style,
@@ -1117,11 +1123,25 @@ function applyStatusGridCellPatch(overlay, patch) {
           // Support visibility control
           visible: patch.visible !== undefined ? patch.visible : (cell.visible !== undefined ? cell.visible : true)
         };
+
+        cblcarsLog.info('[RulesEngine] ✅ CELL PATCHED RESULT:', {
+          cellId: patchedCell.id,
+          newColor: patchedCell.color,
+          hadColorChange: cell.color !== patchedCell.color
+        });
+
+        return patchedCell;
       }
 
       return cell;
     });
   }
+
+  cblcarsLog.info('[RulesEngine] 🔲 CELL PATCH COMPLETE:', {
+    overlayId: overlay.id,
+    totalCells: patchedOverlay.cells.length,
+    cellsPatched: patchedCellCount
+  });
 
   // REMOVED: Don't apply overlay-level styles for cell-targeted patches
   // This was causing the cascade issue
@@ -1154,3 +1174,61 @@ function matchesStatusGridCellTarget(cell, cellTarget) {
 
   return false;
 }
+
+// ============================================================================
+// PHASE 1: New HASS Ingestion Method (Step 1 - Add alongside existing)
+// ============================================================================
+
+/**
+ * NEW: Ingest fresh HASS and mark affected rules dirty
+ * This supplements the real-time entity subscription mechanism
+ * Used for: initialization, reconnection, manual refresh
+ * @param {Object} hass - Home Assistant state object
+ */
+RulesEngine.prototype.ingestHass = function(hass) {
+  if (!hass || !hass.states) {
+    cblcarsLog.warn('[RulesEngine] ingestHass: Invalid HASS provided');
+    return;
+  }
+
+  cblcarsLog.debug('[RulesEngine] 📥 ingestHass: Processing fresh HASS', {
+    entityCount: Object.keys(hass.states).length,
+    ruleCount: this.rules.length
+  });
+
+  // Cache entity IDs for performance
+  const currentEntityIds = new Set(Object.keys(hass.states));
+  const previousEntityIds = this._hassEntities;
+
+  // Detect which entities changed
+  const changedEntities = new Set();
+
+  // Check for new or modified entities
+  for (const entityId of currentEntityIds) {
+    if (!previousEntityIds.has(entityId)) {
+      changedEntities.add(entityId);
+    }
+  }
+
+  // Check for removed entities
+  for (const entityId of previousEntityIds) {
+    if (!currentEntityIds.has(entityId)) {
+      changedEntities.add(entityId);
+    }
+  }
+
+  // Update cached entity list
+  this._hassEntities = currentEntityIds;
+
+  // Mark rules that depend on changed entities as dirty
+  if (changedEntities.size > 0) {
+    cblcarsLog.debug(`[RulesEngine] 🔄 Marking rules dirty for ${changedEntities.size} changed entities`);
+    this.markEntitiesDirty(Array.from(changedEntities));
+  } else {
+    cblcarsLog.debug('[RulesEngine] ⏭️ No entity changes detected');
+  }
+
+  cblcarsLog.debug('[RulesEngine] ✅ ingestHass: Complete', {
+    dirtyRules: this.dirtyRules.size
+  });
+};

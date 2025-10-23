@@ -1,9 +1,12 @@
 import { cblcarsLog } from '../../utils/cb-lcars-logging.js';
 import { MsdTemplateEngine } from '../overlays/MsdTemplateEngine.js';
+import { TemplateProcessor } from '../utils/TemplateProcessor.js';
 
 /**
  * [DataSourceMixin] DataSource integration mixin - reusable DataSource integration methods
  * 🔗 Provides consistent DataSource access, template processing, and value formatting across all overlay renderers
+ *
+ * Uses TemplateProcessor for unified template detection and parsing (Phase 2)
  */
 
 export class DataSourceMixin {
@@ -34,7 +37,8 @@ export class DataSourceMixin {
     }
 
     // Enhanced template string processing for DataSource references (only if content has templates)
-    if (content && typeof content === 'string' && content.includes('{')) {
+    // PHASE 2: Use TemplateProcessor for unified template detection
+    if (content && typeof content === 'string' && TemplateProcessor.hasTemplates(content)) {
       content = this.processEnhancedTemplateStrings(content, rendererName);
       return content;
     }
@@ -444,7 +448,23 @@ export class DataSourceMixin {
   }
 
   /**
+   * Extract all template dependencies (both MSD DataSources and HA entities)
+   * PHASE 2: Unified dependency extraction using TemplateProcessor
+   *
+   * @param {string} content - Content with templates
+   * @returns {Array<string>} Array of entity/DataSource IDs
+   *
+   * @example
+   * getTemplateDependencies('{cpu_temp} is {{states("sensor.temp")}}')
+   * // Returns: ['cpu_temp', 'sensor.temp']
+   */
+  static getTemplateDependencies(content) {
+    return TemplateProcessor.extractEntityDependencies(content);
+  }
+
+  /**
    * Extract HA entity dependencies from template content
+   * @deprecated Use getTemplateDependencies() for unified extraction
    */
   static extractHAEntityDependencies(content) {
     try {
@@ -466,13 +486,11 @@ export class DataSourceMixin {
 
   /**
    * Detect if content contains either MSD or HA template markers
+   * PHASE 2: Delegated to TemplateProcessor for unified detection
    * @private
    */
   static _hasTemplateMarkers(content) {
-    if (!content || typeof content !== 'string') return false;
-    if (content.includes('{{') && content.includes('}}')) return true; // HA
-    if (content.includes('{')) return true; // MSD
-    return false;
+    return TemplateProcessor.hasTemplates(content);
   }
 
   /**
