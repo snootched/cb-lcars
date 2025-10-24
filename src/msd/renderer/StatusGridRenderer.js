@@ -2275,11 +2275,58 @@ export class StatusGridRenderer extends BaseRenderer {
 
     // MSD-style inline conditional support stays (only for { ... ? ... : ... } style)
     if (cellContent.includes('?') && cellContent.includes(':') && hasMSD) {
+      cblcarsLog.debug(`[StatusGridRenderer] Using conditional path for: ${cellContent}`);
       return this._processConditionalWithDataSourceMixin(cellContent, updateDataSourceData);
     }
 
-    // Unified processing (handles both HA {{}} and MSD {})
+    // CRITICAL FIX: If updateDataSourceData is a DataSourceManager, use its hass states
+    // This ensures we resolve templates with the SAME state that RulesEngine just used
+    if (updateDataSourceData && typeof updateDataSourceData.getEntity === 'function') {
+      cblcarsLog.debug(`[StatusGridRenderer] 🎯 Using DataSourceManager path for: ${cellContent}`);
+      // We have a DataSourceManager - use it to resolve HA templates with current state
+      return this._resolveWithDataSourceManager(cellContent, updateDataSourceData);
+    }
+
+    // Fallback: Unified processing (handles both HA {{}} and MSD {})
+    cblcarsLog.debug(`[StatusGridRenderer] ⚠️ Using fallback DataSourceMixin path for: ${cellContent}`);
     return DataSourceMixin.processUnifiedTemplateStrings(cellContent, 'StatusGridRenderer');
+  }
+
+  /**
+   * Resolve templates using DataSourceManager's current HASS state
+   * @private
+   */
+  _resolveWithDataSourceManager(cellContent, dataSourceManager) {
+    // Extract entity IDs from templates like {{states('light.tv')}}
+    const entityMatches = cellContent.match(/states\(['"]([^'"]+)['"]\)/g);
+
+    if (!entityMatches) {
+      // No states() calls, fall back to standard processing
+      return DataSourceMixin.processUnifiedTemplateStrings(cellContent, 'StatusGridRenderer');
+    }
+
+    let resolved = cellContent;
+    entityMatches.forEach(match => {
+      const entityId = match.match(/states\(['"]([^'"]+)['"]\)/)[1];
+
+      // CRITICAL: Get the ORIGINAL HASS state, not processed DataSource value
+      // DataSource may have enum mappings (on->1, off->0) but templates need original state
+      const hassState = dataSourceManager.hass?.states?.[entityId];
+
+      if (hassState && hassState.state) {
+        // Replace the template with the actual state value
+        const templatePattern = `{{\\s*states\\(['"]${entityId}['"]\\)\\s*}}`;
+        resolved = resolved.replace(new RegExp(templatePattern, 'g'), hassState.state);
+
+        cblcarsLog.debug(`[StatusGridRenderer] 🔄 Resolved template:`, {
+          entityId,
+          state: hassState.state,
+          pattern: templatePattern
+        });
+      }
+    });
+
+    return resolved;
   }
 
   /**
@@ -3062,8 +3109,21 @@ export class StatusGridRenderer extends BaseRenderer {
    * @returns {boolean} True if content was updated
    * @static
    */
-  static updateGridData(gridElement, overlay, sourceData) {
+  static updateGridData(gridElement, overlay, contextOrPatch) {
     try {
+      // Support both old API (patch object) and new API (context object)
+      const isContext = contextOrPatch && (contextOrPatch.patch || contextOrPatch.dataSourceManager);
+      const sourceData = isContext ? contextOrPatch.patch : contextOrPatch;
+      const dataSourceManager = isContext ? contextOrPatch.dataSourceManager : null;
+
+      cblcarsLog.debug(`[StatusGridRenderer] 📦 Context extraction:`, {
+        hasContext: !!contextOrPatch,
+        isContext,
+        hasDataSourceManager: !!dataSourceManager,
+        dataSourceManagerType: dataSourceManager ? dataSourceManager.constructor.name : 'none',
+        contextKeys: contextOrPatch ? Object.keys(contextOrPatch) : []
+      });
+
       // Log the actual sourceData structure to understand what we're getting
       const sourceDataKeys = sourceData ? Object.keys(sourceData) : [];
       cblcarsLog.info(`[StatusGridRenderer] 📦 PATCH STRUCTURE ANALYSIS:`, {
@@ -3086,20 +3146,29 @@ export class StatusGridRenderer extends BaseRenderer {
       const isRulePatch = sourceData && typeof sourceData === 'object' &&
                          ('cellTarget' in sourceData || 'cell_target' in sourceData || 'cell' in sourceData);
 
+      // Extract cellTarget, supporting both camelCase and snake_case
+      const cellTarget = sourceData?.cellTarget || sourceData?.cell_target;
+
+      // Extract cellId from cellTarget, supporting both camelCase and snake_case
+      const targetCellId = cellTarget?.cellId || cellTarget?.cell_id;
+
+      // Extract the style patch - could be in 'patch' or 'style' property
+      const stylePatch = sourceData?.patch || sourceData?.style;
+
       // If it's a rule patch, temporarily store it on the overlay for style resolution
       let patchedOverlay = overlay;
-      if (isRulePatch && sourceData.cellTarget) {
+      if (isRulePatch && targetCellId) {
         // Apply patch to the overlay by modifying the cell config
         patchedOverlay = {
           ...overlay,
           cells: overlay.cells?.map(cell => {
-            if (cell.id === sourceData.cellTarget.cellId) {
+            if (cell.id === targetCellId) {
               return {
                 ...cell,
-                _rulePatch: sourceData.patch, // Store patch for style resolution
+                _rulePatch: stylePatch, // Store patch for style resolution
                 style: {
                   ...cell.style,
-                  ...sourceData.patch // Merge patch into cell style
+                  ...stylePatch // Merge patch into cell style
                 }
               };
             }
@@ -3110,8 +3179,8 @@ export class StatusGridRenderer extends BaseRenderer {
 
       cblcarsLog.debug(`[StatusGridRenderer] 📥 updateGridData() called for ${overlay.id}`, {
         hasRulePatches: isRulePatch,
-        cellsWithPatches: isRulePatch && sourceData.cellTarget ? 1 : 0,
-        patchedCellId: isRulePatch && sourceData.cellTarget ? sourceData.cellTarget.cellId : undefined
+        cellsWithPatches: isRulePatch && targetCellId ? 1 : 0,
+        patchedCellId: targetCellId || undefined
       });
 
       // Create instance for non-static methods
@@ -3119,7 +3188,11 @@ export class StatusGridRenderer extends BaseRenderer {
 
       // Get updated cells with new data (for content changes)
       const style = patchedOverlay.finalStyle || patchedOverlay.style || {};
-      const cellsWithContentChanges = instance.updateCellsWithData(patchedOverlay, style, sourceData);
+
+      // CRITICAL: Pass dataSourceManager so templates can access current HASS state
+      // For incremental updates, we need to re-evaluate cell content using the SAME
+      // hass state that the RulesEngine just used to evaluate the rules
+      const cellsWithContentChanges = instance.updateCellsWithData(patchedOverlay, style, dataSourceManager);
 
       // CRITICAL FIX: Need to check ALL cells for style changes, not just cells with content changes!
       // Get all cells from overlay for style checking
@@ -3141,8 +3214,10 @@ export class StatusGridRenderer extends BaseRenderer {
               id: cellWithContentChange.id,
               label: cellWithContentChange.label,
               content: cellWithContentChange.content,
-              _raw: cellWithContentChange._raw || cellWithContentChange.config,
-              _originalContent: cellWithContentChange._originalContent
+              texts: cellWithContentChange.texts  // Include texts array if present
+              // NOTE: Don't pass _raw or _originalContent! They would cause ButtonRenderer
+              // to re-resolve the template from scratch instead of using our already-resolved content.
+              // We've already resolved the content with current HASS state in updateCellsWithData.
             };
 
             const updated = ButtonRenderer.updateButtonData(cellElement, buttonConfig, sourceData);
@@ -3236,7 +3311,11 @@ export class StatusGridRenderer extends BaseRenderer {
    * @returns {Array} Updated cell configurations with new data
    */
   updateCellsWithData(overlay, style, newDataSourceData) {
-    cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`);
+    cblcarsLog.debug(`[StatusGridRenderer] Updating cells with new DataSource data for ${overlay.id}`, {
+      hasDataSourceData: !!newDataSourceData,
+      isDataSourceManager: newDataSourceData && typeof newDataSourceData.getHassState === 'function',
+      dataType: newDataSourceData ? newDataSourceData.constructor.name : 'none'
+    });
 
     const gridStyle = this._resolveStatusGridStyles(style, overlay.id, overlay);
     const cells = this._resolveCellConfigurations(overlay, gridStyle);
@@ -3253,9 +3332,18 @@ export class StatusGridRenderer extends BaseRenderer {
         // Ensure we don't return [object Object]
         const safeContent = (typeof processedContent === 'object') ? JSON.stringify(processedContent) : String(processedContent);
 
-        return {
+        cblcarsLog.debug(`[StatusGridRenderer] 📝 Cell content resolution for ${cell.id}:`, {
+          rawCellContent,
+          processedContent,
+          safeContent,
+          oldLabel: cell.label,
+          contentChanged: processedContent !== rawCellContent
+        });
+
+        // Update both legacy fields AND texts array for compatibility
+        const updatedCell = {
           ...cell,
-          label: processedContent === rawCellContent ? cell.label : safeContent, // Only update label if content changed
+          label: processedContent === rawCellContent ? cell.label : safeContent,
           content: safeContent,
           data: {
             ...cell.data,
@@ -3264,6 +3352,22 @@ export class StatusGridRenderer extends BaseRenderer {
           },
           lastUpdate: Date.now()
         };
+
+        // CRITICAL: If cell uses texts array, update the value text in it
+        if (cell.texts && Array.isArray(cell.texts)) {
+          updatedCell.texts = cell.texts.map(text => {
+            // Update the text with textType: 'value' (the dynamic content)
+            if (text.textType === 'value') {
+              return {
+                ...text,
+                text: safeContent
+              };
+            }
+            return text;
+          });
+        }
+
+        return updatedCell;
       }
     // If the processed content is purely numeric, return it
       return cell;
@@ -3458,8 +3562,8 @@ export class StatusGridRenderer extends BaseRenderer {
 
     try {
       // Call static updateGridData method which handles DOM updates
-      // Parameter order: gridElement, overlay, sourceData (patch)
-      const success = StatusGridRenderer.updateGridData(overlayElement, overlay, context.patch);
+      // Pass the full context so updateGridData can access dataSourceManager
+      const success = StatusGridRenderer.updateGridData(overlayElement, overlay, context);
 
       if (success) {
         cblcarsLog.info(`[StatusGridRenderer] ✅ INCREMENTAL UPDATE SUCCESS: ${overlay.id}`);
